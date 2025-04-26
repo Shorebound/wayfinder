@@ -1,5 +1,5 @@
-#include "../include/Renderer.h"
-#include "../include/Scene.h"
+#include "Renderer.h"
+#include "../scene/Scene.h"
 
 namespace Wayfinder {
 

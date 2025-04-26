@@ -1,5 +1,5 @@
-#include "../include/Game.h"
-#include "../include/Scene.h"
+#include "Game.h"
+#include "../scene/Scene.h"
 #include "raylib.h"
 
 namespace Wayfinder {

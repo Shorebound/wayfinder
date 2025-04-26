@@ -1,4 +1,4 @@
-#include "../include/Application.h"
+#include "core/Application.h"
 
 #if defined(PLATFORM_WEB)
     #include <emscripten/emscripten.h>
@@ -11,6 +11,4 @@ int main()
     // Create and initialize the application
     Wayfinder::Application app;
     app.Run();
-
-
 }

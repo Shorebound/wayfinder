@@ -1,7 +1,7 @@
-#include "../include/Application.h"
-#include "../include/Game.h"
-#include "../include/Renderer.h"
-#include "../include/Scene.h"
+#include "Application.h"
+#include "Game.h"
+#include "../graphics/Renderer.h"
+#include "../scene/Scene.h"
 
 namespace Wayfinder 
 {

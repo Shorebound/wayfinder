@@ -28,14 +28,21 @@ endif()
 # Our Project
 add_executable(wayfinder
     src/main.cpp
-    src/Application.cpp
-    src/Game.cpp
-    src/Renderer.cpp
-    src/Scene.cpp
+    src/core/Application.cpp
+    src/core/Game.cpp
+    src/graphics/Renderer.cpp
+    src/scene/Scene.cpp
+    src/input/InputManager.cpp
 )
 
 # Include directories
-include_directories(include)
+include_directories(
+    src
+    src/core
+    src/graphics
+    src/scene
+    src/input
+)
 
 #set(raylib_VERBOSE 1)
 target_link_libraries(${PROJECT_NAME} raylib)
