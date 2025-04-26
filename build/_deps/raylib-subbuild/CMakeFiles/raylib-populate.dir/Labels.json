@@ -1,0 +1,46 @@
+{
+	"sources" : 
+	[
+		{
+			"file" : "D:/wanderlight/projects/engine/wayfinder/build/_deps/raylib-subbuild/CMakeFiles/raylib-populate"
+		},
+		{
+			"file" : "D:/wanderlight/projects/engine/wayfinder/build/_deps/raylib-subbuild/CMakeFiles/e95308716752f40f09c4451ab71e4c8d/raylib-populate.rule"
+		},
+		{
+			"file" : "D:/wanderlight/projects/engine/wayfinder/build/_deps/raylib-subbuild/CMakeFiles/ad571e57c7faa50ebc2a4e35f787c33a/raylib-populate-complete.rule"
+		},
+		{
+			"file" : "D:/wanderlight/projects/engine/wayfinder/build/_deps/raylib-subbuild/CMakeFiles/b1247884b9d3149226c6c786aa18166d/raylib-populate-build.rule"
+		},
+		{
+			"file" : "D:/wanderlight/projects/engine/wayfinder/build/_deps/raylib-subbuild/CMakeFiles/b1247884b9d3149226c6c786aa18166d/raylib-populate-configure.rule"
+		},
+		{
+			"file" : "D:/wanderlight/projects/engine/wayfinder/build/_deps/raylib-subbuild/CMakeFiles/b1247884b9d3149226c6c786aa18166d/raylib-populate-download.rule"
+		},
+		{
+			"file" : "D:/wanderlight/projects/engine/wayfinder/build/_deps/raylib-subbuild/CMakeFiles/b1247884b9d3149226c6c786aa18166d/raylib-populate-install.rule"
+		},
+		{
+			"file" : "D:/wanderlight/projects/engine/wayfinder/build/_deps/raylib-subbuild/CMakeFiles/b1247884b9d3149226c6c786aa18166d/raylib-populate-mkdir.rule"
+		},
+		{
+			"file" : "D:/wanderlight/projects/engine/wayfinder/build/_deps/raylib-subbuild/CMakeFiles/b1247884b9d3149226c6c786aa18166d/raylib-populate-patch.rule"
+		},
+		{
+			"file" : "D:/wanderlight/projects/engine/wayfinder/build/_deps/raylib-subbuild/CMakeFiles/b1247884b9d3149226c6c786aa18166d/raylib-populate-test.rule"
+		},
+		{
+			"file" : "D:/wanderlight/projects/engine/wayfinder/build/_deps/raylib-subbuild/CMakeFiles/b1247884b9d3149226c6c786aa18166d/raylib-populate-update.rule"
+		}
+	],
+	"target" : 
+	{
+		"labels" : 
+		[
+			"raylib-populate"
+		],
+		"name" : "raylib-populate"
+	}
+}

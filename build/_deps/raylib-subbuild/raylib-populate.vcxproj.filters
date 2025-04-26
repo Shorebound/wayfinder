@@ -1,0 +1,44 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="17.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <CustomBuild Include="D:\wanderlight\projects\engine\wayfinder\build\_deps\raylib-subbuild\CMakeFiles\b1247884b9d3149226c6c786aa18166d\raylib-populate-mkdir.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+    <CustomBuild Include="D:\wanderlight\projects\engine\wayfinder\build\_deps\raylib-subbuild\CMakeFiles\b1247884b9d3149226c6c786aa18166d\raylib-populate-download.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+    <CustomBuild Include="D:\wanderlight\projects\engine\wayfinder\build\_deps\raylib-subbuild\CMakeFiles\b1247884b9d3149226c6c786aa18166d\raylib-populate-update.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+    <CustomBuild Include="D:\wanderlight\projects\engine\wayfinder\build\_deps\raylib-subbuild\CMakeFiles\b1247884b9d3149226c6c786aa18166d\raylib-populate-patch.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+    <CustomBuild Include="D:\wanderlight\projects\engine\wayfinder\build\_deps\raylib-subbuild\CMakeFiles\b1247884b9d3149226c6c786aa18166d\raylib-populate-configure.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+    <CustomBuild Include="D:\wanderlight\projects\engine\wayfinder\build\_deps\raylib-subbuild\CMakeFiles\b1247884b9d3149226c6c786aa18166d\raylib-populate-build.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+    <CustomBuild Include="D:\wanderlight\projects\engine\wayfinder\build\_deps\raylib-subbuild\CMakeFiles\b1247884b9d3149226c6c786aa18166d\raylib-populate-install.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+    <CustomBuild Include="D:\wanderlight\projects\engine\wayfinder\build\_deps\raylib-subbuild\CMakeFiles\b1247884b9d3149226c6c786aa18166d\raylib-populate-test.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+    <CustomBuild Include="D:\wanderlight\projects\engine\wayfinder\build\_deps\raylib-subbuild\CMakeFiles\ad571e57c7faa50ebc2a4e35f787c33a\raylib-populate-complete.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+    <CustomBuild Include="D:\wanderlight\projects\engine\wayfinder\build\_deps\raylib-subbuild\CMakeFiles\e95308716752f40f09c4451ab71e4c8d\raylib-populate.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+    <CustomBuild Include="D:\wanderlight\projects\engine\wayfinder\build\_deps\raylib-subbuild\CMakeLists.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="D:\wanderlight\projects\engine\wayfinder\build\_deps\raylib-subbuild\CMakeFiles\raylib-populate" />
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="CMake Rules">
+      <UniqueIdentifier>{AD9459E4-3C88-37BA-83F5-AC5312A809C0}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>

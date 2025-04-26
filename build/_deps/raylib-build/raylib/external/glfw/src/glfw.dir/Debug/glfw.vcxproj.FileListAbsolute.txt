@@ -1,0 +1,1 @@
+D:\wanderlight\projects\engine\wayfinder\build\_deps\raylib-build\raylib\external\glfw\src\glfw.dir\Debug\glfw.lib
