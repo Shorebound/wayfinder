@@ -1,69 +1,109 @@
 #include "../include/Application.h"
+#include "../include/Game.h"
+#include "../include/Renderer.h"
+#include "../include/Scene.h"
 
-namespace Wayfinder {
-
-Application::Application()
-    : m_screenWidth(800)
-    , m_screenHeight(450)
-    , m_windowTitle("Wayfinder Engine")
-    , m_isRunning(false)
+namespace Wayfinder 
 {
-}
 
-Application::~Application()
-{
-    Shutdown();
-}
-
-bool Application::Initialize(int width, int height, const char* title)
-{
-    m_screenWidth = width;
-    m_screenHeight = height;
-    m_windowTitle = title;
-
-    // Initialize window and OpenGL context
-    InitWindow(m_screenWidth, m_screenHeight, m_windowTitle);
-    
-    // Set target FPS
-    SetTargetFPS(60);
-    
-    m_isRunning = true;
-    return true;
-}
-
-void Application::Run()
-{
-    // Main game loop
-    while (m_isRunning && !WindowShouldClose())
+    Application::Application(const Config& config) : m_isRunning(false), m_lastFrameTime(0.0) 
     {
-        UpdateFrame();
-        RenderFrame();
+        m_config = config;
+        Initialize();
     }
-}
 
-void Application::Shutdown()
-{
-    if (IsWindowReady())
+    Application::~Application()
     {
-        CloseWindow();
+        Shutdown();
     }
-}
 
-void Application::UpdateFrame()
-{
-    // Update game logic here
-}
+    bool Application::Initialize()
+    {
+        // Initialize window and OpenGL context
+        InitWindow(m_config.screenWidth, m_config.screenHeight, m_config.windowTitle.c_str());
+        SetExitKey(0);
 
-void Application::RenderFrame()
-{
-    BeginDrawing();
-    
-    ClearBackground(RAYWHITE);
-    
-    // Draw game elements here
-    DrawText("Wayfinder Engine is running!", 190, 200, 20, LIGHTGRAY);
-    
-    EndDrawing();
-}
+        // Set target FPS
+        //SetTargetFPS(60);
 
-} // namespace Wayfinder
+        // Create and initialize game and renderer
+        m_game = std::make_unique<Game>();
+        m_renderer = std::make_unique<Renderer>();
+
+        if (!m_game->Initialize())
+        {
+            TraceLog(LOG_ERROR, "Failed to initialize Game");
+            return false;
+        }
+
+        if (!m_renderer->Initialize(m_config.screenWidth, m_config.screenHeight))
+        {
+            TraceLog(LOG_ERROR, "Failed to initialize Renderer");
+            return false;
+        }
+
+        m_lastFrameTime = GetFrameTime();
+        m_isRunning = true;
+        return true;
+    }
+
+    void Application::Run()
+    {
+       #if defined(PLATFORM_WEB)
+            emscripten_set_main_loop_arg(Loop, this, 0, 1);
+        #else
+            Loop();
+        #endif
+    }
+
+    void Application::Loop()
+    {
+        // Main game loop
+        while (m_isRunning && !WindowShouldClose())
+        {
+            float deltaTime = GetFrameTime();
+            // Update and render
+            if (m_game)
+            {
+                m_game->Update(deltaTime);
+                if (m_renderer)
+                {
+                    const auto& currentScene = m_game->GetCurrentScene().lock();
+                    if (currentScene)
+                    {
+                        m_renderer->Render(*currentScene);
+                    }
+                }
+            }
+            // Check if game is still running
+            m_isRunning = m_game->IsRunning();
+        }
+    }
+
+    void Application::Loop(Application* app)
+    {
+        app->Loop();
+    }
+
+    void Application::Shutdown()
+    {
+        // Shutdown components in reverse order of initialization
+        if (m_renderer)
+        {
+            m_renderer->Shutdown();
+            m_renderer = nullptr;
+        }
+
+        if (m_game)
+        {
+            m_game->Shutdown();
+            m_game = nullptr;
+        }
+
+        if (IsWindowReady())
+        {
+            CloseWindow();
+        }
+    }
+
+}// namespace Wayfinder

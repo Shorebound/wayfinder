@@ -29,6 +29,9 @@ endif()
 add_executable(wayfinder
     src/main.cpp
     src/Application.cpp
+    src/Game.cpp
+    src/Renderer.cpp
+    src/Scene.cpp
 )
 
 # Include directories

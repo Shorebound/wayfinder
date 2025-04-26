@@ -1,16 +1,30 @@
 #pragma once
 
 #include "raylib.h"
+#include <memory>
+#include <string>
 
 namespace Wayfinder {
 
-class Application {
+// Forward declarations
+class Game;
+class Renderer;
+
+class Application 
+{
 public:
-    Application();
+    struct Config 
+    {
+        int screenWidth = 800;
+        int screenHeight = 450;
+        std::string windowTitle = "Wayfinder Engine";
+    };
+
+    Application(const Config& config = {});
     ~Application();
 
     // Initialize the application
-    bool Initialize(int width, int height, const char* title);
+    bool Initialize();
 
     // Run the application (main loop)
     void Run();
@@ -19,14 +33,19 @@ public:
     void Shutdown();
 
 private:
-    // Update and render a single frame
-    void UpdateFrame();
-    void RenderFrame();
 
-    int m_screenWidth;
-    int m_screenHeight;
-    const char* m_windowTitle;
+    void Loop();
+    static void Loop(Application* app);
+    // Member variables
+    Config m_config;
     bool m_isRunning;
+
+    // Core components
+    std::unique_ptr<Game> m_game;
+    std::unique_ptr<Renderer> m_renderer;
+
+    // Timing variables
+    double m_lastFrameTime;
 };
 
 } // namespace Wayfinder
