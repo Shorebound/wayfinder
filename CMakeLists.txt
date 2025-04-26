@@ -33,6 +33,9 @@ add_executable(wayfinder
     src/graphics/Renderer.cpp
     src/scene/Scene.cpp
     src/input/InputManager.cpp
+    src/entity/Entity.cpp
+    src/entity/Component.cpp
+    src/entity/Transform.cpp
 )
 
 # Include directories

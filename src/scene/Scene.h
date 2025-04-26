@@ -3,34 +3,44 @@
 #include <vector>
 #include <memory>
 #include <string>
+#include <unordered_map>
 
-namespace Wayfinder {
+namespace Wayfinder
+{
 
-// Forward declarations
-class Entity; // We'll implement this later if needed
+    // Forward declarations
+    class Entity;
 
-class Scene {
-public:
-    Scene(const std::string& name = "Default Scene");
-    ~Scene();
+    class Scene
+    {
+    public:
+        Scene(const std::string &name = "Default Scene");
+        ~Scene();
 
-    // Scene lifecycle methods
-    void Initialize();
-    void Update(float deltaTime);
-    void Shutdown();
+        // Scene lifecycle methods
+        void Initialize();
+        void Update(float deltaTime);
+        void Render();
+        void Shutdown();
 
-    // Entity management
-    // Note: These are placeholders - we'll implement proper entity management later
-    void AddEntity(std::shared_ptr<Entity> entity);
-    void RemoveEntity(std::shared_ptr<Entity> entity);
-    
-    // Getters
-    const std::string& GetName() const { return m_name; }
-    
-private:
-    std::string m_name;
-    std::vector<std::shared_ptr<Entity>> m_entities; // Placeholder for entity storage
-    bool m_isInitialized;
-};
+        // Entity management
+        std::shared_ptr<Entity> CreateEntity(const std::string &name = "Entity");
+        void AddEntity(std::shared_ptr<Entity> entity);
+        void RemoveEntity(std::shared_ptr<Entity> entity);
+        void RemoveEntityByID(uint64_t entityID);
 
+        // Entity retrieval
+        std::shared_ptr<Entity> GetEntityByID(uint64_t entityID) const;
+        std::shared_ptr<Entity> GetEntityByName(const std::string &name) const;
+        std::vector<std::shared_ptr<Entity>> GetAllEntities() const;
+
+        // Getters
+        const std::string &GetName() const { return m_name; }
+        size_t GetEntityCount() const { return m_entities.size(); }
+
+    private:
+        std::string m_name;
+        std::unordered_map<uint64_t, std::shared_ptr<Entity>> m_entities;
+        bool m_isInitialized;
+    };
 } // namespace Wayfinder

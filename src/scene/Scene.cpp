@@ -1,4 +1,5 @@
 #include "Scene.h"
+#include "../entity/Entity.h"
 #include "raylib.h"
 
 namespace Wayfinder {
@@ -21,22 +22,37 @@ void Scene::Initialize()
 {
     // Initialize the scene
     TraceLog(LOG_INFO, "Initializing scene: %s", m_name.c_str());
-    
+
     // Initialize all entities
-    for (auto& entity : m_entities)
+    for (auto& pair : m_entities)
     {
-        // We'll implement entity initialization later
+        pair.second->Initialize();
     }
-    
+
     m_isInitialized = true;
 }
 
 void Scene::Update(float deltaTime)
 {
     // Update all entities in the scene
-    for (auto& entity : m_entities)
+    for (auto& pair : m_entities)
     {
-        // We'll implement entity updating later
+        if (pair.second->IsActive())
+        {
+            pair.second->Update(deltaTime);
+        }
+    }
+}
+
+void Scene::Render()
+{
+    // Render all entities in the scene
+    for (auto& pair : m_entities)
+    {
+        if (pair.second->IsActive())
+        {
+            pair.second->Render();
+        }
     }
 }
 
@@ -44,31 +60,98 @@ void Scene::Shutdown()
 {
     // Clean up scene resources
     TraceLog(LOG_INFO, "Shutting down scene: %s", m_name.c_str());
-    
+
+    // Shutdown all entities
+    for (auto& pair : m_entities)
+    {
+        pair.second->Shutdown();
+    }
+
     // Clear all entities
     m_entities.clear();
-    
+
     m_isInitialized = false;
+}
+
+std::shared_ptr<Entity> Scene::CreateEntity(const std::string& name)
+{
+    std::shared_ptr<Entity> entity = std::make_shared<Entity>(name);
+    AddEntity(entity);
+
+    if (m_isInitialized)
+    {
+        entity->Initialize();
+    }
+
+    return entity;
 }
 
 void Scene::AddEntity(std::shared_ptr<Entity> entity)
 {
     // Add entity to the scene
-    m_entities.push_back(entity);
+    uint64_t entityID = entity->GetID();
+    m_entities[entityID] = entity;
+
+    // Initialize the entity if the scene is already initialized
+    if (m_isInitialized && !entity->IsActive())
+    {
+        entity->Initialize();
+    }
 }
 
 void Scene::RemoveEntity(std::shared_ptr<Entity> entity)
 {
-    // Remove entity from the scene
-    // This is a simple implementation - we'll improve it later
-    for (auto it = m_entities.begin(); it != m_entities.end(); ++it)
+    if (entity)
     {
-        if (*it == entity)
+        RemoveEntityByID(entity->GetID());
+    }
+}
+
+void Scene::RemoveEntityByID(uint64_t entityID)
+{
+    auto it = m_entities.find(entityID);
+    if (it != m_entities.end())
+    {
+        it->second->Shutdown();
+        m_entities.erase(it);
+    }
+}
+
+std::shared_ptr<Entity> Scene::GetEntityByID(uint64_t entityID) const
+{
+    auto it = m_entities.find(entityID);
+    if (it != m_entities.end())
+    {
+        return it->second;
+    }
+
+    return nullptr;
+}
+
+std::shared_ptr<Entity> Scene::GetEntityByName(const std::string& name) const
+{
+    for (auto& pair : m_entities)
+    {
+        if (pair.second->GetName() == name)
         {
-            m_entities.erase(it);
-            break;
+            return pair.second;
         }
     }
+
+    return nullptr;
+}
+
+std::vector<std::shared_ptr<Entity>> Scene::GetAllEntities() const
+{
+    std::vector<std::shared_ptr<Entity>> entities;
+    entities.reserve(m_entities.size());
+
+    for (auto& pair : m_entities)
+    {
+        entities.push_back(pair.second);
+    }
+
+    return entities;
 }
 
 } // namespace Wayfinder
