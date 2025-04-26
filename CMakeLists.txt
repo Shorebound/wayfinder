@@ -26,7 +26,13 @@ if (NOT raylib_FOUND) # If there's none, fetch and build raylib
 endif()
 
 # Our Project
-add_executable(wayfinder src/main.cpp)
+add_executable(wayfinder
+    src/main.cpp
+    src/Application.cpp
+)
+
+# Include directories
+include_directories(include)
 
 #set(raylib_VERBOSE 1)
 target_link_libraries(${PROJECT_NAME} raylib)
