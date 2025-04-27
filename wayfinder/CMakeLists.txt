@@ -24,6 +24,11 @@ generate_export_header(${ENGINE_NAME}
     EXPORT_FILE_NAME ${CMAKE_CURRENT_BINARY_DIR}/include/Wayfinder_export.h
 )
 
+# Install headers
+install(FILES 
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/core/Core.h
+    DESTINATION include/wayfinder/core
+)
 
 # Dependencies
 set(RAYLIB_VERSION 5.5)
@@ -45,11 +50,25 @@ if (NOT raylib_FOUND) # If there's none, fetch and build raylib
   endif()
 endif()
 
+# Logging Library (spdlog)
+set(SPDLOG_VERSION 1.15.2)
+find_package(spdlog ${SPDLOG_VERSION} QUIET)
+if (NOT spdlog_FOUND)
+    include(FetchContent)
+    FetchContent_Declare(
+        spdlog
+        DOWNLOAD_EXTRACT_TIMESTAMP OFF
+        URL https://github.com/gabime/spdlog/archive/refs/tags/v${SPDLOG_VERSION}.tar.gz
+    )
+    FetchContent_MakeAvailable(spdlog)
+endif()
+
 # Our Project
 target_sources(${ENGINE_NAME} PRIVATE
     #src/main.cpp
     src/core/Application.cpp
     src/core/Game.cpp
+    src/core/Log.cpp
     src/rendering/Renderer.cpp
     src/scene/Scene.cpp
     src/input/InputManager.cpp
@@ -59,10 +78,6 @@ target_sources(${ENGINE_NAME} PRIVATE
 )
 
 # Include directories
-#target_include_directories(${ENGINE_NAME} PRIVATE
-#    src
-#)
-
 target_include_directories(${ENGINE_NAME} PUBLIC
     # PUBLIC: Needed by Wayfinder itself AND consumers (like waystone)
     # Allows #include "core/Application.h", etc.
@@ -82,17 +97,21 @@ target_compile_definitions(${ENGINE_NAME} PUBLIC
 # Add PRIVATE definitions only needed inside Wayfinder's .cpp files if necessary
 # target_compile_definitions(${ENGINE_NAME} PRIVATE INTERNAL_ENGINE_FLAG)
 
-
-
 #set(raylib_VERBOSE 1)
-target_link_libraries(${ENGINE_NAME} PUBLIC raylib)
+target_link_libraries(${ENGINE_NAME} 
+    PUBLIC 
+        raylib
+        spdlog::spdlog
+)
 
 target_compile_definitions(${ENGINE_NAME}
-    PRIVATE
-        WAYFINDER_CORE_BUILD # Define this only when building core itself
     PUBLIC
-        # If building shared libs on Windows, we need to handle export/import
-        $<$<AND:$<BOOL:${WAYFINDER_BUILD_SHARED_LIBS}>,$<PLATFORM_ID:Windows>>:WAYFINDER_API_EXPORT>
-        # Define a feature flag that consumers might need
         WAYFINDER_LOGGING_ENABLED
+        $<$<CONFIG:Debug>:WAYFINDER_LOGGING_LEVEL=0>
+        $<$<CONFIG:Release>:WAYFINDER_LOGGING_LEVEL=2>
 )
+
+
+
+
+

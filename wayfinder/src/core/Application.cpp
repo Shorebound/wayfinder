@@ -1,5 +1,6 @@
 #include "Application.h"
 #include "Game.h"
+#include "Log.h"
 #include "../rendering/Renderer.h"
 #include "../scene/Scene.h"
 
@@ -19,6 +20,10 @@ namespace Wayfinder
 
     bool Application::Initialize()
     {
+        // Initialize logging first
+        Log::Init();
+        WAYFINDER_INFO(LogEngine, "Initializing Wayfinder Engine");
+
         InitWindow(m_config.screenWidth, m_config.screenHeight, m_config.windowTitle.c_str());
         SetExitKey(0);
 
@@ -58,6 +63,7 @@ namespace Wayfinder
         while (m_isRunning && !WindowShouldClose())
         {
             float deltaTime = GetFrameTime();
+            WAYFINDER_INFO(LogRenderer, "Frame time: {0}", deltaTime);
             if (m_game)
             {
                 m_game->Update(deltaTime);
@@ -82,6 +88,8 @@ namespace Wayfinder
 
     void Application::Shutdown()
     {
+        WAYFINDER_INFO(LogEngine, "Shutting down Wayfinder Engine");
+
         if (m_renderer)
         {
             m_renderer->Shutdown();
@@ -98,6 +106,8 @@ namespace Wayfinder
         {
             CloseWindow();
         }
+
+        Log::Shutdown();
     }
 
 } // namespace Wayfinder

@@ -11,8 +11,7 @@ message(STATUS "Sandbox: Configuring target ${APP_NAME}")
 # --- Sources ---
 # List source files for the sandbox executable
 target_sources(${APP_NAME} PRIVATE
-    src/main.cpp             # The main entry point MUST be here!
-    # src/WaystoneApplication.cpp # Add your sandbox app class here later
+    src/WaystoneApplication.cpp # Add your sandbox app class here later
     # ... other sandbox-specific .cpp files
 )
 

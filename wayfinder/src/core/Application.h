@@ -20,7 +20,19 @@ namespace Wayfinder
             std::string windowTitle = "Wayfinder Engine";
         };
 
-        Application(const Config& config = {});
+        struct CommandLineArgs
+        {
+            int Count = 0;
+            char** Args = nullptr;
+    
+            const char* operator[](int index) const
+            {
+                //WAYFINDER_ASSERT(index < Count);
+                return Args[index];
+            }
+        };
+
+        Application(const Config &config = {});
         ~Application();
 
         bool Initialize();
@@ -42,4 +54,7 @@ namespace Wayfinder
         double m_lastFrameTime;
     };
 
-} 
+    // To be defined by Client
+    Application* CreateApplication(const Application::CommandLineArgs& args = {});
+}
+
