@@ -1,8 +1,7 @@
 cmake_minimum_required(VERSION 3.11.0)
 project(wayfinder VERSION 0.1.0 LANGUAGES C CXX)
 
-set(CMAKE_CXX_STANDARD 20)
-
+set(CMAKE_CXX_STANDARD 23)
 
 # Generate compile_commands.json
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
@@ -26,29 +25,26 @@ if (NOT raylib_FOUND) # If there's none, fetch and build raylib
 endif()
 
 # Our Project
-add_executable(wayfinder
+add_executable(${PROJECT_NAME})
+target_sources(${PROJECT_NAME} PRIVATE
     src/main.cpp
     src/core/Application.cpp
     src/core/Game.cpp
-    src/graphics/Renderer.cpp
+    src/rendering/Renderer.cpp
     src/scene/Scene.cpp
     src/input/InputManager.cpp
-    src/entity/Entity.cpp
-    src/entity/Component.cpp
-    src/entity/Transform.cpp
+    src/scene/entity/Entity.cpp
+    src/scene/entity/Component.cpp
+    src/scene/entity/Transform.cpp
 )
 
 # Include directories
-include_directories(
+target_include_directories(${PROJECT_NAME} PRIVATE
     src
-    src/core
-    src/graphics
-    src/scene
-    src/input
 )
 
 #set(raylib_VERBOSE 1)
-target_link_libraries(${PROJECT_NAME} raylib)
+target_link_libraries(${PROJECT_NAME} PRIVATE raylib)
 
 # Web Configurations
 if (${PLATFORM} STREQUAL "Web")

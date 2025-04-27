@@ -1,12 +1,12 @@
 #include "Application.h"
 #include "Game.h"
-#include "../graphics/Renderer.h"
+#include "../rendering/Renderer.h"
 #include "../scene/Scene.h"
 
-namespace Wayfinder 
+namespace Wayfinder
 {
 
-    Application::Application(const Config& config) : m_isRunning(false), m_lastFrameTime(0.0) 
+    Application::Application(const Config &config) : m_isRunning(false), m_lastFrameTime(0.0)
     {
         m_config = config;
         Initialize();
@@ -19,14 +19,11 @@ namespace Wayfinder
 
     bool Application::Initialize()
     {
-        // Initialize window and OpenGL context
         InitWindow(m_config.screenWidth, m_config.screenHeight, m_config.windowTitle.c_str());
         SetExitKey(0);
 
-        // Set target FPS
-        //SetTargetFPS(60);
+        // SetTargetFPS(60);
 
-        // Create and initialize game and renderer
         m_game = std::make_unique<Game>();
         m_renderer = std::make_unique<Renderer>();
 
@@ -49,45 +46,42 @@ namespace Wayfinder
 
     void Application::Run()
     {
-       #if defined(PLATFORM_WEB)
-            emscripten_set_main_loop_arg(Loop, this, 0, 1);
-        #else
-            Loop();
-        #endif
+#if defined(PLATFORM_WEB)
+        emscripten_set_main_loop_arg(Loop, this, 0, 1);
+#else
+        Loop();
+#endif
     }
 
     void Application::Loop()
     {
-        // Main game loop
         while (m_isRunning && !WindowShouldClose())
         {
             float deltaTime = GetFrameTime();
-            // Update and render
             if (m_game)
             {
                 m_game->Update(deltaTime);
                 if (m_renderer)
                 {
-                    const auto& currentScene = m_game->GetCurrentScene().lock();
+                    const auto *currentScene = m_game->GetCurrentScene();
                     if (currentScene)
                     {
                         m_renderer->Render(*currentScene);
                     }
                 }
             }
-            // Check if game is still running
+
             m_isRunning = m_game->IsRunning();
         }
     }
 
-    void Application::Loop(Application* app)
+    void Application::Loop(Application *app)
     {
         app->Loop();
     }
 
     void Application::Shutdown()
     {
-        // Shutdown components in reverse order of initialization
         if (m_renderer)
         {
             m_renderer->Shutdown();
@@ -106,4 +100,4 @@ namespace Wayfinder
         }
     }
 
-}// namespace Wayfinder
+} // namespace Wayfinder

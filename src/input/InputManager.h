@@ -3,35 +3,34 @@
 #include "raylib.h"
 #include <memory>
 
-namespace Wayfinder {
+namespace Wayfinder
+{
 
-class InputManager {
-public:
-    InputManager();
-    ~InputManager();
+    class InputManager
+    {
+    public:
+        InputManager();
+        ~InputManager();
 
-    // Input manager lifecycle methods
-    bool Initialize();
-    void Update();
-    void Shutdown();
+        bool Initialize();
+        void Update();
+        void Shutdown();
 
-    // Input state methods
-    bool IsKeyPressed(int key) const;
-    bool IsKeyDown(int key) const;
-    bool IsKeyReleased(int key) const;
-    bool IsKeyUp(int key) const;
+        bool IsKeyPressed(int key) const;
+        bool IsKeyDown(int key) const;
+        bool IsKeyReleased(int key) const;
+        bool IsKeyUp(int key) const;
 
-    // Mouse input methods
-    bool IsMouseButtonPressed(int button) const;
-    bool IsMouseButtonDown(int button) const;
-    bool IsMouseButtonReleased(int button) const;
-    bool IsMouseButtonUp(int button) const;
-    Vector2 GetMousePosition() const;
-    Vector2 GetMouseDelta() const;
-    float GetMouseWheelMove() const;
+        bool IsMouseButtonPressed(int button) const;
+        bool IsMouseButtonDown(int button) const;
+        bool IsMouseButtonReleased(int button) const;
+        bool IsMouseButtonUp(int button) const;
+        Vector2 GetMousePosition() const;
+        Vector2 GetMouseDelta() const;
+        float GetMouseWheelMove() const;
 
-private:
-    bool m_isInitialized;
-};
+    private:
+        bool m_isInitialized;
+    };
 
 } // namespace Wayfinder

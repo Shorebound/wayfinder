@@ -3,36 +3,43 @@
 #include <memory>
 #include <string>
 
-namespace Wayfinder {
+namespace Wayfinder
+{
+    class Scene;
 
-// Forward declarations
-class Scene;
+    class IGame
+    {
+    public:
+        virtual bool Initialize() = 0;
+        // virtual void PreUpdate() = 0;
+        virtual void Update(float deltaTime) = 0;
+        // virtual void FixedUpdate() = 0;
+        // virtual void PostUpdate() = 0;
+        virtual void Shutdown() = 0;
+    };
 
-class Game {
-public:
-    Game();
-    ~Game();
+    class Game : public IGame
+    {
+    public:
+        Game();
+        ~Game();
 
-    // Game lifecycle methods
-    bool Initialize();
-    void Update(float deltaTime);
-    void Shutdown();
+        bool Initialize() override;
+        void Update(float deltaTime) override;
+        void Shutdown() override;
 
-    // Scene management
-    void LoadScene(const std::string& sceneName);
-    void UnloadCurrentScene();
-    
-    // Getters
-    std::weak_ptr<Scene> GetCurrentScene() const { return m_currentScene; }
-    bool IsRunning() const { return m_isRunning; }
-    
-    // Setters
-    void SetRunning(bool isRunning) { m_isRunning = isRunning; }
+        void LoadScene(const std::string &sceneName);
+        void UnloadCurrentScene();
 
-private:
-    std::shared_ptr<Scene> m_currentScene;
-    bool m_isRunning;
-    bool m_isInitialized;
-};
+        const Scene *GetCurrentScene() const { return m_currentScene.get(); }
+
+        void SetRunning(bool isRunning) { m_isRunning = isRunning; }
+        bool IsRunning() const { return m_isRunning; }
+
+    private:
+        std::unique_ptr<Scene> m_currentScene;
+        bool m_isRunning;
+        bool m_isInitialized;
+    };
 
 } // namespace Wayfinder

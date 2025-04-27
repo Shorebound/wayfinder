@@ -8,7 +8,6 @@
 namespace Wayfinder
 {
 
-    // Forward declarations
     class Entity;
 
     class Scene
@@ -17,24 +16,20 @@ namespace Wayfinder
         Scene(const std::string &name = "Default Scene");
         ~Scene();
 
-        // Scene lifecycle methods
         void Initialize();
         void Update(float deltaTime);
         void Render();
         void Shutdown();
 
-        // Entity management
         std::shared_ptr<Entity> CreateEntity(const std::string &name = "Entity");
         void AddEntity(std::shared_ptr<Entity> entity);
         void RemoveEntity(std::shared_ptr<Entity> entity);
         void RemoveEntityByID(uint64_t entityID);
 
-        // Entity retrieval
         std::shared_ptr<Entity> GetEntityByID(uint64_t entityID) const;
         std::shared_ptr<Entity> GetEntityByName(const std::string &name) const;
         std::vector<std::shared_ptr<Entity>> GetAllEntities() const;
 
-        // Getters
         const std::string &GetName() const { return m_name; }
         size_t GetEntityCount() const { return m_entities.size(); }
 
