@@ -24,7 +24,7 @@ option(WAYFINDER_BUILD_TOOLS "Build standalone tools" OFF)
 option(WAYFINDER_BUILD_SAMPLES "Build sample projects" OFF)
 option(WAYFINDER_BUILD_TESTS "Build tests" OFF) 
 option(WAYFINDER_BUILD_ASSETPROCESSOR "Build the Wayfinder Asset Processor" OFF)
-option(WAYFINDER_BUILD_SHARED_LIBS "Build engine modules as shared libraries" OFF)
+option(WAYFINDER_BUILD_SHARED_LIBS "Build engine modules as shared libraries" ON)
 
 message(STATUS "Wayfinder Project Configuration:")
 message(STATUS "  Build Sandbox (Waystone): ${WAYFINDER_BUILD_SANDBOX}")
