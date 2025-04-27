@@ -20,7 +20,7 @@ namespace Wayfinder
             std::string windowTitle = "Wayfinder Engine";
         };
 
-        Application(const Config &config = {});
+        Application(const Config& config = {});
         ~Application();
 
         bool Initialize();
@@ -42,4 +42,4 @@ namespace Wayfinder
         double m_lastFrameTime;
     };
 
-} // namespace Wayfinder
+} 
