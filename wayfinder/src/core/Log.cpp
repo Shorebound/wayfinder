@@ -1,7 +1,7 @@
 #include "core/Log.h"
-#include <spdlog/sinks/stdout_color_sinks.h>
-#include "spdlog/sinks/rotating_file_sink.h"
-#include <filesystem>
+#include "core/logging/spdlog/SpdLogManager.h"
+#include "core/logging/spdlog/SpdLogger.h"
+#include "core/logging/spdlog/SpdLogOutput.h"
 
 namespace Wayfinder
 {
@@ -20,89 +20,55 @@ namespace Wayfinder
     LogCategory::LogCategory(const std::string& name, LogVerbosity defaultVerbosity)
         : m_name(name), m_verbosity(defaultVerbosity)
     {
-        // Create logger with empty sink list (will be populated in UpdateSinks)
-        m_logger = std::make_shared<spdlog::logger>(name);
+        // Create logger with empty output list
+        m_logger = CreateLogger(name, defaultVerbosity);
 
-        // Update sinks based on current configuration
-        UpdateSinks();
-
-        // Set initial level
-        SetVerbosity(defaultVerbosity);
+        // Update outputs based on current configuration
+        UpdateOutputs();
     }
 
-    void LogCategory::UpdateSinks()
+    void LogCategory::UpdateOutputs()
     {
-        // Clear existing sinks
-        m_logger->sinks().clear();
+        // Clear existing outputs
+        m_logger->ClearOutputs();
 
         const LogConfig& config = Log::GetConfig();
 
         // Add console output if enabled
         if (config.IsOutputEnabled(LogOutputType::Console))
         {
-            auto console_sink = std::make_shared<spdlog::sinks::stdout_color_sink_mt>();
-            console_sink->set_pattern("%^[%T] %n: %v%$");
-            m_logger->sinks().push_back(console_sink);
+            auto output = CreateConsoleOutput();
+            output->SetPattern("%^[%T] %n: %v%$");
+            m_logger->AddOutput(output);
         }
 
         // Add file output if enabled
         if (config.IsOutputEnabled(LogOutputType::File))
         {
-            // Ensure directory exists
-            std::filesystem::path logPath(config.fileSinkConfig.filePath);
-            std::filesystem::create_directories(logPath.parent_path());
-
-            auto file_sink = std::make_shared<spdlog::sinks::rotating_file_sink_mt>(
-                config.fileSinkConfig.filePath,
-                config.fileSinkConfig.maxFileSize,
-                config.fileSinkConfig.maxFiles);
-            file_sink->set_pattern("[%Y-%m-%d %H:%M:%S.%e] [%l] %n: %v");
-            m_logger->sinks().push_back(file_sink);
+            auto output = CreateFileOutput(config.fileOutputConfig);
+            output->SetPattern("[%Y-%m-%d %H:%M:%S.%e] [%l] %n: %v");
+            m_logger->AddOutput(output);
         }
 
         // Add raylib output if enabled
         if (config.IsOutputEnabled(LogOutputType::Raylib))
         {
-            auto raylib_sink = std::make_shared<raylib_sink_mt>();
-            raylib_sink->set_pattern("[%n] %v");
-            m_logger->sinks().push_back(raylib_sink);
+            auto output = CreateRaylibOutput();
+            output->SetPattern("[%n] %v");
+            m_logger->AddOutput(output);
         }
     }
 
     void LogCategory::SetVerbosity(LogVerbosity level)
     {
         m_verbosity = level;
-
-        // Map our verbosity levels to spdlog levels
-        spdlog::level::level_enum spdlogLevel;
-        switch (level)
-        {
-        case LogVerbosity::Fatal:
-            spdlogLevel = spdlog::level::critical;
-            break;
-        case LogVerbosity::Error:
-            spdlogLevel = spdlog::level::err;
-            break;
-        case LogVerbosity::Warning:
-            spdlogLevel = spdlog::level::warn;
-            break;
-        case LogVerbosity::Info:
-            spdlogLevel = spdlog::level::info;
-            break;
-        case LogVerbosity::Verbose:
-            spdlogLevel = spdlog::level::debug;
-            break;
-        case LogVerbosity::VeryVerbose:
-            spdlogLevel = spdlog::level::trace;
-            break;
-        }
-        m_logger->set_level(spdlogLevel);
+        m_logger->SetVerbosity(level);
     }
 
     void Log::Init()
     {
-        // Set up default pattern
-        spdlog::set_pattern("%^[%T] %n: %v%$");
+        // Initialize the spdlog manager
+        SpdLogManager::Initialize();
 
         // Initialize all predefined categories
         // They're already created as static globals, but we might want to do additional setup
@@ -112,7 +78,7 @@ namespace Wayfinder
     void Log::Shutdown()
     {
         s_categories.clear();
-        spdlog::shutdown();
+        SpdLogManager::Shutdown();
     }
 
     void Log::SetConfig(const LogConfig& config)
@@ -122,7 +88,7 @@ namespace Wayfinder
         // Update all existing categories with new configuration
         for (auto& [name, category] : s_categories)
         {
-            category->UpdateSinks();
+            category->UpdateOutputs();
         }
     }
 
@@ -133,7 +99,7 @@ namespace Wayfinder
         // Update all existing categories with new configuration
         for (auto& [name, category] : s_categories)
         {
-            category->UpdateSinks();
+            category->UpdateOutputs();
         }
     }
 
@@ -144,34 +110,34 @@ namespace Wayfinder
 
     void Log::SetLogFilePath(const std::string& path)
     {
-        s_config.fileSinkConfig.filePath = path;
+        s_config.fileOutputConfig.filePath = path;
 
         // Update all existing categories with new configuration
         for (auto& [name, category] : s_categories)
         {
-            category->UpdateSinks();
+            category->UpdateOutputs();
         }
     }
 
     void Log::SetLogFileRotationSize(size_t maxSize)
     {
-        s_config.fileSinkConfig.maxFileSize = maxSize;
+        s_config.fileOutputConfig.maxFileSize = maxSize;
 
         // Update all existing categories with new configuration
         for (auto& [name, category] : s_categories)
         {
-            category->UpdateSinks();
+            category->UpdateOutputs();
         }
     }
 
     void Log::SetLogFileMaxFiles(size_t maxFiles)
     {
-        s_config.fileSinkConfig.maxFiles = maxFiles;
+        s_config.fileOutputConfig.maxFiles = maxFiles;
 
         // Update all existing categories with new configuration
         for (auto& [name, category] : s_categories)
         {
-            category->UpdateSinks();
+            category->UpdateOutputs();
         }
     }
 

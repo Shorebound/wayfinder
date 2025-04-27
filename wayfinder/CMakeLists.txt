@@ -6,7 +6,7 @@ endif()
 
 #set(ENGINE_NAME wayfinder)
 
-add_library(${ENGINE_NAME} ${ENGINE_LIB_TYPE}) 
+add_library(${ENGINE_NAME} ${ENGINE_LIB_TYPE})
 message(STATUS "Engine: Configuring target ${ENGINE_NAME} (${ENGINE_LIB_TYPE})")
 
 include(GenerateExportHeader)
@@ -25,7 +25,7 @@ generate_export_header(${ENGINE_NAME}
 )
 
 # Install headers
-install(FILES 
+install(FILES
     ${CMAKE_CURRENT_SOURCE_DIR}/src/core/Core.h
     DESTINATION include/wayfinder/core
 )
@@ -77,6 +77,9 @@ target_sources(${ENGINE_NAME} PRIVATE
     src/scene/entity/Transform.cpp
 )
 
+# Include logging system
+add_subdirectory(src/core/logging)
+
 # Include directories
 target_include_directories(${ENGINE_NAME} PUBLIC
     # PUBLIC: Needed by Wayfinder itself AND consumers (like waystone)
@@ -98,8 +101,8 @@ target_compile_definitions(${ENGINE_NAME} PUBLIC
 # target_compile_definitions(${ENGINE_NAME} PRIVATE INTERNAL_ENGINE_FLAG)
 
 #set(raylib_VERBOSE 1)
-target_link_libraries(${ENGINE_NAME} 
-    PUBLIC 
+target_link_libraries(${ENGINE_NAME}
+    PUBLIC
         raylib
         spdlog::spdlog
 )

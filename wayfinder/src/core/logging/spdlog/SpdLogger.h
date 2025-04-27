@@ -1,0 +1,155 @@
+#pragma once
+#include "../ILogger.h"
+#include "SpdLogOutput.h"
+#include <spdlog/spdlog.h>
+#include <spdlog/fmt/fmt.h>
+
+namespace Wayfinder
+{
+    // Implementation of ILogMessage using spdlog
+    class SpdLogMessage : public ILogMessage
+    {
+    public:
+        SpdLogMessage(const spdlog::details::log_msg& msg)
+            : m_level(ConvertLevel(msg.level)),
+              m_loggerName(msg.logger_name.data(), msg.logger_name.size()),
+              m_payload(msg.payload.data(), msg.payload.size()),
+              m_timestamp(msg.time.time_since_epoch().count() / 1000000000.0) // Convert to seconds
+        {
+        }
+
+        // ILogMessage implementation
+        LogVerbosity GetVerbosity() const override { return m_level; }
+        const std::string& GetLoggerName() const override { return m_loggerName; }
+        const std::string& GetPayload() const override { return m_payload; }
+        double GetTimestamp() const override { return m_timestamp; }
+
+        // Convert spdlog level to Wayfinder level
+        static LogVerbosity ConvertLevel(spdlog::level::level_enum level)
+        {
+            switch (level)
+            {
+            case spdlog::level::trace:
+                return LogVerbosity::VeryVerbose;
+            case spdlog::level::debug:
+                return LogVerbosity::Verbose;
+            case spdlog::level::info:
+                return LogVerbosity::Info;
+            case spdlog::level::warn:
+                return LogVerbosity::Warning;
+            case spdlog::level::err:
+                return LogVerbosity::Error;
+            case spdlog::level::critical:
+                return LogVerbosity::Fatal;
+            default:
+                return LogVerbosity::Info;
+            }
+        }
+
+        // Convert Wayfinder level to spdlog level
+        static spdlog::level::level_enum ConvertLevel(LogVerbosity level)
+        {
+            switch (level)
+            {
+            case LogVerbosity::Fatal:
+                return spdlog::level::critical;
+            case LogVerbosity::Error:
+                return spdlog::level::err;
+            case LogVerbosity::Warning:
+                return spdlog::level::warn;
+            case LogVerbosity::Info:
+                return spdlog::level::info;
+            case LogVerbosity::Verbose:
+                return spdlog::level::debug;
+            case LogVerbosity::VeryVerbose:
+                return spdlog::level::trace;
+            default:
+                return spdlog::level::info;
+            }
+        }
+
+    private:
+        LogVerbosity m_level;
+        std::string m_loggerName;
+        std::string m_payload;
+        double m_timestamp;
+    };
+
+    // Implementation of ILogger using spdlog
+    class SpdLogger : public ILogger
+    {
+    public:
+        SpdLogger(const std::string& name, LogVerbosity defaultVerbosity = LogVerbosity::Info)
+            : m_name(name), m_verbosity(defaultVerbosity)
+        {
+            m_logger = std::make_shared<spdlog::logger>(name);
+            m_logger->set_level(SpdLogMessage::ConvertLevel(defaultVerbosity));
+        }
+
+        virtual ~SpdLogger() = default;
+
+        // ILogger implementation
+        const std::string& GetName() const override { return m_name; }
+
+        LogVerbosity GetVerbosity() const override { return m_verbosity; }
+
+        void SetVerbosity(LogVerbosity level) override
+        {
+            m_verbosity = level;
+            m_logger->set_level(SpdLogMessage::ConvertLevel(level));
+        }
+
+        void AddOutput(std::shared_ptr<ILogOutput> output) override
+        {
+            m_outputs.push_back(output);
+
+            // If it's an spdlog output, add its sink to the logger
+            auto spdOutput = std::dynamic_pointer_cast<SpdLogOutput>(output);
+            if (spdOutput)
+            {
+                m_logger->sinks().push_back(spdOutput->GetSink());
+            }
+        }
+
+        void ClearOutputs() override
+        {
+            m_outputs.clear();
+            m_logger->sinks().clear();
+        }
+
+        const std::vector<std::shared_ptr<ILogOutput>>& GetOutputs() const override
+        {
+            return m_outputs;
+        }
+
+        void Log(LogVerbosity level, const std::string& message) override
+        {
+            m_logger->log(SpdLogMessage::ConvertLevel(level), message);
+        }
+
+        // Implementation of the non-template LogFormat method
+        void LogFormat(LogVerbosity level, const std::string& format) override
+        {
+            m_logger->log(SpdLogMessage::ConvertLevel(level), format);
+        }
+
+        // Specialized implementation that uses spdlog's formatting directly
+        template<typename... Args>
+        void LogFormat(LogVerbosity level, const std::string& format, Args&&... args)
+        {
+            m_logger->log(SpdLogMessage::ConvertLevel(level), format, std::forward<Args>(args)...);
+        }
+
+        // Get the underlying spdlog logger
+        std::shared_ptr<spdlog::logger> GetSpdLogger() const { return m_logger; }
+
+    private:
+        std::string m_name;
+        LogVerbosity m_verbosity;
+        std::shared_ptr<spdlog::logger> m_logger;
+        std::vector<std::shared_ptr<ILogOutput>> m_outputs;
+    };
+
+    // Factory function declaration - implementation is in SpdLogOutput.cpp
+
+} // namespace Wayfinder
