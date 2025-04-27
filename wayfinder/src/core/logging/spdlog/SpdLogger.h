@@ -2,7 +2,7 @@
 #include "../ILogger.h"
 #include "SpdLogOutput.h"
 #include <spdlog/spdlog.h>
-#include <spdlog/fmt/fmt.h>
+#include <format>
 
 namespace Wayfinder
 {
@@ -84,13 +84,12 @@ namespace Wayfinder
         {
             m_logger = std::make_shared<spdlog::logger>(name);
             m_logger->set_level(SpdLogMessage::ConvertLevel(defaultVerbosity));
+            // m_logger->set_pattern("[%Y-%m-%d %H:%M:%S.%e] [%n] [%l] %v");
         }
 
         virtual ~SpdLogger() = default;
 
-        // ILogger implementation
         const std::string& GetName() const override { return m_name; }
-
         LogVerbosity GetVerbosity() const override { return m_verbosity; }
 
         void SetVerbosity(LogVerbosity level) override
@@ -108,6 +107,8 @@ namespace Wayfinder
             if (spdOutput)
             {
                 m_logger->sinks().push_back(spdOutput->GetSink());
+                // Maybe update the logger's level based on sinks?
+                // m_logger->flush_on(m_logger->level()); // Example
             }
         }
 
@@ -122,25 +123,23 @@ namespace Wayfinder
             return m_outputs;
         }
 
-        void Log(LogVerbosity level, const std::string& message) override
+        void Log(LogVerbosity level, const std::string_view message) override
         {
             m_logger->log(SpdLogMessage::ConvertLevel(level), message);
         }
 
-        // Implementation of the non-template LogFormat method
-        void LogFormat(LogVerbosity level, const std::string& format) override
+    protected:
+        void LogFormatted(LogVerbosity level, std::string_view format, std::format_args args) override
         {
-            m_logger->log(SpdLogMessage::ConvertLevel(level), format);
+            spdlog::level::level_enum spdlog_level = SpdLogMessage::ConvertLevel(level);
+            if (m_logger->should_log(spdlog_level))
+            {
+                std::string formatted_message = std::vformat(format, args);
+                m_logger->log(spdlog_level, formatted_message);
+            }
         }
 
-        // Specialized implementation that uses spdlog's formatting directly
-        template<typename... Args>
-        void LogFormat(LogVerbosity level, const std::string& format, Args&&... args)
-        {
-            m_logger->log(SpdLogMessage::ConvertLevel(level), format, std::forward<Args>(args)...);
-        }
-
-        // Get the underlying spdlog logger
+    public:
         std::shared_ptr<spdlog::logger> GetSpdLogger() const { return m_logger; }
 
     private:
@@ -150,6 +149,5 @@ namespace Wayfinder
         std::vector<std::shared_ptr<ILogOutput>> m_outputs;
     };
 
-    // Factory function declaration - implementation is in SpdLogOutput.cpp
 
 } // namespace Wayfinder
