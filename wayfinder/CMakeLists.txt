@@ -4,17 +4,10 @@ else()
   set(ENGINE_LIB_TYPE STATIC)
 endif()
 
-#set(ENGINE_NAME wayfinder)
-
 add_library(${ENGINE_NAME} ${ENGINE_LIB_TYPE})
 message(STATUS "Engine: Configuring target ${ENGINE_NAME} (${ENGINE_LIB_TYPE})")
 
 include(GenerateExportHeader)
-if(WIN32 AND ENGINE_LIB_TYPE STREQUAL "SHARED")
-  # Define WAYFINDER_EXPORTS *only* when building this DLL itself
-  target_compile_definitions(${ENGINE_NAME} PRIVATE WAYFINDER_EXPORTS)
-  message(STATUS "Engine: Enabling DLL export definitions for ${ENGINE_NAME}")
-endif()
 
 # Generate Wayfinder_export.h in the build directory's include folder
 # This header defines the WAYFINDER_API macro (__declspec(dllexport/dllimport) or nothing)
@@ -23,6 +16,27 @@ generate_export_header(${ENGINE_NAME}
     EXPORT_MACRO_NAME WAYFINDER_API
     EXPORT_FILE_NAME ${CMAKE_CURRENT_BINARY_DIR}/include/Wayfinder_export.h
 )
+
+if(WIN32 AND ENGINE_LIB_TYPE STREQUAL "SHARED")
+  # Define WAYFINDER_EXPORTS *only* when building this DLL itself
+  target_compile_definitions(${ENGINE_NAME} PRIVATE WAYFINDER_EXPORTS)
+  message(STATUS "Engine: Enabling DLL export definitions for ${ENGINE_NAME}")
+endif()
+
+# --- Compile Definitions ---
+target_compile_definitions(${ENGINE_NAME} PUBLIC
+    # Allow consumers and Wayfinder itself to check if logging is on
+    WAYFINDER_LOGGING_ENABLED
+    # Config-specific logging levels
+    $<$<CONFIG:Debug>:WAYFINDER_LOGGING_LEVEL=0>
+    $<$<CONFIG:Release>:WAYFINDER_LOGGING_LEVEL=2>
+    # Add other PUBLIC definitions needed by headers in src/ here
+)
+# Add PRIVATE definitions only needed inside Wayfinder's .cpp files if necessary
+# target_compile_definitions(${ENGINE_NAME} PRIVATE INTERNAL_ENGINE_FLAG)
+
+
+
 
 # Install headers
 install(FILES
@@ -65,7 +79,9 @@ endif()
 
 # Our Project
 target_sources(${ENGINE_NAME} PRIVATE
-    #src/main.cpp
+    # Precompiled Header
+    src/WayfinderPCH.cpp
+
     src/core/Application.cpp
     src/core/Game.cpp
     src/core/Log.cpp
@@ -81,24 +97,20 @@ target_sources(${ENGINE_NAME} PRIVATE
 add_subdirectory(src/core/logging)
 
 # Include directories
-target_include_directories(${ENGINE_NAME} PUBLIC
+target_include_directories(${ENGINE_NAME} 
+  PUBLIC
     # PUBLIC: Needed by Wayfinder itself AND consumers (like waystone)
     # Allows #include "core/Application.h", etc.
     ${CMAKE_CURRENT_SOURCE_DIR}/src
     # PUBLIC: Needed by consumers to find the generated Wayfinder_export.h
     # $<BUILD_INTERFACE:...> ensures this path is only added for consumers
     $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/include>
+
+  PRIVATE
+    # Needed by Wayfinder itself to find Wayfinder_export.h for its PCH
+    ${CMAKE_CURRENT_BINARY_DIR}/include
 )
 
-# --- Compile Definitions ---
-# Define flags needed when compiling Wayfinder OR when compiling consumers
-target_compile_definitions(${ENGINE_NAME} PUBLIC
-    # Example: Allow consumers and Wayfinder itself to check if logging is on
-    WAYFINDER_LOGGING_ENABLED
-    # Add other PUBLIC definitions needed by headers in src/ here
-)
-# Add PRIVATE definitions only needed inside Wayfinder's .cpp files if necessary
-# target_compile_definitions(${ENGINE_NAME} PRIVATE INTERNAL_ENGINE_FLAG)
 
 #set(raylib_VERBOSE 1)
 target_link_libraries(${ENGINE_NAME}
@@ -107,14 +119,11 @@ target_link_libraries(${ENGINE_NAME}
         spdlog::spdlog
 )
 
-target_compile_definitions(${ENGINE_NAME}
+# Configure precompiled headers
+target_precompile_headers(${ENGINE_NAME}
     PUBLIC
-        WAYFINDER_LOGGING_ENABLED
-        $<$<CONFIG:Debug>:WAYFINDER_LOGGING_LEVEL=0>
-        $<$<CONFIG:Release>:WAYFINDER_LOGGING_LEVEL=2>
+        src/WayfinderPCH.h
 )
 
-
-
-
+message(STATUS "Engine: Configured precompiled headers for ${ENGINE_NAME}")
 

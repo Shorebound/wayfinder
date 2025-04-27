@@ -10,7 +10,7 @@ namespace Wayfinder
     class Game;
     class Renderer;
 
-    class Application
+    class WAYFINDER_API Application
     {
     public:
         struct Config

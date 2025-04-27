@@ -18,7 +18,7 @@ namespace Wayfinder
         virtual void Shutdown() = 0;
     };
 
-    class Game : public IGame
+    class WAYFINDER_API Game : public IGame
     {
     public:
         Game();

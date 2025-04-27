@@ -7,7 +7,7 @@
 namespace Wayfinder
 {
 
-    class Transform : public Component
+    class WAYFINDER_API Transform : public Component
     {
     public:
         Transform();

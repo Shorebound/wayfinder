@@ -1,6 +1,9 @@
 #pragma once
 
-// Include the generated header only once, here
+// Include the precompiled header
+#include "WayfinderPCH.h"
+
+// Core engine includes
 #include "Application.h"
 #include "Log.h"
-#include "Wayfinder_export.h"
+//#include "Wayfinder_export.h"

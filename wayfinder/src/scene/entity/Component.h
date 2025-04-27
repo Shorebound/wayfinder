@@ -7,7 +7,7 @@ namespace Wayfinder
 {
     class Entity;
 
-    class Component
+    class WAYFINDER_API Component
     {
     public:
         Component();

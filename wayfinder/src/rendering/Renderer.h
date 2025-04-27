@@ -7,13 +7,13 @@ namespace Wayfinder
 {
     class Scene;
 
-    class IRenderer
+    class WAYFINDER_API IRenderer
     {
     public:
         virtual void Render(const Scene& scene) = 0;
     };
 
-    class Renderer : public IRenderer
+    class WAYFINDER_API Renderer : public IRenderer
     {
     public:
         Renderer();

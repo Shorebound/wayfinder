@@ -6,7 +6,7 @@
 namespace Wayfinder
 {
 
-    class InputManager
+    class WAYFINDER_API InputManager
     {
     public:
         InputManager();

@@ -19,5 +19,4 @@
 #include "raylib.h"
 #include "raymath.h"
 
-// Wayfinder Core Definitions
-#include "core/Export.h"
+#include "Wayfinder_export.h"

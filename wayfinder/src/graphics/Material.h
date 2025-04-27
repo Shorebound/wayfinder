@@ -6,7 +6,7 @@
 /*
 namespace Wayfinder
 {
-    class Material
+    class WAYFINDER_API Material
     {
     public:
         void SetTexture(const std::string& name, std::shared_ptr<Texture> texture);

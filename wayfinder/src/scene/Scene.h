@@ -10,7 +10,7 @@ namespace Wayfinder
 
     class Entity;
 
-    class Scene
+    class WAYFINDER_API Scene
     {
     public:
         Scene(const std::string& name = "Default Scene");

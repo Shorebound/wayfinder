@@ -14,7 +14,7 @@ namespace Wayfinder
     class Component;
     class Transform;
 
-    class Entity : public std::enable_shared_from_this<Entity>
+    class WAYFINDER_API Entity : public std::enable_shared_from_this<Entity>
     {
     public:
         Entity(const std::string& name = "Entity");

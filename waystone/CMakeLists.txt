@@ -1,47 +1,69 @@
 # waystone/CMakeLists.txt
 
-# Use the variable defined in the root CMakeLists for consistency
-# set(APP_NAME waystone) # Or keep explicit name if preferred
-set(APP_NAME ${SANDBOX_NAME})
-
 # Define the executable target
-add_executable(${APP_NAME})
-message(STATUS "Sandbox: Configuring target ${APP_NAME}")
+add_executable(${SANDBOX_NAME})
+message(STATUS "Sandbox: Configuring target ${SANDBOX_NAME}")
+
+# --- Installation ---
+#install(TARGETS ${SANDBOX_NAME}
+#    RUNTIME DESTINATION bin 
+#)
 
 # --- Sources ---
-# List source files for the sandbox executable
-target_sources(${APP_NAME} PRIVATE
-    src/WaystoneApplication.cpp # Add your sandbox app class here later
-    # ... other sandbox-specific .cpp files
+target_sources(${SANDBOX_NAME} 
+    PRIVATE
+        src/WaystoneApplication.cpp 
 )
 
 # --- Include Directories ---
-target_include_directories(${APP_NAME} PRIVATE
-    # PRIVATE: Only needed for includes within waystone's own source files
-    src
-    # NOTE: We DO NOT need to add wayfinder's include path here.
-    # target_link_libraries(wayfinder) automatically propagates the PUBLIC
-    # include directories from wayfinder (${CMAKE_CURRENT_SOURCE_DIR}/src
-    # and the generated export header path).
+target_include_directories(${SANDBOX_NAME} 
+    PRIVATE
+        src
 )
 
 # --- Link Libraries ---
-target_link_libraries(${APP_NAME} PRIVATE
-    # PRIVATE: Link against the engine library. Waystone uses wayfinder,
-    # but doesn't expose wayfinder's API itself.
-    ${ENGINE_NAME} # Use the variable for the engine name
-    # Add any other libraries needed ONLY by this specific sandbox executable
+target_link_libraries(${SANDBOX_NAME} 
+    PRIVATE
+        ${ENGINE_NAME}
 )
 
-# --- Platform Specifics for THIS Executable ---
-# These settings affect the final linking stage of the waystone executable
 
+# --- Custom Target to Copy Engine DLL ---
+if(WIN32 AND WAYFINDER_BUILD_SHARED_LIBS)
+
+    # Workaround: Manually construct the DLL path since standard generator expressions failed.
+    set(MANUAL_DLL_SOURCE_PATH "$<TARGET_FILE_DIR:${ENGINE_NAME}>/${ENGINE_NAME}.dll")
+    set(MANUAL_DESTINATION_DIR "$<TARGET_FILE_DIR:${SANDBOX_NAME}>")
+
+    add_custom_target(CopyWayfinderDLL ALL # Add to default build
+        # Command 1: Echo the manually constructed source path
+        COMMAND ${CMAKE_COMMAND} -E echo "DEBUG (Manual Suffix): Source DLL = '${MANUAL_DLL_SOURCE_PATH}'"
+        # Command 2: Echo the destination directory
+        COMMAND ${CMAKE_COMMAND} -E echo "DEBUG (Manual Suffix): Destination Dir = '${MANUAL_DESTINATION_DIR}'"
+        # Command 3: Perform the copy using the manually constructed paths
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                "${MANUAL_DLL_SOURCE_PATH}"     # Use the variable holding the constructed source path
+                "${MANUAL_DESTINATION_DIR}"      # Use the variable holding the destination path
+        COMMENT "Copying ${ENGINE_NAME}.dll (Manual Suffix) to ${SANDBOX_NAME} directory"
+        VERBATIM
+    )
+
+    # Dependencies remain the same
+    add_dependencies(CopyWayfinderDLL ${ENGINE_NAME})
+    add_dependencies(${SANDBOX_NAME} CopyWayfinderDLL)
+
+    message(STATUS "Sandbox: Added custom target 'CopyWayfinderDLL' (Manual Suffix) to handle DLL copy.")
+
+endif()
+
+
+# --- Platform Specifics for THIS Executable ---
 # Web Configurations (using standard CMake variable)
 if (CMAKE_SYSTEM_NAME STREQUAL "Emscripten")
-    message(STATUS "Sandbox: Configuring ${APP_NAME} for Web (Emscripten)")
-    set_target_properties(${APP_NAME} PROPERTIES SUFFIX ".html")
+    message(STATUS "Sandbox: Configuring ${SANDBOX_NAME} for Web (Emscripten)")
+    set_target_properties(${SANDBOX_NAME} PROPERTIES SUFFIX ".html")
     # Use target_link_options (CMake >= 3.13) for cleaner linker flags
-    target_link_options(${APP_NAME} PRIVATE
+    target_link_options(${SANDBOX_NAME} PRIVATE
         "-s USE_GLFW=3"
         "-s ASSERTIONS=1"
         "-s WASM=1"
@@ -49,14 +71,12 @@ if (CMAKE_SYSTEM_NAME STREQUAL "Emscripten")
         "-s GL_ENABLE_GET_PROC_ADDRESS=1"
         # Add other Emscripten flags needed by the sandbox/game
     )
-    # Old way (still works):
-    # set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -s USE_GLFW=3 ...")
 endif()
 
 # Apple Framework Linking
 if (APPLE)
-    message(STATUS "Sandbox: Linking Apple Frameworks for ${APP_NAME}")
-    target_link_libraries(${APP_NAME} PRIVATE
+    message(STATUS "Sandbox: Linking Apple Frameworks for ${SANDBOX_NAME}")
+    target_link_libraries(${SANDBOX_NAME} PRIVATE
         "-framework IOKit"
         "-framework Cocoa"
         "-framework OpenGL"
