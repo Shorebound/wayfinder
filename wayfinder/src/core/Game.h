@@ -28,13 +28,22 @@ namespace Wayfinder
         void Update(float deltaTime) override;
         void Shutdown() override;
 
-        void LoadScene(const std::string &sceneName);
+        void LoadScene(const std::string& sceneName);
         void UnloadCurrentScene();
 
-        const Scene *GetCurrentScene() const { return m_currentScene.get(); }
+        const Scene* GetCurrentScene() const
+        {
+            return m_currentScene.get();
+        }
 
-        void SetRunning(bool isRunning) { m_isRunning = isRunning; }
-        bool IsRunning() const { return m_isRunning; }
+        void SetRunning(bool isRunning)
+        {
+            m_isRunning = isRunning;
+        }
+        bool IsRunning() const
+        {
+            return m_isRunning;
+        }
 
     private:
         std::unique_ptr<Scene> m_currentScene;

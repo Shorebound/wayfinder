@@ -1,7 +1,7 @@
 #include "core/Log.h"
 #include "core/logging/spdlog/SpdLogManager.h"
-#include "core/logging/spdlog/SpdLogger.h"
 #include "core/logging/spdlog/SpdLogOutput.h"
+#include "core/logging/spdlog/SpdLogger.h"
 
 namespace Wayfinder
 {

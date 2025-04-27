@@ -9,9 +9,9 @@ namespace Wayfinder
     class Material
     {
     public:
-        void SetTexture(const std::string &name, std::shared_ptr<Texture> texture);
-        void SetVector4(const std::string &name, const Vector4 &value);
-        void SetFloat(const std::string &name, float value);
+        void SetTexture(const std::string& name, std::shared_ptr<Texture> texture);
+        void SetVector4(const std::string& name, const Vector4& value);
+        void SetFloat(const std::string& name, float value);
         // ... other material properties
     private:
         std::shared_ptr<Shader> m_shader;

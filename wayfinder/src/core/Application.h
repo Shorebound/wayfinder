@@ -24,15 +24,15 @@ namespace Wayfinder
         {
             int Count = 0;
             char** Args = nullptr;
-    
+
             const char* operator[](int index) const
             {
-                //WAYFINDER_ASSERT(index < Count);
+                // WAYFINDER_ASSERT(index < Count);
                 return Args[index];
             }
         };
 
-        Application(const Config &config = {});
+        Application(const Config& config = {});
         ~Application();
 
         bool Initialize();
@@ -43,7 +43,7 @@ namespace Wayfinder
 
     private:
         void Loop();
-        static void Loop(Application *app);
+        static void Loop(Application* app);
 
         Config m_config;
         bool m_isRunning;
@@ -56,5 +56,4 @@ namespace Wayfinder
 
     // To be defined by Client
     Application* CreateApplication(const Application::CommandLineArgs& args = {});
-}
-
+} // namespace Wayfinder

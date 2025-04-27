@@ -5,8 +5,7 @@
 namespace Wayfinder
 {
 
-    Scene::Scene(const std::string &name)
-        : m_name(name), m_isInitialized(false)
+    Scene::Scene(const std::string& name) : m_name(name), m_isInitialized(false)
     {
     }
 
@@ -22,7 +21,7 @@ namespace Wayfinder
     {
         TraceLog(LOG_INFO, "Initializing scene: %s", m_name.c_str());
 
-        for (auto &pair : m_entities)
+        for (auto& pair : m_entities)
         {
             pair.second->Initialize();
         }
@@ -32,7 +31,7 @@ namespace Wayfinder
 
     void Scene::Update(float deltaTime)
     {
-        for (auto &pair : m_entities)
+        for (auto& pair : m_entities)
         {
             if (pair.second->IsActive())
             {
@@ -43,7 +42,7 @@ namespace Wayfinder
 
     void Scene::Render()
     {
-        for (auto &pair : m_entities)
+        for (auto& pair : m_entities)
         {
             if (pair.second->IsActive())
             {
@@ -56,7 +55,7 @@ namespace Wayfinder
     {
         TraceLog(LOG_INFO, "Shutting down scene: %s", m_name.c_str());
 
-        for (auto &pair : m_entities)
+        for (auto& pair : m_entities)
         {
             pair.second->Shutdown();
         }
@@ -66,7 +65,7 @@ namespace Wayfinder
         m_isInitialized = false;
     }
 
-    std::shared_ptr<Entity> Scene::CreateEntity(const std::string &name)
+    std::shared_ptr<Entity> Scene::CreateEntity(const std::string& name)
     {
         std::shared_ptr<Entity> entity = std::make_shared<Entity>(name);
         AddEntity(entity);
@@ -119,9 +118,9 @@ namespace Wayfinder
         return nullptr;
     }
 
-    std::shared_ptr<Entity> Scene::GetEntityByName(const std::string &name) const
+    std::shared_ptr<Entity> Scene::GetEntityByName(const std::string& name) const
     {
-        for (auto &pair : m_entities)
+        for (auto& pair : m_entities)
         {
             if (pair.second->GetName() == name)
             {
@@ -137,7 +136,7 @@ namespace Wayfinder
         std::vector<std::shared_ptr<Entity>> entities;
         entities.reserve(m_entities.size());
 
-        for (auto &pair : m_entities)
+        for (auto& pair : m_entities)
         {
             entities.push_back(pair.second);
         }

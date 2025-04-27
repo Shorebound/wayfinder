@@ -1,9 +1,9 @@
 #pragma once
 
-#include <vector>
 #include <memory>
 #include <string>
 #include <unordered_map>
+#include <vector>
 
 namespace Wayfinder
 {
@@ -13,7 +13,7 @@ namespace Wayfinder
     class Scene
     {
     public:
-        Scene(const std::string &name = "Default Scene");
+        Scene(const std::string& name = "Default Scene");
         ~Scene();
 
         void Initialize();
@@ -21,16 +21,16 @@ namespace Wayfinder
         void Render();
         void Shutdown();
 
-        std::shared_ptr<Entity> CreateEntity(const std::string &name = "Entity");
+        std::shared_ptr<Entity> CreateEntity(const std::string& name = "Entity");
         void AddEntity(std::shared_ptr<Entity> entity);
         void RemoveEntity(std::shared_ptr<Entity> entity);
         void RemoveEntityByID(uint64_t entityID);
 
         std::shared_ptr<Entity> GetEntityByID(uint64_t entityID) const;
-        std::shared_ptr<Entity> GetEntityByName(const std::string &name) const;
+        std::shared_ptr<Entity> GetEntityByName(const std::string& name) const;
         std::vector<std::shared_ptr<Entity>> GetAllEntities() const;
 
-        const std::string &GetName() const { return m_name; }
+        const std::string& GetName() const { return m_name; }
         size_t GetEntityCount() const { return m_entities.size(); }
 
     private:

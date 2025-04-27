@@ -1,0 +1,14 @@
+# .clang-format
+# Based on the Google C++ Style Guide
+BasedOnStyle: LLVM
+PointerAlignment: Left
+UseTab: Never
+IndentWidth: 4
+TabWidth: 4
+BreakBeforeBraces: Allman
+AllowShortIfStatementsOnASingleLine: false
+IndentCaseLabels: false
+ColumnLimit: 0
+AccessModifierOffset: -4
+NamespaceIndentation: All
+FixNamespaceComments: false

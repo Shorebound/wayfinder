@@ -5,9 +5,9 @@
 #include <string_view>
 #include <utility>
 
+#include <format>
 #include <memory>
 #include <vector>
-#include <format>
 
 namespace Wayfinder
 {
@@ -30,7 +30,7 @@ namespace Wayfinder
         // Note: C++23 allows std::format_string<Args...> for compile-time checks,
         // but std::string_view is safer for the public template interface here.
         template <typename... Args>
-        void LogFormat(LogVerbosity level, std::string_view format, Args&& ...args)
+        void LogFormat(LogVerbosity level, std::string_view format, Args&&... args)
         {
             if (level <= GetVerbosity())
             {
@@ -45,34 +45,34 @@ namespace Wayfinder
 
     public:
         template <typename... Args>
-        void Fatal(std::string_view format, Args&& ...args)
+        void Fatal(std::string_view format, Args&&... args)
         {
             LogFormat(LogVerbosity::Fatal, format, std::forward<Args>(args)...);
         }
         template <typename... Args>
-        void Error(std::string_view format, Args&& ...args)
+        void Error(std::string_view format, Args&&... args)
         {
             LogFormat(LogVerbosity::Error, format, std::forward<Args>(args)...);
         }
         template <typename... Args>
-        void Warning(std::string_view format, Args&& ...args)
+        void Warning(std::string_view format, Args&&... args)
         {
             LogFormat(LogVerbosity::Warning, format,
                       std::forward<Args>(args)...);
         }
         template <typename... Args>
-        void Info(std::string_view format, Args&& ...args)
+        void Info(std::string_view format, Args&&... args)
         {
             LogFormat(LogVerbosity::Info, format, std::forward<Args>(args)...);
         }
         template <typename... Args>
-        void Verbose(std::string_view format, Args&& ...args)
+        void Verbose(std::string_view format, Args&&... args)
         {
             LogFormat(LogVerbosity::Verbose, format,
                       std::forward<Args>(args)...);
         }
         template <typename... Args>
-        void VeryVerbose(std::string_view format, Args&& ...args)
+        void VeryVerbose(std::string_view format, Args&&... args)
         {
             LogFormat(LogVerbosity::VeryVerbose, format,
                       std::forward<Args>(args)...);

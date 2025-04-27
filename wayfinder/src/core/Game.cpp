@@ -5,8 +5,7 @@
 namespace Wayfinder
 {
 
-    Game::Game()
-        : m_isRunning(false), m_isInitialized(false)
+    Game::Game() : m_isRunning(false), m_isInitialized(false)
     {
     }
 
@@ -57,7 +56,7 @@ namespace Wayfinder
         m_isInitialized = false;
     }
 
-    void Game::LoadScene(const std::string &sceneName)
+    void Game::LoadScene(const std::string& sceneName)
     {
         UnloadCurrentScene();
 

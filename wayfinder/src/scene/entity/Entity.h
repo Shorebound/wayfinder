@@ -2,10 +2,10 @@
 
 #include <memory>
 #include <string>
-#include <vector>
-#include <unordered_map>
 #include <typeindex>
 #include <typeinfo>
+#include <unordered_map>
+#include <vector>
 
 namespace Wayfinder
 {
@@ -17,7 +17,7 @@ namespace Wayfinder
     class Entity : public std::enable_shared_from_this<Entity>
     {
     public:
-        Entity(const std::string &name = "Entity");
+        Entity(const std::string& name = "Entity");
         virtual ~Entity();
 
         virtual void Initialize();
@@ -26,7 +26,7 @@ namespace Wayfinder
         virtual void Shutdown();
 
         template <typename T, typename... Args>
-        std::unique_ptr<T> AddComponent(Args &&...args);
+        std::unique_ptr<T> AddComponent(Args&&... args);
 
         template <typename T>
         std::unique_ptr<T> GetComponent() const;
@@ -37,12 +37,12 @@ namespace Wayfinder
         template <typename T>
         void RemoveComponent();
 
-        const std::string &GetName() const { return m_name; }
+        const std::string& GetName() const { return m_name; }
         uint64_t GetID() const { return m_id; }
         bool IsActive() const { return m_isActive; }
-        const Transform *GetTransform() const;
+        const Transform* GetTransform() const;
 
-        void SetName(const std::string &name) { m_name = name; }
+        void SetName(const std::string& name) { m_name = name; }
         void SetActive(bool active) { m_isActive = active; }
 
     private:
@@ -60,7 +60,7 @@ namespace Wayfinder
 
     // Template implementations
     template <typename T, typename... Args>
-    std::unique_ptr<T> Entity::AddComponent(Args &&...args)
+    std::unique_ptr<T> Entity::AddComponent(Args&&... args)
     {
         static_assert(std::is_base_of<Component, T>::value, "T must derive from Component");
 

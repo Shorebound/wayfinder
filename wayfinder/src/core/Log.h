@@ -1,10 +1,10 @@
 #pragma once
 #include "Core.h"
-#include "logging/LogTypes.h"
 #include "logging/ILogger.h"
+#include "logging/LogTypes.h"
 #include <memory>
-#include <unordered_map>
 #include <string>
+#include <unordered_map>
 
 namespace Wayfinder
 {

@@ -1,8 +1,8 @@
 #pragma once
 #include "../ILogger.h"
 #include "SpdLogOutput.h"
-#include <spdlog/spdlog.h>
 #include <format>
+#include <spdlog/spdlog.h>
 
 namespace Wayfinder
 {
@@ -148,6 +148,5 @@ namespace Wayfinder
         std::shared_ptr<spdlog::logger> m_logger;
         std::vector<std::shared_ptr<ILogOutput>> m_outputs;
     };
-
 
 } // namespace Wayfinder

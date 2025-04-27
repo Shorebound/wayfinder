@@ -10,7 +10,7 @@ namespace Wayfinder
     class IRenderer
     {
     public:
-        virtual void Render(const Scene &scene) = 0;
+        virtual void Render(const Scene& scene) = 0;
     };
 
     class Renderer : public IRenderer
@@ -22,7 +22,7 @@ namespace Wayfinder
         bool Initialize(int screenWidth, int screenHeight);
         void Shutdown();
 
-        void Render(const Scene &scene);
+        void Render(const Scene& scene);
 
         void SetCameraPosition(float x, float y, float z);
         void SetCameraTarget(float x, float y, float z);
@@ -30,7 +30,7 @@ namespace Wayfinder
     private:
         void BeginRenderFrame();
         void EndRenderFrame();
-        void RenderEntities(const Scene &scene);
+        void RenderEntities(const Scene& scene);
 
         Camera3D m_camera;
 

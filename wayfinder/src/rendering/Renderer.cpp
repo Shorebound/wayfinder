@@ -41,7 +41,7 @@ namespace Wayfinder
         m_isInitialized = false;
     }
 
-    void Renderer::Render(const Scene &scene)
+    void Renderer::Render(const Scene& scene)
     {
         if (!m_isInitialized)
             return;
@@ -82,7 +82,7 @@ namespace Wayfinder
         EndDrawing();
     }
 
-    void Renderer::RenderEntities(const Scene &scene)
+    void Renderer::RenderEntities(const Scene& scene)
     {
         auto entities = scene.GetAllEntities();
 
@@ -90,7 +90,7 @@ namespace Wayfinder
 
         DrawGrid(100, 1.0f);
 
-        for (const auto &entity : entities)
+        for (const auto& entity : entities)
         {
             if (entity->IsActive())
             {

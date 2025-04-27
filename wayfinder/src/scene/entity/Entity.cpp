@@ -8,7 +8,7 @@ namespace Wayfinder
 
     uint64_t Entity::s_nextEntityID = 1;
 
-    Entity::Entity(const std::string &name)
+    Entity::Entity(const std::string& name)
         : m_name(name), m_id(s_nextEntityID++), m_isActive(true), m_isInitialized(false)
     {
         m_transform = std::make_unique<Transform>();
@@ -32,7 +32,7 @@ namespace Wayfinder
         m_transform->SetOwner(shared_from_this());
         m_transform->Initialize();
 
-        for (auto &pair : m_components)
+        for (auto& pair : m_components)
         {
             pair.second->Initialize();
         }
@@ -47,7 +47,7 @@ namespace Wayfinder
 
         m_transform->Update(deltaTime);
 
-        for (auto &pair : m_components)
+        for (auto& pair : m_components)
         {
             if (pair.second->IsActive())
             {
@@ -61,7 +61,7 @@ namespace Wayfinder
         if (!m_isActive)
             return;
 
-        for (auto &pair : m_components)
+        for (auto& pair : m_components)
         {
             if (pair.second->IsActive())
             {
@@ -74,7 +74,7 @@ namespace Wayfinder
     {
         TraceLog(LOG_INFO, "Shutting down entity: %s (ID: %llu)", m_name.c_str(), m_id);
 
-        for (auto &pair : m_components)
+        for (auto& pair : m_components)
         {
             pair.second->Shutdown();
         }
@@ -90,7 +90,7 @@ namespace Wayfinder
         m_isInitialized = false;
     }
 
-    const Transform *Entity::GetTransform() const
+    const Transform* Entity::GetTransform() const
     {
         return m_transform.get();
     }
