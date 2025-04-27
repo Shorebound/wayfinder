@@ -15,7 +15,7 @@ namespace Wayfinder
     class raylib_sink : public spdlog::sinks::base_sink<Mutex>
     {
     protected:
-        void sink_it_(const spdlog::details::log_msg &msg) override
+        void sink_it_(const spdlog::details::log_msg& msg) override
         {
             // Format the message
             spdlog::memory_buf_t formatted;
@@ -83,24 +83,24 @@ namespace Wayfinder
     inline LogOutputType operator&(LogOutputType a, LogOutputType b)
     {
         return static_cast<LogOutputType>(
-            static_cast<std::underlying_type_t<LogOutputType>>(a) &
+            static_cast<std::underlying_type_t<LogOutputType>>(a)& 
             static_cast<std::underlying_type_t<LogOutputType>>(b));
     }
 
-    inline LogOutputType &operator|=(LogOutputType &a, LogOutputType b)
+    inline LogOutputType& operator|=(LogOutputType& a, LogOutputType b)
     {
         a = a | b;
         return a;
     }
 
-    inline LogOutputType &operator&=(LogOutputType &a, LogOutputType b)
+    inline LogOutputType& operator&=(LogOutputType& a, LogOutputType b)
     {
-        a = a & b;
+        a = a&  b;
         return a;
     }
 
     // Configuration for file sink
-    struct LogFileSinkConfig
+    struct LogFileConfig
     {
         std::string filePath = "logs/wayfinder.log"; // Default log file path
         size_t maxFileSize = 5 * 1024 * 1024;        // 5 MB default
@@ -114,7 +114,7 @@ namespace Wayfinder
         LogOutputType enabledOutputs = LogOutputType::None;
 
         // File output specific configuration
-        LogFileSinkConfig fileSinkConfig;
+        LogFileConfig fileSinkConfig;
 
         // Helper methods to enable/disable specific outputs
         void EnableOutput(LogOutputType output, bool enable = true)
@@ -126,14 +126,14 @@ namespace Wayfinder
             else
             {
                 // Clear the specific bit using AND with inverted bits
-                enabledOutputs = enabledOutputs & static_cast<LogOutputType>(
+                enabledOutputs = enabledOutputs&  static_cast<LogOutputType>(
                                                       ~static_cast<std::underlying_type_t<LogOutputType>>(output));
             }
         }
 
         bool IsOutputEnabled(LogOutputType output) const
         {
-            return static_cast<bool>(enabledOutputs & output);
+            return static_cast<bool>(enabledOutputs&  output);
         }
     };
 
@@ -150,13 +150,13 @@ namespace Wayfinder
     class WAYFINDER_API LogCategory
     {
     public:
-        LogCategory(const std::string &name, LogVerbosity defaultVerbosity = LogVerbosity::Info);
+        LogCategory(const std::string& name, LogVerbosity defaultVerbosity = LogVerbosity::Info);
 
         // Rebuild sinks based on current configuration
         void UpdateSinks();
 
-        const std::string &GetName() const { return m_name; }
-        std::shared_ptr<spdlog::logger> &GetLogger() { return m_logger; }
+        const std::string& GetName() const { return m_name; }
+        std::shared_ptr<spdlog::logger>& GetLogger() { return m_logger; }
         LogVerbosity GetVerbosity() const { return m_verbosity; }
         void SetVerbosity(LogVerbosity level);
 
@@ -172,22 +172,22 @@ namespace Wayfinder
         static void Init();
         static void Shutdown();
 
-        static LogCategory &CreateCategory(const std::string &name, LogVerbosity defaultVerbosity = LogVerbosity::Info);
-        static LogCategory &GetCategory(const std::string &name);
+        static LogCategory& CreateCategory(const std::string& name, LogVerbosity defaultVerbosity = LogVerbosity::Info);
+        static LogCategory& GetCategory(const std::string& name);
 
         // Global verbosity control
         static void SetGlobalVerbosity(LogVerbosity level);
 
         // Configuration methods
-        static const LogConfig &GetConfig() { return s_config; }
-        static void SetConfig(const LogConfig &config);
+        static const LogConfig& GetConfig() { return s_config; }
+        static void SetConfig(const LogConfig& config);
 
         // Convenience methods for output configuration
         static void EnableOutput(LogOutputType output, bool enable = true);
         static bool IsOutputEnabled(LogOutputType output);
 
         // File output specific configuration
-        static void SetLogFilePath(const std::string &path);
+        static void SetLogFilePath(const std::string& path);
         static void SetLogFileRotationSize(size_t maxSize);
         static void SetLogFileMaxFiles(size_t maxFiles);
 
@@ -198,12 +198,12 @@ namespace Wayfinder
     };
 
     // Declare common categories
-    extern WAYFINDER_API LogCategory &LogEngine;
-    extern WAYFINDER_API LogCategory &LogRenderer;
-    extern WAYFINDER_API LogCategory &LogInput;
-    extern WAYFINDER_API LogCategory &LogAudio;
-    extern WAYFINDER_API LogCategory &LogPhysics;
-    extern WAYFINDER_API LogCategory &LogGame;
+    extern WAYFINDER_API LogCategory& LogEngine;
+    extern WAYFINDER_API LogCategory& LogRenderer;
+    extern WAYFINDER_API LogCategory& LogInput;
+    extern WAYFINDER_API LogCategory& LogAudio;
+    extern WAYFINDER_API LogCategory& LogPhysics;
+    extern WAYFINDER_API LogCategory& LogGame;
 
 } // namespace Wayfinder
 

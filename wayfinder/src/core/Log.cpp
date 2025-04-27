@@ -10,14 +10,14 @@ namespace Wayfinder
     LogConfig Log::s_config;
 
     // Define common categories
-    LogCategory &LogEngine = Log::CreateCategory("Engine");
-    LogCategory &LogRenderer = Log::CreateCategory("Renderer");
-    LogCategory &LogInput = Log::CreateCategory("Input");
-    LogCategory &LogAudio = Log::CreateCategory("Audio");
-    LogCategory &LogPhysics = Log::CreateCategory("Physics");
-    LogCategory &LogGame = Log::CreateCategory("Game");
+    LogCategory& LogEngine = Log::CreateCategory("Engine");
+    LogCategory& LogRenderer = Log::CreateCategory("Renderer");
+    LogCategory& LogInput = Log::CreateCategory("Input");
+    LogCategory& LogAudio = Log::CreateCategory("Audio");
+    LogCategory& LogPhysics = Log::CreateCategory("Physics");
+    LogCategory& LogGame = Log::CreateCategory("Game");
 
-    LogCategory::LogCategory(const std::string &name, LogVerbosity defaultVerbosity)
+    LogCategory::LogCategory(const std::string& name, LogVerbosity defaultVerbosity)
         : m_name(name), m_verbosity(defaultVerbosity)
     {
         // Create logger with empty sink list (will be populated in UpdateSinks)
@@ -35,7 +35,7 @@ namespace Wayfinder
         // Clear existing sinks
         m_logger->sinks().clear();
 
-        const LogConfig &config = Log::GetConfig();
+        const LogConfig& config = Log::GetConfig();
 
         // Add console output if enabled
         if (config.IsOutputEnabled(LogOutputType::Console))
@@ -115,12 +115,12 @@ namespace Wayfinder
         spdlog::shutdown();
     }
 
-    void Log::SetConfig(const LogConfig &config)
+    void Log::SetConfig(const LogConfig& config)
     {
         s_config = config;
 
         // Update all existing categories with new configuration
-        for (auto &[name, category] : s_categories)
+        for (auto& [name, category] : s_categories)
         {
             category->UpdateSinks();
         }
@@ -131,7 +131,7 @@ namespace Wayfinder
         s_config.EnableOutput(output, enable);
 
         // Update all existing categories with new configuration
-        for (auto &[name, category] : s_categories)
+        for (auto& [name, category] : s_categories)
         {
             category->UpdateSinks();
         }
@@ -142,12 +142,12 @@ namespace Wayfinder
         return s_config.IsOutputEnabled(output);
     }
 
-    void Log::SetLogFilePath(const std::string &path)
+    void Log::SetLogFilePath(const std::string& path)
     {
         s_config.fileSinkConfig.filePath = path;
 
         // Update all existing categories with new configuration
-        for (auto &[name, category] : s_categories)
+        for (auto& [name, category] : s_categories)
         {
             category->UpdateSinks();
         }
@@ -158,7 +158,7 @@ namespace Wayfinder
         s_config.fileSinkConfig.maxFileSize = maxSize;
 
         // Update all existing categories with new configuration
-        for (auto &[name, category] : s_categories)
+        for (auto& [name, category] : s_categories)
         {
             category->UpdateSinks();
         }
@@ -169,13 +169,13 @@ namespace Wayfinder
         s_config.fileSinkConfig.maxFiles = maxFiles;
 
         // Update all existing categories with new configuration
-        for (auto &[name, category] : s_categories)
+        for (auto& [name, category] : s_categories)
         {
             category->UpdateSinks();
         }
     }
 
-    LogCategory &Log::CreateCategory(const std::string &name, LogVerbosity defaultVerbosity)
+    LogCategory& Log::CreateCategory(const std::string& name, LogVerbosity defaultVerbosity)
     {
         auto it = s_categories.find(name);
         if (it != s_categories.end())
@@ -184,12 +184,12 @@ namespace Wayfinder
         }
 
         auto category = std::make_unique<LogCategory>(name, defaultVerbosity);
-        auto &ref = *category;
+        auto& ref = *category;
         s_categories[name] = std::move(category);
         return ref;
     }
 
-    LogCategory &Log::GetCategory(const std::string &name)
+    LogCategory& Log::GetCategory(const std::string& name)
     {
         auto it = s_categories.find(name);
         if (it != s_categories.end())
@@ -202,7 +202,7 @@ namespace Wayfinder
     void Log::SetGlobalVerbosity(LogVerbosity level)
     {
         s_globalVerbosity = level;
-        for (auto &[name, category] : s_categories)
+        for (auto& [name, category] : s_categories)
         {
             category->SetVerbosity(level);
         }
