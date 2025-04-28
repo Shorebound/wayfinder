@@ -1,9 +1,7 @@
 #pragma once
 #include "../ILogger.h"
 #include "SpdLogger.h"
-#include <memory>
-#include <string>
-#include <unordered_map>
+
 
 namespace Wayfinder
 {

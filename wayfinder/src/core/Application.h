@@ -1,8 +1,5 @@
 #pragma once
 
-#include "raylib.h"
-#include <memory>
-#include <string>
 
 namespace Wayfinder
 {

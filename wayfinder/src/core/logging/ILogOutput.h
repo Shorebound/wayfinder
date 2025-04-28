@@ -1,7 +1,6 @@
 #pragma once
 #include "LogTypes.h"
-#include <string>
-#include <memory>
+
 
 namespace Wayfinder
 {

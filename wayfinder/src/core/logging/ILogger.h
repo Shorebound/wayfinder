@@ -1,13 +1,7 @@
 #pragma once
 #include "ILogOutput.h"
 #include "LogTypes.h"
-#include <string>
-#include <string_view>
-#include <utility>
 
-#include <format>
-#include <memory>
-#include <vector>
 
 namespace Wayfinder
 {

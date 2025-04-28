@@ -1,6 +1,5 @@
 #include "Component.h"
 #include "Entity.h"
-#include "raylib.h"
 
 namespace Wayfinder
 {

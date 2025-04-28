@@ -17,67 +17,40 @@ generate_export_header(${ENGINE_NAME}
     EXPORT_FILE_NAME ${CMAKE_CURRENT_BINARY_DIR}/include/Wayfinder_export.h
 )
 
-if(WIN32 AND ENGINE_LIB_TYPE STREQUAL "SHARED")
-  # Define WAYFINDER_EXPORTS *only* when building this DLL itself
-  target_compile_definitions(${ENGINE_NAME} PRIVATE WAYFINDER_EXPORTS)
-  message(STATUS "Engine: Enabling DLL export definitions for ${ENGINE_NAME}")
-endif()
-
 # --- Compile Definitions ---
-target_compile_definitions(${ENGINE_NAME} PUBLIC
+target_compile_definitions(${ENGINE_NAME} 
+  PUBLIC
     # Allow consumers and Wayfinder itself to check if logging is on
     WAYFINDER_LOGGING_ENABLED
+
+    $<$<CONFIG:Debug>:WAYFINDER_DEBUG>
+    $<$<CONFIG:Development>:WAYFINDER_DEVELOPMENT> 
+    $<$<CONFIG:Shipping>:WAYFINDER_SHIPPING>    
+
     # Config-specific logging levels
     $<$<CONFIG:Debug>:WAYFINDER_LOGGING_LEVEL=0>
-    $<$<CONFIG:Release>:WAYFINDER_LOGGING_LEVEL=2>
-    # Add other PUBLIC definitions needed by headers in src/ here
+    $<$<CONFIG:Development>:WAYFINDER_LOGGING_LEVEL=1>
+    $<$<CONFIG:Shipping>:WAYFINDER_LOGGING_LEVEL=2>
+
+    # Platform-specific (Public controls #ifdef) - uses generator expression
+    $<IF:$<PLATFORM_ID:Windows>,WAYFINDER_PLATFORM_WINDOWS,> # Add if Windows, else add nothing
+    
+  PRIVATE
+    # Platform-specific (Private controls __declspec) - uses generator expression
+    $<IF:$<PLATFORM_ID:Windows>,WAYFINDER_BUILD_DLL,> # Add if Windows, else add nothing
 )
-# Add PRIVATE definitions only needed inside Wayfinder's .cpp files if necessary
-# target_compile_definitions(${ENGINE_NAME} PRIVATE INTERNAL_ENGINE_FLAG)
 
+# --- Sources ---
+file(GLOB_RECURSE ${ENGINE_NAME}_SOURCES CONFIGURE_DEPENDS
+  "src/*.h"
+  "src/*.cpp"
+)
 
-
-
-# Install headers
 install(FILES
     ${CMAKE_CURRENT_SOURCE_DIR}/src/core/Core.h
     DESTINATION include/wayfinder/core
 )
 
-# Dependencies
-set(RAYLIB_VERSION 5.5)
-find_package(raylib ${RAYLIB_VERSION} QUIET) # QUIET or REQUIRED
-if (NOT raylib_FOUND) # If there's none, fetch and build raylib
-  include(FetchContent)
-  FetchContent_Declare(
-    raylib
-    DOWNLOAD_EXTRACT_TIMESTAMP OFF
-    URL https://github.com/raysan5/raylib/archive/refs/tags/${RAYLIB_VERSION}.tar.gz
-  )
-  FetchContent_GetProperties(raylib)
-  if (NOT raylib_POPULATED) # Have we downloaded raylib yet?
-    set(FETCHCONTENT_QUIET NO)
-    set(BUILD_EXAMPLES OFF CACHE BOOL "Build raylib examples" FORCE)
-    #set(BUILD_GAMES OFF CACHE BOOL "Build raylib games" FORCE)
-    #set(BUILD_TESTS OFF CACHE BOOL "Build raylib tests" FORCE)
-    FetchContent_MakeAvailable(raylib)
-  endif()
-endif()
-
-# Logging Library (spdlog)
-set(SPDLOG_VERSION 1.15.2)
-find_package(spdlog ${SPDLOG_VERSION} QUIET)
-if (NOT spdlog_FOUND)
-    include(FetchContent)
-    FetchContent_Declare(
-        spdlog
-        DOWNLOAD_EXTRACT_TIMESTAMP OFF
-        URL https://github.com/gabime/spdlog/archive/refs/tags/v${SPDLOG_VERSION}.tar.gz
-    )
-    FetchContent_MakeAvailable(spdlog)
-endif()
-
-# Our Project
 target_sources(${ENGINE_NAME} PRIVATE
     # Precompiled Header
     src/WayfinderPCH.cpp
@@ -111,6 +84,14 @@ target_include_directories(${ENGINE_NAME}
     ${CMAKE_CURRENT_BINARY_DIR}/include
 )
 
+# --- Target Properties ---
+# Output directory for the library file (.dll, .lib)
+set_target_properties(${ENGINE_NAME} PROPERTIES
+  RUNTIME_OUTPUT_DIRECTORY "${OUTPUT_DIR_BASE}/$<CONFIG>" # For DLL
+  LIBRARY_OUTPUT_DIRECTORY "${OUTPUT_DIR_BASE}/$<CONFIG>" # For import lib
+  ARCHIVE_OUTPUT_DIRECTORY "${OUTPUT_DIR_BASE}/$<CONFIG>" # For static lib (if type changed)
+)
+
 
 #set(raylib_VERBOSE 1)
 target_link_libraries(${ENGINE_NAME}
@@ -125,5 +106,15 @@ target_precompile_headers(${ENGINE_NAME}
         src/WayfinderPCH.h
 )
 
-message(STATUS "Engine: Configured precompiled headers for ${ENGINE_NAME}")
+# Compiler Flags (Symbols / Optimization)
+# CMake handles debug symbols (-g / /Zi) for Debug builds automatically.
+# CMake handles optimization (-O2, -O3 / /O2) for Release-like builds automatically.
+# We rely on CMake's defaults associated with the build type/configuration.
+# If more specific flags are needed, use target_compile_options with generator expressions:
+# target_compile_options(${ENGINE_NAME} PRIVATE
+#   $<$<CONFIG:Debug>:/Zi> # Example: Force specific debug info format
+#   $<$<CONFIG:Development>:/O2>
+#   $<$<CONFIG:Shipping>:/O2;/GL> # Example: Add Link-Time Optimization for Shipping
+# )
 
+message(STATUS "Engine: Configured precompiled headers for ${ENGINE_NAME}")

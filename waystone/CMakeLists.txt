@@ -10,6 +10,10 @@ message(STATUS "Sandbox: Configuring target ${SANDBOX_NAME}")
 #)
 
 # --- Sources ---
+file(GLOB_RECURSE SANDBOX_SOURCES CONFIGURE_DEPENDS
+  "src/*.h"
+  "src/*.cpp"
+)
 target_sources(${SANDBOX_NAME} 
     PRIVATE
         src/WaystoneApplication.cpp 
@@ -27,35 +31,28 @@ target_link_libraries(${SANDBOX_NAME}
         ${ENGINE_NAME}
 )
 
+# --- Target Properties ---
+# Output directory for the executable file (.exe)
+set_target_properties(${SANDBOX_NAME} PROPERTIES
+  RUNTIME_OUTPUT_DIRECTORY "${OUTPUT_DIR_BASE}/$<CONFIG>"
+)
 
-# --- Custom Target to Copy Engine DLL ---
-if(WIN32 AND WAYFINDER_BUILD_SHARED_LIBS)
+# --- Platform Specific Definitions (Windows) ---
+# WAYFINDER_PLATFORM_WINDOWS is inherited publicly from Wayfinder, no need to repeat unless
+# Sandbox specifically needs to check it during its own compilation independently.
+# if(WIN32)
+#   target_compile_definitions(${SANDBOX_NAME} PRIVATE WAYFINDER_PLATFORM_WINDOWS)
+# endif()
 
-    # Workaround: Manually construct the DLL path since standard generator expressions failed.
-    set(MANUAL_DLL_SOURCE_PATH "$<TARGET_FILE_DIR:${ENGINE_NAME}>/${ENGINE_NAME}.dll")
-    set(MANUAL_DESTINATION_DIR "$<TARGET_FILE_DIR:${SANDBOX_NAME}>")
-
-    add_custom_target(CopyWayfinderDLL ALL # Add to default build
-        # Command 1: Echo the manually constructed source path
-        COMMAND ${CMAKE_COMMAND} -E echo "DEBUG (Manual Suffix): Source DLL = '${MANUAL_DLL_SOURCE_PATH}'"
-        # Command 2: Echo the destination directory
-        COMMAND ${CMAKE_COMMAND} -E echo "DEBUG (Manual Suffix): Destination Dir = '${MANUAL_DESTINATION_DIR}'"
-        # Command 3: Perform the copy using the manually constructed paths
-        COMMAND ${CMAKE_COMMAND} -E copy_if_different
-                "${MANUAL_DLL_SOURCE_PATH}"     # Use the variable holding the constructed source path
-                "${MANUAL_DESTINATION_DIR}"      # Use the variable holding the destination path
-        COMMENT "Copying ${ENGINE_NAME}.dll (Manual Suffix) to ${SANDBOX_NAME} directory"
-        VERBATIM
-    )
-
-    # Dependencies remain the same
-    add_dependencies(CopyWayfinderDLL ${ENGINE_NAME})
-    add_dependencies(${SANDBOX_NAME} CopyWayfinderDLL)
-
-    message(STATUS "Sandbox: Added custom target 'CopyWayfinderDLL' (Manual Suffix) to handle DLL copy.")
-
-endif()
-
+# --- Configuration Specific Settings ---
+# Definitions based on configuration
+target_compile_definitions(${SANDBOX_NAME} PRIVATE
+  $<$<CONFIG:Debug>:WAYFINDER_DEBUG>
+  $<$<CONFIG:Development>:WAYFINDER_DEVELOPMENT> 
+  $<$<CONFIG:Shipping>:WAYFINDER_SHIPPING>     # Map Premake Dist -> Shipping
+  # Define NDEBUG for non-Debug builds
+  $<$<NOT:$<CONFIG:Debug>>:NDEBUG>
+)
 
 # --- Platform Specifics for THIS Executable ---
 # Web Configurations (using standard CMake variable)
@@ -82,4 +79,26 @@ if (APPLE)
         "-framework OpenGL"
         # Add other frameworks needed by the sandbox/game
     )
+endif()
+
+# --- Post-Build Command for Waystone (Windows Only) ---
+# Waystone copies the Wayfinder DLL it needs into its own output directory.
+if(WIN32)
+  # Check if Wayfinder is actually being built as a shared library
+  # Get the TYPE property of the Wayfinder target
+  get_target_property(WAYFINDER_TYPE ${ENGINE_NAME} TYPE)
+  if(WAYFINDER_TYPE STREQUAL "SHARED_LIBRARY")
+
+    add_custom_command(TARGET ${SANDBOX_NAME} POST_BUILD
+      COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        # Source: The Wayfinder library file for the current configuration
+        $<TARGET_FILE:${ENGINE_NAME}>
+        # Destination: Waystone's output directory
+        "$<TARGET_FILE_DIR:${SANDBOX_NAME}>/"
+      COMMENT "Copying ${ENGINE_NAME}.dll to ${SANDBOX_NAME} output directory for $<CONFIG>"
+      VERBATIM
+    )
+    message(STATUS "Windows: Added post-build step for ${SANDBOX_NAME} to copy required ${ENGINE_NAME} DLL.")
+
+  endif()
 endif()

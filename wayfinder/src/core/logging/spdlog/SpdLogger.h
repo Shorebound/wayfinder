@@ -1,8 +1,6 @@
 #pragma once
 #include "../ILogger.h"
 #include "SpdLogOutput.h"
-#include <format>
-#include <spdlog/spdlog.h>
 
 namespace Wayfinder
 {
