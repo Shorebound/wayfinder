@@ -16,6 +16,7 @@ set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON) 
 set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 # --- Configurations ---
 # Define the custom configurations if none are specified (e.g., by IDE/Generator)
@@ -28,8 +29,17 @@ if(NOT CMAKE_CONFIGURATION_TYPES)
     set(CMAKE_BUILD_TYPE Debug CACHE STRING "Default build type" FORCE)
   endif()
 endif()
+
+# Enable LTO specifically for the Development & Shipping configurations
+set(CMAKE_INTERPROCEDURAL_OPTIMIZATION_Shipping ON)
+set(CMAKE_INTERPROCEDURAL_OPTIMIZATION_Development ON)
+
+# You can also set it per-target if needed:
+# set_target_properties(${ENGINE_NAME} PROPERTIES INTERPROCEDURAL_OPTIMIZATION_Shipping ON)
+# set_target_properties(${SANDBOX_NAME} PROPERTIES INTERPROCEDURAL_OPTIMIZATION_Shipping ON)
+
 message(STATUS "Available configurations: ${CMAKE_CONFIGURATION_TYPES}")
-message(STATUS "Building configuration: ${CMAKE_BUILD_TYPE}") # Empty for multi-config
+message(STATUS "Building configuration: ${CMAKE_BUILD_TYPE}") 
 
 # --- Project Settings ---
 option(WAYFINDER_BUILD_EDITOR "Build the Wayfinder Editor" ON)
@@ -40,6 +50,13 @@ option(WAYFINDER_BUILD_SAMPLES "Build sample projects" OFF)
 option(WAYFINDER_BUILD_TESTS "Build tests" OFF) 
 option(WAYFINDER_BUILD_ASSETPROCESSOR "Build the Wayfinder Asset Processor" OFF)
 option(WAYFINDER_BUILD_SHARED_LIBS "Build engine modules as shared libraries" ON)
+
+option(WAYFINDER_ENABLE_RTTI "Enable C++ Run-Time Type Information" ON)
+option(WAYFINDER_WARNINGS_AS_ERRORS "Treat compiler warnings as errors" OFF)
+option(WAYFINDER_ENABLE_EXCEPTIONS "Enable C++ Exceptions" ON)
+option(WAYFINDER_ENABLE_LOGGING "Enable the logging system" ON) 
+
+option(WAYFINDER_PHYSICS "Enable physics support" ON)
 
 message(STATUS "Wayfinder Project Configuration:")
 message(STATUS "  Build Sandbox (Waystone): ${WAYFINDER_BUILD_SANDBOX}")
@@ -63,8 +80,13 @@ if(WIN32)
 
   # Use static runtime library (/MT or /MTd)
   # Use a generator expression to select based on configuration
-  set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
-  message(STATUS "Windows: Using static runtime library based on configuration.")
+  # set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+  # message(STATUS "Windows: Using static runtime library based on configuration.")
+
+  # Use dynamic runtime library (/MD or /MDd)
+  set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>DLL")
+  message(STATUS "Windows: Using dynamic runtime library based on configuration.")
+
 endif()
 
 # --- Dependencies ---
