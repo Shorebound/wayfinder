@@ -34,11 +34,11 @@ namespace Wayfinder
         if (!m_isRunning || !m_isInitialized)
             return;
 
-        if (IsKeyPressed(KEY_ESCAPE))
+        /*if (IsKeyPressed(KEY_ESCAPE))
         {
             m_isRunning = false;
             return;
-        }
+        }*/
 
         if (m_currentScene)
         {

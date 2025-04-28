@@ -7,7 +7,7 @@ namespace Wayfinder
     // Forward declarations
     class Component;
     class Transform;
-
+    
     class WAYFINDER_API Entity : public std::enable_shared_from_this<Entity>
     {
     public:
@@ -116,3 +116,4 @@ namespace Wayfinder
     }
 
 } // namespace Wayfinder
+
