@@ -1,22 +1,15 @@
 #pragma once
 
-
 namespace Wayfinder
 {
-
     class Game;
     class Renderer;
+    class Window;
+
 
     class WAYFINDER_API Application
     {
     public:
-        struct Config
-        {
-            int screenWidth = 800;
-            int screenHeight = 450;
-            std::string windowTitle = "Wayfinder Engine";
-        };
-
         struct CommandLineArgs
         {
             int Count = 0;
@@ -29,13 +22,21 @@ namespace Wayfinder
             }
         };
 
+        struct Config
+        {
+            uint32_t ScreenWidth = 800;
+            uint32_t ScreenHeight = 450;
+            std::string WindowTitle = "Wayfinder Engine";
+            bool VSync = false;
+
+            Application::CommandLineArgs CommandLineArgs;
+        };
+
         Application(const Config& config = {});
         ~Application();
 
         bool Initialize();
-
         void Run();
-
         void Shutdown();
 
     private:
@@ -45,10 +46,9 @@ namespace Wayfinder
         Config m_config;
         bool m_isRunning;
 
+        std::unique_ptr<Window> m_window;
         std::unique_ptr<Game> m_game;
         std::unique_ptr<Renderer> m_renderer;
-
-        double m_lastFrameTime;
     };
 
     // To be defined by Client

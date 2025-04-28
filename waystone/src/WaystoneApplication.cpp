@@ -7,14 +7,16 @@ namespace Waystone
     class WaystoneApplication : public Wayfinder::Application
     {
     public:
-        WaystoneApplication() : Application(Config{
-                                    .screenWidth = 1280,
-                                    .screenHeight = 720,
-                                    .windowTitle = "Waystone Sandbox"}) {}
+        WaystoneApplication(const Config& config = {}) : Application(config) {}
     };
 }
 
 Wayfinder::Application* Wayfinder::CreateApplication(const Wayfinder::Application::CommandLineArgs& args)
 {
-    return new Waystone::WaystoneApplication();
+    auto config = Wayfinder::Application::Config{
+        .ScreenWidth = 1920,
+        .ScreenHeight = 1080,
+        .WindowTitle = "Waystone Sandbox",
+        .VSync = false};
+    return new Waystone::WaystoneApplication(config);
 }

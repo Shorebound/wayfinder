@@ -23,14 +23,21 @@ namespace Wayfinder
         // Public template interface - uses std::format concepts
         // Note: C++23 allows std::format_string<Args...> for compile-time checks,
         // but std::string_view is safer for the public template interface here.
-        template <typename... Args>
+        /*template<typename... Args>
+        void LogFormat(LogVerbosity level, std::string_view format, const Args&... args)
+        {
+            if (level <= GetVerbosity())
+            {
+                LogFormatted(level, format, std::make_format_args(args...));
+            }
+        }*/
+    
+        template<typename... Args>
         void LogFormat(LogVerbosity level, std::string_view format, Args&&... args)
         {
             if (level <= GetVerbosity())
             {
-                // Use std::make_format_args to capture arguments
-                LogFormatted(level, format,
-                             std::make_format_args(std::forward<Args>(args)...));
+                LogFormatted(level, format, std::make_format_args(args...));
             }
         }
 

@@ -16,6 +16,7 @@ namespace Wayfinder
     LogCategory& LogAudio = Log::CreateCategory("Audio");
     LogCategory& LogPhysics = Log::CreateCategory("Physics");
     LogCategory& LogGame = Log::CreateCategory("Game");
+    LogCategory& LogScene = Log::CreateCategory("Scene");
 
     LogCategory::LogCategory(const std::string& name, LogVerbosity defaultVerbosity)
         : m_name(name), m_verbosity(defaultVerbosity)

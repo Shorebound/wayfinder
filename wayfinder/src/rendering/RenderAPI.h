@@ -1,0 +1,61 @@
+#pragma once
+
+namespace Wayfinder
+{
+    // Forward declarations
+    class Scene;
+    class Entity;
+    
+    // Camera abstraction
+    struct Camera
+    {
+        struct Vec3 
+        {
+            float x, y, z;
+        };
+        
+        Vec3 Position;
+        Vec3 Target;
+        Vec3 Up;
+        float FOV;
+        int ProjectionType; // 0 = Perspective, 1 = Orthographic
+    };
+    
+    // Color abstraction
+    struct Color
+    {
+        uint8_t r, g, b, a;
+        
+        static Color White() { return {255, 255, 255, 255}; }
+        static Color Black() { return {0, 0, 0, 255}; }
+        static Color Red() { return {255, 0, 0, 255}; }
+        static Color Green() { return {0, 255, 0, 255}; }
+        static Color Blue() { return {0, 0, 255, 255}; }
+        static Color Yellow() { return {255, 255, 0, 255}; }
+        static Color Gray() { return {128, 128, 128, 255}; }
+        static Color DarkGray() { return {80, 80, 80, 255}; }
+    };
+    
+    // Interface for rendering API
+    class WAYFINDER_API IRenderAPI
+    {
+    public:
+        virtual ~IRenderAPI() = default;
+        
+        virtual void Initialize() = 0;
+        virtual void Shutdown() = 0;
+        
+        // 2D Rendering
+        virtual void DrawText(const std::string& text, int x, int y, int fontSize, const Color& color) = 0;
+        virtual void DrawFPS(int x, int y) = 0;
+        
+        // 3D Rendering
+        virtual void Begin3DMode(const Camera& camera) = 0;
+        virtual void End3DMode() = 0;
+        virtual void DrawGrid(int slices, float spacing) = 0;
+        virtual void DrawCube(float x, float y, float z, float width, float height, float depth, const Color& color) = 0;
+        virtual void DrawCubeWires(float x, float y, float z, float width, float height, float depth, const Color& color) = 0;
+        
+        static std::unique_ptr<IRenderAPI> Create();
+    };
+}

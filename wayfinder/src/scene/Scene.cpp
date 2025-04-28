@@ -1,5 +1,6 @@
 #include "Scene.h"
 #include "entity/Entity.h"
+#include "../core/Log.h"
 
 namespace Wayfinder
 {
@@ -18,7 +19,7 @@ namespace Wayfinder
 
     void Scene::Initialize()
     {
-        TraceLog(LOG_INFO, "Initializing scene: %s", m_name.c_str());
+        WAYFINDER_INFO(LogScene, "Initializing scene: {0}", m_name);
 
         for (auto& pair : m_entities)
         {
@@ -52,7 +53,7 @@ namespace Wayfinder
 
     void Scene::Shutdown()
     {
-        TraceLog(LOG_INFO, "Shutting down scene: %s", m_name.c_str());
+        WAYFINDER_INFO(LogScene, "Shutting down scene: {0}", m_name);
 
         for (auto& pair : m_entities)
         {
@@ -74,6 +75,7 @@ namespace Wayfinder
             entity->Initialize();
         }
 
+        WAYFINDER_INFO(LogScene, "Created entity: {0} (ID: {1})", name, entity->GetID());
         return entity;
     }
 

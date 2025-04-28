@@ -1,37 +1,31 @@
 #pragma once
-
-#include "raylib.h"
+#include "RenderAPI.h"
 
 namespace Wayfinder
 {
     class Scene;
+    class IRenderAPI;
+    class IGraphicsContext;
 
-    class WAYFINDER_API IRenderer
-    {
-    public:
-        virtual void Render(const Scene& scene) = 0;
-    };
-
-    class WAYFINDER_API Renderer : public IRenderer
+    class WAYFINDER_API Renderer
     {
     public:
         Renderer();
         ~Renderer();
 
-        bool Initialize(int screenWidth, int screenHeight);
-        void Shutdown();
+        virtual bool Initialize(int screenWidth, int screenHeight);
+        virtual void Shutdown();
 
-        void Render(const Scene& scene);
+        virtual void BeginFrame();
+        virtual void Render(const Scene& scene);
+        virtual void EndFrame();
 
         void SetCameraPosition(float x, float y, float z);
         void SetCameraTarget(float x, float y, float z);
 
     private:
-        void BeginRenderFrame();
-        void EndRenderFrame();
         void RenderEntities(const Scene& scene);
-
-        Camera3D m_camera;
+        Camera m_camera;
 
         int m_screenWidth;
         int m_screenHeight;

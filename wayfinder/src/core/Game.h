@@ -4,34 +4,20 @@ namespace Wayfinder
 {
     class Scene;
 
-    class IGame
-    {
-    public:
-        virtual bool Initialize() = 0;
-        // virtual void PreUpdate() = 0;
-        virtual void Update(float deltaTime) = 0;
-        // virtual void FixedUpdate() = 0;
-        // virtual void PostUpdate() = 0;
-        virtual void Shutdown() = 0;
-    };
-
-    class WAYFINDER_API Game : public IGame
+    class WAYFINDER_API Game
     {
     public:
         Game();
         ~Game();
 
-        bool Initialize() override;
-        void Update(float deltaTime) override;
-        void Shutdown() override;
+        virtual bool Initialize();
+        virtual void Update(float deltaTime);
+        virtual void Shutdown();
 
         void LoadScene(const std::string& sceneName);
         void UnloadCurrentScene();
 
-        const Scene* GetCurrentScene() const
-        {
-            return m_currentScene.get();
-        }
+        const Scene* GetCurrentScene() const{ return m_currentScene.get(); }
 
         void SetRunning(bool isRunning)
         {

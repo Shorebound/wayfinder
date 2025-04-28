@@ -1,10 +1,11 @@
 #include "Game.h"
+#include "Log.h"
+#include "ServiceLocator.h"
+#include "../platform/Input.h"
 #include "../scene/Scene.h"
-#include "raylib.h"
 
 namespace Wayfinder
 {
-
     Game::Game() : m_isRunning(false), m_isInitialized(false)
     {
     }
@@ -19,7 +20,7 @@ namespace Wayfinder
 
     bool Game::Initialize()
     {
-        TraceLog(LOG_INFO, "Initializing game");
+        WAYFINDER_INFO(LogGame, "Initializing game");
 
         m_currentScene = std::make_unique<Scene>("Default Scene");
         m_currentScene->Initialize();
@@ -34,11 +35,13 @@ namespace Wayfinder
         if (!m_isRunning || !m_isInitialized)
             return;
 
-        /*if (IsKeyPressed(KEY_ESCAPE))
-        {
-            m_isRunning = false;
-            return;
-        }*/
+        // Example of using the input abstraction
+        // auto& input = ServiceLocator::GetInput();
+        // if (input.IsKeyPressed(KEY_ESCAPE))
+        // {
+        //     m_isRunning = false;
+        //     return;
+        // }
 
         if (m_currentScene)
         {
@@ -48,7 +51,7 @@ namespace Wayfinder
 
     void Game::Shutdown()
     {
-        TraceLog(LOG_INFO, "Shutting down game");
+        WAYFINDER_INFO(LogGame, "Shutting down game");
 
         UnloadCurrentScene();
 
@@ -63,7 +66,7 @@ namespace Wayfinder
         m_currentScene = std::make_unique<Scene>(sceneName);
         m_currentScene->Initialize();
 
-        TraceLog(LOG_INFO, "Loaded scene: %s", sceneName.c_str());
+        WAYFINDER_INFO(LogGame, "Loaded scene: {0}", sceneName);
     }
 
     void Game::UnloadCurrentScene()

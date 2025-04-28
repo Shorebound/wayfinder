@@ -18,15 +18,15 @@ generate_export_header(${ENGINE_NAME}
 )
 
 # --- Compile Definitions ---
-target_compile_definitions(${ENGINE_NAME} 
+target_compile_definitions(${ENGINE_NAME}
   PUBLIC
     # Allow consumers and Wayfinder itself to check if logging is on
     WAYFINDER_LOGGING_ENABLED
 
     # Config-specific definitions
     $<$<CONFIG:Debug>:WAYFINDER_DEBUG>
-    $<$<CONFIG:Development>:WAYFINDER_DEVELOPMENT> 
-    $<$<CONFIG:Shipping>:WAYFINDER_SHIPPING>    
+    $<$<CONFIG:Development>:WAYFINDER_DEVELOPMENT>
+    $<$<CONFIG:Shipping>:WAYFINDER_SHIPPING>
 
     # Config-specific logging levels
     $<$<CONFIG:Debug>:WAYFINDER_LOGGING_LEVEL=0>
@@ -38,12 +38,12 @@ target_compile_definitions(${ENGINE_NAME}
     $<$<BOOL:${WAYFINDER_ENABLE_LOGGING}>:WAYFINDER_LOGGING_ENABLED>
 
     # Config-specific Logging
-    
+
 
     # Platform-specific (Public controls #ifdef) - uses generator expression
     $<IF:$<PLATFORM_ID:Windows>,WAYFINDER_PLATFORM_WINDOWS,>
     $<IF:$<PLATFORM_ID:Linux>,WAYFINDER_PLATFORM_LINUX,>
-    $<IF:$<PLATFORM_ID:Darwin>,WAYFINDER_PLATFORM_MACOS,> 
+    $<IF:$<PLATFORM_ID:Darwin>,WAYFINDER_PLATFORM_MACOS,>
     # Add others for Android, iOS (using CMAKE_SYSTEM_NAME checks), Emscripten
     $<IF:$<STREQUAL:${CMAKE_SYSTEM_NAME},Emscripten>,WAYFINDER_PLATFORM_WEB,>
 
@@ -59,7 +59,7 @@ target_compile_definitions(${ENGINE_NAME}
     $<IF:$<CXX_COMPILER_ID:Clang>,WAYFINDER_COMPILER_CLANG,>
     $<IF:$<CXX_COMPILER_ID:AppleClang>,WAYFINDER_COMPILER_CLANG,>
     $<IF:$<CXX_COMPILER_ID:Intel>,WAYFINDER_COMPILER_INTEL,>
-  
+
 )
 
 # --- Compile Options ---
@@ -124,21 +124,36 @@ target_sources(${ENGINE_NAME} PRIVATE
     # Precompiled Header
     src/WayfinderPCH.cpp
 
+    # Core
     src/core/Application.cpp
     src/core/Game.cpp
     src/core/Log.cpp
+    src/core/ServiceLocator.cpp
+
+    # Platform
+    src/platform/raylib/RaylibWindow.cpp
+    src/platform/raylib/RaylibInput.cpp
+    src/platform/raylib/RaylibTime.cpp
+
+    # Rendering
     src/rendering/Renderer.cpp
+    src/rendering/raylib/RaylibGraphicsContext.cpp
+    src/rendering/raylib/RaylibRenderAPI.cpp
+
+    # Scene
     src/scene/Scene.cpp
-    src/input/InputManager.cpp
     src/scene/entity/Entity.cpp
     src/scene/entity/Component.cpp
     src/scene/entity/Transform.cpp
+
+    # Input
+    src/input/InputManager.cpp
 )
 
 
 
 # Include directories
-target_include_directories(${ENGINE_NAME} 
+target_include_directories(${ENGINE_NAME}
   PUBLIC
     # PUBLIC: Needed by Wayfinder itself AND consumers (like waystone)
     # Allows #include "core/Application.h", etc.

@@ -64,6 +64,7 @@ namespace Wayfinder
     extern WAYFINDER_API LogCategory& LogAudio;
     extern WAYFINDER_API LogCategory& LogPhysics;
     extern WAYFINDER_API LogCategory& LogGame;
+    extern WAYFINDER_API LogCategory& LogScene;
 
 } // namespace Wayfinder
 
