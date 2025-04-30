@@ -1,7 +1,7 @@
 #pragma once
 
 #include "core/MouseCodes.h"
-#include "events/Event.h"
+#include "core/events/Event.h"
 #include <sstream>
 
 namespace Wayfinder

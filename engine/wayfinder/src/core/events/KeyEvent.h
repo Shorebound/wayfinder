@@ -1,7 +1,7 @@
 #pragma once
 
-#include "../core/KeyCodes.h"
-#include "events/Event.h"
+#include "core/KeyCodes.h"
+#include "core/events/Event.h"
 #include <sstream>
 
 namespace Wayfinder

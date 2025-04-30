@@ -1,6 +1,6 @@
 #pragma once
 
-#include "events/Event.h"
+#include "core/events/Event.h"
 
 namespace Wayfinder
 {
