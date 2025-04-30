@@ -24,7 +24,7 @@ namespace Wayfinder
     {
         return std::make_shared<SpdLogger>(name, defaultVerbosity);
     }
-    void SpdLogOutput::ProcessMessage(const ILogMessage& message)
+    void SpdLogOutput::ProcessMessage([[maybe_unused]] const ILogMessage& message)
     {
         // This is a no-op as spdlog handles messages directly through its logger
     }
@@ -69,3 +69,4 @@ namespace Wayfinder
     }
 
 } // namespace Wayfinder
+
