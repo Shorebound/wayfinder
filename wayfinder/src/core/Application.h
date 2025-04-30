@@ -6,7 +6,6 @@ namespace Wayfinder
     class Renderer;
     class Window;
 
-
     class WAYFINDER_API Application
     {
     public:

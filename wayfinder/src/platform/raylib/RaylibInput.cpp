@@ -56,12 +56,12 @@ namespace Wayfinder
 
     float RaylibInput::GetMouseX() const
     {
-        return ::GetMouseX();
+        return (float)::GetMouseX();
     }
 
     float RaylibInput::GetMouseY() const
     {
-        return ::GetMouseY();
+        return (float)::GetMouseY();
     }
 
     float RaylibInput::GetMouseWheelMove() const

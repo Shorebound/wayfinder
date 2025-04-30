@@ -1,5 +1,4 @@
 #pragma once
-#include "Core.h"
 #include "logging/ILogger.h"
 #include "logging/LogTypes.h"
 

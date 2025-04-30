@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.26.0)
+cmake_minimum_required(VERSION 4.0.1)
 
 # --- Project Definition ---
 project(wayfinder_project VERSION 0.1.0 LANGUAGES C CXX)
@@ -49,7 +49,7 @@ option(WAYFINDER_BUILD_TOOLS "Build standalone tools" OFF)
 option(WAYFINDER_BUILD_SAMPLES "Build sample projects" OFF)
 option(WAYFINDER_BUILD_TESTS "Build tests" OFF) 
 option(WAYFINDER_BUILD_ASSETPROCESSOR "Build the Wayfinder Asset Processor" OFF)
-option(WAYFINDER_BUILD_SHARED_LIBS "Build engine modules as shared libraries" ON)
+option(WAYFINDER_BUILD_SHARED_LIBS "Build engine modules as shared libraries" OFF)
 
 option(WAYFINDER_ENABLE_RTTI "Enable C++ Run-Time Type Information" ON)
 option(WAYFINDER_WARNINGS_AS_ERRORS "Treat compiler warnings as errors" OFF)
@@ -80,12 +80,12 @@ if(WIN32)
 
   # Use static runtime library (/MT or /MTd)
   # Use a generator expression to select based on configuration
-  # set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
-  # message(STATUS "Windows: Using static runtime library based on configuration.")
+  set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+  message(STATUS "Windows: Using static runtime library based on configuration.")
 
   # Use dynamic runtime library (/MD or /MDd)
-  set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>DLL")
-  message(STATUS "Windows: Using dynamic runtime library based on configuration.")
+  # set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>DLL")
+  # message(STATUS "Windows: Using dynamic runtime library based on configuration.")
 
 endif()
 

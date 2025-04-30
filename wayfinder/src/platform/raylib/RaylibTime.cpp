@@ -8,8 +8,7 @@ namespace Wayfinder
         return std::make_unique<RaylibTime>();
     }
 
-    RaylibTime::RaylibTime()
-        : m_DeltaTime(0.0f), m_ElapsedTime(0.0f), m_StartTime(GetTime())
+    RaylibTime::RaylibTime() : m_DeltaTime(0.0f), m_ElapsedTime(0.0f), m_StartTime(GetTime())
     {
     }
 

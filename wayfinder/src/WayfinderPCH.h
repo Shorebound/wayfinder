@@ -10,6 +10,7 @@
 #include <iostream>
 #include <memory>
 #include <mutex>
+#include <ostream>
 #include <sstream>
 #include <string>
 #include <string_view>
@@ -31,4 +32,4 @@
 #include <spdlog/spdlog.h>
 
 // generated
-#include "Wayfinder_export.h"
+#include "wayfinder_exports.h"

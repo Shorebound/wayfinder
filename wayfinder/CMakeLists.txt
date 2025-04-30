@@ -4,25 +4,29 @@ else()
   set(ENGINE_LIB_TYPE STATIC)
 endif()
 
+set(ENGINE_EXPORT_NAME WAYFINDER)
+
 add_library(${ENGINE_NAME} ${ENGINE_LIB_TYPE})
 message(STATUS "Engine: Configuring target ${ENGINE_NAME} (${ENGINE_LIB_TYPE})")
 
 include(GenerateExportHeader)
+if(WIN32 AND WAYFINDER_BUILD_SHARED_LIBS)
+  # Define WAYFINDER_EXPORTS *only* when building this DLL itself
+  target_compile_definitions(${ENGINE_NAME} PRIVATE WAYFINDER_EXPORTS)
+  message(STATUS "Engine: Enabling DLL export definitions for ${ENGINE_NAME}")
+endif()
 
-# Generate Wayfinder_export.h in the build directory's include folder
+# Generate wayfinder_exports.h in the build directory's include folder
 # This header defines the WAYFINDER_API macro (__declspec(dllexport/dllimport) or nothing)
 generate_export_header(${ENGINE_NAME}
-    BASE_NAME Wayfinder # -> Wayfinder_export.h, defines WAYFINDER_API
-    EXPORT_MACRO_NAME WAYFINDER_API
-    EXPORT_FILE_NAME ${CMAKE_CURRENT_BINARY_DIR}/include/Wayfinder_export.h
+    BASE_NAME ${ENGINE_EXPORT_NAME}
+    EXPORT_MACRO_NAME ${ENGINE_EXPORT_NAME}_API
+    EXPORT_FILE_NAME ${CMAKE_CURRENT_BINARY_DIR}/include/wayfinder_exports.h
 )
 
 # --- Compile Definitions ---
 target_compile_definitions(${ENGINE_NAME}
   PUBLIC
-    # Allow consumers and Wayfinder itself to check if logging is on
-    WAYFINDER_LOGGING_ENABLED
-
     # Config-specific definitions
     $<$<CONFIG:Debug>:WAYFINDER_DEBUG>
     $<$<CONFIG:Development>:WAYFINDER_DEVELOPMENT>
@@ -59,7 +63,6 @@ target_compile_definitions(${ENGINE_NAME}
     $<IF:$<CXX_COMPILER_ID:Clang>,WAYFINDER_COMPILER_CLANG,>
     $<IF:$<CXX_COMPILER_ID:AppleClang>,WAYFINDER_COMPILER_CLANG,>
     $<IF:$<CXX_COMPILER_ID:Intel>,WAYFINDER_COMPILER_INTEL,>
-
 )
 
 # --- Compile Options ---
@@ -149,8 +152,6 @@ target_sources(${ENGINE_NAME} PRIVATE
     # Input
     src/input/InputManager.cpp
 )
-
-
 
 # Include directories
 target_include_directories(${ENGINE_NAME}

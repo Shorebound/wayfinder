@@ -83,7 +83,7 @@ endif()
 
 # --- Post-Build Command for Waystone (Windows Only) ---
 # Waystone copies the Wayfinder DLL it needs into its own output directory.
-if(WIN32)
+if(WIN32 AND WAYFINDER_BUILD_SHARED_LIBS)
   # Check if Wayfinder is actually being built as a shared library
   # Get the TYPE property of the Wayfinder target
   get_target_property(WAYFINDER_TYPE ${ENGINE_NAME} TYPE)

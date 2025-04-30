@@ -76,7 +76,7 @@ namespace Wayfinder
     void Renderer::BeginFrame()
     {
         auto& graphicsContext = ServiceLocator::GetGraphicsContext();
-        auto& renderAPI = ServiceLocator::GetRenderAPI();
+        //auto& renderAPI = ServiceLocator::GetRenderAPI();
 
         graphicsContext.BeginFrame();
         graphicsContext.Clear(1.0f, 1.0f, 1.0f); // White background
