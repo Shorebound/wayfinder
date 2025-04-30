@@ -128,9 +128,8 @@ target_sources(${ENGINE_NAME} PRIVATE
     src/WayfinderPCH.cpp
 
     # Core
-    src/core/Application.cpp
+    src/application/Application.cpp
     src/core/Game.cpp
-    src/core/Log.cpp
     src/core/ServiceLocator.cpp
 
     # Platform
@@ -182,6 +181,11 @@ if(WAYFINDER_ENABLE_LOGGING)
     target_link_libraries(${ENGINE_NAME} PUBLIC spdlog::spdlog)
     # Include logging system
     add_subdirectory(src/core/logging)
+    target_sources(${ENGINE_NAME} 
+    PRIVATE 
+      src/core/Log.cpp
+      src/core/logging/spdlog/SpdLogOutput.cpp
+    )
 endif()
 
 target_link_libraries(${ENGINE_NAME}

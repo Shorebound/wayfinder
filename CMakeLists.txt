@@ -2,6 +2,7 @@ cmake_minimum_required(VERSION 4.0.1)
 
 # --- Project Definition ---
 project(wayfinder_project VERSION 0.1.0 LANGUAGES C CXX)
+
 set(ENGINE_NAME wayfinder)
 set(RUNTIME_NAME beacon)
 set(EDITOR_NAME compass)
@@ -17,6 +18,17 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+
+set_property(GLOBAL PROPERTY USE_FOLDERS ON) 
+
+# set(CMAKE_FOLDER_NAME "_CMakeTargets")
+# Assign standard targets to the folder
+# Note: ZERO_CHECK might be hidden by CMAKE_SUPPRESS_REGENERATION later
+# set_target_properties(ALL_BUILD INSTALL PACKAGE PROPERTIES FOLDER ${CMAKE_FOLDER_NAME})
+# If you see ZERO_CHECK and want to group it:
+# set_target_properties(ZERO_CHECK PROPERTIES FOLDER ${CMAKE_FOLDER_NAME})
+# Alternatively, hide ZERO_CHECK completely (often preferred):
+# set(CMAKE_SUPPRESS_REGENERATION TRUE)
 
 # --- Configurations ---
 # Define the custom configurations if none are specified (e.g., by IDE/Generator)

@@ -1,6 +1,6 @@
 #pragma once
-#include "core/Application.h"
-#include "core/EntryPoint.h"
+#include "application/Application.h"
+#include "application/EntryPoint.h"
 
 namespace Waystone
 {

@@ -1,5 +1,9 @@
 #pragma once
 
+#include <functional>
+#include <iostream>
+#include <string>
+
 namespace Wayfinder
 {
 
@@ -28,23 +32,72 @@ namespace Wayfinder
         MouseScrolled
     };
 
-    enum EventCategory
+    constexpr const char* EventTypeToString(EventType type)
+    {
+        switch (type)
+        {
+        // Application Events
+        case EventType::AppTick:
+            return "AppTick";
+        case EventType::AppUpdate:
+            return "AppUpdate";
+        case EventType::AppRender:
+            return "AppRender";
+        // Keyboard Events
+        case EventType::KeyPressed:
+            return "KeyPressed";
+        case EventType::KeyReleased:
+            return "KeyReleased";
+        case EventType::KeyTyped:
+            return "KeyTyped";
+        // Mouse Events
+        case EventType::MouseButtonPressed:
+            return "MouseButtonPressed";
+        case EventType::MouseButtonReleased:
+            return "MouseButtonReleased";
+        case EventType::MouseMoved:
+            return "MouseMoved";
+        case EventType::MouseScrolled:
+            return "MouseScrolled";
+        default:
+            // Using throw might be better during development
+            // throw std::runtime_error("Unknown EventType in EventTypeToString");
+            return "UnknownEvent";
+        }
+    }
+
+    enum class EventCategory
     {
         None = 0,
-        EventCategoryApplication = BIT(0),
-        EventCategoryInput = BIT(1),
-        EventCategoryKeyboard = BIT(2),
-        EventCategoryMouse = BIT(3),
-        EventCategoryMouseButton = BIT(4)
+        Application = 1 << 0,
+        Input = 1 << 1,
+        Keyboard = 1 << 2,
+        Mouse = 1 << 3,
+        MouseButton = 1 << 4
     };
 
-#define EVENT_CLASS_TYPE(type)                                                  \
-    static EventType GetStaticType() { return EventType::type; }                \
-    virtual EventType GetEventType() const override { return GetStaticType(); } \
-    virtual const char* GetName() const override { return #type; }
+    // Add operator overloads for enum class bitwise operations
+    inline constexpr EventCategory operator|(EventCategory a, EventCategory b)
+    {
+        return static_cast<EventCategory>(static_cast<std::underlying_type_t<EventCategory>>(a) | static_cast<std::underlying_type_t<EventCategory>>(b));
+    }
 
-#define EVENT_CLASS_CATEGORY(category) \
-    virtual int GetCategoryFlags() const override { return category; }
+    inline constexpr EventCategory operator&(EventCategory a, EventCategory b)
+    {
+        return static_cast<EventCategory>(static_cast<std::underlying_type_t<EventCategory>>(a) & static_cast<std::underlying_type_t<EventCategory>>(b));
+    }
+
+    inline constexpr EventCategory& operator|=(EventCategory& a, EventCategory b)
+    {
+        a = a | b;
+        return a;
+    }
+
+    inline constexpr EventCategory& operator&=(EventCategory& a, EventCategory b)
+    {
+        a = a & b;
+        return a;
+    }
 
     class Event
     {
@@ -55,12 +108,12 @@ namespace Wayfinder
 
         virtual EventType GetEventType() const = 0;
         virtual const char* GetName() const = 0;
-        virtual int GetCategoryFlags() const = 0;
+        virtual EventCategory GetCategoryFlags() const = 0;
         virtual std::string ToString() const { return GetName(); }
 
         bool IsInCategory(EventCategory category)
         {
-            return GetCategoryFlags() & category;
+            return (GetCategoryFlags() & category) != EventCategory::None;
         }
     };
 
@@ -92,5 +145,21 @@ namespace Wayfinder
     {
         return os << e.ToString();
     }
+
+    template <typename Base, typename Derived, EventType TTypeValue, EventCategory TCategoryValue>
+    class EventImpl : public Base
+    {
+        static_assert(std::is_base_of_v<Event, Base>, "Base must inherit from Event");
+
+    public:
+        using Base::Base; // Inherit constructors
+
+        static constexpr EventType GetStaticType() noexcept { return TTypeValue; }
+        static constexpr EventCategory GetStaticCategory() noexcept { return TCategoryValue; }
+
+        virtual EventType GetEventType() const override { return GetStaticType(); }
+        virtual const char* GetName() const override { return EventTypeToString(GetStaticType()); }
+        virtual EventCategory GetCategoryFlags() const override { return GetStaticCategory(); }
+    };
 
 }

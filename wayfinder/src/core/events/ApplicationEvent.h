@@ -1,15 +1,15 @@
 #pragma once
 
-#include "wayfinder/events/Event.h"
+#include "events/Event.h"
+#include <sstream>
 
 namespace Wayfinder
 {
 
-    class WindowResizeEvent : public Event
+    class WindowResizeEvent : public EventImpl<Event, WindowResizeEvent, EventType::WindowResize, EventCategory::Application>
     {
     public:
-        WindowResizeEvent(unsigned int width, unsigned int height)
-            : m_Width(width), m_Height(height) {}
+        WindowResizeEvent(unsigned int width, unsigned int height) : m_Width(width), m_Height(height) {}
 
         unsigned int GetWidth() const { return m_Width; }
         unsigned int GetHeight() const { return m_Height; }
@@ -17,49 +17,35 @@ namespace Wayfinder
         std::string ToString() const override
         {
             std::stringstream ss;
-            ss << "WindowResizeEvent: " << m_Width << ", " << m_Height;
+            ss << GetName() << ": " << m_Width << ", " << m_Height;
             return ss.str();
         }
 
-        EVENT_CLASS_TYPE(WindowResize)
-        EVENT_CLASS_CATEGORY(EventCategoryApplication)
     private:
         unsigned int m_Width, m_Height;
     };
 
-    class WindowCloseEvent : public Event
+    class WindowCloseEvent : public EventImpl<Event, WindowCloseEvent, EventType::WindowClose, EventCategory::Application>
     {
     public:
         WindowCloseEvent() = default;
-
-        EVENT_CLASS_TYPE(WindowClose)
-        EVENT_CLASS_CATEGORY(EventCategoryApplication)
     };
 
-    class AppTickEvent : public Event
+    class AppTickEvent : public EventImpl<Event, AppTickEvent, EventType::AppTick, EventCategory::Application>
     {
     public:
         AppTickEvent() = default;
-
-        EVENT_CLASS_TYPE(AppTick)
-        EVENT_CLASS_CATEGORY(EventCategoryApplication)
     };
 
-    class AppUpdateEvent : public Event
+    class AppUpdateEvent : public EventImpl<Event, AppUpdateEvent, EventType::AppUpdate, EventCategory::Application>
     {
     public:
         AppUpdateEvent() = default;
-
-        EVENT_CLASS_TYPE(AppUpdate)
-        EVENT_CLASS_CATEGORY(EventCategoryApplication)
     };
 
-    class AppRenderEvent : public Event
+    class AppRenderEvent : public EventImpl<Event, AppRenderEvent, EventType::AppRender, EventCategory::Application>
     {
     public:
         AppRenderEvent() = default;
-
-        EVENT_CLASS_TYPE(AppRender)
-        EVENT_CLASS_CATEGORY(EventCategoryApplication)
     };
 }

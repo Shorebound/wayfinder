@@ -1,5 +1,8 @@
 #pragma once
 
+#include <utility>
+#include <memory>
+
 namespace Wayfinder
 {
     // Key and mouse codes will be defined in a separate header

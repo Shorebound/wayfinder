@@ -1,5 +1,5 @@
 #pragma once
-
+#include <cstdint>
 namespace Wayfinder
 {
 	using MouseCode = uint16_t;
