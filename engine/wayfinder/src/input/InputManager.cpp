@@ -4,13 +4,13 @@ namespace Wayfinder
 {
 
     InputManager::InputManager()
-        : m_isInitialized(false)
+        : m_initialized(false)
     {
     }
 
     InputManager::~InputManager()
     {
-        if (m_isInitialized)
+        if (m_initialized)
         {
             Shutdown();
         }
@@ -21,7 +21,7 @@ namespace Wayfinder
         // Initialize input manager
         TraceLog(LOG_INFO, "Initializing input manager");
 
-        m_isInitialized = true;
+        m_initialized = true;
         return true;
     }
 
@@ -36,7 +36,7 @@ namespace Wayfinder
         // Clean up input manager resources
         TraceLog(LOG_INFO, "Shutting down input manager");
 
-        m_isInitialized = false;
+        m_initialized = false;
     }
 
     bool InputManager::IsKeyPressed(int key) const

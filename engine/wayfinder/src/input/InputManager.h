@@ -29,7 +29,7 @@ namespace Wayfinder
         float GetMouseWheelMove() const;
 
     private:
-        bool m_isInitialized;
+        bool m_initialized;
     };
 
 } // namespace Wayfinder

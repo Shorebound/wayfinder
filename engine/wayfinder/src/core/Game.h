@@ -8,7 +8,7 @@ namespace Wayfinder
     {
     public:
         Game();
-        ~Game();
+        virtual ~Game();
 
         virtual bool Initialize();
         virtual void Update(float deltaTime);
@@ -21,17 +21,17 @@ namespace Wayfinder
 
         void SetRunning(bool isRunning)
         {
-            m_isRunning = isRunning;
+            m_running = isRunning;
         }
         bool IsRunning() const
         {
-            return m_isRunning;
+            return m_running;
         }
 
     private:
         std::unique_ptr<Scene> m_currentScene;
-        bool m_isRunning;
-        bool m_isInitialized;
+        bool m_running;
+        bool m_initialized;
     };
 
 } // namespace Wayfinder

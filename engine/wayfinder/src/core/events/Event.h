@@ -111,7 +111,7 @@ namespace Wayfinder
         virtual EventCategory GetCategoryFlags() const = 0;
         virtual std::string ToString() const { return GetName(); }
 
-        bool IsInCategory(EventCategory category)
+        bool IsInCategory(const EventCategory category) const
         {
             return (GetCategoryFlags() & category) != EventCategory::None;
         }
@@ -120,10 +120,7 @@ namespace Wayfinder
     class EventDispatcher
     {
     public:
-        EventDispatcher(Event& event)
-            : m_event(event)
-        {
-        }
+        EventDispatcher(Event& event) : m_event(event) { }
 
         // F will be deduced by the compiler
         template <typename T, typename F>
@@ -146,7 +143,7 @@ namespace Wayfinder
         return os << e.ToString();
     }
 
-    template <typename Base, typename Derived, EventType TTypeValue, EventCategory TCategoryValue>
+    template <typename Base, EventType TTypeValue, EventCategory TCategoryValue>
     class EventImpl : public Base
     {
         static_assert(std::is_base_of_v<Event, Base>, "Base must inherit from Event");

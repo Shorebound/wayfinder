@@ -6,13 +6,13 @@
 
 namespace Wayfinder
 {
-    Game::Game() : m_isRunning(false), m_isInitialized(false)
+    Game::Game() : m_running(false), m_initialized(false)
     {
     }
 
     Game::~Game()
     {
-        if (m_isInitialized)
+        if (m_initialized)
         {
             Shutdown();
         }
@@ -25,14 +25,14 @@ namespace Wayfinder
         m_currentScene = std::make_unique<Scene>("Default Scene");
         m_currentScene->Initialize();
 
-        m_isRunning = true;
-        m_isInitialized = true;
+        m_running = true;
+        m_initialized = true;
         return true;
     }
 
-    void Game::Update(float deltaTime)
+    void Game::Update(const float deltaTime)
     {
-        if (!m_isRunning || !m_isInitialized)
+        if (!m_running || !m_initialized)
             return;
 
         // Example of using the input abstraction
@@ -55,8 +55,8 @@ namespace Wayfinder
 
         UnloadCurrentScene();
 
-        m_isRunning = false;
-        m_isInitialized = false;
+        m_running = false;
+        m_initialized = false;
     }
 
     void Game::LoadScene(const std::string& sceneName)

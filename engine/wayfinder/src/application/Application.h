@@ -28,7 +28,7 @@ namespace Wayfinder
             std::string WindowTitle = "Wayfinder Engine";
             bool VSync = false;
 
-            Application::CommandLineArgs CommandLineArgs;
+            CommandLineArgs CommandLineArgs;
         };
 
         Application(const Config& config = {});
@@ -43,7 +43,7 @@ namespace Wayfinder
         static void Loop(Application* app);
 
         Config m_config;
-        bool m_isRunning;
+        bool m_running;
 
         std::unique_ptr<Window> m_window;
         std::unique_ptr<Game> m_game;
@@ -51,5 +51,5 @@ namespace Wayfinder
     };
 
     // To be defined by Client
-    Application* CreateApplication(const Application::CommandLineArgs& args = {});
+    extern Application* CreateApplication(const Application::CommandLineArgs& args = {});
 } // namespace Wayfinder

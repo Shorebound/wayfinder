@@ -18,25 +18,25 @@ namespace Wayfinder
         KeyCode m_keyCode;
     };
 
-    class KeyPressedEvent : public EventImpl<KeyEvent, KeyPressedEvent, EventType::KeyPressed, EventCategory::Keyboard | EventCategory::Input>
+    class KeyPressedEvent : public EventImpl<KeyEvent, EventType::KeyPressed, EventCategory::Keyboard | EventCategory::Input>
     {
     public:
-        KeyPressedEvent(const KeyCode keycode, bool isRepeat = false) : EventImpl(keycode), m_isRepeat(isRepeat) {}
+        KeyPressedEvent(const KeyCode keycode, bool isRepeat = false) : EventImpl(keycode), m_repeating(isRepeat) {}
 
-        bool IsRepeat() const { return m_isRepeat; }
+        bool IsRepeat() const { return m_repeating; }
 
         std::string ToString() const override
         {
             std::stringstream ss;
-            ss << GetName() << ": " << m_keyCode << " (repeat = " << m_isRepeat << ")";
+            ss << GetName() << ": " << m_keyCode << " (repeat = " << m_repeating << ")";
             return ss.str();
         }
 
     private:
-        bool m_isRepeat;
+        bool m_repeating;
     };
 
-    class KeyReleasedEvent : public EventImpl<KeyEvent, KeyReleasedEvent, EventType::KeyReleased, EventCategory::Keyboard | EventCategory::Input>
+    class KeyReleasedEvent : public EventImpl<KeyEvent, EventType::KeyReleased, EventCategory::Keyboard | EventCategory::Input>
     {
     public:
         KeyReleasedEvent(const KeyCode keycode) : EventImpl(keycode) {}
@@ -49,7 +49,7 @@ namespace Wayfinder
         }
     };
 
-    class KeyTypedEvent : public EventImpl<KeyEvent, KeyTypedEvent, EventType::KeyTyped, EventCategory::Keyboard | EventCategory::Input>
+    class KeyTypedEvent : public EventImpl<KeyEvent, EventType::KeyTyped, EventCategory::Keyboard | EventCategory::Input>
     {
     public:
         KeyTypedEvent(const KeyCode keycode) : EventImpl(keycode) {}

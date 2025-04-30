@@ -2,6 +2,7 @@
 
 # Define the executable target
 add_executable(${SANDBOX_NAME})
+wayfinder_set_output_directories(${SANDBOX_NAME})
 message(STATUS "Sandbox: Configuring target ${SANDBOX_NAME}")
 
 # --- Installation ---
@@ -35,23 +36,6 @@ target_link_libraries(${SANDBOX_NAME}
 # Output directory for the executable file (.exe)
 set_target_properties(${SANDBOX_NAME} PROPERTIES
   RUNTIME_OUTPUT_DIRECTORY "${OUTPUT_DIR_BASE}/$<CONFIG>"
-)
-
-# --- Platform Specific Definitions (Windows) ---
-# WAYFINDER_PLATFORM_WINDOWS is inherited publicly from Wayfinder, no need to repeat unless
-# Sandbox specifically needs to check it during its own compilation independently.
-# if(WIN32)
-#   target_compile_definitions(${SANDBOX_NAME} PRIVATE WAYFINDER_PLATFORM_WINDOWS)
-# endif()
-
-# --- Configuration Specific Settings ---
-# Definitions based on configuration
-target_compile_definitions(${SANDBOX_NAME} PRIVATE
-  $<$<CONFIG:Debug>:WAYFINDER_DEBUG>
-  $<$<CONFIG:Development>:WAYFINDER_DEVELOPMENT> 
-  $<$<CONFIG:Shipping>:WAYFINDER_SHIPPING>     # Map Premake Dist -> Shipping
-  # Define NDEBUG for non-Debug builds
-  $<$<NOT:$<CONFIG:Debug>>:NDEBUG>
 )
 
 # --- Platform Specifics for THIS Executable ---

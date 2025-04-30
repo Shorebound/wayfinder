@@ -11,10 +11,9 @@ namespace Wayfinder
     class SpdLogOutput : public ILogOutput
     {
     public:
-        SpdLogOutput(std::shared_ptr<spdlog::sinks::sink> sink)
-            : m_sink(sink) {}
+        SpdLogOutput(const std::shared_ptr<spdlog::sinks::sink>& sink) : m_sink(sink) {}
 
-        virtual ~SpdLogOutput() = default;
+        virtual ~SpdLogOutput() override = default;
 
         // ILogOutput implementation
         void ProcessMessage(const ILogMessage& message) override;
@@ -76,7 +75,7 @@ namespace Wayfinder
                 trace_level = LOG_ERROR;
                 break;
             case spdlog::level::critical:
-                trace_level = LOG_ERROR;
+                trace_level = LOG_FATAL;
                 break;
             default:
                 trace_level = LOG_INFO;

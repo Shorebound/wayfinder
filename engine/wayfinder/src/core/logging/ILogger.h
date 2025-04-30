@@ -33,7 +33,7 @@ namespace Wayfinder
         }*/
     
         template<typename... Args>
-        void LogFormat(LogVerbosity level, std::string_view format, Args&&... args)
+        void LogFormat(const LogVerbosity level, const std::string_view format, Args&&... args)
         {
             if (level <= GetVerbosity())
             {
@@ -58,8 +58,7 @@ namespace Wayfinder
         template <typename... Args>
         void Warning(std::string_view format, Args&&... args)
         {
-            LogFormat(LogVerbosity::Warning, format,
-                      std::forward<Args>(args)...);
+            LogFormat(LogVerbosity::Warning, format, std::forward<Args>(args)...);
         }
         template <typename... Args>
         void Info(std::string_view format, Args&&... args)
@@ -69,14 +68,12 @@ namespace Wayfinder
         template <typename... Args>
         void Verbose(std::string_view format, Args&&... args)
         {
-            LogFormat(LogVerbosity::Verbose, format,
-                      std::forward<Args>(args)...);
+            LogFormat(LogVerbosity::Verbose, format, std::forward<Args>(args)...);
         }
         template <typename... Args>
         void VeryVerbose(std::string_view format, Args&&... args)
         {
-            LogFormat(LogVerbosity::VeryVerbose, format,
-                      std::forward<Args>(args)...);
+            LogFormat(LogVerbosity::VeryVerbose, format, std::forward<Args>(args)...);
         }
     };
 

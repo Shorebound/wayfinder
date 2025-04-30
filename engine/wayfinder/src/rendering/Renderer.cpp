@@ -12,9 +12,9 @@ namespace Wayfinder
         : m_screenWidth(800), m_screenHeight(450), m_isInitialized(false)
     {
         // Initialize camera with default values
-        m_camera.Position = {0.0f, 10.0f, 10.0f};
-        m_camera.Target = {0.0f, 0.0f, 0.0f};
-        m_camera.Up = {0.0f, 1.0f, 0.0f};
+        m_camera.Position = {.x = 0.0f, .y = 10.0f, .z = 10.0f};
+        m_camera.Target = {.x = 0.0f, .y = 0.0f, .z = 0.0f};
+        m_camera.Up = {.x = 0.0f, .y = 1.0f, .z = 0.0f};
         m_camera.FOV = 45.0f;
         m_camera.ProjectionType = 0; // CAMERA_PERSPECTIVE
     }
@@ -65,12 +65,12 @@ namespace Wayfinder
 
     void Renderer::SetCameraPosition(float x, float y, float z)
     {
-        m_camera.Position = {x, y, z};
+        m_camera.Position = {.x = x, .y = y, .z = z};
     }
 
     void Renderer::SetCameraTarget(float x, float y, float z)
     {
-        m_camera.Target = {x, y, z};
+        m_camera.Target = {.x = x, .y = y, .z = z};
     }
 
     void Renderer::BeginFrame()
@@ -93,7 +93,7 @@ namespace Wayfinder
 
     void Renderer::RenderEntities(const Scene& scene)
     {
-        auto entities = scene.GetAllEntities();
+        const auto entities = scene.GetAllEntities();
         auto& renderAPI = ServiceLocator::GetRenderAPI();
 
         renderAPI.Begin3DMode(m_camera);
@@ -103,15 +103,14 @@ namespace Wayfinder
         {
             if (entity->IsActive())
             {
-                auto transform = entity->GetTransform();
-                if (transform)
+                if (const auto transform = entity->GetTransform())
                 {
-                    auto position = transform->GetPosition();
+                    const auto [x, y, z] = transform->GetPosition();
 
                     // For now, just draw a cube at the entity's position
                     // Later we'll implement proper model rendering
-                    renderAPI.DrawCube(position.x, position.y, position.z, 1.0f, 1.0f, 1.0f, Color::Red());
-                    renderAPI.DrawCubeWires(position.x, position.y, position.z, 1.0f, 1.0f, 1.0f, Color::DarkGray());
+                    renderAPI.DrawCube(x, y, z, 1.0f, 1.0f, 1.0f, Color::Red());
+                    renderAPI.DrawCubeWires(x, y, z, 1.0f, 1.0f, 1.0f, Color::DarkGray());
                 }
 
                 // Let the entity render itself

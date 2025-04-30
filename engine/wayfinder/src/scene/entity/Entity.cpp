@@ -8,14 +8,14 @@ namespace Wayfinder
     uint64_t Entity::s_nextEntityID = 1;
 
     Entity::Entity(const std::string& name)
-        : m_name(name), m_id(s_nextEntityID++), m_isActive(true), m_isInitialized(false)
+        : m_name(name), m_id(s_nextEntityID++), m_active(true), m_initialized(false)
     {
         m_transform = std::make_unique<Transform>();
     }
 
     Entity::~Entity()
     {
-        if (m_isInitialized)
+        if (m_initialized)
         {
             Shutdown();
         }
@@ -23,7 +23,7 @@ namespace Wayfinder
 
     void Entity::Initialize()
     {
-        if (m_isInitialized)
+        if (m_initialized)
             return;
 
         TraceLog(LOG_INFO, "Initializing entity: %s (ID: %llu)", m_name.c_str(), m_id);
@@ -36,12 +36,12 @@ namespace Wayfinder
             pair.second->Initialize();
         }
 
-        m_isInitialized = true;
+        m_initialized = true;
     }
 
     void Entity::Update(float deltaTime)
     {
-        if (!m_isActive)
+        if (!m_active)
             return;
 
         m_transform->Update(deltaTime);
@@ -57,7 +57,7 @@ namespace Wayfinder
 
     void Entity::Render()
     {
-        if (!m_isActive)
+        if (!m_active)
             return;
 
         for (auto& pair : m_components)
@@ -86,7 +86,7 @@ namespace Wayfinder
             m_transform = nullptr;
         }
 
-        m_isInitialized = false;
+        m_initialized = false;
     }
 
     const Transform* Entity::GetTransform() const

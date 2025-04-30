@@ -13,7 +13,7 @@ namespace Journey
 
 Wayfinder::Application* Wayfinder::CreateApplication(const Wayfinder::Application::CommandLineArgs& args)
 {
-    auto config = Wayfinder::Application::Config{
+    const auto config = Application::Config{
         .ScreenWidth = 1920,
         .ScreenHeight = 1080,
         .WindowTitle = "Journey Sandbox",

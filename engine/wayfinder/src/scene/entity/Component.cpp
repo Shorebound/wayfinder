@@ -5,13 +5,13 @@ namespace Wayfinder
 {
 
     Component::Component()
-        : m_isActive(true), m_isInitialized(false)
+        : m_active(true), m_initialized(false)
     {
     }
 
     Component::~Component()
     {
-        if (m_isInitialized)
+        if (m_initialized)
         {
             Shutdown();
         }
@@ -19,10 +19,10 @@ namespace Wayfinder
 
     void Component::Initialize()
     {
-        if (m_isInitialized)
+        if (m_initialized)
             return;
 
-        m_isInitialized = true;
+        m_initialized = true;
     }
 
     void Component::Update(float deltaTime)
@@ -37,7 +37,7 @@ namespace Wayfinder
 
     void Component::Shutdown()
     {
-        m_isInitialized = false;
+        m_initialized = false;
     }
 
 } // namespace Wayfinder

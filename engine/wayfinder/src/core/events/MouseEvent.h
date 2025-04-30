@@ -7,7 +7,7 @@
 namespace Wayfinder
 {
 
-    class MouseMovedEvent : public EventImpl<Event, MouseMovedEvent, EventType::MouseMoved, EventCategory::Mouse | EventCategory::Input>
+    class MouseMovedEvent : public EventImpl<Event, EventType::MouseMoved, EventCategory::Mouse | EventCategory::Input>
     {
     public:
         MouseMovedEvent(const float x, const float y) : m_mouseX(x), m_mouseY(y) {}
@@ -23,10 +23,11 @@ namespace Wayfinder
         }
 
     private:
-        float m_mouseX, m_mouseY;
+        float m_mouseX;
+        float m_mouseY;
     };
 
-    class MouseScrolledEvent : public EventImpl<Event, MouseScrolledEvent, EventType::MouseScrolled, EventCategory::Mouse | EventCategory::Input>
+    class MouseScrolledEvent : public EventImpl<Event, EventType::MouseScrolled, EventCategory::Mouse | EventCategory::Input>
     {
     public:
         MouseScrolledEvent(const float xOffset, const float yOffset) : m_xOffset(xOffset), m_yOffset(yOffset) {}
@@ -42,7 +43,8 @@ namespace Wayfinder
         }
 
     private:
-        float m_xOffset, m_yOffset;
+        float m_xOffset;
+        float m_yOffset;
     };
 
     class MouseButtonEvent : public Event
@@ -56,7 +58,7 @@ namespace Wayfinder
         MouseCode m_button;
     };
 
-    class MouseButtonPressedEvent : public EventImpl<MouseButtonEvent, MouseButtonPressedEvent, EventType::MouseButtonPressed, EventCategory::MouseButton | EventCategory::Input>
+    class MouseButtonPressedEvent : public EventImpl<MouseButtonEvent, EventType::MouseButtonPressed, EventCategory::MouseButton | EventCategory::Input>
     {
     public:
         MouseButtonPressedEvent(const MouseCode button) : EventImpl(button) {}
@@ -69,7 +71,7 @@ namespace Wayfinder
         }
     };
 
-    class MouseButtonReleasedEvent : public EventImpl<MouseButtonEvent, MouseButtonReleasedEvent, EventType::MouseButtonReleased, EventCategory::MouseButton | EventCategory::Input>
+    class MouseButtonReleasedEvent : public EventImpl<MouseButtonEvent, EventType::MouseButtonReleased, EventCategory::MouseButton | EventCategory::Input>
     {
     public:
         MouseButtonReleasedEvent(const MouseCode button) : EventImpl(button) {}

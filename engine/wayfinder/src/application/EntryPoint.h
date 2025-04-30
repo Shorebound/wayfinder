@@ -1,7 +1,6 @@
 #pragma once
 #include "Application.h"
 
-extern Wayfinder::Application* Wayfinder::CreateApplication(const Application::CommandLineArgs& args);
 
 int main(int argc, char* argv[]) 
 {

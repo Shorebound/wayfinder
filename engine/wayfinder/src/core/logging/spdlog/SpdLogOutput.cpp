@@ -54,13 +54,13 @@ namespace Wayfinder
         : SpdLogOutput(nullptr)
     {
         // Ensure directory exists
-        std::filesystem::path logPath(config.filePath);
+        const std::filesystem::path logPath(config.FilePath);
         std::filesystem::create_directories(logPath.parent_path());
 
         m_sink = std::make_shared<spdlog::sinks::rotating_file_sink_mt>(
-            config.filePath,
-            config.maxFileSize,
-            config.maxFiles);
+            config.FilePath,
+            config.MaxFileSize,
+            config.MaxFiles);
     }
 
     SpdRaylibOutput::SpdRaylibOutput()

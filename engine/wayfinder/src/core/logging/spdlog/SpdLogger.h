@@ -23,7 +23,7 @@ namespace Wayfinder
         double GetTimestamp() const override { return m_timestamp; }
 
         // Convert spdlog level to Wayfinder level
-        static LogVerbosity ConvertLevel(spdlog::level::level_enum level)
+        static LogVerbosity ConvertLevel(const spdlog::level::level_enum level)
         {
             switch (level)
             {
@@ -45,7 +45,7 @@ namespace Wayfinder
         }
 
         // Convert Wayfinder level to spdlog level
-        static spdlog::level::level_enum ConvertLevel(LogVerbosity level)
+        static spdlog::level::level_enum ConvertLevel(const LogVerbosity level)
         {
             switch (level)
             {
@@ -77,7 +77,7 @@ namespace Wayfinder
     class SpdLogger : public ILogger
     {
     public:
-        SpdLogger(const std::string& name, LogVerbosity defaultVerbosity = LogVerbosity::Info)
+        SpdLogger(const std::string& name, const LogVerbosity defaultVerbosity = LogVerbosity::Info)
             : m_name(name), m_verbosity(defaultVerbosity)
         {
             m_logger = std::make_shared<spdlog::logger>(name);
@@ -85,18 +85,18 @@ namespace Wayfinder
             // m_logger->set_pattern("[%Y-%m-%d %H:%M:%S.%e] [%n] [%l] %v");
         }
 
-        virtual ~SpdLogger() = default;
+        virtual ~SpdLogger() override = default;
 
         const std::string& GetName() const override { return m_name; }
         LogVerbosity GetVerbosity() const override { return m_verbosity; }
 
-        void SetVerbosity(LogVerbosity level) override
+        void SetVerbosity(const LogVerbosity level) override
         {
             m_verbosity = level;
             m_logger->set_level(SpdLogMessage::ConvertLevel(level));
         }
 
-        void AddOutput(std::shared_ptr<ILogOutput> output) override
+        void AddOutput(const std::shared_ptr<ILogOutput> output) override
         {
             m_outputs.push_back(output);
 
@@ -121,18 +121,18 @@ namespace Wayfinder
             return m_outputs;
         }
 
-        void Log(LogVerbosity level, const std::string_view message) override
+        void Log(const LogVerbosity level, const std::string_view message) override
         {
             m_logger->log(SpdLogMessage::ConvertLevel(level), message);
         }
 
     protected:
-        void LogFormatted(LogVerbosity level, std::string_view format, std::format_args args) override
+        void LogFormatted(const LogVerbosity level, const std::string_view format, const std::format_args args) override
         {
-            spdlog::level::level_enum spdlog_level = SpdLogMessage::ConvertLevel(level);
+            const spdlog::level::level_enum spdlog_level = SpdLogMessage::ConvertLevel(level);
             if (m_logger->should_log(spdlog_level))
             {
-                std::string formatted_message = std::vformat(format, args);
+                const std::string formatted_message = std::vformat(format, args);
                 m_logger->log(spdlog_level, formatted_message);
             }
         }

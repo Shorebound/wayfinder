@@ -21,9 +21,9 @@ namespace Wayfinder
         static IRenderAPI& GetRenderAPI();
 
     private:
-        static std::unique_ptr<Input> s_Input;
-        static std::unique_ptr<Time> s_Time;
-        static std::unique_ptr<IGraphicsContext> s_GraphicsContext;
-        static std::unique_ptr<IRenderAPI> s_RenderAPI;
+        static std::unique_ptr<Input> s_input;
+        static std::unique_ptr<Time> s_time;
+        static std::unique_ptr<IGraphicsContext> s_graphicsContext;
+        static std::unique_ptr<IRenderAPI> s_renderAPI;
     };
 }

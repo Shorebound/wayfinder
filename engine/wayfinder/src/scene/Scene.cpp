@@ -2,16 +2,18 @@
 #include "entity/Entity.h"
 #include "../core/Log.h"
 
+#include <ranges>
+
 namespace Wayfinder
 {
 
-    Scene::Scene(const std::string& name) : m_name(name), m_isInitialized(false)
+    Scene::Scene(const std::string& name) : m_name(name), m_initialized(false)
     {
     }
 
     Scene::~Scene()
     {
-        if (m_isInitialized)
+        if (m_initialized)
         {
             Shutdown();
         }
@@ -21,32 +23,32 @@ namespace Wayfinder
     {
         WAYFINDER_INFO(LogScene, "Initializing scene: {0}", m_name);
 
-        for (auto& pair : m_entities)
+        for (const auto& entity : m_entities | std::views::values)
         {
-            pair.second->Initialize();
+            entity->Initialize();
         }
 
-        m_isInitialized = true;
+        m_initialized = true;
     }
 
     void Scene::Update(float deltaTime)
     {
-        for (auto& pair : m_entities)
+        for (const auto& entity : m_entities | std::views::values)
         {
-            if (pair.second->IsActive())
+            if (entity->IsActive())
             {
-                pair.second->Update(deltaTime);
+                entity->Update(deltaTime);
             }
         }
     }
 
     void Scene::Render()
     {
-        for (auto& pair : m_entities)
+        for (const auto& entity : m_entities | std::views::values)
         {
-            if (pair.second->IsActive())
+            if (entity->IsActive())
             {
-                pair.second->Render();
+                entity->Render();
             }
         }
     }
@@ -55,22 +57,22 @@ namespace Wayfinder
     {
         WAYFINDER_INFO(LogScene, "Shutting down scene: {0}", m_name);
 
-        for (auto& pair : m_entities)
+        for (const auto& entity : m_entities | std::views::values)
         {
-            pair.second->Shutdown();
+            entity->Shutdown();
         }
 
         m_entities.clear();
 
-        m_isInitialized = false;
+        m_initialized = false;
     }
 
     std::shared_ptr<Entity> Scene::CreateEntity(const std::string& name)
     {
-        std::shared_ptr<Entity> entity = std::make_shared<Entity>(name);
+        auto entity = std::make_shared<Entity>(name);
         AddEntity(entity);
 
-        if (m_isInitialized)
+        if (m_initialized)
         {
             entity->Initialize();
         }
@@ -79,18 +81,18 @@ namespace Wayfinder
         return entity;
     }
 
-    void Scene::AddEntity(std::shared_ptr<Entity> entity)
+    void Scene::AddEntity(const std::shared_ptr<Entity>& entity)
     {
-        uint64_t entityID = entity->GetID();
+        const uint64_t entityID = entity->GetID();
         m_entities[entityID] = entity;
 
-        if (m_isInitialized && !entity->IsActive())
+        if (m_initialized && !entity->IsActive())
         {
             entity->Initialize();
         }
     }
 
-    void Scene::RemoveEntity(std::shared_ptr<Entity> entity)
+    void Scene::RemoveEntity(const std::shared_ptr<Entity>& entity)
     {
         if (entity)
         {
@@ -98,20 +100,18 @@ namespace Wayfinder
         }
     }
 
-    void Scene::RemoveEntityByID(uint64_t entityID)
+    void Scene::RemoveEntityByID(const uint64_t entityID)
     {
-        auto it = m_entities.find(entityID);
-        if (it != m_entities.end())
+        if (const auto it = m_entities.find(entityID); it != m_entities.end())
         {
             it->second->Shutdown();
             m_entities.erase(it);
         }
     }
 
-    std::shared_ptr<Entity> Scene::GetEntityByID(uint64_t entityID) const
+    std::shared_ptr<Entity> Scene::GetEntityByID(const uint64_t entityID) const
     {
-        auto it = m_entities.find(entityID);
-        if (it != m_entities.end())
+        if (const auto it = m_entities.find(entityID); it != m_entities.end())
         {
             return it->second;
         }
@@ -121,11 +121,11 @@ namespace Wayfinder
 
     std::shared_ptr<Entity> Scene::GetEntityByName(const std::string& name) const
     {
-        for (auto& pair : m_entities)
+        for (const auto& entity : m_entities | std::views::values)
         {
-            if (pair.second->GetName() == name)
+            if (entity->GetName() == name)
             {
-                return pair.second;
+                return entity;
             }
         }
 
@@ -137,9 +137,9 @@ namespace Wayfinder
         std::vector<std::shared_ptr<Entity>> entities;
         entities.reserve(m_entities.size());
 
-        for (auto& pair : m_entities)
+        for (const auto& entity : m_entities | std::views::values)
         {
-            entities.push_back(pair.second);
+            entities.push_back(entity);
         }
 
         return entities;

@@ -2,6 +2,12 @@ cmake_minimum_required(VERSION 4.0.1)
 
 # --- Project Definition ---
 project(wayfinder_project VERSION 0.1.0 LANGUAGES C CXX)
+set_property(GLOBAL PROPERTY USE_FOLDERS ON) 
+set(CMAKE_SUPPRESS_REGENERATION TRUE)
+
+# --- Set Default Folder for Unspecified Targets ---
+set(CMAKE_FOLDER "CMakeTargets" CACHE STRING "Default IDE folder for targets without explicit FOLDER property")
+message(STATUS "Setting default target folder for unspecified targets to: ${CMAKE_FOLDER}")
 
 set(ENGINE_NAME wayfinder)
 set(EDITOR_NAME cartographer)
@@ -44,28 +50,23 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
-set_property(GLOBAL PROPERTY USE_FOLDERS ON) 
-
-# set(CMAKE_FOLDER_NAME "_CMakeTargets")
-# Assign standard targets to the folder
-# Note: ZERO_CHECK might be hidden by CMAKE_SUPPRESS_REGENERATION later
-# set_target_properties(ALL_BUILD INSTALL PACKAGE PROPERTIES FOLDER ${CMAKE_FOLDER_NAME})
-# If you see ZERO_CHECK and want to group it:
-# set_target_properties(ZERO_CHECK PROPERTIES FOLDER ${CMAKE_FOLDER_NAME})
-# Alternatively, hide ZERO_CHECK completely (often preferred):
-# set(CMAKE_SUPPRESS_REGENERATION TRUE)
-
 # --- Configurations ---
-# Define the custom configurations if none are specified (e.g., by IDE/Generator)
-# This ensures they are available, especially for multi-config generators like Visual Studio.
-if(NOT CMAKE_CONFIGURATION_TYPES)
-  set(CMAKE_CONFIGURATION_TYPES Debug Development Shipping CACHE STRING "Build types" FORCE)
-  # Set a default build type for single-config generators (Makefiles, Ninja)
-  # if the user doesn't specify one (-DCMAKE_BUILD_TYPE=...)
-  if(NOT CMAKE_BUILD_TYPE)
-    set(CMAKE_BUILD_TYPE Debug CACHE STRING "Default build type" FORCE)
-  endif()
+# Define the custom configurations. FORCE ensures this overwrites any
+# value potentially set by a toolchain, preset, or previous cache.
+set(CMAKE_CONFIGURATION_TYPES Debug Development Shipping CACHE STRING "Build types" FORCE)
+
+# Set a default build type for single-config generators (Makefiles, Ninja)
+# This part is still useful if someone uses a single-config generator.
+if(NOT CMAKE_BUILD_TYPE AND CMAKE_CONFIGURATION_TYPES)
+    # Set default CMAKE_BUILD_TYPE to the first type listed if none specified
+    list(GET CMAKE_CONFIGURATION_TYPES 0 FIRST_CONFIG_TYPE)
+    set(CMAKE_BUILD_TYPE ${FIRST_CONFIG_TYPE} CACHE STRING "Default build type" FORCE)
+    # Or just hardcode Debug if you prefer:
+    # set(CMAKE_BUILD_TYPE Debug CACHE STRING "Default build type" FORCE)
 endif()
+# --- Debug Messages (Optional but helpful) ---
+message(STATUS "CMAKE_CONFIGURATION_TYPES forced to: ${CMAKE_CONFIGURATION_TYPES}")
+message(STATUS "CMAKE_BUILD_TYPE default set to: ${CMAKE_BUILD_TYPE}")
 
 # Enable LTO specifically for the Development & Shipping configurations
 set(CMAKE_INTERPROCEDURAL_OPTIMIZATION_Shipping ON)
@@ -79,7 +80,7 @@ message(STATUS "Available configurations: ${CMAKE_CONFIGURATION_TYPES}")
 message(STATUS "Building configuration: ${CMAKE_BUILD_TYPE}") 
 
 # --- Project Settings ---
-option(WAYFINDER_BUILD_EDITOR "Build the Wayfinder Editor" ON)
+option(WAYFINDER_BUILD_EDITOR "Build the Wayfinder Editor" OFF)
 option(WAYFINDER_BUILD_RUNTIME "Build the Wayfinder Runtime" OFF)
 option(WAYFINDER_BUILD_SANDBOX "Build the Wayfinder Sandbox" ON)
 option(WAYFINDER_BUILD_TOOLS "Build standalone tools" OFF)
@@ -103,11 +104,19 @@ message(STATUS "  Build Samples: ${WAYFINDER_BUILD_SAMPLES}")
 message(STATUS "  Build Tests: ${WAYFINDER_BUILD_TESTS}")
 message(STATUS "  Shared Libs: ${WAYFINDER_BUILD_SHARED_LIBS}")
 
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
+include(WayfinderCommon)
+
 # --- Output Directories ---
-# Define a base directory for output binaries relative to the build directory
 set(OUTPUT_DIR_BASE "${CMAKE_BINARY_DIR}/bin")
-# Note: Per-target output directories are set within each sub-project below
-# using generator expressions like $<CONFIG> to handle configuration names.
+
+function(wayfinder_set_output_directories target_name)
+  set_target_properties(${target_name} PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY "${OUTPUT_DIR_BASE}/$<CONFIG>"
+    LIBRARY_OUTPUT_DIRECTORY "${OUTPUT_DIR_BASE}/$<CONFIG>"
+    ARCHIVE_OUTPUT_DIRECTORY "${OUTPUT_DIR_BASE}/$<CONFIG>"
+  )
+endfunction()
 
 if(WIN32)
   # Set the minimum Windows SDK version (adjust if needed)
@@ -126,45 +135,39 @@ if(WIN32)
 endif()
 
 # --- Dependencies ---
-set(RAYLIB_VERSION 5.5)
-find_package(raylib ${RAYLIB_VERSION} QUIET) # QUIET or REQUIRED
-if (NOT raylib_FOUND) # If there's none, fetch and build raylib
-  include(FetchContent)
-  FetchContent_Declare(
-    raylib
-    DOWNLOAD_EXTRACT_TIMESTAMP OFF
-    URL https://github.com/raysan5/raylib/archive/refs/tags/${RAYLIB_VERSION}.tar.gz
-  )
-  FetchContent_GetProperties(raylib)
-  if (NOT raylib_POPULATED) # Have we downloaded raylib yet?
-    set(FETCHCONTENT_QUIET NO)
-    set(BUILD_EXAMPLES OFF CACHE BOOL "Build raylib examples" FORCE)
-    #set(BUILD_GAMES OFF CACHE BOOL "Build raylib games" FORCE)
-    #set(BUILD_TESTS OFF CACHE BOOL "Build raylib tests" FORCE)
-    FetchContent_MakeAvailable(raylib)
-  endif()
-endif()
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
+include(WayfinderDependencies)
 
-# Logging Library (spdlog)
-set(SPDLOG_VERSION 1.15.2)
-find_package(spdlog ${SPDLOG_VERSION} QUIET)
-if (NOT spdlog_FOUND)
-    include(FetchContent)
-    FetchContent_Declare(
-        spdlog
-        DOWNLOAD_EXTRACT_TIMESTAMP OFF
-        URL https://github.com/gabime/spdlog/archive/refs/tags/v${SPDLOG_VERSION}.tar.gz
-    )
-    FetchContent_MakeAvailable(spdlog)
+set(DEPS_FOLDER_NAME "ThirdParty")
+set(RAYLIB_SUBFOLDER "${DEPS_FOLDER_NAME}/raylib") 
+
+if(TARGET raylib)
+    set_target_properties(raylib PROPERTIES FOLDER ${RAYLIB_SUBFOLDER})
+endif()
+if(TARGET glfw) 
+    set_target_properties(glfw PROPERTIES FOLDER ${RAYLIB_SUBFOLDER})
+endif()
+if(TARGET update_mappings) 
+     set_target_properties(update_mappings PROPERTIES FOLDER ${RAYLIB_SUBFOLDER})
+endif()
+if(TARGET uninstall)
+     set_target_properties(uninstall PROPERTIES FOLDER ${RAYLIB_SUBFOLDER})
+endif()
+if(TARGET spdlog) 
+    set_target_properties(spdlog PROPERTIES FOLDER ${DEPS_FOLDER_NAME})
 endif()
 
 add_subdirectory(${ENGINE_PATH})
+set_target_properties(${ENGINE_NAME} PROPERTIES FOLDER "${ENGINE_DIRECTORY}") 
+
 if(WAYFINDER_BUILD_EDITOR)
     #add_subdirectory(${EDITOR_PATH})
+    #set_target_properties(${EDITOR_NAME} PROPERTIES FOLDER "${EDITOR_DIRECTORY}") 
 endif()
 
 if(WAYFINDER_BUILD_SANDBOX)
     add_subdirectory(${SANDBOX_PATH}) 
+    set_target_properties(${SANDBOX_NAME} PROPERTIES FOLDER "${SANDBOX_DIRECTORY}")
 endif()
 
 if(WAYFINDER_BUILD_RUNTIME)

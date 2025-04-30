@@ -26,14 +26,14 @@ namespace Wayfinder
     {
         uint8_t r, g, b, a;
         
-        static Color White() { return {255, 255, 255, 255}; }
-        static Color Black() { return {0, 0, 0, 255}; }
-        static Color Red() { return {255, 0, 0, 255}; }
-        static Color Green() { return {0, 255, 0, 255}; }
-        static Color Blue() { return {0, 0, 255, 255}; }
-        static Color Yellow() { return {255, 255, 0, 255}; }
-        static Color Gray() { return {128, 128, 128, 255}; }
-        static Color DarkGray() { return {80, 80, 80, 255}; }
+        static Color White() { return {.r = 255, .g = 255, .b = 255, .a = 255}; }
+        static Color Black() { return {.r = 0, .g = 0, .b = 0, .a = 255}; }
+        static Color Red() { return {.r = 255, .g = 0, .b = 0, .a = 255}; }
+        static Color Green() { return {.r = 0, .g = 255, .b = 0, .a = 255}; }
+        static Color Blue() { return {.r = 0, .g = 0, .b = 255, .a = 255}; }
+        static Color Yellow() { return {.r = 255, .g = 255, .b = 0, .a = 255}; }
+        static Color Gray() { return {.r = 128, .g = 128, .b = 128, .a = 255}; }
+        static Color DarkGray() { return {.r = 80, .g = 80, .b = 80, .a = 255}; }
     };
     
     // Interface for rendering API

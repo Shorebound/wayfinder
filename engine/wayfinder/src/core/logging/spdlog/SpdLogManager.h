@@ -2,6 +2,8 @@
 #include "../ILogger.h"
 #include "SpdLogger.h"
 
+#include <ranges>
+
 
 namespace Wayfinder
 {
@@ -23,8 +25,7 @@ namespace Wayfinder
 
         static std::shared_ptr<ILogger> CreateLogger(const std::string& name, LogVerbosity defaultVerbosity = LogVerbosity::Info)
         {
-            auto it = s_loggers.find(name);
-            if (it != s_loggers.end())
+            if (const auto it = s_loggers.find(name); it != s_loggers.end())
             {
                 return it->second;
             }
@@ -36,8 +37,7 @@ namespace Wayfinder
 
         static std::shared_ptr<ILogger> GetLogger(const std::string& name)
         {
-            auto it = s_loggers.find(name);
-            if (it != s_loggers.end())
+            if (const auto it = s_loggers.find(name); it != s_loggers.end())
             {
                 return it->second;
             }
@@ -46,20 +46,20 @@ namespace Wayfinder
 
         static void UpdateLoggerOutputs(const LogConfig& config)
         {
-            for (auto& [name, logger] : s_loggers)
+            for (const auto& logger : s_loggers | std::views::values)
             {
                 UpdateLoggerOutputs(logger, config);
             }
         }
 
-        static void UpdateLoggerOutputs(std::shared_ptr<ILogger> logger, const LogConfig& config)
+        static void UpdateLoggerOutputs(const std::shared_ptr<ILogger>& logger, const LogConfig& config)
         {
             logger->ClearOutputs();
 
             // Add console output if enabled
             if (config.IsOutputEnabled(LogOutputType::Console))
             {
-                auto output = CreateConsoleOutput();
+                const auto output = CreateConsoleOutput();
                 output->SetPattern("%^[%T] %n: %v%$");
                 logger->AddOutput(output);
             }
@@ -67,7 +67,7 @@ namespace Wayfinder
             // Add file output if enabled
             if (config.IsOutputEnabled(LogOutputType::File))
             {
-                auto output = CreateFileOutput(config.fileOutputConfig);
+                const auto output = CreateFileOutput(config.FileOutputConfig);
                 output->SetPattern("[%Y-%m-%d %H:%M:%S.%e] [%l] %n: %v");
                 logger->AddOutput(output);
             }
@@ -75,7 +75,7 @@ namespace Wayfinder
             // Add raylib output if enabled
             if (config.IsOutputEnabled(LogOutputType::Raylib))
             {
-                auto output = CreateRaylibOutput();
+                const auto output = CreateRaylibOutput();
                 output->SetPattern("[%n] %v");
                 logger->AddOutput(output);
             }

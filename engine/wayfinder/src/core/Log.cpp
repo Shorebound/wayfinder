@@ -46,7 +46,7 @@ namespace Wayfinder
         // Add file output if enabled
         if (config.IsOutputEnabled(LogOutputType::File))
         {
-            auto output = CreateFileOutput(config.fileOutputConfig);
+            auto output = CreateFileOutput(config.FileOutputConfig);
             output->SetPattern("[%Y-%m-%d %H:%M:%S.%e] [%l] %n: %v");
             m_logger->AddOutput(output);
         }
@@ -111,7 +111,7 @@ namespace Wayfinder
 
     void Log::SetLogFilePath(const std::string& path)
     {
-        s_config.fileOutputConfig.filePath = path;
+        s_config.FileOutputConfig.FilePath = path;
 
         // Update all existing categories with new configuration
         for (auto& [name, category] : s_categories)
@@ -122,7 +122,7 @@ namespace Wayfinder
 
     void Log::SetLogFileRotationSize(size_t maxSize)
     {
-        s_config.fileOutputConfig.maxFileSize = maxSize;
+        s_config.FileOutputConfig.MaxFileSize = maxSize;
 
         // Update all existing categories with new configuration
         for (auto& [name, category] : s_categories)
@@ -133,7 +133,7 @@ namespace Wayfinder
 
     void Log::SetLogFileMaxFiles(size_t maxFiles)
     {
-        s_config.fileOutputConfig.maxFiles = maxFiles;
+        s_config.FileOutputConfig.MaxFiles = maxFiles;
 
         // Update all existing categories with new configuration
         for (auto& [name, category] : s_categories)

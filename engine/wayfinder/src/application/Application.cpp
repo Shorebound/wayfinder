@@ -13,7 +13,7 @@
 
 namespace Wayfinder
 {
-    Application::Application(const Config& config) : m_isRunning(false)
+    Application::Application(const Config& config) : m_running(false)
     {
         m_config = config;
         Initialize();
@@ -37,11 +37,12 @@ namespace Wayfinder
         //m_window = ServiceLocator::GetWindow();
 
         // Create game and renderer
-        auto windowConfig = Window::Config{
+        const auto windowConfig = Window::Config{
             m_config.ScreenWidth,
             m_config.ScreenHeight,
             m_config.WindowTitle,
             m_config.VSync};
+        
         m_window = RaylibWindow::Create(windowConfig);
         m_game = std::make_unique<Game>();
         m_renderer = std::make_unique<Renderer>();
@@ -64,7 +65,7 @@ namespace Wayfinder
             return false;
         }
 
-        m_isRunning = true;
+        m_running = true;
         return true;
     }
 
@@ -81,7 +82,7 @@ namespace Wayfinder
     {
         auto& time = ServiceLocator::GetTime();
 
-        while (m_isRunning && !m_window->ShouldClose())
+        while (m_running && !m_window->ShouldClose())
         {
             // Update time
             time.Update();
@@ -100,15 +101,14 @@ namespace Wayfinder
                 // Render current scene
                 if (m_renderer)
                 {
-                    const auto* currentScene = m_game->GetCurrentScene();
-                    if (currentScene)
+                    if (const auto* currentScene = m_game->GetCurrentScene())
                     {
                         m_renderer->Render(*currentScene);
                     }
                 }
             }
 
-            m_isRunning = m_game->IsRunning();
+            m_running = m_game->IsRunning();
         }
     }
 

@@ -7,7 +7,15 @@ endif()
 set(ENGINE_EXPORT_NAME WAYFINDER)
 
 add_library(${ENGINE_NAME} ${ENGINE_LIB_TYPE})
+wayfinder_set_output_directories(${ENGINE_NAME})
 message(STATUS "Engine: Configuring target ${ENGINE_NAME} (${ENGINE_LIB_TYPE})")
+
+target_compile_definitions(${ENGINE_NAME}
+  PRIVATE # Only needed when building the engine itself
+    # Platform-specific DLL export control (only if building DLL)
+    $<IF:$<BOOL:${WAYFINDER_BUILD_SHARED_LIBS}>,$<IF:$<PLATFORM_ID:Windows>,WAYFINDER_BUILD_DLL,>,>
+    # Add any other definitions ONLY needed privately by the engine
+)
 
 include(GenerateExportHeader)
 if(WIN32 AND WAYFINDER_BUILD_SHARED_LIBS)
@@ -24,132 +32,59 @@ generate_export_header(${ENGINE_NAME}
     EXPORT_FILE_NAME ${CMAKE_CURRENT_BINARY_DIR}/include/wayfinder_exports.h
 )
 
-# --- Compile Definitions ---
-target_compile_definitions(${ENGINE_NAME}
-  PUBLIC
-    # Config-specific definitions
-    $<$<CONFIG:Debug>:WAYFINDER_DEBUG>
-    $<$<CONFIG:Development>:WAYFINDER_DEVELOPMENT>
-    $<$<CONFIG:Shipping>:WAYFINDER_SHIPPING>
-
-    # Config-specific logging levels
-    $<$<CONFIG:Debug>:WAYFINDER_LOGGING_LEVEL=0>
-    $<$<CONFIG:Development>:WAYFINDER_LOGGING_LEVEL=1>
-    $<$<CONFIG:Shipping>:WAYFINDER_LOGGING_LEVEL=2>
-
-    # Debug
-    $<$<NOT:$<CONFIG:Shipping>>:WAYFINDER_ENABLE_ASSERTS>
-    $<$<BOOL:${WAYFINDER_ENABLE_LOGGING}>:WAYFINDER_LOGGING_ENABLED>
-
-    # Config-specific Logging
-
-
-    # Platform-specific (Public controls #ifdef) - uses generator expression
-    $<IF:$<PLATFORM_ID:Windows>,WAYFINDER_PLATFORM_WINDOWS,>
-    $<IF:$<PLATFORM_ID:Linux>,WAYFINDER_PLATFORM_LINUX,>
-    $<IF:$<PLATFORM_ID:Darwin>,WAYFINDER_PLATFORM_MACOS,>
-    # Add others for Android, iOS (using CMAKE_SYSTEM_NAME checks), Emscripten
-    $<IF:$<STREQUAL:${CMAKE_SYSTEM_NAME},Emscripten>,WAYFINDER_PLATFORM_WEB,>
-
-    # physics
-    $<$<BOOL:${WAYFINDER_PHYSICS}>:WAYFINDER_PHYSICS>
-
-  PRIVATE
-    # Platform-specific (Private controls __declspec) - uses generator expression
-    $<IF:$<PLATFORM_ID:Windows>,WAYFINDER_BUILD_DLL,> # Add if Windows, else add nothing
-
-    $<IF:$<CXX_COMPILER_ID:MSVC>,WAYFINDER_COMPILER_MSVC,>
-    $<IF:$<CXX_COMPILER_ID:GNU>,WAYFINDER_COMPILER_GCC,>
-    $<IF:$<CXX_COMPILER_ID:Clang>,WAYFINDER_COMPILER_CLANG,>
-    $<IF:$<CXX_COMPILER_ID:AppleClang>,WAYFINDER_COMPILER_CLANG,>
-    $<IF:$<CXX_COMPILER_ID:Intel>,WAYFINDER_COMPILER_INTEL,>
-)
-
-# --- Compile Options ---
-target_compile_options(${ENGINE_NAME} PRIVATE
-    # Common flags for GCC/Clang
-    $<$<CXX_COMPILER_ID:GNU,Clang,AppleClang>:-Wall;-Wextra;-Wpedantic>
-    # Consider adding more specific warnings for GCC/Clang if desired:
-    # -Wshadow -Wconversion -Wsign-conversion -Wundef -Wunused-variable ...
-
-    # Common flags for MSVC
-    $<$<CXX_COMPILER_ID:MSVC>:/W4> # High warning level
-    # Consider /permissive- for stricter standard conformance on MSVC
-    $<$<CXX_COMPILER_ID:MSVC>:/permissive->
-    # Consider /utf-8 to ensure source code is treated as UTF-8 on MSVC
-    $<$<CXX_COMPILER_ID:MSVC>:/utf-8>
-
-    # Add other options like RTTI/Exception control flags here if needed
-)
-
-# Optional: Treat warnings as errors (good for CI or strict development)
-if(WAYFINDER_WARNINGS_AS_ERRORS)
-    target_compile_options(${ENGINE_NAME} PRIVATE
-        $<$<CXX_COMPILER_ID:GNU,Clang,AppleClang>:-Werror>
-        $<$<CXX_COMPILER_ID:MSVC>:/WX>
-    )
-    message(STATUS "Treating compiler warnings as errors")
-endif()
-
-if(NOT WAYFINDER_ENABLE_RTTI)
-    message(STATUS "Disabling RTTI")
-    target_compile_options(${ENGINE_NAME} PRIVATE
-        $<$<CXX_COMPILER_ID:MSVC>:/GR->
-        $<$<CXX_COMPILER_ID:GNU,Clang,AppleClang>:-fno-rtti>
-    )
-    # Apply to other targets (Sandbox, Editor, etc.) as needed
-endif()
-
-if(NOT WAYFINDER_ENABLE_EXCEPTIONS)
-    message(STATUS "Disabling Exceptions")
-    target_compile_options(${ENGINE_NAME} PRIVATE
-        # MSVC: /EHs /EHc flags control exceptions. /EHs-c- might be needed. Check docs.
-        # This is complex on MSVC, might need more specific flags depending on model.
-        # A common starting point is disabling synchronous exceptions:
-        $<$<CXX_COMPILER_ID:MSVC>:/EHs-c-> # Check MSVC docs for exact flags needed
-        $<$<CXX_COMPILER_ID:GNU,Clang,AppleClang>:-fno-exceptions>
-    )
-    # Apply to other targets (Sandbox, Editor, etc.) as needed
-endif()
-
 # --- Sources ---
-file(GLOB_RECURSE ${ENGINE_NAME}_SOURCES CONFIGURE_DEPENDS
+file(GLOB_RECURSE ENGINE_ALL_SOURCES CONFIGURE_DEPENDS
   "src/*.h"
   "src/*.cpp"
 )
 
+# glob for now
+target_sources(${ENGINE_NAME} PRIVATE ${ENGINE_ALL_SOURCES})
+#target_sources(${ENGINE_NAME} PRIVATE
+    # Core
+#    src/application/Application.cpp
+#    src/core/Game.cpp
+#    src/core/ServiceLocator.cpp
+
+    # Platform
+#    src/platform/raylib/RaylibWindow.cpp
+#    src/platform/raylib/RaylibInput.cpp
+#    src/platform/raylib/RaylibTime.cpp
+
+    # Rendering
+#    src/rendering/Renderer.cpp
+#    src/rendering/raylib/RaylibGraphicsContext.cpp
+#    src/rendering/raylib/RaylibRenderAPI.cpp
+
+    # Scene
+#    src/scene/Scene.cpp
+#    src/scene/entity/Entity.cpp
+#    src/scene/entity/Component.cpp
+#    src/scene/entity/Transform.cpp
+
+    # Input
+#    src/input/InputManager.cpp
+#)
+
+foreach(FILEPATH ${ENGINE_ALL_SOURCES})
+    # Get the path relative to src/
+    file(RELATIVE_PATH REL_PATH "${CMAKE_CURRENT_SOURCE_DIR}/src" "${FILEPATH}")
+    # Get the directory part
+    get_filename_component(PARENT_DIR "${REL_PATH}" DIRECTORY)
+    # Replace / with \\ for Visual Studio filters
+    string(REPLACE "/" "\\" GROUP_PATH "${PARENT_DIR}")
+    # Create the group (CMake handles duplicates)
+    if(GROUP_PATH)
+      source_group("${GROUP_PATH}" FILES "${FILEPATH}")
+    else()
+      # Files directly under src/
+      source_group("Root" FILES "${FILEPATH}")
+    endif()
+endforeach()
+
 install(FILES
     ${CMAKE_CURRENT_SOURCE_DIR}/src/core/Core.h
     DESTINATION include/wayfinder/core
-)
-
-target_sources(${ENGINE_NAME} PRIVATE
-    # Precompiled Header
-    src/WayfinderPCH.cpp
-
-    # Core
-    src/application/Application.cpp
-    src/core/Game.cpp
-    src/core/ServiceLocator.cpp
-
-    # Platform
-    src/platform/raylib/RaylibWindow.cpp
-    src/platform/raylib/RaylibInput.cpp
-    src/platform/raylib/RaylibTime.cpp
-
-    # Rendering
-    src/rendering/Renderer.cpp
-    src/rendering/raylib/RaylibGraphicsContext.cpp
-    src/rendering/raylib/RaylibRenderAPI.cpp
-
-    # Scene
-    src/scene/Scene.cpp
-    src/scene/entity/Entity.cpp
-    src/scene/entity/Component.cpp
-    src/scene/entity/Transform.cpp
-
-    # Input
-    src/input/InputManager.cpp
 )
 
 # Include directories
@@ -167,15 +102,11 @@ target_include_directories(${ENGINE_NAME}
     ${CMAKE_CURRENT_BINARY_DIR}/include
 )
 
-# --- Target Properties ---
-# Output directory for the library file (.dll, .lib)
-set_target_properties(${ENGINE_NAME} PROPERTIES
-  RUNTIME_OUTPUT_DIRECTORY "${OUTPUT_DIR_BASE}/$<CONFIG>" # For DLL
-  LIBRARY_OUTPUT_DIRECTORY "${OUTPUT_DIR_BASE}/$<CONFIG>" # For import lib
-  ARCHIVE_OUTPUT_DIRECTORY "${OUTPUT_DIR_BASE}/$<CONFIG>" # For static lib (if type changed)
+target_link_libraries(${ENGINE_NAME}
+    PUBLIC
+      wayfinder_common
+      raylib
 )
-
-#set(raylib_VERBOSE 1)
 
 if(WAYFINDER_ENABLE_LOGGING)
     target_link_libraries(${ENGINE_NAME} PUBLIC spdlog::spdlog)
@@ -185,11 +116,6 @@ if(WAYFINDER_ENABLE_LOGGING)
       src/core/logging/spdlog/SpdLogOutput.cpp
     )
 endif()
-
-target_link_libraries(${ENGINE_NAME}
-    PUBLIC
-        raylib
-)
 
 # Configure precompiled headers
 target_precompile_headers(${ENGINE_NAME}

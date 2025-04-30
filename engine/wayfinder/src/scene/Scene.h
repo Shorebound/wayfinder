@@ -19,8 +19,8 @@ namespace Wayfinder
         void Shutdown();
 
         std::shared_ptr<Entity> CreateEntity(const std::string& name = "Entity");
-        void AddEntity(std::shared_ptr<Entity> entity);
-        void RemoveEntity(std::shared_ptr<Entity> entity);
+        void AddEntity(const std::shared_ptr<Entity>& entity);
+        void RemoveEntity(const std::shared_ptr<Entity>& entity);
         void RemoveEntityByID(uint64_t entityID);
 
         std::shared_ptr<Entity> GetEntityByID(uint64_t entityID) const;
@@ -33,6 +33,6 @@ namespace Wayfinder
     private:
         std::string m_name;
         std::unordered_map<uint64_t, std::shared_ptr<Entity>> m_entities;
-        bool m_isInitialized;
+        bool m_initialized;
     };
 } // namespace Wayfinder
