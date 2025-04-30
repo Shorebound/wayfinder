@@ -15,8 +15,8 @@ namespace Wayfinder
         double GetTimeSinceStartup() const override;
 
     private:
-        float m_DeltaTime;
-        float m_ElapsedTime;
+        float m_deltaTime;
+        float m_elapsedTime;
         double m_StartTime;
     };
 }

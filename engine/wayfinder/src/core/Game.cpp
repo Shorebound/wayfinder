@@ -1,8 +1,8 @@
 #include "Game.h"
-#include "Log.h"
-#include "ServiceLocator.h"
 #include "../platform/Input.h"
 #include "../scene/Scene.h"
+#include "Log.h"
+#include "ServiceLocator.h"
 
 namespace Wayfinder
 {
