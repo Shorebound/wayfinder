@@ -179,8 +179,6 @@ set_target_properties(${ENGINE_NAME} PROPERTIES
 
 if(WAYFINDER_ENABLE_LOGGING)
     target_link_libraries(${ENGINE_NAME} PUBLIC spdlog::spdlog)
-    # Include logging system
-    add_subdirectory(src/core/logging)
     target_sources(${ENGINE_NAME} 
     PRIVATE 
       src/core/Log.cpp
