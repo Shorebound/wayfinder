@@ -108,6 +108,9 @@ namespace Wayfinder
 
     struct RenderDebugDrawList
     {
+        bool ShowWorldGrid = false;
+        int WorldGridSlices = 100;
+        float WorldGridSpacing = 1.0f;
         std::vector<RenderDebugLine> Lines;
         std::vector<RenderDebugBox> Boxes;
     };

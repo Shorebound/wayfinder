@@ -73,9 +73,18 @@ This keeps derivation logic out of ad hoc renderer code and makes scene startup 
 
 ### Renderer
 
-The renderer currently consumes scene state after Flecs systems have run. It still performs direct ECS queries for camera, mesh, and light data.
+The renderer currently consumes engine-owned frame data after Flecs systems have run.
 
-That is acceptable for the current stage of the project, but it is not the intended long-term shape. The renderer should move toward consuming extracted frame data owned by the engine rather than permanently owning ECS traversal policy.
+Today that frame boundary looks like this:
+
+- scene modules derive world transforms and active camera state
+- `SceneRenderExtractor` traverses the scene world and builds a `RenderFrame`
+- `Renderer` prepares the frame and hands it to `RenderPipeline`
+- `RenderPipeline` executes the current explicit pass order against the active backend
+
+That is the right direction for the project. The renderer no longer decides scene meaning by traversing Flecs directly.
+
+What is still incomplete is the shape of the extracted data and the pipeline that consumes it. The current pipeline is intentionally narrow and raylib-oriented. It supports a small explicit pass order rather than a broad render-graph style system.
 
 ### Services
 
@@ -95,7 +104,8 @@ The runtime path in the checked-in project works like this:
 6. Prefab data is resolved and merged before entity-local overrides are applied.
 7. Entities are created in the Flecs world, and hierarchy relationships are established.
 8. Runtime systems derive world transforms and active camera state during scene update.
-9. The renderer reads the resulting scene state and submits the current frame.
+9. `SceneRenderExtractor` builds a renderer-facing `RenderFrame` from the resulting scene state.
+10. `Renderer` submits that frame through the current render pipeline and backend.
 
 ## Current Frame Flow
 
@@ -104,10 +114,10 @@ For each frame, the runtime is effectively doing this:
 1. advance time
 2. update the active scene
 3. progress Flecs systems
-4. read derived camera and transform state
-5. render visible scene content
+4. extract a renderer-facing `RenderFrame`
+5. execute the current render passes for that frame
 
-That gives Wayfinder a clean enough baseline for current work even though frame extraction is still ahead.
+That gives Wayfinder a clean enough baseline for current work even though the frame model and pass system are still intentionally small.
 
 ## What Is Stable Today
 
@@ -123,8 +133,8 @@ The following architectural decisions are stable enough to build on:
 
 These areas are real but intentionally unfinished:
 
-- direct ECS traversal inside `Renderer`
-- the stubbed `RenderPipeline`
+- the narrow extracted render-frame model
+- the small explicit `RenderPipeline` pass list
 - the current raylib-shaped rendering internals
 - service locator usage as the main cross-cutting convenience layer
 
@@ -136,7 +146,7 @@ These rules matter because they protect the future direction of the engine:
 - authoring validation must exist outside the runtime window
 - components should remain data-oriented
 - runtime-derived state should be produced by systems, not hidden renderer logic
-- rendering should move toward extracted frame data before large rendering ambition is added
+- rendering should keep extracted frame data as the only renderer-facing scene boundary
 - new subsystems should justify themselves with clear runtime or workflow value
 
 ## Near-Term Direction
@@ -145,7 +155,7 @@ The next architectural improvement is not a giant rendering feature. It is a bet
 
 Near-term work should focus on:
 
-- extracting renderer-facing frame data from the scene
+- keeping the renderer-facing frame data authoritative
 - keeping renderables and materials explicit
 - integrating future simulation systems through ECS components and modules instead of special-case runtime code
 - preserving headless validation and save workflows as first-class behavior

@@ -28,11 +28,12 @@ namespace Wayfinder
     {
     public:
         void SetAssetRoot(const std::filesystem::path& assetRoot);
+        void PrepareFrame(RenderFrame& frame);
 
         const RenderMeshResource& ResolveMesh(const RenderMeshSubmission& submission);
-        RenderMaterialBinding ResolveMaterialBinding(const RenderMaterialBinding& binding);
 
     private:
+        RenderMaterialBinding PrepareMaterialBinding(const RenderMaterialBinding& binding);
         RenderMaterialResource CreateMaterialResource(const RenderMaterialBinding& binding);
 
         std::filesystem::path m_assetRoot;

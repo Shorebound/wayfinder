@@ -65,6 +65,7 @@ namespace Wayfinder
         RenderFrame frame;
         frame.SceneName = scene.GetName();
         frame.AssetRoot = scene.GetAssetRoot();
+        frame.Debug.ShowWorldGrid = true;
 
         if (scene.GetWorld().has<ActiveCameraStateComponent>())
         {

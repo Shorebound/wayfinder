@@ -27,6 +27,19 @@ namespace Wayfinder
         }
     }
 
+    void RenderResourceCache::PrepareFrame(RenderFrame& frame)
+    {
+        for (RenderMeshSubmission& mesh : frame.Meshes)
+        {
+            mesh.Material = PrepareMaterialBinding(mesh.Material);
+        }
+
+        for (RenderDebugBox& debugBox : frame.Debug.Boxes)
+        {
+            debugBox.Material = PrepareMaterialBinding(debugBox.Material);
+        }
+    }
+
     const RenderMeshResource& RenderResourceCache::ResolveMesh(const RenderMeshSubmission& submission)
     {
         auto existing = m_meshesByKey.find(submission.Mesh.StableKey);
@@ -42,8 +55,13 @@ namespace Wayfinder
         return it->second;
     }
 
-    RenderMaterialBinding RenderResourceCache::ResolveMaterialBinding(const RenderMaterialBinding& binding)
+    RenderMaterialBinding RenderResourceCache::PrepareMaterialBinding(const RenderMaterialBinding& binding)
     {
+        if (binding.Handle.Origin != RenderResourceOrigin::Asset)
+        {
+            return binding;
+        }
+
         auto existing = m_materialsByKey.find(binding.Handle.StableKey);
         if (existing == m_materialsByKey.end())
         {
@@ -53,12 +71,6 @@ namespace Wayfinder
         RenderMaterialBinding resolved = existing->second.Binding;
         resolved.Handle = binding.Handle;
         resolved.Domain = binding.Domain;
-
-        if (binding.Handle.Origin != RenderResourceOrigin::Asset)
-        {
-            resolved = binding;
-            return resolved;
-        }
 
         if (binding.HasBaseColorOverride)
         {

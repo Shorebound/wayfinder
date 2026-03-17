@@ -12,12 +12,6 @@ namespace Wayfinder
     Renderer::Renderer()
         : m_screenWidth(800), m_screenHeight(450), m_isInitialized(false)
     {
-        // Initialize camera with default values
-        m_camera.Position = {0.0f, 10.0f, 10.0f};
-        m_camera.Target = {0.0f, 0.0f, 0.0f};
-        m_camera.Up = {0.0f, 1.0f, 0.0f};
-        m_camera.FOV = 45.0f;
-        m_camera.ProjectionType = 0; // CAMERA_PERSPECTIVE
         m_clearColor = Color::White();
         m_renderPipeline = std::make_unique<RenderPipeline>();
         m_renderResources = std::make_unique<RenderResourceCache>();
@@ -55,41 +49,33 @@ namespace Wayfinder
         if (!m_isInitialized)
             return;
 
-        if (!frame.Views.empty())
+        RenderFrame preparedFrame = frame;
+
+        if (!preparedFrame.Views.empty())
         {
-            m_camera = frame.Views.front().CameraState;
-            m_clearColor = frame.Views.front().ClearColor;
+            m_clearColor = preparedFrame.Views.front().ClearColor;
         }
 
         BeginFrame();
 
         if (m_renderResources)
         {
-            m_renderResources->SetAssetRoot(frame.AssetRoot);
+            m_renderResources->SetAssetRoot(preparedFrame.AssetRoot);
+            m_renderResources->PrepareFrame(preparedFrame);
         }
 
         if (m_renderPipeline && m_renderResources)
         {
-            m_renderPipeline->Execute(frame, ServiceLocator::GetRenderAPI(), *m_renderResources);
+            m_renderPipeline->Execute(preparedFrame, ServiceLocator::GetRenderAPI(), *m_renderResources);
         }
 
         // Get render API from service locator
         auto& renderAPI = ServiceLocator::GetRenderAPI();
 
         // Draw scene info
-        renderAPI.DrawText("Scene: " + frame.SceneName, 10, 30, 20, Color::DarkGray());
+        renderAPI.DrawText("Scene: " + preparedFrame.SceneName, 10, 30, 20, Color::DarkGray());
 
         EndFrame();
-    }
-
-    void Renderer::SetCameraPosition(float x, float y, float z)
-    {
-        m_camera.Position = {x, y, z};
-    }
-
-    void Renderer::SetCameraTarget(float x, float y, float z)
-    {
-        m_camera.Target = {x, y, z};
     }
 
     void Renderer::BeginFrame()

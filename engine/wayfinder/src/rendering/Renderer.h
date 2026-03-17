@@ -26,11 +26,7 @@ namespace Wayfinder
         virtual void Render(const RenderFrame& frame);
         virtual void EndFrame();
 
-        void SetCameraPosition(float x, float y, float z);
-        void SetCameraTarget(float x, float y, float z);
-
     private:
-        Camera m_camera;
         Color m_clearColor;
         std::unique_ptr<RenderPipeline> m_renderPipeline;
         std::unique_ptr<RenderResourceCache> m_renderResources;

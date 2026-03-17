@@ -1,9 +1,19 @@
 #include "RenderPipeline.h"
 
+#include "../core/Log.h"
 #include "RenderAPI.h"
 #include "RenderResources.h"
 
 #include <algorithm>
+#include <array>
+
+namespace
+{
+    constexpr std::array<Wayfinder::RenderPassKind, 2> kPassOrder = {
+        Wayfinder::RenderPassKind::Scene,
+        Wayfinder::RenderPassKind::Debug,
+    };
+}
 
 namespace Wayfinder
 {
@@ -14,22 +24,38 @@ namespace Wayfinder
             return;
         }
 
-        for (const RenderView& view : frame.Views)
+        if (frame.Views.size() > 1)
         {
-            ExecuteView(frame, view, renderAPI, resources);
+            WAYFINDER_WARNING(LogRenderer, "RenderPipeline currently supports a single active view with the Raylib backend. Rendering only the first view out of {0}.", frame.Views.size());
         }
+
+        ExecuteView(frame, frame.Views.front(), renderAPI, resources);
     }
 
     void RenderPipeline::ExecuteView(const RenderFrame& frame, const RenderView& view, IRenderAPI& renderAPI, RenderResourceCache& resources) const
     {
-        ExecuteScenePass(frame, view, renderAPI, resources);
-        ExecuteDebugPass(frame, view, renderAPI, resources);
+        for (const RenderPassKind pass : kPassOrder)
+        {
+            ExecutePass(pass, frame, view, renderAPI, resources);
+        }
+    }
+
+    void RenderPipeline::ExecutePass(RenderPassKind pass, const RenderFrame& frame, const RenderView& view, IRenderAPI& renderAPI, RenderResourceCache& resources) const
+    {
+        switch (pass)
+        {
+        case RenderPassKind::Scene:
+            ExecuteScenePass(frame, view, renderAPI, resources);
+            break;
+        case RenderPassKind::Debug:
+            ExecuteDebugPass(frame, view, renderAPI);
+            break;
+        }
     }
 
     void RenderPipeline::ExecuteScenePass(const RenderFrame& frame, const RenderView& view, IRenderAPI& renderAPI, RenderResourceCache& resources) const
     {
         renderAPI.Begin3DMode(view.CameraState);
-        renderAPI.DrawGrid(100, 1.0f);
 
         std::vector<const RenderMeshSubmission*> sortedMeshes;
         sortedMeshes.reserve(frame.Meshes.size());
@@ -51,9 +77,14 @@ namespace Wayfinder
         renderAPI.End3DMode();
     }
 
-    void RenderPipeline::ExecuteDebugPass(const RenderFrame& frame, const RenderView& view, IRenderAPI& renderAPI, RenderResourceCache& resources) const
+    void RenderPipeline::ExecuteDebugPass(const RenderFrame& frame, const RenderView& view, IRenderAPI& renderAPI) const
     {
         renderAPI.Begin3DMode(view.CameraState);
+
+        if (frame.Debug.ShowWorldGrid)
+        {
+            renderAPI.DrawGrid(frame.Debug.WorldGridSlices, frame.Debug.WorldGridSpacing);
+        }
 
         for (const RenderDebugLine& debugLine : frame.Debug.Lines)
         {
@@ -62,7 +93,7 @@ namespace Wayfinder
 
         for (const RenderDebugBox& debugBox : frame.Debug.Boxes)
         {
-            DrawDebugBox(debugBox, renderAPI, resources);
+            DrawDebugBox(debugBox, renderAPI);
         }
 
         renderAPI.End3DMode();
@@ -71,20 +102,18 @@ namespace Wayfinder
     void RenderPipeline::DrawMeshSubmission(const RenderMeshSubmission& mesh, IRenderAPI& renderAPI, RenderResourceCache& resources) const
     {
         const RenderMeshResource& resource = resources.ResolveMesh(mesh);
-        const RenderMaterialBinding material = resources.ResolveMaterialBinding(mesh.Material);
 
         switch (resource.Geometry.Type)
         {
         case RenderGeometryType::Box:
-            ApplyMaterialBinding(material, mesh.LocalToWorld, resource.Geometry.Dimensions, renderAPI);
+            ApplyMaterialBinding(mesh.Material, mesh.LocalToWorld, resource.Geometry.Dimensions, renderAPI);
             break;
         }
     }
 
-    void RenderPipeline::DrawDebugBox(const RenderDebugBox& debugBox, IRenderAPI& renderAPI, RenderResourceCache& resources) const
+    void RenderPipeline::DrawDebugBox(const RenderDebugBox& debugBox, IRenderAPI& renderAPI) const
     {
-        const RenderMaterialBinding material = resources.ResolveMaterialBinding(debugBox.Material);
-        ApplyMaterialBinding(material, debugBox.LocalToWorld, debugBox.Dimensions, renderAPI);
+        ApplyMaterialBinding(debugBox.Material, debugBox.LocalToWorld, debugBox.Dimensions, renderAPI);
     }
 
     void RenderPipeline::ApplyMaterialBinding(const RenderMaterialBinding& binding, const Matrix4& transform, const Float3& dimensions, IRenderAPI& renderAPI) const
