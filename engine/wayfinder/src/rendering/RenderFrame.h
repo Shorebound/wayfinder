@@ -9,9 +9,28 @@
 
 namespace Wayfinder
 {
+    enum class RenderResourceOrigin
+    {
+        BuiltIn,
+        Asset
+    };
+
     enum class RenderGeometryType
     {
         Box
+    };
+
+    enum class RenderMaterialDomain
+    {
+        Surface,
+        Debug
+    };
+
+    enum class RenderFillMode
+    {
+        Solid,
+        Wireframe,
+        SolidAndWireframe
     };
 
     enum class RenderLightType
@@ -26,18 +45,35 @@ namespace Wayfinder
         Float3 Dimensions{1.0f, 1.0f, 1.0f};
     };
 
-    struct RenderMaterialState
+    struct RenderMeshHandle
     {
-        std::optional<AssetId> MaterialAssetId;
-        Color Tint = Color::White();
-        bool Wireframe = true;
+        RenderResourceOrigin Origin = RenderResourceOrigin::BuiltIn;
+        std::optional<AssetId> AssetId;
+        uint64_t StableKey = 0;
+    };
+
+    struct RenderMaterialHandle
+    {
+        RenderResourceOrigin Origin = RenderResourceOrigin::BuiltIn;
+        std::optional<AssetId> AssetId;
+        uint64_t StableKey = 0;
+    };
+
+    struct RenderMaterialBinding
+    {
+        RenderMaterialHandle Handle{};
+        RenderMaterialDomain Domain = RenderMaterialDomain::Surface;
+        Color BaseColor = Color::White();
+        Color WireframeColor = Color::DarkGray();
+        RenderFillMode FillMode = RenderFillMode::SolidAndWireframe;
     };
 
     struct RenderMeshSubmission
     {
+        RenderMeshHandle Mesh{};
         Matrix4 LocalToWorld = Matrix4::Identity();
         RenderGeometry Geometry{};
-        RenderMaterialState Material{};
+        RenderMaterialBinding Material{};
         uint64_t SortKey = 0;
     };
 
@@ -63,10 +99,7 @@ namespace Wayfinder
     {
         Matrix4 LocalToWorld = Matrix4::Identity();
         Float3 Dimensions{1.0f, 1.0f, 1.0f};
-        Color FillColor = Color::White();
-        Color WireColor = Color::DarkGray();
-        bool Solid = true;
-        bool Wireframe = true;
+        RenderMaterialBinding Material{};
     };
 
     struct RenderDebugDrawList

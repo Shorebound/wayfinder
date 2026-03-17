@@ -1,5 +1,6 @@
 #include "Renderer.h"
 #include "RenderFrame.h"
+#include "RenderPipeline.h"
 
 #include "../core/ServiceLocator.h"
 #include "../rendering/RenderAPI.h"
@@ -17,6 +18,7 @@ namespace Wayfinder
         m_camera.FOV = 45.0f;
         m_camera.ProjectionType = 0; // CAMERA_PERSPECTIVE
         m_clearColor = Color::White();
+        m_renderPipeline = std::make_unique<RenderPipeline>();
     }
 
     Renderer::~Renderer()
@@ -41,6 +43,7 @@ namespace Wayfinder
 
     void Renderer::Shutdown()
     {
+        m_renderPipeline = std::make_unique<RenderPipeline>();
         m_isInitialized = false;
     }
 
@@ -57,8 +60,10 @@ namespace Wayfinder
 
         BeginFrame();
 
-        RenderMeshes(frame);
-        RenderDebugPrimitives(frame);
+        if (m_renderPipeline)
+        {
+            m_renderPipeline->Execute(frame, m_camera, ServiceLocator::GetRenderAPI());
+        }
 
         // Get render API from service locator
         auto& renderAPI = ServiceLocator::GetRenderAPI();
@@ -101,54 +106,4 @@ namespace Wayfinder
         graphicsContext.EndFrame();
     }
 
-    void Renderer::RenderMeshes(const RenderFrame& frame)
-    {
-        auto& renderAPI = ServiceLocator::GetRenderAPI();
-
-        renderAPI.Begin3DMode(m_camera);
-        renderAPI.DrawGrid(100, 1.0f);
-
-        for (const RenderMeshSubmission& mesh : frame.Meshes)
-        {
-            switch (mesh.Geometry.Type)
-            {
-            case RenderGeometryType::Box:
-                renderAPI.DrawBox(mesh.LocalToWorld, mesh.Geometry.Dimensions, mesh.Material.Tint);
-                if (mesh.Material.Wireframe)
-                {
-                    renderAPI.DrawBoxWires(mesh.LocalToWorld, mesh.Geometry.Dimensions, Color::DarkGray());
-                }
-                break;
-            }
-        }
-
-        renderAPI.End3DMode();
-    }
-
-    void Renderer::RenderDebugPrimitives(const RenderFrame& frame)
-    {
-        auto& renderAPI = ServiceLocator::GetRenderAPI();
-
-        renderAPI.Begin3DMode(m_camera);
-
-        for (const RenderDebugLine& debugLine : frame.Debug.Lines)
-        {
-            renderAPI.DrawLine3D(debugLine.Start, debugLine.End, debugLine.Color);
-        }
-
-        for (const RenderDebugBox& debugBox : frame.Debug.Boxes)
-        {
-            if (debugBox.Solid)
-            {
-                renderAPI.DrawBox(debugBox.LocalToWorld, debugBox.Dimensions, debugBox.FillColor);
-            }
-
-            if (debugBox.Wireframe)
-            {
-                renderAPI.DrawBoxWires(debugBox.LocalToWorld, debugBox.Dimensions, debugBox.WireColor);
-            }
-        }
-
-        renderAPI.End3DMode();
-    }
 } // namespace Wayfinder

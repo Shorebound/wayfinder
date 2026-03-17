@@ -1,20 +1,21 @@
 #pragma once
 
-/*
+#include "RenderFrame.h"
+
 namespace Wayfinder
 {
-    class RenderPipeline
+    class IRenderAPI;
+
+    class WAYFINDER_API RenderPipeline
     {
     public:
-        void Initialize();
-        void Render(const Scene &scene, const Camera &camera);
-
-        void AddRenderPass(std::shared_ptr<RenderPass> pass);
-        void SetPostProcess(std::shared_ptr<PostProcess> effect);
+        void Execute(const RenderFrame& frame, const Camera& camera, IRenderAPI& renderAPI) const;
 
     private:
-        std::vector<std::shared_ptr<RenderPass>> m_renderPasses;
-        std::shared_ptr<PostProcess> m_postProcess;
-        // ... other rendering pipeline state
+        void ExecuteScenePass(const RenderFrame& frame, const Camera& camera, IRenderAPI& renderAPI) const;
+        void ExecuteDebugPass(const RenderFrame& frame, const Camera& camera, IRenderAPI& renderAPI) const;
+        void DrawMeshSubmission(const RenderMeshSubmission& mesh, IRenderAPI& renderAPI) const;
+        void DrawDebugBox(const RenderDebugBox& debugBox, IRenderAPI& renderAPI) const;
+        void ApplyMaterialBinding(const RenderMaterialBinding& binding, const Matrix4& transform, const Float3& dimensions, IRenderAPI& renderAPI) const;
     };
-}*/
+}

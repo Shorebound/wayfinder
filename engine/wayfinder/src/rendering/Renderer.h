@@ -10,6 +10,7 @@ namespace Wayfinder
 {
     class IRenderAPI;
     class IGraphicsContext;
+    class RenderPipeline;
 
     class WAYFINDER_API Renderer
     {
@@ -28,10 +29,9 @@ namespace Wayfinder
         void SetCameraTarget(float x, float y, float z);
 
     private:
-        void RenderMeshes(const RenderFrame& frame);
-        void RenderDebugPrimitives(const RenderFrame& frame);
         Camera m_camera;
         Color m_clearColor;
+        std::unique_ptr<RenderPipeline> m_renderPipeline;
 
         int m_screenWidth;
         int m_screenHeight;

@@ -3,8 +3,14 @@
 #include "../scene/Components.h"
 #include "../scene/Scene.h"
 
+#include <array>
+#include <cstddef>
+#include <cstdint>
+
 namespace
 {
+    constexpr uint64_t kBuiltInBoxMeshKey = 1;
+
     Wayfinder::Float3 ToFloat3(const Vector3& value)
     {
         return {value.x, value.y, value.z};
@@ -30,6 +36,25 @@ namespace
         result.m11 = matrix.m11;
         result.m15 = matrix.m15;
         return result;
+    }
+
+    uint64_t MakeStableKey(const Wayfinder::AssetId& assetId)
+    {
+        const std::array<std::uint8_t, 16>& bytes = assetId.Value.GetBytes();
+        uint64_t result = 0;
+        for (size_t index = 0; index < 8; ++index)
+        {
+            result = (result << 8) | static_cast<uint64_t>(bytes[index]);
+        }
+
+        return result;
+    }
+
+    uint64_t BuildSortKey(const std::optional<Wayfinder::AssetId>& materialAssetId, const Wayfinder::RenderGeometryType geometryType)
+    {
+        const uint64_t geometryBits = static_cast<uint64_t>(geometryType) & 0xFFull;
+        const uint64_t materialBits = materialAssetId ? (MakeStableKey(*materialAssetId) & 0xFFFFFFFFFFFFFF00ull) : 0ull;
+        return materialBits | geometryBits;
     }
 }
 
@@ -58,10 +83,16 @@ namespace Wayfinder
         scene.GetWorld().each([&frame](flecs::entity entityHandle, const TransformComponent& transform, const MeshComponent& mesh)
         {
             RenderMeshSubmission submission;
+            submission.Mesh.Origin = RenderResourceOrigin::BuiltIn;
+            submission.Mesh.StableKey = kBuiltInBoxMeshKey;
             submission.Geometry.Type = RenderGeometryType::Box;
             submission.Geometry.Dimensions = ToFloat3(mesh.Dimensions);
-            submission.Material.Tint = mesh.Albedo;
-            submission.Material.Wireframe = mesh.Wireframe;
+            submission.Material.Handle.Origin = RenderResourceOrigin::BuiltIn;
+            submission.Material.Handle.StableKey = mesh.Wireframe ? 2ull : 1ull;
+            submission.Material.Domain = RenderMaterialDomain::Surface;
+            submission.Material.BaseColor = mesh.Albedo;
+            submission.Material.WireframeColor = Color::DarkGray();
+            submission.Material.FillMode = mesh.Wireframe ? RenderFillMode::SolidAndWireframe : RenderFillMode::Solid;
 
             Matrix localToWorld = transform.GetLocalMatrix();
 
@@ -74,12 +105,19 @@ namespace Wayfinder
             if (entityHandle.has<MaterialComponent>())
             {
                 const auto& material = entityHandle.get<MaterialComponent>();
-                submission.Material.MaterialAssetId = material.MaterialAssetId;
-                submission.Material.Tint = material.BaseColor;
-                submission.Material.Wireframe = material.Wireframe;
+                if (material.MaterialAssetId)
+                {
+                    submission.Material.Handle.Origin = RenderResourceOrigin::Asset;
+                    submission.Material.Handle.AssetId = material.MaterialAssetId;
+                    submission.Material.Handle.StableKey = MakeStableKey(*material.MaterialAssetId);
+                }
+
+                submission.Material.BaseColor = material.BaseColor;
+                submission.Material.FillMode = material.Wireframe ? RenderFillMode::SolidAndWireframe : RenderFillMode::Solid;
             }
 
             submission.LocalToWorld = ToMatrix4(localToWorld);
+            submission.SortKey = BuildSortKey(submission.Material.Handle.AssetId, submission.Geometry.Type);
             frame.Meshes.push_back(submission);
         });
 
@@ -114,10 +152,12 @@ namespace Wayfinder
                 RenderDebugBox debugBox;
                 debugBox.LocalToWorld = ToMatrix4(debugTransform);
                 debugBox.Dimensions = {1.0f, 1.0f, 1.0f};
-                debugBox.FillColor = light.Tint;
-                debugBox.WireColor = Color::DarkGray();
-                debugBox.Solid = true;
-                debugBox.Wireframe = true;
+                debugBox.Material.Handle.Origin = RenderResourceOrigin::BuiltIn;
+                debugBox.Material.Handle.StableKey = 100ull;
+                debugBox.Material.Domain = RenderMaterialDomain::Debug;
+                debugBox.Material.BaseColor = light.Tint;
+                debugBox.Material.WireframeColor = Color::DarkGray();
+                debugBox.Material.FillMode = RenderFillMode::SolidAndWireframe;
                 frame.Debug.Boxes.push_back(debugBox);
 
                 if (light.Type == LightType::Directional)
