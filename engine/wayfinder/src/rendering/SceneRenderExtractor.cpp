@@ -1,5 +1,6 @@
 #include "SceneRenderExtractor.h"
 
+#include "../core/Log.h"
 #include "../scene/Components.h"
 #include "../scene/Scene.h"
 
@@ -39,7 +40,6 @@ namespace Wayfinder
         RenderFrame frame;
         frame.SceneName = scene.GetName();
         frame.AssetRoot = scene.GetAssetRoot();
-        frame.Debug.ShowWorldGrid = true;
 
         if (scene.GetWorld().has<ActiveCameraStateComponent>())
         {
@@ -52,28 +52,15 @@ namespace Wayfinder
                 view.CameraState.Up = activeCamera.Up;
                 view.CameraState.FOV = activeCamera.FieldOfView;
                 view.CameraState.ProjectionType = static_cast<int>(activeCamera.Projection);
-                frame.Views.push_back(view);
-
-                RenderPass mainScenePass;
-                mainScenePass.Kind = RenderPassKind::Scene;
-                mainScenePass.ViewIndex = 0;
-                mainScenePass.SceneLayer = RenderSceneLayer::Main;
-                frame.Passes.push_back(mainScenePass);
-
-                RenderPass overlayScenePass;
-                overlayScenePass.Kind = RenderPassKind::Scene;
-                overlayScenePass.ViewIndex = 0;
-                overlayScenePass.SceneLayer = RenderSceneLayer::Overlay;
-                frame.Passes.push_back(overlayScenePass);
-
-                RenderPass debugPass;
-                debugPass.Kind = RenderPassKind::Debug;
-                debugPass.ViewIndex = 0;
-                frame.Passes.push_back(debugPass);
+                const size_t viewIndex = frame.AddView(view);
+                frame.AddScenePass(RenderPassIds::MainScene, viewIndex, RenderLayers::Main);
+                frame.AddScenePass(RenderPassIds::OverlayScene, viewIndex, RenderLayers::Overlay);
+                RenderPass& debugPass = frame.AddDebugPass(RenderPassIds::Debug, viewIndex);
+                debugPass.DebugDraw->ShowWorldGrid = true;
             }
         }
 
-        scene.GetWorld().each([&frame](flecs::entity entityHandle, const TransformComponent& transform, const MeshComponent& mesh)
+        scene.GetWorld().each([&frame](flecs::entity entityHandle, const TransformComponent& transform, const MeshComponent& mesh, const RenderableComponent& renderable)
         {
             RenderMeshSubmission submission;
             submission.Mesh.Origin = RenderResourceOrigin::BuiltIn;
@@ -121,17 +108,21 @@ namespace Wayfinder
                 }
             }
 
-            if (entityHandle.has<RenderableComponent>())
-            {
-                const auto& renderable = entityHandle.get<RenderableComponent>();
-                submission.Visible = renderable.Visible;
-                submission.Layer = renderable.Layer;
-                submission.SortPriority = renderable.SortPriority;
-            }
+            submission.Visible = renderable.Visible;
+            submission.Layer = renderable.Layer;
+            submission.SortPriority = renderable.SortPriority;
 
             submission.LocalToWorld = localToWorld;
             submission.SortKey = BuildSortKey(submission.Material.Handle.AssetId, submission.Geometry.Type);
-            frame.Meshes.push_back(submission);
+
+            RenderPass* owningPass = frame.FindScenePassForSubmission(submission, 0);
+            if (!owningPass)
+            {
+                WAYFINDER_WARNING(LogRenderer, "SceneRenderExtractor skipped mesh submission because no scene pass matched layer '{0}' in frame '{1}'.", submission.Layer, frame.SceneName);
+                return;
+            }
+
+            owningPass->Meshes.push_back(std::move(submission));
         });
 
         scene.GetWorld().each([&frame](flecs::entity entityHandle, const TransformComponent& transform, const LightComponent& light)
@@ -174,7 +165,11 @@ namespace Wayfinder
                 debugBox.Material.HasWireframeColorOverride = true;
                 debugBox.Material.FillMode = RenderFillMode::SolidAndWireframe;
                 debugBox.Material.HasFillModeOverride = true;
-                frame.Debug.Boxes.push_back(debugBox);
+
+                if (RenderPass* pass = frame.FindPass(RenderPassIds::Debug))
+                {
+                    pass->DebugDraw->Boxes.push_back(debugBox);
+                }
 
                 if (light.Type == LightType::Directional)
                 {
@@ -183,7 +178,11 @@ namespace Wayfinder
                     debugLine.Start = position;
                     debugLine.End = lineEnd;
                     debugLine.Color = light.Tint;
-                    frame.Debug.Lines.push_back(debugLine);
+
+                    if (RenderPass* pass = frame.FindPass(RenderPassIds::Debug))
+                    {
+                        pass->DebugDraw->Lines.push_back(debugLine);
+                    }
                 }
             }
         });

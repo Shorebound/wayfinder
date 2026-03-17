@@ -19,14 +19,22 @@ namespace Wayfinder
 
     void RenderResourceCache::PrepareFrame(RenderFrame& frame)
     {
-        for (RenderMeshSubmission& mesh : frame.Meshes)
+        for (RenderPass& pass : frame.Passes)
         {
-            mesh.Material = PrepareMaterialBinding(mesh.Material);
-        }
+            for (RenderMeshSubmission& mesh : pass.Meshes)
+            {
+                mesh.Material = PrepareMaterialBinding(mesh.Material);
+            }
 
-        for (RenderDebugBox& debugBox : frame.Debug.Boxes)
-        {
-            debugBox.Material = PrepareMaterialBinding(debugBox.Material);
+            if (!pass.DebugDraw)
+            {
+                continue;
+            }
+
+            for (RenderDebugBox& debugBox : pass.DebugDraw->Boxes)
+            {
+                debugBox.Material = PrepareMaterialBinding(debugBox.Material);
+            }
         }
     }
 

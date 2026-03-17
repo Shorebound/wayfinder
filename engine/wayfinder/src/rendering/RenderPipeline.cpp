@@ -5,6 +5,7 @@
 #include "RenderResources.h"
 
 #include <algorithm>
+#include <unordered_set>
 #include <tuple>
 
 namespace Wayfinder
@@ -13,6 +14,13 @@ namespace Wayfinder
     {
         if (frame.Views.empty())
         {
+            WAYFINDER_WARNING(LogRenderer, "RenderPipeline skipped frame '{0}' because it has no extracted views.", frame.SceneName);
+            return;
+        }
+
+        if (frame.Passes.empty())
+        {
+            WAYFINDER_WARNING(LogRenderer, "RenderPipeline skipped frame '{0}' because it has no extracted render passes.", frame.SceneName);
             return;
         }
 
@@ -21,8 +29,21 @@ namespace Wayfinder
             WAYFINDER_WARNING(LogRenderer, "RenderPipeline currently supports a single active view with the Raylib backend. Rendering only the first view out of {0}.", frame.Views.size());
         }
 
+        std::unordered_set<std::string> passIds;
+
         for (const RenderPass& pass : frame.Passes)
         {
+            if (pass.Id.empty())
+            {
+                WAYFINDER_WARNING(LogRenderer, "RenderPipeline skipped an unnamed render pass in frame '{0}'.", frame.SceneName);
+                continue;
+            }
+
+            if (!passIds.emplace(pass.Id).second)
+            {
+                WAYFINDER_WARNING(LogRenderer, "RenderPipeline encountered duplicate pass id '{0}' in frame '{1}'.", pass.Id, frame.SceneName);
+            }
+
             ExecutePass(pass, frame, renderAPI, resources);
         }
     }
@@ -36,7 +57,7 @@ namespace Wayfinder
 
         if (pass.ViewIndex >= frame.Views.size())
         {
-            WAYFINDER_WARNING(LogRenderer, "RenderPipeline skipped pass because it referenced missing view index {0} for frame '{1}'.", pass.ViewIndex, frame.SceneName);
+            WAYFINDER_WARNING(LogRenderer, "RenderPipeline skipped pass '{0}' because it referenced missing view index {1} for frame '{2}'.", pass.Id, pass.ViewIndex, frame.SceneName);
             return;
         }
 
@@ -45,28 +66,29 @@ namespace Wayfinder
         switch (pass.Kind)
         {
         case RenderPassKind::Scene:
-            ExecuteScenePass(pass, frame, view, renderAPI, resources);
+            ExecuteScenePass(pass, view, renderAPI, resources);
             break;
         case RenderPassKind::Debug:
-            ExecuteDebugPass(frame, view, renderAPI);
+            ExecuteDebugPass(pass, view, renderAPI);
             break;
         }
     }
 
-    void RenderPipeline::ExecuteScenePass(const RenderPass& pass, const RenderFrame& frame, const RenderView& view, IRenderAPI& renderAPI, RenderResourceCache& resources) const
+    void RenderPipeline::ExecuteScenePass(const RenderPass& pass, const RenderView& view, IRenderAPI& renderAPI, RenderResourceCache& resources) const
     {
+        if (!pass.SceneLayer)
+        {
+            WAYFINDER_WARNING(LogRenderer, "RenderPipeline skipped scene pass '{0}' because it has no scene layer binding.", pass.Id);
+            return;
+        }
+
         renderAPI.Begin3DMode(view.CameraState);
 
         std::vector<const RenderMeshSubmission*> sortedMeshes;
-        sortedMeshes.reserve(frame.Meshes.size());
-        for (const RenderMeshSubmission& mesh : frame.Meshes)
+        sortedMeshes.reserve(pass.Meshes.size());
+        for (const RenderMeshSubmission& mesh : pass.Meshes)
         {
             if (!mesh.Visible)
-            {
-                continue;
-            }
-
-            if (pass.SceneLayer && mesh.Layer != *pass.SceneLayer)
             {
                 continue;
             }
@@ -76,7 +98,7 @@ namespace Wayfinder
 
         std::stable_sort(sortedMeshes.begin(), sortedMeshes.end(), [](const RenderMeshSubmission* lhs, const RenderMeshSubmission* rhs)
         {
-            return std::tie(lhs->Layer, lhs->SortPriority, lhs->SortKey) < std::tie(rhs->Layer, rhs->SortPriority, rhs->SortKey);
+            return std::tie(lhs->SortPriority, lhs->SortKey) < std::tie(rhs->SortPriority, rhs->SortKey);
         });
 
         for (const RenderMeshSubmission* mesh : sortedMeshes)
@@ -87,21 +109,28 @@ namespace Wayfinder
         renderAPI.End3DMode();
     }
 
-    void RenderPipeline::ExecuteDebugPass(const RenderFrame& frame, const RenderView& view, IRenderAPI& renderAPI) const
+    void RenderPipeline::ExecuteDebugPass(const RenderPass& pass, const RenderView& view, IRenderAPI& renderAPI) const
     {
-        renderAPI.Begin3DMode(view.CameraState);
-
-        if (frame.Debug.ShowWorldGrid)
+        if (!pass.DebugDraw)
         {
-            renderAPI.DrawGrid(frame.Debug.WorldGridSlices, frame.Debug.WorldGridSpacing);
+            WAYFINDER_WARNING(LogRenderer, "RenderPipeline skipped debug pass '{0}' because it has no debug payload.", pass.Id);
+            return;
         }
 
-        for (const RenderDebugLine& debugLine : frame.Debug.Lines)
+        const RenderDebugDrawList& debug = *pass.DebugDraw;
+        renderAPI.Begin3DMode(view.CameraState);
+
+        if (debug.ShowWorldGrid)
+        {
+            renderAPI.DrawGrid(debug.WorldGridSlices, debug.WorldGridSpacing);
+        }
+
+        for (const RenderDebugLine& debugLine : debug.Lines)
         {
             renderAPI.DrawLine3D(debugLine.Start, debugLine.End, debugLine.Color);
         }
 
-        for (const RenderDebugBox& debugBox : frame.Debug.Boxes)
+        for (const RenderDebugBox& debugBox : debug.Boxes)
         {
             DrawDebugBox(debugBox, renderAPI);
         }

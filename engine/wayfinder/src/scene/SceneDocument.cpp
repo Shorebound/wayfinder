@@ -19,7 +19,9 @@ namespace
     constexpr std::string_view kPrefabIdKey = "prefab_id";
     constexpr std::string_view kAssetIdKey = "asset_id";
     constexpr std::string_view kAssetTypeKey = "asset_type";
+    constexpr std::string_view kMeshComponentKey = "mesh";
     constexpr std::string_view kMaterialComponentKey = "material";
+    constexpr std::string_view kRenderableComponentKey = "renderable";
 
     std::filesystem::path FindAssetRoot(const std::filesystem::path& filePath)
     {
@@ -297,6 +299,20 @@ namespace
         *materialTable = std::move(mergedMaterialTable);
         return true;
     }
+
+    bool ValidateRenderableRequirements(
+        const Wayfinder::SceneDocumentEntity& definition,
+        const std::string& sourceLabel,
+        std::vector<std::string>& errors)
+    {
+        if (definition.ComponentData.contains(kMeshComponentKey) && !definition.ComponentData.contains(kRenderableComponentKey))
+        {
+            errors.push_back(sourceLabel + " has mesh data but no renderable component; renderability must now be explicit");
+            return false;
+        }
+
+        return true;
+    }
 }
 
 namespace Wayfinder
@@ -384,6 +400,12 @@ namespace Wayfinder
                 }
 
                 if (!ResolveMaterialComponentData(definition, activeAssetService, entityLabel, result.Errors))
+                {
+                    ++index;
+                    continue;
+                }
+
+                if (!ValidateRenderableRequirements(definition, entityLabel, result.Errors))
                 {
                     ++index;
                     continue;

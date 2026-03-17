@@ -144,17 +144,15 @@ namespace
         return "point";
     }
 
-    const char* ToString(Wayfinder::RenderSceneLayer layer)
+    std::string ReadRenderLayer(const toml::table& table, const char* key, const std::string& fallback)
     {
-        switch (layer)
+        const auto layer = table[key].value<std::string>();
+        if (!layer || layer->empty())
         {
-        case Wayfinder::RenderSceneLayer::Main:
-            return "main";
-        case Wayfinder::RenderSceneLayer::Overlay:
-            return "overlay";
+            return fallback;
         }
 
-        return "main";
+        return *layer;
     }
 
     Wayfinder::MeshPrimitive ReadPrimitive(const toml::table& table, const char* key, Wayfinder::MeshPrimitive fallback)
@@ -210,25 +208,27 @@ namespace
         return fallback;
     }
 
-    Wayfinder::RenderSceneLayer ReadRenderLayer(const toml::table& table, const char* key, Wayfinder::RenderSceneLayer fallback)
+    bool ValidateOptionalNonEmptyString(const toml::table& componentTable, const char* key, std::string& error)
     {
-        const auto layer = table[key].value<std::string>();
-        if (!layer)
+        if (!componentTable.contains(key))
         {
-            return fallback;
+            return true;
         }
 
-        if (*layer == "overlay")
+        const auto value = componentTable[key].value<std::string>();
+        if (!value)
         {
-            return Wayfinder::RenderSceneLayer::Overlay;
+            error = std::string("'") + key + "' must be a string";
+            return false;
         }
 
-        if (*layer == "main")
+        if (value->empty())
         {
-            return Wayfinder::RenderSceneLayer::Main;
+            error = std::string("'") + key + "' must not be empty";
+            return false;
         }
 
-        return fallback;
+        return true;
     }
 
     uint8_t ClampToByte(const int64_t value)
@@ -442,7 +442,7 @@ namespace
     bool ValidateRenderable(const toml::table& componentTable, std::string& error)
     {
         return ValidateOptionalBool(componentTable, "visible", error)
-            && ValidateOptionalEnumValue(componentTable, "layer", {"main", "overlay"}, error)
+            && ValidateOptionalNonEmptyString(componentTable, "layer", error)
             && ValidateOptionalNumber(componentTable, "sort_priority", error);
     }
 
@@ -615,7 +615,7 @@ namespace
         const Wayfinder::RenderableComponent& renderable = entity.GetComponent<Wayfinder::RenderableComponent>();
         toml::table componentTable;
         componentTable.insert_or_assign("visible", renderable.Visible);
-        componentTable.insert_or_assign("layer", std::string{ToString(renderable.Layer)});
+        componentTable.insert_or_assign("layer", renderable.Layer);
         componentTable.insert_or_assign("sort_priority", static_cast<int64_t>(renderable.SortPriority));
         componentTables.insert_or_assign("renderable", componentTable);
     }

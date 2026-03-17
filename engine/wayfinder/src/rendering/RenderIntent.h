@@ -1,12 +1,23 @@
 #pragma once
 
-#include <cstdint>
+#include <string>
+#include <string_view>
 
 namespace Wayfinder
 {
-    enum class RenderSceneLayer : uint8_t
+    using RenderLayerId = std::string;
+    using RenderPassId = std::string;
+
+    namespace RenderLayers
     {
-        Main = 0,
-        Overlay = 1,
-    };
+        inline constexpr std::string_view Main = "main";
+        inline constexpr std::string_view Overlay = "overlay";
+    }
+
+    namespace RenderPassIds
+    {
+        inline constexpr std::string_view MainScene = "main_scene";
+        inline constexpr std::string_view OverlayScene = "overlay_scene";
+        inline constexpr std::string_view Debug = "debug";
+    }
 } // namespace Wayfinder

@@ -4,6 +4,7 @@
 #include <cstddef>
 #include <optional>
 #include <string>
+#include <string_view>
 #include <vector>
 
 #include "../core/Identifiers.h"
@@ -81,7 +82,7 @@ namespace Wayfinder
         RenderGeometry Geometry{};
         RenderMaterialBinding Material{};
         bool Visible = true;
-        RenderSceneLayer Layer = RenderSceneLayer::Main;
+        RenderLayerId Layer = std::string(RenderLayers::Main);
         uint8_t SortPriority = 128;
         uint64_t SortKey = 0;
     };
@@ -135,10 +136,23 @@ namespace Wayfinder
 
     struct RenderPass
     {
+        RenderPassId Id = std::string(RenderPassIds::MainScene);
         RenderPassKind Kind = RenderPassKind::Scene;
         size_t ViewIndex = 0;
-        std::optional<RenderSceneLayer> SceneLayer;
+        std::optional<RenderLayerId> SceneLayer;
+        std::vector<RenderMeshSubmission> Meshes;
+        std::optional<RenderDebugDrawList> DebugDraw;
         bool Enabled = true;
+
+        bool AcceptsSceneSubmission(const RenderMeshSubmission& submission) const
+        {
+            if (Kind != RenderPassKind::Scene)
+            {
+                return false;
+            }
+
+            return !SceneLayer || submission.Layer == *SceneLayer;
+        }
     };
 
     struct RenderFrame
@@ -147,8 +161,73 @@ namespace Wayfinder
         std::filesystem::path AssetRoot;
         std::vector<RenderView> Views;
         std::vector<RenderPass> Passes;
-        std::vector<RenderMeshSubmission> Meshes;
         std::vector<RenderLightSubmission> Lights;
-        RenderDebugDrawList Debug;
+
+        size_t AddView(const RenderView& view)
+        {
+            Views.push_back(view);
+            return Views.size() - 1;
+        }
+
+        RenderPass& AddScenePass(std::string_view id, size_t viewIndex, std::string_view sceneLayer)
+        {
+            RenderPass pass;
+            pass.Id = std::string(id);
+            pass.Kind = RenderPassKind::Scene;
+            pass.ViewIndex = viewIndex;
+            pass.SceneLayer = std::string(sceneLayer);
+            Passes.push_back(std::move(pass));
+            return Passes.back();
+        }
+
+        RenderPass& AddDebugPass(std::string_view id, size_t viewIndex)
+        {
+            RenderPass pass;
+            pass.Id = std::string(id);
+            pass.Kind = RenderPassKind::Debug;
+            pass.ViewIndex = viewIndex;
+            pass.DebugDraw = RenderDebugDrawList{};
+            Passes.push_back(std::move(pass));
+            return Passes.back();
+        }
+
+        RenderPass* FindPass(std::string_view id)
+        {
+            for (RenderPass& pass : Passes)
+            {
+                if (pass.Id == id)
+                {
+                    return &pass;
+                }
+            }
+
+            return nullptr;
+        }
+
+        const RenderPass* FindPass(std::string_view id) const
+        {
+            for (const RenderPass& pass : Passes)
+            {
+                if (pass.Id == id)
+                {
+                    return &pass;
+                }
+            }
+
+            return nullptr;
+        }
+
+        RenderPass* FindScenePassForSubmission(const RenderMeshSubmission& submission, size_t viewIndex)
+        {
+            for (RenderPass& pass : Passes)
+            {
+                if (pass.ViewIndex == viewIndex && pass.AcceptsSceneSubmission(submission))
+                {
+                    return &pass;
+                }
+            }
+
+            return nullptr;
+        }
     };
 } // namespace Wayfinder
