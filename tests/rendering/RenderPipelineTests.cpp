@@ -1,5 +1,10 @@
 #include "rendering/RenderPipeline.h"
 #include "rendering/RenderResources.h"
+#include "rendering/GraphicsContext.h"
+#include "rendering/SceneRenderExtractor.h"
+#include "scene/Components.h"
+#include "scene/Scene.h"
+#include "scene/entity/Entity.h"
 
 #include <cstdlib>
 #include <iostream>
@@ -159,13 +164,99 @@ namespace
             && Expect(draws.size() == 1, "debug pass should skip unsupported lines but keep supported boxes")
             && Expect(draws[0].Kind == "box", "remaining debug draw should be the box");
     }
+
+    bool TestNullBackendFactories()
+    {
+        std::unique_ptr<Wayfinder::IRenderAPI> renderAPI = Wayfinder::IRenderAPI::Create(Wayfinder::RenderBackend::Null);
+        std::unique_ptr<Wayfinder::IGraphicsContext> graphicsContext = Wayfinder::IGraphicsContext::Create(Wayfinder::RenderBackend::Null);
+
+        return Expect(static_cast<bool>(renderAPI), "null render backend factory should create a render API")
+            && Expect(static_cast<bool>(graphicsContext), "null render backend factory should create a graphics context")
+            && Expect(renderAPI->GetCapabilities().BackendName == "Null", "null render backend should report its backend name")
+            && Expect(graphicsContext->GetCapabilities().BackendName == "Null", "null graphics context should report its backend name");
+    }
+
+    bool TestExtractorBuildsExplicitPassesAndDebugPayload()
+    {
+        Wayfinder::Scene scene("Extractor Test Scene");
+        scene.Initialize();
+
+        Wayfinder::Entity camera = scene.CreateEntity("Camera");
+        camera.AddComponent<Wayfinder::TransformComponent>(Wayfinder::TransformComponent{{4.0f, 3.0f, 4.0f}});
+        Wayfinder::CameraComponent cameraComponent;
+        cameraComponent.Primary = true;
+        cameraComponent.Target = {0.0f, 0.5f, 0.0f};
+        camera.AddComponent<Wayfinder::CameraComponent>(cameraComponent);
+
+        Wayfinder::Entity cube = scene.CreateEntity("Cube");
+        cube.AddComponent<Wayfinder::TransformComponent>(Wayfinder::TransformComponent{{0.0f, 0.5f, 0.0f}});
+        cube.AddComponent<Wayfinder::MeshComponent>(Wayfinder::MeshComponent{});
+        Wayfinder::RenderableComponent renderable;
+        renderable.Layer = std::string(Wayfinder::RenderLayers::Main);
+        cube.AddComponent<Wayfinder::RenderableComponent>(renderable);
+
+        Wayfinder::Entity light = scene.CreateEntity("Light");
+        light.AddComponent<Wayfinder::TransformComponent>(Wayfinder::TransformComponent{{1.0f, 2.0f, 0.0f}});
+        Wayfinder::LightComponent lightComponent;
+        lightComponent.Type = Wayfinder::LightType::Directional;
+        lightComponent.DebugDraw = true;
+        light.AddComponent<Wayfinder::LightComponent>(lightComponent);
+
+        scene.Update(0.016f);
+
+        Wayfinder::SceneRenderExtractor extractor;
+        const Wayfinder::RenderFrame frame = extractor.Extract(scene);
+        const Wayfinder::RenderPass* mainPass = frame.FindPass(Wayfinder::RenderPassIds::MainScene);
+        const Wayfinder::RenderPass* debugPass = frame.FindPass(Wayfinder::RenderPassIds::Debug);
+
+        scene.Shutdown();
+
+        return Expect(frame.Views.size() == 1, "extractor should build one active view")
+            && Expect(frame.Passes.size() == 3, "extractor should build the default pass schedule")
+            && Expect(mainPass != nullptr, "extractor should create a main scene pass")
+            && Expect(debugPass != nullptr, "extractor should create a debug pass")
+            && Expect(mainPass->Meshes.size() == 1, "extractor should route renderable meshes into the main pass")
+            && Expect(debugPass->DebugDraw.has_value(), "debug pass should carry a debug payload")
+            && Expect(debugPass->DebugDraw->Boxes.size() == 1, "directional debug light should emit one debug box")
+            && Expect(debugPass->DebugDraw->Lines.size() == 1, "directional debug light should emit one debug line");
+    }
+
+    bool TestExtractorSkipsMeshWithoutRenderable()
+    {
+        Wayfinder::Scene scene("Extractor Skip Scene");
+        scene.Initialize();
+
+        Wayfinder::Entity camera = scene.CreateEntity("Camera");
+        camera.AddComponent<Wayfinder::TransformComponent>(Wayfinder::TransformComponent{{2.0f, 2.0f, 2.0f}});
+        Wayfinder::CameraComponent cameraComponent;
+        cameraComponent.Primary = true;
+        camera.AddComponent<Wayfinder::CameraComponent>(cameraComponent);
+
+        Wayfinder::Entity invisibleCube = scene.CreateEntity("InvisibleCube");
+        invisibleCube.AddComponent<Wayfinder::TransformComponent>(Wayfinder::TransformComponent{{0.0f, 0.5f, 0.0f}});
+        invisibleCube.AddComponent<Wayfinder::MeshComponent>(Wayfinder::MeshComponent{});
+
+        scene.Update(0.016f);
+
+        Wayfinder::SceneRenderExtractor extractor;
+        const Wayfinder::RenderFrame frame = extractor.Extract(scene);
+        const Wayfinder::RenderPass* mainPass = frame.FindPass(Wayfinder::RenderPassIds::MainScene);
+
+        scene.Shutdown();
+
+        return Expect(mainPass != nullptr, "main scene pass should still exist when no meshes are routed")
+            && Expect(mainPass->Meshes.empty(), "mesh entities without RenderableComponent should not be extracted");
+    }
 }
 
 int main()
 {
     const bool ok = TestScenePassUsesPassOwnedSubmissions()
         && TestBackendViewLimitSkipsUnsupportedPasses()
-        && TestDebugLineCapabilityIsEnforced();
+        && TestDebugLineCapabilityIsEnforced()
+        && TestNullBackendFactories()
+        && TestExtractorBuildsExplicitPassesAndDebugPayload()
+        && TestExtractorSkipsMeshWithoutRenderable();
 
     if (!ok)
     {

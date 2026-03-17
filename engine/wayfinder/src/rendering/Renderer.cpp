@@ -1,11 +1,11 @@
 #include "Renderer.h"
+
 #include "RenderFrame.h"
 #include "RenderPipeline.h"
 #include "RenderResources.h"
 
-#include "../core/ServiceLocator.h"
-#include "../rendering/RenderAPI.h"
 #include "../rendering/GraphicsContext.h"
+#include "../rendering/RenderAPI.h"
 
 namespace Wayfinder
 {
@@ -30,16 +30,17 @@ namespace Wayfinder
         m_screenWidth = screenWidth;
         m_screenHeight = screenHeight;
 
-        const auto& renderCapabilities = ServiceLocator::GetRenderAPI().GetCapabilities();
-        const auto& contextCapabilities = ServiceLocator::GetGraphicsContext().GetCapabilities();
-
-        if (renderCapabilities.BackendName != contextCapabilities.BackendName)
+        if (!m_graphicsContext || !m_renderAPI)
         {
             return false;
         }
 
-        // Additional renderer initialization can go here
-        // For example, loading shaders, creating render targets, etc.
+        const auto& renderCapabilities = m_renderAPI->GetCapabilities();
+        const auto& contextCapabilities = m_graphicsContext->GetCapabilities();
+        if (renderCapabilities.BackendName != contextCapabilities.BackendName)
+        {
+            return false;
+        }
 
         m_isInitialized = true;
         return true;
@@ -56,6 +57,12 @@ namespace Wayfinder
         m_isInitialized = false;
     }
 
+    void Renderer::SetRenderInterfaces(IGraphicsContext& graphicsContext, IRenderAPI& renderAPI)
+    {
+        m_graphicsContext = &graphicsContext;
+        m_renderAPI = &renderAPI;
+    }
+
     void Renderer::SetAssetService(const std::shared_ptr<AssetService>& assetService)
     {
         m_assetService = assetService;
@@ -68,11 +75,12 @@ namespace Wayfinder
     void Renderer::Render(const RenderFrame& frame)
     {
         if (!m_isInitialized)
+        {
             return;
+        }
 
         RenderFrame preparedFrame = frame;
-        const auto& capabilities = ServiceLocator::GetRenderAPI().GetCapabilities();
-
+        const auto& capabilities = m_renderAPI->GetCapabilities();
         if (capabilities.MaxViewCount == 0)
         {
             return;
@@ -92,25 +100,18 @@ namespace Wayfinder
 
         if (m_renderPipeline && m_renderResources)
         {
-            m_renderPipeline->Execute(preparedFrame, ServiceLocator::GetRenderAPI(), *m_renderResources);
+            m_renderPipeline->Execute(preparedFrame, *m_renderAPI, *m_renderResources);
         }
 
-        // Get render API from service locator
-        auto& renderAPI = ServiceLocator::GetRenderAPI();
-
-        // Draw scene info
-        renderAPI.DrawText("Scene: " + preparedFrame.SceneName, 10, 30, 20, Color::DarkGray());
+        m_renderAPI->DrawText("Scene: " + preparedFrame.SceneName, 10, 30, 20, Color::DarkGray());
 
         EndFrame();
     }
 
     void Renderer::BeginFrame()
     {
-        auto& graphicsContext = ServiceLocator::GetGraphicsContext();
-        //auto& renderAPI = ServiceLocator::GetRenderAPI();
-
-        graphicsContext.BeginFrame();
-        graphicsContext.Clear(
+        m_graphicsContext->BeginFrame();
+        m_graphicsContext->Clear(
             static_cast<float>(m_clearColor.r) / 255.0f,
             static_cast<float>(m_clearColor.g) / 255.0f,
             static_cast<float>(m_clearColor.b) / 255.0f,
@@ -119,11 +120,7 @@ namespace Wayfinder
 
     void Renderer::EndFrame()
     {
-        auto& renderAPI = ServiceLocator::GetRenderAPI();
-        auto& graphicsContext = ServiceLocator::GetGraphicsContext();
-
-        renderAPI.DrawFPS(10, 10);
-        graphicsContext.EndFrame();
+        m_renderAPI->DrawFPS(10, 10);
+        m_graphicsContext->EndFrame();
     }
-
 } // namespace Wayfinder

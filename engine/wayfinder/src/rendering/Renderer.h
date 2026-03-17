@@ -6,13 +6,9 @@
 namespace Wayfinder
 {
     class AssetService;
-    struct RenderFrame;
-}
-
-namespace Wayfinder
-{
-    class IRenderAPI;
     class IGraphicsContext;
+    class IRenderAPI;
+    struct RenderFrame;
     class RenderPipeline;
     class RenderResourceCache;
 
@@ -28,11 +24,14 @@ namespace Wayfinder
         virtual void BeginFrame();
         virtual void Render(const RenderFrame& frame);
         virtual void EndFrame();
+        void SetRenderInterfaces(IGraphicsContext& graphicsContext, IRenderAPI& renderAPI);
         void SetAssetService(const std::shared_ptr<AssetService>& assetService);
 
     private:
         Color m_clearColor;
         std::shared_ptr<AssetService> m_assetService;
+        IGraphicsContext* m_graphicsContext = nullptr;
+        IRenderAPI* m_renderAPI = nullptr;
         std::unique_ptr<RenderPipeline> m_renderPipeline;
         std::unique_ptr<RenderResourceCache> m_renderResources;
 

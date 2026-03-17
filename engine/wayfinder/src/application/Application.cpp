@@ -59,6 +59,7 @@ namespace Wayfinder
             return false;
         }
 
+        m_renderer->SetRenderInterfaces(ServiceLocator::GetGraphicsContext(), ServiceLocator::GetRenderAPI());
         m_renderer->SetAssetService(m_game->GetAssetService());
 
         if (!m_renderer->Initialize(m_config.ScreenWidth, m_config.ScreenHeight))

@@ -1,4 +1,5 @@
 #include "RaylibRenderAPI.h"
+#include "../null/NullRenderAPI.h"
 #include "raylib.h"
 #include "raymath.h"
 #include "rlgl.h"
@@ -11,6 +12,8 @@ namespace Wayfinder
         {
         case RenderBackend::Raylib:
             return std::make_unique<RaylibRenderAPI>();
+        case RenderBackend::Null:
+            return std::make_unique<NullRenderAPI>();
         }
 
         return nullptr;

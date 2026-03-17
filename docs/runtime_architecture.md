@@ -101,6 +101,8 @@ The service layer currently exposes platform-facing systems such as input, time,
 
 This is acceptable as a short-term convenience boundary. It should not become the default dependency mechanism for gameplay rules, editor state, or authoring workflows.
 
+Renderer execution now consumes explicit `IGraphicsContext` and `IRenderAPI` dependencies that are wired during application bootstrap instead of reaching back into `ServiceLocator` during every frame.
+
 Asset lookup is no longer duplicated inside the renderer. Scene loading and renderer preparation now consume a shared runtime asset service owned above the scene and renderer boundaries.
 
 ## Current Boot Flow
@@ -158,6 +160,8 @@ Current backend limits are explicit:
 - no render-target support
 - primitive box geometry only
 - debug pass support is limited to the currently mapped grid, line, and box helpers
+
+The checked-in project also includes a headless `Null` rendering backend used to exercise the capability surface and render tests without depending on a real drawing context.
 
 If future work needs more than that, the engine should extend the backend capability surface first instead of quietly teaching the renderer to assume those features exist.
 

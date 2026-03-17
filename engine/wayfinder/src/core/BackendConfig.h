@@ -12,6 +12,7 @@ namespace Wayfinder
     enum class RenderBackend
     {
         Raylib,
+        Null,
     };
 
     struct WAYFINDER_API BackendConfig

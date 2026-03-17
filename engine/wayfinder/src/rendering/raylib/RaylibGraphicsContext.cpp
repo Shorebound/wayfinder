@@ -1,4 +1,5 @@
 #include "RaylibGraphicsContext.h"
+#include "../null/NullGraphicsContext.h"
 #include "raylib.h"
 
 namespace Wayfinder
@@ -9,6 +10,8 @@ namespace Wayfinder
         {
         case RenderBackend::Raylib:
             return std::make_unique<RaylibGraphicsContext>();
+        case RenderBackend::Null:
+            return std::make_unique<NullGraphicsContext>();
         }
 
         return nullptr;

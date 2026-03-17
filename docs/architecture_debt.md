@@ -33,6 +33,7 @@ Current status:
 
 - platform and rendering services are still accessed through `ServiceLocator`
 - this is acceptable for low-level systems today, but it is still a global dependency surface
+- renderer execution no longer pulls graphics/render interfaces from `ServiceLocator` during frame submission; those low-level dependencies are now injected during bootstrap
 
 Why it matters:
 
