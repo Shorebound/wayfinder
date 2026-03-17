@@ -1,8 +1,38 @@
 #include "Game.h"
 #include "../platform/Input.h"
 #include "../scene/Scene.h"
+#include "../scene/entity/Entity.h"
+#include "../scene/Components.h"
 #include "Log.h"
 #include "ServiceLocator.h"
+
+#include <filesystem>
+
+namespace
+{
+    std::filesystem::path ResolveBootScenePath()
+    {
+        const std::filesystem::path executableDirectory = GetApplicationDirectory();
+        const std::filesystem::path workingDirectory = std::filesystem::current_path();
+
+        const std::array<std::filesystem::path, 4> candidates = {
+            executableDirectory / "assets/scenes/default_scene.toml",
+            workingDirectory / "assets/scenes/default_scene.toml",
+            workingDirectory / "sandbox/journey/assets/scenes/default_scene.toml",
+            executableDirectory / "../../../sandbox/journey/assets/scenes/default_scene.toml"
+        };
+
+        for (const std::filesystem::path& candidate : candidates)
+        {
+            if (std::filesystem::exists(candidate))
+            {
+                return std::filesystem::weakly_canonical(candidate);
+            }
+        }
+
+        return {};
+    }
+}
 
 namespace Wayfinder
 {
@@ -24,6 +54,21 @@ namespace Wayfinder
 
         m_currentScene = std::make_unique<Scene>("Default Scene");
         m_currentScene->Initialize();
+
+        const std::filesystem::path bootScenePath = ResolveBootScenePath();
+        if (bootScenePath.empty())
+        {
+            WAYFINDER_ERROR(LogGame, "Could not resolve a bootstrap scene file.");
+            return false;
+        }
+
+        if (!m_currentScene->LoadFromFile(bootScenePath.string()))
+        {
+            WAYFINDER_ERROR(LogGame, "Failed to load bootstrap scene: {0}", bootScenePath.string());
+            return false;
+        }
+
+        WAYFINDER_INFO(LogGame, "Loaded bootstrap scene from: {0}", bootScenePath.string());
 
         m_running = true;
         m_initialized = true;

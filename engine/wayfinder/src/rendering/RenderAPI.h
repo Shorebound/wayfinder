@@ -1,5 +1,11 @@
 #pragma once
 
+#include <cstdint>
+#include <memory>
+#include <string>
+
+#include "wayfinder_exports.h"
+
 namespace Wayfinder
 {
     // Forward declarations

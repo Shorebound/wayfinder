@@ -1,116 +1,80 @@
 #pragma once
-#include "Component.h"
 
+#include <cstdint>
+#include <string>
+#include <utility>
+
+#include <flecs.h>
+
+#include "../../core/Identifiers.h"
+#include "wayfinder_exports.h"
 
 namespace Wayfinder
 {
+    class Scene;
 
-    class Transform;
-    
-    class WAYFINDER_API Entity : public std::enable_shared_from_this<Entity>
+    class WAYFINDER_API Entity
     {
-    public:
-        Entity(const std::string& name = "Entity");
-        virtual ~Entity();
+    private:
 
-        virtual void Initialize();
-        virtual void Update(float deltaTime);
-        virtual void Render();
-        virtual void Shutdown();
+        flecs::entity m_entityHandle;
+        const Scene* m_scene = nullptr;
+
+    public:
+        Entity() = default;
+        Entity(flecs::entity handle, const Scene* scene);
+        Entity(const Entity& other) = default;
 
         template <typename T, typename... Args>
-        std::unique_ptr<T> AddComponent(Args&&... args);
+        T& AddComponent(Args&&... args)
+        {
+            m_entityHandle.set<T>(T{std::forward<Args>(args)...});
+            return m_entityHandle.get_mut<T>();
+        }
 
         template <typename T>
-        std::unique_ptr<T> GetComponent() const;
+        T& GetComponent()
+        {
+            return m_entityHandle.get_mut<T>();
+        }
 
         template <typename T>
-        bool HasComponent() const;
+        const T& GetComponent() const
+        {
+            return m_entityHandle.get<T>();
+        }
 
         template <typename T>
-        void RemoveComponent();
+        bool HasComponent() const
+        {
+            return m_entityHandle.has<T>();
+        }
 
-        const std::string& GetName() const { return m_name; }
-        uint64_t GetID() const { return m_id; }
-        bool IsActive() const { return m_active; }
-        const Transform* GetTransform() const;
+        template <typename T>
+        void RemoveComponent()
+        {
+            m_entityHandle.remove<T>();
+        }
 
-        void SetName(const std::string& name) { m_name = name; }
-        void SetActive(bool active) { m_active = active; }
+        operator bool() const { return m_entityHandle.is_valid(); }
+        operator flecs::entity() const { return m_entityHandle; }
+        operator uint64_t() const { return m_entityHandle.id(); }
 
-    private:
-        std::string m_name;
-        uint64_t m_id;
-        bool m_active;
-        bool m_initialized;
+        flecs::entity GetHandle() const { return m_entityHandle; }
 
-        std::unordered_map<std::type_index, std::shared_ptr<Component>> m_components;
+        bool operator==(const Entity& other) const { return m_entityHandle == other.m_entityHandle && m_scene == other.m_scene; }
+        bool operator!=(const Entity& other) const { return !(*this == other); }
 
-        std::unique_ptr<Transform> m_transform;
+        bool IsValid() const { return m_entityHandle.is_valid() && m_scene != nullptr; }
 
-        static uint64_t s_nextEntityID;
+        std::string GetName() const;
+        void SetName(const std::string& name);
+        bool HasSceneObjectId() const;
+        SceneObjectId GetSceneObjectId() const;
+        void SetSceneObjectId(const SceneObjectId& id);
+        bool HasPrefabAssetId() const;
+        AssetId GetPrefabAssetId() const;
+        void SetPrefabAssetId(const AssetId& id);
+
     };
-
-    // Template implementations
-    template <typename T, typename... Args>
-    std::unique_ptr<T> Entity::AddComponent(Args&&... args)
-    {
-        static_assert(std::is_base_of_v<Component, T>, "T must derive from Component");
-
-        const auto typeIndex = std::type_index(typeid(T));
-        if (m_components.contains(typeIndex))
-        {
-            return std::dynamic_pointer_cast<T>(m_components[typeIndex]);
-        }
-
-        std::unique_ptr<T> component = std::make_unique<T>(std::forward<Args>(args)...);
-        m_components[typeIndex] = component;
-
-        component->SetOwner(shared_from_this());
-
-        if (m_initialized)
-        {
-            component->Initialize();
-        }
-
-        return component;
-    }
-
-    template <typename T>
-    std::unique_ptr<T> Entity::GetComponent() const
-    {
-        static_assert(std::is_base_of<Component, T>::value, "T must derive from Component");
-
-        const auto typeIndex = std::type_index(typeid(T));
-        if (const auto it = m_components.find(typeIndex); it != m_components.end())
-        {
-            return std::dynamic_pointer_cast<T>(it->second);
-        }
-
-        return nullptr;
-    }
-
-    template <typename T>
-    bool Entity::HasComponent() const
-    {
-        static_assert(std::is_base_of<Component, T>::value, "T must derive from Component");
-
-        const auto typeIndex = std::type_index(typeid(T));
-        return m_components.contains(typeIndex);
-    }
-
-    template <typename T>
-    void Entity::RemoveComponent()
-    {
-        static_assert(std::is_base_of<Component, T>::value, "T must derive from Component");
-
-        const auto typeIndex = std::type_index(typeid(T));
-        if (const auto it = m_components.find(typeIndex); it != m_components.end())
-        {
-            it->second->Shutdown();
-            m_components.erase(it);
-        }
-    }
-
-} // namespace Wayfinder
-
+}

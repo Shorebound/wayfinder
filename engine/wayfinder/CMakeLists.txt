@@ -106,6 +106,8 @@ target_link_libraries(${ENGINE_NAME}
     PUBLIC
       wayfinder_common
       raylib
+      flecs::flecs_static
+  tomlplusplus::tomlplusplus
 )
 
 if(WAYFINDER_ENABLE_LOGGING)

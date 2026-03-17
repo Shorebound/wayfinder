@@ -1,10 +1,15 @@
 #pragma once
 
+#include <string>
+
+#include <flecs.h>
+
+#include "../core/Identifiers.h"
+#include "wayfinder_exports.h"
 
 
 namespace Wayfinder
 {
-
     class Entity;
 
     class WAYFINDER_API Scene
@@ -15,24 +20,27 @@ namespace Wayfinder
 
         void Initialize();
         void Update(float deltaTime);
-        void Render();
         void Shutdown();
 
-        std::shared_ptr<Entity> CreateEntity(const std::string& name = "Entity");
-        void AddEntity(const std::shared_ptr<Entity>& entity);
-        void RemoveEntity(const std::shared_ptr<Entity>& entity);
-        void RemoveEntityByID(uint64_t entityID);
-
-        std::shared_ptr<Entity> GetEntityByID(uint64_t entityID) const;
-        std::shared_ptr<Entity> GetEntityByName(const std::string& name) const;
-        std::vector<std::shared_ptr<Entity>> GetAllEntities() const;
+        Entity CreateEntity(const std::string& name = "Entity");
+        Entity GetEntityByName(const std::string& name);
+        Entity GetEntityById(const SceneObjectId& id);
+        bool LoadFromFile(const std::string& filePath);
+        bool SaveToFile(const std::string& filePath) const;
 
         const std::string& GetName() const { return m_name; }
-        size_t GetEntityCount() const { return m_entities.size(); }
+        
+        // Expose the Flecs world for querying
+        flecs::world& GetWorld() { return m_world; }
+        const flecs::world& GetWorld() const { return m_world; }
 
     private:
+        void ClearEntities();
+        void RegisterCoreComponents();
+        void RegisterCoreModules();
+
         std::string m_name;
-        std::unordered_map<uint64_t, std::shared_ptr<Entity>> m_entities;
+        flecs::world m_world; // The main ECS database
         bool m_initialized;
     };
 } // namespace Wayfinder

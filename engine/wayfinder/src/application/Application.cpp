@@ -9,8 +9,6 @@
 #include "../rendering/RenderAPI.h"
 #include "../scene/Scene.h"
 
-#include "platform/raylib/RaylibWindow.h"
-
 namespace Wayfinder
 {
     Application::Application(const Config& config) : m_running(false)
@@ -43,7 +41,7 @@ namespace Wayfinder
             m_config.WindowTitle,
             m_config.VSync};
         
-        m_window = RaylibWindow::Create(windowConfig);
+        m_window = Window::Create(windowConfig);
         m_game = std::make_unique<Game>();
         m_renderer = std::make_unique<Renderer>();
 

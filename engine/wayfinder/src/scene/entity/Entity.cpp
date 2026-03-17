@@ -1,97 +1,82 @@
+#include "WayfinderPCH.h"
 #include "Entity.h"
-#include "Component.h"
-#include "Transform.h"
+#include "../Components.h"
+#include "../Scene.h"
 
 namespace Wayfinder
 {
-
-    uint64_t Entity::s_nextEntityID = 1;
-
-    Entity::Entity(const std::string& name)
-        : m_name(name), m_id(s_nextEntityID++), m_active(true), m_initialized(false)
+    Entity::Entity(flecs::entity handle, const Scene* scene)
+        : m_entityHandle(handle), m_scene(scene)
     {
-        m_transform = std::make_unique<Transform>();
     }
 
-    Entity::~Entity()
+    std::string Entity::GetName() const
     {
-        if (m_initialized)
+        if (m_entityHandle.has<NameComponent>())
         {
-            Shutdown();
+            return m_entityHandle.get<NameComponent>().Value;
+        }
+
+        if (const char* name = m_entityHandle.name())
+        {
+            return std::string{name};
+        }
+
+        return "Unnamed Entity";
+    }
+
+    void Entity::SetName(const std::string& name)
+    {
+        m_entityHandle.set_name(name.c_str());
+
+        if (m_entityHandle.has<NameComponent>())
+        {
+            m_entityHandle.get_mut<NameComponent>().Value = name;
+        }
+        else
+        {
+            m_entityHandle.add<NameComponent>();
+            m_entityHandle.get_mut<NameComponent>().Value = name;
         }
     }
 
-    void Entity::Initialize()
+    bool Entity::HasSceneObjectId() const
     {
-        if (m_initialized)
-            return;
-
-        TraceLog(LOG_INFO, "Initializing entity: %s (ID: %llu)", m_name.c_str(), m_id);
-
-        m_transform->SetOwner(shared_from_this());
-        m_transform->Initialize();
-
-        for (auto& pair : m_components)
-        {
-            pair.second->Initialize();
-        }
-
-        m_initialized = true;
+        return m_entityHandle.has<SceneObjectIdComponent>();
     }
 
-    void Entity::Update(float deltaTime)
+    SceneObjectId Entity::GetSceneObjectId() const
     {
-        if (!m_active)
-            return;
-
-        m_transform->Update(deltaTime);
-
-        for (auto& pair : m_components)
+        if (m_entityHandle.has<SceneObjectIdComponent>())
         {
-            if (pair.second->IsActive())
-            {
-                pair.second->Update(deltaTime);
-            }
-        }
-    }
-
-    void Entity::Render()
-    {
-        if (!m_active)
-            return;
-
-        for (auto& pair : m_components)
-        {
-            if (pair.second->IsActive())
-            {
-                pair.second->Render();
-            }
-        }
-    }
-
-    void Entity::Shutdown()
-    {
-        TraceLog(LOG_INFO, "Shutting down entity: %s (ID: %llu)", m_name.c_str(), m_id);
-
-        for (auto& pair : m_components)
-        {
-            pair.second->Shutdown();
+            return m_entityHandle.get<SceneObjectIdComponent>().Value;
         }
 
-        m_components.clear();
+        return {};
+    }
 
-        if (m_transform)
+    void Entity::SetSceneObjectId(const SceneObjectId& id)
+    {
+        m_entityHandle.set<SceneObjectIdComponent>({id});
+    }
+
+    bool Entity::HasPrefabAssetId() const
+    {
+        return m_entityHandle.has<PrefabInstanceComponent>() && !m_entityHandle.get<PrefabInstanceComponent>().SourceAssetId.IsNil();
+    }
+
+    AssetId Entity::GetPrefabAssetId() const
+    {
+        if (m_entityHandle.has<PrefabInstanceComponent>())
         {
-            m_transform->Shutdown();
-            m_transform = nullptr;
+            return m_entityHandle.get<PrefabInstanceComponent>().SourceAssetId;
         }
 
-        m_initialized = false;
+        return {};
     }
 
-    const Transform* Entity::GetTransform() const
+    void Entity::SetPrefabAssetId(const AssetId& id)
     {
-        return m_transform.get();
+        m_entityHandle.set<PrefabInstanceComponent>({id});
     }
-
-} // namespace Wayfinder
+}

@@ -156,6 +156,33 @@ endif()
 if(TARGET spdlog) 
     set_target_properties(spdlog PROPERTIES FOLDER ${DEPS_FOLDER_NAME})
 endif()
+if(TARGET box2d) 
+    set_target_properties(box2d PROPERTIES FOLDER ${DEPS_FOLDER_NAME})
+endif()
+if(TARGET tomlplusplus) 
+    set_target_properties(tomlplusplus PROPERTIES FOLDER ${DEPS_FOLDER_NAME})
+endif()
+
+if(TARGET json) 
+    set_target_properties(json PROPERTIES FOLDER ${DEPS_FOLDER_NAME})
+endif()
+
+if(TARGET tracy) 
+    set_target_properties(tracy PROPERTIES FOLDER ${DEPS_FOLDER_NAME})
+endif()
+
+if (TARGET JoltPhysics)
+    set_target_properties(JoltPhysics PROPERTIES FOLDER ${DEPS_FOLDER_NAME})
+endif()
+
+if (TARGET flecs)
+    set_target_properties(flecs PROPERTIES FOLDER ${DEPS_FOLDER_NAME})
+endif()
+
+if(TARGET imgui) 
+    set_target_properties(imgui PROPERTIES FOLDER ${DEPS_FOLDER_NAME})
+endif()
+
 
 add_subdirectory(${ENGINE_PATH})
 set_target_properties(${ENGINE_NAME} PROPERTIES FOLDER "${ENGINE_DIRECTORY}") 
@@ -175,7 +202,8 @@ if(WAYFINDER_BUILD_RUNTIME)
 endif()
 
 if(WAYFINDER_BUILD_TOOLS)
-    #add_subdirectory(${TOOLS_NAME})
+    add_subdirectory(${ASSET_PROCESSOR_PATH})
+    set_target_properties(${ASSET_PROCESSOR_NAME} PROPERTIES FOLDER "${TOOLS_DIRECTORY}")
 endif()
 
 if(WAYFINDER_BUILD_SAMPLES)

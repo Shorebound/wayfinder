@@ -24,7 +24,9 @@ namespace Wayfinder
         void SetCameraTarget(float x, float y, float z);
 
     private:
+        void SyncSceneCamera(const Scene& scene);
         void RenderEntities(const Scene& scene);
+        void RenderLights(const Scene& scene);
         Camera m_camera;
 
         int m_screenWidth;

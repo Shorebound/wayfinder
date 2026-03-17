@@ -32,6 +32,14 @@ target_link_libraries(${SANDBOX_NAME}
         ${ENGINE_NAME}
 )
 
+add_custom_command(TARGET ${SANDBOX_NAME} POST_BUILD
+  COMMAND ${CMAKE_COMMAND} -E copy_directory
+    "${CMAKE_CURRENT_SOURCE_DIR}/assets"
+    "$<TARGET_FILE_DIR:${SANDBOX_NAME}>/assets"
+  COMMENT "Copying sandbox assets for ${SANDBOX_NAME}"
+  VERBATIM
+)
+
 # --- Target Properties ---
 # Output directory for the executable file (.exe)
 set_target_properties(${SANDBOX_NAME} PROPERTIES
