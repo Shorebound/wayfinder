@@ -1,6 +1,7 @@
 #pragma once
 
 #include <filesystem>
+#include <optional>
 #include <string>
 #include <string_view>
 #include <unordered_map>
@@ -33,6 +34,7 @@ namespace Wayfinder
         const std::filesystem::path* ResolvePath(const AssetId& assetId) const;
         const AssetRecord* ResolveRecord(const AssetId& assetId) const;
 
+        static std::optional<AssetKind> ParseKind(std::string_view text);
         static std::string_view ToString(AssetKind kind);
 
     private:

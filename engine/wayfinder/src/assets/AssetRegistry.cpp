@@ -1,60 +1,18 @@
 #include "AssetRegistry.h"
 
+#include "AssetSchemaRegistry.h"
+
 #include <toml++/toml.hpp>
-
-namespace
-{
-    constexpr std::string_view kAssetIdKey = "asset_id";
-    constexpr std::string_view kAssetTypeKey = "asset_type";
-    constexpr std::string_view kNameKey = "name";
-
-    std::optional<Wayfinder::AssetKind> ParseAssetKind(std::string_view text)
-    {
-        if (text == "prefab")
-        {
-            return Wayfinder::AssetKind::Prefab;
-        }
-
-        if (text == "material")
-        {
-            return Wayfinder::AssetKind::Material;
-        }
-
-        return std::nullopt;
-    }
-
-    Wayfinder::AssetKind InferAssetKind(const toml::table& document)
-    {
-        if (const auto assetType = document[kAssetTypeKey].value<std::string>())
-        {
-            if (const auto parsed = ParseAssetKind(*assetType))
-            {
-                return *parsed;
-            }
-
-            return Wayfinder::AssetKind::Unknown;
-        }
-
-        if (document.contains("transform")
-            || document.contains("mesh")
-            || document.contains("camera")
-            || document.contains("light")
-            || document.contains("material"))
-        {
-            return Wayfinder::AssetKind::Prefab;
-        }
-
-        if (document.contains("base_color") || document.contains("wireframe"))
-        {
-            return Wayfinder::AssetKind::Material;
-        }
-
-        return Wayfinder::AssetKind::Unknown;
-    }
-}
 
 namespace Wayfinder
 {
+    namespace
+    {
+        constexpr std::string_view kAssetIdKey = "asset_id";
+        constexpr std::string_view kAssetTypeKey = "asset_type";
+        constexpr std::string_view kNameKey = "name";
+    }
+
     bool AssetRegistry::BuildFromDirectory(const std::filesystem::path& rootDirectory, std::string& error)
     {
         m_assetRecordsById.clear();
@@ -87,10 +45,22 @@ namespace Wayfinder
                     return false;
                 }
 
-                const AssetKind assetKind = InferAssetKind(document);
-                if (assetKind == AssetKind::Unknown)
+                const auto assetTypeText = document[kAssetTypeKey].value<std::string>();
+                if (!assetTypeText)
                 {
-                    error = "Could not determine asset type for '" + entry.path().generic_string() + "'. Add asset_type = 'prefab' or 'material'.";
+                    error = "Asset '" + entry.path().generic_string() + "' is missing required field 'asset_type'.";
+                    return false;
+                }
+
+                const std::optional<AssetKind> parsedAssetKind = ParseKind(*assetTypeText);
+                if (!parsedAssetKind)
+                {
+                    error = "Asset '" + entry.path().generic_string() + "' has unsupported asset_type '" + *assetTypeText + "'. Expected 'prefab' or 'material'.";
+                    return false;
+                }
+
+                if (!AssetSchemaRegistry::ValidateDocument(*parsedAssetKind, document, entry.path(), error))
+                {
                     return false;
                 }
 
@@ -103,7 +73,7 @@ namespace Wayfinder
 
                 AssetRecord record;
                 record.Id = *assetId;
-                record.Kind = assetKind;
+                record.Kind = *parsedAssetKind;
                 record.Path = canonicalPath;
                 record.Name = document[kNameKey].value_or(entry.path().stem().string());
                 m_assetRecordsById.emplace(*assetId, std::move(record));
@@ -137,6 +107,21 @@ namespace Wayfinder
         }
 
         return &it->second;
+    }
+
+    std::optional<AssetKind> AssetRegistry::ParseKind(const std::string_view text)
+    {
+        if (text == "prefab")
+        {
+            return AssetKind::Prefab;
+        }
+
+        if (text == "material")
+        {
+            return AssetKind::Material;
+        }
+
+        return std::nullopt;
     }
 
     std::string_view AssetRegistry::ToString(const AssetKind kind)

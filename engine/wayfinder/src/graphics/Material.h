@@ -21,8 +21,9 @@ namespace Wayfinder
         bool Wireframe = true;
     };
 
-    inline bool LoadMaterialAssetFromFile(
-        const std::filesystem::path& filePath,
+    inline bool ParseMaterialAssetDocument(
+        const toml::table& document,
+        const std::string& sourceLabel,
         MaterialAsset& material,
         std::string& error)
     {
@@ -53,50 +54,64 @@ namespace Wayfinder
             return true;
         };
 
+        const auto assetIdText = document[kAssetIdKey].value<std::string>();
+        if (!assetIdText)
+        {
+            error = "Material asset '" + sourceLabel + "' is missing asset_id";
+            return false;
+        }
+
+        const std::optional<AssetId> assetId = AssetId::Parse(*assetIdText);
+        if (!assetId)
+        {
+            error = "Material asset '" + sourceLabel + "' has an invalid asset_id";
+            return false;
+        }
+
+        const auto assetType = document[kAssetTypeKey].value<std::string>();
+        if (!assetType)
+        {
+            error = "Material asset '" + sourceLabel + "' is missing asset_type";
+            return false;
+        }
+
+        if (*assetType != "material")
+        {
+            error = "Material asset '" + sourceLabel + "' must declare asset_type = 'material'";
+            return false;
+        }
+
+        MaterialAsset parsed;
+        parsed.Id = *assetId;
+        parsed.Name = document[kNameKey].value_or(std::filesystem::path(sourceLabel).stem().string());
+
+        if (document.contains(kBaseColorKey) && !parseColor(document, kBaseColorKey, parsed.BaseColor, error))
+        {
+            error = "Material asset '" + sourceLabel + "' " + error;
+            return false;
+        }
+
+        const toml::node* wireframeNode = document.get(kWireframeKey);
+        if (wireframeNode && !wireframeNode->is_boolean())
+        {
+            error = "Material asset '" + sourceLabel + "' field 'wireframe' must be a boolean";
+            return false;
+        }
+
+        parsed.Wireframe = document[kWireframeKey].value_or(parsed.Wireframe);
+        material = std::move(parsed);
+        return true;
+    }
+
+    inline bool LoadMaterialAssetFromFile(
+        const std::filesystem::path& filePath,
+        MaterialAsset& material,
+        std::string& error)
+    {
         try
         {
             const toml::table document = toml::parse_file(filePath.string());
-            const auto assetIdText = document[kAssetIdKey].value<std::string>();
-            if (!assetIdText)
-            {
-                error = "Material asset '" + filePath.generic_string() + "' is missing asset_id";
-                return false;
-            }
-
-            const std::optional<AssetId> assetId = AssetId::Parse(*assetIdText);
-            if (!assetId)
-            {
-                error = "Material asset '" + filePath.generic_string() + "' has an invalid asset_id";
-                return false;
-            }
-
-            const auto assetType = document[kAssetTypeKey].value<std::string>();
-            if (assetType && *assetType != "material")
-            {
-                error = "Material asset '" + filePath.generic_string() + "' must declare asset_type = 'material'";
-                return false;
-            }
-
-            MaterialAsset parsed;
-            parsed.Id = *assetId;
-            parsed.Name = document[kNameKey].value_or(filePath.stem().string());
-
-            if (document.contains(kBaseColorKey) && !parseColor(document, kBaseColorKey, parsed.BaseColor, error))
-            {
-                error = "Material asset '" + filePath.generic_string() + "' " + error;
-                return false;
-            }
-
-            const toml::node* wireframeNode = document.get(kWireframeKey);
-            if (wireframeNode && !wireframeNode->is_boolean())
-            {
-                error = "Material asset '" + filePath.generic_string() + "' field 'wireframe' must be a boolean";
-                return false;
-            }
-
-            parsed.Wireframe = document[kWireframeKey].value_or(parsed.Wireframe);
-            material = std::move(parsed);
-            return true;
+            return ParseMaterialAssetDocument(document, filePath.generic_string(), material, error);
         }
         catch (const toml::parse_error& parseError)
         {
