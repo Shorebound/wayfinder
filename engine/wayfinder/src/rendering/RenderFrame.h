@@ -1,5 +1,6 @@
 #pragma once
 
+#include <filesystem>
 #include <optional>
 #include <string>
 #include <vector>
@@ -64,8 +65,11 @@ namespace Wayfinder
         RenderMaterialHandle Handle{};
         RenderMaterialDomain Domain = RenderMaterialDomain::Surface;
         Color BaseColor = Color::White();
+        bool HasBaseColorOverride = false;
         Color WireframeColor = Color::DarkGray();
+        bool HasWireframeColorOverride = false;
         RenderFillMode FillMode = RenderFillMode::SolidAndWireframe;
+        bool HasFillModeOverride = false;
     };
 
     struct RenderMeshSubmission
@@ -118,6 +122,7 @@ namespace Wayfinder
     struct RenderFrame
     {
         std::string SceneName;
+        std::filesystem::path AssetRoot;
         std::vector<RenderView> Views;
         std::vector<RenderMeshSubmission> Meshes;
         std::vector<RenderLightSubmission> Lights;

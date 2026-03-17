@@ -107,7 +107,9 @@ namespace Wayfinder
     {
         std::optional<AssetId> MaterialAssetId;
         Color BaseColor = Color::White();
+        bool HasBaseColorOverride = false;
         bool Wireframe = true;
+        bool HasWireframeOverride = false;
 
         MaterialComponent() = default;
         MaterialComponent(const MaterialComponent&) = default;

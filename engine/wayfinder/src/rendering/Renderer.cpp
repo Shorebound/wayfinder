@@ -1,6 +1,7 @@
 #include "Renderer.h"
 #include "RenderFrame.h"
 #include "RenderPipeline.h"
+#include "RenderResources.h"
 
 #include "../core/ServiceLocator.h"
 #include "../rendering/RenderAPI.h"
@@ -19,6 +20,7 @@ namespace Wayfinder
         m_camera.ProjectionType = 0; // CAMERA_PERSPECTIVE
         m_clearColor = Color::White();
         m_renderPipeline = std::make_unique<RenderPipeline>();
+        m_renderResources = std::make_unique<RenderResourceCache>();
     }
 
     Renderer::~Renderer()
@@ -44,6 +46,7 @@ namespace Wayfinder
     void Renderer::Shutdown()
     {
         m_renderPipeline = std::make_unique<RenderPipeline>();
+        m_renderResources = std::make_unique<RenderResourceCache>();
         m_isInitialized = false;
     }
 
@@ -60,9 +63,14 @@ namespace Wayfinder
 
         BeginFrame();
 
-        if (m_renderPipeline)
+        if (m_renderResources)
         {
-            m_renderPipeline->Execute(frame, m_camera, ServiceLocator::GetRenderAPI());
+            m_renderResources->SetAssetRoot(frame.AssetRoot);
+        }
+
+        if (m_renderPipeline && m_renderResources)
+        {
+            m_renderPipeline->Execute(frame, ServiceLocator::GetRenderAPI(), *m_renderResources);
         }
 
         // Get render API from service locator

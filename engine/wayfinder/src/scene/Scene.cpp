@@ -6,10 +6,27 @@
 #include "Components.h"
 #include "../core/Log.h"
 
+#include <filesystem>
 #include <unordered_map>
 
 namespace
 {
+    std::filesystem::path FindAssetRootFromScenePath(const std::filesystem::path& filePath)
+    {
+        std::filesystem::path current = std::filesystem::weakly_canonical(filePath).parent_path();
+        while (!current.empty())
+        {
+            if (current.filename() == "assets")
+            {
+                return current;
+            }
+
+            current = current.parent_path();
+        }
+
+        return {};
+    }
+
     void LogDocumentErrors(const std::vector<std::string>& errors, const std::string& filePath)
     {
         Wayfinder::LogScene.GetLogger()->LogFormat(
@@ -172,6 +189,8 @@ namespace Wayfinder
 
             ClearEntities();
             m_name = loadResult.Document->Name;
+            m_sourcePath = std::filesystem::weakly_canonical(std::filesystem::path(filePath));
+            m_assetRoot = FindAssetRootFromScenePath(m_sourcePath);
 
             std::unordered_map<SceneObjectId, Entity> createdEntitiesById;
             for (const SceneDocumentEntity& definition : loadResult.Document->Entities)

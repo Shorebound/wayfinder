@@ -437,8 +437,18 @@ namespace
     {
         Wayfinder::MaterialComponent material;
         material.MaterialAssetId = ReadOptionalAssetId(componentTable, "material_id");
-        material.BaseColor = ReadColor(componentTable, "base_color", material.BaseColor);
-        material.Wireframe = componentTable["wireframe"].value_or(material.Wireframe);
+        material.HasBaseColorOverride = componentTable.contains("base_color");
+        material.HasWireframeOverride = componentTable.contains("wireframe");
+        if (material.HasBaseColorOverride)
+        {
+            material.BaseColor = ReadColor(componentTable, "base_color", material.BaseColor);
+        }
+
+        if (material.HasWireframeOverride)
+        {
+            material.Wireframe = componentTable["wireframe"].value_or(material.Wireframe);
+        }
+
         entity.AddComponent<Wayfinder::MaterialComponent>(material);
     }
 
@@ -520,8 +530,17 @@ namespace
         {
             componentTable.insert_or_assign("material_id", material.MaterialAssetId->ToString());
         }
-        componentTable.insert_or_assign("base_color", WriteColor(material.BaseColor));
-        componentTable.insert_or_assign("wireframe", material.Wireframe);
+
+        if (!material.MaterialAssetId || material.HasBaseColorOverride)
+        {
+            componentTable.insert_or_assign("base_color", WriteColor(material.BaseColor));
+        }
+
+        if (!material.MaterialAssetId || material.HasWireframeOverride)
+        {
+            componentTable.insert_or_assign("wireframe", material.Wireframe);
+        }
+
         componentTables.insert_or_assign("material", componentTable);
     }
 

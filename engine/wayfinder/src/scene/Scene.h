@@ -1,5 +1,6 @@
 #pragma once
 
+#include <filesystem>
 #include <string>
 
 #include <flecs.h>
@@ -29,6 +30,8 @@ namespace Wayfinder
         bool SaveToFile(const std::string& filePath) const;
 
         const std::string& GetName() const { return m_name; }
+        const std::filesystem::path& GetSourcePath() const { return m_sourcePath; }
+        const std::filesystem::path& GetAssetRoot() const { return m_assetRoot; }
         
         // Expose the Flecs world for querying
         flecs::world& GetWorld() { return m_world; }
@@ -40,6 +43,8 @@ namespace Wayfinder
         void RegisterCoreModules();
 
         std::string m_name;
+        std::filesystem::path m_sourcePath;
+        std::filesystem::path m_assetRoot;
         flecs::world m_world; // The main ECS database
         bool m_initialized;
     };

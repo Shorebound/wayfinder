@@ -64,6 +64,7 @@ namespace Wayfinder
     {
         RenderFrame frame;
         frame.SceneName = scene.GetName();
+        frame.AssetRoot = scene.GetAssetRoot();
 
         if (scene.GetWorld().has<ActiveCameraStateComponent>())
         {
@@ -91,8 +92,11 @@ namespace Wayfinder
             submission.Material.Handle.StableKey = mesh.Wireframe ? 2ull : 1ull;
             submission.Material.Domain = RenderMaterialDomain::Surface;
             submission.Material.BaseColor = mesh.Albedo;
+            submission.Material.HasBaseColorOverride = true;
             submission.Material.WireframeColor = Color::DarkGray();
+            submission.Material.HasWireframeColorOverride = true;
             submission.Material.FillMode = mesh.Wireframe ? RenderFillMode::SolidAndWireframe : RenderFillMode::Solid;
+            submission.Material.HasFillModeOverride = true;
 
             Matrix localToWorld = transform.GetLocalMatrix();
 
@@ -112,8 +116,17 @@ namespace Wayfinder
                     submission.Material.Handle.StableKey = MakeStableKey(*material.MaterialAssetId);
                 }
 
-                submission.Material.BaseColor = material.BaseColor;
-                submission.Material.FillMode = material.Wireframe ? RenderFillMode::SolidAndWireframe : RenderFillMode::Solid;
+                if (material.HasBaseColorOverride || !material.MaterialAssetId)
+                {
+                    submission.Material.BaseColor = material.BaseColor;
+                    submission.Material.HasBaseColorOverride = true;
+                }
+
+                if (material.HasWireframeOverride || !material.MaterialAssetId)
+                {
+                    submission.Material.FillMode = material.Wireframe ? RenderFillMode::SolidAndWireframe : RenderFillMode::Solid;
+                    submission.Material.HasFillModeOverride = true;
+                }
             }
 
             submission.LocalToWorld = ToMatrix4(localToWorld);
@@ -156,8 +169,11 @@ namespace Wayfinder
                 debugBox.Material.Handle.StableKey = 100ull;
                 debugBox.Material.Domain = RenderMaterialDomain::Debug;
                 debugBox.Material.BaseColor = light.Tint;
+                debugBox.Material.HasBaseColorOverride = true;
                 debugBox.Material.WireframeColor = Color::DarkGray();
+                debugBox.Material.HasWireframeColorOverride = true;
                 debugBox.Material.FillMode = RenderFillMode::SolidAndWireframe;
+                debugBox.Material.HasFillModeOverride = true;
                 frame.Debug.Boxes.push_back(debugBox);
 
                 if (light.Type == LightType::Directional)

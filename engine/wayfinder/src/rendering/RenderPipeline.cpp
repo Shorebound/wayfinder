@@ -1,20 +1,34 @@
 #include "RenderPipeline.h"
 
 #include "RenderAPI.h"
+#include "RenderResources.h"
 
 #include <algorithm>
 
 namespace Wayfinder
 {
-    void RenderPipeline::Execute(const RenderFrame& frame, const Camera& camera, IRenderAPI& renderAPI) const
+    void RenderPipeline::Execute(const RenderFrame& frame, IRenderAPI& renderAPI, RenderResourceCache& resources) const
     {
-        ExecuteScenePass(frame, camera, renderAPI);
-        ExecuteDebugPass(frame, camera, renderAPI);
+        if (frame.Views.empty())
+        {
+            return;
+        }
+
+        for (const RenderView& view : frame.Views)
+        {
+            ExecuteView(frame, view, renderAPI, resources);
+        }
     }
 
-    void RenderPipeline::ExecuteScenePass(const RenderFrame& frame, const Camera& camera, IRenderAPI& renderAPI) const
+    void RenderPipeline::ExecuteView(const RenderFrame& frame, const RenderView& view, IRenderAPI& renderAPI, RenderResourceCache& resources) const
     {
-        renderAPI.Begin3DMode(camera);
+        ExecuteScenePass(frame, view, renderAPI, resources);
+        ExecuteDebugPass(frame, view, renderAPI, resources);
+    }
+
+    void RenderPipeline::ExecuteScenePass(const RenderFrame& frame, const RenderView& view, IRenderAPI& renderAPI, RenderResourceCache& resources) const
+    {
+        renderAPI.Begin3DMode(view.CameraState);
         renderAPI.DrawGrid(100, 1.0f);
 
         std::vector<const RenderMeshSubmission*> sortedMeshes;
@@ -31,15 +45,15 @@ namespace Wayfinder
 
         for (const RenderMeshSubmission* mesh : sortedMeshes)
         {
-            DrawMeshSubmission(*mesh, renderAPI);
+            DrawMeshSubmission(*mesh, renderAPI, resources);
         }
 
         renderAPI.End3DMode();
     }
 
-    void RenderPipeline::ExecuteDebugPass(const RenderFrame& frame, const Camera& camera, IRenderAPI& renderAPI) const
+    void RenderPipeline::ExecuteDebugPass(const RenderFrame& frame, const RenderView& view, IRenderAPI& renderAPI, RenderResourceCache& resources) const
     {
-        renderAPI.Begin3DMode(camera);
+        renderAPI.Begin3DMode(view.CameraState);
 
         for (const RenderDebugLine& debugLine : frame.Debug.Lines)
         {
@@ -48,25 +62,29 @@ namespace Wayfinder
 
         for (const RenderDebugBox& debugBox : frame.Debug.Boxes)
         {
-            DrawDebugBox(debugBox, renderAPI);
+            DrawDebugBox(debugBox, renderAPI, resources);
         }
 
         renderAPI.End3DMode();
     }
 
-    void RenderPipeline::DrawMeshSubmission(const RenderMeshSubmission& mesh, IRenderAPI& renderAPI) const
+    void RenderPipeline::DrawMeshSubmission(const RenderMeshSubmission& mesh, IRenderAPI& renderAPI, RenderResourceCache& resources) const
     {
-        switch (mesh.Geometry.Type)
+        const RenderMeshResource& resource = resources.ResolveMesh(mesh);
+        const RenderMaterialBinding material = resources.ResolveMaterialBinding(mesh.Material);
+
+        switch (resource.Geometry.Type)
         {
         case RenderGeometryType::Box:
-            ApplyMaterialBinding(mesh.Material, mesh.LocalToWorld, mesh.Geometry.Dimensions, renderAPI);
+            ApplyMaterialBinding(material, mesh.LocalToWorld, resource.Geometry.Dimensions, renderAPI);
             break;
         }
     }
 
-    void RenderPipeline::DrawDebugBox(const RenderDebugBox& debugBox, IRenderAPI& renderAPI) const
+    void RenderPipeline::DrawDebugBox(const RenderDebugBox& debugBox, IRenderAPI& renderAPI, RenderResourceCache& resources) const
     {
-        ApplyMaterialBinding(debugBox.Material, debugBox.LocalToWorld, debugBox.Dimensions, renderAPI);
+        const RenderMaterialBinding material = resources.ResolveMaterialBinding(debugBox.Material);
+        ApplyMaterialBinding(material, debugBox.LocalToWorld, debugBox.Dimensions, renderAPI);
     }
 
     void RenderPipeline::ApplyMaterialBinding(const RenderMaterialBinding& binding, const Matrix4& transform, const Float3& dimensions, IRenderAPI& renderAPI) const
