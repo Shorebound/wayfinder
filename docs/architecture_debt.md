@@ -13,6 +13,8 @@ Current status:
 - active camera state is already extracted into runtime-owned scene state
 - renderables and debug light visualization now pass through an engine-owned frame model before reaching `Renderer`
 - `Renderer` now consumes extracted frame data instead of traversing Flecs directly
+- scene submissions now belong to extracted passes instead of a global frame mesh list
+- renderability is now explicit at the authoring/runtime boundary instead of being implied only by mesh presence
 
 Why it matters:
 
@@ -49,6 +51,7 @@ Current status:
 - `Application` now uses abstract window creation instead of directly naming the Raylib window backend
 - low-level platform and rendering creation now flow through an explicit backend configuration object during application bootstrap
 - backend implementations are still limited to Raylib, but the selection boundary no longer lives only inside backend implementation files
+- the Raylib render adapter now reports explicit capability limits instead of silently acting like the engine's full renderer model
 
 Why it matters:
 
@@ -58,7 +61,26 @@ Recommended next move:
 
 - keep creation behind abstract factories
 - keep backend selection centralized in bootstrap code rather than letting backend `.cpp` files become hidden policy points
-- add alternative backends only after they can satisfy the current explicit factory surface honestly
+- add alternative backends only after they can satisfy the current explicit capability surface honestly
+
+## Priority 5: Validation And Test Depth
+
+Current status:
+
+- scene validation now rejects mesh-bearing entities that omit explicit renderability data
+- the render pipeline now checks pass schedule issues such as duplicate pass ids and unsupported backend/view combinations
+- a lightweight render pipeline test target exists for pass-owned scene submissions and backend capability enforcement
+
+Why it matters:
+
+- Phase 4 work is easy to regress if renderer behavior is only checked through the sandbox app
+- headless validation is one of the engine's better architectural habits and should apply to renderer-facing data too
+
+Recommended next move:
+
+- keep adding small headless tests around extraction and pass execution behavior
+- prefer explicit validation failures over hidden renderer fallbacks when authored data is incomplete
+- document backend limits at the same time they are enforced in code
 
 ## Priority 4: Asset Pipeline Depth
 

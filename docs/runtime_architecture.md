@@ -87,11 +87,13 @@ Today that frame boundary looks like this:
 - scene modules derive world transforms and active camera state
 - `SceneRenderExtractor` traverses the scene world and builds a `RenderFrame`
 - `Renderer` prepares the frame and hands it to `RenderPipeline`
-- `RenderPipeline` executes the current explicit pass order against the active backend
+- `RenderPipeline` executes the extracted pass schedule against the active backend
 
 That is the right direction for the project. The renderer no longer decides scene meaning by traversing Flecs directly.
 
-What is still incomplete is the shape of the extracted data and the pipeline that consumes it. The current pipeline is intentionally narrow and raylib-oriented. It supports a small explicit pass order rather than a broad render-graph style system.
+The current extracted frame now carries explicit views, explicit passes, pass-local scene submissions, and pass-local debug payloads. Scene renderability is also explicit at the authoring boundary instead of being inferred only from `MeshComponent` presence.
+
+What is still incomplete is backend reach, not the basic frame boundary. The current pipeline remains intentionally narrow and raylib-oriented. It supports a small explicit pass schedule rather than a broad render-graph style system, and the active Raylib adapter still exposes honest limits such as single-view execution, no render targets, and primitive-only geometry.
 
 ### Services
 
@@ -124,7 +126,8 @@ For each frame, the runtime is effectively doing this:
 2. update the active scene
 3. progress Flecs systems
 4. extract a renderer-facing `RenderFrame`
-5. execute the current render passes for that frame
+5. prepare asset-backed materials for the extracted pass payloads
+6. execute the extracted render passes for that frame
 
 That gives Wayfinder a clean enough baseline for current work even though the frame model and pass system are still intentionally small.
 
@@ -142,10 +145,21 @@ The following architectural decisions are stable enough to build on:
 
 These areas are real but intentionally unfinished:
 
-- the narrow extracted render-frame model
-- the small explicit `RenderPipeline` pass list
 - the current Raylib-backed platform and rendering implementations
 - service locator usage as the main cross-cutting convenience layer
+
+## Current Raylib Limits
+
+The checked-in renderer should now be read as a constrained Raylib adapter, not as the engine's ideal long-term rendering model.
+
+Current backend limits are explicit:
+
+- one active view at a time
+- no render-target support
+- primitive box geometry only
+- debug pass support is limited to the currently mapped grid, line, and box helpers
+
+If future work needs more than that, the engine should extend the backend capability surface first instead of quietly teaching the renderer to assume those features exist.
 
 ## Architectural Rules
 
@@ -156,6 +170,7 @@ These rules matter because they protect the future direction of the engine:
 - components should remain data-oriented
 - runtime-derived state should be produced by systems, not hidden renderer logic
 - rendering should keep extracted frame data as the only renderer-facing scene boundary
+- renderer/backend limits should be stated explicitly in capability data rather than hidden in adapter implementation details
 - new subsystems should justify themselves with clear runtime or workflow value
 
 ## Near-Term Direction
@@ -164,7 +179,7 @@ The next architectural improvement is not a giant rendering feature. It is a bet
 
 Near-term work should focus on:
 
-- keeping the renderer-facing frame data authoritative
-- keeping renderables and materials explicit
+- preserving the renderer-facing frame data as the authoritative boundary
+- keeping backend capability checks explicit as new render features appear
 - integrating future simulation systems through ECS components and modules instead of special-case runtime code
-- preserving headless validation and save workflows as first-class behavior
+- preserving headless validation, tests, and save workflows as first-class behavior

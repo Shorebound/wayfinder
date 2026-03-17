@@ -24,6 +24,11 @@ namespace Wayfinder
         // Raylib window shutdown is handled by RaylibWindow
     }
 
+    const RenderBackendCapabilities& RaylibGraphicsContext::GetCapabilities() const
+    {
+        return m_capabilities;
+    }
+
     void RaylibGraphicsContext::BeginFrame()
     {
         BeginDrawing();

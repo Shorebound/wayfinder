@@ -30,6 +30,14 @@ namespace Wayfinder
         m_screenWidth = screenWidth;
         m_screenHeight = screenHeight;
 
+        const auto& renderCapabilities = ServiceLocator::GetRenderAPI().GetCapabilities();
+        const auto& contextCapabilities = ServiceLocator::GetGraphicsContext().GetCapabilities();
+
+        if (renderCapabilities.BackendName != contextCapabilities.BackendName)
+        {
+            return false;
+        }
+
         // Additional renderer initialization can go here
         // For example, loading shaders, creating render targets, etc.
 
@@ -63,6 +71,12 @@ namespace Wayfinder
             return;
 
         RenderFrame preparedFrame = frame;
+        const auto& capabilities = ServiceLocator::GetRenderAPI().GetCapabilities();
+
+        if (capabilities.MaxViewCount == 0)
+        {
+            return;
+        }
 
         if (!preparedFrame.Views.empty())
         {

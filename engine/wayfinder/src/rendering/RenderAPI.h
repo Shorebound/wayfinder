@@ -1,6 +1,7 @@
 #pragma once
 
 #include <array>
+#include <cstddef>
 #include <cstdint>
 #include <memory>
 #include <string>
@@ -10,6 +11,17 @@
 
 namespace Wayfinder
 {
+    struct RenderBackendCapabilities
+    {
+        std::string BackendName = "Unknown";
+        size_t MaxViewCount = 1;
+        bool SupportsScenePasses = true;
+        bool SupportsDebugPasses = true;
+        bool SupportsRenderTargets = false;
+        bool SupportsBoxGeometry = true;
+        bool SupportsDebugLines = true;
+    };
+
     struct Float3
     {
         float x = 0.0f;
@@ -74,6 +86,7 @@ namespace Wayfinder
         
         virtual void Initialize() = 0;
         virtual void Shutdown() = 0;
+        virtual const RenderBackendCapabilities& GetCapabilities() const = 0;
         
         // 2D Rendering
         virtual void DrawText(const std::string& text, int x, int y, int fontSize, const Color& color) = 0;

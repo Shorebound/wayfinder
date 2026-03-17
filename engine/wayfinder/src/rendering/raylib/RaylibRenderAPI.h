@@ -11,6 +11,7 @@ namespace Wayfinder
 
         void Initialize() override;
         void Shutdown() override;
+        const RenderBackendCapabilities& GetCapabilities() const override;
         
         // 2D Rendering
         void DrawText(const std::string& text, int x, int y, int fontSize, const Color& color) override;
@@ -25,6 +26,15 @@ namespace Wayfinder
         void DrawLine3D(const Float3& start, const Float3& end, const Color& color) override;
         
     private:
+        RenderBackendCapabilities m_capabilities{
+            .BackendName = "Raylib",
+            .MaxViewCount = 1,
+            .SupportsScenePasses = true,
+            .SupportsDebugPasses = true,
+            .SupportsRenderTargets = false,
+            .SupportsBoxGeometry = true,
+            .SupportsDebugLines = true,
+        };
         ::Color ConvertColor(const Color& color);
         ::Camera3D ConvertCamera(const Camera& camera);
         ::Matrix ConvertMatrix(const Matrix4& matrix);

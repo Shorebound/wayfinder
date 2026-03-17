@@ -26,6 +26,11 @@ namespace Wayfinder
         // Raylib shutdown is handled by RaylibWindow
     }
 
+    const RenderBackendCapabilities& RaylibRenderAPI::GetCapabilities() const
+    {
+        return m_capabilities;
+    }
+
     void RaylibRenderAPI::DrawText(const std::string& text, int x, int y, int fontSize, const Color& color)
     {
         ::DrawText(text.c_str(), x, y, fontSize, ConvertColor(color));

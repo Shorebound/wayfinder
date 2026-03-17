@@ -12,6 +12,8 @@ namespace Wayfinder
 {
     void RenderPipeline::Execute(const RenderFrame& frame, IRenderAPI& renderAPI, RenderResourceCache& resources) const
     {
+        const RenderBackendCapabilities& capabilities = renderAPI.GetCapabilities();
+
         if (frame.Views.empty())
         {
             WAYFINDER_WARNING(LogRenderer, "RenderPipeline skipped frame '{0}' because it has no extracted views.", frame.SceneName);
@@ -24,9 +26,9 @@ namespace Wayfinder
             return;
         }
 
-        if (frame.Views.size() > 1)
+        if (frame.Views.size() > capabilities.MaxViewCount)
         {
-            WAYFINDER_WARNING(LogRenderer, "RenderPipeline currently supports a single active view with the Raylib backend. Rendering only the first view out of {0}.", frame.Views.size());
+            WAYFINDER_WARNING(LogRenderer, "RenderPipeline frame '{0}' requested {1} views, but backend '{2}' supports only {3}.", frame.SceneName, frame.Views.size(), capabilities.BackendName, capabilities.MaxViewCount);
         }
 
         std::unordered_set<std::string> passIds;
@@ -50,6 +52,8 @@ namespace Wayfinder
 
     void RenderPipeline::ExecutePass(const RenderPass& pass, const RenderFrame& frame, IRenderAPI& renderAPI, RenderResourceCache& resources) const
     {
+        const RenderBackendCapabilities& capabilities = renderAPI.GetCapabilities();
+
         if (!pass.Enabled)
         {
             return;
@@ -61,14 +65,30 @@ namespace Wayfinder
             return;
         }
 
+        if (pass.ViewIndex >= capabilities.MaxViewCount)
+        {
+            WAYFINDER_WARNING(LogRenderer, "RenderPipeline skipped pass '{0}' because backend '{1}' supports only {2} active view(s).", pass.Id, capabilities.BackendName, capabilities.MaxViewCount);
+            return;
+        }
+
         const RenderView& view = frame.Views[pass.ViewIndex];
 
         switch (pass.Kind)
         {
         case RenderPassKind::Scene:
+            if (!capabilities.SupportsScenePasses)
+            {
+                WAYFINDER_WARNING(LogRenderer, "RenderPipeline skipped scene pass '{0}' because backend '{1}' does not support scene passes.", pass.Id, capabilities.BackendName);
+                return;
+            }
             ExecuteScenePass(pass, view, renderAPI, resources);
             break;
         case RenderPassKind::Debug:
+            if (!capabilities.SupportsDebugPasses)
+            {
+                WAYFINDER_WARNING(LogRenderer, "RenderPipeline skipped debug pass '{0}' because backend '{1}' does not support debug passes.", pass.Id, capabilities.BackendName);
+                return;
+            }
             ExecuteDebugPass(pass, view, renderAPI);
             break;
         }
@@ -111,6 +131,8 @@ namespace Wayfinder
 
     void RenderPipeline::ExecuteDebugPass(const RenderPass& pass, const RenderView& view, IRenderAPI& renderAPI) const
     {
+        const RenderBackendCapabilities& capabilities = renderAPI.GetCapabilities();
+
         if (!pass.DebugDraw)
         {
             WAYFINDER_WARNING(LogRenderer, "RenderPipeline skipped debug pass '{0}' because it has no debug payload.", pass.Id);
@@ -125,9 +147,17 @@ namespace Wayfinder
             renderAPI.DrawGrid(debug.WorldGridSlices, debug.WorldGridSpacing);
         }
 
-        for (const RenderDebugLine& debugLine : debug.Lines)
+        if (!capabilities.SupportsDebugLines && !debug.Lines.empty())
         {
-            renderAPI.DrawLine3D(debugLine.Start, debugLine.End, debugLine.Color);
+            WAYFINDER_WARNING(LogRenderer, "RenderPipeline skipped {0} debug line(s) in pass '{1}' because backend '{2}' does not support debug lines.", debug.Lines.size(), pass.Id, capabilities.BackendName);
+        }
+
+        if (capabilities.SupportsDebugLines)
+        {
+            for (const RenderDebugLine& debugLine : debug.Lines)
+            {
+                renderAPI.DrawLine3D(debugLine.Start, debugLine.End, debugLine.Color);
+            }
         }
 
         for (const RenderDebugBox& debugBox : debug.Boxes)
@@ -140,11 +170,17 @@ namespace Wayfinder
 
     void RenderPipeline::DrawMeshSubmission(const RenderMeshSubmission& mesh, IRenderAPI& renderAPI, RenderResourceCache& resources) const
     {
+        const RenderBackendCapabilities& capabilities = renderAPI.GetCapabilities();
         const RenderMeshResource& resource = resources.ResolveMesh(mesh);
 
         switch (resource.Geometry.Type)
         {
         case RenderGeometryType::Box:
+            if (!capabilities.SupportsBoxGeometry)
+            {
+                WAYFINDER_WARNING(LogRenderer, "RenderPipeline skipped box submission because backend '{0}' does not support box geometry.", capabilities.BackendName);
+                return;
+            }
             ApplyMaterialBinding(mesh.Material, mesh.LocalToWorld, resource.Geometry.Dimensions, renderAPI);
             break;
         }

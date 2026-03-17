@@ -211,8 +211,8 @@ if(WAYFINDER_BUILD_SAMPLES)
 endif()
 
 if(WAYFINDER_BUILD_TESTS)
-    #enable_testing()
-    #add_subdirectory(${TESTS_NAME})
+    enable_testing()
+    add_subdirectory(${TESTS_DIRECTORY})
 endif()
 
 message(STATUS "Configuration complete.")
