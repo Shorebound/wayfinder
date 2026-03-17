@@ -20,11 +20,13 @@ namespace Wayfinder
         void Begin3DMode(const Camera& camera) override;
         void End3DMode() override;
         void DrawGrid(int slices, float spacing) override;
-        void DrawCube(float x, float y, float z, float width, float height, float depth, const Color& color) override;
-        void DrawCubeWires(float x, float y, float z, float width, float height, float depth, const Color& color) override;
+        void DrawBox(const Matrix4& transform, const Float3& size, const Color& color) override;
+        void DrawBoxWires(const Matrix4& transform, const Float3& size, const Color& color) override;
+        void DrawLine3D(const Float3& start, const Float3& end, const Color& color) override;
         
     private:
         ::Color ConvertColor(const Color& color);
         ::Camera3D ConvertCamera(const Camera& camera);
+        ::Matrix ConvertMatrix(const Matrix4& matrix);
     };
 }

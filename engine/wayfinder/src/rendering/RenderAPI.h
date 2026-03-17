@@ -1,5 +1,6 @@
 #pragma once
 
+#include <array>
 #include <cstdint>
 #include <memory>
 #include <string>
@@ -8,23 +9,45 @@
 
 namespace Wayfinder
 {
-    // Forward declarations
-    class Scene;
-    class Entity;
-    
-    // Camera abstraction
+    struct Float3
+    {
+        float x = 0.0f;
+        float y = 0.0f;
+        float z = 0.0f;
+    };
+
+    struct Matrix4
+    {
+        float m0 = 1.0f;
+        float m4 = 0.0f;
+        float m8 = 0.0f;
+        float m12 = 0.0f;
+        float m1 = 0.0f;
+        float m5 = 1.0f;
+        float m9 = 0.0f;
+        float m13 = 0.0f;
+        float m2 = 0.0f;
+        float m6 = 0.0f;
+        float m10 = 1.0f;
+        float m14 = 0.0f;
+        float m3 = 0.0f;
+        float m7 = 0.0f;
+        float m11 = 0.0f;
+        float m15 = 1.0f;
+
+        static Matrix4 Identity()
+        {
+            return {};
+        }
+    };
+
     struct Camera
     {
-        struct Vec3 
-        {
-            float x, y, z;
-        };
-        
-        Vec3 Position;
-        Vec3 Target;
-        Vec3 Up;
-        float FOV;
-        int ProjectionType; // 0 = Perspective, 1 = Orthographic
+        Float3 Position{};
+        Float3 Target{};
+        Float3 Up{0.0f, 1.0f, 0.0f};
+        float FOV = 45.0f;
+        int ProjectionType = 0; // 0 = Perspective, 1 = Orthographic
     };
     
     // Color abstraction
@@ -59,8 +82,9 @@ namespace Wayfinder
         virtual void Begin3DMode(const Camera& camera) = 0;
         virtual void End3DMode() = 0;
         virtual void DrawGrid(int slices, float spacing) = 0;
-        virtual void DrawCube(float x, float y, float z, float width, float height, float depth, const Color& color) = 0;
-        virtual void DrawCubeWires(float x, float y, float z, float width, float height, float depth, const Color& color) = 0;
+        virtual void DrawBox(const Matrix4& transform, const Float3& size, const Color& color) = 0;
+        virtual void DrawBoxWires(const Matrix4& transform, const Float3& size, const Color& color) = 0;
+        virtual void DrawLine3D(const Float3& start, const Float3& end, const Color& color) = 0;
         
         static std::unique_ptr<IRenderAPI> Create();
     };

@@ -5,6 +5,7 @@
 #include "../platform/Window.h"
 #include "../platform/Time.h"
 #include "../rendering/Renderer.h"
+#include "../rendering/SceneRenderExtractor.h"
 #include "../rendering/GraphicsContext.h"
 #include "../rendering/RenderAPI.h"
 #include "../scene/Scene.h"
@@ -44,6 +45,7 @@ namespace Wayfinder
         m_window = Window::Create(windowConfig);
         m_game = std::make_unique<Game>();
         m_renderer = std::make_unique<Renderer>();
+        m_sceneRenderExtractor = std::make_unique<SceneRenderExtractor>();
 
         if (!m_window->Initialize())
         {
@@ -101,7 +103,7 @@ namespace Wayfinder
                 {
                     if (const auto* currentScene = m_game->GetCurrentScene())
                     {
-                        m_renderer->Render(*currentScene);
+                        m_renderer->Render(m_sceneRenderExtractor->Extract(*currentScene));
                     }
                 }
             }
@@ -124,6 +126,8 @@ namespace Wayfinder
             m_renderer->Shutdown();
             m_renderer = nullptr;
         }
+
+        m_sceneRenderExtractor = nullptr;
 
         if (m_game)
         {

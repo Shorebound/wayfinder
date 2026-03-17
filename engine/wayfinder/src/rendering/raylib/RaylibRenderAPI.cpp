@@ -1,5 +1,7 @@
 #include "RaylibRenderAPI.h"
 #include "raylib.h"
+#include "raymath.h"
+#include "rlgl.h"
 
 namespace Wayfinder
 {
@@ -43,14 +45,31 @@ namespace Wayfinder
         ::DrawGrid(slices, spacing);
     }
 
-    void RaylibRenderAPI::DrawCube(float x, float y, float z, float width, float height, float depth, const Color& color)
+    void RaylibRenderAPI::DrawBox(const Matrix4& transform, const Float3& size, const Color& color)
     {
-        ::DrawCube({ x, y, z }, width, height, depth, ConvertColor(color));
+        const ::Matrix nativeTransform = ConvertMatrix(transform);
+        const float16 matrixValues = MatrixToFloatV(nativeTransform);
+
+        rlPushMatrix();
+        rlMultMatrixf(matrixValues.v);
+        ::DrawCube({ 0.0f, 0.0f, 0.0f }, size.x, size.y, size.z, ConvertColor(color));
+        rlPopMatrix();
     }
 
-    void RaylibRenderAPI::DrawCubeWires(float x, float y, float z, float width, float height, float depth, const Color& color)
+    void RaylibRenderAPI::DrawBoxWires(const Matrix4& transform, const Float3& size, const Color& color)
     {
-        ::DrawCubeWires({ x, y, z }, width, height, depth, ConvertColor(color));
+        const ::Matrix nativeTransform = ConvertMatrix(transform);
+        const float16 matrixValues = MatrixToFloatV(nativeTransform);
+
+        rlPushMatrix();
+        rlMultMatrixf(matrixValues.v);
+        ::DrawCubeWires({ 0.0f, 0.0f, 0.0f }, size.x, size.y, size.z, ConvertColor(color));
+        rlPopMatrix();
+    }
+
+    void RaylibRenderAPI::DrawLine3D(const Float3& start, const Float3& end, const Color& color)
+    {
+        ::DrawLine3D({start.x, start.y, start.z}, {end.x, end.y, end.z}, ConvertColor(color));
     }
 
     ::Color RaylibRenderAPI::ConvertColor(const Color& color)
@@ -67,5 +86,27 @@ namespace Wayfinder
         result.fovy = camera.FOV;
         result.projection = camera.ProjectionType;
         return result;
+    }
+
+    ::Matrix RaylibRenderAPI::ConvertMatrix(const Matrix4& matrix)
+    {
+        return {
+            matrix.m0,
+            matrix.m4,
+            matrix.m8,
+            matrix.m12,
+            matrix.m1,
+            matrix.m5,
+            matrix.m9,
+            matrix.m13,
+            matrix.m2,
+            matrix.m6,
+            matrix.m10,
+            matrix.m14,
+            matrix.m3,
+            matrix.m7,
+            matrix.m11,
+            matrix.m15,
+        };
     }
 }

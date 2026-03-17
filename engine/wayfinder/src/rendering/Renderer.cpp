@@ -1,8 +1,7 @@
 #include "Renderer.h"
+#include "RenderFrame.h"
+
 #include "../core/ServiceLocator.h"
-#include "../scene/Scene.h"
-#include "../scene/entity/Entity.h"
-#include "../scene/Components.h"
 #include "../rendering/RenderAPI.h"
 #include "../rendering/GraphicsContext.h"
 
@@ -12,11 +11,12 @@ namespace Wayfinder
         : m_screenWidth(800), m_screenHeight(450), m_isInitialized(false)
     {
         // Initialize camera with default values
-        m_camera.Position = {.x = 0.0f, .y = 10.0f, .z = 10.0f};
-        m_camera.Target = {.x = 0.0f, .y = 0.0f, .z = 0.0f};
-        m_camera.Up = {.x = 0.0f, .y = 1.0f, .z = 0.0f};
+        m_camera.Position = {0.0f, 10.0f, 10.0f};
+        m_camera.Target = {0.0f, 0.0f, 0.0f};
+        m_camera.Up = {0.0f, 1.0f, 0.0f};
         m_camera.FOV = 45.0f;
         m_camera.ProjectionType = 0; // CAMERA_PERSPECTIVE
+        m_clearColor = Color::White();
     }
 
     Renderer::~Renderer()
@@ -44,55 +44,39 @@ namespace Wayfinder
         m_isInitialized = false;
     }
 
-    void Renderer::Render(const Scene& scene)
+    void Renderer::Render(const RenderFrame& frame)
     {
         if (!m_isInitialized)
             return;
 
-        SyncSceneCamera(scene);
+        if (!frame.Views.empty())
+        {
+            m_camera = frame.Views.front().CameraState;
+            m_clearColor = frame.Views.front().ClearColor;
+        }
 
         BeginFrame();
 
-        RenderEntities(scene);
-        RenderLights(scene);
+        RenderMeshes(frame);
+        RenderDebugPrimitives(frame);
 
         // Get render API from service locator
         auto& renderAPI = ServiceLocator::GetRenderAPI();
 
         // Draw scene info
-        renderAPI.DrawText("Scene: " + scene.GetName(), 10, 30, 20, Color::DarkGray());
+        renderAPI.DrawText("Scene: " + frame.SceneName, 10, 30, 20, Color::DarkGray());
 
         EndFrame();
     }
 
     void Renderer::SetCameraPosition(float x, float y, float z)
     {
-        m_camera.Position = {.x = x, .y = y, .z = z};
+        m_camera.Position = {x, y, z};
     }
 
     void Renderer::SetCameraTarget(float x, float y, float z)
     {
-        m_camera.Target = {.x = x, .y = y, .z = z};
-    }
-
-    void Renderer::SyncSceneCamera(const Scene& scene)
-    {
-        if (!scene.GetWorld().has<ActiveCameraStateComponent>())
-        {
-            return;
-        }
-
-        const ActiveCameraStateComponent& activeCamera = scene.GetWorld().get<ActiveCameraStateComponent>();
-        if (!activeCamera.IsValid)
-        {
-            return;
-        }
-
-        m_camera.Position = { activeCamera.Position.x, activeCamera.Position.y, activeCamera.Position.z };
-        m_camera.Target = { activeCamera.Target.x, activeCamera.Target.y, activeCamera.Target.z };
-        m_camera.Up = { activeCamera.Up.x, activeCamera.Up.y, activeCamera.Up.z };
-        m_camera.FOV = activeCamera.FieldOfView;
-        m_camera.ProjectionType = static_cast<int>(activeCamera.Projection);
+        m_camera.Target = {x, y, z};
     }
 
     void Renderer::BeginFrame()
@@ -101,7 +85,11 @@ namespace Wayfinder
         //auto& renderAPI = ServiceLocator::GetRenderAPI();
 
         graphicsContext.BeginFrame();
-        graphicsContext.Clear(1.0f, 1.0f, 1.0f); // White background
+        graphicsContext.Clear(
+            static_cast<float>(m_clearColor.r) / 255.0f,
+            static_cast<float>(m_clearColor.g) / 255.0f,
+            static_cast<float>(m_clearColor.b) / 255.0f,
+            static_cast<float>(m_clearColor.a) / 255.0f);
     }
 
     void Renderer::EndFrame()
@@ -113,85 +101,54 @@ namespace Wayfinder
         graphicsContext.EndFrame();
     }
 
-    void Renderer::RenderEntities(const Scene& scene)
+    void Renderer::RenderMeshes(const RenderFrame& frame)
     {
         auto& renderAPI = ServiceLocator::GetRenderAPI();
 
         renderAPI.Begin3DMode(m_camera);
         renderAPI.DrawGrid(100, 1.0f);
 
-        // Query renderable entities explicitly instead of assuming every transform should draw.
-        scene.GetWorld().each([&](flecs::entity entityHandle, const TransformComponent& transform, const MeshComponent& mesh)
+        for (const RenderMeshSubmission& mesh : frame.Meshes)
         {
-            Vector3 pos = transform.Position;
-            Vector3 size = Vector3Multiply(mesh.Dimensions, transform.Scale);
-            Color tint = mesh.Albedo;
-            bool wireframe = mesh.Wireframe;
-            if (entityHandle.has<WorldTransformComponent>())
+            switch (mesh.Geometry.Type)
             {
-                const auto& worldTransform = entityHandle.get<WorldTransformComponent>();
-                pos = worldTransform.Position;
-                size = Vector3Multiply(mesh.Dimensions, worldTransform.Scale);
-            }
-
-            if (entityHandle.has<MaterialComponent>())
-            {
-                const auto& material = entityHandle.get<MaterialComponent>();
-                tint = material.BaseColor;
-                wireframe = material.Wireframe;
-            }
-
-            switch (mesh.Primitive)
-            {
-            case MeshPrimitive::Cube:
-                renderAPI.DrawCube(pos.x, pos.y, pos.z, size.x, size.y, size.z, tint);
-                if (wireframe)
+            case RenderGeometryType::Box:
+                renderAPI.DrawBox(mesh.LocalToWorld, mesh.Geometry.Dimensions, mesh.Material.Tint);
+                if (mesh.Material.Wireframe)
                 {
-                    renderAPI.DrawCubeWires(pos.x, pos.y, pos.z, size.x, size.y, size.z, Color::DarkGray());
+                    renderAPI.DrawBoxWires(mesh.LocalToWorld, mesh.Geometry.Dimensions, Color::DarkGray());
                 }
                 break;
             }
-        });
+        }
 
         renderAPI.End3DMode();
     }
 
-    void Renderer::RenderLights(const Scene& scene)
+    void Renderer::RenderDebugPrimitives(const RenderFrame& frame)
     {
         auto& renderAPI = ServiceLocator::GetRenderAPI();
 
         renderAPI.Begin3DMode(m_camera);
-        scene.GetWorld().each([&](flecs::entity entityHandle, const TransformComponent& transform, const LightComponent& light)
+
+        for (const RenderDebugLine& debugLine : frame.Debug.Lines)
         {
-            if (!light.DebugDraw)
+            renderAPI.DrawLine3D(debugLine.Start, debugLine.End, debugLine.Color);
+        }
+
+        for (const RenderDebugBox& debugBox : frame.Debug.Boxes)
+        {
+            if (debugBox.Solid)
             {
-                return;
+                renderAPI.DrawBox(debugBox.LocalToWorld, debugBox.Dimensions, debugBox.FillColor);
             }
 
-            Vector3 pos = transform.Position;
-            if (entityHandle.has<WorldTransformComponent>())
+            if (debugBox.Wireframe)
             {
-                pos = entityHandle.get<WorldTransformComponent>().Position;
+                renderAPI.DrawBoxWires(debugBox.LocalToWorld, debugBox.Dimensions, debugBox.WireColor);
             }
+        }
 
-            const float debugSize = light.Type == LightType::Directional ? 0.6f : 0.3f;
-            renderAPI.DrawCube(
-                pos.x,
-                pos.y,
-                pos.z,
-                debugSize,
-                debugSize,
-                debugSize,
-                light.Tint);
-            renderAPI.DrawCubeWires(
-                pos.x,
-                pos.y,
-                pos.z,
-                debugSize,
-                debugSize,
-                debugSize,
-                Color::DarkGray());
-        });
         renderAPI.End3DMode();
     }
 } // namespace Wayfinder

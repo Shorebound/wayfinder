@@ -4,6 +4,7 @@ namespace Wayfinder
 {
     class Game;
     class Renderer;
+    class SceneRenderExtractor;
     class Window;
 
     class WAYFINDER_API Application
@@ -48,6 +49,7 @@ namespace Wayfinder
         std::unique_ptr<Window> m_window;
         std::unique_ptr<Game> m_game;
         std::unique_ptr<Renderer> m_renderer;
+        std::unique_ptr<SceneRenderExtractor> m_sceneRenderExtractor;
     };
 
     // To be defined by Client

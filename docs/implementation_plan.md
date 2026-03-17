@@ -29,6 +29,7 @@ The project already has a meaningful foundation:
 - UUID-backed typed identifiers in runtime code
 - headless validation commands through `waypoint`
 - registered runtime systems for world transforms and active camera extraction
+- an initial scene-to-frame extraction path for cameras, renderables, and debug cubes
 
 The main gaps are no longer basic runtime bootstrapping. They are authoring maturity, render extraction, editor bring-up, and higher-level simulation and visual ambition.
 
@@ -76,8 +77,8 @@ Goal: separate scene state from render submission state.
 
 Focus areas:
 
-- move away from long-term direct ECS traversal inside `Renderer`
-- define extracted frame data for cameras, renderables, lights, and debug primitives
+- finish replacing long-term direct ECS traversal inside `Renderer`
+- keep extracted frame data authoritative for cameras, renderables, lights, and debug primitives
 - make materials and renderable state explicit
 - give `RenderPipeline` a real job once the frame boundary exists
 
@@ -154,5 +155,5 @@ Wayfinder should avoid the following sequencing mistakes:
 From the current baseline, the most valuable next work is:
 
 1. strengthen the authoring and validation path around scenes, prefabs, and future materials
-2. move the renderer toward extracted frame data
+2. finish hardening the extracted frame boundary so materials, lighting, and editor overlays use it consistently
 3. bring Cartographer online only after those two layers are reliable

@@ -3,7 +3,11 @@
 
 namespace Wayfinder
 {
-    class Scene;
+    struct RenderFrame;
+}
+
+namespace Wayfinder
+{
     class IRenderAPI;
     class IGraphicsContext;
 
@@ -17,17 +21,17 @@ namespace Wayfinder
         virtual void Shutdown();
 
         virtual void BeginFrame();
-        virtual void Render(const Scene& scene);
+        virtual void Render(const RenderFrame& frame);
         virtual void EndFrame();
 
         void SetCameraPosition(float x, float y, float z);
         void SetCameraTarget(float x, float y, float z);
 
     private:
-        void SyncSceneCamera(const Scene& scene);
-        void RenderEntities(const Scene& scene);
-        void RenderLights(const Scene& scene);
+        void RenderMeshes(const RenderFrame& frame);
+        void RenderDebugPrimitives(const RenderFrame& frame);
         Camera m_camera;
+        Color m_clearColor;
 
         int m_screenWidth;
         int m_screenHeight;

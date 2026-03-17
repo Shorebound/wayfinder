@@ -10,8 +10,9 @@ The goal is not purity. The goal is to keep the runtime, authoring model, and re
 
 Current status:
 
-- `Renderer` still performs direct ECS traversal for renderables and debug lights
-- active camera state is already extracted, but renderables and lights are not yet in an engine-owned frame model
+- active camera state is already extracted into runtime-owned scene state
+- renderables and debug light visualization now pass through an engine-owned frame model before reaching `Renderer`
+- `Renderer` now consumes extracted frame data instead of traversing Flecs directly
 
 Why it matters:
 
@@ -20,9 +21,9 @@ Why it matters:
 
 Recommended next move:
 
-- define extracted frame structs for camera, renderables, and debug primitives
-- move ECS traversal into a scene-to-frame extraction pass
-- keep `Renderer` focused on consuming frame data instead of discovering scene meaning
+- keep expanding the frame model as the single render submission boundary
+- make material and renderable state more explicit so future passes do not need scene-component knowledge
+- move viewport-only overlays and future debug primitives through the same extracted path
 
 ## Priority 2: Service Locator Scope
 
