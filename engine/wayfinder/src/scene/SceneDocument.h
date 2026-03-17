@@ -12,6 +12,8 @@
 
 namespace Wayfinder
 {
+    class AssetService;
+
     struct SceneDocumentEntity
     {
         SceneObjectId Id;
@@ -35,7 +37,8 @@ namespace Wayfinder
 
     WAYFINDER_API SceneDocumentLoadResult LoadSceneDocument(
         const std::string& filePath,
-        const SceneComponentRegistry& registry);
+        const SceneComponentRegistry& registry,
+        AssetService* assetService = nullptr);
 
     WAYFINDER_API bool SaveSceneDocument(
         const SceneDocument& document,

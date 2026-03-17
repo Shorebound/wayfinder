@@ -180,7 +180,7 @@ namespace Wayfinder
 
         try
         {
-            const SceneDocumentLoadResult loadResult = LoadSceneDocument(filePath, SceneComponentRegistry::Get());
+            const SceneDocumentLoadResult loadResult = LoadSceneDocument(filePath, SceneComponentRegistry::Get(), m_assetService.get());
             if (!loadResult.Document)
             {
                 LogDocumentErrors(loadResult.Errors, filePath);

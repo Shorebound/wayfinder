@@ -1,10 +1,11 @@
 #pragma once
 
 #include <filesystem>
+#include <memory>
 #include <optional>
 #include <unordered_map>
 
-#include "../assets/AssetRegistry.h"
+#include "../assets/AssetService.h"
 #include "../graphics/Material.h"
 #include "RenderFrame.h"
 #include "wayfinder_exports.h"
@@ -27,7 +28,7 @@ namespace Wayfinder
     class WAYFINDER_API RenderResourceCache
     {
     public:
-        void SetAssetRoot(const std::filesystem::path& assetRoot);
+        void SetAssetService(const std::shared_ptr<AssetService>& assetService);
         void PrepareFrame(RenderFrame& frame);
 
         const RenderMeshResource& ResolveMesh(const RenderMeshSubmission& submission);
@@ -36,12 +37,8 @@ namespace Wayfinder
         RenderMaterialBinding PrepareMaterialBinding(const RenderMaterialBinding& binding);
         RenderMaterialResource CreateMaterialResource(const RenderMaterialBinding& binding);
 
-        std::filesystem::path m_assetRoot;
-        AssetRegistry m_assetRegistry;
-        bool m_hasAssetRegistry = false;
+        std::shared_ptr<AssetService> m_assetService;
         std::unordered_map<uint64_t, RenderMeshResource> m_meshesByKey;
         std::unordered_map<uint64_t, RenderMaterialResource> m_materialsByKey;
-        std::unordered_map<AssetId, MaterialAsset> m_materialAssetsById;
-        std::unordered_map<AssetId, bool> m_missingMaterialAssets;
     };
 } // namespace Wayfinder

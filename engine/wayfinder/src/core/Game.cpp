@@ -1,4 +1,5 @@
 #include "Game.h"
+#include "../assets/AssetService.h"
 #include "../platform/Input.h"
 #include "../scene/Scene.h"
 #include "../scene/entity/Entity.h"
@@ -52,7 +53,9 @@ namespace Wayfinder
     {
         WAYFINDER_INFO(LogGame, "Initializing game");
 
+        m_assetService = std::make_shared<AssetService>();
         m_currentScene = std::make_unique<Scene>("Default Scene");
+        m_currentScene->SetAssetService(m_assetService);
         m_currentScene->Initialize();
 
         const std::filesystem::path bootScenePath = ResolveBootScenePath();
@@ -109,6 +112,7 @@ namespace Wayfinder
         UnloadCurrentScene();
 
         m_currentScene = std::make_unique<Scene>(sceneName);
+        m_currentScene->SetAssetService(m_assetService);
         m_currentScene->Initialize();
 
         WAYFINDER_INFO(LogGame, "Loaded scene: {0}", sceneName);

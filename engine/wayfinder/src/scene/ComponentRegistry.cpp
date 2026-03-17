@@ -231,6 +231,21 @@ namespace
         return fallback;
     }
 
+    uint8_t ClampToByte(const int64_t value)
+    {
+        if (value < 0)
+        {
+            return 0;
+        }
+
+        if (value > 255)
+        {
+            return 255;
+        }
+
+        return static_cast<uint8_t>(value);
+    }
+
     bool IsNumberNode(const toml::node& node)
     {
         return node.is_integer() || node.is_floating_point();
@@ -396,9 +411,7 @@ namespace
     bool ValidateMesh(const toml::table& componentTable, std::string& error)
     {
         return ValidateOptionalEnumValue(componentTable, "primitive", {"cube"}, error)
-            && ValidateOptionalVector3(componentTable, "dimensions", error)
-            && ValidateOptionalColor(componentTable, "color", error)
-            && ValidateOptionalBool(componentTable, "wireframe", error);
+            && ValidateOptionalVector3(componentTable, "dimensions", error);
     }
 
     bool ValidateCamera(const toml::table& componentTable, std::string& error)
@@ -447,8 +460,6 @@ namespace
         Wayfinder::MeshComponent mesh;
         mesh.Primitive = ReadPrimitive(componentTable, "primitive", mesh.Primitive);
         mesh.Dimensions = ReadVector3(componentTable, "dimensions", mesh.Dimensions);
-        mesh.Albedo = ReadColor(componentTable, "color", mesh.Albedo);
-        mesh.Wireframe = componentTable["wireframe"].value_or(mesh.Wireframe);
         entity.AddComponent<Wayfinder::MeshComponent>(mesh);
     }
 
@@ -500,7 +511,7 @@ namespace
         renderable.Layer = ReadRenderLayer(componentTable, "layer", renderable.Layer);
 
         const int64_t sortPriority = componentTable["sort_priority"].value_or(static_cast<int64_t>(renderable.SortPriority));
-        renderable.SortPriority = static_cast<uint8_t>(std::clamp<int64_t>(sortPriority, 0, 255));
+        renderable.SortPriority = ClampToByte(sortPriority);
         entity.AddComponent<Wayfinder::RenderableComponent>(renderable);
     }
 
@@ -530,8 +541,6 @@ namespace
         toml::table componentTable;
         componentTable.insert_or_assign("primitive", std::string{ToString(mesh.Primitive)});
         componentTable.insert_or_assign("dimensions", WriteVector3(mesh.Dimensions));
-        componentTable.insert_or_assign("color", WriteColor(mesh.Albedo));
-        componentTable.insert_or_assign("wireframe", mesh.Wireframe);
         componentTables.insert_or_assign("mesh", componentTable);
     }
 

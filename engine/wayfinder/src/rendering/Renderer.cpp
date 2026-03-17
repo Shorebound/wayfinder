@@ -41,7 +41,20 @@ namespace Wayfinder
     {
         m_renderPipeline = std::make_unique<RenderPipeline>();
         m_renderResources = std::make_unique<RenderResourceCache>();
+        if (m_assetService)
+        {
+            m_renderResources->SetAssetService(m_assetService);
+        }
         m_isInitialized = false;
+    }
+
+    void Renderer::SetAssetService(const std::shared_ptr<AssetService>& assetService)
+    {
+        m_assetService = assetService;
+        if (m_renderResources)
+        {
+            m_renderResources->SetAssetService(assetService);
+        }
     }
 
     void Renderer::Render(const RenderFrame& frame)
@@ -60,7 +73,6 @@ namespace Wayfinder
 
         if (m_renderResources)
         {
-            m_renderResources->SetAssetRoot(preparedFrame.AssetRoot);
             m_renderResources->PrepareFrame(preparedFrame);
         }
 

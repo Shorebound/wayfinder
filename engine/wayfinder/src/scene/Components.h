@@ -94,8 +94,6 @@ namespace Wayfinder
     {
         MeshPrimitive Primitive = MeshPrimitive::Cube;
         Float3 Dimensions = { 1.0f, 1.0f, 1.0f };
-        Color Albedo = Color::Red();
-        bool Wireframe = true;
 
         MeshComponent() = default;
         MeshComponent(const MeshComponent&) = default;

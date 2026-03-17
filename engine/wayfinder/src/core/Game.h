@@ -2,6 +2,7 @@
 
 namespace Wayfinder
 {
+    class AssetService;
     class Scene;
 
     class WAYFINDER_API Game
@@ -18,6 +19,7 @@ namespace Wayfinder
         void UnloadCurrentScene();
 
         const Scene* GetCurrentScene() const{ return m_currentScene.get(); }
+        std::shared_ptr<AssetService> GetAssetService() const { return m_assetService; }
 
         void SetRunning(bool isRunning)
         {
@@ -30,6 +32,7 @@ namespace Wayfinder
 
     private:
         std::unique_ptr<Scene> m_currentScene;
+        std::shared_ptr<AssetService> m_assetService;
         bool m_running;
         bool m_initialized;
     };

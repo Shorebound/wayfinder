@@ -1,6 +1,6 @@
 #include "SceneDocument.h"
 
-#include "../assets/AssetRegistry.h"
+#include "../assets/AssetService.h"
 #include "../graphics/Material.h"
 
 #include <algorithm>
@@ -248,7 +248,7 @@ namespace
 
     bool ResolveMaterialComponentData(
         Wayfinder::SceneDocumentEntity& definition,
-        const Wayfinder::AssetRegistry& assetRegistry,
+        Wayfinder::AssetService& assetService,
         const std::string& sourceLabel,
         std::vector<std::string>& errors)
     {
@@ -269,7 +269,7 @@ namespace
             return true;
         }
 
-        const Wayfinder::AssetRecord* materialRecord = assetRegistry.ResolveRecord(*materialAssetId);
+        const Wayfinder::AssetRecord* materialRecord = assetService.ResolveRecord(*materialAssetId);
         if (!materialRecord)
         {
             errors.push_back(sourceLabel + " references missing material asset id '" + materialAssetId->ToString() + "'");
@@ -284,15 +284,15 @@ namespace
             return false;
         }
 
-        Wayfinder::MaterialAsset materialAsset;
         std::string materialError;
-        if (!Wayfinder::LoadMaterialAssetFromFile(materialRecord->Path, materialAsset, materialError))
+        const Wayfinder::MaterialAsset* materialAsset = assetService.LoadMaterialAsset(*materialAssetId, materialError);
+        if (!materialAsset)
         {
             errors.push_back(materialError);
             return false;
         }
 
-        toml::table mergedMaterialTable = Wayfinder::CreateMaterialComponentTable(materialAsset);
+        toml::table mergedMaterialTable = Wayfinder::CreateMaterialComponentTable(*materialAsset);
         MergeTables(mergedMaterialTable, *materialTable);
         *materialTable = std::move(mergedMaterialTable);
         return true;
@@ -301,7 +301,7 @@ namespace
 
 namespace Wayfinder
 {
-    SceneDocumentLoadResult LoadSceneDocument(const std::string& filePath, const SceneComponentRegistry& registry)
+    SceneDocumentLoadResult LoadSceneDocument(const std::string& filePath, const SceneComponentRegistry& registry, AssetService* assetService)
     {
         SceneDocumentLoadResult result;
 
@@ -310,14 +310,15 @@ namespace Wayfinder
             const std::filesystem::path scenePath = std::filesystem::weakly_canonical(std::filesystem::path(filePath));
             const std::filesystem::path assetRoot = FindAssetRoot(scenePath);
             toml::table sceneData = toml::parse_file(filePath);
-            AssetRegistry assetRegistry;
+            AssetService localAssetService;
+            AssetService& activeAssetService = assetService ? *assetService : localAssetService;
             std::string assetRegistryError;
             std::unordered_map<std::string, SceneDocumentEntity> prefabCache;
             SceneDocument document;
             std::unordered_set<std::string> entityNames;
             std::unordered_set<SceneObjectId> entityIds;
 
-            if (!assetRoot.empty() && !assetRegistry.BuildFromDirectory(assetRoot, assetRegistryError))
+            if (!activeAssetService.SetAssetRoot(assetRoot, assetRegistryError))
             {
                 result.Errors.push_back(assetRegistryError);
                 return result;
@@ -353,7 +354,7 @@ namespace Wayfinder
 
                 if (definition.PrefabAssetId)
                 {
-                    const AssetRecord* prefabRecord = assetRegistry.ResolveRecord(*definition.PrefabAssetId);
+                    const AssetRecord* prefabRecord = activeAssetService.ResolveRecord(*definition.PrefabAssetId);
                     if (!prefabRecord)
                     {
                         result.Errors.push_back(entityLabel + " references missing prefab asset id '" + definition.PrefabAssetId->ToString() + "'");
@@ -382,7 +383,7 @@ namespace Wayfinder
                     definition = std::move(mergedDefinition);
                 }
 
-                if (!ResolveMaterialComponentData(definition, assetRegistry, entityLabel, result.Errors))
+                if (!ResolveMaterialComponentData(definition, activeAssetService, entityLabel, result.Errors))
                 {
                     ++index;
                     continue;

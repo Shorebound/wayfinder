@@ -57,6 +57,8 @@ It is responsible for:
 
 It should remain the place where scene data becomes runtime state. Authored file parsing and serialization should stay outside the runtime `Scene` object so the runtime boundary does not turn into a giant parser switchboard.
 
+Scene loading now relies on a shared asset service for prefab and material resolution so validation and runtime preparation do not silently diverge around separate asset-registry scans.
+
 ### Entities And Components
 
 `Entity` is a lightweight handle over Flecs state. Components should stay narrow and data-oriented.
@@ -96,6 +98,8 @@ What is still incomplete is the shape of the extracted data and the pipeline tha
 The service layer currently exposes platform-facing systems such as input, time, graphics context, and render API access.
 
 This is acceptable as a short-term convenience boundary. It should not become the default dependency mechanism for gameplay rules, editor state, or authoring workflows.
+
+Asset lookup is no longer duplicated inside the renderer. Scene loading and renderer preparation now consume a shared runtime asset service owned above the scene and renderer boundaries.
 
 ## Current Boot Flow
 

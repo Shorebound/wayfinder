@@ -10,6 +10,7 @@
 namespace
 {
     constexpr uint64_t kBuiltInBoxMeshKey = 1;
+    constexpr uint64_t kBuiltInSurfaceMaterialKey = 1;
 
     uint64_t MakeStableKey(const Wayfinder::AssetId& assetId)
     {
@@ -63,14 +64,14 @@ namespace Wayfinder
             submission.Geometry.Type = RenderGeometryType::Box;
             submission.Geometry.Dimensions = mesh.Dimensions;
             submission.Material.Handle.Origin = RenderResourceOrigin::BuiltIn;
-            submission.Material.Handle.StableKey = mesh.Wireframe ? 2ull : 1ull;
+            submission.Material.Handle.StableKey = kBuiltInSurfaceMaterialKey;
             submission.Material.Domain = RenderMaterialDomain::Surface;
-            submission.Material.BaseColor = mesh.Albedo;
-            submission.Material.HasBaseColorOverride = true;
+            submission.Material.BaseColor = Color::White();
+            submission.Material.HasBaseColorOverride = false;
             submission.Material.WireframeColor = Color::DarkGray();
-            submission.Material.HasWireframeColorOverride = true;
-            submission.Material.FillMode = mesh.Wireframe ? RenderFillMode::SolidAndWireframe : RenderFillMode::Solid;
-            submission.Material.HasFillModeOverride = true;
+            submission.Material.HasWireframeColorOverride = false;
+            submission.Material.FillMode = RenderFillMode::SolidAndWireframe;
+            submission.Material.HasFillModeOverride = false;
 
             Matrix4 localToWorld = transform.GetLocalMatrix();
 

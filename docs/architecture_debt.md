@@ -65,6 +65,7 @@ Recommended next move:
 Current status:
 
 - asset scanning now distinguishes prefab and material assets
+- scene validation and renderer preparation now share the same asset-service view of the active asset root
 - the material path is still intentionally simple and Raylib-oriented
 
 Why it matters:
@@ -74,7 +75,8 @@ Why it matters:
 Recommended next move:
 
 - add explicit asset categories only when they have runtime consumers and headless validation
-- keep material assets narrow until extracted frame data exists
+- keep building on the shared asset service instead of reintroducing subsystem-local registries
+- keep material assets narrow until extracted frame data and pass needs justify expansion
 
 ## What To Avoid
 

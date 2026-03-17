@@ -1,5 +1,9 @@
 #pragma once
 
+#include <cstdint>
+#include <memory>
+#include <string>
+
 #include "../core/BackendConfig.h"
 
 namespace Wayfinder

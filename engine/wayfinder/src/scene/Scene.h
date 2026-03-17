@@ -1,6 +1,7 @@
 #pragma once
 
 #include <filesystem>
+#include <memory>
 #include <string>
 
 #include <flecs.h>
@@ -11,6 +12,7 @@
 
 namespace Wayfinder
 {
+    class AssetService;
     class Entity;
 
     class WAYFINDER_API Scene
@@ -28,6 +30,8 @@ namespace Wayfinder
         Entity GetEntityById(const SceneObjectId& id);
         bool LoadFromFile(const std::string& filePath);
         bool SaveToFile(const std::string& filePath) const;
+        void SetAssetService(const std::shared_ptr<AssetService>& assetService) { m_assetService = assetService; }
+        const std::shared_ptr<AssetService>& GetAssetService() const { return m_assetService; }
 
         const std::string& GetName() const { return m_name; }
         const std::filesystem::path& GetSourcePath() const { return m_sourcePath; }
@@ -45,6 +49,7 @@ namespace Wayfinder
         std::string m_name;
         std::filesystem::path m_sourcePath;
         std::filesystem::path m_assetRoot;
+        std::shared_ptr<AssetService> m_assetService;
         flecs::world m_world; // The main ECS database
         bool m_initialized;
     };
