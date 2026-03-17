@@ -52,17 +52,12 @@ namespace Wayfinder
                     return false;
                 }
 
-                const std::optional<AssetKind> parsedAssetKind = ParseKind(*assetTypeText);
-                if (!parsedAssetKind)
+                if (!AssetSchemaRegistry::ValidateDocument(*assetTypeText, document, entry.path(), error))
                 {
-                    error = "Asset '" + entry.path().generic_string() + "' has unsupported asset_type '" + *assetTypeText + "'. Expected 'prefab' or 'material'.";
                     return false;
                 }
 
-                if (!AssetSchemaRegistry::ValidateDocument(*parsedAssetKind, document, entry.path(), error))
-                {
-                    return false;
-                }
+                const std::optional<AssetKind> parsedAssetKind = AssetSchemaRegistry::ResolveBuiltinKind(*assetTypeText);
 
                 const std::filesystem::path canonicalPath = std::filesystem::weakly_canonical(entry.path());
                 if (m_assetRecordsById.find(*assetId) != m_assetRecordsById.end())
@@ -73,7 +68,8 @@ namespace Wayfinder
 
                 AssetRecord record;
                 record.Id = *assetId;
-                record.Kind = *parsedAssetKind;
+                record.TypeName = *assetTypeText;
+                record.Kind = parsedAssetKind.value_or(AssetKind::Unknown);
                 record.Path = canonicalPath;
                 record.Name = document[kNameKey].value_or(entry.path().stem().string());
                 m_assetRecordsById.emplace(*assetId, std::move(record));
@@ -111,17 +107,7 @@ namespace Wayfinder
 
     std::optional<AssetKind> AssetRegistry::ParseKind(const std::string_view text)
     {
-        if (text == "prefab")
-        {
-            return AssetKind::Prefab;
-        }
-
-        if (text == "material")
-        {
-            return AssetKind::Material;
-        }
-
-        return std::nullopt;
+        return AssetSchemaRegistry::ResolveBuiltinKind(text);
     }
 
     std::string_view AssetRegistry::ToString(const AssetKind kind)

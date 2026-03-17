@@ -21,6 +21,7 @@ namespace Wayfinder
     struct WAYFINDER_API AssetRecord
     {
         AssetId Id;
+        std::string TypeName;
         AssetKind Kind = AssetKind::Unknown;
         std::filesystem::path Path;
         std::string Name;

@@ -280,7 +280,7 @@ namespace
         {
             errors.push_back(
                 sourceLabel + " references asset id '" + materialAssetId->ToString() + "' as a material, but it is registered as '"
-                + std::string{Wayfinder::AssetRegistry::ToString(materialRecord->Kind)} + "'");
+                + materialRecord->TypeName + "'");
             return false;
         }
 
@@ -365,7 +365,7 @@ namespace Wayfinder
                     {
                         result.Errors.push_back(
                             entityLabel + " references asset id '" + definition.PrefabAssetId->ToString() + "' as a prefab, but it is registered as '"
-                            + std::string{AssetRegistry::ToString(prefabRecord->Kind)} + "'");
+                            + prefabRecord->TypeName + "'");
                         ++index;
                         continue;
                     }
