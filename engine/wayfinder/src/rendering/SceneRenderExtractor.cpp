@@ -103,6 +103,14 @@ namespace Wayfinder
                 }
             }
 
+            if (entityHandle.has<RenderableComponent>())
+            {
+                const auto& renderable = entityHandle.get<RenderableComponent>();
+                submission.Visible = renderable.Visible;
+                submission.Layer = renderable.Layer;
+                submission.SortPriority = renderable.SortPriority;
+            }
+
             submission.LocalToWorld = localToWorld;
             submission.SortKey = BuildSortKey(submission.Material.Handle.AssetId, submission.Geometry.Type);
             frame.Meshes.push_back(submission);

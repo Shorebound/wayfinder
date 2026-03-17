@@ -6,6 +6,7 @@
 #include <vector>
 
 #include "../core/Identifiers.h"
+#include "RenderIntent.h"
 #include "RenderAPI.h"
 
 namespace Wayfinder
@@ -78,6 +79,9 @@ namespace Wayfinder
         Matrix4 LocalToWorld = Matrix4::Identity();
         RenderGeometry Geometry{};
         RenderMaterialBinding Material{};
+        bool Visible = true;
+        RenderSceneLayer Layer = RenderSceneLayer::Main;
+        uint8_t SortPriority = 128;
         uint64_t SortKey = 0;
     };
 

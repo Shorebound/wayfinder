@@ -6,6 +6,7 @@
 
 #include <algorithm>
 #include <array>
+#include <tuple>
 
 namespace
 {
@@ -61,12 +62,17 @@ namespace Wayfinder
         sortedMeshes.reserve(frame.Meshes.size());
         for (const RenderMeshSubmission& mesh : frame.Meshes)
         {
+            if (!mesh.Visible)
+            {
+                continue;
+            }
+
             sortedMeshes.push_back(&mesh);
         }
 
         std::stable_sort(sortedMeshes.begin(), sortedMeshes.end(), [](const RenderMeshSubmission* lhs, const RenderMeshSubmission* rhs)
         {
-            return lhs->SortKey < rhs->SortKey;
+            return std::tie(lhs->Layer, lhs->SortPriority, lhs->SortKey) < std::tie(rhs->Layer, rhs->SortPriority, rhs->SortKey);
         });
 
         for (const RenderMeshSubmission* mesh : sortedMeshes)

@@ -22,7 +22,7 @@ Why it matters:
 Recommended next move:
 
 - keep expanding the frame model as the single render submission boundary
-- make material and renderable state more explicit so future passes do not need scene-component knowledge
+- keep material and renderable state explicit so future passes do not need scene-component knowledge
 - move viewport-only overlays and future debug primitives through the same extracted path
 
 ## Priority 2: Service Locator Scope

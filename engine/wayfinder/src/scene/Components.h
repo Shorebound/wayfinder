@@ -5,6 +5,7 @@
 
 #include "../core/Identifiers.h"
 #include "../maths/Maths.h"
+#include "../rendering/RenderIntent.h"
 #include "../rendering/RenderAPI.h"
 
 namespace Wayfinder
@@ -110,6 +111,16 @@ namespace Wayfinder
 
         MaterialComponent() = default;
         MaterialComponent(const MaterialComponent&) = default;
+    };
+
+    struct RenderableComponent
+    {
+        bool Visible = true;
+        RenderSceneLayer Layer = RenderSceneLayer::Main;
+        uint8_t SortPriority = 128;
+
+        RenderableComponent() = default;
+        RenderableComponent(const RenderableComponent&) = default;
     };
 
     struct PrefabInstanceComponent

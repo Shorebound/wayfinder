@@ -144,6 +144,19 @@ namespace
         return "point";
     }
 
+    const char* ToString(Wayfinder::RenderSceneLayer layer)
+    {
+        switch (layer)
+        {
+        case Wayfinder::RenderSceneLayer::Main:
+            return "main";
+        case Wayfinder::RenderSceneLayer::Overlay:
+            return "overlay";
+        }
+
+        return "main";
+    }
+
     Wayfinder::MeshPrimitive ReadPrimitive(const toml::table& table, const char* key, Wayfinder::MeshPrimitive fallback)
     {
         const auto primitive = table[key].value<std::string>();
@@ -192,6 +205,27 @@ namespace
         if (*type == "point")
         {
             return Wayfinder::LightType::Point;
+        }
+
+        return fallback;
+    }
+
+    Wayfinder::RenderSceneLayer ReadRenderLayer(const toml::table& table, const char* key, Wayfinder::RenderSceneLayer fallback)
+    {
+        const auto layer = table[key].value<std::string>();
+        if (!layer)
+        {
+            return fallback;
+        }
+
+        if (*layer == "overlay")
+        {
+            return Wayfinder::RenderSceneLayer::Overlay;
+        }
+
+        if (*layer == "main")
+        {
+            return Wayfinder::RenderSceneLayer::Main;
         }
 
         return fallback;
@@ -392,6 +426,13 @@ namespace
             && ValidateOptionalBool(componentTable, "wireframe", error);
     }
 
+    bool ValidateRenderable(const toml::table& componentTable, std::string& error)
+    {
+        return ValidateOptionalBool(componentTable, "visible", error)
+            && ValidateOptionalEnumValue(componentTable, "layer", {"main", "overlay"}, error)
+            && ValidateOptionalNumber(componentTable, "sort_priority", error);
+    }
+
     void ApplyTransform(const toml::table& componentTable, Wayfinder::Entity& entity)
     {
         Wayfinder::TransformComponent transform;
@@ -450,6 +491,17 @@ namespace
         }
 
         entity.AddComponent<Wayfinder::MaterialComponent>(material);
+    }
+
+    void ApplyRenderable(const toml::table& componentTable, Wayfinder::Entity& entity)
+    {
+        Wayfinder::RenderableComponent renderable;
+        renderable.Visible = componentTable["visible"].value_or(renderable.Visible);
+        renderable.Layer = ReadRenderLayer(componentTable, "layer", renderable.Layer);
+
+        const int64_t sortPriority = componentTable["sort_priority"].value_or(static_cast<int64_t>(renderable.SortPriority));
+        renderable.SortPriority = static_cast<uint8_t>(std::clamp<int64_t>(sortPriority, 0, 255));
+        entity.AddComponent<Wayfinder::RenderableComponent>(renderable);
     }
 
     void SerializeTransform(const Wayfinder::Entity& entity, toml::table& componentTables)
@@ -544,12 +596,28 @@ namespace
         componentTables.insert_or_assign("material", componentTable);
     }
 
-    constexpr std::array<Wayfinder::SceneComponentRegistry::Entry, 5> kEntries = {{
+    void SerializeRenderable(const Wayfinder::Entity& entity, toml::table& componentTables)
+    {
+        if (!entity.HasComponent<Wayfinder::RenderableComponent>())
+        {
+            return;
+        }
+
+        const Wayfinder::RenderableComponent& renderable = entity.GetComponent<Wayfinder::RenderableComponent>();
+        toml::table componentTable;
+        componentTable.insert_or_assign("visible", renderable.Visible);
+        componentTable.insert_or_assign("layer", std::string{ToString(renderable.Layer)});
+        componentTable.insert_or_assign("sort_priority", static_cast<int64_t>(renderable.SortPriority));
+        componentTables.insert_or_assign("renderable", componentTable);
+    }
+
+    constexpr std::array<Wayfinder::SceneComponentRegistry::Entry, 6> kEntries = {{
         {"transform", &RegisterComponent<Wayfinder::TransformComponent>, &ApplyTransform, &SerializeTransform, &ValidateTransform},
         {"mesh", &RegisterComponent<Wayfinder::MeshComponent>, &ApplyMesh, &SerializeMesh, &ValidateMesh},
         {"camera", &RegisterComponent<Wayfinder::CameraComponent>, &ApplyCamera, &SerializeCamera, &ValidateCamera},
         {"light", &RegisterComponent<Wayfinder::LightComponent>, &ApplyLight, &SerializeLight, &ValidateLight},
         {"material", &RegisterComponent<Wayfinder::MaterialComponent>, &ApplyMaterial, &SerializeMaterial, &ValidateMaterial},
+        {"renderable", &RegisterComponent<Wayfinder::RenderableComponent>, &ApplyRenderable, &SerializeRenderable, &ValidateRenderable},
     }};
 }
 

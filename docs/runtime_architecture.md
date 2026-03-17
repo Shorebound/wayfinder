@@ -63,6 +63,8 @@ It should remain the place where scene data becomes runtime state. Authored file
 
 The current runtime already works with explicit scene metadata, transform, mesh, camera, light, and prefab-reference style data. Hierarchy authority lives in Flecs `ChildOf` relationships, and runtime-only derived state such as world transforms and active camera selection is kept separate from authorable component data.
 
+Renderable intent is now also explicit instead of being decided only by "entity has a mesh" rules. Scene data can describe visibility, scene layer, and sort priority through the authorable `renderable` component, and extraction carries that intent forward into `RenderFrame` submissions.
+
 ### Runtime Modules
 
 Scene-scoped runtime logic should be registered explicitly as modules and systems.
