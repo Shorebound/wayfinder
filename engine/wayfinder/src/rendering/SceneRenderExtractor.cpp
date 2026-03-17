@@ -53,6 +53,23 @@ namespace Wayfinder
                 view.CameraState.FOV = activeCamera.FieldOfView;
                 view.CameraState.ProjectionType = static_cast<int>(activeCamera.Projection);
                 frame.Views.push_back(view);
+
+                RenderPass mainScenePass;
+                mainScenePass.Kind = RenderPassKind::Scene;
+                mainScenePass.ViewIndex = 0;
+                mainScenePass.SceneLayer = RenderSceneLayer::Main;
+                frame.Passes.push_back(mainScenePass);
+
+                RenderPass overlayScenePass;
+                overlayScenePass.Kind = RenderPassKind::Scene;
+                overlayScenePass.ViewIndex = 0;
+                overlayScenePass.SceneLayer = RenderSceneLayer::Overlay;
+                frame.Passes.push_back(overlayScenePass);
+
+                RenderPass debugPass;
+                debugPass.Kind = RenderPassKind::Debug;
+                debugPass.ViewIndex = 0;
+                frame.Passes.push_back(debugPass);
             }
         }
 

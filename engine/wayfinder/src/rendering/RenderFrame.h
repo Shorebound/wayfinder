@@ -1,6 +1,7 @@
 #pragma once
 
 #include <filesystem>
+#include <cstddef>
 #include <optional>
 #include <string>
 #include <vector>
@@ -126,11 +127,26 @@ namespace Wayfinder
         bool IsPrimary = true;
     };
 
+    enum class RenderPassKind
+    {
+        Scene,
+        Debug
+    };
+
+    struct RenderPass
+    {
+        RenderPassKind Kind = RenderPassKind::Scene;
+        size_t ViewIndex = 0;
+        std::optional<RenderSceneLayer> SceneLayer;
+        bool Enabled = true;
+    };
+
     struct RenderFrame
     {
         std::string SceneName;
         std::filesystem::path AssetRoot;
         std::vector<RenderView> Views;
+        std::vector<RenderPass> Passes;
         std::vector<RenderMeshSubmission> Meshes;
         std::vector<RenderLightSubmission> Lights;
         RenderDebugDrawList Debug;

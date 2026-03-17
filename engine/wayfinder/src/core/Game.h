@@ -1,5 +1,10 @@
 #pragma once
 
+#include <memory>
+#include <string>
+
+#include "wayfinder_exports.h"
+
 namespace Wayfinder
 {
     class AssetService;

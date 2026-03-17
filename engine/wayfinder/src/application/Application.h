@@ -36,7 +36,7 @@ namespace Wayfinder
             bool VSync = false;
             BackendConfig Backends{};
 
-            CommandLineArgs CommandLineArgs;
+            CommandLineArgs Arguments;
         };
 
         Application(const Config& config = {});

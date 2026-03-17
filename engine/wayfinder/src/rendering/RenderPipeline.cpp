@@ -5,16 +5,7 @@
 #include "RenderResources.h"
 
 #include <algorithm>
-#include <array>
 #include <tuple>
-
-namespace
-{
-    constexpr std::array<Wayfinder::RenderPassKind, 2> kPassOrder = {
-        Wayfinder::RenderPassKind::Scene,
-        Wayfinder::RenderPassKind::Debug,
-    };
-}
 
 namespace Wayfinder
 {
@@ -30,23 +21,31 @@ namespace Wayfinder
             WAYFINDER_WARNING(LogRenderer, "RenderPipeline currently supports a single active view with the Raylib backend. Rendering only the first view out of {0}.", frame.Views.size());
         }
 
-        ExecuteView(frame, frame.Views.front(), renderAPI, resources);
-    }
-
-    void RenderPipeline::ExecuteView(const RenderFrame& frame, const RenderView& view, IRenderAPI& renderAPI, RenderResourceCache& resources) const
-    {
-        for (const RenderPassKind pass : kPassOrder)
+        for (const RenderPass& pass : frame.Passes)
         {
-            ExecutePass(pass, frame, view, renderAPI, resources);
+            ExecutePass(pass, frame, renderAPI, resources);
         }
     }
 
-    void RenderPipeline::ExecutePass(RenderPassKind pass, const RenderFrame& frame, const RenderView& view, IRenderAPI& renderAPI, RenderResourceCache& resources) const
+    void RenderPipeline::ExecutePass(const RenderPass& pass, const RenderFrame& frame, IRenderAPI& renderAPI, RenderResourceCache& resources) const
     {
-        switch (pass)
+        if (!pass.Enabled)
+        {
+            return;
+        }
+
+        if (pass.ViewIndex >= frame.Views.size())
+        {
+            WAYFINDER_WARNING(LogRenderer, "RenderPipeline skipped pass because it referenced missing view index {0} for frame '{1}'.", pass.ViewIndex, frame.SceneName);
+            return;
+        }
+
+        const RenderView& view = frame.Views[pass.ViewIndex];
+
+        switch (pass.Kind)
         {
         case RenderPassKind::Scene:
-            ExecuteScenePass(frame, view, renderAPI, resources);
+            ExecuteScenePass(pass, frame, view, renderAPI, resources);
             break;
         case RenderPassKind::Debug:
             ExecuteDebugPass(frame, view, renderAPI);
@@ -54,7 +53,7 @@ namespace Wayfinder
         }
     }
 
-    void RenderPipeline::ExecuteScenePass(const RenderFrame& frame, const RenderView& view, IRenderAPI& renderAPI, RenderResourceCache& resources) const
+    void RenderPipeline::ExecuteScenePass(const RenderPass& pass, const RenderFrame& frame, const RenderView& view, IRenderAPI& renderAPI, RenderResourceCache& resources) const
     {
         renderAPI.Begin3DMode(view.CameraState);
 
@@ -63,6 +62,11 @@ namespace Wayfinder
         for (const RenderMeshSubmission& mesh : frame.Meshes)
         {
             if (!mesh.Visible)
+            {
+                continue;
+            }
+
+            if (pass.SceneLayer && mesh.Layer != *pass.SceneLayer)
             {
                 continue;
             }
