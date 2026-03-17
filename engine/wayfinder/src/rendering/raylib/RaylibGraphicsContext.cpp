@@ -3,9 +3,15 @@
 
 namespace Wayfinder
 {
-    std::unique_ptr<IGraphicsContext> IGraphicsContext::Create()
+    std::unique_ptr<IGraphicsContext> IGraphicsContext::Create(RenderBackend backend)
     {
-        return std::make_unique<RaylibGraphicsContext>();
+        switch (backend)
+        {
+        case RenderBackend::Raylib:
+            return std::make_unique<RaylibGraphicsContext>();
+        }
+
+        return nullptr;
     }
 
     void RaylibGraphicsContext::Initialize()

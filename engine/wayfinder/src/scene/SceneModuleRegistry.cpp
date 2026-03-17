@@ -12,7 +12,7 @@ namespace
         world.component<T>();
     }
 
-    void UpdateWorldTransformRecursive(flecs::entity entityHandle, const Matrix& parentMatrix)
+    void UpdateWorldTransformRecursive(flecs::entity entityHandle, const Wayfinder::Matrix4& parentMatrix)
     {
         if (!entityHandle.has<Wayfinder::TransformComponent>())
         {
@@ -24,8 +24,8 @@ namespace
         }
 
         const Wayfinder::TransformComponent& localTransform = entityHandle.get<Wayfinder::TransformComponent>();
-        const Matrix localMatrix = localTransform.GetLocalMatrix();
-        const Matrix worldMatrix = MatrixMultiply(localMatrix, parentMatrix);
+        const Wayfinder::Matrix4 localMatrix = localTransform.GetLocalMatrix();
+        const Wayfinder::Matrix4 worldMatrix = Wayfinder::Math3D::Multiply(localMatrix, parentMatrix);
 
         Wayfinder::WorldTransformComponent cachedWorldTransform;
         cachedWorldTransform.LocalToWorld = worldMatrix;
@@ -49,7 +49,7 @@ namespace
             {
                 world.children([&](flecs::entity child)
                 {
-                    UpdateWorldTransformRecursive(child, MatrixIdentity());
+                    UpdateWorldTransformRecursive(child, Wayfinder::Math3D::Identity());
                 });
             });
     }
@@ -80,7 +80,7 @@ namespace
                         const auto& worldTransform = entityHandle.get<Wayfinder::WorldTransformComponent>();
                         activeCamera.Position = worldTransform.Position;
                         activeCamera.Target = Wayfinder::Math3D::TransformPoint(worldTransform.LocalToWorld, camera.Target);
-                        activeCamera.Up = Vector3Normalize(Wayfinder::Math3D::TransformDirection(worldTransform.LocalToWorld, camera.Up));
+                        activeCamera.Up = Wayfinder::Math3D::Normalize(Wayfinder::Math3D::TransformDirection(worldTransform.LocalToWorld, camera.Up));
                     }
                     else
                     {

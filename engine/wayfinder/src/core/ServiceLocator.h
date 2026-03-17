@@ -1,5 +1,7 @@
 #pragma once
 
+#include "BackendConfig.h"
+
 namespace Wayfinder
 {
     // Forward declarations
@@ -12,7 +14,7 @@ namespace Wayfinder
     class WAYFINDER_API ServiceLocator
     {
     public:
-        static void Initialize();
+        static void Initialize(const BackendConfig& config = {});
         static void Shutdown();
 
         static Input& GetInput();

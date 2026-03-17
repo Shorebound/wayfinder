@@ -3,9 +3,15 @@
 
 namespace Wayfinder
 {
-    std::unique_ptr<Time> Time::Create()
+    std::unique_ptr<Time> Time::Create(PlatformBackend backend)
     {
-        return std::make_unique<RaylibTime>();
+        switch (backend)
+        {
+        case PlatformBackend::Raylib:
+            return std::make_unique<RaylibTime>();
+        }
+
+        return nullptr;
     }
 
     RaylibTime::RaylibTime() : m_deltaTime(0.0f), m_elapsedTime(0.0f), m_StartTime(GetTime())

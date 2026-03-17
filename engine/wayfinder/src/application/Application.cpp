@@ -30,7 +30,7 @@ namespace Wayfinder
         WAYFINDER_INFO(LogEngine, "Initializing Wayfinder Engine");
 
         // Initialize the service locator with platform services
-        ServiceLocator::Initialize();
+        ServiceLocator::Initialize(m_config.Backends);
 
         // Create and initialize window
         //m_window = ServiceLocator::GetWindow();
@@ -42,7 +42,7 @@ namespace Wayfinder
             m_config.WindowTitle,
             m_config.VSync};
         
-        m_window = Window::Create(windowConfig);
+        m_window = Window::Create(windowConfig, m_config.Backends.Platform);
         m_game = std::make_unique<Game>();
         m_renderer = std::make_unique<Renderer>();
         m_sceneRenderExtractor = std::make_unique<SceneRenderExtractor>();

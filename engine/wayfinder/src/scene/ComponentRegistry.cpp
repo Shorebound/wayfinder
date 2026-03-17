@@ -57,7 +57,7 @@ namespace
         return fallback;
     }
 
-    Vector3 ReadVector3(const toml::table& table, const char* key, const Vector3& fallback)
+    Wayfinder::Float3 ReadVector3(const toml::table& table, const char* key, const Wayfinder::Float3& fallback)
     {
         const toml::array* values = table[key].as_array();
         if (!values || values->size() != 3)
@@ -65,14 +65,14 @@ namespace
             return fallback;
         }
 
-        Vector3 result = fallback;
+        Wayfinder::Float3 result = fallback;
         result.x = ReadArrayFloat(*values, 0, result.x);
         result.y = ReadArrayFloat(*values, 1, result.y);
         result.z = ReadArrayFloat(*values, 2, result.z);
         return result;
     }
 
-    toml::array WriteVector3(const Vector3& value)
+    toml::array WriteVector3(const Wayfinder::Float3& value)
     {
         toml::array result;
         result.push_back(value.x);

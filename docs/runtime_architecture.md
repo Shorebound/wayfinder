@@ -18,6 +18,8 @@ At a high level, the runtime is organized like this:
 
 Today, the active backend is raylib and the active ECS is Flecs.
 
+Runtime-facing scene data now uses engine-owned math and render value types rather than exposing Raylib vector and matrix types through scene components.
+
 ## Key Boundaries
 
 ### Application
@@ -29,6 +31,7 @@ It is responsible for:
 - process startup and shutdown
 - window creation
 - low-level service initialization
+- selecting the current platform and rendering backends through the bootstrap configuration
 - running the main loop
 - creating the `Game` and `Renderer`
 
@@ -135,7 +138,7 @@ These areas are real but intentionally unfinished:
 
 - the narrow extracted render-frame model
 - the small explicit `RenderPipeline` pass list
-- the current raylib-shaped rendering internals
+- the current Raylib-backed platform and rendering implementations
 - service locator usage as the main cross-cutting convenience layer
 
 ## Architectural Rules

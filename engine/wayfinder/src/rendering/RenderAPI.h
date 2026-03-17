@@ -5,6 +5,7 @@
 #include <memory>
 #include <string>
 
+#include "../core/BackendConfig.h"
 #include "wayfinder_exports.h"
 
 namespace Wayfinder
@@ -86,6 +87,6 @@ namespace Wayfinder
         virtual void DrawBoxWires(const Matrix4& transform, const Float3& size, const Color& color) = 0;
         virtual void DrawLine3D(const Float3& start, const Float3& end, const Color& color) = 0;
         
-        static std::unique_ptr<IRenderAPI> Create();
+        static std::unique_ptr<IRenderAPI> Create(RenderBackend backend = RenderBackend::Raylib);
     };
 }

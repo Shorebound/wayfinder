@@ -1,5 +1,7 @@
 #pragma once
 
+#include "../core/BackendConfig.h"
+
 namespace Wayfinder
 {
     // Interface for graphics context
@@ -15,6 +17,6 @@ namespace Wayfinder
         virtual void EndFrame() = 0;
         virtual void Clear(float r, float g, float b, float a = 1.0f) = 0;
         
-        static std::unique_ptr<IGraphicsContext> Create();
+        static std::unique_ptr<IGraphicsContext> Create(RenderBackend backend = RenderBackend::Raylib);
     };
 }

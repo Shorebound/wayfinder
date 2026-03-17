@@ -3,9 +3,15 @@
 
 namespace Wayfinder
 {
-    std::unique_ptr<Window> Window::Create(const Window::Config& config)
+    std::unique_ptr<Window> Window::Create(const Window::Config& config, PlatformBackend backend)
     {
-        return std::make_unique<RaylibWindow>(config);
+        switch (backend)
+        {
+        case PlatformBackend::Raylib:
+            return std::make_unique<RaylibWindow>(config);
+        }
+
+        return nullptr;
     }
 
     RaylibWindow::RaylibWindow(const Window::Config& config)

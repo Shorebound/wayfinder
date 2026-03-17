@@ -3,9 +3,6 @@
 #include <optional>
 #include <string>
 
-#include "raylib.h"
-#include "raymath.h"
-
 #include "../core/Identifiers.h"
 #include "../maths/Maths.h"
 #include "../rendering/RenderAPI.h"
@@ -50,15 +47,15 @@ namespace Wayfinder
 
     struct TransformComponent
     {
-        Vector3 Position = { 0.0f, 0.0f, 0.0f };
-        Vector3 Rotation = { 0.0f, 0.0f, 0.0f };
-        Vector3 Scale = { 1.0f, 1.0f, 1.0f };
+        Float3 Position = { 0.0f, 0.0f, 0.0f };
+        Float3 Rotation = { 0.0f, 0.0f, 0.0f };
+        Float3 Scale = { 1.0f, 1.0f, 1.0f };
 
         TransformComponent() = default;
         TransformComponent(const TransformComponent&) = default;
-        TransformComponent(const Vector3& position) : Position(position) {}
+        TransformComponent(const Float3& position) : Position(position) {}
 
-        Matrix GetLocalMatrix() const
+        Matrix4 GetLocalMatrix() const
         {
             return Math3D::ComposeTransform(Position, Rotation, Scale);
         }
@@ -66,9 +63,9 @@ namespace Wayfinder
 
     struct WorldTransformComponent
     {
-        Vector3 Position = { 0.0f, 0.0f, 0.0f };
-        Vector3 Scale = { 1.0f, 1.0f, 1.0f };
-        Matrix LocalToWorld = MatrixIdentity();
+        Float3 Position = { 0.0f, 0.0f, 0.0f };
+        Float3 Scale = { 1.0f, 1.0f, 1.0f };
+        Matrix4 LocalToWorld = Matrix4::Identity();
 
         WorldTransformComponent() = default;
         WorldTransformComponent(const WorldTransformComponent&) = default;
@@ -77,9 +74,9 @@ namespace Wayfinder
     struct ActiveCameraStateComponent
     {
         bool IsValid = false;
-        Vector3 Position = { 0.0f, 0.0f, 0.0f };
-        Vector3 Target = { 0.0f, 0.0f, 0.0f };
-        Vector3 Up = { 0.0f, 1.0f, 0.0f };
+        Float3 Position = { 0.0f, 0.0f, 0.0f };
+        Float3 Target = { 0.0f, 0.0f, 0.0f };
+        Float3 Up = { 0.0f, 1.0f, 0.0f };
         float FieldOfView = 45.0f;
         ProjectionMode Projection = ProjectionMode::Perspective;
 
@@ -95,7 +92,7 @@ namespace Wayfinder
     struct MeshComponent
     {
         MeshPrimitive Primitive = MeshPrimitive::Cube;
-        Vector3 Dimensions = { 1.0f, 1.0f, 1.0f };
+        Float3 Dimensions = { 1.0f, 1.0f, 1.0f };
         Color Albedo = Color::Red();
         bool Wireframe = true;
 
@@ -127,8 +124,8 @@ namespace Wayfinder
     struct CameraComponent
     {
         bool Primary = false;
-        Vector3 Target = { 0.0f, 0.0f, 0.0f };
-        Vector3 Up = { 0.0f, 1.0f, 0.0f };
+        Float3 Target = { 0.0f, 0.0f, 0.0f };
+        Float3 Up = { 0.0f, 1.0f, 0.0f };
         float FieldOfView = 45.0f;
         ProjectionMode Projection = ProjectionMode::Perspective;
 

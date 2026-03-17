@@ -1,5 +1,7 @@
 #pragma once
 
+#include "../core/BackendConfig.h"
+
 namespace Wayfinder
 {
     // Interface for time management
@@ -13,6 +15,6 @@ namespace Wayfinder
         virtual float GetElapsedTime() const = 0;
         virtual double GetTimeSinceStartup() const = 0;
 
-        static std::unique_ptr<Time> Create();
+        static std::unique_ptr<Time> Create(PlatformBackend backend = PlatformBackend::Raylib);
     };
 }

@@ -1,5 +1,7 @@
 #pragma once
 
+#include "../core/BackendConfig.h"
+
 namespace Wayfinder
 {
     class Game;
@@ -28,6 +30,7 @@ namespace Wayfinder
             uint32_t ScreenHeight = 450;
             std::string WindowTitle = "Wayfinder Engine";
             bool VSync = false;
+            BackendConfig Backends{};
 
             CommandLineArgs CommandLineArgs;
         };

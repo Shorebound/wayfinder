@@ -13,12 +13,12 @@ namespace Wayfinder
     std::unique_ptr<IGraphicsContext> ServiceLocator::s_graphicsContext = nullptr;
     std::unique_ptr<IRenderAPI> ServiceLocator::s_renderAPI = nullptr;
 
-    void ServiceLocator::Initialize()
+    void ServiceLocator::Initialize(const BackendConfig& config)
     {
-        s_input = Input::Create();
-        s_time = Time::Create();
-        s_graphicsContext = IGraphicsContext::Create();
-        s_renderAPI = IRenderAPI::Create();
+        s_input = Input::Create(config.Platform);
+        s_time = Time::Create(config.Platform);
+        s_graphicsContext = IGraphicsContext::Create(config.Rendering);
+        s_renderAPI = IRenderAPI::Create(config.Rendering);
 
         s_graphicsContext->Initialize();
         s_renderAPI->Initialize();

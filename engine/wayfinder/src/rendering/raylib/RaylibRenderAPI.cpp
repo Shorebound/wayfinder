@@ -5,9 +5,15 @@
 
 namespace Wayfinder
 {
-    std::unique_ptr<IRenderAPI> IRenderAPI::Create()
+    std::unique_ptr<IRenderAPI> IRenderAPI::Create(RenderBackend backend)
     {
-        return std::make_unique<RaylibRenderAPI>();
+        switch (backend)
+        {
+        case RenderBackend::Raylib:
+            return std::make_unique<RaylibRenderAPI>();
+        }
+
+        return nullptr;
     }
 
     void RaylibRenderAPI::Initialize()

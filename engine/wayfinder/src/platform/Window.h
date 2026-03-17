@@ -1,5 +1,7 @@
 #pragma once
 
+#include "../core/BackendConfig.h"
+
 namespace Wayfinder
 {
     class WAYFINDER_API Window
@@ -48,7 +50,9 @@ namespace Wayfinder
         // Optional: Set event callback if using an event system
         // virtual void SetEventCallback(const EventCallbackFn& callback) = 0;
 
-        static std::unique_ptr<Window> Create(const Window::Config& config = {}); // Changed to return std::unique_ptr<Window>
+        static std::unique_ptr<Window> Create(
+            const Window::Config& config = {},
+            PlatformBackend backend = PlatformBackend::Raylib);
 
         
     };

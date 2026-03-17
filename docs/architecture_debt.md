@@ -47,7 +47,8 @@ Recommended next move:
 Current status:
 
 - `Application` now uses abstract window creation instead of directly naming the Raylib window backend
-- backend selection still lives in backend implementation files and compile-time wiring rather than a fuller runtime configuration layer
+- low-level platform and rendering creation now flow through an explicit backend configuration object during application bootstrap
+- backend implementations are still limited to Raylib, but the selection boundary no longer lives only inside backend implementation files
 
 Why it matters:
 
@@ -56,7 +57,8 @@ Why it matters:
 Recommended next move:
 
 - keep creation behind abstract factories
-- introduce a small renderer/platform backend configuration object before adding alternate backends
+- keep backend selection centralized in bootstrap code rather than letting backend `.cpp` files become hidden policy points
+- add alternative backends only after they can satisfy the current explicit factory surface honestly
 
 ## Priority 4: Asset Pipeline Depth
 

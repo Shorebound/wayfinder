@@ -3,9 +3,15 @@
 
 namespace Wayfinder
 {
-    std::unique_ptr<Input> Input::Create()
+    std::unique_ptr<Input> Input::Create(PlatformBackend backend)
     {
-        return std::make_unique<RaylibInput>();
+        switch (backend)
+        {
+        case PlatformBackend::Raylib:
+            return std::make_unique<RaylibInput>();
+        }
+
+        return nullptr;
     }
 
     bool RaylibInput::IsKeyPressed(int keycode) const

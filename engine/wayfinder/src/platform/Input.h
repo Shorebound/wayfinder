@@ -1,5 +1,7 @@
 #pragma once
 
+#include "../core/BackendConfig.h"
+
 #include <utility>
 #include <memory>
 
@@ -29,6 +31,6 @@ namespace Wayfinder
         virtual float GetMouseY() const = 0;
         virtual float GetMouseWheelMove() const = 0;
 
-        static std::unique_ptr<Input> Create();
+        static std::unique_ptr<Input> Create(PlatformBackend backend = PlatformBackend::Raylib);
     };
 }
