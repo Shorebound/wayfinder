@@ -45,7 +45,7 @@ namespace
 
         world.system<>("UpdateWorldTransforms")
             .kind(flecs::OnUpdate)
-            .each([&world](flecs::entity)
+            .run([&world](flecs::iter&)
             {
                 world.children([&](flecs::entity child)
                 {
@@ -60,7 +60,7 @@ namespace
 
         world.system<>("ExtractActiveCamera")
             .kind(flecs::OnUpdate)
-            .each([&world](flecs::entity)
+            .run([&world](flecs::iter&)
             {
                 Wayfinder::ActiveCameraStateComponent activeCamera;
 
