@@ -2,7 +2,7 @@
 
 #include "core/MouseCodes.h"
 #include "core/events/Event.h"
-#include <sstream>
+#include <format>
 
 namespace Wayfinder
 {
@@ -17,9 +17,7 @@ namespace Wayfinder
 
         std::string ToString() const override
         {
-            std::stringstream ss;
-            ss << GetName() << ": " << m_mouseX << ", " << m_mouseY;
-            return ss.str();
+            return std::format("{}: {}, {}", GetName(), m_mouseX, m_mouseY);
         }
 
     private:
@@ -37,9 +35,7 @@ namespace Wayfinder
 
         std::string ToString() const override
         {
-            std::stringstream ss;
-            ss << GetName() << ": " << GetXOffset() << ", " << GetYOffset();
-            return ss.str();
+            return std::format("{}: {}, {}", GetName(), m_xOffset, m_yOffset);
         }
 
     private:
@@ -65,9 +61,7 @@ namespace Wayfinder
 
         std::string ToString() const override
         {
-            std::stringstream ss;
-            ss << GetName() << ": " << m_button;
-            return ss.str();
+            return std::format("{}: {}", GetName(), m_button);
         }
     };
 
@@ -78,9 +72,7 @@ namespace Wayfinder
 
         std::string ToString() const override
         {
-            std::stringstream ss;
-            ss << GetName() << ": " << m_button;
-            return ss.str();
+            return std::format("{}: {}", GetName(), m_button);
         }
     };
 

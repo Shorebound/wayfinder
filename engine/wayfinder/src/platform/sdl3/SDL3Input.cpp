@@ -1,6 +1,7 @@
 #include "SDL3Input.h"
 
 #include <SDL3/SDL.h>
+#include <cstring>
 
 namespace Wayfinder
 {
@@ -15,54 +16,86 @@ namespace Wayfinder
         return nullptr;
     }
 
-    bool SDL3Input::IsKeyPressed(int keycode) const
+    SDL3Input::SDL3Input()
     {
-        // SDL3 doesn't have a built-in "pressed this frame" concept.
-        // This will be implemented with per-frame state tracking later.
-        return false;
+        m_currentKeys.fill(false);
+        m_previousKeys.fill(false);
+        m_currentMouseButtons.fill(false);
+        m_previousMouseButtons.fill(false);
     }
 
-    bool SDL3Input::IsKeyDown(int keycode) const
+    void SDL3Input::BeginFrame()
     {
-        const bool* state = SDL_GetKeyboardState(nullptr);
-        if (!state)
+        // Snapshot previous state
+        m_previousKeys = m_currentKeys;
+        m_previousMouseButtons = m_currentMouseButtons;
+
+        // Sample current keyboard state (scancodes index directly)
+        int numKeys = 0;
+        const bool* sdlKeys = SDL_GetKeyboardState(&numKeys);
+        if (sdlKeys)
         {
-            return false;
+            const int count = (numKeys < kMaxScancodes) ? numKeys : kMaxScancodes;
+            for (int i = 0; i < count; ++i)
+                m_currentKeys[i] = sdlKeys[i];
         }
 
-        SDL_Scancode scancode = SDL_GetScancodeFromKey(static_cast<SDL_Keycode>(keycode), nullptr);
-        return state[scancode];
+        // Sample current mouse button state
+        SDL_MouseButtonFlags mouseState = SDL_GetMouseState(nullptr, nullptr);
+        for (int i = 1; i < kMaxMouseButtons; ++i)
+            m_currentMouseButtons[i] = (mouseState & SDL_BUTTON_MASK(i)) != 0;
+
+        // Reset scroll accumulator
+        m_scrollX = 0.0f;
+        m_scrollY = 0.0f;
     }
 
-    bool SDL3Input::IsKeyReleased(int keycode) const
+    bool SDL3Input::IsKeyPressed(KeyCode key) const
     {
-        return false;
+        if (key >= kMaxScancodes) return false;
+        return m_currentKeys[key] && !m_previousKeys[key];
     }
 
-    bool SDL3Input::IsKeyUp(int keycode) const
+    bool SDL3Input::IsKeyDown(KeyCode key) const
     {
-        return !IsKeyDown(keycode);
+        if (key >= kMaxScancodes) return false;
+        return m_currentKeys[key];
     }
 
-    bool SDL3Input::IsMouseButtonPressed(int button) const
+    bool SDL3Input::IsKeyReleased(KeyCode key) const
     {
-        return false;
+        if (key >= kMaxScancodes) return false;
+        return !m_currentKeys[key] && m_previousKeys[key];
     }
 
-    bool SDL3Input::IsMouseButtonDown(int button) const
+    bool SDL3Input::IsKeyUp(KeyCode key) const
     {
-        SDL_MouseButtonFlags state = SDL_GetMouseState(nullptr, nullptr);
-        return (state & SDL_BUTTON_MASK(button)) != 0;
+        if (key >= kMaxScancodes) return false;
+        return !m_currentKeys[key];
     }
 
-    bool SDL3Input::IsMouseButtonReleased(int button) const
+    bool SDL3Input::IsMouseButtonPressed(MouseCode button) const
     {
-        return false;
+        if (button >= kMaxMouseButtons) return false;
+        return m_currentMouseButtons[button] && !m_previousMouseButtons[button];
     }
 
-    bool SDL3Input::IsMouseButtonUp(int button) const
+    bool SDL3Input::IsMouseButtonDown(MouseCode button) const
     {
-        return !IsMouseButtonDown(button);
+        if (button >= kMaxMouseButtons) return false;
+        return m_currentMouseButtons[button];
+    }
+
+    bool SDL3Input::IsMouseButtonReleased(MouseCode button) const
+    {
+        if (button >= kMaxMouseButtons) return false;
+        return !m_currentMouseButtons[button] && m_previousMouseButtons[button];
+    }
+
+    bool SDL3Input::IsMouseButtonUp(MouseCode button) const
+    {
+        if (button >= kMaxMouseButtons) return false;
+        return !m_currentMouseButtons[button];
     }
 
     std::pair<float, float> SDL3Input::GetMousePosition() const
@@ -88,8 +121,12 @@ namespace Wayfinder
 
     float SDL3Input::GetMouseWheelMove() const
     {
-        // Wheel events are handled per-frame via SDL_PollEvent.
-        // This will be integrated with the event system later.
-        return 0.0f;
+        return m_scrollY;
+    }
+
+    void SDL3Input::AccumulateScroll(float x, float y)
+    {
+        m_scrollX += x;
+        m_scrollY += y;
     }
 }

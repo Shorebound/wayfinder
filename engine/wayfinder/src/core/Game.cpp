@@ -1,52 +1,15 @@
 #include "Game.h"
-#include "../assets/AssetService.h"
-#include "../platform/Input.h"
-#include "../scene/Scene.h"
-#include "../scene/entity/Entity.h"
-#include "../scene/Components.h"
+#include "EngineConfig.h"
+#include "EngineContext.h"
 #include "Log.h"
-#include "ServiceLocator.h"
+#include "../assets/AssetService.h"
+#include "../scene/Scene.h"
 
 #include <filesystem>
 
-namespace
-{
-    std::filesystem::path GetExecutableDirectory()
-    {
-        // std::filesystem::current_path() returns the working directory.
-        // For a more robust solution, platform-specific APIs can be used later.
-        return std::filesystem::current_path();
-    }
-
-    std::filesystem::path ResolveBootScenePath()
-    {
-        const std::filesystem::path executableDirectory = GetExecutableDirectory();
-        const std::filesystem::path workingDirectory = std::filesystem::current_path();
-
-        const std::array<std::filesystem::path, 4> candidates = {
-            executableDirectory / "assets/scenes/default_scene.toml",
-            workingDirectory / "assets/scenes/default_scene.toml",
-            workingDirectory / "sandbox/journey/assets/scenes/default_scene.toml",
-            executableDirectory / "../../../sandbox/journey/assets/scenes/default_scene.toml"
-        };
-
-        for (const std::filesystem::path& candidate : candidates)
-        {
-            if (std::filesystem::exists(candidate))
-            {
-                return std::filesystem::weakly_canonical(candidate);
-            }
-        }
-
-        return {};
-    }
-}
-
 namespace Wayfinder
 {
-    Game::Game() : m_running(false), m_initialized(false)
-    {
-    }
+    Game::Game() = default;
 
     Game::~Game()
     {
@@ -56,29 +19,34 @@ namespace Wayfinder
         }
     }
 
-    bool Game::Initialize()
+    bool Game::Initialize(const EngineContext& ctx)
     {
         WAYFINDER_INFO(LogGame, "Initializing game");
 
         m_assetService = std::make_shared<AssetService>();
+
+        const auto& projectCfg = ctx.config.Project;
+        const std::filesystem::path bootScenePath = projectCfg.BootScene;
+
+        if (!std::filesystem::exists(bootScenePath))
+        {
+            WAYFINDER_ERROR(LogGame, "Boot scene not found: {}", bootScenePath.string());
+            return false;
+        }
+
+        const auto resolvedPath = std::filesystem::weakly_canonical(bootScenePath);
+
         m_currentScene = std::make_unique<Scene>("Default Scene");
         m_currentScene->SetAssetService(m_assetService);
         m_currentScene->Initialize();
 
-        const std::filesystem::path bootScenePath = ResolveBootScenePath();
-        if (bootScenePath.empty())
+        if (!m_currentScene->LoadFromFile(resolvedPath.string()))
         {
-            WAYFINDER_ERROR(LogGame, "Could not resolve a bootstrap scene file.");
+            WAYFINDER_ERROR(LogGame, "Failed to load bootstrap scene: {}", resolvedPath.string());
             return false;
         }
 
-        if (!m_currentScene->LoadFromFile(bootScenePath.string()))
-        {
-            WAYFINDER_ERROR(LogGame, "Failed to load bootstrap scene: {0}", bootScenePath.string());
-            return false;
-        }
-
-        WAYFINDER_INFO(LogGame, "Loaded bootstrap scene from: {0}", bootScenePath.string());
+        WAYFINDER_INFO(LogGame, "Loaded bootstrap scene from: {}", resolvedPath.string());
 
         m_running = true;
         m_initialized = true;
@@ -89,14 +57,6 @@ namespace Wayfinder
     {
         if (!m_running || !m_initialized)
             return;
-
-        // Example of using the input abstraction
-        // auto& input = ServiceLocator::GetInput();
-        // if (input.IsKeyPressed(KEY_ESCAPE))
-        // {
-        //     m_isRunning = false;
-        //     return;
-        // }
 
         if (m_currentScene)
         {
@@ -114,15 +74,20 @@ namespace Wayfinder
         m_initialized = false;
     }
 
-    void Game::LoadScene(const std::string& sceneName)
+    void Game::LoadScene(const std::string& scenePath)
     {
         UnloadCurrentScene();
 
-        m_currentScene = std::make_unique<Scene>(sceneName);
+        m_currentScene = std::make_unique<Scene>(scenePath);
         m_currentScene->SetAssetService(m_assetService);
         m_currentScene->Initialize();
 
-        WAYFINDER_INFO(LogGame, "Loaded scene: {0}", sceneName);
+        if (std::filesystem::exists(scenePath))
+        {
+            m_currentScene->LoadFromFile(scenePath);
+        }
+
+        WAYFINDER_INFO(LogGame, "Loaded scene: {}", scenePath);
     }
 
     void Game::UnloadCurrentScene()

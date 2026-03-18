@@ -1,5 +1,9 @@
 #include "SDL3Window.h"
 
+#include "../../core/events/ApplicationEvent.h"
+#include "../../core/events/KeyEvent.h"
+#include "../../core/events/MouseEvent.h"
+
 #include <SDL3/SDL.h>
 
 namespace Wayfinder
@@ -16,13 +20,11 @@ namespace Wayfinder
     }
 
     SDL3Window::SDL3Window(const Window::Config& config)
+        : m_width(config.Width)
+        , m_height(config.Height)
+        , m_title(config.Title)
+        , m_vsync(config.VSync)
     {
-        m_data = {
-            config.Width,
-            config.Height,
-            config.Title,
-            config.VSync
-        };
     }
 
     SDL3Window::~SDL3Window()
@@ -41,9 +43,9 @@ namespace Wayfinder
         }
 
         m_window = SDL_CreateWindow(
-            m_data.Title.c_str(),
-            static_cast<int>(m_data.Width),
-            static_cast<int>(m_data.Height),
+            m_title.c_str(),
+            static_cast<int>(m_width),
+            static_cast<int>(m_height),
             0);
 
         if (!m_window)
@@ -73,13 +75,99 @@ namespace Wayfinder
         SDL_Event event;
         while (SDL_PollEvent(&event))
         {
-            if (event.type == SDL_EVENT_QUIT)
+            switch (event.type)
+            {
+            case SDL_EVENT_QUIT:
             {
                 m_shouldClose = true;
+                if (m_eventCallback)
+                {
+                    WindowCloseEvent e;
+                    m_eventCallback(e);
+                }
+                break;
             }
-            else if (event.type == SDL_EVENT_WINDOW_CLOSE_REQUESTED)
+            case SDL_EVENT_WINDOW_CLOSE_REQUESTED:
             {
                 m_shouldClose = true;
+                if (m_eventCallback)
+                {
+                    WindowCloseEvent e;
+                    m_eventCallback(e);
+                }
+                break;
+            }
+            case SDL_EVENT_WINDOW_RESIZED:
+            {
+                m_width = static_cast<uint32_t>(event.window.data1);
+                m_height = static_cast<uint32_t>(event.window.data2);
+                if (m_eventCallback)
+                {
+                    WindowResizeEvent e(m_width, m_height);
+                    m_eventCallback(e);
+                }
+                break;
+            }
+            case SDL_EVENT_KEY_DOWN:
+            {
+                if (m_eventCallback)
+                {
+                    KeyCode key = static_cast<KeyCode>(event.key.scancode);
+                    KeyPressedEvent e(key, event.key.repeat);
+                    m_eventCallback(e);
+                }
+                break;
+            }
+            case SDL_EVENT_KEY_UP:
+            {
+                if (m_eventCallback)
+                {
+                    KeyCode key = static_cast<KeyCode>(event.key.scancode);
+                    KeyReleasedEvent e(key);
+                    m_eventCallback(e);
+                }
+                break;
+            }
+            case SDL_EVENT_MOUSE_BUTTON_DOWN:
+            {
+                if (m_eventCallback)
+                {
+                    MouseCode button = static_cast<MouseCode>(event.button.button);
+                    MouseButtonPressedEvent e(button);
+                    m_eventCallback(e);
+                }
+                break;
+            }
+            case SDL_EVENT_MOUSE_BUTTON_UP:
+            {
+                if (m_eventCallback)
+                {
+                    MouseCode button = static_cast<MouseCode>(event.button.button);
+                    MouseButtonReleasedEvent e(button);
+                    m_eventCallback(e);
+                }
+                break;
+            }
+            case SDL_EVENT_MOUSE_MOTION:
+            {
+                if (m_eventCallback)
+                {
+                    MouseMovedEvent e(event.motion.x, event.motion.y);
+                    m_eventCallback(e);
+                }
+                break;
+            }
+            case SDL_EVENT_MOUSE_WHEEL:
+            {
+                if (m_eventCallback)
+                {
+                    MouseScrolledEvent e(event.wheel.x, event.wheel.y);
+                    m_eventCallback(e);
+                }
+                break;
+            }
+            default:
+                break;
             }
         }
     }
@@ -89,14 +177,19 @@ namespace Wayfinder
         return m_shouldClose;
     }
 
+    void SDL3Window::SetEventCallback(const EventCallbackFn& callback)
+    {
+        m_eventCallback = callback;
+    }
+
     void SDL3Window::SetVSync(bool enabled)
     {
-        m_data.VSync = enabled;
+        m_vsync = enabled;
     }
 
     void SDL3Window::SetTitle(const std::string& title)
     {
-        m_data.Title = title;
+        m_title = title;
         if (m_window)
         {
             SDL_SetWindowTitle(m_window, title.c_str());
@@ -105,8 +198,8 @@ namespace Wayfinder
 
     void SDL3Window::SetSize(uint32_t width, uint32_t height)
     {
-        m_data.Width = width;
-        m_data.Height = height;
+        m_width = width;
+        m_height = height;
         if (m_window)
         {
             SDL_SetWindowSize(m_window, static_cast<int>(width), static_cast<int>(height));

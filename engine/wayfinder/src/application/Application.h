@@ -1,18 +1,19 @@
 #pragma once
 
-#include <cstdint>
 #include <memory>
 #include <string>
-
-#include "../core/BackendConfig.h"
 
 namespace Wayfinder
 {
     class Game;
+    class Input;
+    class LayerStack;
     class RenderDevice;
     class Renderer;
     class SceneRenderExtractor;
+    class Time;
     class Window;
+    struct EngineConfig;
 
     class WAYFINDER_API Application
     {
@@ -28,38 +29,38 @@ namespace Wayfinder
             }
         };
 
-        struct Config
-        {
-            uint32_t ScreenWidth = 800;
-            uint32_t ScreenHeight = 450;
-            std::string WindowTitle = "Wayfinder Engine";
-            std::string ShaderDirectory = "assets/shaders";
-            bool VSync = false;
-            BackendConfig Backends{};
-
-            CommandLineArgs Arguments;
-        };
-
-        Application(const Config& config = {});
+        explicit Application(const std::string& configPath = "engine.toml",
+                             const CommandLineArgs& args = {});
         ~Application();
 
-        bool Initialize();
         void Run();
-        void Shutdown();
+
+        LayerStack& GetLayerStack();
 
     private:
+        bool Initialize();
         void Loop();
-        static void Loop(Application* app);
+        void Shutdown();
 
-        Config m_config;
-        bool m_running;
+        void OnEvent(class Event& event);
+        bool OnWindowClose(class WindowCloseEvent& e);
+        bool OnWindowResize(class WindowResizeEvent& e);
+
+        std::string m_configPath;
+        std::unique_ptr<EngineConfig> m_config;
+        bool m_running = false;
 
         std::unique_ptr<Window> m_window;
+        std::unique_ptr<Input> m_input;
+        std::unique_ptr<Time> m_time;
+        std::unique_ptr<LayerStack> m_layerStack;
+
         std::unique_ptr<RenderDevice> m_device;
         std::unique_ptr<Game> m_game;
         std::unique_ptr<Renderer> m_renderer;
         std::unique_ptr<SceneRenderExtractor> m_sceneRenderExtractor;
     };
 
-    extern Application* CreateApplication(const Application::CommandLineArgs& args = {});
+    extern std::unique_ptr<Application> CreateApplication(
+        const Application::CommandLineArgs& args = {});
 } // namespace Wayfinder

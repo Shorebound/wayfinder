@@ -1,0 +1,17 @@
+[window]
+width = 1920
+height = 1080
+title = "Journey Sandbox"
+vsync = false
+
+[backends]
+platform = "sdl3"
+rendering = "sdl_gpu"
+
+[shaders]
+directory = "assets/shaders"
+
+[project]
+name = "Journey"
+asset_root = "assets"
+boot_scene = "assets/scenes/default_scene.toml"

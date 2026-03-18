@@ -2,7 +2,7 @@
 
 #include "core/KeyCodes.h"
 #include "core/events/Event.h"
-#include <sstream>
+#include <format>
 
 namespace Wayfinder
 {
@@ -27,9 +27,7 @@ namespace Wayfinder
 
         std::string ToString() const override
         {
-            std::stringstream ss;
-            ss << GetName() << ": " << m_keyCode << " (repeat = " << m_repeating << ")";
-            return ss.str();
+            return std::format("{}: {} (repeat = {})", GetName(), m_keyCode, m_repeating);
         }
 
     private:
@@ -43,9 +41,7 @@ namespace Wayfinder
 
         std::string ToString() const override
         {
-            std::stringstream ss;
-            ss << GetName() << ": " << m_keyCode;
-            return ss.str();
+            return std::format("{}: {}", GetName(), m_keyCode);
         }
     };
 
@@ -56,9 +52,7 @@ namespace Wayfinder
 
         std::string ToString() const override
         {
-            std::stringstream ss;
-            ss << GetName() << ": " << m_keyCode;
-            return ss.str();
+            return std::format("{}: {}", GetName(), m_keyCode);
         }
     };
 }

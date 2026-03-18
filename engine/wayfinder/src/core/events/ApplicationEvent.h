@@ -1,7 +1,7 @@
 #pragma once
 
 #include "core/events/Event.h"
-#include <sstream>
+#include <format>
 
 namespace Wayfinder
 {
@@ -16,9 +16,7 @@ namespace Wayfinder
 
         std::string ToString() const override
         {
-            std::stringstream ss;
-            ss << GetName() << ": " << m_width << ", " << m_height;
-            return ss.str();
+            return std::format("{}: {}, {}", GetName(), m_width, m_height);
         }
 
     private:

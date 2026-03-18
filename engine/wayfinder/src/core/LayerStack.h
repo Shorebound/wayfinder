@@ -2,6 +2,7 @@
 
 #include "core/Layer.h"
 
+#include <memory>
 #include <vector>
 
 namespace Wayfinder
@@ -13,23 +14,28 @@ namespace Wayfinder
         LayerStack() = default;
         ~LayerStack();
 
-        void PushLayer(Layer* layer);
-        void PushOverlay(Layer* overlay);
+        void PushLayer(std::unique_ptr<Layer> layer);
+        void PushOverlay(std::unique_ptr<Layer> overlay);
         void PopLayer(Layer* layer);
         void PopOverlay(Layer* overlay);
 
-        std::vector<Layer*>::iterator begin() { return m_layers.begin(); }
-        std::vector<Layer*>::iterator end() { return m_layers.end(); }
-        std::vector<Layer*>::reverse_iterator rbegin() { return m_layers.rbegin(); }
-        std::vector<Layer*>::reverse_iterator rend() { return m_layers.rend(); }
+        using Iterator = std::vector<std::unique_ptr<Layer>>::iterator;
+        using ConstIterator = std::vector<std::unique_ptr<Layer>>::const_iterator;
+        using ReverseIterator = std::vector<std::unique_ptr<Layer>>::reverse_iterator;
+        using ConstReverseIterator = std::vector<std::unique_ptr<Layer>>::const_reverse_iterator;
 
-        std::vector<Layer*>::const_iterator begin() const { return m_layers.begin(); }
-        std::vector<Layer*>::const_iterator end() const { return m_layers.end(); }
-        std::vector<Layer*>::const_reverse_iterator rbegin() const { return m_layers.rbegin(); }
-        std::vector<Layer*>::const_reverse_iterator rend() const { return m_layers.rend(); }
+        Iterator begin() { return m_layers.begin(); }
+        Iterator end() { return m_layers.end(); }
+        ReverseIterator rbegin() { return m_layers.rbegin(); }
+        ReverseIterator rend() { return m_layers.rend(); }
+
+        ConstIterator begin() const { return m_layers.begin(); }
+        ConstIterator end() const { return m_layers.end(); }
+        ConstReverseIterator rbegin() const { return m_layers.rbegin(); }
+        ConstReverseIterator rend() const { return m_layers.rend(); }
 
     private:
-        std::vector<Layer*> m_layers;
+        std::vector<std::unique_ptr<Layer>> m_layers;
         unsigned int m_layerInsertIndex = 0;
     };
 

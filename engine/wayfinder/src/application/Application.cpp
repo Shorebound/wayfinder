@@ -1,9 +1,15 @@
 #include "Application.h"
+
+#include "../core/EngineConfig.h"
+#include "../core/EngineContext.h"
 #include "../core/Game.h"
+#include "../core/LayerStack.h"
 #include "../core/Log.h"
-#include "../core/ServiceLocator.h"
-#include "../platform/Window.h"
+#include "../core/events/ApplicationEvent.h"
+#include "../core/events/MouseEvent.h"
+#include "../platform/Input.h"
 #include "../platform/Time.h"
+#include "../platform/Window.h"
 #include "../rendering/RenderDevice.h"
 #include "../rendering/Renderer.h"
 #include "../rendering/SceneRenderExtractor.h"
@@ -11,14 +17,26 @@
 
 namespace Wayfinder
 {
-    Application::Application(const Config& config) : m_running(false)
+    Application::Application(const std::string& configPath,
+                             const CommandLineArgs& args)
+        : m_configPath(configPath)
     {
-        m_config = config;
-        Initialize();
     }
 
     Application::~Application()
     {
+        Shutdown();
+    }
+
+    void Application::Run()
+    {
+        if (!Initialize())
+        {
+            WAYFINDER_ERROR(LogEngine, "Initialization failed — aborting");
+            return;
+        }
+
+        Loop();
         Shutdown();
     }
 
@@ -27,17 +45,23 @@ namespace Wayfinder
         Log::Init();
         WAYFINDER_INFO(LogEngine, "Initializing Wayfinder Engine");
 
-        // Platform services (input, time)
-        ServiceLocator::Initialize(m_config.Backends);
+        // Load data-driven config from TOML
+        m_config = std::make_unique<EngineConfig>(
+            EngineConfig::LoadFromFile(m_configPath));
 
-        // Window — must be created before RenderDevice
+        // Platform services — owned directly, no ServiceLocator
+        m_input = Input::Create(m_config->Backends.Platform);
+        m_time = Time::Create(m_config->Backends.Platform);
+        m_layerStack = std::make_unique<LayerStack>();
+
+        // Window — must exist before RenderDevice
         const auto windowConfig = Window::Config{
-            m_config.ScreenWidth,
-            m_config.ScreenHeight,
-            m_config.WindowTitle,
-            m_config.VSync};
+            m_config->Window.Width,
+            m_config->Window.Height,
+            m_config->Window.Title,
+            m_config->Window.VSync};
 
-        m_window = Window::Create(windowConfig, m_config.Backends.Platform);
+        m_window = Window::Create(windowConfig, m_config->Backends.Platform);
 
         if (!m_window->Initialize())
         {
@@ -45,8 +69,12 @@ namespace Wayfinder
             return false;
         }
 
+        // Wire window events → Application::OnEvent
+        m_window->SetEventCallback(
+            [this](Event& e) { OnEvent(e); });
+
         // GPU device — needs window handle for swapchain
-        m_device = RenderDevice::Create(m_config.Backends.Rendering);
+        m_device = RenderDevice::Create(m_config->Backends.Rendering);
 
         if (!m_device || !m_device->Initialize(*m_window))
         {
@@ -54,12 +82,15 @@ namespace Wayfinder
             return false;
         }
 
+        // Build context bundle for systems that need it
+        EngineContext ctx{*m_window, *m_input, *m_time, *m_config};
+
         // Game and renderer
         m_game = std::make_unique<Game>();
         m_renderer = std::make_unique<Renderer>();
         m_sceneRenderExtractor = std::make_unique<SceneRenderExtractor>();
 
-        if (!m_game->Initialize())
+        if (!m_game->Initialize(ctx))
         {
             WAYFINDER_ERROR(LogEngine, "Failed to initialize Game");
             return false;
@@ -67,8 +98,9 @@ namespace Wayfinder
 
         m_renderer->SetAssetService(m_game->GetAssetService());
 
-        if (!m_renderer->Initialize(*m_device, m_config.ScreenWidth, m_config.ScreenHeight,
-                                    m_config.ShaderDirectory))
+        if (!m_renderer->Initialize(*m_device, m_config->Window.Width,
+                                    m_config->Window.Height,
+                                    m_config->Shaders.Directory))
         {
             WAYFINDER_ERROR(LogEngine, "Failed to initialize Renderer");
             return false;
@@ -78,23 +110,23 @@ namespace Wayfinder
         return true;
     }
 
-    void Application::Run()
-    {
-        Loop();
-    }
-
     void Application::Loop()
     {
-        auto& time = ServiceLocator::GetTime();
-
         while (m_running && !m_window->ShouldClose())
         {
-            time.Update();
-            m_window->Update();
+            m_time->Update();
+            m_input->BeginFrame();
+            m_window->Update(); // polls SDL events → dispatches via OnEvent
+
+            // Propagate frame through layers (bottom → top)
+            for (auto& layer : *m_layerStack)
+            {
+                layer->OnUpdate(m_time->GetDeltaTime());
+            }
 
             if (m_game)
             {
-                m_game->Update(time.GetDeltaTime());
+                m_game->Update(m_time->GetDeltaTime());
 
                 if (m_renderer)
                 {
@@ -109,13 +141,52 @@ namespace Wayfinder
         }
     }
 
-    void Application::Loop(Application* app)
+    void Application::OnEvent(Event& event)
     {
-        app->Loop();
+        EventDispatcher dispatcher(event);
+        dispatcher.Dispatch<WindowCloseEvent>(
+            [this](WindowCloseEvent& e) { return OnWindowClose(e); });
+        dispatcher.Dispatch<WindowResizeEvent>(
+            [this](WindowResizeEvent& e) { return OnWindowResize(e); });
+
+        // Feed scroll events into input accumulator
+        dispatcher.Dispatch<MouseScrolledEvent>(
+            [this](MouseScrolledEvent& e)
+            {
+                m_input->AccumulateScroll(e.GetXOffset(), e.GetYOffset());
+                return false;
+            });
+
+        // Propagate to layers (top → bottom, overlays first)
+        for (auto it = m_layerStack->rbegin(); it != m_layerStack->rend(); ++it)
+        {
+            if (event.Handled)
+                break;
+            (*it)->OnEvent(event);
+        }
+    }
+
+    bool Application::OnWindowClose(WindowCloseEvent& /*e*/)
+    {
+        m_running = false;
+        return true;
+    }
+
+    bool Application::OnWindowResize(WindowResizeEvent& e)
+    {
+        WAYFINDER_INFO(LogEngine, "Window resized to {}x{}", e.GetWidth(), e.GetHeight());
+        return false;
+    }
+
+    LayerStack& Application::GetLayerStack()
+    {
+        return *m_layerStack;
     }
 
     void Application::Shutdown()
     {
+        if (!m_config) return; // never initialized
+
         WAYFINDER_INFO(LogEngine, "Shutting down Wayfinder Engine");
 
         if (m_renderer)
@@ -144,7 +215,11 @@ namespace Wayfinder
             m_window = nullptr;
         }
 
-        ServiceLocator::Shutdown();
+        m_layerStack = nullptr;
+        m_input = nullptr;
+        m_time = nullptr;
+        m_config = nullptr;
+
         Log::Shutdown();
     }
 } // namespace Wayfinder
