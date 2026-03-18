@@ -33,6 +33,7 @@ namespace Wayfinder
         //virtual void SetBorderless(bool borderless) = 0;
 
         virtual bool ShouldClose() const = 0;
+        virtual void* GetNativeHandle() const = 0;
 
         virtual void SetVSync(bool enabled) = 0;
         virtual void SetTitle(const std::string& title) = 0;
@@ -52,7 +53,7 @@ namespace Wayfinder
 
         static std::unique_ptr<Window> Create(
             const Window::Config& config = {},
-            PlatformBackend backend = PlatformBackend::Raylib);
+            PlatformBackend backend = PlatformBackend::SDL3);
 
         
     };

@@ -4,10 +4,9 @@
 #include "../core/ServiceLocator.h"
 #include "../platform/Window.h"
 #include "../platform/Time.h"
+#include "../rendering/RenderDevice.h"
 #include "../rendering/Renderer.h"
 #include "../rendering/SceneRenderExtractor.h"
-#include "../rendering/GraphicsContext.h"
-#include "../rendering/RenderAPI.h"
 #include "../scene/Scene.h"
 
 namespace Wayfinder
@@ -25,27 +24,20 @@ namespace Wayfinder
 
     bool Application::Initialize()
     {
-        // Initialize logging first
         Log::Init();
         WAYFINDER_INFO(LogEngine, "Initializing Wayfinder Engine");
 
-        // Initialize the service locator with platform services
+        // Platform services (input, time)
         ServiceLocator::Initialize(m_config.Backends);
 
-        // Create and initialize window
-        //m_window = ServiceLocator::GetWindow();
-
-        // Create game and renderer
+        // Window — must be created before RenderDevice
         const auto windowConfig = Window::Config{
             m_config.ScreenWidth,
             m_config.ScreenHeight,
             m_config.WindowTitle,
             m_config.VSync};
-        
+
         m_window = Window::Create(windowConfig, m_config.Backends.Platform);
-        m_game = std::make_unique<Game>();
-        m_renderer = std::make_unique<Renderer>();
-        m_sceneRenderExtractor = std::make_unique<SceneRenderExtractor>();
 
         if (!m_window->Initialize())
         {
@@ -53,16 +45,29 @@ namespace Wayfinder
             return false;
         }
 
+        // GPU device — needs window handle for swapchain
+        m_device = RenderDevice::Create(m_config.Backends.Rendering);
+
+        if (!m_device || !m_device->Initialize(*m_window))
+        {
+            WAYFINDER_ERROR(LogEngine, "Failed to initialize RenderDevice");
+            return false;
+        }
+
+        // Game and renderer
+        m_game = std::make_unique<Game>();
+        m_renderer = std::make_unique<Renderer>();
+        m_sceneRenderExtractor = std::make_unique<SceneRenderExtractor>();
+
         if (!m_game->Initialize())
         {
             WAYFINDER_ERROR(LogEngine, "Failed to initialize Game");
             return false;
         }
 
-        m_renderer->SetRenderInterfaces(ServiceLocator::GetGraphicsContext(), ServiceLocator::GetRenderAPI());
         m_renderer->SetAssetService(m_game->GetAssetService());
 
-        if (!m_renderer->Initialize(m_config.ScreenWidth, m_config.ScreenHeight))
+        if (!m_renderer->Initialize(*m_device, m_config.ScreenWidth, m_config.ScreenHeight))
         {
             WAYFINDER_ERROR(LogEngine, "Failed to initialize Renderer");
             return false;
@@ -74,11 +79,7 @@ namespace Wayfinder
 
     void Application::Run()
     {
-#if defined(PLATFORM_WEB)
-        emscripten_set_main_loop_arg(Loop, this, 0, 1);
-#else
         Loop();
-#endif
     }
 
     void Application::Loop()
@@ -87,21 +88,13 @@ namespace Wayfinder
 
         while (m_running && !m_window->ShouldClose())
         {
-            // Update time
             time.Update();
-            float deltaTime = time.GetDeltaTime();
-
-            WAYFINDER_INFO(LogRenderer, "Frame time: {0}", deltaTime);
-
-            // Update window
             m_window->Update();
 
-            // Update game
             if (m_game)
             {
-                m_game->Update(deltaTime);
+                m_game->Update(time.GetDeltaTime());
 
-                // Render current scene
                 if (m_renderer)
                 {
                     if (const auto* currentScene = m_game->GetCurrentScene())
@@ -138,15 +131,19 @@ namespace Wayfinder
             m_game = nullptr;
         }
 
+        if (m_device)
+        {
+            m_device->Shutdown();
+            m_device = nullptr;
+        }
+
         if (m_window)
         {
             m_window->Shutdown();
             m_window = nullptr;
         }
 
-        // Shutdown service locator (which will shutdown window, etc.)
         ServiceLocator::Shutdown();
-
         Log::Shutdown();
     }
 } // namespace Wayfinder

@@ -19,9 +19,8 @@ namespace Wayfinder
         None = 0,
         Console = 1 << 0, // 0b0001
         File = 1 << 1,    // 0b0010
-        Raylib = 1 << 2,  // 0b0100
 
-        Count = 3 // Keep track of how many flags we have, excluding None
+        Count = 2 // Keep track of how many flags we have, excluding None
     };
 
     // Add operator overloads for enum class bitwise operations

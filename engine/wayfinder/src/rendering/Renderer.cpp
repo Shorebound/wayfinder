@@ -1,18 +1,17 @@
 #include "Renderer.h"
 
+#include "RenderDevice.h"
 #include "RenderFrame.h"
 #include "RenderPipeline.h"
 #include "RenderResources.h"
 
-#include "../rendering/GraphicsContext.h"
-#include "../rendering/RenderAPI.h"
+#include "../core/Log.h"
 
 namespace Wayfinder
 {
     Renderer::Renderer()
         : m_screenWidth(800), m_screenHeight(450), m_isInitialized(false)
     {
-        m_clearColor = Color::White();
         m_renderPipeline = std::make_unique<RenderPipeline>();
         m_renderResources = std::make_unique<RenderResourceCache>();
     }
@@ -25,24 +24,16 @@ namespace Wayfinder
         }
     }
 
-    bool Renderer::Initialize(int screenWidth, int screenHeight)
+    bool Renderer::Initialize(RenderDevice& device, int screenWidth, int screenHeight)
     {
+        m_device = &device;
         m_screenWidth = screenWidth;
         m_screenHeight = screenHeight;
-
-        if (!m_graphicsContext || !m_renderAPI)
-        {
-            return false;
-        }
-
-        const auto& renderCapabilities = m_renderAPI->GetCapabilities();
-        const auto& contextCapabilities = m_graphicsContext->GetCapabilities();
-        if (renderCapabilities.BackendName != contextCapabilities.BackendName)
-        {
-            return false;
-        }
-
         m_isInitialized = true;
+
+        WAYFINDER_INFO(LogRenderer, "Renderer initialized ({}x{}, backend: {})",
+            screenWidth, screenHeight, device.GetDeviceInfo().BackendName);
+
         return true;
     }
 
@@ -54,13 +45,8 @@ namespace Wayfinder
         {
             m_renderResources->SetAssetService(m_assetService);
         }
+        m_device = nullptr;
         m_isInitialized = false;
-    }
-
-    void Renderer::SetRenderInterfaces(IGraphicsContext& graphicsContext, IRenderAPI& renderAPI)
-    {
-        m_graphicsContext = &graphicsContext;
-        m_renderAPI = &renderAPI;
     }
 
     void Renderer::SetAssetService(const std::shared_ptr<AssetService>& assetService)
@@ -74,53 +60,44 @@ namespace Wayfinder
 
     void Renderer::Render(const RenderFrame& frame)
     {
-        if (!m_isInitialized)
+        if (!m_isInitialized || !m_device)
         {
             return;
         }
 
+        if (!m_device->BeginFrame())
+        {
+            return;
+        }
+
+        // Resolve material bindings from asset data
         RenderFrame preparedFrame = frame;
-        const auto& capabilities = m_renderAPI->GetCapabilities();
-        if (capabilities.MaxViewCount == 0)
-        {
-            return;
-        }
-
-        if (!preparedFrame.Views.empty())
-        {
-            m_clearColor = preparedFrame.Views.front().ClearColor;
-        }
-
-        BeginFrame();
-
         if (m_renderResources)
         {
             m_renderResources->PrepareFrame(preparedFrame);
         }
 
-        if (m_renderPipeline && m_renderResources)
+        // Determine clear color from the primary view
+        Color clearColor = Color::White();
+        if (!preparedFrame.Views.empty())
         {
-            m_renderPipeline->Execute(preparedFrame, *m_renderAPI, *m_renderResources);
+            clearColor = preparedFrame.Views.front().ClearColor;
         }
 
-        m_renderAPI->DrawText("Scene: " + preparedFrame.SceneName, 10, 30, 20, Color::DarkGray());
+        // Main render pass — clears the swapchain and presents
+        RenderPassDescriptor passDesc;
+        passDesc.debugName = "MainSwapchain";
+        passDesc.colorAttachment.clearValue = ClearValue::FromColor(clearColor);
+        passDesc.colorAttachment.loadOp = LoadOp::Clear;
+        passDesc.colorAttachment.storeOp = StoreOp::Store;
+        passDesc.targetSwapchain = true;
 
-        EndFrame();
+        m_device->BeginRenderPass(passDesc);
+
+        // Stage 4: m_renderPipeline->Execute(preparedFrame, *m_device, *m_renderResources);
+
+        m_device->EndRenderPass();
+        m_device->EndFrame();
     }
 
-    void Renderer::BeginFrame()
-    {
-        m_graphicsContext->BeginFrame();
-        m_graphicsContext->Clear(
-            static_cast<float>(m_clearColor.r) / 255.0f,
-            static_cast<float>(m_clearColor.g) / 255.0f,
-            static_cast<float>(m_clearColor.b) / 255.0f,
-            static_cast<float>(m_clearColor.a) / 255.0f);
-    }
-
-    void Renderer::EndFrame()
-    {
-        m_renderAPI->DrawFPS(10, 10);
-        m_graphicsContext->EndFrame();
-    }
 } // namespace Wayfinder

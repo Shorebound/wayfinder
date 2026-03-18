@@ -15,10 +15,6 @@ namespace Wayfinder
         return std::make_shared<SpdFileOutput>(config);
     }
 
-    std::shared_ptr<ILogOutput> CreateRaylibOutput()
-    {
-        return std::make_shared<SpdRaylibOutput>();
-    }
 
     std::shared_ptr<ILogger> CreateLogger(const std::string& name, LogVerbosity defaultVerbosity)
     {
@@ -63,10 +59,6 @@ namespace Wayfinder
             config.MaxFiles);
     }
 
-    SpdRaylibOutput::SpdRaylibOutput()
-        : SpdLogOutput(std::make_shared<raylib_sink_mt>())
-    {
-    }
 
 } // namespace Wayfinder
 

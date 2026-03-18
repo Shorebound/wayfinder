@@ -7,7 +7,7 @@
 #include <toml++/toml.hpp>
 
 #include "../core/Identifiers.h"
-#include "../rendering/RenderAPI.h"
+#include "RenderTypes.h"
 #include "wayfinder_exports.h"
 
 namespace Wayfinder

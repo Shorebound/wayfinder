@@ -21,9 +21,9 @@
 #include <utility>
 #include <vector>
 
-// raylib
-#include "raylib.h"
-#include "raymath.h"
+// GLM
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
 
 // spdlog
 #include <spdlog/sinks/base_sink.h>

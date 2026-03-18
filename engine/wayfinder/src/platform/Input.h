@@ -8,7 +8,6 @@
 namespace Wayfinder
 {
     // Key and mouse codes will be defined in a separate header
-    // to avoid direct dependency on Raylib's key codes
 
     // Interface for input handling
     class WAYFINDER_API Input
@@ -31,6 +30,6 @@ namespace Wayfinder
         virtual float GetMouseY() const = 0;
         virtual float GetMouseWheelMove() const = 0;
 
-        static std::unique_ptr<Input> Create(PlatformBackend backend = PlatformBackend::Raylib);
+        static std::unique_ptr<Input> Create(PlatformBackend backend = PlatformBackend::SDL3);
     };
 }

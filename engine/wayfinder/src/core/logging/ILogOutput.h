@@ -45,6 +45,5 @@ namespace Wayfinder
     // Factory functions for creating outputs
     std::shared_ptr<ILogOutput> CreateConsoleOutput();
     std::shared_ptr<ILogOutput> CreateFileOutput(const LogFileConfig& config);
-    std::shared_ptr<ILogOutput> CreateRaylibOutput();
 
 } // namespace Wayfinder

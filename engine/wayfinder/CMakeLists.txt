@@ -105,7 +105,8 @@ target_include_directories(${ENGINE_NAME}
 target_link_libraries(${ENGINE_NAME}
     PUBLIC
       wayfinder_common
-      raylib
+      SDL3::SDL3
+      glm::glm
       flecs::flecs_static
   tomlplusplus::tomlplusplus
 )

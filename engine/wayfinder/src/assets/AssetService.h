@@ -6,7 +6,7 @@
 #include <unordered_map>
 
 #include "AssetRegistry.h"
-#include "../graphics/Material.h"
+#include "../rendering/Material.h"
 
 namespace Wayfinder
 {

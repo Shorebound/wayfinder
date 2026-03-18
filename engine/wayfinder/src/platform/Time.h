@@ -15,6 +15,6 @@ namespace Wayfinder
         virtual float GetElapsedTime() const = 0;
         virtual double GetTimeSinceStartup() const = 0;
 
-        static std::unique_ptr<Time> Create(PlatformBackend backend = PlatformBackend::Raylib);
+        static std::unique_ptr<Time> Create(PlatformBackend backend = PlatformBackend::SDL3);
     };
 }

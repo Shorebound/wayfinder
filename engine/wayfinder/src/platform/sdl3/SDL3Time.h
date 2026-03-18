@@ -3,11 +3,11 @@
 
 namespace Wayfinder
 {
-    class RaylibTime : public Time
+    class SDL3Time : public Time
     {
     public:
-        RaylibTime();
-        virtual ~RaylibTime() = default;
+        SDL3Time();
+        ~SDL3Time() override = default;
 
         void Update() override;
         float GetDeltaTime() const override;
@@ -15,8 +15,9 @@ namespace Wayfinder
         double GetTimeSinceStartup() const override;
 
     private:
+        uint64_t m_lastTicks;
+        uint64_t m_startTicks;
         float m_deltaTime;
         float m_elapsedTime;
-        double m_StartTime;
     };
 }

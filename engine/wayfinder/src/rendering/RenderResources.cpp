@@ -1,6 +1,6 @@
 #include "RenderResources.h"
 
-#include "../graphics/Material.h"
+#include "Material.h"
 
 #include <filesystem>
 

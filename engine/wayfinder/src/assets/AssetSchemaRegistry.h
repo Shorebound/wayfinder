@@ -9,7 +9,7 @@
 #include <toml++/toml.hpp>
 
 #include "AssetRegistry.h"
-#include "../graphics/Material.h"
+#include "../rendering/Material.h"
 #include "../scene/ComponentRegistry.h"
 
 namespace Wayfinder

@@ -6,18 +6,18 @@ namespace Wayfinder
 {
     enum class PlatformBackend
     {
-        Raylib,
+        SDL3,
     };
 
     enum class RenderBackend
     {
-        Raylib,
+        SDL_GPU,
         Null,
     };
 
     struct WAYFINDER_API BackendConfig
     {
-        PlatformBackend Platform = PlatformBackend::Raylib;
-        RenderBackend Rendering = RenderBackend::Raylib;
+        PlatformBackend Platform = PlatformBackend::SDL3;
+        RenderBackend Rendering = RenderBackend::SDL_GPU;
     };
 } // namespace Wayfinder

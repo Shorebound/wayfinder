@@ -6,7 +6,7 @@
 #include <unordered_map>
 
 #include "../assets/AssetService.h"
-#include "../graphics/Material.h"
+#include "Material.h"
 #include "RenderFrame.h"
 #include "wayfinder_exports.h"
 

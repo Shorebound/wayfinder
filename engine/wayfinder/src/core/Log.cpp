@@ -51,13 +51,7 @@ namespace Wayfinder
             m_logger->AddOutput(output);
         }
 
-        // Add raylib output if enabled
-        if (config.IsOutputEnabled(LogOutputType::Raylib))
-        {
-            auto output = CreateRaylibOutput();
-            output->SetPattern("[%n] %v");
-            m_logger->AddOutput(output);
-        }
+
     }
 
     void LogCategory::SetVerbosity(LogVerbosity level)

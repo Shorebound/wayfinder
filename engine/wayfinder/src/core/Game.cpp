@@ -11,9 +11,16 @@
 
 namespace
 {
+    std::filesystem::path GetExecutableDirectory()
+    {
+        // std::filesystem::current_path() returns the working directory.
+        // For a more robust solution, platform-specific APIs can be used later.
+        return std::filesystem::current_path();
+    }
+
     std::filesystem::path ResolveBootScenePath()
     {
-        const std::filesystem::path executableDirectory = GetApplicationDirectory();
+        const std::filesystem::path executableDirectory = GetExecutableDirectory();
         const std::filesystem::path workingDirectory = std::filesystem::current_path();
 
         const std::array<std::filesystem::path, 4> candidates = {

@@ -6,7 +6,7 @@
 #include "../core/Identifiers.h"
 #include "../maths/Maths.h"
 #include "../rendering/RenderIntent.h"
-#include "../rendering/RenderAPI.h"
+#include "../rendering/RenderTypes.h"
 
 namespace Wayfinder
 {
@@ -66,7 +66,7 @@ namespace Wayfinder
     {
         Float3 Position = { 0.0f, 0.0f, 0.0f };
         Float3 Scale = { 1.0f, 1.0f, 1.0f };
-        Matrix4 LocalToWorld = Matrix4::Identity();
+        Matrix4 LocalToWorld = glm::mat4(1.0f);
 
         WorldTransformComponent() = default;
         WorldTransformComponent(const WorldTransformComponent&) = default;

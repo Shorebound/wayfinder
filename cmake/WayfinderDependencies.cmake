@@ -3,25 +3,42 @@ include(FetchContent)
 
 message(STATUS "Configuring dependencies...")
 
-# --- Raylib ---
-set(RAYLIB_VERSION 5.5) 
-find_package(raylib ${RAYLIB_VERSION} QUIET)
-if (NOT raylib_FOUND)
-  message(STATUS "Dependency: raylib not found locally, fetching...")
+# --- SDL3 ---
+set(SDL3_VERSION "release-3.2.30")
+find_package(SDL3 QUIET)
+if (NOT SDL3_FOUND)
+  message(STATUS "Dependency: SDL3 not found locally, fetching...")
   FetchContent_Declare(
-    raylib
+    SDL3
     DOWNLOAD_EXTRACT_TIMESTAMP OFF
-    URL https://github.com/raysan5/raylib/archive/refs/tags/${RAYLIB_VERSION}.tar.gz
+    GIT_REPOSITORY https://github.com/libsdl-org/SDL.git
+    GIT_TAG ${SDL3_VERSION}
   )
-  FetchContent_GetProperties(raylib)
-  if (NOT raylib_POPULATED)
-    set(FETCHCONTENT_QUIET NO)
-    set(BUILD_EXAMPLES OFF CACHE BOOL "Build raylib examples" FORCE)
-    FetchContent_MakeAvailable(raylib)
-    message(STATUS "Dependency: raylib fetched and configured.")
-  endif()
+  set(SDL_SHARED OFF CACHE BOOL "Build SDL3 shared library" FORCE)
+  set(SDL_STATIC ON CACHE BOOL "Build SDL3 static library" FORCE)
+  set(SDL_TEST_LIBRARY OFF CACHE BOOL "Build SDL3 test library" FORCE)
+  set(SDL_TESTS OFF CACHE BOOL "Build SDL3 tests" FORCE)
+  FetchContent_MakeAvailable(SDL3)
+  message(STATUS "Dependency: SDL3 fetched and configured.")
 else()
-    message(STATUS "Dependency: Found raylib ${raylib_VERSION}")
+  message(STATUS "Dependency: Found SDL3")
+endif()
+
+# --- GLM ---
+set(GLM_VERSION "1.0.1")
+find_package(glm ${GLM_VERSION} QUIET)
+if (NOT glm_FOUND)
+  message(STATUS "Dependency: glm not found locally, fetching...")
+  FetchContent_Declare(
+    glm
+    DOWNLOAD_EXTRACT_TIMESTAMP OFF
+    GIT_REPOSITORY https://github.com/g-truc/glm.git
+    GIT_TAG ${GLM_VERSION}
+  )
+  FetchContent_MakeAvailable(glm)
+  message(STATUS "Dependency: glm fetched and configured.")
+else()
+  message(STATUS "Dependency: Found glm ${glm_VERSION}")
 endif()
 
 # --- spdlog ---

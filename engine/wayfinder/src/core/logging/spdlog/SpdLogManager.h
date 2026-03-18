@@ -71,14 +71,6 @@ namespace Wayfinder
                 output->SetPattern("[%Y-%m-%d %H:%M:%S.%e] [%l] %n: %v");
                 logger->AddOutput(output);
             }
-
-            // Add raylib output if enabled
-            if (config.IsOutputEnabled(LogOutputType::Raylib))
-            {
-                const auto output = CreateRaylibOutput();
-                output->SetPattern("[%n] %v");
-                logger->AddOutput(output);
-            }
         }
 
     private:

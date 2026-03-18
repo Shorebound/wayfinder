@@ -105,13 +105,15 @@ build\bin\Debug\waypoint.exe roundtrip-save sandbox\journey\assets\scenes\defaul
 
 The project currently pulls in or expects the following major libraries:
 
-- `raylib` for windowing and the active rendering backend
+- `SDL3` for windowing, input, events, and GPU rendering (via SDL_GPU) — replacing Raylib
 - `flecs` for ECS and scene world management
 - `tomlplusplus` for authored data
 - `nlohmann/json` for generated and interchange data
 - `spdlog` for logging
 - `JoltPhysics` as the intended near-term 3D physics path
 - `Box2D`, `Tracy`, and `ImGui` as available dependencies that are not yet part of the main checked-in workflow
+
+Note: Raylib was the original platform and rendering backend. The engine is migrating to SDL3 + SDL_GPU. See `docs/sdl3_migration_plan.md` for the full plan.
 
 ## Recommended Reading Order
 
@@ -121,4 +123,5 @@ If you are new to the repository, read the docs in this order:
 2. `docs/project_vision.md`
 3. `docs/runtime_architecture.md`
 4. `docs/data_authoring_and_editor.md`
-5. `docs/implementation_plan.md`
+5. `docs/sdl3_migration_plan.md`
+6. `docs/implementation_plan.md`

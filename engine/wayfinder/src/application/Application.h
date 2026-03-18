@@ -9,6 +9,7 @@
 namespace Wayfinder
 {
     class Game;
+    class RenderDevice;
     class Renderer;
     class SceneRenderExtractor;
     class Window;
@@ -23,7 +24,6 @@ namespace Wayfinder
 
             const char* operator[](int index) const
             {
-                // WAYFINDER_ASSERT(index < Count);
                 return Args[index];
             }
         };
@@ -54,11 +54,11 @@ namespace Wayfinder
         bool m_running;
 
         std::unique_ptr<Window> m_window;
+        std::unique_ptr<RenderDevice> m_device;
         std::unique_ptr<Game> m_game;
         std::unique_ptr<Renderer> m_renderer;
         std::unique_ptr<SceneRenderExtractor> m_sceneRenderExtractor;
     };
 
-    // To be defined by Client
     extern Application* CreateApplication(const Application::CommandLineArgs& args = {});
 } // namespace Wayfinder

@@ -1,7 +1,7 @@
 #include "SceneDocument.h"
 
 #include "../assets/AssetService.h"
-#include "../graphics/Material.h"
+#include "../rendering/Material.h"
 
 #include <algorithm>
 #include <filesystem>

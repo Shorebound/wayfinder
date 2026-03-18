@@ -1,12 +1,30 @@
 # .clang-format
-# Based on the Google C++ Style Guide
 BasedOnStyle: LLVM
 PointerAlignment: Left
 UseTab: Never
 IndentWidth: 4
 TabWidth: 4
-BreakBeforeBraces: Allman
-AllowShortIfStatementsOnASingleLine: false
+BreakBeforeBraces: Custom
+
+BraceWrapping:
+  AfterClass: true
+  AfterStruct: true
+  AfterFunction: true
+  AfterControlStatement: true
+  AfterEnum: true
+  AfterNamespace: true
+  AfterUnion: true
+  BeforeCatch: true
+  BeforeElse: true
+  SplitEmptyFunction: false
+  SplitEmptyRecord: false
+  SplitEmptyNamespace: false
+  
+AllowShortFunctionsOnASingleLine: All
+AllowShortBlocksOnASingleLine: Always
+AllowShortIfStatementsOnASingleLine: WithoutElse
+AllowShortLambdasOnASingleLine: All
+
 IndentCaseLabels: false
 ColumnLimit: 0
 AccessModifierOffset: -4

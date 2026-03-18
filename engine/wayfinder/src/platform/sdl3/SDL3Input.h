@@ -3,11 +3,11 @@
 
 namespace Wayfinder
 {
-    class RaylibInput : public Input
+    class SDL3Input : public Input
     {
     public:
-        RaylibInput() = default;
-        virtual ~RaylibInput() = default;
+        SDL3Input() = default;
+        ~SDL3Input() override = default;
 
         bool IsKeyPressed(int keycode) const override;
         bool IsKeyDown(int keycode) const override;
