@@ -8,6 +8,9 @@
 #include "../core/EngineConfig.h"
 #include "../core/Log.h"
 
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+
 namespace Wayfinder
 {
     Renderer::Renderer()
@@ -34,19 +37,22 @@ namespace Wayfinder
 
         m_shaderManager.Initialize(device, config.Shaders.Directory);
 
-        // Create the test unlit pipeline
+        // Create the unlit pipeline
         GPUPipelineDesc unlitDesc{};
         unlitDesc.vertexShaderName = "unlit";
         unlitDesc.fragmentShaderName = "unlit";
         unlitDesc.vertexLayout = VertexLayouts::PosColor;
-        unlitDesc.cullMode = CullMode::None; // No culling for now (no geometry yet)
+        unlitDesc.cullMode = CullMode::Back;
         unlitDesc.depthTestEnabled = false;
         unlitDesc.depthWriteEnabled = false;
 
         if (!m_unlitPipeline.Create(device, m_shaderManager, unlitDesc))
         {
-            WAYFINDER_WARNING(LogRenderer, "Renderer: Failed to create unlit pipeline (non-fatal for Stage 3)");
+            WAYFINDER_WARNING(LogRenderer, "Renderer: Failed to create unlit pipeline");
         }
+
+        // Create built-in geometry
+        m_cubeMesh = Mesh::CreateUnitCube(device);
 
         WAYFINDER_INFO(LogRenderer, "Renderer initialized ({}x{}, backend: {})",
             m_screenWidth, m_screenHeight, device.GetDeviceInfo().BackendName);
@@ -56,6 +62,7 @@ namespace Wayfinder
 
     void Renderer::Shutdown()
     {
+        m_cubeMesh.Destroy();
         m_unlitPipeline.Destroy();
         m_shaderManager.Shutdown();
 
@@ -114,14 +121,49 @@ namespace Wayfinder
 
         m_device->BeginRenderPass(passDesc);
 
-        // Bind the test pipeline — validates that pipeline creation and binding work.
-        // No geometry is drawn yet (Stage 4).
-        if (m_unlitPipeline.IsValid())
+        if (m_unlitPipeline.IsValid() && m_cubeMesh.IsValid() && !preparedFrame.Views.empty())
         {
             m_unlitPipeline.Bind();
-        }
 
-        // Stage 4: m_renderPipeline->Execute(preparedFrame, *m_device, *m_renderResources);
+            const auto& camera = preparedFrame.Views.front().CameraState;
+            const float aspect = static_cast<float>(m_screenWidth) / static_cast<float>(m_screenHeight);
+
+            const Matrix4 view = glm::lookAt(camera.Position, camera.Target, camera.Up);
+
+            Matrix4 projection;
+            if (camera.ProjectionType == 0) // Perspective
+            {
+                projection = glm::perspective(glm::radians(camera.FOV), aspect, 0.1f, 1000.0f);
+            }
+            else // Orthographic
+            {
+                const float halfH = camera.FOV * 0.5f;
+                const float halfW = halfH * aspect;
+                projection = glm::ortho(-halfW, halfW, -halfH, halfH, 0.1f, 1000.0f);
+            }
+
+            m_cubeMesh.Bind(*m_device);
+
+            for (const auto& pass : preparedFrame.Passes)
+            {
+                if (!pass.Enabled || pass.Kind != RenderPassKind::Scene)
+                {
+                    continue;
+                }
+
+                for (const auto& submission : pass.Meshes)
+                {
+                    if (!submission.Visible)
+                    {
+                        continue;
+                    }
+
+                    const Matrix4 mvp = projection * view * submission.LocalToWorld;
+                    m_device->PushVertexUniform(0, &mvp, sizeof(Matrix4));
+                    m_cubeMesh.Draw(*m_device);
+                }
+            }
+        }
 
         m_device->EndRenderPass();
         m_device->EndFrame();

@@ -3,6 +3,7 @@
 #include "RenderTypes.h"
 #include "ShaderManager.h"
 #include "GPUPipeline.h"
+#include "Mesh.h"
 
 #include <memory>
 
@@ -35,6 +36,7 @@ namespace Wayfinder
 
         ShaderManager m_shaderManager;
         GPUPipeline m_unlitPipeline;
+        Mesh m_cubeMesh;
 
         int m_screenWidth;
         int m_screenHeight;

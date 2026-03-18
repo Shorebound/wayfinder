@@ -331,4 +331,151 @@ namespace Wayfinder
         }
     }
 
+    // ── Buffers ──────────────────────────────────────────────
+
+    GPUBufferHandle SDLGPUDevice::CreateBuffer(const BufferCreateDesc& desc)
+    {
+        if (!m_device)
+        {
+            WAYFINDER_ERROR(LogRenderer, "SDLGPUDevice::CreateBuffer: No GPU device");
+            return nullptr;
+        }
+
+        SDL_GPUBufferCreateInfo info{};
+        info.usage = (desc.usage == BufferUsage::Vertex)
+            ? SDL_GPU_BUFFERUSAGE_VERTEX
+            : SDL_GPU_BUFFERUSAGE_INDEX;
+        info.size = desc.sizeInBytes;
+
+        SDL_GPUBuffer* buffer = SDL_CreateGPUBuffer(m_device, &info);
+        if (!buffer)
+        {
+            WAYFINDER_ERROR(LogRenderer, "SDLGPUDevice::CreateBuffer: Failed — {}", SDL_GetError());
+            return nullptr;
+        }
+
+        return static_cast<GPUBufferHandle>(buffer);
+    }
+
+    void SDLGPUDevice::DestroyBuffer(GPUBufferHandle buffer)
+    {
+        if (m_device && buffer)
+        {
+            SDL_ReleaseGPUBuffer(m_device, static_cast<SDL_GPUBuffer*>(buffer));
+        }
+    }
+
+    void SDLGPUDevice::UploadToBuffer(GPUBufferHandle buffer, const void* data, uint32_t sizeInBytes)
+    {
+        if (!m_device || !buffer || !data || sizeInBytes == 0)
+        {
+            return;
+        }
+
+        // Create a staging transfer buffer
+        SDL_GPUTransferBufferCreateInfo transferInfo{};
+        transferInfo.usage = SDL_GPU_TRANSFERBUFFERUSAGE_UPLOAD;
+        transferInfo.size = sizeInBytes;
+
+        SDL_GPUTransferBuffer* transferBuffer = SDL_CreateGPUTransferBuffer(m_device, &transferInfo);
+        if (!transferBuffer)
+        {
+            WAYFINDER_ERROR(LogRenderer, "SDLGPUDevice::UploadToBuffer: Failed to create transfer buffer — {}", SDL_GetError());
+            return;
+        }
+
+        // Map, copy, unmap
+        void* mapped = SDL_MapGPUTransferBuffer(m_device, transferBuffer, false);
+        if (!mapped)
+        {
+            WAYFINDER_ERROR(LogRenderer, "SDLGPUDevice::UploadToBuffer: Failed to map transfer buffer — {}", SDL_GetError());
+            SDL_ReleaseGPUTransferBuffer(m_device, transferBuffer);
+            return;
+        }
+
+        std::memcpy(mapped, data, sizeInBytes);
+        SDL_UnmapGPUTransferBuffer(m_device, transferBuffer);
+
+        // Upload via a dedicated command buffer + copy pass
+        SDL_GPUCommandBuffer* cmdBuf = SDL_AcquireGPUCommandBuffer(m_device);
+        if (!cmdBuf)
+        {
+            WAYFINDER_ERROR(LogRenderer, "SDLGPUDevice::UploadToBuffer: Failed to acquire command buffer — {}", SDL_GetError());
+            SDL_ReleaseGPUTransferBuffer(m_device, transferBuffer);
+            return;
+        }
+
+        SDL_GPUCopyPass* copyPass = SDL_BeginGPUCopyPass(cmdBuf);
+
+        SDL_GPUTransferBufferLocation src{};
+        src.transfer_buffer = transferBuffer;
+        src.offset = 0;
+
+        SDL_GPUBufferRegion dst{};
+        dst.buffer = static_cast<SDL_GPUBuffer*>(buffer);
+        dst.offset = 0;
+        dst.size = sizeInBytes;
+
+        SDL_UploadToGPUBuffer(copyPass, &src, &dst, false);
+        SDL_EndGPUCopyPass(copyPass);
+
+        SDL_SubmitGPUCommandBuffer(cmdBuf);
+        SDL_ReleaseGPUTransferBuffer(m_device, transferBuffer);
+    }
+
+    // ── Draw Commands ────────────────────────────────────────
+
+    void SDLGPUDevice::BindVertexBuffer(GPUBufferHandle buffer, uint32_t slot)
+    {
+        if (!m_renderPass || !buffer)
+        {
+            return;
+        }
+
+        SDL_GPUBufferBinding binding{};
+        binding.buffer = static_cast<SDL_GPUBuffer*>(buffer);
+        binding.offset = 0;
+
+        SDL_BindGPUVertexBuffers(m_renderPass, slot, &binding, 1);
+    }
+
+    void SDLGPUDevice::BindIndexBuffer(GPUBufferHandle buffer, IndexElementSize indexSize)
+    {
+        if (!m_renderPass || !buffer)
+        {
+            return;
+        }
+
+        SDL_GPUBufferBinding binding{};
+        binding.buffer = static_cast<SDL_GPUBuffer*>(buffer);
+        binding.offset = 0;
+
+        SDL_GPUIndexElementSize sdlIndexSize = (indexSize == IndexElementSize::Uint16)
+            ? SDL_GPU_INDEXELEMENTSIZE_16BIT
+            : SDL_GPU_INDEXELEMENTSIZE_32BIT;
+
+        SDL_BindGPUIndexBuffer(m_renderPass, &binding, sdlIndexSize);
+    }
+
+    void SDLGPUDevice::DrawIndexed(uint32_t indexCount, uint32_t instanceCount,
+                                   uint32_t firstIndex, int32_t vertexOffset)
+    {
+        if (!m_renderPass)
+        {
+            return;
+        }
+
+        SDL_DrawGPUIndexedPrimitives(m_renderPass, indexCount, instanceCount, firstIndex, vertexOffset, 0);
+    }
+
+    void SDLGPUDevice::PushVertexUniform(uint32_t slot, const void* data, uint32_t sizeInBytes)
+    {
+        if (!m_commandBuffer || !data || sizeInBytes == 0)
+        {
+            return;
+        }
+
+        SDL_PushGPUVertexUniformData(m_commandBuffer, slot, data, sizeInBytes);
+    }
+
 } // namespace Wayfinder

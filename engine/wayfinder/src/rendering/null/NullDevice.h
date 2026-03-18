@@ -27,6 +27,15 @@ namespace Wayfinder
         void              DestroyPipeline(GPUPipelineHandle) override {}
         void              BindPipeline(GPUPipelineHandle) override {}
 
+        // ── Buffer / Draw (no-ops) ──
+        GPUBufferHandle   CreateBuffer(const BufferCreateDesc&) override { return nullptr; }
+        void              DestroyBuffer(GPUBufferHandle) override {}
+        void              UploadToBuffer(GPUBufferHandle, const void*, uint32_t) override {}
+        void              BindVertexBuffer(GPUBufferHandle, uint32_t) override {}
+        void              BindIndexBuffer(GPUBufferHandle, IndexElementSize) override {}
+        void              DrawIndexed(uint32_t, uint32_t, uint32_t, int32_t) override {}
+        void              PushVertexUniform(uint32_t, const void*, uint32_t) override {}
+
         const RenderDeviceInfo& GetDeviceInfo() const override { return m_info; }
 
     private:

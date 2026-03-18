@@ -15,6 +15,7 @@ namespace Wayfinder
     // Engines hold these; only the RenderDevice knows the concrete type.
     using GPUShaderHandle = void*;
     using GPUPipelineHandle = void*;
+    using GPUBufferHandle = void*;
 
     // ── Shader Stage ─────────────────────────────────────────
 
@@ -68,6 +69,28 @@ namespace Wayfinder
         Clockwise,
     };
 
+    // ── Buffer Enums / Descriptors ──────────────────────────
+
+    enum class BufferUsage : uint8_t
+    {
+        Vertex,
+        Index,
+    };
+
+    enum class IndexElementSize : uint8_t
+    {
+        Uint16,
+        Uint32,
+    };
+
+    struct BufferCreateDesc
+    {
+        BufferUsage usage = BufferUsage::Vertex;
+        uint32_t sizeInBytes = 0;
+    };
+
+    // ── Pipeline Create Descriptor ───────────────────────────
+
     struct PipelineCreateDesc
     {
         GPUShaderHandle vertexShader = nullptr;
@@ -116,7 +139,19 @@ namespace Wayfinder
         virtual void DestroyPipeline(GPUPipelineHandle pipeline) = 0;
 
         virtual void BindPipeline(GPUPipelineHandle pipeline) = 0;
+        // ── Buffers ──────────────────────────────────────────────
 
+        virtual GPUBufferHandle CreateBuffer(const BufferCreateDesc& desc) = 0;
+        virtual void DestroyBuffer(GPUBufferHandle buffer) = 0;
+        virtual void UploadToBuffer(GPUBufferHandle buffer, const void* data, uint32_t sizeInBytes) = 0;
+
+        // ── Draw Commands ────────────────────────────────────────
+
+        virtual void BindVertexBuffer(GPUBufferHandle buffer, uint32_t slot = 0) = 0;
+        virtual void BindIndexBuffer(GPUBufferHandle buffer, IndexElementSize indexSize) = 0;
+        virtual void DrawIndexed(uint32_t indexCount, uint32_t instanceCount = 1,
+                                 uint32_t firstIndex = 0, int32_t vertexOffset = 0) = 0;
+        virtual void PushVertexUniform(uint32_t slot, const void* data, uint32_t sizeInBytes) = 0;
         // ── Device Info ──────────────────────────────────────
 
         virtual const RenderDeviceInfo& GetDeviceInfo() const = 0;

@@ -33,6 +33,16 @@ namespace Wayfinder
 
         void BindPipeline(GPUPipelineHandle pipeline) override;
 
+        GPUBufferHandle CreateBuffer(const BufferCreateDesc& desc) override;
+        void DestroyBuffer(GPUBufferHandle buffer) override;
+        void UploadToBuffer(GPUBufferHandle buffer, const void* data, uint32_t sizeInBytes) override;
+
+        void BindVertexBuffer(GPUBufferHandle buffer, uint32_t slot = 0) override;
+        void BindIndexBuffer(GPUBufferHandle buffer, IndexElementSize indexSize) override;
+        void DrawIndexed(uint32_t indexCount, uint32_t instanceCount = 1,
+                         uint32_t firstIndex = 0, int32_t vertexOffset = 0) override;
+        void PushVertexUniform(uint32_t slot, const void* data, uint32_t sizeInBytes) override;
+
         const RenderDeviceInfo& GetDeviceInfo() const override { return m_info; }
 
         SDL_GPUDevice* GetGPUDevice() const { return m_device; }
