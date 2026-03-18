@@ -40,6 +40,18 @@ add_custom_command(TARGET ${SANDBOX_NAME} POST_BUILD
   VERBATIM
 )
 
+# --- Shader Compilation ---
+include(${CMAKE_SOURCE_DIR}/cmake/WayfinderShaders.cmake)
+file(GLOB SHADER_SOURCES CONFIGURE_DEPENDS
+    "${CMAKE_SOURCE_DIR}/engine/wayfinder/shaders/*.vert"
+    "${CMAKE_SOURCE_DIR}/engine/wayfinder/shaders/*.frag"
+)
+wayfinder_compile_shaders(
+    TARGET ${SANDBOX_NAME}
+    SHADERS ${SHADER_SOURCES}
+    OUTPUT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/assets/shaders"
+)
+
 # --- Target Properties ---
 # Output directory for the executable file (.exe)
 set_target_properties(${SANDBOX_NAME} PROPERTIES

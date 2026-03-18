@@ -33,6 +33,7 @@ namespace Wayfinder
             uint32_t ScreenWidth = 800;
             uint32_t ScreenHeight = 450;
             std::string WindowTitle = "Wayfinder Engine";
+            std::string ShaderDirectory = "assets/shaders";
             bool VSync = false;
             BackendConfig Backends{};
 

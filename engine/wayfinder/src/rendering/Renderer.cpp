@@ -24,12 +24,29 @@ namespace Wayfinder
         }
     }
 
-    bool Renderer::Initialize(RenderDevice& device, int screenWidth, int screenHeight)
+    bool Renderer::Initialize(RenderDevice& device, int screenWidth, int screenHeight,
+                              const std::string& shaderDirectory)
     {
         m_device = &device;
         m_screenWidth = screenWidth;
         m_screenHeight = screenHeight;
         m_isInitialized = true;
+
+        m_shaderManager.Initialize(device, shaderDirectory);
+
+        // Create the test unlit pipeline
+        GPUPipelineDesc unlitDesc{};
+        unlitDesc.vertexShaderName = "unlit";
+        unlitDesc.fragmentShaderName = "unlit";
+        unlitDesc.vertexLayout = VertexLayouts::PosColor;
+        unlitDesc.cullMode = CullMode::None; // No culling for now (no geometry yet)
+        unlitDesc.depthTestEnabled = false;
+        unlitDesc.depthWriteEnabled = false;
+
+        if (!m_unlitPipeline.Create(device, m_shaderManager, unlitDesc))
+        {
+            WAYFINDER_WARNING(LogRenderer, "Renderer: Failed to create unlit pipeline (non-fatal for Stage 3)");
+        }
 
         WAYFINDER_INFO(LogRenderer, "Renderer initialized ({}x{}, backend: {})",
             screenWidth, screenHeight, device.GetDeviceInfo().BackendName);
@@ -39,6 +56,9 @@ namespace Wayfinder
 
     void Renderer::Shutdown()
     {
+        m_unlitPipeline.Destroy();
+        m_shaderManager.Shutdown();
+
         m_renderPipeline = std::make_unique<RenderPipeline>();
         m_renderResources = std::make_unique<RenderResourceCache>();
         if (m_assetService)
@@ -93,6 +113,13 @@ namespace Wayfinder
         passDesc.targetSwapchain = true;
 
         m_device->BeginRenderPass(passDesc);
+
+        // Bind the test pipeline — validates that pipeline creation and binding work.
+        // No geometry is drawn yet (Stage 4).
+        if (m_unlitPipeline.IsValid())
+        {
+            m_unlitPipeline.Bind();
+        }
 
         // Stage 4: m_renderPipeline->Execute(preparedFrame, *m_device, *m_renderResources);
 

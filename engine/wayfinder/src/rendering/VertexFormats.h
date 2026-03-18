@@ -1,0 +1,95 @@
+#pragma once
+
+#include "RenderTypes.h"
+
+#include <array>
+#include <cstddef>
+#include <cstdint>
+
+namespace Wayfinder
+{
+    // ── Vertex Structures ────────────────────────────────────
+
+    struct VertexPos
+    {
+        Float3 Position;
+    };
+
+    struct VertexPosColor
+    {
+        Float3 Position;
+        Float3 Color;
+    };
+
+    struct VertexPosNormalUV
+    {
+        Float3 Position;
+        Float3 Normal;
+        glm::vec2 UV;
+    };
+
+    // ── Vertex Layout Descriptors (SDL_GPU-oriented) ─────────
+
+    // These are lightweight structs that mirror SDL_GPUVertexAttribute
+    // without pulling in SDL headers. The backend translates them.
+
+    enum class VertexAttribFormat : uint8_t
+    {
+        Float2,
+        Float3,
+        Float4,
+    };
+
+    struct VertexAttrib
+    {
+        uint32_t location;
+        uint32_t offset;
+        VertexAttribFormat format;
+    };
+
+    struct VertexLayout
+    {
+        uint32_t stride = 0;
+        const VertexAttrib* attribs = nullptr;
+        uint32_t attribCount = 0;
+    };
+
+    // ── Pre-built Layouts ────────────────────────────────────
+
+    namespace VertexLayouts
+    {
+        inline constexpr std::array<VertexAttrib, 1> PosAttribs = {{
+            {0, offsetof(VertexPos, Position), VertexAttribFormat::Float3},
+        }};
+
+        inline constexpr VertexLayout Pos = {
+            .stride = sizeof(VertexPos),
+            .attribs = PosAttribs.data(),
+            .attribCount = static_cast<uint32_t>(PosAttribs.size()),
+        };
+
+        inline constexpr std::array<VertexAttrib, 2> PosColorAttribs = {{
+            {0, offsetof(VertexPosColor, Position), VertexAttribFormat::Float3},
+            {1, offsetof(VertexPosColor, Color),    VertexAttribFormat::Float3},
+        }};
+
+        inline constexpr VertexLayout PosColor = {
+            .stride = sizeof(VertexPosColor),
+            .attribs = PosColorAttribs.data(),
+            .attribCount = static_cast<uint32_t>(PosColorAttribs.size()),
+        };
+
+        inline constexpr std::array<VertexAttrib, 3> PosNormalUVAttribs = {{
+            {0, offsetof(VertexPosNormalUV, Position), VertexAttribFormat::Float3},
+            {1, offsetof(VertexPosNormalUV, Normal),   VertexAttribFormat::Float3},
+            {2, offsetof(VertexPosNormalUV, UV),       VertexAttribFormat::Float2},
+        }};
+
+        inline constexpr VertexLayout PosNormalUV = {
+            .stride = sizeof(VertexPosNormalUV),
+            .attribs = PosNormalUVAttribs.data(),
+            .attribCount = static_cast<uint32_t>(PosNormalUVAttribs.size()),
+        };
+    }
+
+} // namespace Wayfinder

@@ -20,6 +20,13 @@ namespace Wayfinder
         void BeginRenderPass(const RenderPassDescriptor&) override {}
         void EndRenderPass() override {}
 
+        // ── Shader / Pipeline (no-ops) ──
+        GPUShaderHandle   CreateShader(const ShaderCreateDesc&) override { return nullptr; }
+        void              DestroyShader(GPUShaderHandle) override {}
+        GPUPipelineHandle CreatePipeline(const PipelineCreateDesc&) override { return nullptr; }
+        void              DestroyPipeline(GPUPipelineHandle) override {}
+        void              BindPipeline(GPUPipelineHandle) override {}
+
         const RenderDeviceInfo& GetDeviceInfo() const override { return m_info; }
 
     private:

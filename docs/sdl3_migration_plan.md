@@ -278,64 +278,140 @@ The migration is broken into stages that each produce a bootable, testable state
 
 ---
 
-### Stage 6: Multi-Pass Rendering And Render Targets
+### Stage 6: Render Graph, Multi-Pass, And Extensibility
 
-**Goal:** The renderer can execute multiple passes per frame with intermediate render targets.
+**Goal:** The renderer executes a dependency-driven render graph each frame, supports intermediate render targets, and exposes a `RenderFeature` API that lets game developers inject custom passes without modifying engine code.
+
+**Why a render graph:** Stages 3–5 deliver shaders, geometry, and materials — the building blocks of a single pass. But the engine's visual ambitions (dynamic lighting, shadows, post-processing, volumetrics, time-of-day) require multiple passes that read and write intermediate textures. A flat pass list cannot express "the shadow map pass must run before the scene pass because the scene pass reads the shadow map." A render graph solves this: passes declare their resource dependencies, the graph resolves execution order, and transient resources are allocated and freed automatically.
+
+**SRP inspiration:** Unity's Scriptable Render Pipeline has three ideas worth adopting:
+- **ScriptableRenderPass** — a self-contained pass unit with declared inputs/outputs and an execute callback. Wayfinder's equivalent is `RenderGraphPass`.
+- **RenderFeature** — a registerable extension that injects one or more passes into the frame. This is the game-developer-facing extensibility surface.
+- **Well-known resource handles** — the engine publishes named handles (`SceneColor`, `SceneDepth`) that features can read from and write to.
+
+What we skip: Unity's replaceable pipeline concept (URP vs HDRP) is for a multi-audience commercial engine. Wayfinder has one rendering philosophy; the pipeline itself is not swappable. The extensibility lives at the pass/feature level.
 
 **Tasks:**
 
-1. **Render target management**
-   - Create `src/rendering/RenderTarget.h/.cpp`
-   - Wrap `SDL_CreateGPUTexture` for color and depth render targets
+1. **RenderGraph core**
+   - Create `src/rendering/RenderGraph.h/.cpp`
+   - A `RenderGraph` is built each frame, used once, then discarded
+   - API for adding passes:
+     ```cpp
+     graph.AddPass("MainScene", [&](RenderGraphBuilder& builder) {
+         auto depth = builder.CreateTransient(DepthDesc);
+         auto color = builder.CreateTransient(ColorDesc);
+         builder.WriteColor(color);
+         builder.WriteDepth(depth);
+         return [=](RenderDevice& device, const RenderGraphResources& res) {
+             // bind pipeline, draw scene submissions
+         };
+     });
+     ```
+   - `RenderGraphBuilder`: passes declare reads (texture, buffer) and writes (color target, depth target) through typed resource handles
+   - `RenderGraphResources`: resolved at execution time, maps handles to actual GPU textures/buffers
+   - Execution: topological sort on declared dependencies, then execute passes in resolved order
+   - Pass culling: if no subsequent pass reads a pass's output AND the pass does not target the swapchain, the pass is removed
+
+2. **Transient resource management**
+   - The graph allocates GPU textures when first written, tracks lifetime across dependent passes, and releases them when last read
+   - Create `src/rendering/TransientResourcePool.h/.cpp`
+   - Pool recycles textures across frames by matching format/dimensions (avoids per-frame allocation)
+   - No memory aliasing or sub-allocation — keep it simple. Profile first, optimize if needed.
+
+3. **Render target and depth buffer support**
+   - `SDL_CreateGPUTexture` for color and depth render targets, wrapped in the transient pool
    - Support creation, resizing (on window resize), and cleanup
+   - Depth texture for the main scene pass with pipeline depth/stencil state configured
 
-2. **Depth buffer**
-   - Create a depth texture for the main scene pass
-   - Configure pipeline depth/stencil state
+4. **Well-known resource handles**
+   - The `Renderer` publishes named resource handles that engine and game code can reference:
+     - `SceneColor` — main color target (HDR or LDR depending on configuration)
+     - `SceneDepth` — main depth target
+     - `Swapchain` — final presentation target (created by the graph itself)
+   - These are the stable contracts between engine passes and game-developer features
+   - Additional handles (e.g. `ShadowMap`, `GBuffer`) are created by passes that produce them and discovered by passes that consume them
 
-3. **Multi-pass execution**
-   - `RenderPipeline` executes the extracted pass schedule with real render targets
-   - Scene pass renders to a color + depth target
-   - Debug pass renders to the same target or a separate overlay target
-   - A final composition pass presents to the swapchain
+5. **Engine core passes**
+   - Rewrite `RenderPipeline` to build a `RenderGraph` each frame instead of iterating a flat pass array
+   - The engine registers its built-in passes:
+     - **MainScene** — renders opaque geometry to SceneColor + SceneDepth
+     - **Debug** — renders debug overlays (grid, wireframes, debug lines) to SceneColor
+     - **Composition** — reads SceneColor, writes to Swapchain (fullscreen blit or tonemap)
+   - Pass data still comes from `RenderFrame` (submissions, lights, cameras) — the graph consumes the frame data, it does not replace it
 
-4. **RenderFrame pass data expansion**
-   - Passes carry render target configuration (which targets to write, clear values, load/store actions)
-   - This is where future post-processing and deferred passes will plug in
+6. **RenderFeature extensibility API**
+   - Create `src/rendering/RenderFeature.h`
+   - A `RenderFeature` is a registerable extension with a single responsibility:
+     ```cpp
+     class RenderFeature {
+     public:
+         virtual ~RenderFeature() = default;
+         virtual void AddPasses(RenderGraph& graph, const RenderFrame& frame) = 0;
+     };
+     ```
+   - `Renderer` holds a list of registered features, calls `AddPasses()` after adding engine core passes
+   - Features inject passes that declare dependencies on well-known handles:
+     ```cpp
+     class PixelationFeature : public RenderFeature {
+         void AddPasses(RenderGraph& graph, const RenderFrame& frame) override {
+             graph.AddPass("Pixelation", [&](RenderGraphBuilder& builder) {
+                 auto sceneColor = builder.Read(WellKnown::SceneColor);
+                 auto output = builder.Write(WellKnown::SceneColor); // in-place
+                 return [=](RenderDevice& device, const RenderGraphResources& res) {
+                     // downscale + upscale via pixelation shader
+                 };
+             });
+         }
+     };
+     ```
+   - Registration API on the `Renderer`:
+     ```cpp
+     renderer.AddFeature(std::make_unique<PixelationFeature>());
+     renderer.RemoveFeature("Pixelation");
+     ```
+   - Features can be added at startup or toggled at runtime
 
-5. **Backend capabilities update**
-   - `RenderBackendCapabilities` now reports real GPU-backed values: multiple views, render target support, etc.
-   - Remove the old single-view / no-render-target limits
+7. **Ordering guarantees**
+   - Execution order comes from resource dependencies, not registration order
+   - For passes that read and write the same resource (e.g. post-process chain), the graph respects declaration order as a tiebreaker
+   - If a feature needs to run "after MainScene but before Debug," it reads `SceneColor` (produced by MainScene) and the Debug pass also reads `SceneColor` — the graph handles the sequencing
 
 **Verification:**
 - Scene renders with depth testing through a real depth buffer
-- Debug overlays render in a separate pass
+- Debug overlays render in a separate graph pass, correctly ordered after the scene pass
 - Frame presents correctly through the composition pass
-- `RenderBackendCapabilities` reports accurate GPU-backed limits
+- A test `RenderFeature` (e.g. a solid-color fullscreen overlay) can be registered and executes in the correct graph position
+- Removing the feature restores the default rendering
+- Headless tests verify graph construction, topological sort, and pass culling
 
 ---
 
 ### Stage 7: Cleanup And Stabilization
 
-**Goal:** Remove all Raylib vestiges, stabilize the new baseline, and update tooling.
+**Goal:** Remove all Raylib vestiges, stabilize the new baseline, validate the render graph and feature API, and update tooling.
 
 **Tasks:**
 
 1. **Code cleanup**
-   - Remove all Raylib-era type conversions, compatibility shims, and dead code
-   - Remove `RenderBackend::Raylib` and `PlatformBackend::Raylib` enum values
+   - Remove all Raylib-era type conversions, compatibility shims, and dead code paths
+   - Remove `RenderBackend::Raylib` and `PlatformBackend::Raylib` enum values if still present
    - Clean up any remaining `#include "raylib.h"` references (there should be none by this point)
+   - Audit render graph for unused utility code added during Stage 6 development
 
 2. **Null backend update**
-   - Ensure the Null/headless backend matches the new interface surface
-   - Headless render pipeline tests exercise the pass schedule against the null backend
+   - Ensure the Null/headless backend matches the full interface surface including render graph resource operations
+   - `NullDevice` supports all `RenderGraph` operations as no-ops so the graph can be exercised headlessly
 
 3. **Test coverage**
-   - Headless tests for pipeline creation, material resolution, pass scheduling, and backend capability enforcement
+   - Headless tests for: pipeline creation, material resolution, buffer upload, shader loading
+   - Render graph tests: topological sort correctness, pass culling, transient resource allocation/reuse, cycle detection (should error)
+   - RenderFeature tests: feature registration, pass injection ordering, feature removal mid-session
    - Extend existing `waypoint` validation to cover new asset formats
 
 4. **Documentation finalization**
-   - Update `runtime_architecture.md` to describe the final post-migration state
+   - Update `runtime_architecture.md` to describe the final post-migration architecture including the render graph and feature API
+   - Document how to create a `RenderFeature` (the primary game-developer extension point)
    - Update `workspace_guide.md` build commands if they changed
    - Archive or remove this migration plan document once complete
 
@@ -391,45 +467,45 @@ target_link_libraries(${ENGINE_NAME}
 ```
 engine/wayfinder/src/
   application/
-    Application.h/.cpp          (updated bootstrap)
+    Application.h/.cpp            (owns RenderDevice, bootstrap order: Window → Device → Renderer)
   core/
-    BackendConfig.h             (updated enums)
-    Game.h/.cpp                 (unchanged)
-    ServiceLocator.h/.cpp       (updated to wire SDL3 services)
+    BackendConfig.h               (SDL3 + SDL_GPU enums)
+    Game.h/.cpp                   (unchanged)
+    ServiceLocator.h/.cpp         (platform-only: Input, Time)
     ...
   platform/
     sdl3/
-      SDL3Window.h/.cpp         (new)
-      SDL3Input.h/.cpp          (new)
-      SDL3Time.h/.cpp           (new)
-    Window.h                    (interface unchanged)
-    Input.h                     (interface unchanged)
-    Time.h                      (interface unchanged)
+      SDL3Window.h/.cpp           (SDL_CreateWindow, GetNativeHandle)
+      SDL3Input.h/.cpp            (SDL_PollEvent input)
+      SDL3Time.h/.cpp             (SDL_GetPerformanceCounter timing)
+    Window.h                      (interface + GetNativeHandle)
+    Input.h                       (interface unchanged)
+    Time.h                        (interface unchanged)
   rendering/
     sdl_gpu/
-      SDLGPUDevice.h/.cpp       (new — device + swapchain)
-      SDLGPURenderAPI.h/.cpp    (new — draw command implementation)
-      SDLGPUContext.h/.cpp      (new — frame lifecycle)
+      SDLGPUDevice.h/.cpp         (SDL_GPU device, swapchain, command buffer lifecycle)
     null/
-      NullGraphicsContext.h/.cpp (updated interface)
-      NullRenderAPI.h/.cpp      (updated interface)
-    GPUBuffer.h/.cpp            (new)
-    GPUPipeline.h/.cpp          (new)
-    Mesh.h/.cpp                 (new — GPU-backed mesh)
-    Material.h/.cpp             (new — runtime GPU material)
-    RenderTarget.h/.cpp         (new)
-    ShaderManager.h/.cpp        (new)
-    GraphicsContext.h           (redesigned interface)
-    RenderAPI.h                 (redesigned interface)
-    RenderFrame.h/.cpp          (expanded)
-    RenderPipeline.h/.cpp       (expanded)
-    Renderer.h/.cpp             (updated orchestration)
-    RenderResources.h/.cpp      (updated resolution)
-    SceneRenderExtractor.h/.cpp (updated submissions)
+      NullDevice.h/.cpp           (headless stub for testing)
+    GPUBuffer.h/.cpp              (Stage 4 — vertex/index buffer wrapper)
+    GPUPipeline.h/.cpp            (Stage 3 — pipeline state objects)
+    Mesh.h/.cpp                   (Stage 4 — GPU-backed mesh)
+    Material.h/.cpp               (Stage 5 — runtime GPU material, authored TOML parsing)
+    ShaderManager.h/.cpp          (Stage 3 — shader bytecode loading)
+    RenderDevice.h                (abstract GPU device interface)
+    RenderTypes.h                 (Color, Camera, Float3/Matrix4, GPU enums, descriptors)
+    RenderGraph.h/.cpp            (Stage 6 — per-frame dependency graph, topological sort, pass culling)
+    RenderFeature.h               (Stage 6 — extensibility: game-developer pass injection)
+    TransientResourcePool.h/.cpp  (Stage 6 — pooled transient texture allocation)
+    RenderFrame.h                 (scene → renderer data: views, passes, submissions, lights)
+    RenderPipeline.h/.cpp         (builds RenderGraph each frame from RenderFrame + features)
+    Renderer.h/.cpp               (top-level orchestrator, owns features and pipeline)
+    RenderResources.h/.cpp        (caching layer for mesh/material resolution)
+    RenderIntent.h                (render intent type enum)
+    SceneRenderExtractor.h/.cpp   (ECS → RenderFrame extraction)
   scene/
-    ...                         (unchanged)
+    ...                           (unchanged)
   assets/
-    ...                         (unchanged)
+    ...                           (unchanged)
 ```
 
 ## Risk Mitigation

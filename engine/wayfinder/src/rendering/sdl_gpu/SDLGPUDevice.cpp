@@ -5,6 +5,7 @@
 #include "../../core/Log.h"
 
 #include <SDL3/SDL.h>
+#include <vector>
 
 namespace Wayfinder
 {
@@ -161,6 +162,172 @@ namespace Wayfinder
         {
             SDL_EndGPURenderPass(m_renderPass);
             m_renderPass = nullptr;
+        }
+    }
+
+    // ── Shader and Pipeline ──────────────────────────────────
+
+    GPUShaderHandle SDLGPUDevice::CreateShader(const ShaderCreateDesc& desc)
+    {
+        if (!m_device)
+        {
+            WAYFINDER_ERROR(LogRenderer, "SDLGPUDevice::CreateShader: No GPU device");
+            return nullptr;
+        }
+
+        SDL_GPUShaderCreateInfo info{};
+        info.code = desc.code;
+        info.code_size = desc.codeSize;
+        info.entrypoint = desc.entryPoint;
+        info.format = SDL_GPU_SHADERFORMAT_SPIRV;
+        info.stage = (desc.stage == ShaderStage::Vertex)
+            ? SDL_GPU_SHADERSTAGE_VERTEX
+            : SDL_GPU_SHADERSTAGE_FRAGMENT;
+        info.num_samplers = desc.numSamplers;
+        info.num_storage_textures = desc.numStorageTextures;
+        info.num_storage_buffers = desc.numStorageBuffers;
+        info.num_uniform_buffers = desc.numUniformBuffers;
+
+        SDL_GPUShader* shader = SDL_CreateGPUShader(m_device, &info);
+        if (!shader)
+        {
+            WAYFINDER_ERROR(LogRenderer, "SDLGPUDevice::CreateShader: Failed — {}", SDL_GetError());
+            return nullptr;
+        }
+
+        return static_cast<GPUShaderHandle>(shader);
+    }
+
+    void SDLGPUDevice::DestroyShader(GPUShaderHandle shader)
+    {
+        if (m_device && shader)
+        {
+            SDL_ReleaseGPUShader(m_device, static_cast<SDL_GPUShader*>(shader));
+        }
+    }
+
+    static SDL_GPUVertexElementFormat ToSDLVertexFormat(VertexAttribFormat fmt)
+    {
+        switch (fmt)
+        {
+        case VertexAttribFormat::Float2: return SDL_GPU_VERTEXELEMENTFORMAT_FLOAT2;
+        case VertexAttribFormat::Float3: return SDL_GPU_VERTEXELEMENTFORMAT_FLOAT3;
+        case VertexAttribFormat::Float4: return SDL_GPU_VERTEXELEMENTFORMAT_FLOAT4;
+        }
+        return SDL_GPU_VERTEXELEMENTFORMAT_FLOAT3;
+    }
+
+    GPUPipelineHandle SDLGPUDevice::CreatePipeline(const PipelineCreateDesc& desc)
+    {
+        if (!m_device || !m_window)
+        {
+            WAYFINDER_ERROR(LogRenderer, "SDLGPUDevice::CreatePipeline: No GPU device or window");
+            return nullptr;
+        }
+
+        // Build vertex attributes
+        std::vector<SDL_GPUVertexAttribute> vertexAttribs;
+        vertexAttribs.reserve(desc.vertexLayout.attribCount);
+        for (uint32_t i = 0; i < desc.vertexLayout.attribCount; ++i)
+        {
+            const auto& a = desc.vertexLayout.attribs[i];
+            SDL_GPUVertexAttribute attr{};
+            attr.location = a.location;
+            attr.buffer_slot = 0;
+            attr.format = ToSDLVertexFormat(a.format);
+            attr.offset = a.offset;
+            vertexAttribs.push_back(attr);
+        }
+
+        SDL_GPUVertexBufferDescription vbDesc{};
+        vbDesc.slot = 0;
+        vbDesc.pitch = desc.vertexLayout.stride;
+        vbDesc.input_rate = SDL_GPU_VERTEXINPUTRATE_VERTEX;
+        vbDesc.instance_step_rate = 0;
+
+        SDL_GPUVertexInputState vertexInput{};
+        vertexInput.vertex_buffer_descriptions = &vbDesc;
+        vertexInput.num_vertex_buffers = 1;
+        vertexInput.vertex_attributes = vertexAttribs.data();
+        vertexInput.num_vertex_attributes = static_cast<Uint32>(vertexAttribs.size());
+
+        // Rasterizer
+        SDL_GPURasterizerState rasterizer{};
+        switch (desc.fillMode)
+        {
+        case FillMode::Fill: rasterizer.fill_mode = SDL_GPU_FILLMODE_FILL; break;
+        case FillMode::Line: rasterizer.fill_mode = SDL_GPU_FILLMODE_LINE; break;
+        }
+        switch (desc.cullMode)
+        {
+        case CullMode::None:  rasterizer.cull_mode = SDL_GPU_CULLMODE_NONE; break;
+        case CullMode::Front: rasterizer.cull_mode = SDL_GPU_CULLMODE_FRONT; break;
+        case CullMode::Back:  rasterizer.cull_mode = SDL_GPU_CULLMODE_BACK; break;
+        }
+        switch (desc.frontFace)
+        {
+        case FrontFace::CounterClockwise: rasterizer.front_face = SDL_GPU_FRONTFACE_COUNTER_CLOCKWISE; break;
+        case FrontFace::Clockwise:        rasterizer.front_face = SDL_GPU_FRONTFACE_CLOCKWISE; break;
+        }
+
+        // Primitive type
+        SDL_GPUPrimitiveType primType = SDL_GPU_PRIMITIVETYPE_TRIANGLELIST;
+        switch (desc.primitiveType)
+        {
+        case PrimitiveType::TriangleList:  primType = SDL_GPU_PRIMITIVETYPE_TRIANGLELIST; break;
+        case PrimitiveType::TriangleStrip: primType = SDL_GPU_PRIMITIVETYPE_TRIANGLESTRIP; break;
+        case PrimitiveType::LineList:      primType = SDL_GPU_PRIMITIVETYPE_LINELIST; break;
+        case PrimitiveType::LineStrip:     primType = SDL_GPU_PRIMITIVETYPE_LINESTRIP; break;
+        case PrimitiveType::PointList:     primType = SDL_GPU_PRIMITIVETYPE_POINTLIST; break;
+        }
+
+        // Color target — match swapchain format
+        SDL_GPUColorTargetDescription colorTargetDesc{};
+        colorTargetDesc.format = SDL_GetGPUSwapchainTextureFormat(m_device, m_window);
+
+        SDL_GPUGraphicsPipelineTargetInfo targetInfo{};
+        targetInfo.color_target_descriptions = &colorTargetDesc;
+        targetInfo.num_color_targets = 1;
+        targetInfo.has_depth_stencil_target = false;
+
+        // Depth-stencil
+        SDL_GPUDepthStencilState depthStencil{};
+        depthStencil.enable_depth_test = desc.depthTestEnabled;
+        depthStencil.enable_depth_write = desc.depthWriteEnabled;
+        depthStencil.compare_op = SDL_GPU_COMPAREOP_LESS;
+
+        SDL_GPUGraphicsPipelineCreateInfo pipelineInfo{};
+        pipelineInfo.vertex_shader = static_cast<SDL_GPUShader*>(desc.vertexShader);
+        pipelineInfo.fragment_shader = static_cast<SDL_GPUShader*>(desc.fragmentShader);
+        pipelineInfo.vertex_input_state = vertexInput;
+        pipelineInfo.primitive_type = primType;
+        pipelineInfo.rasterizer_state = rasterizer;
+        pipelineInfo.depth_stencil_state = depthStencil;
+        pipelineInfo.target_info = targetInfo;
+
+        SDL_GPUGraphicsPipeline* pipeline = SDL_CreateGPUGraphicsPipeline(m_device, &pipelineInfo);
+        if (!pipeline)
+        {
+            WAYFINDER_ERROR(LogRenderer, "SDLGPUDevice::CreatePipeline: Failed — {}", SDL_GetError());
+            return nullptr;
+        }
+
+        return static_cast<GPUPipelineHandle>(pipeline);
+    }
+
+    void SDLGPUDevice::DestroyPipeline(GPUPipelineHandle pipeline)
+    {
+        if (m_device && pipeline)
+        {
+            SDL_ReleaseGPUGraphicsPipeline(m_device, static_cast<SDL_GPUGraphicsPipeline*>(pipeline));
+        }
+    }
+
+    void SDLGPUDevice::BindPipeline(GPUPipelineHandle pipeline)
+    {
+        if (m_renderPass && pipeline)
+        {
+            SDL_BindGPUGraphicsPipeline(m_renderPass, static_cast<SDL_GPUGraphicsPipeline*>(pipeline));
         }
     }
 

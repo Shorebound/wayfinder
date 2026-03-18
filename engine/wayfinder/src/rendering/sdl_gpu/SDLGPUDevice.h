@@ -25,6 +25,14 @@ namespace Wayfinder
         void BeginRenderPass(const RenderPassDescriptor& descriptor) override;
         void EndRenderPass() override;
 
+        GPUShaderHandle CreateShader(const ShaderCreateDesc& desc) override;
+        void DestroyShader(GPUShaderHandle shader) override;
+
+        GPUPipelineHandle CreatePipeline(const PipelineCreateDesc& desc) override;
+        void DestroyPipeline(GPUPipelineHandle pipeline) override;
+
+        void BindPipeline(GPUPipelineHandle pipeline) override;
+
         const RenderDeviceInfo& GetDeviceInfo() const override { return m_info; }
 
         SDL_GPUDevice* GetGPUDevice() const { return m_device; }
