@@ -98,9 +98,7 @@ namespace Wayfinder
 
         m_renderer->SetAssetService(m_game->GetAssetService());
 
-        if (!m_renderer->Initialize(*m_device, m_config->Window.Width,
-                                    m_config->Window.Height,
-                                    m_config->Shaders.Directory))
+        if (!m_renderer->Initialize(*m_device, *m_config))
         {
             WAYFINDER_ERROR(LogEngine, "Failed to initialize Renderer");
             return false;

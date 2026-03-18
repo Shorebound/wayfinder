@@ -10,6 +10,7 @@ namespace Wayfinder
 {
     class AssetService;
     class RenderDevice;
+    struct EngineConfig;
     struct RenderFrame;
     class RenderPipeline;
     class RenderResourceCache;
@@ -20,8 +21,7 @@ namespace Wayfinder
         Renderer();
         ~Renderer();
 
-        bool Initialize(RenderDevice& device, int screenWidth, int screenHeight,
-                        const std::string& shaderDirectory = "assets/shaders");
+        bool Initialize(RenderDevice& device, const EngineConfig& config);
         void Shutdown();
 
         void Render(const RenderFrame& frame);

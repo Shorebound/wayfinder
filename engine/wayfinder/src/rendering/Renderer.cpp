@@ -5,6 +5,7 @@
 #include "RenderPipeline.h"
 #include "RenderResources.h"
 
+#include "../core/EngineConfig.h"
 #include "../core/Log.h"
 
 namespace Wayfinder
@@ -24,15 +25,14 @@ namespace Wayfinder
         }
     }
 
-    bool Renderer::Initialize(RenderDevice& device, int screenWidth, int screenHeight,
-                              const std::string& shaderDirectory)
+    bool Renderer::Initialize(RenderDevice& device, const EngineConfig& config)
     {
         m_device = &device;
-        m_screenWidth = screenWidth;
-        m_screenHeight = screenHeight;
+        m_screenWidth = static_cast<int>(config.Window.Width);
+        m_screenHeight = static_cast<int>(config.Window.Height);
         m_isInitialized = true;
 
-        m_shaderManager.Initialize(device, shaderDirectory);
+        m_shaderManager.Initialize(device, config.Shaders.Directory);
 
         // Create the test unlit pipeline
         GPUPipelineDesc unlitDesc{};
@@ -49,7 +49,7 @@ namespace Wayfinder
         }
 
         WAYFINDER_INFO(LogRenderer, "Renderer initialized ({}x{}, backend: {})",
-            screenWidth, screenHeight, device.GetDeviceInfo().BackendName);
+            m_screenWidth, m_screenHeight, device.GetDeviceInfo().BackendName);
 
         return true;
     }
