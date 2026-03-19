@@ -17,7 +17,7 @@ namespace Wayfinder
 {
     /// World singleton that tracks the currently active game state.
     /// Set by Game::TransitionTo() and read by RunCondition helpers.
-    struct ActiveGameState
+    struct WAYFINDER_API ActiveGameState
     {
         InternedString Current;
         InternedString Previous;

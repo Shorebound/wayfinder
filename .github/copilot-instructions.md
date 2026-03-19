@@ -93,6 +93,7 @@ Enforced by `.clang-format` at the workspace root. Short or empty blocks are one
 - Use `auto` (specifically `auto*` or `auto&`) when the type is obvious from the right-hand side, otherwise be explicit.
 - Prefer modern C++23+ features and standard library facilities over custom implementations, unless there is a compelling reason not to.
     - `std::span` for array views, `std::optional` for optional values, `std::variant` for tagged unions, `std::string_view` for string parameters, etc.
+    - RAII for resource management, smart pointers for ownership semantics, structured bindings for tuple-like types, etc.
 - Use concepts and `requires` for template constraints where it improves readability.
 - Avoid macros where possible; prefer `constexpr`, `inline` functions, or templates.
 

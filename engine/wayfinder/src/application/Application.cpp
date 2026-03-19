@@ -1,23 +1,23 @@
 #include "Application.h"
 
-#include "../core/EngineConfig.h"
-#include "../core/EngineContext.h"
-#include "../core/Game.h"
-#include "../core/Module.h"
-#include "../core/ModuleRegistry.h"
-#include "../core/LayerStack.h"
-#include "../core/Log.h"
-#include "../core/ProjectDescriptor.h"
-#include "../core/ProjectResolver.h"
-#include "../core/events/ApplicationEvent.h"
-#include "../core/events/MouseEvent.h"
-#include "../platform/Input.h"
-#include "../platform/Time.h"
-#include "../platform/Window.h"
-#include "../rendering/RenderDevice.h"
-#include "../rendering/Renderer.h"
-#include "../rendering/SceneRenderExtractor.h"
-#include "../scene/Scene.h"
+#include "core/EngineConfig.h"
+#include "core/EngineContext.h"
+#include "core/Game.h"
+#include "core/Module.h"
+#include "core/ModuleRegistry.h"
+#include "core/LayerStack.h"
+#include "core/Log.h"
+#include "core/ProjectDescriptor.h"
+#include "core/ProjectResolver.h"
+#include "core/events/ApplicationEvent.h"
+#include "core/events/MouseEvent.h"
+#include "platform/Input.h"
+#include "platform/Time.h"
+#include "platform/Window.h"
+#include "rendering/RenderDevice.h"
+#include "rendering/Renderer.h"
+#include "rendering/SceneRenderExtractor.h"
+#include "scene/Scene.h"
 
 namespace Wayfinder
 {
@@ -132,7 +132,10 @@ namespace Wayfinder
         }
 
         if (m_module)
+        {
             m_module->OnStartup();
+            m_moduleStarted = true;
+        }
 
         m_running = true;
         return true;
@@ -217,8 +220,11 @@ namespace Wayfinder
 
         WAYFINDER_INFO(LogEngine, "Shutting down Wayfinder Engine");
 
-        if (m_module)
+        if (m_module && m_moduleStarted)
+        {
             m_module->OnShutdown();
+            m_moduleStarted = false;
+        }
 
         m_moduleRegistry = nullptr;
 

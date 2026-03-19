@@ -12,6 +12,8 @@
 #include "../scene/Scene.h"
 
 #include <filesystem>
+#include <functional>
+#include <unordered_map>
 
 namespace Wayfinder
 {
@@ -36,13 +38,27 @@ namespace Wayfinder
         InitializeTagRegistry();
         InitializeWorld();
 
+        // Guard that tears down subsystems on any early return.  Dismissed on success.
+        bool committed = false;
+        auto cleanup = [&]
+        {
+            if (!committed)
+            {
+                GameSubsystems::Unbind();
+                m_subsystems.Shutdown();
+            }
+        };
+        struct CleanupGuard
+        {
+            std::function<void()> Fn;
+            ~CleanupGuard() { Fn(); }
+        } guard{cleanup};
+
         const auto bootScenePath = ctx.project.ResolveBootScene();
 
         if (!std::filesystem::exists(bootScenePath))
         {
             WAYFINDER_ERROR(LogGame, "Boot scene not found: {}", bootScenePath.string());
-            GameSubsystems::Unbind();
-            m_subsystems.Shutdown();
             return false;
         }
 
@@ -64,13 +80,12 @@ namespace Wayfinder
         {
             WAYFINDER_ERROR(LogGame, "Failed to load bootstrap scene: {}", resolvedPath.string());
             m_currentScene.reset();
-            GameSubsystems::Unbind();
-            m_subsystems.Shutdown();
             return false;
         }
 
         WAYFINDER_INFO(LogGame, "Loaded bootstrap scene from: {}", resolvedPath.string());
 
+        committed = true;
         m_running = true;
         m_initialized = true;
         return true;
@@ -172,20 +187,20 @@ namespace Wayfinder
 
     void Game::TransitionTo(const std::string& stateName)
     {
-        // Validate that the state is registered
+        // Build a name -> descriptor map for O(1) lookups
+        const ModuleRegistry::StateDescriptor* targetDesc = nullptr;
         if (m_moduleRegistry)
         {
-            bool found = false;
             for (const auto& desc : m_moduleRegistry->GetStateDescriptors())
             {
                 if (desc.Name == stateName)
                 {
-                    found = true;
+                    targetDesc = &desc;
                     break;
                 }
             }
 
-            if (!found)
+            if (!targetDesc)
             {
                 WAYFINDER_WARNING(LogGame, "TransitionTo: '{}' is not a registered state", stateName);
                 return;
@@ -206,7 +221,10 @@ namespace Wayfinder
             for (const auto& desc : m_moduleRegistry->GetStateDescriptors())
             {
                 if (desc.Name == oldState.GetString() && desc.OnExit)
+                {
                     desc.OnExit(m_world);
+                    break;
+                }
             }
         }
 
@@ -215,14 +233,8 @@ namespace Wayfinder
         state.Current = internedName;
 
         // Call OnEnter for the incoming state
-        if (m_moduleRegistry && !internedName.IsEmpty())
-        {
-            for (const auto& desc : m_moduleRegistry->GetStateDescriptors())
-            {
-                if (desc.Name == stateName && desc.OnEnter)
-                    desc.OnEnter(m_world);
-            }
-        }
+        if (targetDesc && targetDesc->OnEnter)
+            targetDesc->OnEnter(m_world);
 
         WAYFINDER_INFO(LogGame, "State transition: '{}' -> '{}'", oldState.GetString(), stateName);
 

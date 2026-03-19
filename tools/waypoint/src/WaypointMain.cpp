@@ -45,6 +45,9 @@ namespace
         {
             Wayfinder::Scene::RegisterCoreECS(World);
             Registry.AddCoreEntries();
+            // TODO: To validate game-specific components, the CLI would need to
+            // link against the game module target and call
+            // Registry.AddGameEntries() with the module's descriptors.
             Registry.RegisterComponents(World);
         }
     };

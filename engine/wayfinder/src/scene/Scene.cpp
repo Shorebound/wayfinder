@@ -4,8 +4,8 @@
 #include "SceneModuleRegistry.h"
 #include "entity/Entity.h"
 #include "Components.h"
-#include "../core/Log.h"
-#include "../core/SceneSettings.h"
+#include "core/Log.h"
+#include "core/SceneSettings.h"
 
 #include <filesystem>
 #include <unordered_map>
@@ -236,6 +236,10 @@ namespace Wayfinder
         {
             SceneDocument document;
             document.Name = m_name;
+
+            // Persist scene settings from the world singleton into the document
+            if (m_world.has<SceneSettings>())
+                document.Settings = m_world.get<SceneSettings>().GetData();
 
             m_world.each([&](flecs::entity entityHandle)
             {

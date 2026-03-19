@@ -13,7 +13,7 @@
 #include "SceneSettings.h"
 #include "Subsystem.h"
 #include "wayfinder_exports.h"
-#include "../scene/RuntimeComponentRegistry.h"
+#include "scene/RuntimeComponentRegistry.h"
 
 namespace Wayfinder
 {

@@ -40,6 +40,9 @@ namespace Wayfinder
         /// Read-only access to the underlying table.
         const toml::table& GetData() const { return m_data; }
 
+        /// Mutable access to the underlying table for in-place edits.
+        toml::table& GetData() { return m_data; }
+
         /// Replace the entire settings table (used during scene load).
         void SetData(toml::table data) { m_data = std::move(data); }
 

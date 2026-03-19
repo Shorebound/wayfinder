@@ -13,6 +13,8 @@ namespace Wayfinder
             // Update existing definition (code overrides data comment if non-empty).
             if (!comment.empty())
                 m_definitions[it->second].Comment = comment;
+            // Mark as code-owned so UnloadTagFile() won't remove it.
+            m_definitions[it->second].SourceFile = "(code)";
             return GameplayTag{name};
         }
 

@@ -344,6 +344,12 @@ namespace Wayfinder
 
             document.Name = sceneData[kSceneNameKey].value_or(std::string{"Default Scene"});
 
+            if (sceneData.contains(kSettingsKey) && !sceneData[kSettingsKey].is_table())
+            {
+                result.Errors.push_back("'" + std::string(kSettingsKey) + "' must be a table");
+                return result;
+            }
+
             if (const toml::table* settings = sceneData[kSettingsKey].as_table())
                 document.Settings = *settings;
 

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "InternedString.h"
+#include "core/InternedString.h"
 #include "wayfinder_exports.h"
 
 #include <optional>
@@ -94,7 +94,7 @@ namespace Wayfinder
      * Updated by game code via Game::AddGameplayTag / RemoveGameplayTag.
      * Queried by RunCondition helpers (HasTag, HasAnyTag).
      */
-    struct ActiveGameplayTags
+    struct WAYFINDER_API ActiveGameplayTags
     {
         GameplayTagContainer Tags;
     };

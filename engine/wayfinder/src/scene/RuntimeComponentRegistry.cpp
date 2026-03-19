@@ -1,7 +1,7 @@
 #include "RuntimeComponentRegistry.h"
 #include "ComponentRegistry.h"
-#include "../core/Log.h"
-#include "../core/ModuleRegistry.h"
+#include "core/Log.h"
+#include "core/ModuleRegistry.h"
 
 namespace Wayfinder
 {
@@ -23,6 +23,7 @@ namespace Wayfinder
             entry.SerializeFn = coreEntry.SerializeFn;
             entry.ValidateFn = coreEntry.ValidateFn;
             m_entries.push_back(std::move(entry));
+            m_index[std::string(coreEntry.Key)] = m_entries.size() - 1;
         }
     }
 

@@ -18,6 +18,15 @@ namespace Wayfinder
                                          std::vector<std::string> after,
                                          std::vector<std::string> before)
     {
+        for (const auto& existing : m_systems)
+        {
+            if (existing.Name == name)
+            {
+                WAYFINDER_ERROR(LogEngine, "ModuleRegistry: duplicate system name '{}' — registration rejected", name);
+                return;
+            }
+        }
+
         WAYFINDER_INFO(LogEngine, "ModuleRegistry: registered system '{}'{}", name,
                        condition ? " (conditioned)" : "");
         m_systems.push_back({std::move(name), std::move(factory), std::move(condition),

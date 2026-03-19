@@ -54,6 +54,7 @@ namespace Wayfinder
         std::unique_ptr<ProjectDescriptor> m_project;
         std::unique_ptr<EngineConfig> m_config;
         bool m_running = false;
+        bool m_moduleStarted = false;
 
         std::unique_ptr<Window> m_window;
         std::unique_ptr<Input> m_input;
