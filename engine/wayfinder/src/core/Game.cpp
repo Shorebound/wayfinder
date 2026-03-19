@@ -2,6 +2,7 @@
 #include "EngineConfig.h"
 #include "EngineContext.h"
 #include "Log.h"
+#include "ProjectDescriptor.h"
 #include "../assets/AssetService.h"
 #include "../scene/Scene.h"
 
@@ -25,8 +26,7 @@ namespace Wayfinder
 
         m_assetService = std::make_shared<AssetService>();
 
-        const auto& projectCfg = ctx.config.Project;
-        const std::filesystem::path bootScenePath = projectCfg.BootScene;
+        const auto bootScenePath = ctx.project.ResolveBootScene();
 
         if (!std::filesystem::exists(bootScenePath))
         {

@@ -10,8 +10,3 @@ rendering = "sdl_gpu"
 
 [shaders]
 directory = "assets/shaders"
-
-[project]
-name = "Journey"
-asset_root = "assets"
-boot_scene = "assets/scenes/default_scene.toml"

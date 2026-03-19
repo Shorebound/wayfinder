@@ -1,0 +1,9 @@
+[project]
+name = "Journey"
+version = "0.1.0"
+engine_version = "0.1.0"
+
+[paths]
+asset_root = "assets"
+boot_scene = "scenes/default_scene.toml"
+config_dir = "config"

@@ -1,7 +1,7 @@
 #include "core/GameModule.h"
 #include "application/EntryPoint.h"
 
-class WaystoneModule : public Wayfinder::GameModule
+class JourneyModule : public Wayfinder::GameModule
 {
     void OnInitialize(const Wayfinder::EngineContext& /*ctx*/) override {}
 
@@ -10,5 +10,5 @@ class WaystoneModule : public Wayfinder::GameModule
 
 std::unique_ptr<Wayfinder::GameModule> Wayfinder::CreateGameModule()
 {
-    return std::make_unique<WaystoneModule>();
+    return std::make_unique<JourneyModule>();
 }

@@ -64,13 +64,6 @@ namespace Wayfinder
                 if (auto v = (*shaders)["directory"].value<std::string>()) config.Shaders.Directory = *v;
             }
 
-            if (const auto* project = tbl["project"].as_table())
-            {
-                if (auto v = (*project)["name"].value<std::string>()) config.Project.Name = *v;
-                if (auto v = (*project)["asset_root"].value<std::string>()) config.Project.AssetRoot = *v;
-                if (auto v = (*project)["boot_scene"].value<std::string>()) config.Project.BootScene = *v;
-            }
-
             WAYFINDER_INFO(LogEngine, "Loaded config from: {}", path.string());
         }
         catch (const toml::parse_error& err)

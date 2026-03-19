@@ -3,8 +3,11 @@
 #include "../core/EngineConfig.h"
 #include "../core/EngineContext.h"
 #include "../core/Game.h"
+#include "../core/GameModule.h"
 #include "../core/LayerStack.h"
 #include "../core/Log.h"
+#include "../core/ProjectDescriptor.h"
+#include "../core/ProjectResolver.h"
 #include "../core/events/ApplicationEvent.h"
 #include "../core/events/MouseEvent.h"
 #include "../platform/Input.h"
@@ -17,9 +20,9 @@
 
 namespace Wayfinder
 {
-    Application::Application(const std::string& configPath,
+    Application::Application(std::unique_ptr<GameModule> gameModule,
                              const CommandLineArgs& args)
-        : m_configPath(configPath)
+        : m_gameModule(std::move(gameModule))
     {
     }
 
@@ -45,9 +48,25 @@ namespace Wayfinder
         Log::Init();
         WAYFINDER_INFO(LogEngine, "Initializing Wayfinder Engine");
 
-        // Load data-driven config from TOML
+        // Discover project descriptor from CWD
+        const auto projectFile = FindProjectFile();
+        if (!projectFile)
+        {
+            WAYFINDER_ERROR(LogEngine,
+                "No project.wayfinder found in current directory or any parent. "
+                "Run the engine from within a project directory.");
+            return false;
+        }
+
+        m_project = std::make_unique<ProjectDescriptor>(
+            ProjectDescriptor::LoadFromFile(*projectFile));
+
+        if (m_gameModule)
+            m_gameModule->OnProjectLoaded(*m_project);
+
+        // Load engine config from the project's config directory (falls back to defaults)
         m_config = std::make_unique<EngineConfig>(
-            EngineConfig::LoadFromFile(m_configPath));
+            EngineConfig::LoadFromFile(m_project->ResolveEngineConfigPath()));
 
         // Platform services — owned directly, no ServiceLocator
         m_input = Input::Create(m_config->Backends.Platform);
@@ -83,7 +102,7 @@ namespace Wayfinder
         }
 
         // Build context bundle for systems that need it
-        EngineContext ctx{*m_window, *m_input, *m_time, *m_config};
+        EngineContext ctx{*m_window, *m_input, *m_time, *m_config, *m_project};
 
         // Game and renderer
         m_game = std::make_unique<Game>();
@@ -103,6 +122,9 @@ namespace Wayfinder
             WAYFINDER_ERROR(LogEngine, "Failed to initialize Renderer");
             return false;
         }
+
+        if (m_gameModule)
+            m_gameModule->OnInitialize(ctx);
 
         m_running = true;
         return true;
@@ -125,6 +147,9 @@ namespace Wayfinder
             if (m_game)
             {
                 m_game->Update(m_time->GetDeltaTime());
+
+                if (m_gameModule)
+                    m_gameModule->OnUpdate(m_time->GetDeltaTime());
 
                 if (m_renderer)
                 {
@@ -187,6 +212,9 @@ namespace Wayfinder
 
         WAYFINDER_INFO(LogEngine, "Shutting down Wayfinder Engine");
 
+        if (m_gameModule)
+            m_gameModule->OnShutdown();
+
         if (m_renderer)
         {
             m_renderer->Shutdown();
@@ -217,6 +245,7 @@ namespace Wayfinder
         m_input = nullptr;
         m_time = nullptr;
         m_config = nullptr;
+        m_project = nullptr;
 
         Log::Shutdown();
     }

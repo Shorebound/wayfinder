@@ -17,7 +17,7 @@ file(GLOB_RECURSE SANDBOX_SOURCES CONFIGURE_DEPENDS
 )
 target_sources(${SANDBOX_NAME} 
     PRIVATE
-        src/JourneyApplication.cpp 
+        src/JourneyModule.cpp 
 )
 
 # --- Include Directories ---
@@ -37,6 +37,22 @@ add_custom_command(TARGET ${SANDBOX_NAME} POST_BUILD
     "${CMAKE_CURRENT_SOURCE_DIR}/assets"
     "$<TARGET_FILE_DIR:${SANDBOX_NAME}>/assets"
   COMMENT "Copying sandbox assets for ${SANDBOX_NAME}"
+  VERBATIM
+)
+
+add_custom_command(TARGET ${SANDBOX_NAME} POST_BUILD
+  COMMAND ${CMAKE_COMMAND} -E copy_if_different
+    "${CMAKE_CURRENT_SOURCE_DIR}/project.wayfinder"
+    "$<TARGET_FILE_DIR:${SANDBOX_NAME}>/project.wayfinder"
+  COMMENT "Copying project.wayfinder for ${SANDBOX_NAME}"
+  VERBATIM
+)
+
+add_custom_command(TARGET ${SANDBOX_NAME} POST_BUILD
+  COMMAND ${CMAKE_COMMAND} -E copy_directory
+    "${CMAKE_CURRENT_SOURCE_DIR}/config"
+    "$<TARGET_FILE_DIR:${SANDBOX_NAME}>/config"
+  COMMENT "Copying config directory for ${SANDBOX_NAME}"
   VERBATIM
 )
 

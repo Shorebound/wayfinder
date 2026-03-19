@@ -21,19 +21,11 @@ namespace Wayfinder
         std::string Directory = "assets/shaders";
     };
 
-    struct ProjectConfig
-    {
-        std::string Name = "Untitled";
-        std::string AssetRoot = "assets";
-        std::string BootScene = "assets/scenes/default_scene.toml";
-    };
-
     struct WAYFINDER_API EngineConfig
     {
         WindowConfig Window;
         BackendConfig Backends;
         ShaderConfig Shaders;
-        ProjectConfig Project;
 
         static EngineConfig LoadFromFile(const std::filesystem::path& path);
         static EngineConfig LoadDefaults();
