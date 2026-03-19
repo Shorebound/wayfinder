@@ -154,7 +154,8 @@ int main(int argc, char** argv)
             return 1;
         }
 
-        project = Wayfinder::ProjectDescriptor::LoadFromFile(*projectFile);
+        auto loadResult = Wayfinder::ProjectDescriptor::LoadFromFile(*projectFile);
+        project = std::move(loadResult.Descriptor);
     }
 
     if (argIndex >= argc)

@@ -59,8 +59,14 @@ namespace Wayfinder
             return false;
         }
 
-        m_project = std::make_unique<ProjectDescriptor>(
-            ProjectDescriptor::LoadFromFile(*projectFile));
+        auto loadResult = ProjectDescriptor::LoadFromFile(*projectFile);
+
+        for (const auto& warning : loadResult.Warnings)
+        {
+            WAYFINDER_WARNING(LogEngine, "Project: {}", warning);
+        }
+
+        m_project = std::make_unique<ProjectDescriptor>(std::move(loadResult.Descriptor));
 
         // Load engine config from the project's config directory (falls back to defaults)
         m_config = std::make_unique<EngineConfig>(
