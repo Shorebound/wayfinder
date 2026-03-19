@@ -218,10 +218,15 @@ namespace Wayfinder
 
         // Extract post-process volumes and blend settings at the camera position
         Float3 cameraPosition{0.0f, 0.0f, 0.0f};
+        bool hasValidCamera = false;
         if (scene.GetWorld().has<ActiveCameraStateComponent>())
         {
             const auto& cam = scene.GetWorld().get<ActiveCameraStateComponent>();
-            if (cam.IsValid) { cameraPosition = cam.Position; }
+            if (cam.IsValid)
+            {
+                cameraPosition = cam.Position;
+                hasValidCamera = true;
+            }
         }
 
         std::vector<PostProcessVolumeInstance> volumeInstances;
@@ -241,7 +246,7 @@ namespace Wayfinder
             volumeInstances.push_back({.Volume = &volume, .WorldPosition = position, .WorldScale = scale, .LocalToWorld = localToWorld});
         });
 
-        if (!volumeInstances.empty() && !frame.Views.empty())
+        if (hasValidCamera && !volumeInstances.empty() && !frame.Views.empty())
         {
             PostProcessStack blended = BlendPostProcessVolumes(cameraPosition, volumeInstances);
             for (auto& view : frame.Views) { view.PostProcess = blended; }

@@ -221,11 +221,11 @@ namespace Wayfinder
                 }
                 else
                 {
-                    // First contribution for this effect type — copy it directly.
+                    // First contribution — blend from zero baseline so weight is respected.
                     PostProcessEffect& entry = result.Effects[effect.Type];
                     entry.Type = effect.Type;
                     entry.Enabled = true;
-                    entry.Parameters = effect.Parameters;
+                    BlendEffectInto(entry, effect, weight);
                 }
             }
         }
