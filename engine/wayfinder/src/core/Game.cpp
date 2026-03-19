@@ -36,7 +36,16 @@ namespace Wayfinder
             return false;
         }
 
-        const auto resolvedPath = std::filesystem::weakly_canonical(bootScenePath);
+        std::error_code canonicalError;
+        const auto resolvedPath = std::filesystem::weakly_canonical(bootScenePath, canonicalError);
+        if (canonicalError)
+        {
+            WAYFINDER_ERROR(LogGame,
+                            "Failed to resolve canonical path for boot scene '{}': {}",
+                            bootScenePath.string(),
+                            canonicalError.message());
+            return false;
+        }
 
         m_currentScene = std::make_unique<Scene>("Default Scene");
         m_currentScene->SetAssetService(m_assetService);
