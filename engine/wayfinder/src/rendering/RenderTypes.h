@@ -10,6 +10,15 @@
 
 namespace Wayfinder
 {
+    // ── Opaque GPU Handle Types ────────────────────────────
+
+    using GPUTextureHandle = void*;
+    using GPUSamplerHandle = void*;
+}
+
+
+namespace Wayfinder
+{
     // ── Engine Math Aliases ──────────────────────────────────
 
     using Float3 = glm::vec3;
@@ -65,6 +74,67 @@ namespace Wayfinder
         Float3 Up{0.0f, 1.0f, 0.0f};
         float FOV = 45.0f;
         int ProjectionType = 0; // 0 = Perspective, 1 = Orthographic
+    };
+
+    // ── Texture ───────────────────────────────────────────────
+
+    enum class TextureFormat : uint8_t
+    {
+        RGBA8_UNORM,
+        BGRA8_UNORM,
+        R16_FLOAT,
+        RGBA16_FLOAT,
+        R32_FLOAT,
+        D32_FLOAT,
+        D24_UNORM_S8,
+    };
+
+    enum class TextureUsage : uint32_t
+    {
+        Sampler      = 1u << 0,
+        ColorTarget  = 1u << 1,
+        DepthTarget  = 1u << 2,
+    };
+
+    inline TextureUsage operator|(TextureUsage a, TextureUsage b)
+    {
+        return static_cast<TextureUsage>(static_cast<uint32_t>(a) | static_cast<uint32_t>(b));
+    }
+
+    inline bool HasFlag(TextureUsage value, TextureUsage flag)
+    {
+        return (static_cast<uint32_t>(value) & static_cast<uint32_t>(flag)) != 0;
+    }
+
+    struct TextureCreateDesc
+    {
+        uint32_t width = 0;
+        uint32_t height = 0;
+        TextureFormat format = TextureFormat::RGBA8_UNORM;
+        TextureUsage usage = TextureUsage::ColorTarget;
+    };
+
+    // ── Sampler ───────────────────────────────────────────────
+
+    enum class SamplerFilter : uint8_t
+    {
+        Nearest,
+        Linear,
+    };
+
+    enum class SamplerAddressMode : uint8_t
+    {
+        Repeat,
+        ClampToEdge,
+        MirroredRepeat,
+    };
+
+    struct SamplerCreateDesc
+    {
+        SamplerFilter minFilter = SamplerFilter::Nearest;
+        SamplerFilter magFilter = SamplerFilter::Nearest;
+        SamplerAddressMode addressModeU = SamplerAddressMode::ClampToEdge;
+        SamplerAddressMode addressModeV = SamplerAddressMode::ClampToEdge;
     };
 
     // ── GPU Enums ────────────────────────────────────────────
@@ -125,6 +195,8 @@ namespace Wayfinder
         ColorAttachmentDescriptor colorAttachment{};
         DepthAttachmentDescriptor depthAttachment{};
         bool targetSwapchain = true;
+        GPUTextureHandle colorTarget = nullptr;  // If set and !targetSwapchain, render to this texture
+        GPUTextureHandle depthTarget = nullptr;  // If set, use instead of auto-managed depth
     };
 
     // ── Device Info ──────────────────────────────────────────

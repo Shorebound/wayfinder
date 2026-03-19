@@ -7,15 +7,20 @@
 #include "Mesh.h"
 #include "PipelineCache.h"
 #include "TransientBufferAllocator.h"
+#include "TransientResourcePool.h"
+#include "RenderGraph.h"
 
+#include <algorithm>
 #include <memory>
 #include <string>
 #include <unordered_map>
+#include <vector>
 
 namespace Wayfinder
 {
     class AssetService;
     class RenderDevice;
+    class RenderFeature;
     struct EngineConfig;
     struct RenderFrame;
     struct RenderLightSubmission;
@@ -43,23 +48,54 @@ namespace Wayfinder
         void Render(const RenderFrame& frame);
         void SetAssetService(const std::shared_ptr<AssetService>& assetService);
 
+        // ── RenderFeature API ────────────────────────────────
+        void AddFeature(std::unique_ptr<RenderFeature> feature);
+
+        template <typename T>
+        void RemoveFeature()
+        {
+            auto it = std::find_if(m_features.begin(), m_features.end(),
+                [](const std::unique_ptr<RenderFeature>& f) { return dynamic_cast<T*>(f.get()) != nullptr; });
+            if (it != m_features.end())
+            {
+                if (m_device) (*it)->OnDetach(*m_device);
+                m_features.erase(it);
+            }
+        }
+
+        template <typename T>
+        T* GetFeature() const
+        {
+            for (const auto& f : m_features)
+            {
+                if (auto* ptr = dynamic_cast<T*>(f.get())) return ptr;
+            }
+            return nullptr;
+        }
+
     private:
         std::shared_ptr<AssetService> m_assetService;
         RenderDevice* m_device = nullptr;
         std::unique_ptr<RenderPipeline> m_renderPipeline;
         std::unique_ptr<RenderResourceCache> m_renderResources;
 
-        void RenderDebugPass(const RenderFrame& frame, const Matrix4& view, const Matrix4& projection);
-
         // Extracts the primary directional light from the frame into the scene globals UBO.
         SceneGlobalsUBO BuildSceneGlobals(const RenderFrame& frame) const;
 
+        // ── Shader / Pipeline infrastructure ─────────────────
         ShaderManager m_shaderManager;
         PipelineCache m_pipelineCache;
         ShaderProgramRegistry m_programRegistry;
         TransientBufferAllocator m_transientAllocator;
 
-        // Debug-only pipeline (PosColor, uses debug_unlit shaders)
+        // ── Render Graph resources ───────────────────────────
+        TransientResourcePool m_transientPool;
+        GPUSamplerHandle m_nearestSampler = nullptr;
+
+        // ── Features ─────────────────────────────────────────
+        std::vector<std::unique_ptr<RenderFeature>> m_features;
+
+        // ── Debug-only pipeline (PosColor, uses debug_unlit shaders) ──
         GPUPipeline m_debugLinePipeline;
 
         // Single built-in mesh — all scene primitives use PosNormalColor

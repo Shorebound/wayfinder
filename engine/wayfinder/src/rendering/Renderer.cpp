@@ -1,9 +1,12 @@
 #include "Renderer.h"
 
 #include "RenderDevice.h"
+#include "RenderFeature.h"
 #include "RenderFrame.h"
+#include "RenderGraph.h"
 #include "RenderPipeline.h"
 #include "RenderResources.h"
+#include "TransientResourcePool.h"
 #include "VertexFormats.h"
 
 #include "../core/EngineConfig.h"
@@ -18,15 +21,6 @@ namespace Wayfinder
 {
     namespace
     {
-        Float3 ColorToFloat3(const Color& c)
-        {
-            return {
-                static_cast<float>(c.r) / 255.0f,
-                static_cast<float>(c.g) / 255.0f,
-                static_cast<float>(c.b) / 255.0f,
-            };
-        }
-
         // Vertex UBO shared by all scene shaders: MVP + Model (128 bytes)
         struct TransformUBO
         {
@@ -141,6 +135,38 @@ namespace Wayfinder
             WAYFINDER_WARNING(LogRenderer, "Renderer: Failed to initialize transient buffer allocator");
         }
 
+        // Transient texture pool for render graph
+        m_transientPool.Initialize(device);
+
+        // ── Composition pipeline (fullscreen blit, 1 sampler) ──
+        {
+            ShaderProgramDesc desc;
+            desc.Name = "composition";
+            desc.VertexShaderName = "fullscreen";
+            desc.FragmentShaderName = "composition";
+            desc.VertexResources = {};
+            desc.FragmentResources = {.numUniformBuffers = 0, .numSamplers = 1};
+            desc.VertexLayout = VertexLayouts::Empty;
+            desc.Cull = CullMode::None;
+            desc.DepthTest = false;
+            desc.DepthWrite = false;
+            desc.MaterialUBOSize = 0;
+            desc.VertexUBOSize = 0;
+            desc.NeedsSceneGlobals = false;
+
+            m_programRegistry.Register(desc);
+        }
+
+        // Nearest-point sampler for composition blit
+        {
+            SamplerCreateDesc samplerDesc;
+            samplerDesc.minFilter = SamplerFilter::Nearest;
+            samplerDesc.magFilter = SamplerFilter::Nearest;
+            samplerDesc.addressModeU = SamplerAddressMode::ClampToEdge;
+            samplerDesc.addressModeV = SamplerAddressMode::ClampToEdge;
+            m_nearestSampler = device.CreateSampler(samplerDesc);
+        }
+
         // Single built-in mesh for all scene primitives
         m_primitiveMesh = Mesh::CreatePrimitive(device);
 
@@ -152,6 +178,20 @@ namespace Wayfinder
 
     void Renderer::Shutdown()
     {
+        // Remove features first (they may hold GPU resources)
+        for (auto& feature : m_features)
+        {
+            feature->OnDetach(*m_device);
+        }
+        m_features.clear();
+
+        if (m_nearestSampler)
+        {
+            m_device->DestroySampler(m_nearestSampler);
+            m_nearestSampler = nullptr;
+        }
+
+        m_transientPool.Shutdown();
         m_transientAllocator.Shutdown();
         m_primitiveMesh.Destroy();
         m_debugLinePipeline.Destroy();
@@ -188,7 +228,7 @@ namespace Wayfinder
             {
                 globals.LightDirection = glm::normalize(light.Direction);
                 globals.LightIntensity = light.Intensity;
-                globals.LightColor = ColorToFloat3(light.Tint);
+                globals.LightColor = LinearColor::FromColor(light.Tint).ToFloat3();
                 return globals;
             }
         }
@@ -198,127 +238,18 @@ namespace Wayfinder
         return globals;
     }
 
-    void Renderer::RenderDebugPass(const RenderFrame& frame, const Matrix4& view, const Matrix4& projection)
+    void Renderer::AddFeature(std::unique_ptr<RenderFeature> feature)
     {
-        if (!m_device)
-        {
-            return;
-        }
-
-        // ── Collect debug line vertices ──────────────────────
-        std::vector<VertexPosColor> lineVertices;
-
-        for (const auto& pass : frame.Passes)
-        {
-            if (!pass.Enabled || !pass.DebugDraw)
-            {
-                continue;
-            }
-
-            // World grid
-            if (pass.DebugDraw->ShowWorldGrid)
-            {
-                const int slices = std::max(1, pass.DebugDraw->WorldGridSlices);
-                const float spacing = pass.DebugDraw->WorldGridSpacing;
-                const float extent = static_cast<float>(slices) * spacing;
-                const Float3 majorColor{0.45f, 0.45f, 0.45f};
-                const Float3 minorColor{0.25f, 0.25f, 0.25f};
-
-                for (int i = -slices; i <= slices; ++i)
-                {
-                    const float coord = static_cast<float>(i) * spacing;
-                    const Float3& gridColor = (i == 0) ? majorColor : minorColor;
-
-                    lineVertices.push_back({Float3{-extent, 0.0f, coord}, gridColor});
-                    lineVertices.push_back({Float3{ extent, 0.0f, coord}, gridColor});
-                    lineVertices.push_back({Float3{coord, 0.0f, -extent}, gridColor});
-                    lineVertices.push_back({Float3{coord, 0.0f,  extent}, gridColor});
-                }
-            }
-
-            // Explicit debug lines
-            for (const auto& line : pass.DebugDraw->Lines)
-            {
-                const Float3 lineColor = ColorToFloat3(line.Color);
-                lineVertices.push_back({line.Start, lineColor});
-                lineVertices.push_back({line.End, lineColor});
-            }
-        }
-
-        // ── Draw debug lines via transient allocator ─────────
-        if (!lineVertices.empty() && m_debugLinePipeline.IsValid())
-        {
-            const uint32_t dataSize = static_cast<uint32_t>(lineVertices.size() * sizeof(VertexPosColor));
-            const TransientAllocation alloc = m_transientAllocator.AllocateVertices(lineVertices.data(), dataSize);
-
-            if (alloc.IsValid())
-            {
-                const Matrix4 mvp = projection * view;
-                const DebugMaterialUBO materialUBO{glm::vec4(1.0f)}; // white pass-through
-
-                m_debugLinePipeline.Bind();
-                m_device->BindVertexBuffer(alloc.Buffer, 0, alloc.Offset);
-                m_device->PushVertexUniform(0, &mvp, sizeof(Matrix4));
-                m_device->PushFragmentUniform(0, &materialUBO, sizeof(DebugMaterialUBO));
-                m_device->DrawPrimitives(static_cast<uint32_t>(lineVertices.size()));
-            }
-        }
-
-        // ── Draw debug boxes (reuse primitive mesh with unlit program) ──
-        const ShaderProgram* unlitProgram = m_programRegistry.Find("unlit");
-        if (!unlitProgram || !unlitProgram->Pipeline || !m_primitiveMesh.IsValid())
-        {
-            return;
-        }
-
-        bool hasPendingBoxes = false;
-        for (const auto& pass : frame.Passes)
-        {
-            if (pass.Enabled && pass.DebugDraw && !pass.DebugDraw->Boxes.empty())
-            {
-                hasPendingBoxes = true;
-                break;
-            }
-        }
-
-        if (!hasPendingBoxes)
-        {
-            return;
-        }
-
-        unlitProgram->Pipeline->Bind();
-        m_primitiveMesh.Bind(*m_device);
-
-        for (const auto& pass : frame.Passes)
-        {
-            if (!pass.Enabled || !pass.DebugDraw)
-            {
-                continue;
-            }
-
-            for (const auto& box : pass.DebugDraw->Boxes)
-            {
-                const UnlitTransformUBO transformUBO{projection * view * box.LocalToWorld};
-                const DebugMaterialUBO materialUBO{glm::vec4(1.0f)};
-
-                m_device->PushVertexUniform(0, &transformUBO, sizeof(UnlitTransformUBO));
-                m_device->PushFragmentUniform(0, &materialUBO, sizeof(DebugMaterialUBO));
-                m_primitiveMesh.Draw(*m_device);
-            }
-        }
+        if (m_device) feature->OnAttach(*m_device);
+        m_features.push_back(std::move(feature));
     }
+
+
 
     void Renderer::Render(const RenderFrame& frame)
     {
-        if (!m_isInitialized || !m_device)
-        {
-            return;
-        }
-
-        if (!m_device->BeginFrame())
-        {
-            return;
-        }
+        if (!m_isInitialized || !m_device) return;
+        if (!m_device->BeginFrame()) return;
 
         m_transientAllocator.BeginFrame();
 
@@ -329,138 +260,274 @@ namespace Wayfinder
             m_renderResources->PrepareFrame(preparedFrame);
         }
 
-        // Determine clear color from the primary view
+        // Validate and sort passes via RenderPipeline
+        if (!m_renderPipeline->Prepare(preparedFrame))
+        {
+            m_device->EndFrame();
+            return;
+        }
+
+        // ── Query swapchain dimensions for transient targets ──
+        uint32_t swapW = 0, swapH = 0;
+        m_device->GetSwapchainDimensions(swapW, swapH);
+        if (swapW == 0 || swapH == 0)
+        {
+            m_device->EndFrame();
+            return;
+        }
+
+        // ── Camera / Projection (from primary view) ──────────
         Color clearColor = Color::White();
+        Matrix4 view = glm::mat4(1.0f);
+        Matrix4 projection = glm::mat4(1.0f);
+        bool hasCamera = false;
+
         if (!preparedFrame.Views.empty())
         {
             clearColor = preparedFrame.Views.front().ClearColor;
-        }
-
-        // Main render pass — clears the swapchain and presents
-        RenderPassDescriptor passDesc;
-        passDesc.debugName = "MainSwapchain";
-        passDesc.colorAttachment.clearValue = ClearValue::FromColor(clearColor);
-        passDesc.colorAttachment.loadOp = LoadOp::Clear;
-        passDesc.colorAttachment.storeOp = StoreOp::Store;
-        passDesc.targetSwapchain = true;
-        passDesc.depthAttachment.enabled = true;
-        passDesc.depthAttachment.clearDepth = 1.0f;
-        passDesc.depthAttachment.loadOp = LoadOp::Clear;
-        passDesc.depthAttachment.storeOp = StoreOp::DontCare;
-
-        m_device->BeginRenderPass(passDesc);
-
-        if (!preparedFrame.Views.empty())
-        {
             const auto& camera = preparedFrame.Views.front().CameraState;
-            const float aspect = static_cast<float>(m_screenWidth) / static_cast<float>(m_screenHeight);
+            const float aspect = static_cast<float>(swapW) / static_cast<float>(swapH);
 
-            const Matrix4 view = glm::lookAt(camera.Position, camera.Target, camera.Up);
-
-            // SDL_GPU / Vulkan clip space: Z range [0, 1]. Use _ZO (zero-to-one) variants.
-            Matrix4 projection;
-            if (camera.ProjectionType == 0) // Perspective
+            view = glm::lookAt(camera.Position, camera.Target, camera.Up);
+            if (camera.ProjectionType == 0)
             {
                 projection = glm::perspectiveRH_ZO(glm::radians(camera.FOV), aspect, 0.1f, 1000.0f);
             }
-            else // Orthographic
+            else
             {
                 const float halfH = camera.FOV * 0.5f;
                 const float halfW = halfH * aspect;
                 projection = glm::orthoRH_ZO(-halfW, halfW, -halfH, halfH, 0.1f, 1000.0f);
             }
+            hasCamera = true;
+        }
 
-            // Build per-frame scene globals from lights
-            const SceneGlobalsUBO sceneGlobals = BuildSceneGlobals(preparedFrame);
+        const SceneGlobalsUBO sceneGlobals = BuildSceneGlobals(preparedFrame);
 
-            // ── Validate and sort passes via RenderPipeline ──
-            if (!m_renderPipeline->Prepare(preparedFrame))
-            {
-                m_device->EndRenderPass();
-                m_device->EndFrame();
-                return;
-            }
+        // ── Build Render Graph ───────────────────────────────
+        RenderGraph graph;
 
-            const ShaderProgram* lastBoundProgram = nullptr;
+        // Transient texture descriptions for well-known targets
+        RenderGraphTextureDesc colorDesc;
+        colorDesc.Width = swapW;
+        colorDesc.Height = swapH;
+        colorDesc.Format = TextureFormat::RGBA8_UNORM;
+        colorDesc.DebugName = WellKnown::SceneColor;
 
-            for (const auto& pass : preparedFrame.Passes)
-            {
-                if (!pass.Enabled || pass.Kind != RenderPassKind::Scene)
+        RenderGraphTextureDesc depthDesc;
+        depthDesc.Width = swapW;
+        depthDesc.Height = swapH;
+        depthDesc.Format = TextureFormat::D32_FLOAT;
+        depthDesc.DebugName = WellKnown::SceneDepth;
+
+        // ── MainScene Pass ───────────────────────────────────
+        // Creates transient SceneColor + SceneDepth, renders all scene geometry.
+        graph.AddPass("MainScene", [&](RenderGraphBuilder& builder) -> RenderGraphExecuteFn {
+            auto color = builder.CreateTransient(colorDesc);
+            auto depth = builder.CreateTransient(depthDesc);
+            builder.WriteColor(color, LoadOp::Clear, ClearValue::FromColor(clearColor));
+            builder.WriteDepth(depth, LoadOp::Clear, 1.0f);
+
+            return [this, &preparedFrame, viewMat = view, projMat = projection, &sceneGlobals, hasCamera]
+                   (RenderDevice& device, const RenderGraphResources& /*resources*/) {
+                if (!hasCamera) return;
+
+                const ShaderProgram* lastBoundProgram = nullptr;
+
+                for (const auto& pass : preparedFrame.Passes)
                 {
-                    continue;
-                }
+                    if (!pass.Enabled || pass.Kind != RenderPassKind::Scene) continue;
 
-                for (const auto& submission : pass.Meshes)
-                {
-                    if (!submission.Visible)
+                    for (const auto& submission : pass.Meshes)
                     {
-                        continue;
-                    }
+                        if (!submission.Visible) continue;
 
-                    const ShaderProgram* program = m_programRegistry.FindOrDefault(submission.Material.ShaderName);
-                    if (!program || !program->Pipeline)
-                    {
-                        continue;
-                    }
+                        const ShaderProgram* program = m_programRegistry.FindOrDefault(submission.Material.ShaderName);
+                        if (!program || !program->Pipeline) continue;
 
-                    // Bind pipeline + mesh when program changes
-                    if (program != lastBoundProgram)
-                    {
-                        program->Pipeline->Bind();
-                        m_primitiveMesh.Bind(*m_device);
-                        lastBoundProgram = program;
-                    }
-
-                    // Push vertex transform UBO
-                    if (program->Desc.NeedsSceneGlobals)
-                    {
-                        // basic_lit: needs MVP + Model for normal transformation
-                        TransformUBO transformUBO;
-                        transformUBO.mvp = projection * view * submission.LocalToWorld;
-                        transformUBO.model = submission.LocalToWorld;
-                        m_device->PushVertexUniform(0, &transformUBO, sizeof(TransformUBO));
-                    }
-                    else
-                    {
-                        // unlit: only needs MVP
-                        UnlitTransformUBO transformUBO{projection * view * submission.LocalToWorld};
-                        m_device->PushVertexUniform(0, &transformUBO, sizeof(UnlitTransformUBO));
-                    }
-
-                    // Serialize material parameters into UBO bytes
-                    std::vector<uint8_t> materialUBOData(program->Desc.MaterialUBOSize, 0);
-
-                    // Merge: start from asset-loaded parameters, apply per-entity overrides on top
-                    MaterialParameterBlock mergedParams = submission.Material.Parameters;
-                    if (submission.Material.HasOverrides)
-                    {
-                        for (const auto& [name, value] : submission.Material.Overrides.Values)
+                        if (program != lastBoundProgram)
                         {
-                            mergedParams.Values[name] = value;
+                            program->Pipeline->Bind();
+                            m_primitiveMesh.Bind(device);
+                            lastBoundProgram = program;
+                        }
+
+                        if (program->Desc.NeedsSceneGlobals)
+                        {
+                            TransformUBO transformUBO;
+                            transformUBO.mvp = projMat * viewMat * submission.LocalToWorld;
+                            transformUBO.model = submission.LocalToWorld;
+                            device.PushVertexUniform(0, &transformUBO, sizeof(TransformUBO));
+                        }
+                        else
+                        {
+                            UnlitTransformUBO transformUBO{projMat * viewMat * submission.LocalToWorld};
+                            device.PushVertexUniform(0, &transformUBO, sizeof(UnlitTransformUBO));
+                        }
+
+                        std::vector<uint8_t> materialUBOData(program->Desc.MaterialUBOSize, 0);
+
+                        MaterialParameterBlock mergedParams = submission.Material.Parameters;
+                        if (submission.Material.HasOverrides)
+                        {
+                            for (const auto& [name, value] : submission.Material.Overrides.Values)
+                            {
+                                mergedParams.Values[name] = value;
+                            }
+                        }
+
+                        mergedParams.SerializeToUBO(program->Desc.MaterialParams,
+                                                     materialUBOData.data(),
+                                                     static_cast<uint32_t>(materialUBOData.size()));
+                        device.PushFragmentUniform(0, materialUBOData.data(),
+                                                    static_cast<uint32_t>(materialUBOData.size()));
+
+                        if (program->Desc.NeedsSceneGlobals)
+                        {
+                            device.PushFragmentUniform(1, &sceneGlobals, sizeof(SceneGlobalsUBO));
+                        }
+
+                        m_primitiveMesh.Draw(device);
+                    }
+                }
+            };
+        });
+
+        // ── Debug Pass ───────────────────────────────────────
+        // Writes on top of SceneColor/Depth with LoadOp::Load.
+        graph.AddPass("Debug", [&](RenderGraphBuilder& builder) -> RenderGraphExecuteFn {
+            auto color = graph.FindHandle(WellKnown::SceneColor);
+            auto depth = graph.FindHandle(WellKnown::SceneDepth);
+            builder.WriteColor(color, LoadOp::Load);
+            builder.WriteDepth(depth, LoadOp::Load);
+
+            return [this, &preparedFrame, viewMat = view, projMat = projection, hasCamera]
+                   (RenderDevice& device, const RenderGraphResources& /*resources*/) {
+                if (!hasCamera) return;
+
+                // ── Debug lines ──────────────────────────────
+                std::vector<VertexPosColor> lineVertices;
+
+                for (const auto& pass : preparedFrame.Passes)
+                {
+                    if (!pass.Enabled || !pass.DebugDraw) continue;
+
+                    if (pass.DebugDraw->ShowWorldGrid)
+                    {
+                        const int slices = std::max(1, pass.DebugDraw->WorldGridSlices);
+                        const float spacing = pass.DebugDraw->WorldGridSpacing;
+                        const float extent = static_cast<float>(slices) * spacing;
+                        const Float3 majorColor{0.45f, 0.45f, 0.45f};
+                        const Float3 minorColor{0.25f, 0.25f, 0.25f};
+
+                        for (int i = -slices; i <= slices; ++i)
+                        {
+                            const float coord = static_cast<float>(i) * spacing;
+                            const Float3& gridColor = (i == 0) ? majorColor : minorColor;
+
+                            lineVertices.push_back({Float3{-extent, 0.0f, coord}, gridColor});
+                            lineVertices.push_back({Float3{ extent, 0.0f, coord}, gridColor});
+                            lineVertices.push_back({Float3{coord, 0.0f, -extent}, gridColor});
+                            lineVertices.push_back({Float3{coord, 0.0f,  extent}, gridColor});
                         }
                     }
 
-                    mergedParams.SerializeToUBO(program->Desc.MaterialParams,
-                                                 materialUBOData.data(),
-                                                 static_cast<uint32_t>(materialUBOData.size()));
-                    m_device->PushFragmentUniform(0, materialUBOData.data(),
-                                                   static_cast<uint32_t>(materialUBOData.size()));
-
-                    // Push scene globals to fragment slot 1 if needed
-                    if (program->Desc.NeedsSceneGlobals)
+                    for (const auto& line : pass.DebugDraw->Lines)
                     {
-                        m_device->PushFragmentUniform(1, &sceneGlobals, sizeof(SceneGlobalsUBO));
+                        const Float3 lineColor = LinearColor::FromColor(line.Color).ToFloat3();
+                        lineVertices.push_back({line.Start, lineColor});
+                        lineVertices.push_back({line.End, lineColor});
                     }
-
-                    m_primitiveMesh.Draw(*m_device);
                 }
-            }
 
-            // ── Debug passes (grid, lines, debug boxes) ──────
-            RenderDebugPass(preparedFrame, view, projection);
+                if (!lineVertices.empty() && m_debugLinePipeline.IsValid())
+                {
+                    const uint32_t dataSize = static_cast<uint32_t>(lineVertices.size() * sizeof(VertexPosColor));
+                    const TransientAllocation alloc = m_transientAllocator.AllocateVertices(lineVertices.data(), dataSize);
+
+                    if (alloc.IsValid())
+                    {
+                        const Matrix4 mvp = projMat * viewMat;
+                        const DebugMaterialUBO materialUBO{glm::vec4(1.0f)};
+
+                        m_debugLinePipeline.Bind();
+                        device.BindVertexBuffer(alloc.Buffer, 0, alloc.Offset);
+                        device.PushVertexUniform(0, &mvp, sizeof(Matrix4));
+                        device.PushFragmentUniform(0, &materialUBO, sizeof(DebugMaterialUBO));
+                        device.DrawPrimitives(static_cast<uint32_t>(lineVertices.size()));
+                    }
+                }
+
+                // ── Debug boxes ──────────────────────────────
+                const ShaderProgram* unlitProgram = m_programRegistry.Find("unlit");
+                if (!unlitProgram || !unlitProgram->Pipeline || !m_primitiveMesh.IsValid()) return;
+
+                bool hasPendingBoxes = false;
+                for (const auto& pass : preparedFrame.Passes)
+                {
+                    if (pass.Enabled && pass.DebugDraw && !pass.DebugDraw->Boxes.empty())
+                    {
+                        hasPendingBoxes = true;
+                        break;
+                    }
+                }
+
+                if (!hasPendingBoxes) return;
+
+                unlitProgram->Pipeline->Bind();
+                m_primitiveMesh.Bind(device);
+
+                for (const auto& pass : preparedFrame.Passes)
+                {
+                    if (!pass.Enabled || !pass.DebugDraw) continue;
+
+                    for (const auto& box : pass.DebugDraw->Boxes)
+                    {
+                        const UnlitTransformUBO transformUBO{projMat * viewMat * box.LocalToWorld};
+                        const DebugMaterialUBO materialUBO{glm::vec4(1.0f)};
+
+                        device.PushVertexUniform(0, &transformUBO, sizeof(UnlitTransformUBO));
+                        device.PushFragmentUniform(0, &materialUBO, sizeof(DebugMaterialUBO));
+                        m_primitiveMesh.Draw(device);
+                    }
+                }
+            };
+        });
+
+        // ── Feature passes ───────────────────────────────────
+        for (auto& feature : m_features)
+        {
+            if (feature->IsEnabled())
+            {
+                feature->AddPasses(graph, preparedFrame);
+            }
         }
 
-        m_device->EndRenderPass();
+        // ── Composition Pass ─────────────────────────────────
+        // Reads SceneColor, blits to swapchain.
+        graph.AddPass("Composition", [&](RenderGraphBuilder& builder) -> RenderGraphExecuteFn {
+            auto color = graph.FindHandle(WellKnown::SceneColor);
+            builder.ReadTexture(color);
+            builder.SetSwapchainOutput(LoadOp::DontCare);
+
+            return [this, color](RenderDevice& device, const RenderGraphResources& resources) {
+                auto sceneColorTex = resources.GetTexture(color);
+
+                const ShaderProgram* compProgram = m_programRegistry.Find("composition");
+                if (!compProgram || !compProgram->Pipeline || !sceneColorTex || !m_nearestSampler) return;
+
+                compProgram->Pipeline->Bind();
+                device.BindFragmentSampler(0, sceneColorTex, m_nearestSampler);
+                device.DrawPrimitives(3);
+            };
+        });
+
+        // ── Compile and Execute ──────────────────────────────
+        if (graph.Compile())
+        {
+            graph.Execute(*m_device, m_transientPool);
+        }
+
         m_device->EndFrame();
     }
 
