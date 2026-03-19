@@ -181,7 +181,8 @@ namespace Wayfinder
         // Remove features first (they may hold GPU resources)
         for (auto& feature : m_features)
         {
-            feature->OnDetach(*m_device);
+            auto ctx = MakeFeatureContext();
+            feature->OnDetach(ctx);
         }
         m_features.clear();
 
@@ -238,9 +239,20 @@ namespace Wayfinder
         return globals;
     }
 
+    RenderFeatureContext Renderer::MakeFeatureContext()
+    {
+        return RenderFeatureContext{
+            .Device = *m_device,
+            .ProgramRegistry = m_programRegistry,
+            .ShaderManager = m_shaderManager,
+            .PipelineCache = m_pipelineCache,
+            .NearestSampler = m_nearestSampler,
+        };
+    }
+
     void Renderer::AddFeature(std::unique_ptr<RenderFeature> feature)
     {
-        if (m_device) feature->OnAttach(*m_device);
+        if (m_device) { auto ctx = MakeFeatureContext(); feature->OnAttach(ctx); }
         m_features.push_back(std::move(feature));
     }
 

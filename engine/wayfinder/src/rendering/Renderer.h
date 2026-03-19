@@ -1,5 +1,6 @@
 #pragma once
 
+#include "RenderFeature.h"
 #include "RenderTypes.h"
 #include "ShaderManager.h"
 #include "ShaderProgram.h"
@@ -20,7 +21,6 @@ namespace Wayfinder
 {
     class AssetService;
     class RenderDevice;
-    class RenderFeature;
     struct EngineConfig;
     struct RenderFrame;
     struct RenderLightSubmission;
@@ -58,7 +58,7 @@ namespace Wayfinder
                 [](const std::unique_ptr<RenderFeature>& f) { return dynamic_cast<T*>(f.get()) != nullptr; });
             if (it != m_features.end())
             {
-                if (m_device) (*it)->OnDetach(*m_device);
+                if (m_device) { auto ctx = MakeFeatureContext(); (*it)->OnDetach(ctx); }
                 m_features.erase(it);
             }
         }
@@ -81,6 +81,9 @@ namespace Wayfinder
 
         // Extracts the primary directional light from the frame into the scene globals UBO.
         SceneGlobalsUBO BuildSceneGlobals(const RenderFrame& frame) const;
+
+        // Builds the context struct that features receive on attach/detach.
+        RenderFeatureContext MakeFeatureContext();
 
         // ── Shader / Pipeline infrastructure ─────────────────
         ShaderManager m_shaderManager;

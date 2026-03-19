@@ -15,6 +15,7 @@ VSOutput VSMain(uint vertexId : SV_VertexID)
     // Generate 3 vertices covering the full screen as a single triangle
     float2 uv = float2((vertexId << 1) & 2, vertexId & 2);
     output.Position = float4(uv * 2.0 - 1.0, 0.0, 1.0);
-    output.TexCoord = uv;
+    // Flip V: Vulkan framebuffer Y is top-down, but the scene projection is Y-up.
+    output.TexCoord = float2(uv.x, 1.0 - uv.y);
     return output;
 }

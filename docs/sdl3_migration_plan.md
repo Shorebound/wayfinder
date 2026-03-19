@@ -652,8 +652,6 @@ The migration is complete when:
 8. Dear ImGui SDL3 backend is verified to compile (ready for Cartographer)
 
 
-I just ran journey.exe. It seems like everything is upside down.
 
-Add in extensibility for PostProcessing. Developers should be able to add in post processing as well if they haven't got it.
 
-SDL_Shadercross usage
+

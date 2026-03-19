@@ -1,11 +1,27 @@
 #pragma once
 
+#include "RenderTypes.h"
+
 #include <string>
 
 namespace Wayfinder
 {
     class RenderGraph;
+    class RenderDevice;
+    class PipelineCache;
+    class ShaderManager;
+    class ShaderProgramRegistry;
     struct RenderFrame;
+
+    // Services made available to features during OnAttach / OnDetach.
+    struct RenderFeatureContext
+    {
+        RenderDevice& Device;
+        ShaderProgramRegistry& ProgramRegistry;
+        ShaderManager& ShaderManager;
+        PipelineCache& PipelineCache;
+        GPUSamplerHandle NearestSampler = nullptr;
+    };
 
     // Base class for registerable rendering extensions.
     // A RenderFeature injects one or more passes into the per-frame render graph.
@@ -32,11 +48,12 @@ namespace Wayfinder
         // can determine correct execution order.
         virtual void AddPasses(RenderGraph& graph, const RenderFrame& frame) = 0;
 
-        // Called when the feature is first registered. Optional initialization.
-        virtual void OnAttach(class RenderDevice& /*device*/) {}
+        // Called when the feature is first registered. Use the context to register
+        // shader programs, create pipelines, or acquire GPU resources.
+        virtual void OnAttach(const RenderFeatureContext& /*context*/) {}
 
-        // Called when the feature is removed. Optional cleanup.
-        virtual void OnDetach(class RenderDevice& /*device*/) {}
+        // Called when the feature is removed. Use the context for cleanup.
+        virtual void OnDetach(const RenderFeatureContext& /*context*/) {}
 
         bool IsEnabled() const { return m_enabled; }
         void SetEnabled(bool enabled) { m_enabled = enabled; }
