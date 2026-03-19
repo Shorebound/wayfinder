@@ -1,5 +1,6 @@
 #include "RuntimeComponentRegistry.h"
 #include "ComponentRegistry.h"
+#include "../core/Log.h"
 #include "../core/ModuleRegistry.h"
 
 namespace Wayfinder
@@ -8,6 +9,13 @@ namespace Wayfinder
     {
         for (const auto& coreEntry : SceneComponentRegistry::GetEntries())
         {
+            if (Find(coreEntry.Key))
+            {
+                WAYFINDER_LOG(LogScene, LogVerbosity::Warning,
+                    "Duplicate component key '{}' in core entries, skipping", coreEntry.Key);
+                continue;
+            }
+
             Entry entry;
             entry.Key = std::string(coreEntry.Key);
             entry.RegisterFn = coreEntry.RegisterFn;
@@ -22,6 +30,13 @@ namespace Wayfinder
     {
         for (const auto& desc : registry.GetComponentDescriptors())
         {
+            if (Find(desc.Key))
+            {
+                WAYFINDER_LOG(LogScene, LogVerbosity::Warning,
+                    "Duplicate component key '{}' from game module, skipping", desc.Key);
+                continue;
+            }
+
             Entry entry;
             entry.Key = desc.Key;
             entry.RegisterFn = desc.RegisterFn;
