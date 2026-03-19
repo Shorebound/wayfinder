@@ -61,6 +61,12 @@ namespace Wayfinder
 
         auto loadResult = ProjectDescriptor::LoadFromFile(*projectFile);
 
+        if (!loadResult.Valid)
+        {
+            WAYFINDER_ERROR(LogEngine, "Failed to load project descriptor");
+            return false;
+        }
+
         for (const auto& warning : loadResult.Warnings)
         {
             WAYFINDER_WARNING(LogEngine, "Project: {}", warning);
