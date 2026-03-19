@@ -3,6 +3,7 @@
 #include "EngineContext.h"
 #include "GameplayTag.h"
 #include "GameplayTagRegistry.h"
+#include "GameStateMachine.h"
 #include "InternedString.h"
 #include "Log.h"
 #include "ModuleRegistry.h"
@@ -117,20 +118,14 @@ namespace Wayfinder
         if (m_moduleRegistry)
         {
             m_moduleRegistry->ApplyToWorld(m_world);
-            BindConditionedSystems();
+        }
 
-            // Transition to the initial state if one was declared; otherwise, ensure
-            // run conditions are evaluated at least once so conditioned systems
-            // respect their predicates even if no state/tag changes ever occur.
-            const auto& initialState = m_moduleRegistry->GetInitialState();
-            if (!initialState.empty())
-            {
-                TransitionTo(initialState);
-            }
-            else
-            {
-                EvaluateRunConditions();
-            }
+        // Configure and set up the state machine after world registration
+        m_stateMachine = GameSubsystems::Find<GameStateMachine>();
+        if (m_stateMachine)
+        {
+            m_stateMachine->Configure(m_world, m_moduleRegistry);
+            m_stateMachine->Setup();
         }
     }
 
@@ -139,11 +134,8 @@ namespace Wayfinder
         if (!m_running || !m_initialized)
             return;
 
-        if (m_runConditionsDirty)
-        {
-            EvaluateRunConditions();
-            m_runConditionsDirty = false;
-        }
+        if (m_stateMachine)
+            m_stateMachine->Update();
 
         m_world.progress(deltaTime);
     }
@@ -157,6 +149,7 @@ namespace Wayfinder
         GameSubsystems::Unbind();
         m_subsystems.Shutdown();
 
+        m_stateMachine = nullptr;
         m_running = false;
         m_initialized = false;
     }
@@ -187,64 +180,15 @@ namespace Wayfinder
 
     void Game::TransitionTo(const std::string& stateName)
     {
-        // Build a name -> descriptor map for O(1) lookups
-        const ModuleRegistry::StateDescriptor* targetDesc = nullptr;
-        if (m_moduleRegistry)
-        {
-            for (const auto& desc : m_moduleRegistry->GetStateDescriptors())
-            {
-                if (desc.Name == stateName)
-                {
-                    targetDesc = &desc;
-                    break;
-                }
-            }
-
-            if (!targetDesc)
-            {
-                WAYFINDER_WARNING(LogGame, "TransitionTo: '{}' is not a registered state", stateName);
-                return;
-            }
-        }
-
-        const auto internedName = InternedString::Intern(stateName);
-        ActiveGameState& state = m_world.get_mut<ActiveGameState>();
-
-        if (state.Current == internedName)
-            return;
-
-        const InternedString oldState = state.Current;
-
-        // Call OnExit for the outgoing state
-        if (m_moduleRegistry && !oldState.IsEmpty())
-        {
-            for (const auto& desc : m_moduleRegistry->GetStateDescriptors())
-            {
-                if (desc.Name == oldState.GetString() && desc.OnExit)
-                {
-                    desc.OnExit(m_world);
-                    break;
-                }
-            }
-        }
-
-        // Update the singleton
-        state.Previous = oldState;
-        state.Current = internedName;
-
-        // Call OnEnter for the incoming state
-        if (targetDesc && targetDesc->OnEnter)
-            targetDesc->OnEnter(m_world);
-
-        WAYFINDER_INFO(LogGame, "State transition: '{}' -> '{}'", oldState.GetString(), stateName);
-
-        m_runConditionsDirty = true;
+        if (m_stateMachine)
+            m_stateMachine->TransitionTo(stateName);
     }
 
     std::string_view Game::GetCurrentState() const
     {
-        const ActiveGameState& state = m_world.get<ActiveGameState>();
-        return state.Current.GetString();
+        if (m_stateMachine)
+            return m_stateMachine->GetCurrentState();
+        return {};
     }
 
     void Game::AddGameplayTag(const GameplayTag& tag)
@@ -252,7 +196,8 @@ namespace Wayfinder
         ActiveGameplayTags& tags = m_world.get_mut<ActiveGameplayTags>();
         tags.Tags.AddTag(tag);
         WAYFINDER_INFO(LogGame, "Added gameplay tag: '{}'", tag.GetName());
-        m_runConditionsDirty = true;
+        if (m_stateMachine)
+            m_stateMachine->MarkDirty();
     }
 
     void Game::RemoveGameplayTag(const GameplayTag& tag)
@@ -260,7 +205,8 @@ namespace Wayfinder
         ActiveGameplayTags& tags = m_world.get_mut<ActiveGameplayTags>();
         tags.Tags.RemoveTag(tag);
         WAYFINDER_INFO(LogGame, "Removed gameplay tag: '{}'", tag.GetName());
-        m_runConditionsDirty = true;
+        if (m_stateMachine)
+            m_stateMachine->MarkDirty();
     }
 
     bool Game::HasGameplayTag(const GameplayTag& tag) const
@@ -273,6 +219,7 @@ namespace Wayfinder
     {
         // Register core engine subsystems
         m_subsystems.Register<GameplayTagRegistry>();
+        m_subsystems.Register<GameStateMachine>();
 
         // Register game-module subsystems
         if (m_moduleRegistry)
@@ -307,53 +254,6 @@ namespace Wayfinder
         // Register code-defined tags
         for (const auto& desc : m_moduleRegistry->GetRegisteredTags())
             tagRegistry.RegisterTag(desc.Name, desc.Comment);
-    }
-
-    void Game::BindConditionedSystems()
-    {
-        if (!m_moduleRegistry)
-            return;
-
-        // NOTE: This relies on the flecs system name matching the descriptor name.
-        // ModuleRegistry::RegisterSystem callers must use the same name string for
-        // both the descriptor and the flecs system() call so lookup succeeds.
-        for (const auto& desc : m_moduleRegistry->GetSystems())
-        {
-            if (!desc.Condition)
-                continue;
-
-            flecs::entity sys = m_world.lookup(desc.Name.c_str());
-            if (!sys.is_valid())
-            {
-                WAYFINDER_WARNING(LogGame,
-                    "Conditioned system '{}' not found in world. "
-                    "Ensure the flecs system name matches the descriptor name.",
-                    desc.Name);
-                continue;
-            }
-
-            const bool initiallyEnabled = desc.Condition(m_world);
-            if (!initiallyEnabled)
-                sys.disable();
-
-            m_conditionedSystems.push_back({sys, desc.Condition, initiallyEnabled});
-        }
-    }
-
-    void Game::EvaluateRunConditions()
-    {
-        for (auto& cs : m_conditionedSystems)
-        {
-            const bool shouldRun = cs.Condition(m_world);
-            if (shouldRun != cs.Enabled)
-            {
-                if (shouldRun)
-                    cs.SystemEntity.enable();
-                else
-                    cs.SystemEntity.disable();
-                cs.Enabled = shouldRun;
-            }
-        }
     }
 
 } // namespace Wayfinder
