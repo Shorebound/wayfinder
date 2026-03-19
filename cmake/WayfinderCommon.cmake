@@ -25,17 +25,17 @@ target_compile_definitions(wayfinder_common INTERFACE
     $<$<BOOL:${WAYFINDER_PHYSICS}>:WAYFINDER_PHYSICS>
 
     # Platform-specific (Public controls #ifdef)
-    $<IF:$<PLATFORM_ID:Windows>,WAYFINDER_PLATFORM_WINDOWS,>
-    $<IF:$<PLATFORM_ID:Linux>,WAYFINDER_PLATFORM_LINUX,>
-    $<IF:$<PLATFORM_ID:Darwin>,WAYFINDER_PLATFORM_MACOS,>
-    $<IF:$<STREQUAL:${CMAKE_SYSTEM_NAME},Emscripten>,WAYFINDER_PLATFORM_WEB,>
+    $<$<PLATFORM_ID:Windows>:WAYFINDER_PLATFORM_WINDOWS>
+    $<$<PLATFORM_ID:Linux>:WAYFINDER_PLATFORM_LINUX>
+    $<$<PLATFORM_ID:Darwin>:WAYFINDER_PLATFORM_MACOS>
+    $<$<STREQUAL:${CMAKE_SYSTEM_NAME},Emscripten>:WAYFINDER_PLATFORM_WEB>
 
     # Compiler-specific (Public controls #ifdef)
-    $<IF:$<CXX_COMPILER_ID:MSVC>,WAYFINDER_COMPILER_MSVC,>
-    $<IF:$<CXX_COMPILER_ID:GNU>,WAYFINDER_COMPILER_GCC,>
-    $<IF:$<CXX_COMPILER_ID:Clang>,WAYFINDER_COMPILER_CLANG,>
-    $<IF:$<CXX_COMPILER_ID:AppleClang>,WAYFINDER_COMPILER_CLANG,>
-    $<IF:$<CXX_COMPILER_ID:Intel>,WAYFINDER_COMPILER_INTEL,>
+    $<$<CXX_COMPILER_ID:MSVC>:WAYFINDER_COMPILER_MSVC>
+    $<$<CXX_COMPILER_ID:GNU>:WAYFINDER_COMPILER_GCC>
+    $<$<CXX_COMPILER_ID:Clang>:WAYFINDER_COMPILER_CLANG>
+    $<$<CXX_COMPILER_ID:AppleClang>:WAYFINDER_COMPILER_CLANG>
+    $<$<CXX_COMPILER_ID:Intel>:WAYFINDER_COMPILER_INTEL>
 
     # Define NDEBUG for non-Debug builds (Common practice)
     $<$<NOT:$<CONFIG:Debug>>:NDEBUG>
@@ -79,13 +79,3 @@ if(NOT WAYFINDER_ENABLE_EXCEPTIONS)
         $<$<CXX_COMPILER_ID:GNU,Clang,AppleClang>:-fno-exceptions>
     )
 endif()
-
-# --- Common Include Directories ---
-# If you had common include dirs needed by all targets, add them here:
-# target_include_directories(wayfinder_common INTERFACE
-#    ${CMAKE_CURRENT_SOURCE_DIR}/include # Example
-# )
-
-# --- Common Link Libraries ---
-# If all targets needed a specific library (unlikely here, but possible)
-# target_link_libraries(wayfinder_common INTERFACE some_common_lib)

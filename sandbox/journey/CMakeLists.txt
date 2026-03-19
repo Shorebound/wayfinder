@@ -5,19 +5,10 @@ add_executable(${SANDBOX_NAME})
 wayfinder_set_output_directories(${SANDBOX_NAME})
 message(STATUS "Sandbox: Configuring target ${SANDBOX_NAME}")
 
-# --- Installation ---
-#install(TARGETS ${SANDBOX_NAME}
-#    RUNTIME DESTINATION bin 
-#)
-
 # --- Sources ---
-file(GLOB_RECURSE SANDBOX_SOURCES CONFIGURE_DEPENDS
-  "src/*.h"
-  "src/*.cpp"
-)
 target_sources(${SANDBOX_NAME} 
     PRIVATE
-        src/JourneyApplication.cpp 
+        src/JourneyModule.cpp 
 )
 
 # --- Include Directories ---
@@ -32,6 +23,14 @@ target_link_libraries(${SANDBOX_NAME}
         ${ENGINE_NAME}
 )
 
+# --- Module shared library (loaded at runtime by tools like waypoint) ---
+set(MODULE_NAME ${SANDBOX_NAME}_module)
+add_library(${MODULE_NAME} SHARED src/JourneyModule.cpp)
+wayfinder_set_output_directories(${MODULE_NAME})
+target_include_directories(${MODULE_NAME} PRIVATE src)
+target_link_libraries(${MODULE_NAME} PRIVATE ${ENGINE_NAME})
+target_compile_definitions(${MODULE_NAME} PRIVATE JOURNEY_MODULE_EXPORTS)
+
 add_custom_command(TARGET ${SANDBOX_NAME} POST_BUILD
   COMMAND ${CMAKE_COMMAND} -E copy_directory
     "${CMAKE_CURRENT_SOURCE_DIR}/assets"
@@ -40,8 +39,24 @@ add_custom_command(TARGET ${SANDBOX_NAME} POST_BUILD
   VERBATIM
 )
 
+add_custom_command(TARGET ${SANDBOX_NAME} POST_BUILD
+  COMMAND ${CMAKE_COMMAND} -E copy_if_different
+    "${CMAKE_CURRENT_SOURCE_DIR}/project.wayfinder"
+    "$<TARGET_FILE_DIR:${SANDBOX_NAME}>/project.wayfinder"
+  COMMENT "Copying project.wayfinder for ${SANDBOX_NAME}"
+  VERBATIM
+)
+
+add_custom_command(TARGET ${SANDBOX_NAME} POST_BUILD
+  COMMAND ${CMAKE_COMMAND} -E copy_directory
+    "${CMAKE_CURRENT_SOURCE_DIR}/config"
+    "$<TARGET_FILE_DIR:${SANDBOX_NAME}>/config"
+  COMMENT "Copying config directory for ${SANDBOX_NAME}"
+  VERBATIM
+)
+
 # --- Shader Compilation ---
-include(${CMAKE_SOURCE_DIR}/cmake/WayfinderShaders.cmake)
+include(WayfinderShaders)
 file(GLOB SHADER_SOURCES CONFIGURE_DEPENDS
     "${CMAKE_SOURCE_DIR}/engine/wayfinder/shaders/*.vert"
     "${CMAKE_SOURCE_DIR}/engine/wayfinder/shaders/*.frag"
@@ -49,13 +64,7 @@ file(GLOB SHADER_SOURCES CONFIGURE_DEPENDS
 wayfinder_compile_shaders(
     TARGET ${SANDBOX_NAME}
     SHADERS ${SHADER_SOURCES}
-    OUTPUT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/assets/shaders"
-)
-
-# --- Target Properties ---
-# Output directory for the executable file (.exe)
-set_target_properties(${SANDBOX_NAME} PROPERTIES
-  RUNTIME_OUTPUT_DIRECTORY "${OUTPUT_DIR_BASE}/$<CONFIG>"
+    OUTPUT_DIR "$<TARGET_FILE_DIR:${SANDBOX_NAME}>/assets/shaders"
 )
 
 # --- Platform Specifics for THIS Executable ---

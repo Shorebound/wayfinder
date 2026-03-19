@@ -6,6 +6,8 @@
 namespace Wayfinder
 {
     class Game;
+    class Module;
+    class ModuleRegistry;
     class Input;
     class LayerStack;
     class RenderDevice;
@@ -14,6 +16,7 @@ namespace Wayfinder
     class Time;
     class Window;
     struct EngineConfig;
+    struct ProjectDescriptor;
 
     class WAYFINDER_API Application
     {
@@ -29,7 +32,7 @@ namespace Wayfinder
             }
         };
 
-        explicit Application(const std::string& configPath = "engine.toml",
+        explicit Application(std::unique_ptr<Module> module,
                              const CommandLineArgs& args = {});
         ~Application();
 
@@ -46,9 +49,12 @@ namespace Wayfinder
         bool OnWindowClose(class WindowCloseEvent& e);
         bool OnWindowResize(class WindowResizeEvent& e);
 
-        std::string m_configPath;
+        std::unique_ptr<Module> m_module;
+        std::unique_ptr<ModuleRegistry> m_moduleRegistry;
+        std::unique_ptr<ProjectDescriptor> m_project;
         std::unique_ptr<EngineConfig> m_config;
         bool m_running = false;
+        bool m_moduleStarted = false;
 
         std::unique_ptr<Window> m_window;
         std::unique_ptr<Input> m_input;
@@ -61,6 +67,4 @@ namespace Wayfinder
         std::unique_ptr<SceneRenderExtractor> m_sceneRenderExtractor;
     };
 
-    extern std::unique_ptr<Application> CreateApplication(
-        const Application::CommandLineArgs& args = {});
 } // namespace Wayfinder

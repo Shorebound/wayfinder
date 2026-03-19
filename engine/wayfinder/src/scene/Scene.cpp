@@ -1,10 +1,11 @@
 #include "Scene.h"
-#include "ComponentRegistry.h"
+#include "RuntimeComponentRegistry.h"
 #include "SceneDocument.h"
 #include "SceneModuleRegistry.h"
 #include "entity/Entity.h"
 #include "Components.h"
-#include "../core/Log.h"
+#include "core/Log.h"
+#include "core/SceneSettings.h"
 
 #include <filesystem>
 #include <unordered_map>
@@ -44,40 +45,25 @@ namespace
 
 namespace Wayfinder
 {
-    Scene::Scene(const std::string& name) : m_name(name), m_initialized(false)
+    Scene::Scene(flecs::world& world, const RuntimeComponentRegistry& componentRegistry, const std::string& name)
+        : m_world(world), m_componentRegistry(componentRegistry), m_name(name)
     {
+        m_sceneTag = m_world.entity();
     }
 
     Scene::~Scene()
     {
-        if (m_initialized)
-        {
-            Shutdown();
-        }
+        Shutdown();
     }
 
-    void Scene::Initialize()
+    void Scene::RegisterCoreECS(flecs::world& world)
     {
-        WAYFINDER_INFO(LogScene, "Initializing scene: {0}", m_name);
-
-        RegisterCoreComponents();
-        RegisterCoreModules();
-
-        m_initialized = true;
-    }
-
-    void Scene::RegisterCoreComponents()
-    {
-        m_world.component<SceneEntityComponent>();
-        m_world.component<NameComponent>();
-        m_world.component<SceneObjectIdComponent>();
-        m_world.component<PrefabInstanceComponent>();
-        SceneComponentRegistry::Get().RegisterComponents(m_world);
-    }
-
-    void Scene::RegisterCoreModules()
-    {
-        SceneModuleRegistry::Get().RegisterModules(m_world);
+        world.component<SceneEntityComponent>();
+        world.component<SceneOwnership>();
+        world.component<NameComponent>();
+        world.component<SceneObjectIdComponent>();
+        world.component<PrefabInstanceComponent>();
+        SceneModuleRegistry::Get().RegisterModules(world);
     }
 
     void Scene::ClearEntities()
@@ -85,7 +71,7 @@ namespace Wayfinder
         std::vector<flecs::entity_t> entityIds;
         m_world.each([&](flecs::entity entityHandle)
         {
-            if (!entityHandle.has<SceneEntityComponent>())
+            if (!entityHandle.has<SceneOwnership>(m_sceneTag))
             {
                 return;
             }
@@ -97,33 +83,44 @@ namespace Wayfinder
         {
             m_world.entity(entityId).destruct();
         }
-    }
 
-    void Scene::Update(float deltaTime)
-    {
-        if (!m_initialized) return;
-        
-        // Progress the Flecs ECS world
-        m_world.progress(deltaTime);
+        // Reset scene-scoped settings
+        m_world.set<SceneSettings>({});
     }
 
     void Scene::Shutdown()
     {
+        if (!m_active) return;
+
         WAYFINDER_INFO(LogScene, "Shutting down scene: {0}", m_name);
         
-        // Flecs world gets destroyed automatically, but we can clear it if needed
-        // m_world.quit();
+        ClearEntities();
 
-        m_initialized = false;
+        if (m_sceneTag.is_valid())
+        {
+            m_sceneTag.destruct();
+        }
+
+        m_active = false;
     }
 
     Entity Scene::CreateEntity(const std::string& name)
     {
+        /// Helper: check whether a flecs name is already taken by an entity
+        /// that belongs to *this* scene.  World-level lookup is still used
+        /// (flecs names are world-global), but we only consider it a
+        /// collision when the existing entity carries our SceneOwnership tag.
+        auto nameOwnedByThisScene = [&](const char* candidate) -> bool
+        {
+            flecs::entity existing = m_world.lookup(candidate);
+            return existing.is_valid() && existing.has<SceneOwnership>(m_sceneTag);
+        };
+
         std::string uniqueName = name;
-        if (m_world.lookup(uniqueName.c_str()).is_valid())
+        if (nameOwnedByThisScene(uniqueName.c_str()))
         {
             uint32_t suffix = 1;
-            while (m_world.lookup((name + std::to_string(suffix)).c_str()).is_valid())
+            while (nameOwnedByThisScene((name + std::to_string(suffix)).c_str()))
             {
                 ++suffix;
             }
@@ -133,6 +130,7 @@ namespace Wayfinder
 
         flecs::entity handle = m_world.entity(uniqueName.c_str());
         handle.add<SceneEntityComponent>();
+        handle.add<SceneOwnership>(m_sceneTag);
         handle.add<NameComponent>();
         handle.get_mut<NameComponent>().Value = uniqueName;
         handle.set<SceneObjectIdComponent>({SceneObjectId::Generate()});
@@ -145,7 +143,7 @@ namespace Wayfinder
     Entity Scene::GetEntityByName(const std::string& name)
     {
         flecs::entity handle = m_world.lookup(name.c_str());
-        if (handle.is_valid())
+        if (handle.is_valid() && handle.has<SceneOwnership>(m_sceneTag))
         {
             return Entity{handle, this};
         }
@@ -160,9 +158,10 @@ namespace Wayfinder
         m_world.each([&](flecs::entity entityHandle, const SceneObjectIdComponent& sceneObjectId)
         {
             if (result || !(sceneObjectId.Value == id))
-            {
                 return;
-            }
+
+            if (!entityHandle.has<SceneOwnership>(m_sceneTag))
+                return;
 
             result = Entity{entityHandle, this};
         });
@@ -172,15 +171,9 @@ namespace Wayfinder
 
     bool Scene::LoadFromFile(const std::string& filePath)
     {
-        if (!m_initialized)
-        {
-            WAYFINDER_ERROR(LogScene, "Scene must be initialized before loading data: {0}", filePath);
-            return false;
-        }
-
         try
         {
-            const SceneDocumentLoadResult loadResult = LoadSceneDocument(filePath, SceneComponentRegistry::Get(), m_assetService.get());
+            const SceneDocumentLoadResult loadResult = LoadSceneDocument(filePath, m_componentRegistry, m_assetService.get());
             if (!loadResult.Document)
             {
                 LogDocumentErrors(loadResult.Errors, filePath);
@@ -199,7 +192,7 @@ namespace Wayfinder
                 entity.SetName(definition.Name);
                 entity.SetSceneObjectId(definition.Id);
 
-                SceneComponentRegistry::Get().ApplyComponents(definition.ComponentData, entity);
+                m_componentRegistry.ApplyComponents(definition.ComponentData, entity);
 
                 if (!entity.HasComponent<TransformComponent>())
                 {
@@ -233,6 +226,12 @@ namespace Wayfinder
             }
 
             WAYFINDER_INFO(LogScene, "Loaded scene data from: {0}", filePath);
+
+            // Apply scene settings as a world singleton
+            SceneSettings settings;
+            settings.SetData(loadResult.Document->Settings);
+            m_world.set<SceneSettings>(settings);
+
             return true;
         }
         catch (const std::exception& error)
@@ -244,21 +243,18 @@ namespace Wayfinder
 
     bool Scene::SaveToFile(const std::string& filePath) const
     {
-        if (!m_initialized)
-        {
-            WAYFINDER_ERROR(LogScene, "Scene must be initialized before saving data: {0}", filePath);
-            return false;
-        }
-
         try
         {
-            const SceneComponentRegistry& registry = SceneComponentRegistry::Get();
             SceneDocument document;
             document.Name = m_name;
 
+            // Persist scene settings from the world singleton into the document
+            if (m_world.has<SceneSettings>())
+                document.Settings = m_world.get<SceneSettings>().GetData();
+
             m_world.each([&](flecs::entity entityHandle)
             {
-                if (!entityHandle.has<SceneEntityComponent>())
+                if (!entityHandle.has<SceneOwnership>(m_sceneTag))
                 {
                     return;
                 }
@@ -289,7 +285,7 @@ namespace Wayfinder
                     record.PrefabAssetId = entity.GetPrefabAssetId();
                 }
 
-                registry.SerializeComponents(entity, record.ComponentData);
+                m_componentRegistry.SerializeComponents(entity, record.ComponentData);
                 document.Entities.push_back(std::move(record));
             });
 

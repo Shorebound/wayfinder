@@ -2,6 +2,10 @@
 #include "logging/ILogger.h"
 #include "logging/LogTypes.h"
 
+#include <memory>
+#include <string>
+#include <unordered_map>
+
 
 namespace Wayfinder
 {

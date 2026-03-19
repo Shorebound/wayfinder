@@ -3,9 +3,11 @@
 namespace Wayfinder
 {
     class Input;
+    class ModuleRegistry;
     class Time;
     class Window;
     struct EngineConfig;
+    struct ProjectDescriptor;
 
     struct EngineContext
     {
@@ -13,6 +15,8 @@ namespace Wayfinder
         Input& input;
         Time& time;
         const EngineConfig& config;
+        const ProjectDescriptor& project;
+        const ModuleRegistry* moduleRegistry = nullptr;
     };
 
 } // namespace Wayfinder

@@ -1,22 +1,13 @@
-#pragma once
-#include "application/Application.h"
+#include "core/Module.h"
+#include "core/ModuleRegistry.h"
 #include "application/EntryPoint.h"
 
-namespace Waystone
+class WaystoneModule : public Wayfinder::Module
 {
-    class WaystoneApplication : public Wayfinder::Application
-    {
-    public:
-        WaystoneApplication(const Config& config = {}) : Application(config) {}
-    };
-}
+    void Register(Wayfinder::ModuleRegistry& /*registry*/) override {}
+};
 
-Wayfinder::Application* Wayfinder::CreateApplication(const Wayfinder::Application::CommandLineArgs& args)
+std::unique_ptr<Wayfinder::Module> Wayfinder::CreateModule()
 {
-    auto config = Wayfinder::Application::Config{
-        .ScreenWidth = 1920,
-        .ScreenHeight = 1080,
-        .WindowTitle = "Waystone Sandbox",
-        .VSync = false};
-    return new Waystone::WaystoneApplication(config);
+    return std::make_unique<WaystoneModule>();
 }

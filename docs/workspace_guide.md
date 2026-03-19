@@ -6,6 +6,20 @@ This document explains how the repository is organized, what targets currently m
 
 ## Repository Layout
 
+| Path | Purpose |
+|------|---------|
+| `engine/wayfinder/` | Engine library (static by default) |
+| `sandbox/journey/` | Primary playable sandbox + sample assets |
+| `sandbox/waystone/` | Separate runtime shell (not yet active) |
+| `apps/cartographer/` | Editor (future) |
+| `apps/compass/` | Project manager (future) |
+| `tools/waypoint/` | Asset validation CLI (active) |
+| `apps/beacon/` | Launcher (future) |
+| `tools/expedition/`, `tools/navigator/`, `tools/surveyor/` | Future tools |
+| `tests/` | Engine tests |
+| `cmake/` | `WayfinderCommon.cmake` (flags/definitions), `WayfinderDependencies.cmake` (CPM), `GetCPM.cmake` (bootstrap) |
+
+
 ### Engine
 
 - `engine/wayfinder/` contains the core engine library
@@ -26,7 +40,8 @@ These directories describe intended products, not mature implementations.
 ### Tools
 
 - `tools/waypoint/` is the first active standalone tool and currently provides asset and scene validation workflows
-- `tools/surveyor/`, `tools/expedition/`, `tools/beacon/`, and `tools/navigator/` are reserved for future diagnostics, orchestration, and headless workflows
+- `tools/surveyor/`, `tools/expedition/`, and `tools/navigator/` are reserved for future diagnostics, orchestration, and headless workflows
+- `apps/beacon/` is reserved for the future launcher
 
 ### Supporting Areas
 
@@ -67,9 +82,23 @@ Important CMake options:
 Typical local setup for runtime and asset work:
 
 ```powershell
+# Using presets (recommended)
+cmake --preset dev          # configures sandbox + tools + tests
+cmake --build --preset debug
+
+# Or manually
 cmake -S . -B build -DWAYFINDER_BUILD_SANDBOX=ON -DWAYFINDER_BUILD_TOOLS=ON
 cmake --build build --config Debug --target journey waypoint
 ```
+
+See `CMakePresets.json` at the repo root for available presets:
+
+| Preset | What it enables |
+|--------|----------------|
+| `dev` | Sandbox + Tools + Tests |
+| `dev-all` | Everything (sandbox, tools, tests, editor, runtime, samples) |
+| `ci` | Same as dev-all, plus warnings-as-errors |
+| `shipping` | Sandbox only, optimised |
 
 ## Current Working Workflow
 
@@ -103,7 +132,9 @@ build\bin\Debug\waypoint.exe roundtrip-save sandbox\journey\assets\scenes\defaul
 
 ## Dependency Summary
 
-The project currently pulls in or expects the following major libraries:
+All third-party dependencies are fetched via [CPM.cmake](https://github.com/cpm-cmake/CPM.cmake). The bootstrap script `cmake/GetCPM.cmake` downloads CPM at configure time; no manual installation is needed. Set `CPM_SOURCE_CACHE` to a shared directory to avoid re-downloading across builds.
+
+Current dependencies:
 
 - `SDL3` for windowing, input, events, and GPU rendering (via SDL_GPU) — replacing Raylib
 - `flecs` for ECS and scene world management
@@ -112,6 +143,7 @@ The project currently pulls in or expects the following major libraries:
 - `spdlog` for logging
 - `JoltPhysics` as the intended near-term 3D physics path
 - `Box2D`, `Tracy`, and `ImGui` as available dependencies that are not yet part of the main checked-in workflow
+- `doctest` for unit testing (linked only when `WAYFINDER_BUILD_TESTS=ON`)
 
 Note: Raylib was the original platform and rendering backend. The engine is migrating to SDL3 + SDL_GPU. See `docs/sdl3_migration_plan.md` for the full plan.
 

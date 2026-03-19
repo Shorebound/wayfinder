@@ -1,0 +1,17 @@
+## Faction tags — classify entities by team or allegiance.
+
+[[tags]]
+name = "Faction"
+comment = "Root tag for faction classification"
+
+[[tags]]
+name = "Faction.Player"
+comment = "Entity belongs to the player's team"
+
+[[tags]]
+name = "Faction.Enemy"
+comment = "Entity is hostile to the player"
+
+[[tags]]
+name = "Faction.Neutral"
+comment = "Entity is neutral and non-combatant"

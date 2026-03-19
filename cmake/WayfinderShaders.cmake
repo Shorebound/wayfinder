@@ -19,9 +19,17 @@ function(wayfinder_compile_shaders)
         return()
     endif()
 
+    # Compile to a build-tree staging directory (literal path, required by OUTPUT).
+    # Then copy to the caller's OUTPUT_DIR post-build (which may use generator expressions).
+    # Clean the staging dir at configure time so stale .spv files from
+    # removed/renamed shaders don't persist across rebuilds.
+    set(STAGING_DIR "${CMAKE_CURRENT_BINARY_DIR}/compiled_shaders")
+    file(REMOVE_RECURSE "${STAGING_DIR}")
+    file(MAKE_DIRECTORY "${STAGING_DIR}")
+
     foreach(SHADER_SOURCE ${ARG_SHADERS})
         get_filename_component(SHADER_NAME ${SHADER_SOURCE} NAME)
-        set(SPV_OUTPUT "${ARG_OUTPUT_DIR}/${SHADER_NAME}.spv")
+        set(SPV_OUTPUT "${STAGING_DIR}/${SHADER_NAME}.spv")
 
         # Determine shader profile and binding shifts from extension
         get_filename_component(EXT ${SHADER_SOURCE} LAST_EXT)
@@ -50,5 +58,14 @@ function(wayfinder_compile_shaders)
     if(SPV_OUTPUTS)
         add_custom_target(${ARG_TARGET}_shaders ALL DEPENDS ${SPV_OUTPUTS})
         add_dependencies(${ARG_TARGET} ${ARG_TARGET}_shaders)
+
+        # Copy compiled shaders to the final output directory (supports generator expressions)
+        add_custom_command(TARGET ${ARG_TARGET} POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy_directory
+                "${STAGING_DIR}"
+                "${ARG_OUTPUT_DIR}"
+            COMMENT "Copying compiled shaders to output directory"
+            VERBATIM
+        )
     endif()
 endfunction()

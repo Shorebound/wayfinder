@@ -1,0 +1,21 @@
+## Status tags — conditions that affect entities at runtime.
+
+[[tags]]
+name = "Status"
+comment = "Root tag for all entity status effects"
+
+[[tags]]
+name = "Status.Alive"
+comment = "Entity is alive and active"
+
+[[tags]]
+name = "Status.Burning"
+comment = "Entity is on fire, taking damage over time"
+
+[[tags]]
+name = "Status.Poisoned"
+comment = "Entity is poisoned, taking periodic damage"
+
+[[tags]]
+name = "Status.Stunned"
+comment = "Entity is stunned, cannot act"

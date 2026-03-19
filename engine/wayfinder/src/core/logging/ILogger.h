@@ -2,6 +2,12 @@
 #include "ILogOutput.h"
 #include "LogTypes.h"
 
+#include <format>
+#include <memory>
+#include <string>
+#include <string_view>
+#include <vector>
+
 
 namespace Wayfinder
 {

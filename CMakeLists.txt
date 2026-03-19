@@ -123,19 +123,14 @@ if(WIN32)
   # This is often better handled by the toolchain/VS installation, but can be set.
   # set(CMAKE_SYSTEM_VERSION "10.0.17134.0")
 
-  # Use static runtime library (/MT or /MTd)
-  # Use a generator expression to select based on configuration
-  set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
-  message(STATUS "Windows: Using static runtime library based on configuration.")
-
-  # Use dynamic runtime library (/MD or /MDd)
-  # set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>DLL")
-  # message(STATUS "Windows: Using dynamic runtime library based on configuration.")
+  # Use dynamic runtime library (/MD or /MDd) — required for safe DLL boundary
+  # with game modules (journey_module.dll etc.) loaded at runtime
+  set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>DLL")
+  message(STATUS "Windows: Using dynamic runtime library based on configuration.")
 
 endif()
 
 # --- Dependencies ---
-list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 include(WayfinderDependencies)
 
 set(DEPS_FOLDER_NAME "ThirdParty")

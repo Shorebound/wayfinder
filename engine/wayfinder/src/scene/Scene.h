@@ -14,15 +14,18 @@ namespace Wayfinder
 {
     class AssetService;
     class Entity;
+    class RuntimeComponentRegistry;
 
     class WAYFINDER_API Scene
     {
     public:
-        Scene(const std::string& name = "Default Scene");
+        Scene(flecs::world& world, const RuntimeComponentRegistry& componentRegistry, const std::string& name = "Default Scene");
         ~Scene();
 
-        void Initialize();
-        void Update(float deltaTime);
+        /// Registers all core ECS components and modules into the given world.
+        /// Call once per world before creating any scenes.
+        static void RegisterCoreECS(flecs::world& world);
+
         void Shutdown();
 
         Entity CreateEntity(const std::string& name = "Entity");
@@ -37,20 +40,20 @@ namespace Wayfinder
         const std::filesystem::path& GetSourcePath() const { return m_sourcePath; }
         const std::filesystem::path& GetAssetRoot() const { return m_assetRoot; }
         
-        // Expose the Flecs world for querying
+        /// Expose the Flecs world for querying and external registration.
         flecs::world& GetWorld() { return m_world; }
         const flecs::world& GetWorld() const { return m_world; }
 
     private:
         void ClearEntities();
-        void RegisterCoreComponents();
-        void RegisterCoreModules();
 
+        flecs::world& m_world;
+        const RuntimeComponentRegistry& m_componentRegistry;
+        flecs::entity m_sceneTag;
         std::string m_name;
         std::filesystem::path m_sourcePath;
         std::filesystem::path m_assetRoot;
         std::shared_ptr<AssetService> m_assetService;
-        flecs::world m_world; // The main ECS database
-        bool m_initialized;
+        bool m_active = true;
     };
 } // namespace Wayfinder
