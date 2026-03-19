@@ -91,6 +91,19 @@ namespace
         }, current);
     }
 
+    Wayfinder::PostProcessParamValue ZeroValue(const Wayfinder::PostProcessParamValue& v)
+    {
+        return std::visit([](const auto& val) -> Wayfinder::PostProcessParamValue
+        {
+            using T = std::decay_t<decltype(val)>;
+            if constexpr (std::is_same_v<T, float>) return 0.0f;
+            else if constexpr (std::is_same_v<T, int32_t>) return int32_t{0};
+            else if constexpr (std::is_same_v<T, Wayfinder::Float3>) return Wayfinder::Float3{0.0f, 0.0f, 0.0f};
+            else if constexpr (std::is_same_v<T, Wayfinder::Color>) return Wayfinder::Color{0, 0, 0, 0};
+            else return val;
+        }, v);
+    }
+
     void BlendEffectInto(
         Wayfinder::PostProcessEffect& result,
         const Wayfinder::PostProcessEffect& source,
@@ -105,7 +118,7 @@ namespace
             }
             else
             {
-                result.Parameters[key] = value;
+                result.Parameters[key] = LerpParam(ZeroValue(value), value, weight);
             }
         }
     }
