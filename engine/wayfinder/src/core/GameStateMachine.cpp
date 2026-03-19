@@ -43,6 +43,8 @@ namespace Wayfinder
 
     void GameStateMachine::TransitionTo(const std::string& stateName)
     {
+        WAYFINDER_ASSERT(m_world, "TransitionTo() called before Configure()");
+
         // Early-out if already in the requested state (avoids interning).
         {
             const ActiveGameState& state = m_world->get<ActiveGameState>();

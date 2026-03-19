@@ -121,10 +121,11 @@ namespace Wayfinder
 
             WAYFINDER_ERROR(LogEngine,
                 "SystemRegistrar: cycle detected in system ordering constraints! "
-                "Systems involved: {}. Falling back to registration order.",
-                cycleMembers);
-            for (const auto& desc : m_descriptors)
-                desc.Factory(world);
+                "Cyclic systems skipped: {}. Initialising {} non-cyclic system(s) in topological order.",
+                cycleMembers,
+                sorted.size());
+            for (const size_t idx : sorted)
+                m_descriptors[idx].Factory(world);
         }
         else
         {
