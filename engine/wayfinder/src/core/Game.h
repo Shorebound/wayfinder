@@ -11,6 +11,7 @@
 #include "GameplayTagRegistry.h"
 #include "GameState.h"
 #include "SceneSettings.h"
+#include "Subsystem.h"
 #include "wayfinder_exports.h"
 #include "../scene/RuntimeComponentRegistry.h"
 
@@ -52,8 +53,8 @@ namespace Wayfinder
         bool HasGameplayTag(const GameplayTag& tag) const;
 
         /// Access the gameplay tag registry for tag lookups and validation.
-        GameplayTagRegistry& GetTagRegistry() { return m_tagRegistry; }
-        const GameplayTagRegistry& GetTagRegistry() const { return m_tagRegistry; }
+        GameplayTagRegistry& GetTagRegistry() { return GameSubsystems::Get<GameplayTagRegistry>(); }
+        const GameplayTagRegistry& GetTagRegistry() const { return GameSubsystems::Get<GameplayTagRegistry>(); }
 
         Scene* GetCurrentScene() { return m_currentScene.get(); }
         const Scene* GetCurrentScene() const { return m_currentScene.get(); }
@@ -74,12 +75,13 @@ namespace Wayfinder
         };
 
         void InitializeWorld();
+        void InitializeSubsystems();
         void InitializeTagRegistry();
         void BindConditionedSystems();
         void EvaluateRunConditions();
 
         flecs::world m_world;
-        GameplayTagRegistry m_tagRegistry;
+        SubsystemCollection<GameSubsystem> m_subsystems;
         RuntimeComponentRegistry m_componentRegistry;
         std::unique_ptr<Scene> m_currentScene;
         std::shared_ptr<AssetService> m_assetService;

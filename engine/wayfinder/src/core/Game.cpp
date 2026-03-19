@@ -31,6 +31,7 @@ namespace Wayfinder
         m_moduleRegistry = ctx.moduleRegistry;
         m_assetService = std::make_shared<AssetService>();
 
+        InitializeSubsystems();
         InitializeTagRegistry();
         InitializeWorld();
 
@@ -110,7 +111,8 @@ namespace Wayfinder
 
         UnloadCurrentScene();
 
-        GameplayTagRegistry::SetInstance(nullptr);
+        GameSubsystems::Unbind();
+        m_subsystems.Shutdown();
 
         m_running = false;
         m_initialized = false;
@@ -206,10 +208,25 @@ namespace Wayfinder
         return tags.Tags.HasTag(tag);
     }
 
+    void Game::InitializeSubsystems()
+    {
+        // Register core engine subsystems
+        m_subsystems.Register<GameplayTagRegistry>();
+
+        // Register game-module subsystems
+        if (m_moduleRegistry)
+        {
+            for (const auto& [type, factory] : m_moduleRegistry->GetSubsystemFactories())
+                m_subsystems.Register(type, factory);
+        }
+
+        m_subsystems.Initialise();
+        GameSubsystems::Bind(&m_subsystems);
+    }
+
     void Game::InitializeTagRegistry()
     {
-        // Make this registry globally accessible via GameplayTagRegistry::Get()
-        GameplayTagRegistry::SetInstance(&m_tagRegistry);
+        auto& tagRegistry = GameSubsystems::Get<GameplayTagRegistry>();
 
         if (!m_moduleRegistry)
             return;
@@ -221,14 +238,14 @@ namespace Wayfinder
         {
             const auto fullPath = configDir / relPath;
             if (std::filesystem::exists(fullPath))
-                m_tagRegistry.LoadTagFile(fullPath);
+                tagRegistry.LoadTagFile(fullPath);
             else
                 WAYFINDER_WARNING(LogGame, "Tag file not found: '{}'", fullPath.string());
         }
 
         // Register code-defined tags
         for (const auto& desc : m_moduleRegistry->GetRegisteredTags())
-            m_tagRegistry.RegisterTag(desc.Name, desc.Comment);
+            tagRegistry.RegisterTag(desc.Name, desc.Comment);
     }
 
     void Game::BindConditionedSystems()

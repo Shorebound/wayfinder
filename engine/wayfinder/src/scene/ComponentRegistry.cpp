@@ -4,6 +4,7 @@
 #include "entity/Entity.h"
 #include "../core/GameplayTag.h"
 #include "../core/GameplayTagRegistry.h"
+#include "../core/Subsystem.h"
 
 #include <array>
 #include <sstream>
@@ -546,7 +547,7 @@ namespace
 
     void ApplyTags(const toml::table& componentTable, Wayfinder::Entity& entity)
     {
-        auto& registry = Wayfinder::GameplayTagRegistry::Get();
+        auto& registry = Wayfinder::GameSubsystems::Get<Wayfinder::GameplayTagRegistry>();
         Wayfinder::GameplayTagContainer container;
         if (const toml::array* tags = componentTable["tags"].as_array())
         {

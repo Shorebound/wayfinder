@@ -2,12 +2,14 @@
 
 #include "GameState.h"
 #include "Plugin.h"
+#include "Subsystem.h"
 #include "wayfinder_exports.h"
 
 #include <functional>
 #include <memory>
 #include <string>
 #include <string_view>
+#include <typeindex>
 #include <vector>
 
 #include <toml++/toml.hpp>
@@ -115,6 +117,18 @@ namespace Wayfinder
         /// Path is relative to the project's config directory.
         void RegisterTagFile(std::string relativePath);
 
+        /// Register a game subsystem type. It will be created automatically
+        /// during Game initialisation alongside engine-core subsystems.
+        template <typename T>
+        void RegisterSubsystem()
+        {
+            static_assert(std::is_base_of_v<GameSubsystem, T>,
+                          "T must derive from GameSubsystem");
+            m_subsystemFactories.push_back(
+                {std::type_index(typeid(T)),
+                 []() -> std::unique_ptr<GameSubsystem> { return std::make_unique<T>(); }});
+        }
+
         /// Apply all registered system factories into the given world.
         /// Called once by Game::InitializeWorld after core ECS setup.
         void ApplyToWorld(flecs::world& world) const;
@@ -137,6 +151,13 @@ namespace Wayfinder
         /// Read-only access to registered tag file paths.
         const std::vector<std::string>& GetTagFiles() const { return m_tagFiles; }
 
+        /// Subsystem factory entry for SubsystemCollection integration.
+        using SubsystemFactoryEntry = std::pair<std::type_index,
+                                                SubsystemCollection<GameSubsystem>::FactoryFn>;
+
+        /// Read-only access to module-registered subsystem factories.
+        const std::vector<SubsystemFactoryEntry>& GetSubsystemFactories() const { return m_subsystemFactories; }
+
         /// Read-only access to the project descriptor.
         const ProjectDescriptor& GetProject() const;
 
@@ -153,6 +174,7 @@ namespace Wayfinder
         std::vector<StateDescriptor> m_states;
         std::vector<TagDescriptor> m_tags;
         std::vector<std::string> m_tagFiles;
+        std::vector<SubsystemFactoryEntry> m_subsystemFactories;
         std::string m_initialState;
     };
 
