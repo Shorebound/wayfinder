@@ -1,5 +1,6 @@
 #include "GameState.h"
 #include "GameplayTag.h"
+#include "InternedString.h"
 
 #include <flecs.h>
 
@@ -7,7 +8,7 @@ namespace Wayfinder
 {
     RunCondition InState(std::string stateName)
     {
-        return [name = std::move(stateName)](const flecs::world& world) -> bool
+        return [name = InternedString::Intern(stateName)](const flecs::world& world) -> bool
         {
             const ActiveGameState* state = world.try_get<ActiveGameState>();
             return state && state->Current == name;
@@ -16,7 +17,7 @@ namespace Wayfinder
 
     RunCondition NotInState(std::string stateName)
     {
-        return [name = std::move(stateName)](const flecs::world& world) -> bool
+        return [name = InternedString::Intern(stateName)](const flecs::world& world) -> bool
         {
             const ActiveGameState* state = world.try_get<ActiveGameState>();
             return !state || state->Current != name;
@@ -42,6 +43,32 @@ namespace Wayfinder
             for (const auto& t : ts)
             {
                 if (activeTags->Tags.HasTag(t))
+                    return true;
+            }
+            return false;
+        };
+    }
+
+    RunCondition AllOf(std::vector<RunCondition> conditions)
+    {
+        return [cs = std::move(conditions)](const flecs::world& world) -> bool
+        {
+            for (const auto& c : cs)
+            {
+                if (!c(world))
+                    return false;
+            }
+            return true;
+        };
+    }
+
+    RunCondition AnyOf(std::vector<RunCondition> conditions)
+    {
+        return [cs = std::move(conditions)](const flecs::world& world) -> bool
+        {
+            for (const auto& c : cs)
+            {
+                if (c(world))
                     return true;
             }
             return false;

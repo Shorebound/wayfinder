@@ -86,6 +86,7 @@ public:
         // A system that only runs while in the "Playing" state.
         // Convention: the flecs system name must match the descriptor name
         // so the engine can look it up and toggle it via enable/disable.
+        // Runs after BurnDamage so regen applies after damage each frame.
         registry.RegisterSystem("HealthRegen", [](flecs::world& world)
         {
             world.system<HealthComponent>("HealthRegen")
@@ -99,7 +100,7 @@ public:
                             health.CurrentHealth = health.MaxHealth;
                     }
                 });
-        }, Wayfinder::InState("Playing"));
+        }, Wayfinder::InState("Playing"), {"BurnDamage"});
 
         registry.SetInitialState("Playing");
     }

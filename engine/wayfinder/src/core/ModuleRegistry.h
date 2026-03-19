@@ -45,6 +45,8 @@ namespace Wayfinder
             std::string Name;
             SystemFactory Factory;
             RunCondition Condition;
+            std::vector<std::string> After;  ///< Names of systems this must run after.
+            std::vector<std::string> Before; ///< Names of systems this must run before.
         };
 
         /// Describes a serializable ECS component for scene authoring.
@@ -94,7 +96,11 @@ namespace Wayfinder
         /// Register a named ECS system factory.  The factory will be called
         /// once when the engine creates its persistent flecs::world.
         /// An optional RunCondition controls whether the system is active.
-        void RegisterSystem(std::string name, SystemFactory factory, RunCondition condition = {});
+        /// Optional After/Before lists declare ordering relative to other systems.
+        void RegisterSystem(std::string name, SystemFactory factory,
+                            RunCondition condition = {},
+                            std::vector<std::string> after = {},
+                            std::vector<std::string> before = {});
 
         /// Register a serializable component for scene authoring.
         void RegisterComponent(ComponentDescriptor descriptor);

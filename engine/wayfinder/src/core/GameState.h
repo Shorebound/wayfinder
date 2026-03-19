@@ -1,6 +1,7 @@
 #pragma once
 
 #include "GameplayTag.h"
+#include "InternedString.h"
 #include "wayfinder_exports.h"
 
 #include <functional>
@@ -18,8 +19,8 @@ namespace Wayfinder
     /// Set by Game::TransitionTo() and read by RunCondition helpers.
     struct ActiveGameState
     {
-        std::string Current;
-        std::string Previous;
+        InternedString Current;
+        InternedString Previous;
     };
 
     /// Predicate evaluated each frame to decide whether a system should be active.
@@ -38,5 +39,11 @@ namespace Wayfinder
 
     /// Returns a run condition that is true when any of the given tags is active.
     WAYFINDER_API RunCondition HasAnyTag(std::vector<GameplayTag> tags);
+
+    /// Returns a run condition that is true when ALL inner conditions are true.
+    WAYFINDER_API RunCondition AllOf(std::vector<RunCondition> conditions);
+
+    /// Returns a run condition that is true when ANY inner condition is true.
+    WAYFINDER_API RunCondition AnyOf(std::vector<RunCondition> conditions);
 
 } // namespace Wayfinder

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "InternedString.h"
 #include "wayfinder_exports.h"
 
 #include <optional>
@@ -26,8 +27,8 @@ namespace Wayfinder
         bool operator!=(const GameplayTag& other) const { return m_name != other.m_name; }
         bool operator<(const GameplayTag& other) const { return m_name < other.m_name; }
 
-        const std::string& GetName() const { return m_name; }
-        bool IsValid() const { return !m_name.empty(); }
+        const std::string& GetName() const { return m_name.GetString(); }
+        bool IsValid() const { return !m_name.IsEmpty(); }
 
         /// True if this tag equals or is a descendant of @p parent.
         /// "Status.Burning".IsChildOf("Status") -> true
@@ -48,10 +49,11 @@ namespace Wayfinder
         friend class GameplayTagRegistry;
         friend class ModuleRegistry;
 
-        explicit GameplayTag(std::string name) : m_name(std::move(name)) {}
+        explicit GameplayTag(const std::string& name) : m_name(InternedString::Intern(name)) {}
+        explicit GameplayTag(InternedString name) : m_name(name) {}
         GameplayTag() = default;
 
-        std::string m_name;
+        InternedString m_name;
     };
 
     /**

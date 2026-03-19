@@ -1,4 +1,5 @@
 #include "GameplayTag.h"
+#include "InternedString.h"
 
 #include <algorithm>
 
@@ -10,24 +11,28 @@ namespace Wayfinder
     {
         if (m_name == parent.m_name)
             return true;
-        if (m_name.size() <= parent.m_name.size())
+        const auto& name = m_name.GetString();
+        const auto& parentName = parent.m_name.GetString();
+        if (name.size() <= parentName.size())
             return false;
-        return m_name.starts_with(parent.m_name) && m_name[parent.m_name.size()] == '.';
+        return name.starts_with(parentName) && name[parentName.size()] == '.';
     }
 
     std::optional<GameplayTag> GameplayTag::Parent() const
     {
-        const auto pos = m_name.rfind('.');
+        const auto& name = m_name.GetString();
+        const auto pos = name.rfind('.');
         if (pos == std::string::npos)
             return std::nullopt;
-        return GameplayTag{m_name.substr(0, pos)};
+        return GameplayTag{InternedString::Intern(name.substr(0, pos))};
     }
 
     int GameplayTag::Depth() const
     {
-        if (m_name.empty())
+        const auto& name = m_name.GetString();
+        if (name.empty())
             return 0;
-        return static_cast<int>(std::count(m_name.begin(), m_name.end(), '.')) + 1;
+        return static_cast<int>(std::count(name.begin(), name.end(), '.')) + 1;
     }
 
     // ── GameplayTagContainer ────────────────────────────────────

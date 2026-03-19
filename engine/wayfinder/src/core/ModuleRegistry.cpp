@@ -1,6 +1,10 @@
 #include "ModuleRegistry.h"
 #include "Log.h"
 
+#include <algorithm>
+#include <queue>
+#include <unordered_map>
+
 #include <flecs.h>
 
 namespace Wayfinder
@@ -9,11 +13,15 @@ namespace Wayfinder
                                    const EngineConfig& config)
         : m_project(project), m_config(config) {}
 
-    void ModuleRegistry::RegisterSystem(std::string name, SystemFactory factory, RunCondition condition)
+    void ModuleRegistry::RegisterSystem(std::string name, SystemFactory factory,
+                                         RunCondition condition,
+                                         std::vector<std::string> after,
+                                         std::vector<std::string> before)
     {
         WAYFINDER_INFO(LogEngine, "ModuleRegistry: registered system '{}'{}", name,
                        condition ? " (conditioned)" : "");
-        m_systems.push_back({std::move(name), std::move(factory), std::move(condition)});
+        m_systems.push_back({std::move(name), std::move(factory), std::move(condition),
+                             std::move(after), std::move(before)});
     }
 
     void ModuleRegistry::RegisterComponent(ComponentDescriptor descriptor)
@@ -62,9 +70,74 @@ namespace Wayfinder
             desc.Factory(world);
         }
 
-        for (const auto& desc : m_systems)
+        // Topological sort of systems based on After/Before declarations.
+        // Build name -> index map.
+        std::unordered_map<std::string, size_t> nameToIdx;
+        for (size_t i = 0; i < m_systems.size(); ++i)
+            nameToIdx[m_systems[i].Name] = i;
+
+        const size_t n = m_systems.size();
+        std::vector<std::vector<size_t>> adj(n);    // adj[i] = systems that must come after i
+        std::vector<size_t> inDegree(n, 0);
+
+        for (size_t i = 0; i < n; ++i)
         {
-            desc.Factory(world);
+            // "i runs after j" means edge j -> i
+            for (const auto& dep : m_systems[i].After)
+            {
+                if (auto it = nameToIdx.find(dep); it != nameToIdx.end())
+                {
+                    adj[it->second].push_back(i);
+                    ++inDegree[i];
+                }
+            }
+
+            // "i runs before j" means edge i -> j
+            for (const auto& dep : m_systems[i].Before)
+            {
+                if (auto it = nameToIdx.find(dep); it != nameToIdx.end())
+                {
+                    adj[i].push_back(it->second);
+                    ++inDegree[it->second];
+                }
+            }
+        }
+
+        // Kahn's algorithm
+        std::queue<size_t> ready;
+        for (size_t i = 0; i < n; ++i)
+        {
+            if (inDegree[i] == 0)
+                ready.push(i);
+        }
+
+        std::vector<size_t> sorted;
+        sorted.reserve(n);
+        while (!ready.empty())
+        {
+            const size_t cur = ready.front();
+            ready.pop();
+            sorted.push_back(cur);
+
+            for (const size_t next : adj[cur])
+            {
+                if (--inDegree[next] == 0)
+                    ready.push(next);
+            }
+        }
+
+        if (sorted.size() != n)
+        {
+            WAYFINDER_ERROR(LogEngine,
+                "ModuleRegistry: cycle detected in system ordering constraints! "
+                "Falling back to registration order.");
+            for (const auto& desc : m_systems)
+                desc.Factory(world);
+        }
+        else
+        {
+            for (const size_t idx : sorted)
+                m_systems[idx].Factory(world);
         }
     }
 

@@ -89,6 +89,7 @@ namespace Wayfinder
         std::vector<ConditionedSystem> m_conditionedSystems;
         bool m_running = false;
         bool m_initialized = false;
+        bool m_runConditionsDirty = false;
     };
 
 } // namespace Wayfinder

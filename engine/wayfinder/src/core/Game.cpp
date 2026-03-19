@@ -3,6 +3,7 @@
 #include "EngineContext.h"
 #include "GameplayTag.h"
 #include "GameplayTagRegistry.h"
+#include "InternedString.h"
 #include "Log.h"
 #include "ModuleRegistry.h"
 #include "ProjectDescriptor.h"
@@ -10,6 +11,7 @@
 #include "../assets/AssetService.h"
 #include "../scene/Scene.h"
 
+#include <cassert>
 #include <filesystem>
 
 namespace Wayfinder
@@ -40,6 +42,8 @@ namespace Wayfinder
         if (!std::filesystem::exists(bootScenePath))
         {
             WAYFINDER_ERROR(LogGame, "Boot scene not found: {}", bootScenePath.string());
+            GameSubsystems::Unbind();
+            m_subsystems.Shutdown();
             return false;
         }
 
@@ -51,6 +55,9 @@ namespace Wayfinder
         if (!m_currentScene->LoadFromFile(resolvedPath.string()))
         {
             WAYFINDER_ERROR(LogGame, "Failed to load bootstrap scene: {}", resolvedPath.string());
+            m_currentScene.reset();
+            GameSubsystems::Unbind();
+            m_subsystems.Shutdown();
             return false;
         }
 
@@ -101,7 +108,12 @@ namespace Wayfinder
         if (!m_running || !m_initialized)
             return;
 
-        EvaluateRunConditions();
+        if (m_runConditionsDirty)
+        {
+            EvaluateRunConditions();
+            m_runConditionsDirty = false;
+        }
+
         m_world.progress(deltaTime);
     }
 
@@ -144,29 +156,51 @@ namespace Wayfinder
 
     void Game::TransitionTo(const std::string& stateName)
     {
+        // Validate that the state is registered
+        if (m_moduleRegistry)
+        {
+            bool found = false;
+            for (const auto& desc : m_moduleRegistry->GetStateDescriptors())
+            {
+                if (desc.Name == stateName)
+                {
+                    found = true;
+                    break;
+                }
+            }
+
+            if (!found)
+            {
+                assert(false && "TransitionTo: unregistered state name");
+                WAYFINDER_WARNING(LogGame, "TransitionTo: '{}' is not a registered state", stateName);
+                return;
+            }
+        }
+
+        const auto internedName = InternedString::Intern(stateName);
         ActiveGameState& state = m_world.get_mut<ActiveGameState>();
 
-        if (state.Current == stateName)
+        if (state.Current == internedName)
             return;
 
-        const std::string oldState = state.Current;
+        const InternedString oldState = state.Current;
 
         // Call OnExit for the outgoing state
-        if (m_moduleRegistry && !oldState.empty())
+        if (m_moduleRegistry && !oldState.IsEmpty())
         {
             for (const auto& desc : m_moduleRegistry->GetStateDescriptors())
             {
-                if (desc.Name == oldState && desc.OnExit)
+                if (desc.Name == oldState.GetString() && desc.OnExit)
                     desc.OnExit(m_world);
             }
         }
 
         // Update the singleton
         state.Previous = oldState;
-        state.Current = stateName;
+        state.Current = internedName;
 
         // Call OnEnter for the incoming state
-        if (m_moduleRegistry && !stateName.empty())
+        if (m_moduleRegistry && !internedName.IsEmpty())
         {
             for (const auto& desc : m_moduleRegistry->GetStateDescriptors())
             {
@@ -175,15 +209,15 @@ namespace Wayfinder
             }
         }
 
-        WAYFINDER_INFO(LogGame, "State transition: '{}' -> '{}'", oldState, stateName);
+        WAYFINDER_INFO(LogGame, "State transition: '{}' -> '{}'", oldState.GetString(), stateName);
 
-        EvaluateRunConditions();
+        m_runConditionsDirty = true;
     }
 
     std::string_view Game::GetCurrentState() const
     {
         const ActiveGameState& state = m_world.get<ActiveGameState>();
-        return state.Current;
+        return state.Current.GetString();
     }
 
     void Game::AddGameplayTag(const GameplayTag& tag)
@@ -191,7 +225,7 @@ namespace Wayfinder
         ActiveGameplayTags& tags = m_world.get_mut<ActiveGameplayTags>();
         tags.Tags.AddTag(tag);
         WAYFINDER_INFO(LogGame, "Added gameplay tag: '{}'", tag.GetName());
-        EvaluateRunConditions();
+        m_runConditionsDirty = true;
     }
 
     void Game::RemoveGameplayTag(const GameplayTag& tag)
@@ -199,7 +233,7 @@ namespace Wayfinder
         ActiveGameplayTags& tags = m_world.get_mut<ActiveGameplayTags>();
         tags.Tags.RemoveTag(tag);
         WAYFINDER_INFO(LogGame, "Removed gameplay tag: '{}'", tag.GetName());
-        EvaluateRunConditions();
+        m_runConditionsDirty = true;
     }
 
     bool Game::HasGameplayTag(const GameplayTag& tag) const

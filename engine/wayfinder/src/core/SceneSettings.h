@@ -20,19 +20,26 @@ namespace Wayfinder
      */
     struct WAYFINDER_API SceneSettings
     {
-        toml::table Data;
-
         /// Get a typed value by key. Returns nullopt if absent or wrong type.
         template <typename T>
-        std::optional<T> Get(std::string_view key) const { return Data[key].template value<T>(); }
+        std::optional<T> Get(std::string_view key) const { return m_data[key].template value<T>(); }
 
         /// Get a typed value or a default.
         template <typename T>
-        T GetOr(std::string_view key, T defaultValue) const { return Data[key].template value_or(std::move(defaultValue)); }
+        T GetOr(std::string_view key, T defaultValue) const { return m_data[key].template value_or(std::move(defaultValue)); }
 
         /// Set or overwrite a value at runtime (override).
         template <typename T>
-        void Set(const std::string& key, T&& value) { Data.insert_or_assign(key, std::forward<T>(value)); }
+        void Set(const std::string& key, T&& value) { m_data.insert_or_assign(key, std::forward<T>(value)); }
+
+        /// Read-only access to the underlying table.
+        const toml::table& GetData() const { return m_data; }
+
+        /// Replace the entire settings table (used during scene load).
+        void SetData(toml::table data) { m_data = std::move(data); }
+
+    private:
+        toml::table m_data;
     };
 
 } // namespace Wayfinder

@@ -218,7 +218,9 @@ namespace Wayfinder
             WAYFINDER_INFO(LogScene, "Loaded scene data from: {0}", filePath);
 
             // Apply scene settings as a world singleton
-            m_world.set<SceneSettings>({loadResult.Document->Settings});
+            SceneSettings settings;
+            settings.SetData(loadResult.Document->Settings);
+            m_world.set<SceneSettings>(settings);
 
             return true;
         }
