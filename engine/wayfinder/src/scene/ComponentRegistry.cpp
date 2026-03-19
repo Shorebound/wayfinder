@@ -452,7 +452,7 @@ namespace
 
     bool ValidateEffectParameter(std::string_view key, const toml::node& node, std::string& error)
     {
-        if (node.is_integer() || node.is_floating_point() || node.is_boolean()) { return true; }
+        if (node.is_integer() || node.is_floating_point()) { return true; }
 
         if (const toml::array* arr = node.as_array())
         {
@@ -474,7 +474,7 @@ namespace
             return true;
         }
 
-        error = std::string("effect parameter '") + std::string(key) + "' must be a number, boolean, or array of numbers";
+        error = std::string("effect parameter '") + std::string(key) + "' must be a number or array of numbers";
         return false;
     }
 
@@ -524,7 +524,16 @@ namespace
 
                 for (const auto& [key, node] : *effectTable)
                 {
-                    if (key == "type" || key == "enabled") { continue; }
+                    if (key == "type") { continue; }
+                    if (key == "enabled")
+                    {
+                        if (!node.is_boolean())
+                        {
+                            error = "effect 'enabled' must be a boolean";
+                            return false;
+                        }
+                        continue;
+                    }
                     if (!ValidateEffectParameter(key.str(), node, error)) { return false; }
                 }
             }

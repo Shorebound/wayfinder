@@ -52,7 +52,7 @@ namespace Wayfinder
         void AddFeature(std::unique_ptr<RenderFeature> feature);
 
         template <typename T>
-        void RemoveFeature()
+        bool RemoveFeature()
         {
             auto it = std::find_if(m_features.begin(), m_features.end(),
                 [](const std::unique_ptr<RenderFeature>& f) { return dynamic_cast<T*>(f.get()) != nullptr; });
@@ -60,7 +60,9 @@ namespace Wayfinder
             {
                 if (m_device) { auto ctx = MakeFeatureContext(); (*it)->OnDetach(ctx); }
                 m_features.erase(it);
+                return true;
             }
+            return false;
         }
 
         template <typename T>

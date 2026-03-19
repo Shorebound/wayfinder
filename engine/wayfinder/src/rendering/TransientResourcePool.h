@@ -19,6 +19,11 @@ namespace Wayfinder
         TransientResourcePool() = default;
         ~TransientResourcePool() { Shutdown(); }
 
+        TransientResourcePool(const TransientResourcePool&) = delete;
+        TransientResourcePool& operator=(const TransientResourcePool&) = delete;
+        TransientResourcePool(TransientResourcePool&&) = default;
+        TransientResourcePool& operator=(TransientResourcePool&&) = default;
+
         void Initialize(RenderDevice& device);
         void Shutdown();
 
