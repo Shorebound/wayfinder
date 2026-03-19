@@ -44,7 +44,7 @@ namespace
         RegisterRuntimeComponent<Wayfinder::WorldTransformComponent>(world);
 
         world.system<>("UpdateWorldTransforms")
-            .kind(flecs::OnUpdate)
+            .kind(flecs::PreUpdate)
             .run([&world](flecs::iter&)
             {
                 world.children([&](flecs::entity child)
@@ -79,7 +79,7 @@ namespace
                     {
                         const auto& worldTransform = entityHandle.get<Wayfinder::WorldTransformComponent>();
                         activeCamera.Position = worldTransform.Position;
-                        activeCamera.Target = Wayfinder::Math3D::TransformPoint(worldTransform.LocalToWorld, camera.Target);
+                        activeCamera.Target = camera.Target;
                         activeCamera.Up = Wayfinder::Math3D::Normalize(Wayfinder::Math3D::TransformDirection(worldTransform.LocalToWorld, camera.Up));
                     }
                     else
