@@ -21,6 +21,12 @@ namespace Wayfinder
 
     GPUTextureHandle TransientResourcePool::Acquire(const TextureCreateDesc& desc)
     {
+        if (!m_device)
+        {
+            WAYFINDER_ERROR(LogRenderer, "TransientResourcePool::Acquire called before Initialize");
+            return nullptr;
+        }
+
         PoolKey key{desc.width, desc.height, desc.format, desc.usage};
         auto it = m_available.find(key);
         if (it != m_available.end() && !it->second.empty())

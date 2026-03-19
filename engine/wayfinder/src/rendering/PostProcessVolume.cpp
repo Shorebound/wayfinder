@@ -167,17 +167,24 @@ namespace Wayfinder
         // Sort by priority (ascending) — higher priority volumes layer on last and dominate.
         std::vector<const PostProcessVolumeInstance*> sorted;
         sorted.reserve(volumes.size());
-        for (const auto& instance : volumes) { sorted.push_back(&instance); }
+        for (const auto& instance : volumes)
+        {
+            if (!instance.Volume) continue;
+            sorted.push_back(&instance);
+        }
 
-        std::sort(sorted.begin(), sorted.end(), [](const auto* a, const auto* b)
+        std::stable_sort(sorted.begin(), sorted.end(), [](const auto* a, const auto* b)
         {
             return a->Volume->Priority < b->Volume->Priority;
         });
 
         for (const auto* instance : sorted)
         {
-            const float distance = ComputeDistanceToVolume(
-                *instance->Volume, instance->WorldPosition, instance->WorldScale, cameraPosition);
+             if (!instance->Volume) { continue; }  
+
+            const float distance = ComputeDistanceToVolume(  
+                *instance->Volume, instance->WorldPosition, instance->WorldScale, cameraPosition);  
+
             const float weight = ComputeBlendWeight(distance, instance->Volume->BlendDistance);
 
             if (weight <= 0.0f) { continue; }

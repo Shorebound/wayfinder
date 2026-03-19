@@ -346,6 +346,18 @@ namespace Wayfinder
             texDesc.width = res.Desc.Width;
             texDesc.height = res.Desc.Height;
             texDesc.format = res.Desc.Format;
+
+            texDesc.usage = TextureUsage::ColorTarget;
+            if (res.Desc.Format == TextureFormat::D32_FLOAT ||
+                res.Desc.Format == TextureFormat::D24_UNORM_S8)
+            {
+                texDesc.usage = TextureUsage::DepthTarget;
+            }
+            if (res.IsReadAsSampler)
+            {
+                texDesc.usage = texDesc.usage | TextureUsage::Sampler;
+            }
+
             pool.Release(resources.m_textures[i], texDesc);
         }
     }
