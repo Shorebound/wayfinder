@@ -9,10 +9,11 @@ namespace Wayfinder
                                    const EngineConfig& config)
         : m_project(project), m_config(config) {}
 
-    void ModuleRegistry::RegisterSystem(std::string name, SystemFactory factory)
+    void ModuleRegistry::RegisterSystem(std::string name, SystemFactory factory, RunCondition condition)
     {
-        WAYFINDER_INFO(LogEngine, "ModuleRegistry: registered system '{}'", name);
-        m_systems.push_back({std::move(name), std::move(factory)});
+        WAYFINDER_INFO(LogEngine, "ModuleRegistry: registered system '{}'{}", name,
+                       condition ? " (conditioned)" : "");
+        m_systems.push_back({std::move(name), std::move(factory), std::move(condition)});
     }
 
     void ModuleRegistry::RegisterComponent(ComponentDescriptor descriptor)
@@ -25,6 +26,17 @@ namespace Wayfinder
     {
         WAYFINDER_INFO(LogEngine, "ModuleRegistry: registered global '{}'", name);
         m_globals.push_back({std::move(name), std::move(factory)});
+    }
+
+    void ModuleRegistry::RegisterState(StateDescriptor descriptor)
+    {
+        WAYFINDER_INFO(LogEngine, "ModuleRegistry: registered state '{}'", descriptor.Name);
+        m_states.push_back(std::move(descriptor));
+    }
+
+    void ModuleRegistry::SetInitialState(std::string stateName)
+    {
+        m_initialState = std::move(stateName);
     }
 
     void ModuleRegistry::ApplyToWorld(flecs::world& world) const

@@ -1,5 +1,6 @@
 #include "core/Module.h"
 #include "core/ModuleRegistry.h"
+#include "core/GameState.h"
 #include "core/Plugin.h"
 #include "scene/entity/Entity.h"
 #include "application/EntryPoint.h"
@@ -71,11 +72,44 @@ public:
     }
 };
 
+/// Example plugin that registers game states and conditioned systems.
+class GameplayPlugin : public Wayfinder::Plugin
+{
+public:
+    void Build(Wayfinder::ModuleRegistry& registry) override
+    {
+        // Register game states with lifecycle callbacks
+        registry.RegisterState({"Playing", nullptr, nullptr});
+        registry.RegisterState({"Paused", nullptr, nullptr});
+
+        // A system that only runs while in the "Playing" state.
+        // Convention: the flecs system name must match the descriptor name
+        // so the engine can look it up and toggle it via enable/disable.
+        registry.RegisterSystem("HealthRegen", [](flecs::world& world)
+        {
+            world.system<HealthComponent>("HealthRegen")
+                .kind(flecs::OnUpdate)
+                .each([](HealthComponent& health)
+                {
+                    if (health.CurrentHealth < health.MaxHealth)
+                    {
+                        health.CurrentHealth += 0.1f;
+                        if (health.CurrentHealth > health.MaxHealth)
+                            health.CurrentHealth = health.MaxHealth;
+                    }
+                });
+        }, Wayfinder::InState("Playing"));
+
+        registry.SetInitialState("Playing");
+    }
+};
+
 class JourneyModule : public Wayfinder::Module
 {
     void Register(Wayfinder::ModuleRegistry& registry) override
     {
         registry.AddPlugin<HealthPlugin>();
+        registry.AddPlugin<GameplayPlugin>();
     }
 };
 

@@ -67,8 +67,20 @@ namespace Wayfinder
         Scene::RegisterCoreECS(m_world);
         m_componentRegistry.RegisterComponents(m_world);
 
+        // Initialize the game state singleton
+        m_world.component<ActiveGameState>();
+        m_world.set<ActiveGameState>({});
+
         if (m_moduleRegistry)
+        {
             m_moduleRegistry->ApplyToWorld(m_world);
+            BindConditionedSystems();
+
+            // Transition to the initial state if one was declared
+            const auto& initialState = m_moduleRegistry->GetInitialState();
+            if (!initialState.empty())
+                TransitionTo(initialState);
+        }
     }
 
     void Game::Update(const float deltaTime)
@@ -76,6 +88,7 @@ namespace Wayfinder
         if (!m_running || !m_initialized)
             return;
 
+        EvaluateRunConditions();
         m_world.progress(deltaTime);
     }
 
@@ -110,6 +123,90 @@ namespace Wayfinder
         {
             m_currentScene->Shutdown();
             m_currentScene = nullptr;
+        }
+    }
+
+    void Game::TransitionTo(const std::string& stateName)
+    {
+        ActiveGameState& state = m_world.get_mut<ActiveGameState>();
+
+        if (state.Current == stateName)
+            return;
+
+        const std::string oldState = state.Current;
+
+        // Call OnExit for the outgoing state
+        if (m_moduleRegistry && !oldState.empty())
+        {
+            for (const auto& desc : m_moduleRegistry->GetStateDescriptors())
+            {
+                if (desc.Name == oldState && desc.OnExit)
+                    desc.OnExit(m_world);
+            }
+        }
+
+        // Update the singleton
+        state.Previous = oldState;
+        state.Current = stateName;
+
+        // Call OnEnter for the incoming state
+        if (m_moduleRegistry && !stateName.empty())
+        {
+            for (const auto& desc : m_moduleRegistry->GetStateDescriptors())
+            {
+                if (desc.Name == stateName && desc.OnEnter)
+                    desc.OnEnter(m_world);
+            }
+        }
+
+        WAYFINDER_INFO(LogGame, "State transition: '{}' -> '{}'", oldState, stateName);
+
+        EvaluateRunConditions();
+    }
+
+    std::string_view Game::GetCurrentState() const
+    {
+        const ActiveGameState& state = m_world.get<ActiveGameState>();
+        return state.Current;
+    }
+
+    void Game::BindConditionedSystems()
+    {
+        if (!m_moduleRegistry)
+            return;
+
+        for (const auto& desc : m_moduleRegistry->GetSystems())
+        {
+            if (!desc.Condition)
+                continue;
+
+            flecs::entity sys = m_world.lookup(desc.Name.c_str());
+            if (!sys.is_valid())
+            {
+                WAYFINDER_WARNING(LogGame,
+                    "Conditioned system '{}' not found in world. "
+                    "Ensure the flecs system name matches the descriptor name.",
+                    desc.Name);
+                continue;
+            }
+
+            m_conditionedSystems.push_back({sys, desc.Condition, true});
+        }
+    }
+
+    void Game::EvaluateRunConditions()
+    {
+        for (auto& cs : m_conditionedSystems)
+        {
+            const bool shouldRun = cs.Condition(m_world);
+            if (shouldRun != cs.Enabled)
+            {
+                if (shouldRun)
+                    cs.SystemEntity.enable();
+                else
+                    cs.SystemEntity.disable();
+                cs.Enabled = shouldRun;
+            }
         }
     }
 

@@ -2,9 +2,12 @@
 
 #include <memory>
 #include <string>
+#include <string_view>
+#include <vector>
 
 #include <flecs.h>
 
+#include "GameState.h"
 #include "wayfinder_exports.h"
 #include "../scene/RuntimeComponentRegistry.h"
 
@@ -28,6 +31,14 @@ namespace Wayfinder
         void LoadScene(const std::string& scenePath);
         void UnloadCurrentScene();
 
+        /// Transition to a named game state. Calls OnExit for the old state,
+        /// updates the ActiveGameState singleton, calls OnEnter for the new
+        /// state, and re-evaluates all run conditions.
+        void TransitionTo(const std::string& stateName);
+
+        /// Returns the name of the currently active game state.
+        std::string_view GetCurrentState() const;
+
         Scene* GetCurrentScene() { return m_currentScene.get(); }
         const Scene* GetCurrentScene() const { return m_currentScene.get(); }
         std::shared_ptr<AssetService> GetAssetService() const { return m_assetService; }
@@ -39,13 +50,23 @@ namespace Wayfinder
         bool IsRunning() const { return m_running; }
 
     private:
+        struct ConditionedSystem
+        {
+            flecs::entity SystemEntity;
+            RunCondition Condition;
+            bool Enabled = true;
+        };
+
         void InitializeWorld();
+        void BindConditionedSystems();
+        void EvaluateRunConditions();
 
         flecs::world m_world;
         RuntimeComponentRegistry m_componentRegistry;
         std::unique_ptr<Scene> m_currentScene;
         std::shared_ptr<AssetService> m_assetService;
         const ModuleRegistry* m_moduleRegistry = nullptr;
+        std::vector<ConditionedSystem> m_conditionedSystems;
         bool m_running = false;
         bool m_initialized = false;
     };

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "GameState.h"
 #include "Plugin.h"
 #include "wayfinder_exports.h"
 
@@ -41,6 +42,7 @@ namespace Wayfinder
         {
             std::string Name;
             SystemFactory Factory;
+            RunCondition Condition;
         };
 
         /// Describes a serializable ECS component for scene authoring.
@@ -60,6 +62,14 @@ namespace Wayfinder
             GlobalFactory Factory;
         };
 
+        /// Describes a named game state with enter/exit lifecycle callbacks.
+        struct StateDescriptor
+        {
+            std::string Name;
+            std::function<void(flecs::world&)> OnEnter;
+            std::function<void(flecs::world&)> OnExit;
+        };
+
         ModuleRegistry(const ProjectDescriptor& project,
                        const EngineConfig& config);
 
@@ -74,7 +84,8 @@ namespace Wayfinder
 
         /// Register a named ECS system factory.  The factory will be called
         /// once when the engine creates its persistent flecs::world.
-        void RegisterSystem(std::string name, SystemFactory factory);
+        /// An optional RunCondition controls whether the system is active.
+        void RegisterSystem(std::string name, SystemFactory factory, RunCondition condition = {});
 
         /// Register a serializable component for scene authoring.
         void RegisterComponent(ComponentDescriptor descriptor);
@@ -82,12 +93,28 @@ namespace Wayfinder
         /// Register a typed world singleton (global data).
         void RegisterGlobal(std::string name, GlobalFactory factory);
 
+        /// Register a named game state with optional enter/exit callbacks.
+        void RegisterState(StateDescriptor descriptor);
+
+        /// Set the initial game state. Game will transition to this state
+        /// during initialization, after all registrations are applied.
+        void SetInitialState(std::string stateName);
+
         /// Apply all registered system factories into the given world.
         /// Called once by Game::InitializeWorld after core ECS setup.
         void ApplyToWorld(flecs::world& world) const;
 
         /// Read-only access to registered component descriptors.
         const std::vector<ComponentDescriptor>& GetComponentDescriptors() const { return m_components; }
+
+        /// Read-only access to registered system descriptors.
+        const std::vector<SystemDescriptor>& GetSystems() const { return m_systems; }
+
+        /// Read-only access to registered state descriptors.
+        const std::vector<StateDescriptor>& GetStateDescriptors() const { return m_states; }
+
+        /// Returns the initial state name (empty if none was set).
+        const std::string& GetInitialState() const { return m_initialState; }
 
         /// Read-only access to the project descriptor.
         const ProjectDescriptor& GetProject() const;
@@ -102,6 +129,8 @@ namespace Wayfinder
         std::vector<SystemDescriptor> m_systems;
         std::vector<ComponentDescriptor> m_components;
         std::vector<GlobalDescriptor> m_globals;
+        std::vector<StateDescriptor> m_states;
+        std::string m_initialState;
     };
 
 } // namespace Wayfinder
