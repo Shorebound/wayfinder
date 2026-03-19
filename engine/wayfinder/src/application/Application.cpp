@@ -3,7 +3,8 @@
 #include "../core/EngineConfig.h"
 #include "../core/EngineContext.h"
 #include "../core/Game.h"
-#include "../core/GameModule.h"
+#include "../core/Module.h"
+#include "../core/ModuleRegistry.h"
 #include "../core/LayerStack.h"
 #include "../core/Log.h"
 #include "../core/ProjectDescriptor.h"
@@ -20,9 +21,9 @@
 
 namespace Wayfinder
 {
-    Application::Application(std::unique_ptr<GameModule> gameModule,
+    Application::Application(std::unique_ptr<Module> module,
                              const CommandLineArgs& args)
-        : m_gameModule(std::move(gameModule))
+        : m_module(std::move(module))
     {
     }
 
@@ -61,9 +62,6 @@ namespace Wayfinder
         m_project = std::make_unique<ProjectDescriptor>(
             ProjectDescriptor::LoadFromFile(*projectFile));
 
-        if (m_gameModule)
-            m_gameModule->OnProjectLoaded(*m_project);
-
         // Load engine config from the project's config directory (falls back to defaults)
         m_config = std::make_unique<EngineConfig>(
             EngineConfig::LoadFromFile(m_project->ResolveEngineConfigPath()));
@@ -101,8 +99,18 @@ namespace Wayfinder
             return false;
         }
 
+        // Create module registry and let the game module declare its systems.
+        // This must happen before Game::Initialize so scene creation can
+        // replay the registered system factories into every new world.
+        if (m_module)
+        {
+            m_moduleRegistry = std::make_unique<ModuleRegistry>(*m_project, *m_config);
+            m_module->Register(*m_moduleRegistry);
+        }
+
         // Build context bundle for systems that need it
-        EngineContext ctx{*m_window, *m_input, *m_time, *m_config, *m_project};
+        EngineContext ctx{*m_window, *m_input, *m_time, *m_config, *m_project,
+                          m_moduleRegistry.get()};
 
         // Game and renderer
         m_game = std::make_unique<Game>();
@@ -123,8 +131,8 @@ namespace Wayfinder
             return false;
         }
 
-        if (m_gameModule)
-            m_gameModule->OnInitialize(ctx);
+        if (m_module)
+            m_module->OnStartup();
 
         m_running = true;
         return true;
@@ -147,9 +155,6 @@ namespace Wayfinder
             if (m_game)
             {
                 m_game->Update(m_time->GetDeltaTime());
-
-                if (m_gameModule)
-                    m_gameModule->OnUpdate(m_time->GetDeltaTime());
 
                 if (m_renderer)
                 {
@@ -212,8 +217,10 @@ namespace Wayfinder
 
         WAYFINDER_INFO(LogEngine, "Shutting down Wayfinder Engine");
 
-        if (m_gameModule)
-            m_gameModule->OnShutdown();
+        if (m_module)
+            m_module->OnShutdown();
+
+        m_moduleRegistry = nullptr;
 
         if (m_renderer)
         {

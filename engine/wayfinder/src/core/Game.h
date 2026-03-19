@@ -8,6 +8,7 @@
 namespace Wayfinder
 {
     class AssetService;
+    class ModuleRegistry;
     class Scene;
     struct EngineContext;
 
@@ -24,6 +25,7 @@ namespace Wayfinder
         void LoadScene(const std::string& scenePath);
         void UnloadCurrentScene();
 
+        Scene* GetCurrentScene() { return m_currentScene.get(); }
         const Scene* GetCurrentScene() const { return m_currentScene.get(); }
         std::shared_ptr<AssetService> GetAssetService() const { return m_assetService; }
 
@@ -31,8 +33,11 @@ namespace Wayfinder
         bool IsRunning() const { return m_running; }
 
     private:
+        void InitializeScene(Scene& scene) const;
+
         std::unique_ptr<Scene> m_currentScene;
         std::shared_ptr<AssetService> m_assetService;
+        const ModuleRegistry* m_moduleRegistry = nullptr;
         bool m_running = false;
         bool m_initialized = false;
     };

@@ -1,0 +1,30 @@
+#include "ModuleRegistry.h"
+#include "Log.h"
+
+#include <flecs.h>
+
+namespace Wayfinder
+{
+    ModuleRegistry::ModuleRegistry(const ProjectDescriptor& project,
+                                   const EngineConfig& config)
+        : m_project(project), m_config(config) {}
+
+    void ModuleRegistry::RegisterSystem(std::string name, SystemFactory factory)
+    {
+        WAYFINDER_INFO(LogEngine, "ModuleRegistry: registered system '{}'", name);
+        m_systems.push_back({std::move(name), std::move(factory)});
+    }
+
+    void ModuleRegistry::ApplyToWorld(flecs::world& world) const
+    {
+        for (const auto& desc : m_systems)
+        {
+            desc.Factory(world);
+        }
+    }
+
+    const ProjectDescriptor& ModuleRegistry::GetProject() const { return m_project; }
+
+    const EngineConfig& ModuleRegistry::GetConfig() const { return m_config; }
+
+} // namespace Wayfinder

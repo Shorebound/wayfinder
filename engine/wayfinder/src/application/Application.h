@@ -6,7 +6,8 @@
 namespace Wayfinder
 {
     class Game;
-    class GameModule;
+    class Module;
+    class ModuleRegistry;
     class Input;
     class LayerStack;
     class RenderDevice;
@@ -31,7 +32,7 @@ namespace Wayfinder
             }
         };
 
-        explicit Application(std::unique_ptr<GameModule> gameModule,
+        explicit Application(std::unique_ptr<Module> module,
                              const CommandLineArgs& args = {});
         ~Application();
 
@@ -48,7 +49,8 @@ namespace Wayfinder
         bool OnWindowClose(class WindowCloseEvent& e);
         bool OnWindowResize(class WindowResizeEvent& e);
 
-        std::unique_ptr<GameModule> m_gameModule;
+        std::unique_ptr<Module> m_module;
+        std::unique_ptr<ModuleRegistry> m_moduleRegistry;
         std::unique_ptr<ProjectDescriptor> m_project;
         std::unique_ptr<EngineConfig> m_config;
         bool m_running = false;

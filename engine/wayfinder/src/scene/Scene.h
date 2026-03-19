@@ -37,7 +37,7 @@ namespace Wayfinder
         const std::filesystem::path& GetSourcePath() const { return m_sourcePath; }
         const std::filesystem::path& GetAssetRoot() const { return m_assetRoot; }
         
-        // Expose the Flecs world for querying
+        /// Expose the Flecs world for querying and external registration.
         flecs::world& GetWorld() { return m_world; }
         const flecs::world& GetWorld() const { return m_world; }
 

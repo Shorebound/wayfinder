@@ -2,6 +2,7 @@
 #include "EngineConfig.h"
 #include "EngineContext.h"
 #include "Log.h"
+#include "ModuleRegistry.h"
 #include "ProjectDescriptor.h"
 #include "../assets/AssetService.h"
 #include "../scene/Scene.h"
@@ -24,6 +25,7 @@ namespace Wayfinder
     {
         WAYFINDER_INFO(LogGame, "Initializing game");
 
+        m_moduleRegistry = ctx.moduleRegistry;
         m_assetService = std::make_shared<AssetService>();
 
         const auto bootScenePath = ctx.project.ResolveBootScene();
@@ -38,7 +40,7 @@ namespace Wayfinder
 
         m_currentScene = std::make_unique<Scene>("Default Scene");
         m_currentScene->SetAssetService(m_assetService);
-        m_currentScene->Initialize();
+        InitializeScene(*m_currentScene);
 
         if (!m_currentScene->LoadFromFile(resolvedPath.string()))
         {
@@ -80,7 +82,7 @@ namespace Wayfinder
 
         m_currentScene = std::make_unique<Scene>(scenePath);
         m_currentScene->SetAssetService(m_assetService);
-        m_currentScene->Initialize();
+        InitializeScene(*m_currentScene);
 
         if (std::filesystem::exists(scenePath))
         {
@@ -88,6 +90,14 @@ namespace Wayfinder
         }
 
         WAYFINDER_INFO(LogGame, "Loaded scene: {}", scenePath);
+    }
+
+    void Game::InitializeScene(Scene& scene) const
+    {
+        scene.Initialize();
+
+        if (m_moduleRegistry)
+            m_moduleRegistry->ApplyToWorld(scene.GetWorld());
     }
 
     void Game::UnloadCurrentScene()
