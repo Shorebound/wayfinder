@@ -35,14 +35,23 @@ namespace
         return 0;
     }
 
+    struct WaypointContext
+    {
+        flecs::world World;
+        Wayfinder::RuntimeComponentRegistry Registry;
+
+        WaypointContext()
+        {
+            Wayfinder::Scene::RegisterCoreECS(World);
+            Registry.AddCoreEntries();
+            Registry.RegisterComponents(World);
+        }
+    };
+
     int RunValidate(const std::filesystem::path& scenePath)
     {
-        flecs::world world;
-        Wayfinder::Scene::RegisterCoreECS(world);
-        Wayfinder::RuntimeComponentRegistry registry;
-        registry.AddCoreEntries();
-        registry.RegisterComponents(world);
-        Wayfinder::Scene scene{world, registry, "Waypoint Validation Scene"};
+        WaypointContext ctx;
+        Wayfinder::Scene scene{ctx.World, ctx.Registry, "Waypoint Validation Scene"};
 
         const bool success = scene.LoadFromFile(scenePath.string());
         scene.Shutdown();
@@ -51,12 +60,8 @@ namespace
 
     int RunRoundtripSave(const std::filesystem::path& scenePath, const std::filesystem::path& outputPath)
     {
-        flecs::world world;
-        Wayfinder::Scene::RegisterCoreECS(world);
-        Wayfinder::RuntimeComponentRegistry registry;
-        registry.AddCoreEntries();
-        registry.RegisterComponents(world);
-        Wayfinder::Scene scene{world, registry, "Waypoint Roundtrip Scene"};
+        WaypointContext ctx;
+        Wayfinder::Scene scene{ctx.World, ctx.Registry, "Waypoint Roundtrip Scene"};
 
         const bool loaded = scene.LoadFromFile(scenePath.string());
         if (!loaded)

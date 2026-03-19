@@ -92,7 +92,7 @@ namespace Wayfinder
                 }
                 else
                 {
-                    WAYFINDER_WARN(
+                    WAYFINDER_WARNING(
                         LogEngine,
                         "ModuleRegistry: system '{}' declares After '{}' but no such "
                         "system is registered; ignoring ordering constraint.",
@@ -111,7 +111,7 @@ namespace Wayfinder
                 }
                 else
                 {
-                    WAYFINDER_WARN(
+                    WAYFINDER_WARNING(
                         LogEngine,
                         "ModuleRegistry: system '{}' declares Before '{}' but no such "
                         "system is registered; ignoring ordering constraint.",
@@ -146,9 +146,22 @@ namespace Wayfinder
 
         if (sorted.size() != n)
         {
+            // Identify systems that are part of the cycle (non-zero in-degree).
+            std::string cycleMembers;
+            for (size_t i = 0; i < n; ++i)
+            {
+                if (inDegree[i] > 0)
+                {
+                    if (!cycleMembers.empty())
+                        cycleMembers += ", ";
+                    cycleMembers += m_systems[i].Name;
+                }
+            }
+
             WAYFINDER_ERROR(LogEngine,
                 "ModuleRegistry: cycle detected in system ordering constraints! "
-                "Falling back to registration order.");
+                "Systems involved: {}. Falling back to registration order.",
+                cycleMembers);
             for (const auto& desc : m_systems)
                 desc.Factory(world);
         }

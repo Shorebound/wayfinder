@@ -61,8 +61,6 @@ namespace Wayfinder
      */
     struct WAYFINDER_API GameplayTagContainer
     {
-        std::vector<GameplayTag> Tags;
-
         /// True if the container holds this exact tag.
         bool HasExact(const GameplayTag& tag) const;
 
@@ -77,7 +75,16 @@ namespace Wayfinder
 
         void AddTag(const GameplayTag& tag);
         void RemoveTag(const GameplayTag& tag);
-        bool IsEmpty() const { return Tags.empty(); }
+        bool IsEmpty() const { return m_tags.empty(); }
+        size_t Size() const { return m_tags.size(); }
+
+        auto begin() const { return m_tags.begin(); }
+        auto end() const { return m_tags.end(); }
+        auto cbegin() const { return m_tags.cbegin(); }
+        auto cend() const { return m_tags.cend(); }
+
+    private:
+        std::vector<GameplayTag> m_tags;
     };
 
     /**

@@ -120,7 +120,11 @@ public:
         registry.RegisterTag("Status.Stunned", "Entity is stunned and cannot act");
         auto burning = registry.RegisterTag("Status.Burning", "Entity is on fire");
 
-        // A system that only runs when the "Status.Burning" tag is active
+        // A system that runs when the "Status.Burning" tag is active at the
+        // world level (via ActiveGameplayTags).  This is intentionally global:
+        // when the tag is set, ALL entities with HealthComponent take burn
+        // damage.  For per-entity burning, attach a GameplayTagContainer to
+        // each entity and query it inside the lambda instead.
         registry.RegisterSystem("BurnDamage", [](flecs::world& world)
         {
             world.system<HealthComponent>("BurnDamage")

@@ -2,6 +2,7 @@
 
 #include <string>
 #include <string_view>
+#include <unordered_map>
 #include <vector>
 
 #include <flecs.h>
@@ -18,6 +19,15 @@ namespace Wayfinder
     ///
     /// Built once by Game::InitializeWorld() and passed by const-reference
     /// to Scene, SceneDocument, and validation tools.
+    ///
+    /// @par Lifecycle & Thread Safety
+    /// Populated during Game::InitializeWorld() via AddCoreEntries() and
+    /// AddGameEntries() (which mutate m_entries).  After initialisation the
+    /// registry is accessed only through const methods (Find, IsRegistered,
+    /// RegisterComponents, ApplyComponents, SerializeComponents,
+    /// ValidateComponent) and is therefore safe for concurrent read-only
+    /// access.  Callers must not invoke mutating methods after initialisation
+    /// unless external synchronisation is provided.
     class WAYFINDER_API RuntimeComponentRegistry
     {
     public:
@@ -48,5 +58,6 @@ namespace Wayfinder
         const Entry* Find(std::string_view key) const;
 
         std::vector<Entry> m_entries;
+        std::unordered_map<std::string, size_t> m_index;  ///< Key -> index into m_entries for O(1) lookup.
     };
 } // namespace Wayfinder

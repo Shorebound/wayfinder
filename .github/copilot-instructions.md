@@ -6,7 +6,7 @@ A modern C++23 game engine and toolchain. An engine for a "fantasy" console.
 
 The thought experiment is straight-forward: imagine sixth-gen console development culture with 2026-era compute budgets, architecture knowledge, and tooling convenience. The artistic target still belongs to the sixth console generation, so the production values are not about photorealism. What changes is how much of the world can stay alive, dynamic, and responsive at runtime.
 
-We want to build an engine that is a joy to work with, so we want to focus on clean code, clear architecture, and a great developer experience. We want to avoid technical debt and hacks as much as possible, even if it means slower initial progress. We want to design systems that are flexible and extensible, so they can grow with the needs of the game. Future-proofing and forward-thinking design are core pillars of the project. We want an engine that is extensible and moddable by design, but still based around the project's artistic vision and technical goals.
+The goal is an engine that is a joy to work with: clean code, clear architecture, and a great developer experience. Focus on avoiding technical debt and hacks, even if it means slower initial progress. Design systems that are flexible, extensible, and can grow with the needs of the game. Future-proofing and forward-thinking design are core pillars. The engine should be extensible and moddable by design, while remaining grounded in the project's artistic vision and technical goals.
 
 The role of `.github/AGENTS.md` is to describe common mistakes and confusion points that agents might encounter as they work in this project. If you ever encounter something in the project that surprises or confuses you, please alert the developer working with you and indicate that this is a potential addition to the AGENTS.md file to help prevent future confusion for others. 
 
@@ -80,7 +80,7 @@ Enforced by `.clang-format` at the workspace root. Short or empty blocks are one
     - Do: `TransformComponent`, `RenderableComponent`, `CameraComponent`.
 - Systems: `System` suffix.
     - Do: `RenderSystem`, `PhysicsSystem`, `InputSystem`.
-- Interfaces: `I` prefix, prefer adjectives when it makes sense
+- Interfaces: `I` prefix, prefer adjectives when it makes sense to do so
     - Do: `IRenderDevice`, `IAssetLoader`, etc. for core interfaces.
     - Do: `IUpdatable`, `IDrawable`, etc. for component interfaces.
 - Functions: PascalCase (e.g. `Initialize`, `Update`, `Render`).

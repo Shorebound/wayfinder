@@ -21,15 +21,19 @@ namespace Wayfinder
      */
     struct WAYFINDER_API SceneSettings
     {
-        /// Get a typed value by key. Returns nullopt if absent or wrong type.
+        /// Get a typed scalar value by key. Returns nullopt if absent or wrong type.
+        /// @note Only scalar types (int, double, bool, std::string, etc.) are supported.
+        ///       For arrays or composite types, use GetData() and query the toml::table directly.
         template <typename T>
         std::optional<T> Get(std::string_view key) const { return m_data[key].template value<T>(); }
 
-        /// Get a typed value or a default.
+        /// Get a typed scalar value or a default.
+        /// @note Only scalar types are supported. For arrays or composite types, use GetData().
         template <typename T>
         T GetOr(std::string_view key, T defaultValue) const { return m_data[key].template value_or(std::move(defaultValue)); }
 
-        /// Set or overwrite a value at runtime (override).
+        /// Set or overwrite a scalar value at runtime (override).
+        /// @note Only scalar types are supported. For arrays or composite types, mutate via GetData().
         template <typename T>
         void Set(const std::string& key, T&& value) { m_data.insert_or_assign(key, std::forward<T>(value)); }
 

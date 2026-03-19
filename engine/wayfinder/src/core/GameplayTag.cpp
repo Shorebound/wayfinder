@@ -39,12 +39,12 @@ namespace Wayfinder
 
     bool GameplayTagContainer::HasExact(const GameplayTag& tag) const
     {
-        return std::binary_search(Tags.begin(), Tags.end(), tag);
+        return std::binary_search(m_tags.begin(), m_tags.end(), tag);
     }
 
     bool GameplayTagContainer::HasTag(const GameplayTag& tag) const
     {
-        return std::any_of(Tags.begin(), Tags.end(), [&](const GameplayTag& t)
+        return std::any_of(m_tags.begin(), m_tags.end(), [&](const GameplayTag& t)
         {
             return t.IsChildOf(tag);
         });
@@ -52,7 +52,7 @@ namespace Wayfinder
 
     bool GameplayTagContainer::HasAny(const GameplayTagContainer& other) const
     {
-        return std::any_of(other.Tags.begin(), other.Tags.end(), [&](const GameplayTag& t)
+        return std::any_of(other.m_tags.begin(), other.m_tags.end(), [&](const GameplayTag& t)
         {
             return HasTag(t);
         });
@@ -60,7 +60,7 @@ namespace Wayfinder
 
     bool GameplayTagContainer::HasAll(const GameplayTagContainer& other) const
     {
-        return std::all_of(other.Tags.begin(), other.Tags.end(), [&](const GameplayTag& t)
+        return std::all_of(other.m_tags.begin(), other.m_tags.end(), [&](const GameplayTag& t)
         {
             return HasTag(t);
         });
@@ -68,16 +68,16 @@ namespace Wayfinder
 
     void GameplayTagContainer::AddTag(const GameplayTag& tag)
     {
-        auto it = std::lower_bound(Tags.begin(), Tags.end(), tag);
-        if (it == Tags.end() || *it != tag)
-            Tags.insert(it, tag);
+        auto it = std::lower_bound(m_tags.begin(), m_tags.end(), tag);
+        if (it == m_tags.end() || *it != tag)
+            m_tags.insert(it, tag);
     }
 
     void GameplayTagContainer::RemoveTag(const GameplayTag& tag)
     {
-        auto it = std::lower_bound(Tags.begin(), Tags.end(), tag);
-        if (it != Tags.end() && *it == tag)
-            Tags.erase(it);
+        auto it = std::lower_bound(m_tags.begin(), m_tags.end(), tag);
+        if (it != m_tags.end() && *it == tag)
+            m_tags.erase(it);
     }
 
 } // namespace Wayfinder

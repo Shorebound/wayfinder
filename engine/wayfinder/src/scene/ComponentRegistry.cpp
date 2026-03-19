@@ -573,11 +573,11 @@ namespace
             return;
 
         const auto& container = entity.GetComponent<Wayfinder::GameplayTagContainer>();
-        if (container.Tags.empty())
+        if (container.IsEmpty())
             return;
 
         toml::array arr;
-        for (const auto& tag : container.Tags)
+        for (const auto& tag : container)
             arr.push_back(tag.GetName());
 
         toml::table t;

@@ -11,7 +11,6 @@
 #include "../assets/AssetService.h"
 #include "../scene/Scene.h"
 
-#include <cassert>
 #include <filesystem>
 
 namespace Wayfinder
@@ -179,7 +178,6 @@ namespace Wayfinder
 
             if (!found)
             {
-                assert(false && "TransitionTo: unregistered state name");
                 WAYFINDER_WARNING(LogGame, "TransitionTo: '{}' is not a registered state", stateName);
                 return;
             }
@@ -295,6 +293,9 @@ namespace Wayfinder
         if (!m_moduleRegistry)
             return;
 
+        // NOTE: This relies on the flecs system name matching the descriptor name.
+        // ModuleRegistry::RegisterSystem callers must use the same name string for
+        // both the descriptor and the flecs system() call so lookup succeeds.
         for (const auto& desc : m_moduleRegistry->GetSystems())
         {
             if (!desc.Condition)

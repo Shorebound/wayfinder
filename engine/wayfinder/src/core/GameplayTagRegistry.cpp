@@ -65,7 +65,10 @@ namespace Wayfinder
                     auto& def = m_definitions[it->second];
                     if (!comment.empty())
                         def.Comment = comment;
-                    def.SourceFile = canonical;
+                    // Only overwrite SourceFile for definitions that were not
+                    // registered from code, so UnloadTagFile won't erase them.
+                    if (def.SourceFile != "(code)")
+                        def.SourceFile = canonical;
                 }
                 else
                 {

@@ -1,8 +1,8 @@
 #pragma once
 
+#include "Assert.h"
 #include "wayfinder_exports.h"
 
-#include <cassert>
 #include <memory>
 #include <typeindex>
 #include <type_traits>
@@ -95,16 +95,34 @@ namespace Wayfinder
         using FactoryFn = std::unique_ptr<TBase> (*)();
 
         /// Register a subsystem type. It will be created during Initialise().
+        /// Returns false if the type is already registered.
         template <typename T>
-        void Register()
+        bool Register()
         {
             static_assert(std::is_base_of_v<TBase, T>, "T must derive from the collection's scope base");
-            m_factories.push_back({std::type_index(typeid(T)),
+            const std::type_index type{typeid(T)};
+            for (const auto& entry : m_factories)
+            {
+                if (entry.Type == type)
+                    return false;
+            }
+            m_factories.push_back({type,
                                    []() -> std::unique_ptr<TBase> { return std::make_unique<T>(); }});
+            return true;
         }
 
         /// Register a subsystem from an external factory (e.g. from ModuleRegistry).
-        void Register(std::type_index type, FactoryFn factory) { m_factories.push_back({type, factory}); }
+        /// Returns false if the type is already registered.
+        bool Register(std::type_index type, FactoryFn factory)
+        {
+            for (const auto& entry : m_factories)
+            {
+                if (entry.Type == type)
+                    return false;
+            }
+            m_factories.push_back({type, factory});
+            return true;
+        }
 
         /// Create all registered subsystems and call Initialise() on each.
         void Initialise()
@@ -186,9 +204,9 @@ namespace Wayfinder
         template <typename T>
         static T& Get()
         {
-            assert(s_collection && "GameSubsystems::Get() called before Game initialisation");
+            WAYFINDER_ASSERT(s_collection, "GameSubsystems::Get() called before Game initialisation or after shutdown");
             auto* subsystem = s_collection->Get<T>();
-            assert(subsystem && "Requested GameSubsystem type is not registered");
+            WAYFINDER_ASSERT(subsystem, "Requested GameSubsystem type is not registered");
             return *subsystem;
         }
 

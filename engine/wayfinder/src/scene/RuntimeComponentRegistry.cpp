@@ -44,6 +44,7 @@ namespace Wayfinder
             entry.SerializeFn = desc.SerializeFn;
             entry.ValidateFn = desc.ValidateFn;
             m_entries.push_back(std::move(entry));
+            m_index[desc.Key] = m_entries.size() - 1;
         }
     }
 
@@ -101,12 +102,8 @@ namespace Wayfinder
 
     const RuntimeComponentRegistry::Entry* RuntimeComponentRegistry::Find(std::string_view key) const
     {
-        for (const Entry& entry : m_entries)
-        {
-            if (entry.Key == key)
-                return &entry;
-        }
-
+        if (auto it = m_index.find(std::string(key)); it != m_index.end())
+            return &m_entries[it->second];
         return nullptr;
     }
 } // namespace Wayfinder
