@@ -96,10 +96,18 @@ namespace Wayfinder
             m_moduleRegistry->ApplyToWorld(m_world);
             BindConditionedSystems();
 
-            // Transition to the initial state if one was declared
+            // Transition to the initial state if one was declared; otherwise, ensure
+            // run conditions are evaluated at least once so conditioned systems
+            // respect their predicates even if no state/tag changes ever occur.
             const auto& initialState = m_moduleRegistry->GetInitialState();
             if (!initialState.empty())
+            {
                 TransitionTo(initialState);
+            }
+            else
+            {
+                EvaluateRunConditions();
+            }
         }
     }
 
