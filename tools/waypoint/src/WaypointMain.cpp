@@ -24,6 +24,7 @@ namespace
         std::cout << "  waypoint roundtrip-save <scene-path> <output-path>\n";
         std::cout << "  waypoint --project [<path>]  validate-assets\n";
         std::cout << "  waypoint --project [<path>]  validate <scene-path>\n";
+        std::cout << "  waypoint --project [<path>]  roundtrip-save <scene-path> <output-path>\n";
     }
 
     int RunValidateAssets(const std::filesystem::path& assetRoot)

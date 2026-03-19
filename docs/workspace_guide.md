@@ -15,7 +15,7 @@ This document explains how the repository is organized, what targets currently m
 | `apps/compass/` | Project manager (future) |
 | `tools/waypoint/` | Asset validation CLI (active) |
 | `apps/beacon/` | Launcher (future) |
-| `tools/expedition/`, `navigator/`, `surveyor/` | Future tools |
+| `tools/expedition/`, `tools/navigator/`, `tools/surveyor/` | Future tools |
 | `tests/` | Engine tests |
 | `cmake/` | `WayfinderCommon.cmake` (flags/definitions), `WayfinderDependencies.cmake` (CPM), `GetCPM.cmake` (bootstrap) |
 
@@ -40,7 +40,8 @@ These directories describe intended products, not mature implementations.
 ### Tools
 
 - `tools/waypoint/` is the first active standalone tool and currently provides asset and scene validation workflows
-- `tools/surveyor/`, `tools/expedition/`, `tools/beacon/`, and `tools/navigator/` are reserved for future diagnostics, orchestration, and headless workflows
+- `tools/surveyor/`, `tools/expedition/`, and `tools/navigator/` are reserved for future diagnostics, orchestration, and headless workflows
+- `apps/beacon/` is reserved for the future launcher
 
 ### Supporting Areas
 
@@ -131,7 +132,7 @@ build\bin\Debug\waypoint.exe roundtrip-save sandbox\journey\assets\scenes\defaul
 
 ## Dependency Summary
 
-All third-party dependencies are fetched via [CPM.cmake](https://github.com/cpm-cmake/CPM.cmake). The bootstrap script `cmake/GetCPM.cmake` downloads CPM at configure time; no manual install is needed. Set `CPM_SOURCE_CACHE` to a shared directory to avoid re-downloading across builds.
+All third-party dependencies are fetched via [CPM.cmake](https://github.com/cpm-cmake/CPM.cmake). The bootstrap script `cmake/GetCPM.cmake` downloads CPM at configure time; no manual installation is needed. Set `CPM_SOURCE_CACHE` to a shared directory to avoid re-downloading across builds.
 
 Current dependencies:
 
