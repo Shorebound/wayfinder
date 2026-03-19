@@ -2,6 +2,7 @@
 #include "Log.h"
 
 #include <toml++/toml.hpp>
+#include <system_error>
 
 namespace Wayfinder
 {
@@ -16,7 +17,14 @@ namespace Wayfinder
             return descriptor;
         }
 
-        descriptor.ProjectRoot = std::filesystem::weakly_canonical(path).parent_path();
+        std::error_code ec;
+        const auto canonicalPath = std::filesystem::weakly_canonical(path, ec);
+        if (ec)
+        {
+            WAYFINDER_ERROR(LogEngine, "Failed to resolve project root for {}: {}", path.string(), ec.message());
+            return descriptor;
+        }
+        descriptor.ProjectRoot = canonicalPath.parent_path();
 
         try
         {
