@@ -1,4 +1,5 @@
 #include "core/Module.h"
+#include "core/ModuleExport.h"
 #include "core/ModuleRegistry.h"
 #include "core/GameplayTag.h"
 #include "core/GameState.h"
@@ -156,3 +157,6 @@ std::unique_ptr<Wayfinder::Module> Wayfinder::CreateModule()
 {
     return std::make_unique<JourneyModule>();
 }
+
+// Dynamic entry point for tools loading the module as a shared library.
+WAYFINDER_IMPLEMENT_MODULE(JourneyModule)

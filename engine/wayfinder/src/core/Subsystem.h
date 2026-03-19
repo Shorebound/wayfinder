@@ -93,11 +93,14 @@ namespace Wayfinder
     {
     public:
         using FactoryFn = std::unique_ptr<TBase> (*)();
+        using PredicateFn = bool (*)();
 
         /// Register a subsystem type. It will be created during Initialise().
+        /// An optional static predicate is checked before construction;
+        /// if it returns false the subsystem is skipped without allocating.
         /// Returns false if the type is already registered.
         template <typename T>
-        bool Register()
+        bool Register(PredicateFn predicate = nullptr)
         {
             static_assert(std::is_base_of_v<TBase, T>, "T must derive from the collection's scope base");
             const std::type_index type{typeid(T)};
@@ -107,28 +110,35 @@ namespace Wayfinder
                     return false;
             }
             m_factories.push_back({type,
-                                   []() -> std::unique_ptr<TBase> { return std::make_unique<T>(); }});
+                                   []() -> std::unique_ptr<TBase> { return std::make_unique<T>(); },
+                                   predicate});
             return true;
         }
 
         /// Register a subsystem from an external factory (e.g. from ModuleRegistry).
         /// Returns false if the type is already registered.
-        bool Register(std::type_index type, FactoryFn factory)
+        bool Register(std::type_index type, FactoryFn factory, PredicateFn predicate = nullptr)
         {
             for (const auto& entry : m_factories)
             {
                 if (entry.Type == type)
                     return false;
             }
-            m_factories.push_back({type, factory});
+            m_factories.push_back({type, factory, predicate});
             return true;
         }
 
         /// Create all registered subsystems and call Initialise() on each.
+        /// If a static predicate was registered, it is checked before
+        /// construction. The instance-level ShouldCreate() is still honoured
+        /// as a fallback after construction.
         void Initialise()
         {
-            for (auto& [type, factory] : m_factories)
+            for (auto& [type, factory, predicate] : m_factories)
             {
+                if (predicate && !predicate())
+                    continue;
+
                 auto subsystem = factory();
                 if (!subsystem->ShouldCreate())
                     continue;
@@ -172,6 +182,7 @@ namespace Wayfinder
         {
             std::type_index Type;
             FactoryFn Factory;
+            PredicateFn Predicate = nullptr;
         };
 
         std::vector<FactoryEntry> m_factories;

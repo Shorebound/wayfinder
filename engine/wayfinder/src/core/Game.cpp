@@ -277,8 +277,8 @@ namespace Wayfinder
         // Register game-module subsystems
         if (m_moduleRegistry)
         {
-            for (const auto& [type, factory] : m_moduleRegistry->GetSubsystemFactories())
-                m_subsystems.Register(type, factory);
+            for (const auto& [type, factory, predicate] : m_moduleRegistry->GetSubsystemFactories())
+                m_subsystems.Register(type, factory, predicate);
         }
 
         m_subsystems.Initialise();

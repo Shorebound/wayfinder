@@ -126,14 +126,16 @@ namespace Wayfinder
 
         /// Register a game subsystem type. It will be created automatically
         /// during Game initialisation alongside engine-core subsystems.
+        /// An optional static predicate is checked before construction.
         template <typename T>
-        void RegisterSubsystem()
+        void RegisterSubsystem(SubsystemCollection<GameSubsystem>::PredicateFn predicate = nullptr)
         {
             static_assert(std::is_base_of_v<GameSubsystem, T>,
                           "T must derive from GameSubsystem");
             m_subsystemFactories.push_back(
                 {std::type_index(typeid(T)),
-                 []() -> std::unique_ptr<GameSubsystem> { return std::make_unique<T>(); }});
+                 []() -> std::unique_ptr<GameSubsystem> { return std::make_unique<T>(); },
+                 predicate});
         }
 
         /// Apply all registered system factories into the given world.
@@ -159,8 +161,12 @@ namespace Wayfinder
         const std::vector<std::string>& GetTagFiles() const { return m_tagFiles; }
 
         /// Subsystem factory entry for SubsystemCollection integration.
-        using SubsystemFactoryEntry = std::pair<std::type_index,
-                                                SubsystemCollection<GameSubsystem>::FactoryFn>;
+        struct SubsystemFactoryEntry
+        {
+            std::type_index Type;
+            SubsystemCollection<GameSubsystem>::FactoryFn Factory;
+            SubsystemCollection<GameSubsystem>::PredicateFn Predicate = nullptr;
+        };
 
         /// Read-only access to module-registered subsystem factories.
         const std::vector<SubsystemFactoryEntry>& GetSubsystemFactories() const { return m_subsystemFactories; }

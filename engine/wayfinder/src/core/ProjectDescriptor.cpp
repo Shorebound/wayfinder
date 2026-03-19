@@ -7,6 +7,20 @@
 namespace Wayfinder
 {
 
+    std::filesystem::path ProjectDescriptor::ResolveModulePath() const
+    {
+        if (Paths.Module.empty())
+            return {};
+
+#ifdef _WIN32
+        return ProjectRoot / (Paths.Module + ".dll");
+#elif defined(__APPLE__)
+        return ProjectRoot / ("lib" + Paths.Module + ".dylib");
+#else
+        return ProjectRoot / ("lib" + Paths.Module + ".so");
+#endif
+    }
+
     ProjectDescriptor ProjectDescriptor::LoadFromFile(const std::filesystem::path& path)
     {
         ProjectDescriptor descriptor{};
@@ -35,6 +49,7 @@ namespace Wayfinder
                 if (auto v = (*project)["name"].value<std::string>()) descriptor.Name = *v;
                 if (auto v = (*project)["version"].value<std::string>()) descriptor.Version = *v;
                 if (auto v = (*project)["engine_version"].value<std::string>()) descriptor.EngineVersion = *v;
+                if (auto v = (*project)["module"].value<std::string>()) descriptor.Paths.Module = *v;
             }
 
             if (const auto* paths = tbl["paths"].as_table())

@@ -1,4 +1,7 @@
+#include "core/EngineConfig.h"
 #include "core/Log.h"
+#include "core/ModuleLoader.h"
+#include "core/ModuleRegistry.h"
 #include "core/ProjectDescriptor.h"
 #include "core/ProjectResolver.h"
 #include "assets/AssetRegistry.h"
@@ -40,21 +43,43 @@ namespace
     {
         flecs::world World;
         Wayfinder::RuntimeComponentRegistry Registry;
+        std::optional<Wayfinder::LoadedModule> Module;
+        std::unique_ptr<Wayfinder::ModuleRegistry> ModReg;
 
-        WaypointContext()
+        explicit WaypointContext(const Wayfinder::ProjectDescriptor* project = nullptr,
+                                const std::filesystem::path& toolDir = {})
         {
             Wayfinder::Scene::RegisterCoreECS(World);
             Registry.AddCoreEntries();
-            // TODO: To validate game-specific components, the CLI would need to
-            // link against the game module target and call
-            // Registry.AddGameEntries() with the module's descriptors.
+
+            if (project && !project->Paths.Module.empty())
+            {
+                auto modulePath = project->ResolveModulePath();
+
+                /// If the module isn't next to the project file, try the
+                /// tool's own directory (common for build-output layouts).
+                if (!std::filesystem::exists(modulePath) && !toolDir.empty())
+                    modulePath = toolDir / modulePath.filename();
+
+                Module = Wayfinder::ModuleLoader::Load(modulePath);
+                if (Module && Module->Instance)
+                {
+                    auto defaultConfig = Wayfinder::EngineConfig::LoadDefaults();
+                    ModReg = std::make_unique<Wayfinder::ModuleRegistry>(*project, defaultConfig);
+                    Module->Instance->Register(*ModReg);
+                    Registry.AddGameEntries(*ModReg);
+                }
+            }
+
             Registry.RegisterComponents(World);
         }
     };
 
-    int RunValidate(const std::filesystem::path& scenePath)
+    int RunValidate(const std::filesystem::path& scenePath,
+                    const Wayfinder::ProjectDescriptor* project = nullptr,
+                    const std::filesystem::path& toolDir = {})
     {
-        WaypointContext ctx;
+        WaypointContext ctx(project, toolDir);
         Wayfinder::Scene scene{ctx.World, ctx.Registry, "Waypoint Validation Scene"};
 
         const bool success = scene.LoadFromFile(scenePath.string());
@@ -62,9 +87,12 @@ namespace
         return success ? 0 : 1;
     }
 
-    int RunRoundtripSave(const std::filesystem::path& scenePath, const std::filesystem::path& outputPath)
+    int RunRoundtripSave(const std::filesystem::path& scenePath,
+                         const std::filesystem::path& outputPath,
+                         const Wayfinder::ProjectDescriptor* project = nullptr,
+                         const std::filesystem::path& toolDir = {})
     {
-        WaypointContext ctx;
+        WaypointContext ctx(project, toolDir);
         Wayfinder::Scene scene{ctx.World, ctx.Registry, "Waypoint Roundtrip Scene"};
 
         const bool loaded = scene.LoadFromFile(scenePath.string());
@@ -83,6 +111,8 @@ namespace
 int main(int argc, char** argv)
 {
     Wayfinder::Log::Init();
+
+    const auto toolDir = std::filesystem::path(argv[0]).parent_path();
 
     if (argc < 2)
     {
@@ -145,7 +175,7 @@ int main(int argc, char** argv)
             ? std::filesystem::path(argv[argIndex])
             : project->ResolveBootScene();
 
-        exitCode = RunValidate(scenePath);
+        exitCode = RunValidate(scenePath, project ? &*project : nullptr, toolDir);
     }
     else if (command == "validate-assets")
     {
@@ -173,7 +203,8 @@ int main(int argc, char** argv)
         }
 
         exitCode = RunRoundtripSave(std::filesystem::path(argv[argIndex]),
-                                    std::filesystem::path(argv[argIndex + 1]));
+                                    std::filesystem::path(argv[argIndex + 1]),
+                                    project ? &*project : nullptr, toolDir);
     }
     else
     {

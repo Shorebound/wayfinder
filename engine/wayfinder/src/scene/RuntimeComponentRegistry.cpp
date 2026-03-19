@@ -23,7 +23,7 @@ namespace Wayfinder
             entry.SerializeFn = coreEntry.SerializeFn;
             entry.ValidateFn = coreEntry.ValidateFn;
             m_entries.push_back(std::move(entry));
-            m_index[std::string(coreEntry.Key)] = m_entries.size() - 1;
+            m_index[m_entries.back().Key] = m_entries.size() - 1;
         }
     }
 

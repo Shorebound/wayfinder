@@ -16,7 +16,7 @@ namespace Wayfinder
         }
         else if (ec)
         {
-            WAYFINDER_WARN(LogEngine, "Failed to stat start path '{}': {}", startPath.string(), ec.message());
+            WAYFINDER_WARNING(LogEngine, "Failed to stat start path '{}': {}", startPath.string(), ec.message());
             return std::nullopt;
         }
 
@@ -25,7 +25,7 @@ namespace Wayfinder
         const auto canonical = std::filesystem::weakly_canonical(searchDir, ec);
         if (ec)
         {
-            WAYFINDER_WARN(LogEngine, "Failed to canonicalise start path '{}': {}", searchDir.string(), ec.message());
+            WAYFINDER_WARNING(LogEngine, "Failed to canonicalise start path '{}': {}", searchDir.string(), ec.message());
             return std::nullopt;
         }
 
@@ -39,7 +39,7 @@ namespace Wayfinder
             const bool exists = std::filesystem::exists(candidate, ec);
             if (ec)
             {
-                WAYFINDER_WARN(LogEngine, "Failed to query existence of project file candidate '{}': {}", candidate.string(), ec.message());
+                WAYFINDER_WARNING(LogEngine, "Failed to query existence of project file candidate '{}': {}", candidate.string(), ec.message());
                 return std::nullopt;
             }
 
