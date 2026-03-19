@@ -17,9 +17,8 @@ namespace Wayfinder
      * Tags follow a "Parent.Child" convention: "Status.Burning" is a child of
      * "Status". Matching queries can test exact equality or parent containment.
      *
-     * Tags should be obtained from a GameplayTagRegistry via RequestTag() to
-     * ensure they are validated against the project's tag definitions. Direct
-     * construction is supported but unvalidated tags will generate warnings.
+     * Tags must be obtained from a GameplayTagRegistry via RequestTag() to
+     * ensure they are validated against the project's tag definitions.
      */
     struct WAYFINDER_API GameplayTag
     {
