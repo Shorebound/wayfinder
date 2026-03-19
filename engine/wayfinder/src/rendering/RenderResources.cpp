@@ -70,19 +70,16 @@ namespace Wayfinder
         resolved.Handle = binding.Handle;
         resolved.Domain = binding.Domain;
 
-        if (binding.HasBaseColorOverride)
+        // Apply per-entity overrides on top of asset-loaded parameters
+        if (binding.HasOverrides)
         {
-            resolved.BaseColor = binding.BaseColor;
+            resolved.HasOverrides = true;
+            resolved.Overrides = binding.Overrides;
         }
 
-        if (binding.HasWireframeColorOverride)
+        if (binding.StateOverrides.FillMode)
         {
-            resolved.WireframeColor = binding.WireframeColor;
-        }
-
-        if (binding.HasFillModeOverride)
-        {
-            resolved.FillMode = binding.FillMode;
+            resolved.StateOverrides.FillMode = binding.StateOverrides.FillMode;
         }
 
         return resolved;
@@ -108,11 +105,11 @@ namespace Wayfinder
 
         resource.IsLoadedFromAsset = true;
         resource.Binding.ShaderName = materialAsset->ShaderName;
-        resource.Binding.BaseColor = materialAsset->BaseColor;
-        resource.Binding.HasBaseColorOverride = false;
-        resource.Binding.WireframeColor = binding.WireframeColor;
-        resource.Binding.FillMode = materialAsset->Wireframe ? RenderFillMode::SolidAndWireframe : RenderFillMode::Solid;
-        resource.Binding.HasFillModeOverride = false;
+        resource.Binding.Parameters = materialAsset->Parameters;
+        resource.Binding.HasOverrides = false;
+        resource.Binding.StateOverrides.FillMode = materialAsset->Wireframe
+            ? RenderFillMode::SolidAndWireframe
+            : RenderFillMode::Solid;
         return resource;
     }
 } // namespace Wayfinder

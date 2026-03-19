@@ -1,6 +1,6 @@
-// Wayfinder Unlit Vertex Shader (PosNormalColor format)
-// Scene objects use PosNormalColor; Normal is ignored for unlit rendering.
-// Compiled with DXC: dxc -T vs_6_0 -E VSMain -spirv unlit.vert -Fo unlit.vert.spv
+// Wayfinder Debug Unlit Vertex Shader (PosColor format)
+// Used for debug lines, grid, and debug boxes via transient allocator.
+// Compiled with DXC: dxc -T vs_6_0 -E VSMain -spirv debug_unlit.vert -Fo debug_unlit.vert.spv
 // SDL_GPU SPIR-V convention: vertex UBO at set 1
 
 [[vk::binding(0, 1)]]
@@ -12,8 +12,7 @@ cbuffer UBO : register(b0)
 struct VSInput
 {
     float3 Position : TEXCOORD0;
-    float3 Normal   : TEXCOORD1; // Present but unused for unlit
-    float3 Color    : TEXCOORD2;
+    float3 Color    : TEXCOORD1;
 };
 
 struct VSOutput

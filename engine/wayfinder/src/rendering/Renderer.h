@@ -2,6 +2,7 @@
 
 #include "RenderTypes.h"
 #include "ShaderManager.h"
+#include "ShaderProgram.h"
 #include "GPUPipeline.h"
 #include "Mesh.h"
 #include "PipelineCache.h"
@@ -20,6 +21,15 @@ namespace Wayfinder
     struct RenderLightSubmission;
     class RenderPipeline;
     class RenderResourceCache;
+
+    // Per-frame scene globals pushed to fragment UBO slot 1 for shaders that need it.
+    struct SceneGlobalsUBO
+    {
+        Float3 LightDirection{0.0f, -0.7f, -0.5f};
+        float LightIntensity = 1.0f;
+        Float3 LightColor{1.0f, 1.0f, 1.0f};
+        float Ambient = 0.15f;
+    };
 
     class WAYFINDER_API Renderer
     {
@@ -41,24 +51,19 @@ namespace Wayfinder
 
         void RenderDebugPass(const RenderFrame& frame, const Matrix4& view, const Matrix4& projection);
 
-        // Returns the GPUPipeline for a given shader name, or nullptr if not found.
-        GPUPipeline* GetPipelineForShader(const std::string& shaderName);
-        // Returns the appropriate mesh for a given shader name.
-        Mesh* GetMeshForShader(const std::string& shaderName);
-        // Extracts the primary directional light from the frame. Returns a default if none found.
-        void ExtractPrimaryLight(const RenderFrame& frame, Float3& direction, float& intensity, Float3& color) const;
+        // Extracts the primary directional light from the frame into the scene globals UBO.
+        SceneGlobalsUBO BuildSceneGlobals(const RenderFrame& frame) const;
 
         ShaderManager m_shaderManager;
         PipelineCache m_pipelineCache;
+        ShaderProgramRegistry m_programRegistry;
         TransientBufferAllocator m_transientAllocator;
 
-        // Named pipelines — keyed by shader name
-        std::unordered_map<std::string, GPUPipeline> m_pipelines;
+        // Debug-only pipeline (PosColor, uses debug_unlit shaders)
         GPUPipeline m_debugLinePipeline;
 
-        // Built-in meshes
-        Mesh m_cubeMesh;         // PosColor — for unlit
-        Mesh m_litCubeMesh;      // PosNormalColor — for basic_lit
+        // Single built-in mesh — all scene primitives use PosNormalColor
+        Mesh m_primitiveMesh;
 
         int m_screenWidth;
         int m_screenHeight;

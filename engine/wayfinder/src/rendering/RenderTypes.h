@@ -31,6 +31,31 @@ namespace Wayfinder
         static Color DarkGray() { return {.r = 80, .g = 80, .b = 80, .a = 255}; }
     };
 
+    // ── Linear Color ─────────────────────────────────────────
+    // Float4 color in linear space for GPU-side work.
+    // Conversions from authored sRGB Color happen once at load/extract time.
+
+    struct LinearColor
+    {
+        float r = 1.0f, g = 1.0f, b = 1.0f, a = 1.0f;
+
+        static LinearColor White() { return {1.0f, 1.0f, 1.0f, 1.0f}; }
+        static LinearColor Black() { return {0.0f, 0.0f, 0.0f, 1.0f}; }
+
+        static LinearColor FromColor(const Color& c)
+        {
+            return {
+                .r = static_cast<float>(c.r) / 255.0f,
+                .g = static_cast<float>(c.g) / 255.0f,
+                .b = static_cast<float>(c.b) / 255.0f,
+                .a = static_cast<float>(c.a) / 255.0f,
+            };
+        }
+
+        glm::vec4 ToVec4() const { return {r, g, b, a}; }
+        Float3 ToFloat3() const { return {r, g, b}; }
+    };
+
     // ── Camera ───────────────────────────────────────────────
 
     struct Camera

@@ -7,8 +7,24 @@
 
 namespace Wayfinder
 {
+    // ── Primitive Generation ──────────────────────────────────
+
+    enum class PrimitiveShape : uint8_t
+    {
+        Cube,
+        // Future: Sphere, Plane, Cylinder, Cone, ...
+    };
+
+    struct PrimitiveDesc
+    {
+        PrimitiveShape Shape = PrimitiveShape::Cube;
+        float Size = 1.0f;
+    };
+
     // GPU-backed mesh: owns vertex and index buffers on the device.
     // Distinct from the authored MeshComponent — this is the GPU-side representation.
+    // All primitives use VertexPosNormalColor format (the engine's standard authored vertex).
+    // Debug-only geometry (lines, grid) uses VertexPosColor via the transient allocator.
     class WAYFINDER_API Mesh
     {
     public:
@@ -35,10 +51,10 @@ namespace Wayfinder
         uint32_t GetIndexCount() const { return m_indexCount; }
         uint32_t GetVertexCount() const { return m_vertexCount; }
 
-        // ── Built-in Primitives ──────────────────────────────
+        // ── Built-in Primitive Factory ────────────────────────
+        // All primitives produce VertexPosNormalColor geometry.
 
-        static Mesh CreateUnitCube(RenderDevice& device);
-        static Mesh CreateUnitCubeWithNormals(RenderDevice& device);
+        static Mesh CreatePrimitive(RenderDevice& device, const PrimitiveDesc& desc = {});
 
     private:
         GPUBuffer m_vertexBuffer;

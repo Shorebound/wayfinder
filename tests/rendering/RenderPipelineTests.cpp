@@ -33,9 +33,8 @@ namespace
         submission.Geometry.Dimensions = {1.0f, 1.0f, 1.0f};
         submission.Material.Handle.Origin = Wayfinder::RenderResourceOrigin::BuiltIn;
         submission.Material.Handle.StableKey = submission.Mesh.StableKey;
-        submission.Material.FillMode = Wayfinder::RenderFillMode::Solid;
-        submission.Material.BaseColor = color;
-        submission.Material.HasBaseColorOverride = true;
+        submission.Material.StateOverrides.FillMode = Wayfinder::RenderFillMode::Solid;
+        submission.Material.Parameters.SetColor("base_color", Wayfinder::LinearColor::FromColor(color));
         submission.SortPriority = sortPriority;
         return submission;
     }
@@ -65,8 +64,8 @@ namespace
         auto device = Wayfinder::RenderDevice::Create(Wayfinder::RenderBackend::Null);
         Wayfinder::RenderPipeline pipeline;
 
-        // Should not crash
-        pipeline.Execute(frame, *device, resources);
+        // Should not crash — Prepare returns false for empty frames
+        pipeline.Prepare(frame);
         return true;
     }
 

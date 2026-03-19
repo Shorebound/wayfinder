@@ -8,6 +8,7 @@
 #include <vector>
 
 #include "../core/Identifiers.h"
+#include "MaterialParameter.h"
 #include "RenderIntent.h"
 #include "RenderTypes.h"
 
@@ -63,17 +64,27 @@ namespace Wayfinder
         uint64_t StableKey = 0;
     };
 
+    // Render-state overrides — rasterizer configuration, separate from material surface params.
+    struct RenderStateOverrides
+    {
+        std::optional<RenderFillMode> FillMode;
+        // Future: blend mode, double-sided, stencil ref, etc.
+    };
+
     struct RenderMaterialBinding
     {
         RenderMaterialHandle Handle{};
         RenderMaterialDomain Domain = RenderMaterialDomain::Surface;
         std::string ShaderName = "unlit";
-        Color BaseColor = Color::White();
-        bool HasBaseColorOverride = false;
-        Color WireframeColor = Color::DarkGray();
-        bool HasWireframeColorOverride = false;
-        RenderFillMode FillMode = RenderFillMode::SolidAndWireframe;
-        bool HasFillModeOverride = false;
+
+        // Generic parameter bag — the shader program's declarations determine UBO layout.
+        MaterialParameterBlock Parameters;
+
+        // Per-entity overrides applied on top of the asset-loaded parameters.
+        MaterialParameterBlock Overrides;
+        bool HasOverrides = false;
+
+        RenderStateOverrides StateOverrides;
     };
 
     struct RenderMeshSubmission

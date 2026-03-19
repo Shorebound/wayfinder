@@ -96,12 +96,8 @@ namespace Wayfinder
             submission.Material.Handle.Origin = RenderResourceOrigin::BuiltIn;
             submission.Material.Handle.StableKey = kBuiltInSurfaceMaterialKey;
             submission.Material.Domain = RenderMaterialDomain::Surface;
-            submission.Material.BaseColor = Color::White();
-            submission.Material.HasBaseColorOverride = false;
-            submission.Material.WireframeColor = Color::DarkGray();
-            submission.Material.HasWireframeColorOverride = false;
-            submission.Material.FillMode = RenderFillMode::SolidAndWireframe;
-            submission.Material.HasFillModeOverride = false;
+            submission.Material.Parameters.SetColor("base_color", LinearColor::White());
+            submission.Material.StateOverrides.FillMode = RenderFillMode::SolidAndWireframe;
 
             Matrix4 localToWorld = transform.GetLocalMatrix();
 
@@ -123,14 +119,15 @@ namespace Wayfinder
 
                 if (material.HasBaseColorOverride || !material.MaterialAssetId)
                 {
-                    submission.Material.BaseColor = material.BaseColor;
-                    submission.Material.HasBaseColorOverride = true;
+                    submission.Material.HasOverrides = true;
+                    submission.Material.Overrides.SetColor("base_color", LinearColor::FromColor(material.BaseColor));
                 }
 
                 if (material.HasWireframeOverride || !material.MaterialAssetId)
                 {
-                    submission.Material.FillMode = material.Wireframe ? RenderFillMode::SolidAndWireframe : RenderFillMode::Solid;
-                    submission.Material.HasFillModeOverride = true;
+                    submission.Material.StateOverrides.FillMode = material.Wireframe
+                        ? RenderFillMode::SolidAndWireframe
+                        : RenderFillMode::Solid;
                 }
             }
 
@@ -194,12 +191,7 @@ namespace Wayfinder
                 debugBox.Material.Handle.Origin = RenderResourceOrigin::BuiltIn;
                 debugBox.Material.Handle.StableKey = 100ull;
                 debugBox.Material.Domain = RenderMaterialDomain::Debug;
-                debugBox.Material.BaseColor = light.Tint;
-                debugBox.Material.HasBaseColorOverride = true;
-                debugBox.Material.WireframeColor = Color::DarkGray();
-                debugBox.Material.HasWireframeColorOverride = true;
-                debugBox.Material.FillMode = RenderFillMode::SolidAndWireframe;
-                debugBox.Material.HasFillModeOverride = true;
+                debugBox.Material.Parameters.SetColor("base_color", LinearColor::FromColor(light.Tint));
 
                 if (RenderPass* pass = frame.FindPass(RenderPassIds::Debug))
                 {
