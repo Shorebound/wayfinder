@@ -313,6 +313,20 @@ namespace
         return true;
     }
 
+    bool ValidateOptionalInteger(const toml::table& componentTable, const char* key, std::string& error)
+    {
+        const toml::node* node = componentTable.get(key);
+        if (!node) { return true; }
+
+        if (!node->is_integer())
+        {
+            error = std::string{"field '"} + key + "' must be an integer";
+            return false;
+        }
+
+        return true;
+    }
+
     bool ValidateOptionalVector3(const toml::table& componentTable, const char* key, std::string& error)
     {
         const toml::node* node = componentTable.get(key);
@@ -447,7 +461,120 @@ namespace
     {
         return ValidateOptionalBool(componentTable, "visible", error)
             && ValidateOptionalNonEmptyString(componentTable, "layer", error)
-            && ValidateOptionalNumber(componentTable, "sort_priority", error);
+            && ValidateOptionalInteger(componentTable, "sort_priority", error);
+    }
+
+    bool ValidateEffectParameter(std::string_view key, const toml::node& node, std::string& error)
+    {
+        if (node.is_integer() || node.is_floating_point()) { return true; }
+
+        if (const toml::array* arr = node.as_array())
+        {
+            if (arr->size() < 3 || arr->size() > 4)
+            {
+                error = std::string("effect parameter '") + std::string(key) + "' array must have 3 or 4 elements";
+                return false;
+            }
+
+            bool allInts = true;
+            for (size_t i = 0; i < arr->size(); ++i)
+            {
+                if (!arr->get(i)->is_integer() && !arr->get(i)->is_floating_point())
+                {
+                    error = std::string("effect parameter '") + std::string(key) + "' array elements must be numbers";
+                    return false;
+                }
+                if (!arr->get(i)->is_integer()) { allInts = false; }
+            }
+
+            // 4-element arrays are only valid as Color (all integers r,g,b,a).
+            // Float3 only reads 3 elements, so a 4-element float array would silently lose data.
+            if (arr->size() == 4 && !allInts)
+            {
+                error = std::string("effect parameter '") + std::string(key)
+                    + "' 4-element arrays must be all integers (Color r,g,b,a)";
+                return false;
+            }
+
+            // 3-element all-integer arrays are ambiguous: ReadEffectParam treats them
+            // as Color (r,g,b with a=255), not Float3. Require at least one float
+            // for Float3 values (e.g. [1.0, 2.0, 3.0]).
+            if (arr->size() == 3 && allInts)
+            {
+                error = std::string("effect parameter '") + std::string(key)
+                    + "' 3-element all-integer arrays are interpreted as Color, not Float3; use floats for Float3 (e.g. [1.0, 2.0, 3.0])";
+                return false;
+            }
+
+            return true;
+        }
+
+        error = std::string("effect parameter '") + std::string(key) + "' must be a number or array of numbers";
+        return false;
+    }
+
+    bool ValidatePostProcessVolume(const toml::table& componentTable, std::string& error)
+    {
+        if (!ValidateOptionalEnumValue(componentTable, "shape", {"global", "box", "sphere"}, error))
+            return false;
+
+        if (!ValidateOptionalInteger(componentTable, "priority", error))
+            return false;
+
+        if (!ValidateOptionalNumber(componentTable, "blend_distance", error))
+            return false;
+
+        if (!ValidateOptionalVector3(componentTable, "dimensions", error))
+            return false;
+
+        if (!ValidateOptionalNumber(componentTable, "radius", error))
+            return false;
+
+        // Validate the effects array if present
+        const toml::node* effectsNode = componentTable.get("effects");
+        if (effectsNode)
+        {
+            const toml::array* effectsArray = effectsNode->as_array();
+            if (!effectsArray)
+            {
+                error = "'effects' must be an array of tables";
+                return false;
+            }
+
+            for (size_t i = 0; i < effectsArray->size(); ++i)
+            {
+                const toml::table* effectTable = effectsArray->get(i)->as_table();
+                if (!effectTable)
+                {
+                    error = "each entry in 'effects' must be a table";
+                    return false;
+                }
+
+                const auto* typeNode = effectTable->get("type");
+                if (!typeNode || !typeNode->is_string() || typeNode->value_or(std::string{}).empty())
+                {
+                    error = "each effect must have a non-empty 'type' string";
+                    return false;
+                }
+
+                for (const auto& [key, node] : *effectTable)
+                {
+                    if (key == "type") { continue; }
+                    if (key == "enabled")
+                    {
+                        if (!node.is_boolean())
+                        {
+                            error = "effect 'enabled' must be a boolean";
+                            return false;
+                        }
+                        continue;
+                    }
+                    if (!ValidateEffectParameter(key.str(), node, error)) { return false; }
+                }
+            }
+        }
+
+        return true;
     }
 
     void ApplyTransform(const toml::table& componentTable, Wayfinder::Entity& entity)
@@ -517,6 +644,16 @@ namespace
         const int64_t sortPriority = componentTable["sort_priority"].value_or(static_cast<int64_t>(renderable.SortPriority));
         renderable.SortPriority = ClampToByte(sortPriority);
         entity.AddComponent<Wayfinder::RenderableComponent>(renderable);
+    }
+
+    Wayfinder::PostProcessVolumeShape ReadVolumeShape(const toml::table& table, const char* key, Wayfinder::PostProcessVolumeShape fallback)
+    {
+        const auto value = table[key].value<std::string>();
+        if (!value) return fallback;
+        if (*value == "global") return Wayfinder::PostProcessVolumeShape::Global;
+        if (*value == "box") return Wayfinder::PostProcessVolumeShape::Box;
+        if (*value == "sphere") return Wayfinder::PostProcessVolumeShape::Sphere;
+        return fallback;
     }
 
     // ── GameplayTagContainer ────────────────────────────────
@@ -590,6 +727,93 @@ namespace
         toml::table t;
         t.insert_or_assign("tags", std::move(arr));
         componentTables.insert_or_assign("gameplay_tags", std::move(t));
+    }
+
+    // ── PostProcessVolumeComponent ──────────────────────────
+
+    const char* ToString(Wayfinder::PostProcessVolumeShape shape)
+    {
+        switch (shape)
+        {
+        case Wayfinder::PostProcessVolumeShape::Global: return "global";
+        case Wayfinder::PostProcessVolumeShape::Box: return "box";
+        case Wayfinder::PostProcessVolumeShape::Sphere: return "sphere";
+        }
+        return "global";
+    }
+
+    Wayfinder::PostProcessParamValue ReadEffectParam(const toml::node& node)
+    {
+        if (node.is_floating_point()) return static_cast<float>(node.value_or(0.0));
+        if (node.is_integer()) return static_cast<int32_t>(node.value_or(int64_t{0}));
+
+        if (const toml::array* arr = node.as_array())
+        {
+            // All-integer arrays → Color; otherwise → Float3
+            bool allInts = true;
+            for (size_t i = 0; i < arr->size(); ++i)
+            {
+                if (!arr->get(i)->is_integer()) { allInts = false; break; }
+            }
+
+            if (allInts)
+            {
+                Wayfinder::Color c;
+                c.r = static_cast<uint8_t>(arr->get(0)->value_or(int64_t{0}));
+                c.g = static_cast<uint8_t>(arr->get(1)->value_or(int64_t{0}));
+                c.b = static_cast<uint8_t>(arr->get(2)->value_or(int64_t{0}));
+                c.a = arr->size() >= 4 ? static_cast<uint8_t>(arr->get(3)->value_or(int64_t{255})) : 255;
+                return c;
+            }
+
+            if (arr->size() >= 3)
+            {
+                return Wayfinder::Float3{
+                    ReadArrayFloat(*arr, 0, 0.0f),
+                    ReadArrayFloat(*arr, 1, 0.0f),
+                    ReadArrayFloat(*arr, 2, 0.0f)};
+            }
+        }
+
+        return 0.0f;
+    }
+
+    Wayfinder::PostProcessEffect ReadEffect(const toml::table& effectTable)
+    {
+        Wayfinder::PostProcessEffect effect;
+        effect.Type = effectTable["type"].value_or(std::string{});
+        effect.Enabled = effectTable["enabled"].value_or(true);
+
+        for (const auto& [key, node] : effectTable)
+        {
+            if (key == "type" || key == "enabled") { continue; }
+            effect.Parameters[std::string(key.str())] = ReadEffectParam(node);
+        }
+
+        return effect;
+    }
+
+    void ApplyPostProcessVolume(const toml::table& componentTable, Wayfinder::Entity& entity)
+    {
+        Wayfinder::PostProcessVolumeComponent volume;
+        volume.Shape = ReadVolumeShape(componentTable, "shape", volume.Shape);
+        volume.Priority = static_cast<int>(componentTable["priority"].value_or(static_cast<int64_t>(volume.Priority)));
+        volume.BlendDistance = ReadFloat(componentTable, "blend_distance", volume.BlendDistance);
+        volume.Dimensions = ReadVector3(componentTable, "dimensions", volume.Dimensions);
+        volume.Radius = ReadFloat(componentTable, "radius", volume.Radius);
+
+        if (const toml::array* effectsArray = componentTable["effects"].as_array())
+        {
+            for (size_t i = 0; i < effectsArray->size(); ++i)
+            {
+                if (const toml::table* effectTable = effectsArray->get(i)->as_table())
+                {
+                    volume.Effects.push_back(ReadEffect(*effectTable));
+                }
+            }
+        }
+
+        entity.AddComponent<Wayfinder::PostProcessVolumeComponent>(volume);
     }
 
     void SerializeTransform(const Wayfinder::Entity& entity, toml::table& componentTables)
@@ -697,7 +921,61 @@ namespace
         componentTables.insert_or_assign("renderable", componentTable);
     }
 
-    constexpr std::array<Wayfinder::SceneComponentRegistry::Entry, 7> kEntries = {{
+    void WriteEffectParam(toml::table& table, const std::string& key, const Wayfinder::PostProcessParamValue& value)
+    {
+        std::visit([&](const auto& v)
+        {
+            using T = std::decay_t<decltype(v)>;
+            if constexpr (std::is_same_v<T, float>)
+                table.insert_or_assign(key, static_cast<double>(v));
+            else if constexpr (std::is_same_v<T, int32_t>)
+                table.insert_or_assign(key, static_cast<int64_t>(v));
+            else if constexpr (std::is_same_v<T, Wayfinder::Float3>)
+                table.insert_or_assign(key, WriteVector3(v));
+            else if constexpr (std::is_same_v<T, Wayfinder::Color>)
+                table.insert_or_assign(key, WriteColor(v));
+        }, value);
+    }
+
+    void SerializePostProcessVolume(const Wayfinder::Entity& entity, toml::table& componentTables)
+    {
+        if (!entity.HasComponent<Wayfinder::PostProcessVolumeComponent>())
+        {
+            return;
+        }
+
+        const Wayfinder::PostProcessVolumeComponent& volume = entity.GetComponent<Wayfinder::PostProcessVolumeComponent>();
+        toml::table componentTable;
+        componentTable.insert_or_assign("shape", std::string{ToString(volume.Shape)});
+        componentTable.insert_or_assign("priority", static_cast<int64_t>(volume.Priority));
+        componentTable.insert_or_assign("blend_distance", volume.BlendDistance);
+        componentTable.insert_or_assign("dimensions", WriteVector3(volume.Dimensions));
+        componentTable.insert_or_assign("radius", volume.Radius);
+
+        if (!volume.Effects.empty())
+        {
+            toml::array effectsArray;
+            for (const auto& effect : volume.Effects)
+            {
+                toml::table effectTable;
+                effectTable.insert_or_assign("type", effect.Type);
+                if (!effect.Enabled) { effectTable.insert_or_assign("enabled", false); }
+
+                for (const auto& [key, value] : effect.Parameters)
+                {
+                    WriteEffectParam(effectTable, key, value);
+                }
+
+                effectsArray.push_back(effectTable);
+            }
+
+            componentTable.insert_or_assign("effects", effectsArray);
+        }
+
+        componentTables.insert_or_assign("post_process_volume", componentTable);
+    }
+
+    constexpr std::array<Wayfinder::SceneComponentRegistry::Entry, 8> kEntries = {{
         {"transform", &RegisterComponent<Wayfinder::TransformComponent>, &ApplyTransform, &SerializeTransform, &ValidateTransform},
         {"mesh", &RegisterComponent<Wayfinder::MeshComponent>, &ApplyMesh, &SerializeMesh, &ValidateMesh},
         {"camera", &RegisterComponent<Wayfinder::CameraComponent>, &ApplyCamera, &SerializeCamera, &ValidateCamera},
@@ -705,6 +983,7 @@ namespace
         {"material", &RegisterComponent<Wayfinder::MaterialComponent>, &ApplyMaterial, &SerializeMaterial, &ValidateMaterial},
         {"renderable", &RegisterComponent<Wayfinder::RenderableComponent>, &ApplyRenderable, &SerializeRenderable, &ValidateRenderable},
         {"gameplay_tags", &RegisterComponent<Wayfinder::GameplayTagContainer>, &ApplyTags, &SerializeTags, &ValidateTags},
+        {"post_process_volume", &RegisterComponent<Wayfinder::PostProcessVolumeComponent>, &ApplyPostProcessVolume, &SerializePostProcessVolume, &ValidatePostProcessVolume},
     }};
 }
 

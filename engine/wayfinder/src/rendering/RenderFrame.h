@@ -9,6 +9,7 @@
 
 #include "../core/Identifiers.h"
 #include "MaterialParameter.h"
+#include "PostProcessVolume.h"
 #include "RenderIntent.h"
 #include "RenderTypes.h"
 
@@ -138,6 +139,7 @@ namespace Wayfinder
         Camera CameraState{};
         Color ClearColor = Color::White();
         bool IsPrimary = true;
+        PostProcessStack PostProcess;
     };
 
     enum class RenderPassKind

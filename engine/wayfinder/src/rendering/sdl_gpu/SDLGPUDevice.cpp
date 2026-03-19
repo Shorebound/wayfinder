@@ -169,13 +169,29 @@ namespace Wayfinder
 
     void SDLGPUDevice::BeginRenderPass(const RenderPassDescriptor& descriptor)
     {
-        if (!m_commandBuffer || !m_swapchainTexture)
+        if (!m_commandBuffer)
+        {
+            return;
+        }
+
+        // Determine color target texture
+        SDL_GPUTexture* colorTexture = nullptr;
+        if (descriptor.targetSwapchain)
+        {
+            if (!m_swapchainTexture) return;
+            colorTexture = m_swapchainTexture;
+        }
+        else if (descriptor.colorTarget)
+        {
+            colorTexture = static_cast<SDL_GPUTexture*>(descriptor.colorTarget);
+        }
+        else
         {
             return;
         }
 
         SDL_GPUColorTargetInfo colorTarget{};
-        colorTarget.texture = m_swapchainTexture;
+        colorTarget.texture = colorTexture;
         colorTarget.clear_color.r = descriptor.colorAttachment.clearValue.r;
         colorTarget.clear_color.g = descriptor.colorAttachment.clearValue.g;
         colorTarget.clear_color.b = descriptor.colorAttachment.clearValue.b;
@@ -194,29 +210,48 @@ namespace Wayfinder
         case StoreOp::DontCare: colorTarget.store_op = SDL_GPU_STOREOP_DONT_CARE; break;
         }
 
-        if (descriptor.depthAttachment.enabled && m_depthTexture)
+        if (descriptor.depthAttachment.enabled)
         {
-            SDL_GPUDepthStencilTargetInfo depthTarget{};
-            depthTarget.texture = m_depthTexture;
-            depthTarget.clear_depth = descriptor.depthAttachment.clearDepth;
-
-            switch (descriptor.depthAttachment.loadOp)
+            SDL_GPUTexture* depthTexture = nullptr;
+            if (descriptor.depthTarget)
             {
-            case LoadOp::Clear:    depthTarget.load_op = SDL_GPU_LOADOP_CLEAR; break;
-            case LoadOp::Load:     depthTarget.load_op = SDL_GPU_LOADOP_LOAD; break;
-            case LoadOp::DontCare: depthTarget.load_op = SDL_GPU_LOADOP_DONT_CARE; break;
+                depthTexture = static_cast<SDL_GPUTexture*>(descriptor.depthTarget);
+            }
+            else if (m_depthTexture)
+            {
+                depthTexture = m_depthTexture;
             }
 
-            switch (descriptor.depthAttachment.storeOp)
+            if (depthTexture)
             {
-            case StoreOp::Store:    depthTarget.store_op = SDL_GPU_STOREOP_STORE; break;
-            case StoreOp::DontCare: depthTarget.store_op = SDL_GPU_STOREOP_DONT_CARE; break;
+                SDL_GPUDepthStencilTargetInfo depthTarget{};
+                depthTarget.texture = depthTexture;
+                depthTarget.clear_depth = descriptor.depthAttachment.clearDepth;
+
+                switch (descriptor.depthAttachment.loadOp)
+                {
+                case LoadOp::Clear:    depthTarget.load_op = SDL_GPU_LOADOP_CLEAR; break;
+                case LoadOp::Load:     depthTarget.load_op = SDL_GPU_LOADOP_LOAD; break;
+                case LoadOp::DontCare: depthTarget.load_op = SDL_GPU_LOADOP_DONT_CARE; break;
+                }
+
+                switch (descriptor.depthAttachment.storeOp)
+                {
+                case StoreOp::Store:    depthTarget.store_op = SDL_GPU_STOREOP_STORE; break;
+                case StoreOp::DontCare: depthTarget.store_op = SDL_GPU_STOREOP_DONT_CARE; break;
+                }
+
+                depthTarget.stencil_load_op = SDL_GPU_LOADOP_DONT_CARE;
+                depthTarget.stencil_store_op = SDL_GPU_STOREOP_DONT_CARE;
+
+                m_renderPass = SDL_BeginGPURenderPass(m_commandBuffer, &colorTarget, 1, &depthTarget);
             }
-
-            depthTarget.stencil_load_op = SDL_GPU_LOADOP_DONT_CARE;
-            depthTarget.stencil_store_op = SDL_GPU_STOREOP_DONT_CARE;
-
-            m_renderPass = SDL_BeginGPURenderPass(m_commandBuffer, &colorTarget, 1, &depthTarget);
+            else
+            {
+                WAYFINDER_WARNING(LogRenderer, "Depth attachment enabled but no depth texture available (depthTarget={}, m_depthTexture={})",
+                    descriptor.depthTarget != nullptr, m_depthTexture != nullptr);
+                m_renderPass = SDL_BeginGPURenderPass(m_commandBuffer, &colorTarget, 1, nullptr);
+            }
         }
         else
         {
@@ -307,17 +342,22 @@ namespace Wayfinder
             vertexAttribs.push_back(attr);
         }
 
-        SDL_GPUVertexBufferDescription vbDesc{};
-        vbDesc.slot = 0;
-        vbDesc.pitch = desc.vertexLayout.stride;
-        vbDesc.input_rate = SDL_GPU_VERTEXINPUTRATE_VERTEX;
-        vbDesc.instance_step_rate = 0;
-
         SDL_GPUVertexInputState vertexInput{};
-        vertexInput.vertex_buffer_descriptions = &vbDesc;
-        vertexInput.num_vertex_buffers = 1;
-        vertexInput.vertex_attributes = vertexAttribs.data();
-        vertexInput.num_vertex_attributes = static_cast<Uint32>(vertexAttribs.size());
+
+        SDL_GPUVertexBufferDescription vbDesc{};
+
+        if (desc.vertexLayout.attribCount > 0)
+        {
+            vbDesc.slot = 0;
+            vbDesc.pitch = desc.vertexLayout.stride;
+            vbDesc.input_rate = SDL_GPU_VERTEXINPUTRATE_VERTEX;
+            vbDesc.instance_step_rate = 0;
+
+            vertexInput.vertex_buffer_descriptions = &vbDesc;
+            vertexInput.num_vertex_buffers = 1;
+            vertexInput.vertex_attributes = vertexAttribs.data();
+            vertexInput.num_vertex_attributes = static_cast<Uint32>(vertexAttribs.size());
+        }
 
         // Rasterizer
         SDL_GPURasterizerState rasterizer{};
@@ -646,6 +686,134 @@ namespace Wayfinder
         {
             SDL_DispatchGPUCompute(m_computePass, groupCountX, groupCountY, groupCountZ);
         }
+    }
+
+    // ── Textures ─────────────────────────────────────────────
+
+    static SDL_GPUTextureFormat ToSDLTextureFormat(TextureFormat format)
+    {
+        switch (format)
+        {
+        case TextureFormat::RGBA8_UNORM:   return SDL_GPU_TEXTUREFORMAT_R8G8B8A8_UNORM;
+        case TextureFormat::BGRA8_UNORM:   return SDL_GPU_TEXTUREFORMAT_B8G8R8A8_UNORM;
+        case TextureFormat::R16_FLOAT:     return SDL_GPU_TEXTUREFORMAT_R16_FLOAT;
+        case TextureFormat::RGBA16_FLOAT:  return SDL_GPU_TEXTUREFORMAT_R16G16B16A16_FLOAT;
+        case TextureFormat::R32_FLOAT:     return SDL_GPU_TEXTUREFORMAT_R32_FLOAT;
+        case TextureFormat::D32_FLOAT:     return SDL_GPU_TEXTUREFORMAT_D32_FLOAT;
+        case TextureFormat::D24_UNORM_S8:  return SDL_GPU_TEXTUREFORMAT_D24_UNORM_S8_UINT;
+        }
+        return SDL_GPU_TEXTUREFORMAT_R8G8B8A8_UNORM;
+    }
+
+    static SDL_GPUTextureUsageFlags ToSDLTextureUsage(TextureUsage usage)
+    {
+        SDL_GPUTextureUsageFlags flags = 0;
+        if (HasFlag(usage, TextureUsage::Sampler))     flags |= SDL_GPU_TEXTUREUSAGE_SAMPLER;
+        if (HasFlag(usage, TextureUsage::ColourTarget)) flags |= SDL_GPU_TEXTUREUSAGE_COLOR_TARGET;
+        if (HasFlag(usage, TextureUsage::DepthTarget)) flags |= SDL_GPU_TEXTUREUSAGE_DEPTH_STENCIL_TARGET;
+        return flags;
+    }
+
+    GPUTextureHandle SDLGPUDevice::CreateTexture(const TextureCreateDesc& desc)
+    {
+        if (!m_device)
+        {
+            WAYFINDER_ERROR(LogRenderer, "SDLGPUDevice::CreateTexture: No GPU device");
+            return nullptr;
+        }
+
+        SDL_GPUTextureCreateInfo info{};
+        info.type = SDL_GPU_TEXTURETYPE_2D;
+        info.format = ToSDLTextureFormat(desc.format);
+        info.width = desc.width;
+        info.height = desc.height;
+        info.layer_count_or_depth = 1;
+        info.num_levels = 1;
+        info.usage = ToSDLTextureUsage(desc.usage);
+
+        SDL_GPUTexture* texture = SDL_CreateGPUTexture(m_device, &info);
+        if (!texture)
+        {
+            WAYFINDER_ERROR(LogRenderer, "SDLGPUDevice::CreateTexture: Failed ({}x{}) — {}", desc.width, desc.height, SDL_GetError());
+            return nullptr;
+        }
+
+        return static_cast<GPUTextureHandle>(texture);
+    }
+
+    void SDLGPUDevice::DestroyTexture(GPUTextureHandle texture)
+    {
+        if (m_device && texture)
+        {
+            SDL_ReleaseGPUTexture(m_device, static_cast<SDL_GPUTexture*>(texture));
+        }
+    }
+
+    // ── Samplers ─────────────────────────────────────────────
+
+    GPUSamplerHandle SDLGPUDevice::CreateSampler(const SamplerCreateDesc& desc)
+    {
+        if (!m_device)
+        {
+            WAYFINDER_ERROR(LogRenderer, "SDLGPUDevice::CreateSampler: No GPU device");
+            return nullptr;
+        }
+
+        SDL_GPUSamplerCreateInfo info{};
+        info.min_filter = (desc.minFilter == SamplerFilter::Nearest) ? SDL_GPU_FILTER_NEAREST : SDL_GPU_FILTER_LINEAR;
+        info.mag_filter = (desc.magFilter == SamplerFilter::Nearest) ? SDL_GPU_FILTER_NEAREST : SDL_GPU_FILTER_LINEAR;
+        info.mipmap_mode = SDL_GPU_SAMPLERMIPMAPMODE_NEAREST;
+
+        auto toAddressMode = [](SamplerAddressMode mode) -> SDL_GPUSamplerAddressMode {
+            switch (mode)
+            {
+            case SamplerAddressMode::Repeat:         return SDL_GPU_SAMPLERADDRESSMODE_REPEAT;
+            case SamplerAddressMode::ClampToEdge:    return SDL_GPU_SAMPLERADDRESSMODE_CLAMP_TO_EDGE;
+            case SamplerAddressMode::MirroredRepeat: return SDL_GPU_SAMPLERADDRESSMODE_MIRRORED_REPEAT;
+            }
+            return SDL_GPU_SAMPLERADDRESSMODE_CLAMP_TO_EDGE;
+        };
+
+        info.address_mode_u = toAddressMode(desc.addressModeU);
+        info.address_mode_v = toAddressMode(desc.addressModeV);
+        info.address_mode_w = SDL_GPU_SAMPLERADDRESSMODE_CLAMP_TO_EDGE;
+
+        SDL_GPUSampler* sampler = SDL_CreateGPUSampler(m_device, &info);
+        if (!sampler)
+        {
+            WAYFINDER_ERROR(LogRenderer, "SDLGPUDevice::CreateSampler: Failed — {}", SDL_GetError());
+            return nullptr;
+        }
+
+        return static_cast<GPUSamplerHandle>(sampler);
+    }
+
+    void SDLGPUDevice::DestroySampler(GPUSamplerHandle sampler)
+    {
+        if (m_device && sampler)
+        {
+            SDL_ReleaseGPUSampler(m_device, static_cast<SDL_GPUSampler*>(sampler));
+        }
+    }
+
+    void SDLGPUDevice::BindFragmentSampler(uint32_t slot, GPUTextureHandle texture, GPUSamplerHandle sampler)
+    {
+        if (!m_renderPass || !texture || !sampler)
+        {
+            return;
+        }
+
+        SDL_GPUTextureSamplerBinding binding{};
+        binding.texture = static_cast<SDL_GPUTexture*>(texture);
+        binding.sampler = static_cast<SDL_GPUSampler*>(sampler);
+
+        SDL_BindGPUFragmentSamplers(m_renderPass, slot, &binding, 1);
+    }
+
+    void SDLGPUDevice::GetSwapchainDimensions(uint32_t& width, uint32_t& height) const
+    {
+        width = m_swapchainWidth;
+        height = m_swapchainHeight;
     }
 
 } // namespace Wayfinder

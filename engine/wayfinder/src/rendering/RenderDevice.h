@@ -193,7 +193,21 @@ namespace Wayfinder
         virtual void EndComputePass() = 0;
         virtual void BindComputePipeline(GPUComputePipelineHandle pipeline) = 0;
         virtual void DispatchCompute(uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ) = 0;
+        // ── Textures ─────────────────────────────────────────────
 
+        virtual GPUTextureHandle CreateTexture(const TextureCreateDesc& desc) = 0;
+        virtual void DestroyTexture(GPUTextureHandle texture) = 0;
+
+        // ── Samplers ─────────────────────────────────────────────
+
+        virtual GPUSamplerHandle CreateSampler(const SamplerCreateDesc& desc) = 0;
+        virtual void DestroySampler(GPUSamplerHandle sampler) = 0;
+
+        virtual void BindFragmentSampler(uint32_t slot, GPUTextureHandle texture, GPUSamplerHandle sampler) = 0;
+
+        // ── Swapchain Info ───────────────────────────────────────
+
+        virtual void GetSwapchainDimensions(uint32_t& width, uint32_t& height) const = 0;
         // ── Device Info ──────────────────────────────────────
 
         virtual const RenderDeviceInfo& GetDeviceInfo() const = 0;

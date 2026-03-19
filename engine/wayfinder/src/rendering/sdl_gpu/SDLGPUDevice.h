@@ -53,6 +53,16 @@ namespace Wayfinder
         void BindComputePipeline(GPUComputePipelineHandle pipeline) override;
         void DispatchCompute(uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ) override;
 
+        GPUTextureHandle CreateTexture(const TextureCreateDesc& desc) override;
+        void DestroyTexture(GPUTextureHandle texture) override;
+
+        GPUSamplerHandle CreateSampler(const SamplerCreateDesc& desc) override;
+        void DestroySampler(GPUSamplerHandle sampler) override;
+
+        void BindFragmentSampler(uint32_t slot, GPUTextureHandle texture, GPUSamplerHandle sampler) override;
+
+        void GetSwapchainDimensions(uint32_t& width, uint32_t& height) const override;
+
         const RenderDeviceInfo& GetDeviceInfo() const override { return m_info; }
 
         SDL_GPUDevice* GetGPUDevice() const { return m_device; }
