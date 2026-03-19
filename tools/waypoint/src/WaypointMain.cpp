@@ -7,6 +7,7 @@
 #include <filesystem>
 #include <iostream>
 #include <string>
+#include <optional>
 
 namespace
 {
