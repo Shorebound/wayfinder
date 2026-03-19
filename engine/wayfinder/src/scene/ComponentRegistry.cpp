@@ -547,14 +547,21 @@ namespace
 
     void ApplyTags(const toml::table& componentTable, Wayfinder::Entity& entity)
     {
-        auto& registry = Wayfinder::GameSubsystems::Get<Wayfinder::GameplayTagRegistry>();
+        // In non-Game contexts (e.g. waypoint, tests) the subsystem collection may not be bound.
+        // Use Find() to avoid asserting and simply skip tag application if no registry is available.
+        auto* registry = Wayfinder::GameSubsystems::Find<Wayfinder::GameplayTagRegistry>();
+        if (!registry)
+        {
+            return;
+        }
+
         Wayfinder::GameplayTagContainer container;
         if (const toml::array* tags = componentTable["tags"].as_array())
         {
             for (const toml::node& node : *tags)
             {
                 if (const auto str = node.value<std::string>())
-                    container.AddTag(registry.RequestTag(*str));
+                    container.AddTag(registry->RequestTag(*str));
             }
         }
         entity.AddComponent<Wayfinder::GameplayTagContainer>(container);
