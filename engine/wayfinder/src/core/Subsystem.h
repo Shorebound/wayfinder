@@ -5,6 +5,7 @@
 #include <cassert>
 #include <memory>
 #include <typeindex>
+#include <type_traits>
 #include <unordered_map>
 #include <vector>
 
