@@ -1,5 +1,4 @@
 #include "Scene.h"
-#include "ComponentRegistry.h"
 #include "RuntimeComponentRegistry.h"
 #include "SceneDocument.h"
 #include "SceneModuleRegistry.h"
