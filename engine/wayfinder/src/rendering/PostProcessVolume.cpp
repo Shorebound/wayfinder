@@ -12,6 +12,7 @@ namespace
         const Wayfinder::PostProcessVolumeComponent& volume,
         const Wayfinder::Float3& worldPosition,
         const Wayfinder::Float3& worldScale,
+        const Wayfinder::Matrix4& localToWorld,
         const Wayfinder::Float3& cameraPosition)
     {
         using namespace Wayfinder;
@@ -27,10 +28,17 @@ namespace
             return glm::max(glm::length(offset) - scaledRadius, 0.0f);
         }
 
-        // Box: axis-aligned half-extents scaled by entity scale
+        // Box: extract rotation from local-to-world, rotate offset into local
+        // orientation, then compute axis-aligned distance with scaled extents.
+        glm::mat3 rotMat(localToWorld);
+        rotMat[0] = glm::normalize(rotMat[0]);
+        rotMat[1] = glm::normalize(rotMat[1]);
+        rotMat[2] = glm::normalize(rotMat[2]);
+        const Float3 localOffset = glm::transpose(rotMat) * offset;
+
         const Float3 halfExtents = (volume.Dimensions * 0.5f) * glm::abs(worldScale);
-        const Float3 absOffset = glm::abs(offset);
-        const Float3 outside = glm::max(absOffset - halfExtents, Float3(0.0f));
+        const Float3 absLocal = glm::abs(localOffset);
+        const Float3 outside = glm::max(absLocal - halfExtents, Float3(0.0f));
         return glm::length(outside);
     }
 
@@ -183,8 +191,8 @@ namespace Wayfinder
              if (!instance->Volume) { continue; }  
 
             const float distance = ComputeDistanceToVolume(  
-                *instance->Volume, instance->WorldPosition, instance->WorldScale, cameraPosition);  
-
+                *instance->Volume, instance->WorldPosition, instance->WorldScale,
+                instance->LocalToWorld, cameraPosition);
             const float weight = ComputeBlendWeight(distance, instance->Volume->BlendDistance);
 
             if (weight <= 0.0f) { continue; }

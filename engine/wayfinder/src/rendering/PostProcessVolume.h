@@ -62,6 +62,7 @@ namespace Wayfinder
         const PostProcessVolumeComponent* Volume = nullptr;
         Float3 WorldPosition = {0.0f, 0.0f, 0.0f};
         Float3 WorldScale = {1.0f, 1.0f, 1.0f};
+        Matrix4 LocalToWorld = Matrix4(1.0f);
     };
 
     // Blended result: per-effect-type parameter blocks, ready for consumption by RenderFeatures.

@@ -229,14 +229,16 @@ namespace Wayfinder
         {
             Float3 position = transform.Position;
             Float3 scale = transform.Scale;
+            Matrix4 localToWorld = transform.GetLocalMatrix();
             if (entityHandle.has<WorldTransformComponent>())
             {
                 const auto& worldTransform = entityHandle.get<WorldTransformComponent>();
                 position = worldTransform.Position;
                 scale = worldTransform.Scale;
+                localToWorld = worldTransform.LocalToWorld;
             }
 
-            volumeInstances.push_back({.Volume = &volume, .WorldPosition = position, .WorldScale = scale});
+            volumeInstances.push_back({.Volume = &volume, .WorldPosition = position, .WorldScale = scale, .LocalToWorld = localToWorld});
         });
 
         if (!volumeInstances.empty())
