@@ -2,6 +2,9 @@
 
 #include "Components.h"
 #include "entity/Entity.h"
+#include "../core/GameplayTag.h"
+#include "../core/GameplayTagRegistry.h"
+#include "../core/Subsystem.h"
 
 #include <array>
 #include <sstream>
@@ -515,6 +518,73 @@ namespace
         entity.AddComponent<Wayfinder::RenderableComponent>(renderable);
     }
 
+    // ── GameplayTagContainer ────────────────────────────────
+
+    bool ValidateTags(const toml::table& componentTable, std::string& error)
+    {
+        const toml::node* node = componentTable.get("tags");
+        if (!node)
+            return true;
+
+        const toml::array* values = node->as_array();
+        if (!values)
+        {
+            error = "'tags' must be an array of strings";
+            return false;
+        }
+
+        for (size_t i = 0; i < values->size(); ++i)
+        {
+            if (!values->get(i)->is_string())
+            {
+                error = "'tags' array element #" + std::to_string(i) + " must be a string";
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    void ApplyTags(const toml::table& componentTable, Wayfinder::Entity& entity)
+    {
+        // In non-Game contexts (e.g. waypoint, tests) the subsystem collection may not be bound.
+        // Use Find() to avoid asserting and simply skip tag application if no registry is available.
+        auto* registry = Wayfinder::GameSubsystems::Find<Wayfinder::GameplayTagRegistry>();
+        if (!registry)
+        {
+            return;
+        }
+
+        Wayfinder::GameplayTagContainer container;
+        if (const toml::array* tags = componentTable["tags"].as_array())
+        {
+            for (const toml::node& node : *tags)
+            {
+                if (const auto str = node.value<std::string>())
+                    container.AddTag(registry->RequestTag(*str));
+            }
+        }
+        entity.AddComponent<Wayfinder::GameplayTagContainer>(container);
+    }
+
+    void SerializeTags(const Wayfinder::Entity& entity, toml::table& componentTables)
+    {
+        if (!entity.HasComponent<Wayfinder::GameplayTagContainer>())
+            return;
+
+        const auto& container = entity.GetComponent<Wayfinder::GameplayTagContainer>();
+        if (container.IsEmpty())
+            return;
+
+        toml::array arr;
+        for (const auto& tag : container)
+            arr.push_back(tag.GetName());
+
+        toml::table t;
+        t.insert_or_assign("tags", std::move(arr));
+        componentTables.insert_or_assign("gameplay_tags", std::move(t));
+    }
+
     void SerializeTransform(const Wayfinder::Entity& entity, toml::table& componentTables)
     {
         if (!entity.HasComponent<Wayfinder::TransformComponent>())
@@ -620,13 +690,14 @@ namespace
         componentTables.insert_or_assign("renderable", componentTable);
     }
 
-    constexpr std::array<Wayfinder::SceneComponentRegistry::Entry, 6> kEntries = {{
+    constexpr std::array<Wayfinder::SceneComponentRegistry::Entry, 7> kEntries = {{
         {"transform", &RegisterComponent<Wayfinder::TransformComponent>, &ApplyTransform, &SerializeTransform, &ValidateTransform},
         {"mesh", &RegisterComponent<Wayfinder::MeshComponent>, &ApplyMesh, &SerializeMesh, &ValidateMesh},
         {"camera", &RegisterComponent<Wayfinder::CameraComponent>, &ApplyCamera, &SerializeCamera, &ValidateCamera},
         {"light", &RegisterComponent<Wayfinder::LightComponent>, &ApplyLight, &SerializeLight, &ValidateLight},
         {"material", &RegisterComponent<Wayfinder::MaterialComponent>, &ApplyMaterial, &SerializeMaterial, &ValidateMaterial},
         {"renderable", &RegisterComponent<Wayfinder::RenderableComponent>, &ApplyRenderable, &SerializeRenderable, &ValidateRenderable},
+        {"gameplay_tags", &RegisterComponent<Wayfinder::GameplayTagContainer>, &ApplyTags, &SerializeTags, &ValidateTags},
     }};
 }
 
@@ -636,6 +707,11 @@ namespace Wayfinder
     {
         static const SceneComponentRegistry registry;
         return registry;
+    }
+
+    std::span<const SceneComponentRegistry::Entry> SceneComponentRegistry::GetEntries()
+    {
+        return kEntries;
     }
 
     void SceneComponentRegistry::RegisterComponents(flecs::world& world) const

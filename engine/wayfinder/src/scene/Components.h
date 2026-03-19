@@ -28,6 +28,12 @@ namespace Wayfinder
     {
     };
 
+    /// Relationship tag for scene-entity ownership.
+    /// Usage: entity.add<SceneOwnership>(sceneTag)
+    struct SceneOwnership
+    {
+    };
+
     struct NameComponent
     {
         std::string Value;

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <span>
 #include <string_view>
 
 #include <flecs.h>
@@ -11,6 +12,10 @@ namespace Wayfinder
 {
     class Entity;
 
+    /// Static compile-time registry of core serializable ECS components.
+    ///
+    /// This holds the engine's built-in component entries. At runtime,
+    /// RuntimeComponentRegistry merges these with game-registered entries.
     class WAYFINDER_API SceneComponentRegistry
     {
     public:
@@ -24,6 +29,9 @@ namespace Wayfinder
         };
 
         static const SceneComponentRegistry& Get();
+
+        /// Access the raw core entries (used by RuntimeComponentRegistry to seed itself).
+        static std::span<const Entry> GetEntries();
 
         void RegisterComponents(flecs::world& world) const;
         void ApplyComponents(const toml::table& componentTables, Entity& entity) const;

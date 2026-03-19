@@ -2,8 +2,10 @@
 #include "core/ProjectDescriptor.h"
 #include "core/ProjectResolver.h"
 #include "assets/AssetRegistry.h"
+#include "scene/RuntimeComponentRegistry.h"
 #include "scene/Scene.h"
 
+#include <flecs.h>
 #include <filesystem>
 #include <iostream>
 #include <string>
@@ -34,10 +36,23 @@ namespace
         return 0;
     }
 
+    struct WaypointContext
+    {
+        flecs::world World;
+        Wayfinder::RuntimeComponentRegistry Registry;
+
+        WaypointContext()
+        {
+            Wayfinder::Scene::RegisterCoreECS(World);
+            Registry.AddCoreEntries();
+            Registry.RegisterComponents(World);
+        }
+    };
+
     int RunValidate(const std::filesystem::path& scenePath)
     {
-        Wayfinder::Scene scene{"Waypoint Validation Scene"};
-        scene.Initialize();
+        WaypointContext ctx;
+        Wayfinder::Scene scene{ctx.World, ctx.Registry, "Waypoint Validation Scene"};
 
         const bool success = scene.LoadFromFile(scenePath.string());
         scene.Shutdown();
@@ -46,8 +61,8 @@ namespace
 
     int RunRoundtripSave(const std::filesystem::path& scenePath, const std::filesystem::path& outputPath)
     {
-        Wayfinder::Scene scene{"Waypoint Roundtrip Scene"};
-        scene.Initialize();
+        WaypointContext ctx;
+        Wayfinder::Scene scene{ctx.World, ctx.Registry, "Waypoint Roundtrip Scene"};
 
         const bool loaded = scene.LoadFromFile(scenePath.string());
         if (!loaded)
