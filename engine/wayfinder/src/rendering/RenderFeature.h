@@ -24,6 +24,7 @@ namespace Wayfinder
     };
 
     // Base class for registerable rendering extensions.
+    // Not an interface (holds state via m_enabled), so the I-prefix is intentionally omitted.
     // A RenderFeature injects one or more passes into the per-frame render graph.
     // Game developers create custom features to add post-processing, overlays,
     // debug visualizations, or any rendering work without modifying engine code.

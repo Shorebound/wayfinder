@@ -170,6 +170,13 @@ namespace Wayfinder
         // Single built-in mesh for all scene primitives
         m_primitiveMesh = Mesh::CreatePrimitive(device);
 
+        // Attach any features that were added before Initialize().
+        for (auto& feature : m_features)
+        {
+            auto ctx = MakeFeatureContext();
+            feature->OnAttach(ctx);
+        }
+
         WAYFINDER_INFO(LogRenderer, "Renderer initialized ({}x{}, backend: {})",
             m_screenWidth, m_screenHeight, device.GetDeviceInfo().BackendName);
 

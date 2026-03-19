@@ -462,6 +462,7 @@ namespace
                 return false;
             }
 
+            bool allInts = true;
             for (size_t i = 0; i < arr->size(); ++i)
             {
                 if (!arr->get(i)->is_integer() && !arr->get(i)->is_floating_point())
@@ -469,6 +470,16 @@ namespace
                     error = std::string("effect parameter '") + std::string(key) + "' array elements must be numbers";
                     return false;
                 }
+                if (!arr->get(i)->is_integer()) { allInts = false; }
+            }
+
+            // 4-element arrays are only valid as Color (all integers r,g,b,a).
+            // Float3 only reads 3 elements, so a 4-element float array would silently lose data.
+            if (arr->size() == 4 && !allInts)
+            {
+                error = std::string("effect parameter '") + std::string(key)
+                    + "' 4-element arrays must be all integers (Color r,g,b,a)";
+                return false;
             }
 
             return true;
@@ -940,7 +951,7 @@ namespace
         componentTables.insert_or_assign("post_process_volume", componentTable);
     }
 
-    constexpr std::array<Wayfinder::SceneComponentRegistry::Entry, 9> kEntries = {{
+    constexpr std::array<Wayfinder::SceneComponentRegistry::Entry, 8> kEntries = {{
         {"transform", &RegisterComponent<Wayfinder::TransformComponent>, &ApplyTransform, &SerializeTransform, &ValidateTransform},
         {"mesh", &RegisterComponent<Wayfinder::MeshComponent>, &ApplyMesh, &SerializeMesh, &ValidateMesh},
         {"camera", &RegisterComponent<Wayfinder::CameraComponent>, &ApplyCamera, &SerializeCamera, &ValidateCamera},

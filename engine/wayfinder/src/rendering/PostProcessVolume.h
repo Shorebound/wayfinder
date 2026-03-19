@@ -57,6 +57,7 @@ namespace Wayfinder
     };
 
     // Input to the blending function: a volume paired with its world-space transform.
+    // Volume may be nullptr — BlendPostProcessVolumes() skips null entries.
     struct PostProcessVolumeInstance
     {
         const PostProcessVolumeComponent* Volume = nullptr;

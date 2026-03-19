@@ -14,11 +14,7 @@ namespace Wayfinder
 
     using GPUTextureHandle = void*;
     using GPUSamplerHandle = void*;
-}
 
-
-namespace Wayfinder
-{
     // ── Engine Math Aliases ──────────────────────────────────
 
     using Float3 = glm::vec3;

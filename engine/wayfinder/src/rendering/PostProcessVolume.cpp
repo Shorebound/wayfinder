@@ -201,8 +201,6 @@ namespace Wayfinder
 
         for (const auto* instance : sorted)
         {
-             if (!instance->Volume) { continue; }  
-
             const float distance = ComputeDistanceToVolume(  
                 *instance->Volume, instance->WorldPosition, instance->WorldScale,
                 instance->LocalToWorld, cameraPosition);
