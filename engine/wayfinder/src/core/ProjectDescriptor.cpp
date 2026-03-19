@@ -72,7 +72,7 @@ namespace Wayfinder
         }
 
         // --- Post-parse validation ---
-        if (result.Descriptor.Name == "Untitled")
+        if (result.Descriptor.Name == DEFAULT_PROJECT_NAME)
         {
             result.Warnings.emplace_back("Project name is 'Untitled' — [project] table may be missing or empty");
         }

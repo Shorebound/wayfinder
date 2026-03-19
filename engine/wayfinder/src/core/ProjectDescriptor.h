@@ -17,9 +17,11 @@ namespace Wayfinder
         std::string Module;  ///< Shared library name for game module (empty = none).
     };
 
+    inline constexpr const char* DEFAULT_PROJECT_NAME = "Untitled";
+
     struct WAYFINDER_API ProjectDescriptor
     {
-        std::string Name = "Untitled";
+        std::string Name = DEFAULT_PROJECT_NAME;
         std::string Version = "0.1.0";
         std::string EngineVersion = "0.1.0";
 

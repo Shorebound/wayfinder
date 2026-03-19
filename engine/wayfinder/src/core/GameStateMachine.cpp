@@ -43,16 +43,24 @@ namespace Wayfinder
 
     void GameStateMachine::TransitionTo(const std::string& stateName)
     {
+        // Early-out if already in the requested state (avoids interning).
+        {
+            const ActiveGameState& state = m_world->get<ActiveGameState>();
+            if (state.Current.GetString() == stateName)
+                return;
+        }
+
         const ModuleRegistry::StateDescriptor* targetDesc = nullptr;
+        const ModuleRegistry::StateDescriptor* exitDesc = nullptr;
         if (m_moduleRegistry)
         {
+            const ActiveGameState& state = m_world->get<ActiveGameState>();
             for (const auto& desc : m_moduleRegistry->GetStateDescriptors())
             {
                 if (desc.Name == stateName)
-                {
                     targetDesc = &desc;
-                    break;
-                }
+                if (!state.Current.IsEmpty() && desc.Name == state.Current.GetString())
+                    exitDesc = &desc;
             }
 
             if (!targetDesc)
@@ -64,24 +72,11 @@ namespace Wayfinder
 
         const auto internedName = InternedString::Intern(stateName);
         ActiveGameState& state = m_world->get_mut<ActiveGameState>();
-
-        if (state.Current == internedName)
-            return;
-
         const InternedString oldState = state.Current;
 
         // Call OnExit for the outgoing state
-        if (m_moduleRegistry && !oldState.IsEmpty())
-        {
-            for (const auto& desc : m_moduleRegistry->GetStateDescriptors())
-            {
-                if (desc.Name == oldState.GetString() && desc.OnExit)
-                {
-                    desc.OnExit(*m_world);
-                    break;
-                }
-            }
-        }
+        if (exitDesc && exitDesc->OnExit)
+            exitDesc->OnExit(*m_world);
 
         // Update the singleton
         state.Previous = oldState;
