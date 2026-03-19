@@ -39,10 +39,16 @@ namespace Wayfinder
         m_initialState = std::move(stateName);
     }
 
-    void ModuleRegistry::RegisterTag(std::string tagName)
+    void ModuleRegistry::RegisterTag(std::string tagName, std::string comment)
     {
         WAYFINDER_INFO(LogEngine, "ModuleRegistry: registered tag '{}'", tagName);
-        m_tags.push_back(std::move(tagName));
+        m_tags.push_back({std::move(tagName), std::move(comment)});
+    }
+
+    void ModuleRegistry::RegisterTagFile(std::string relativePath)
+    {
+        WAYFINDER_INFO(LogEngine, "ModuleRegistry: registered tag file '{}'", relativePath);
+        m_tagFiles.push_back(std::move(relativePath));
     }
 
     void ModuleRegistry::ApplyToWorld(flecs::world& world) const

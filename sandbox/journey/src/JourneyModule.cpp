@@ -111,12 +111,12 @@ class TagDemoPlugin : public Wayfinder::Plugin
 public:
     void Build(Wayfinder::ModuleRegistry& registry) override
     {
-        // Declare known tags for editor tooling / validation
-        registry.RegisterTag("Status.Alive");
-        registry.RegisterTag("Status.Burning");
-        registry.RegisterTag("Status.Poisoned");
-        registry.RegisterTag("Faction.Player");
-        registry.RegisterTag("Faction.Enemy");
+        // Load data-driven tag files from config/tags/
+        registry.RegisterTagFile("tags/status.tags.toml");
+        registry.RegisterTagFile("tags/faction.tags.toml");
+
+        // Code-defined tags with comments (supplements TOML definitions)
+        registry.RegisterTag("Status.Stunned", "Entity is stunned and cannot act");
 
         // A system that only runs when the "Status.Burning" tag is active
         registry.RegisterSystem("BurnDamage", [](flecs::world& world)

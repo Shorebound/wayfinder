@@ -8,6 +8,7 @@
 #include <flecs.h>
 
 #include "GameplayTag.h"
+#include "GameplayTagRegistry.h"
 #include "GameState.h"
 #include "SceneSettings.h"
 #include "wayfinder_exports.h"
@@ -50,6 +51,10 @@ namespace Wayfinder
         /// Check if a gameplay tag is active at the world level.
         bool HasGameplayTag(const std::string& tagName) const;
 
+        /// Access the gameplay tag registry for tag lookups and validation.
+        GameplayTagRegistry& GetTagRegistry() { return m_tagRegistry; }
+        const GameplayTagRegistry& GetTagRegistry() const { return m_tagRegistry; }
+
         Scene* GetCurrentScene() { return m_currentScene.get(); }
         const Scene* GetCurrentScene() const { return m_currentScene.get(); }
         std::shared_ptr<AssetService> GetAssetService() const { return m_assetService; }
@@ -69,10 +74,12 @@ namespace Wayfinder
         };
 
         void InitializeWorld();
+        void InitializeTagRegistry();
         void BindConditionedSystems();
         void EvaluateRunConditions();
 
         flecs::world m_world;
+        GameplayTagRegistry m_tagRegistry;
         RuntimeComponentRegistry m_componentRegistry;
         std::unique_ptr<Scene> m_currentScene;
         std::shared_ptr<AssetService> m_assetService;

@@ -70,6 +70,13 @@ namespace Wayfinder
             std::function<void(flecs::world&)> OnExit;
         };
 
+        /// Describes a code-registered gameplay tag.
+        struct TagDescriptor
+        {
+            std::string Name;
+            std::string Comment;
+        };
+
         ModuleRegistry(const ProjectDescriptor& project,
                        const EngineConfig& config);
 
@@ -101,7 +108,11 @@ namespace Wayfinder
         void SetInitialState(std::string stateName);
 
         /// Register a gameplay tag name. Used for editor tooling and validation.
-        void RegisterTag(std::string tagName);
+        void RegisterTag(std::string tagName, std::string comment = {});
+
+        /// Register a tag definition file to be loaded at startup.
+        /// Path is relative to the project's config directory.
+        void RegisterTagFile(std::string relativePath);
 
         /// Apply all registered system factories into the given world.
         /// Called once by Game::InitializeWorld after core ECS setup.
@@ -119,8 +130,11 @@ namespace Wayfinder
         /// Returns the initial state name (empty if none was set).
         const std::string& GetInitialState() const { return m_initialState; }
 
-        /// Read-only access to registered tag names.
-        const std::vector<std::string>& GetRegisteredTags() const { return m_tags; }
+        /// Read-only access to registered tag descriptors.
+        const std::vector<TagDescriptor>& GetRegisteredTags() const { return m_tags; }
+
+        /// Read-only access to registered tag file paths.
+        const std::vector<std::string>& GetTagFiles() const { return m_tagFiles; }
 
         /// Read-only access to the project descriptor.
         const ProjectDescriptor& GetProject() const;
@@ -136,7 +150,8 @@ namespace Wayfinder
         std::vector<ComponentDescriptor> m_components;
         std::vector<GlobalDescriptor> m_globals;
         std::vector<StateDescriptor> m_states;
-        std::vector<std::string> m_tags;
+        std::vector<TagDescriptor> m_tags;
+        std::vector<std::string> m_tagFiles;
         std::string m_initialState;
     };
 

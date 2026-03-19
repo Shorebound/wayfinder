@@ -32,12 +32,57 @@ CMake sets `CMAKE_SUPPRESS_REGENERATION TRUE` — adding new source files requir
 
 Enforced by `.clang-format` at the workspace root. Short or empty blocks are one-liners.
 
-- **Namespace**: All engine code lives in `Wayfinder`. Sub-namespaces for domains (e.g. `Wayfinder::Math3D`).
-- **Classes**: PascalCase. Components use `FooComponent` suffix.
-- **Members**: `m_` prefix (e.g. `m_window`, `m_capabilities`).
-- **Includes**: Relative to `engine/wayfinder/src/` (e.g. `#include "core/Application.h"`).
-- **Exports**: `WAYFINDER_API` macro on public class declarations.
-- **Doxygen comments**: `/** */` style for structs, classes and public APIs. Use @struct, @class, @function, @param, @return, @todo, and @brief, etc. tags as appropriate.  `///` for internal comments.
+### General
+- Types: PascalCase (structs, classes, enums, aliases).
+- Components: `Component` suffix.
+    - Do: `TransformComponent`, `RenderableComponent`, `CameraComponent`.
+- Systems: `System` suffix.
+    - Do: `RenderSystem`, `PhysicsSystem`, `InputSystem`.
+- Interfaces: `I` prefix, prefer adjectives when it makes sense
+    - Do: `IRenderDevice`, `IAssetLoader`, etc. for core interfaces.
+    - Do: `IUpdatable`, `IDrawable`, etc. for component interfaces.
+- Functions: PascalCase (e.g. `Initialize`, `Update`, `Render`).
+- Members: `m_` prefix (e.g. `m_window`, `m_capabilities`).
+- Constants & Macros: SCREAMING_SNAKE_CASE (e.g. `MAX_ENTITIES`, `DEFAULT_SCREEN_WIDTH`).
+- Typedefs/Aliases: PascalCase without `T` prefix (e.g. `using MyVector = std::vector<int>`).
+- Templates: `T` prefix for template parameters (e.g. `template<typename TMyType>`).
+- Prefer British spelling (e.g. `Initialise`, `Colour`) for public APIs, but American spelling is fine for internal code.
+- Use `auto` (specifically `auto*` or `auto&`) when the type is obvious from the right-hand side, otherwise be explicit.
+
+### Namespaces
+All engine code lives in `Wayfinder`.
+Sub-namespaces for domains (e.g. `Wayfinder::Audio`, `Wayfinder::Physics`, `Wayfinder::UI`)
+
+### Comments
+- Doxygen-style comments for public APIs (`/** */` with `@param`, `@return`, etc.).
+    - Do:
+        ```cpp
+        /**
+        * @brief Initializes the rendering device with the specified parameters.
+        * @param windowHandle The native handle to the application window.
+        * @param width The width of the rendering surface.
+        * @param height The height of the rendering surface.
+        * @return True if initialization succeeded, false otherwise.
+        */
+        ```
+    - Do:
+        ```cpp
+        /**
+        * @struct RenderableComponent
+        * @brief A component that marks an entity as renderable and holds its mesh and material references.
+        * @todo Add support for multiple meshes/materials per entity in the future.
+        */
+        ```
+- `///` for internal comments and explanations of non-obvious code.
+
+### Functions
+- `IsX`, `HasX`, `WasX` for boolean queries (e.g. `IsRunning`, `HasFocus`, `WasPressed`).
+- `GetX`, `SetX` for accessors/mutators (e.g. `GetPosition()`, `SetColor()`).
+- `SubscribeX`, `UnsubscribeX` for event subscription (e.g. `SubscribeOnKeyPressed()`, `UnsubscribeOnKeyPressed()`).
+- `OnX` for event handlers (e.g. `OnKeyPressed()`, `OnCollision()`).
+- `CreateX`, `DestroyX` for factory/destruction functions (e.g. `CreateEntity()`, `DestroyEntity()`).
+- `LoadX`, `SaveX` for serialization functions (e.g. `LoadScene()`, `SaveScene()`).
+
 
 ## Pillars
 
@@ -61,7 +106,6 @@ The engine follows an explicit, data-oriented design. See `docs/` for full detai
 - `docs/data_authoring_and_editor.md` — scenes, prefabs, validation, editor direction
 - `docs/architecture_debt.md` — ranked cleanup work
 - `docs/implementation_plan.md` — forward roadmap and sequencing
-
 
 ## Repository Map
 

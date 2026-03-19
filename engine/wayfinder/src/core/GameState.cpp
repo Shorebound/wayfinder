@@ -25,10 +25,16 @@ namespace Wayfinder
 
     RunCondition HasTag(std::string tagName)
     {
-        return [tag = GameplayTag::FromString(std::move(tagName))](const flecs::world& world) -> bool
+        // Build a query container that holds the tag. GameplayTagContainer
+        // is a friend of GameplayTag so it can construct via FromName.
+        GameplayTagContainer query;
+        query.AddTagByName(tagName);
+        GameplayTag tag = query.Tags.front();
+
+        return [t = std::move(tag)](const flecs::world& world) -> bool
         {
             const ActiveGameplayTags* tags = world.try_get<ActiveGameplayTags>();
-            return tags && tags->Tags.HasTag(tag);
+            return tags && tags->Tags.HasTag(t);
         };
     }
 
@@ -36,7 +42,7 @@ namespace Wayfinder
     {
         GameplayTagContainer query;
         for (auto& name : tagNames)
-            query.AddTag(GameplayTag::FromString(std::move(name)));
+            query.AddTagByName(name);
 
         return [q = std::move(query)](const flecs::world& world) -> bool
         {

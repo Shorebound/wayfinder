@@ -551,7 +551,7 @@ namespace
             for (const toml::node& node : *tags)
             {
                 if (const auto str = node.value<std::string>())
-                    container.AddTag(Wayfinder::GameplayTag::FromString(*str));
+                    container.AddTagByName(*str);
             }
         }
         entity.AddComponent<Wayfinder::GameplayTagContainer>(container);

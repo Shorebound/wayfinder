@@ -68,6 +68,11 @@ namespace Wayfinder
             Tags.insert(it, tag);
     }
 
+    void GameplayTagContainer::AddTagByName(const std::string& name)
+    {
+        AddTag(GameplayTag::FromName(name));
+    }
+
     void GameplayTagContainer::RemoveTag(const GameplayTag& tag)
     {
         auto it = std::lower_bound(Tags.begin(), Tags.end(), tag);

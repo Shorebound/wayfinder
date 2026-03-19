@@ -2,6 +2,7 @@
 #include "EngineConfig.h"
 #include "EngineContext.h"
 #include "GameplayTag.h"
+#include "GameplayTagRegistry.h"
 #include "Log.h"
 #include "ModuleRegistry.h"
 #include "ProjectDescriptor.h"
@@ -30,6 +31,7 @@ namespace Wayfinder
         m_moduleRegistry = ctx.moduleRegistry;
         m_assetService = std::make_shared<AssetService>();
 
+        InitializeTagRegistry();
         InitializeWorld();
 
         const auto bootScenePath = ctx.project.ResolveBootScene();
@@ -183,7 +185,7 @@ namespace Wayfinder
     void Game::AddGameplayTag(const std::string& tagName)
     {
         ActiveGameplayTags& tags = m_world.get_mut<ActiveGameplayTags>();
-        tags.Tags.AddTag(GameplayTag::FromString(tagName));
+        tags.Tags.AddTag(m_tagRegistry.RequestTag(tagName));
         WAYFINDER_INFO(LogGame, "Added gameplay tag: '{}'", tagName);
         EvaluateRunConditions();
     }
@@ -191,7 +193,9 @@ namespace Wayfinder
     void Game::RemoveGameplayTag(const std::string& tagName)
     {
         ActiveGameplayTags& tags = m_world.get_mut<ActiveGameplayTags>();
-        tags.Tags.RemoveTag(GameplayTag::FromString(tagName));
+        GameplayTagContainer query;
+        query.AddTagByName(tagName);
+        tags.Tags.RemoveTag(query.Tags.front());
         WAYFINDER_INFO(LogGame, "Removed gameplay tag: '{}'", tagName);
         EvaluateRunConditions();
     }
@@ -199,7 +203,31 @@ namespace Wayfinder
     bool Game::HasGameplayTag(const std::string& tagName) const
     {
         const ActiveGameplayTags& tags = m_world.get<ActiveGameplayTags>();
-        return tags.Tags.HasTag(GameplayTag::FromString(tagName));
+        GameplayTagContainer query;
+        query.AddTagByName(tagName);
+        return tags.Tags.HasTag(query.Tags.front());
+    }
+
+    void Game::InitializeTagRegistry()
+    {
+        if (!m_moduleRegistry)
+            return;
+
+        // Load tag files registered by plugins (paths relative to config dir)
+        const auto& project = m_moduleRegistry->GetProject();
+        const auto configDir = project.ResolveConfigDir();
+        for (const auto& relPath : m_moduleRegistry->GetTagFiles())
+        {
+            const auto fullPath = configDir / relPath;
+            if (std::filesystem::exists(fullPath))
+                m_tagRegistry.LoadTagFile(fullPath);
+            else
+                WAYFINDER_WARNING(LogGame, "Tag file not found: '{}'", fullPath.string());
+        }
+
+        // Register code-defined tags
+        for (const auto& desc : m_moduleRegistry->GetRegisteredTags())
+            m_tagRegistry.RegisterTag(desc.Name, desc.Comment);
     }
 
     void Game::BindConditionedSystems()
