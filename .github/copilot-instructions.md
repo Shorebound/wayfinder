@@ -37,6 +37,20 @@ Enforced by `.clang-format` at the workspace root. Short or empty blocks are one
 - **Members**: `m_` prefix (e.g. `m_window`, `m_capabilities`).
 - **Includes**: Relative to `engine/wayfinder/src/` (e.g. `#include "core/Application.h"`).
 - **Exports**: `WAYFINDER_API` macro on public class declarations.
+- **Doxygen comments**: `/** */` style for classes and public APIs, `///` for internal comments. Use @param, @return, and @brief tags as appropriate.
+
+## Pillars
+
+- **Dynamic over baked**: prefer runtime computation over offline preprocessing.
+- **Explicit over implicit**: capabilities are checked, passes are validated, entities need `RenderableComponent` to render. Nothing is silently dropped or assumed.
+- **Headless-first validation**: asset rules are enforced in CLI tools (`waypoint`), not only in the editor.
+- **TOML for authored data, JSON for interchange/diagnostics** — never mix the two.
+- **Hot-reload everything & data-driven design**: if it can be a file on disk, it should be. Materials, entity archetypes, input mappings, AI behavior trees, dialogue — all data, all loadable, all hot-reloadable.
+- **The engine is a library, not an application**: the game (and later, the editor) are consumers of the engine. The engine never knows it's being used by an editor.
+- **Data flows down, events flow up**: systems read data and produce data. Side effects are explicit and channeled through an event bus or command queue.
+- **Composition over inheritance**: prefer component-based design and data-driven behavior over deep class hierarchies and virtual dispatch.
+- **Modularity and extensibility**: design systems to be self-contained and decoupled, with clear interfaces for extension and replacement.
+- **Performance with clarity**: write efficient code, but not at the cost of readability and maintainability. Optimize bottlenecks when they are identified, not prematurely.
 
 ## Architecture
 
@@ -48,27 +62,6 @@ The engine follows an explicit, data-oriented design. See `docs/` for full detai
 - `docs/architecture_debt.md` — ranked cleanup work
 - `docs/implementation_plan.md` — forward roadmap and sequencing
 
-**Key boundaries:**
-
-| Layer | Responsibility |
-|-------|---------------|
-| `Application` | Process, window, services, main loop |
-| `Game` | Owns active `Scene`, progression |
-| `Scene` / `SceneDocument` | Flecs world, entity creation, TOML load/save (document parses, scene instantiates) |
-| `SceneRenderExtractor` | ECS → `RenderFrame` extraction (renderer never touches Flecs) |
-| `Renderer` / `RenderPipeline` | Consumes extracted `RenderFrame`, executes passes against backend |
-| `IRenderAPI` | Abstract draw surface (raylib backend today) |
-
-**Runtime modules** (world-transform propagation, active-camera extraction) are registered explicitly via `SceneModuleRegistry`, not discovered implicitly.
-
-**Asset identity** uses `Uuid` with `TypedId<Tag>` wrappers. New ID domains = one tag struct + one `using` alias.
-
-## Conventions
-
-- **Dynamic over baked**: prefer runtime computation over offline preprocessing.
-- **Explicit over implicit**: capabilities are checked, passes are validated, entities need `RenderableComponent` to render. Nothing is silently dropped or assumed.
-- **Headless-first validation**: asset rules are enforced in CLI tools (`waypoint`), not only in the editor.
-- **TOML for authored data, JSON for interchange/diagnostics** — never mix the two.
 
 ## Repository Map
 
