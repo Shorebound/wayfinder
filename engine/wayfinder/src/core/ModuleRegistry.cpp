@@ -90,6 +90,15 @@ namespace Wayfinder
                     adj[it->second].push_back(i);
                     ++inDegree[i];
                 }
+                else
+                {
+                    WAYFINDER_WARN(
+                        LogEngine,
+                        "ModuleRegistry: system '{}' declares After '{}' but no such "
+                        "system is registered; ignoring ordering constraint.",
+                        m_systems[i].Name,
+                        dep);
+                }
             }
 
             // "i runs before j" means edge i -> j
@@ -99,6 +108,15 @@ namespace Wayfinder
                 {
                     adj[i].push_back(it->second);
                     ++inDegree[it->second];
+                }
+                else
+                {
+                    WAYFINDER_WARN(
+                        LogEngine,
+                        "ModuleRegistry: system '{}' declares Before '{}' but no such "
+                        "system is registered; ignoring ordering constraint.",
+                        m_systems[i].Name,
+                        dep);
                 }
             }
         }
