@@ -97,8 +97,3 @@ target_precompile_headers(${ENGINE_NAME}
 )
 
 message(STATUS "Engine: Configured precompiled headers for ${ENGINE_NAME}")
-#   $<$<CONFIG:Development>:/O2>
-#   $<$<CONFIG:Shipping>:/O2;/GL> # Example: Add Link-Time Optimization for Shipping
-# )
-
-message(STATUS "Engine: Configured precompiled headers for ${ENGINE_NAME}")

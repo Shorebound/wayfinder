@@ -14,7 +14,8 @@ This document explains how the repository is organized, what targets currently m
 | `apps/cartographer/` | Editor (future) |
 | `apps/compass/` | Project manager (future) |
 | `tools/waypoint/` | Asset validation CLI (active) |
-| `tools/beacon/`, `expedition/`, `navigator/`, `surveyor/` | Future tools |
+| `apps/beacon/` | Launcher (future) |
+| `tools/expedition/`, `navigator/`, `surveyor/` | Future tools |
 | `tests/` | Engine tests |
 | `cmake/` | `WayfinderCommon.cmake` (flags/definitions), `WayfinderDependencies.cmake` (CPM), `GetCPM.cmake` (bootstrap) |
 

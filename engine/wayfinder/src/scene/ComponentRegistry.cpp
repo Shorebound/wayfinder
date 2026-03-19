@@ -4,6 +4,7 @@
 #include "entity/Entity.h"
 #include "../core/GameplayTag.h"
 #include "../core/GameplayTagRegistry.h"
+#include "../core/Log.h"
 #include "../core/Subsystem.h"
 
 #include <array>
@@ -562,6 +563,13 @@ namespace
                         container.AddTag(registry->RequestTag(*str));
                 }
             }
+        }
+        else if (const toml::array* tags = componentTable["tags"].as_array(); tags && !tags->empty())
+        {
+            Wayfinder::LogScene.GetLogger()->LogFormat(
+                Wayfinder::LogVerbosity::Warning,
+                "Entity specifies {0} tag(s) but no GameplayTagRegistry is available — tags will be ignored.",
+                tags->size());
         }
         entity.AddComponent<Wayfinder::GameplayTagContainer>(container);
     }

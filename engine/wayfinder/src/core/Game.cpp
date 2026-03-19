@@ -332,7 +332,11 @@ namespace Wayfinder
                 continue;
             }
 
-            m_conditionedSystems.push_back({sys, desc.Condition, true});
+            const bool initiallyEnabled = desc.Condition(m_world);
+            if (!initiallyEnabled)
+                sys.disable();
+
+            m_conditionedSystems.push_back({sys, desc.Condition, initiallyEnabled});
         }
     }
 

@@ -28,7 +28,7 @@ set(MODULE_NAME ${SANDBOX_NAME}_module)
 add_library(${MODULE_NAME} SHARED src/JourneyModule.cpp)
 wayfinder_set_output_directories(${MODULE_NAME})
 target_include_directories(${MODULE_NAME} PRIVATE src)
-target_link_libraries(${MODULE_NAME} PUBLIC ${ENGINE_NAME})
+target_link_libraries(${MODULE_NAME} PRIVATE ${ENGINE_NAME})
 target_compile_definitions(${MODULE_NAME} PRIVATE JOURNEY_MODULE_EXPORTS)
 
 add_custom_command(TARGET ${SANDBOX_NAME} POST_BUILD

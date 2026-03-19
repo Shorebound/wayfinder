@@ -106,11 +106,21 @@ namespace Wayfinder
 
     Entity Scene::CreateEntity(const std::string& name)
     {
+        /// Helper: check whether a flecs name is already taken by an entity
+        /// that belongs to *this* scene.  World-level lookup is still used
+        /// (flecs names are world-global), but we only consider it a
+        /// collision when the existing entity carries our SceneOwnership tag.
+        auto nameOwnedByThisScene = [&](const char* candidate) -> bool
+        {
+            flecs::entity existing = m_world.lookup(candidate);
+            return existing.is_valid() && existing.has<SceneOwnership>(m_sceneTag);
+        };
+
         std::string uniqueName = name;
-        if (m_world.lookup(uniqueName.c_str()).is_valid())
+        if (nameOwnedByThisScene(uniqueName.c_str()))
         {
             uint32_t suffix = 1;
-            while (m_world.lookup((name + std::to_string(suffix)).c_str()).is_valid())
+            while (nameOwnedByThisScene((name + std::to_string(suffix)).c_str()))
             {
                 ++suffix;
             }
@@ -133,7 +143,7 @@ namespace Wayfinder
     Entity Scene::GetEntityByName(const std::string& name)
     {
         flecs::entity handle = m_world.lookup(name.c_str());
-        if (handle.is_valid())
+        if (handle.is_valid() && handle.has<SceneOwnership>(m_sceneTag))
         {
             return Entity{handle, this};
         }
@@ -148,9 +158,10 @@ namespace Wayfinder
         m_world.each([&](flecs::entity entityHandle, const SceneObjectIdComponent& sceneObjectId)
         {
             if (result || !(sceneObjectId.Value == id))
-            {
                 return;
-            }
+
+            if (!entityHandle.has<SceneOwnership>(m_sceneTag))
+                return;
 
             result = Entity{entityHandle, this};
         });

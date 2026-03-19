@@ -90,7 +90,7 @@ Enforced by `.clang-format` at the workspace root. Short or empty blocks are one
 - Interfaces: `I` prefix, prefer adjectives when it makes sense to do so
     - Do: `IRenderDevice`, `IAssetLoader`, etc. for core interfaces.
     - Do: `IUpdatable`, `IDrawable`, etc. for component interfaces.
-- Functions: PascalCase (e.g. `Initialize`, `Update`, `Render`).
+- Functions: PascalCase (e.g. `Initialise`, `Update`, `Render`).
 - Members: `m_` prefix (e.g. `m_window`, `m_capabilities`).
 - Constants & Macros: SCREAMING_SNAKE_CASE (e.g. `MAX_ENTITIES`, `DEFAULT_SCREEN_WIDTH`).
 - Typedefs/Aliases: PascalCase without `T` prefix (e.g. `using MyVector = std::vector<int>`).
@@ -113,11 +113,11 @@ Sub-namespaces for domains (e.g. `Wayfinder::Audio`, `Wayfinder::Physics`, `Wayf
     - Do:
         ```cpp
         /**
-        * @brief Initializes the rendering device with the specified parameters.
+        * @brief Initialises the rendering device with the specified parameters.
         * @param windowHandle The native handle to the application window.
         * @param width The width of the rendering surface.
         * @param height The height of the rendering surface.
-        * @return True if initialization succeeded, false otherwise.
+        * @return True if initialisation succeeded, false otherwise.
         */
         ```
     - Do:
@@ -132,7 +132,7 @@ Sub-namespaces for domains (e.g. `Wayfinder::Audio`, `Wayfinder::Physics`, `Wayf
 
 ### Functions
 - `IsX`, `HasX`, `WasX` for boolean queries (e.g. `IsRunning`, `HasFocus`, `WasPressed`).
-- `GetX`, `SetX` for accessors/mutators (e.g. `GetPosition()`, `SetColor()`).
+- `GetX`, `SetX` for accessors/mutators (e.g. `GetPosition()`, `SetColour()`).
 - `SubscribeX`, `UnsubscribeX` for event subscription (e.g. `SubscribeOnKeyPressed()`, `UnsubscribeOnKeyPressed()`).
 - `OnX` for event handlers (e.g. `OnKeyPressed()`, `OnCollision()`).
 - `CreateX`, `DestroyX` for factory/destruction functions (e.g. `CreateEntity()`, `DestroyEntity()`).

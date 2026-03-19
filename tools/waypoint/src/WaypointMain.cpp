@@ -69,6 +69,11 @@ namespace
                     Module->Instance->Register(*ModReg);
                     Registry.AddGameEntries(*ModReg);
                 }
+                else
+                {
+                    std::cerr << "Warning: failed to load game module from "
+                              << modulePath.string() << '\n';
+                }
             }
 
             Registry.RegisterComponents(World);

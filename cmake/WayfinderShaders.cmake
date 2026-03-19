@@ -21,7 +21,10 @@ function(wayfinder_compile_shaders)
 
     # Compile to a build-tree staging directory (literal path, required by OUTPUT).
     # Then copy to the caller's OUTPUT_DIR post-build (which may use generator expressions).
+    # Clean the staging dir at configure time so stale .spv files from
+    # removed/renamed shaders don't persist across rebuilds.
     set(STAGING_DIR "${CMAKE_CURRENT_BINARY_DIR}/compiled_shaders")
+    file(REMOVE_RECURSE "${STAGING_DIR}")
     file(MAKE_DIRECTORY "${STAGING_DIR}")
 
     foreach(SHADER_SOURCE ${ARG_SHADERS})
