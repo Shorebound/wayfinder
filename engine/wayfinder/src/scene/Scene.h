@@ -22,6 +22,11 @@ namespace Wayfinder
         Scene(flecs::world& world, const RuntimeComponentRegistry& componentRegistry, const std::string& name = "Default Scene");
         ~Scene();
 
+        Scene(const Scene&) = delete;
+        Scene& operator=(const Scene&) = delete;
+        Scene(Scene&&) = delete;
+        Scene& operator=(Scene&&) = delete;
+
         /// Registers all core ECS components and modules into the given world.
         /// Call once per world before creating any scenes.
         static void RegisterCoreECS(flecs::world& world);

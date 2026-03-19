@@ -42,7 +42,7 @@ namespace Wayfinder
 
     GameplayTag ModuleRegistry::RegisterTag(std::string tagName, std::string comment)
     {
-        GameplayTag tag{tagName};
+        GameplayTag tag = GameplayTag::FromName(tagName);
         m_tags.Register({std::move(tagName), std::move(comment)});
         return tag;
     }
