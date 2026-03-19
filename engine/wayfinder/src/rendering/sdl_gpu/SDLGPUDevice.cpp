@@ -709,7 +709,7 @@ namespace Wayfinder
     {
         SDL_GPUTextureUsageFlags flags = 0;
         if (HasFlag(usage, TextureUsage::Sampler))     flags |= SDL_GPU_TEXTUREUSAGE_SAMPLER;
-        if (HasFlag(usage, TextureUsage::ColorTarget)) flags |= SDL_GPU_TEXTUREUSAGE_COLOR_TARGET;
+        if (HasFlag(usage, TextureUsage::ColourTarget)) flags |= SDL_GPU_TEXTUREUSAGE_COLOR_TARGET;
         if (HasFlag(usage, TextureUsage::DepthTarget)) flags |= SDL_GPU_TEXTUREUSAGE_DEPTH_STENCIL_TARGET;
         return flags;
     }

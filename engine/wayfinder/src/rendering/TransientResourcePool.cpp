@@ -48,6 +48,7 @@ namespace Wayfinder
     void TransientResourcePool::Release(GPUTextureHandle texture, const TextureCreateDesc& desc)
     {
         if (!texture) return;
+        if (!m_device) return;
 
         PoolKey key{desc.width, desc.height, desc.format, desc.usage};
         m_available[key].push_back(texture);

@@ -313,6 +313,20 @@ namespace
         return true;
     }
 
+    bool ValidateOptionalInteger(const toml::table& componentTable, const char* key, std::string& error)
+    {
+        const toml::node* node = componentTable.get(key);
+        if (!node) { return true; }
+
+        if (!node->is_integer())
+        {
+            error = std::string{"field '"} + key + "' must be an integer";
+            return false;
+        }
+
+        return true;
+    }
+
     bool ValidateOptionalVector3(const toml::table& componentTable, const char* key, std::string& error)
     {
         const toml::node* node = componentTable.get(key);
@@ -447,7 +461,7 @@ namespace
     {
         return ValidateOptionalBool(componentTable, "visible", error)
             && ValidateOptionalNonEmptyString(componentTable, "layer", error)
-            && ValidateOptionalNumber(componentTable, "sort_priority", error);
+            && ValidateOptionalInteger(componentTable, "sort_priority", error);
     }
 
     bool ValidateEffectParameter(std::string_view key, const toml::node& node, std::string& error)
@@ -482,6 +496,16 @@ namespace
                 return false;
             }
 
+            // 3-element all-integer arrays are ambiguous: ReadEffectParam treats them
+            // as Color (r,g,b with a=255), not Float3. Require at least one float
+            // for Float3 values (e.g. [1.0, 2.0, 3.0]).
+            if (arr->size() == 3 && allInts)
+            {
+                error = std::string("effect parameter '") + std::string(key)
+                    + "' 3-element all-integer arrays are interpreted as Color, not Float3; use floats for Float3 (e.g. [1.0, 2.0, 3.0])";
+                return false;
+            }
+
             return true;
         }
 
@@ -494,7 +518,7 @@ namespace
         if (!ValidateOptionalEnumValue(componentTable, "shape", {"global", "box", "sphere"}, error))
             return false;
 
-        if (!ValidateOptionalNumber(componentTable, "priority", error))
+        if (!ValidateOptionalInteger(componentTable, "priority", error))
             return false;
 
         if (!ValidateOptionalNumber(componentTable, "blend_distance", error))

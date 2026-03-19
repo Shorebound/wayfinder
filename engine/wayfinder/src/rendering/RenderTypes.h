@@ -88,7 +88,7 @@ namespace Wayfinder
     enum class TextureUsage : uint32_t
     {
         Sampler      = 1u << 0,
-        ColorTarget  = 1u << 1,
+        ColourTarget = 1u << 1,
         DepthTarget  = 1u << 2,
     };
 
@@ -124,7 +124,7 @@ namespace Wayfinder
         uint32_t width = 0;
         uint32_t height = 0;
         TextureFormat format = TextureFormat::RGBA8_UNORM;
-        TextureUsage usage = TextureUsage::ColorTarget;
+        TextureUsage usage = TextureUsage::ColourTarget;
     };
 
     // ── Sampler ───────────────────────────────────────────────

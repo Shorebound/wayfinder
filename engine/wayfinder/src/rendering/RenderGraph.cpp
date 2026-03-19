@@ -259,7 +259,7 @@ namespace Wayfinder
 
         auto deriveUsage = [](const ResourceEntry& res) -> TextureUsage
         {
-            TextureUsage usage = TextureUsage::ColorTarget;
+            TextureUsage usage = TextureUsage::ColourTarget;
             if (res.Desc.Format == TextureFormat::D32_FLOAT ||
                 res.Desc.Format == TextureFormat::D24_UNORM_S8)
             {
