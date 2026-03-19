@@ -59,6 +59,9 @@ namespace Wayfinder
 } // namespace Wayfinder
 
 /// std::hash specialisation for use in unordered containers.
+/// Relies on pointer stability from interning: all InternedString instances
+/// pointing to the same logical string share the same address, so hashing
+/// the pointer is both valid and trivially cheap.
 template <>
 struct std::hash<Wayfinder::InternedString>
 {
