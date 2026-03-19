@@ -47,8 +47,9 @@ namespace Wayfinder
     class WAYFINDER_API GameplayTagRegistry
     {
     public:
-        /// Register a tag programmatically (from code). Replaces existing definition if present.
-        void RegisterTag(const std::string& name, const std::string& comment = {});
+        /// Register a tag programmatically (from code). Returns the tag.
+        /// Updates existing definition's comment if the tag was already registered.
+        GameplayTag RegisterTag(const std::string& name, const std::string& comment = {});
 
         /// Load tag definitions from a TOML file. Returns number of tags loaded, or -1 on error.
         int LoadTagFile(const std::filesystem::path& path);
@@ -78,6 +79,19 @@ namespace Wayfinder
         std::vector<GameplayTagDefinition> m_definitions;
         std::unordered_map<std::string, size_t> m_index; ///< Name -> index into m_definitions.
         std::vector<std::string> m_loadedFiles;
+    };
+
+    /**
+     * @struct GameplayTagRegistryRef
+     * @brief World singleton storing a non-owning pointer to the GameplayTagRegistry.
+     *
+     * Used by component deserialization (e.g. gameplay_tags TOML loading) to
+     * validate tag names during scene loading. General code should obtain tags
+     * from ModuleRegistry::RegisterTag() or GameplayTagRegistry::RequestTag().
+     */
+    struct GameplayTagRegistryRef
+    {
+        GameplayTagRegistry* Registry = nullptr;
     };
 
 } // namespace Wayfinder

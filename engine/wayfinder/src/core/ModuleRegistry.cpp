@@ -39,10 +39,12 @@ namespace Wayfinder
         m_initialState = std::move(stateName);
     }
 
-    void ModuleRegistry::RegisterTag(std::string tagName, std::string comment)
+    GameplayTag ModuleRegistry::RegisterTag(std::string tagName, std::string comment)
     {
         WAYFINDER_INFO(LogEngine, "ModuleRegistry: registered tag '{}'", tagName);
+        GameplayTag tag{tagName};
         m_tags.push_back({std::move(tagName), std::move(comment)});
+        return tag;
     }
 
     void ModuleRegistry::RegisterTagFile(std::string relativePath)

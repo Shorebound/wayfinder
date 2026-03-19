@@ -115,8 +115,9 @@ public:
         registry.RegisterTagFile("tags/status.tags.toml");
         registry.RegisterTagFile("tags/faction.tags.toml");
 
-        // Code-defined tags with comments (supplements TOML definitions)
+        // Code-defined tags with comments — capture the returned tag for use
         registry.RegisterTag("Status.Stunned", "Entity is stunned and cannot act");
+        auto burning = registry.RegisterTag("Status.Burning", "Entity is on fire");
 
         // A system that only runs when the "Status.Burning" tag is active
         registry.RegisterSystem("BurnDamage", [](flecs::world& world)
@@ -132,7 +133,7 @@ public:
                             health.CurrentHealth = 0.0f;
                     }
                 });
-        }, Wayfinder::HasTag("Status.Burning"));
+        }, Wayfinder::HasTag(burning));
     }
 };
 

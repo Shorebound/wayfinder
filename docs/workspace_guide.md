@@ -6,6 +6,19 @@ This document explains how the repository is organized, what targets currently m
 
 ## Repository Layout
 
+| Path | Purpose |
+|------|---------|
+| `engine/wayfinder/` | Engine library (static by default) |
+| `sandbox/journey/` | Primary playable sandbox + sample assets |
+| `sandbox/waystone/` | Separate runtime shell (not yet active) |
+| `apps/cartographer/` | Editor (future) |
+| `apps/compass/` | Project manager (future) |
+| `tools/waypoint/` | Asset validation CLI (active) |
+| `tools/beacon/`, `expedition/`, `navigator/`, `surveyor/` | Future tools |
+| `tests/` | Engine tests |
+| `cmake/` | `WayfinderCommon.cmake` (flags/definitions), `WayfinderDependencies.cmake` (FetchContent) |
+
+
 ### Engine
 
 - `engine/wayfinder/` contains the core engine library

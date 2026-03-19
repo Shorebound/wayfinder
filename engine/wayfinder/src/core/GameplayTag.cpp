@@ -8,26 +8,26 @@ namespace Wayfinder
 
     bool GameplayTag::IsChildOf(const GameplayTag& parent) const
     {
-        if (Name == parent.Name)
+        if (m_name == parent.m_name)
             return true;
-        if (Name.size() <= parent.Name.size())
+        if (m_name.size() <= parent.m_name.size())
             return false;
-        return Name.starts_with(parent.Name) && Name[parent.Name.size()] == '.';
+        return m_name.starts_with(parent.m_name) && m_name[parent.m_name.size()] == '.';
     }
 
     std::optional<GameplayTag> GameplayTag::Parent() const
     {
-        const auto pos = Name.rfind('.');
+        const auto pos = m_name.rfind('.');
         if (pos == std::string::npos)
             return std::nullopt;
-        return GameplayTag{Name.substr(0, pos)};
+        return GameplayTag{m_name.substr(0, pos)};
     }
 
     int GameplayTag::Depth() const
     {
-        if (Name.empty())
+        if (m_name.empty())
             return 0;
-        return static_cast<int>(std::count(Name.begin(), Name.end(), '.')) + 1;
+        return static_cast<int>(std::count(m_name.begin(), m_name.end(), '.')) + 1;
     }
 
     // ── GameplayTagContainer ────────────────────────────────────
@@ -66,11 +66,6 @@ namespace Wayfinder
         auto it = std::lower_bound(Tags.begin(), Tags.end(), tag);
         if (it == Tags.end() || *it != tag)
             Tags.insert(it, tag);
-    }
-
-    void GameplayTagContainer::AddTagByName(const std::string& name)
-    {
-        AddTag(GameplayTag::FromName(name));
     }
 
     void GameplayTagContainer::RemoveTag(const GameplayTag& tag)

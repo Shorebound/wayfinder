@@ -83,6 +83,10 @@ namespace Wayfinder
         m_world.component<ActiveGameplayTags>();
         m_world.set<ActiveGameplayTags>({});
 
+        // Expose the tag registry to the world so run conditions and scene loading can use it
+        m_world.component<GameplayTagRegistryRef>();
+        m_world.set<GameplayTagRegistryRef>({&m_tagRegistry});
+
         if (m_moduleRegistry)
         {
             m_moduleRegistry->ApplyToWorld(m_world);
@@ -182,30 +186,26 @@ namespace Wayfinder
         return state.Current;
     }
 
-    void Game::AddGameplayTag(const std::string& tagName)
+    void Game::AddGameplayTag(const GameplayTag& tag)
     {
         ActiveGameplayTags& tags = m_world.get_mut<ActiveGameplayTags>();
-        tags.Tags.AddTag(m_tagRegistry.RequestTag(tagName));
-        WAYFINDER_INFO(LogGame, "Added gameplay tag: '{}'", tagName);
+        tags.Tags.AddTag(tag);
+        WAYFINDER_INFO(LogGame, "Added gameplay tag: '{}'", tag.GetName());
         EvaluateRunConditions();
     }
 
-    void Game::RemoveGameplayTag(const std::string& tagName)
+    void Game::RemoveGameplayTag(const GameplayTag& tag)
     {
         ActiveGameplayTags& tags = m_world.get_mut<ActiveGameplayTags>();
-        GameplayTagContainer query;
-        query.AddTagByName(tagName);
-        tags.Tags.RemoveTag(query.Tags.front());
-        WAYFINDER_INFO(LogGame, "Removed gameplay tag: '{}'", tagName);
+        tags.Tags.RemoveTag(tag);
+        WAYFINDER_INFO(LogGame, "Removed gameplay tag: '{}'", tag.GetName());
         EvaluateRunConditions();
     }
 
-    bool Game::HasGameplayTag(const std::string& tagName) const
+    bool Game::HasGameplayTag(const GameplayTag& tag) const
     {
         const ActiveGameplayTags& tags = m_world.get<ActiveGameplayTags>();
-        GameplayTagContainer query;
-        query.AddTagByName(tagName);
-        return tags.Tags.HasTag(query.Tags.front());
+        return tags.Tags.HasTag(tag);
     }
 
     void Game::InitializeTagRegistry()

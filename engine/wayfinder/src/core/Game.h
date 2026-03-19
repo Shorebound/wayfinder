@@ -43,13 +43,13 @@ namespace Wayfinder
         std::string_view GetCurrentState() const;
 
         /// Add a gameplay tag to the world-level active tag set.
-        void AddGameplayTag(const std::string& tagName);
+        void AddGameplayTag(const GameplayTag& tag);
 
         /// Remove a gameplay tag from the world-level active tag set.
-        void RemoveGameplayTag(const std::string& tagName);
+        void RemoveGameplayTag(const GameplayTag& tag);
 
         /// Check if a gameplay tag is active at the world level.
-        bool HasGameplayTag(const std::string& tagName) const;
+        bool HasGameplayTag(const GameplayTag& tag) const;
 
         /// Access the gameplay tag registry for tag lookups and validation.
         GameplayTagRegistry& GetTagRegistry() { return m_tagRegistry; }

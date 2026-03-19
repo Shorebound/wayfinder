@@ -3,6 +3,7 @@
 #include "Components.h"
 #include "entity/Entity.h"
 #include "../core/GameplayTag.h"
+#include "../core/GameplayTagRegistry.h"
 
 #include <array>
 #include <sstream>
@@ -551,7 +552,11 @@ namespace
             for (const toml::node& node : *tags)
             {
                 if (const auto str = node.value<std::string>())
-                    container.AddTagByName(*str);
+                {
+                    const auto* ref = entity.GetHandle().world().try_get<Wayfinder::GameplayTagRegistryRef>();
+                    if (ref && ref->Registry)
+                        container.AddTag(ref->Registry->RequestTag(*str));
+                }
             }
         }
         entity.AddComponent<Wayfinder::GameplayTagContainer>(container);
@@ -568,7 +573,7 @@ namespace
 
         toml::array arr;
         for (const auto& tag : container.Tags)
-            arr.push_back(tag.Name);
+            arr.push_back(tag.GetName());
 
         toml::table t;
         t.insert_or_assign("tags", std::move(arr));

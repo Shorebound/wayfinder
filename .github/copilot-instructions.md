@@ -1,10 +1,52 @@
 # Wayfinder
 
-C++23 game engine and toolchain. An engine for a "fantasy" console. The thought experiment is straight-forward: imagine sixth-gen console development culture with 2026-era compute budgets, architecture knowledge, and tooling convenience. The artistic target still belongs to the sixth console generation, so the production values are not about photorealism. What changes is how much of the world can stay alive, dynamic, and responsive at runtime.
+A modern C++23 game engine and toolchain. An engine for a "fantasy" console. 
 
-This codebase has zero API stability guarantees. You have full license to propose breaking changes, rewrites, architectural pivots, dependency swaps, or paradigm shifts. If something is bad, say so and offer the better path. Nothing is stapled down.
+## Philosophy
 
-Our goal is to create a modern, modular, data-driven, elegant and well-architected engine that is easily extensible for developers using it in their games. 
+The thought experiment is straight-forward: imagine sixth-gen console development culture with 2026-era compute budgets, architecture knowledge, and tooling convenience. The artistic target still belongs to the sixth console generation, so the production values are not about photorealism. What changes is how much of the world can stay alive, dynamic, and responsive at runtime.
+
+We want to build an engine that is a joy to work with, so we want to focus on clean code, clear architecture, and a great developer experience. We want to avoid technical debt and hacks as much as possible, even if it means slower initial progress. We want to design systems that are flexible and extensible, so they can grow with the needs of the game. Future-proofing and forward-thinking design are core pillars of the project. We want an engine that is extensible and moddable by design, but still based around the project's artistic vision and technical goals.
+
+The role of `.github/AGENTS.md` is to describe common mistakes and confusion points that agents might encounter as they work in this project. If you ever encounter something in the project that surprises or confuses you, please alert the developer working with you and indicate that this is a potential addition to the AGENTS.md file to help prevent future confusion for others. 
+
+## Pillars
+
+- **Dynamic over baked**
+    - Prefer runtime computation over offline preprocessing.
+    - Example: real-time lighting and shadows instead of lightmaps, global illumination, and reflection probes. Real-time physics and destruction instead of pre-authored animations. Data-driven behavior instead of hardcoded logic.
+- **Data-driven design**
+    - If it can be a file on disk, it should be so that it can be authored, iterated on, and hot-reloaded without code changes.
+    - Example: gameplay tags, input mappings, material definitions, scene hierarchies, and even some systems can be defined in data rather than code.
+- **Explicit over implicit**
+    - Capabilities are checked, passes are validated. Nothing is silently dropped or assumed.
+- **The engine is a library, not an application**
+    - The game (and later, the editor) are consumers of the engine. The engine never knows it's being used by an editor.
+- **Data flows down, events flow up**
+    - Systems read data and produce data. Side effects are explicit and channeled through an event bus or command queue.
+- **Composition over inheritance**: 
+    - Prefer component-based design and data-driven behavior over deep class hierarchies and virtual dispatch.
+- **Modularity and extensibility**: 
+    - Design systems to be self-contained and decoupled, with clear interfaces for extension and replacement.
+- **Performance with clarity**: 
+    - Write efficient code, but not at the cost of readability and maintainability. Optimize bottlenecks when they are identified, not prematurely.
+- **Zero API stability guarantees**: 
+    - The codebase is free to evolve and pivot as needed. Breaking changes are expected and accepted. 
+
+## Stability
+
+This project is super greenfield. You have full license to propose breaking changes, rewrites, architectural pivots, dependency swaps, or paradigm shifts. It's okay if you change the architecture, rewrite systems, or throw away code that doesn't fit the vision. 
+
+If something is bad, say so and offer the better path. The only way to find the right design is to try things out and iterate quickly. Don't be afraid to break things, as long as you are improving the overall design and moving towards the vision.
+
+## Architecture
+
+The engine follows an explicit, data-oriented design. See `docs/` for full details:
+
+- `docs/project_vision.md` — why the project exists. 
+    - Read this when you want to understand the "why" behind design decisions and tradeoffs.
+- `docs/future_features.md` — design sketches for future features and systems
+- `docs/workspace_guide.md` — how to navigate the workspace, build, and run things
 
 ## Build
 
@@ -82,41 +124,4 @@ Sub-namespaces for domains (e.g. `Wayfinder::Audio`, `Wayfinder::Physics`, `Wayf
 - `OnX` for event handlers (e.g. `OnKeyPressed()`, `OnCollision()`).
 - `CreateX`, `DestroyX` for factory/destruction functions (e.g. `CreateEntity()`, `DestroyEntity()`).
 - `LoadX`, `SaveX` for serialization functions (e.g. `LoadScene()`, `SaveScene()`).
-
-
-## Pillars
-
-- **Dynamic over baked**: prefer runtime computation over offline preprocessing.
-- **Explicit over implicit**: capabilities are checked, passes are validated, entities need `RenderableComponent` to render. Nothing is silently dropped or assumed.
-- **Headless-first validation**: asset rules are enforced in CLI tools (`waypoint`), not only in the editor.
-- **TOML for authored data, JSON for interchange/diagnostics** — never mix the two.
-- **Hot-reload everything & data-driven design**: if it can be a file on disk, it should be. Materials, entity archetypes, input mappings, AI behavior trees, dialogue — all data, all loadable, all hot-reloadable.
-- **The engine is a library, not an application**: the game (and later, the editor) are consumers of the engine. The engine never knows it's being used by an editor.
-- **Data flows down, events flow up**: systems read data and produce data. Side effects are explicit and channeled through an event bus or command queue.
-- **Composition over inheritance**: prefer component-based design and data-driven behavior over deep class hierarchies and virtual dispatch.
-- **Modularity and extensibility**: design systems to be self-contained and decoupled, with clear interfaces for extension and replacement.
-- **Performance with clarity**: write efficient code, but not at the cost of readability and maintainability. Optimize bottlenecks when they are identified, not prematurely.
-
-## Architecture
-
-The engine follows an explicit, data-oriented design. See `docs/` for full details:
-
-- `docs/project_vision.md` — why the project exists
-- `docs/runtime_architecture.md` — runtime boundaries and frame flow
-- `docs/data_authoring_and_editor.md` — scenes, prefabs, validation, editor direction
-- `docs/architecture_debt.md` — ranked cleanup work
-- `docs/implementation_plan.md` — forward roadmap and sequencing
-
-## Repository Map
-
-| Path | Purpose |
-|------|---------|
-| `engine/wayfinder/` | Engine library (static by default) |
-| `sandbox/journey/` | Primary playable sandbox + sample assets |
-| `sandbox/waystone/` | Separate runtime shell (not yet active) |
-| `apps/cartographer/` | Editor (future) |
-| `apps/compass/` | Project manager (future) |
-| `tools/waypoint/` | Asset validation CLI (active) |
-| `tools/beacon/`, `expedition/`, `navigator/`, `surveyor/` | Future tools |
-| `tests/` | Engine tests |
-| `cmake/` | `WayfinderCommon.cmake` (flags/definitions), `WayfinderDependencies.cmake` (FetchContent) |
+- `ValidateX` for validation functions (e.g. `ValidateAssets()`, `ValidateScene()`).

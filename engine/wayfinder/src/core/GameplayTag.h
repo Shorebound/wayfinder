@@ -22,13 +22,12 @@ namespace Wayfinder
      */
     struct WAYFINDER_API GameplayTag
     {
-        std::string Name;
+        bool operator==(const GameplayTag& other) const { return m_name == other.m_name; }
+        bool operator!=(const GameplayTag& other) const { return m_name != other.m_name; }
+        bool operator<(const GameplayTag& other) const { return m_name < other.m_name; }
 
-        bool operator==(const GameplayTag& other) const { return Name == other.Name; }
-        bool operator!=(const GameplayTag& other) const { return Name != other.Name; }
-        bool operator<(const GameplayTag& other) const { return Name < other.Name; }
-
-        bool IsValid() const { return !Name.empty(); }
+        const std::string& GetName() const { return m_name; }
+        bool IsValid() const { return !m_name.empty(); }
 
         /// True if this tag equals or is a descendant of @p parent.
         /// "Status.Burning".IsChildOf("Status") -> true
@@ -46,11 +45,13 @@ namespace Wayfinder
         static GameplayTag None() { return {}; }
 
     private:
-        // Only GameplayTagRegistry and GameplayTagContainer should create tags.
-        // Use GameplayTagRegistry::RequestTag() for validated construction.
-        friend struct GameplayTagContainer;
         friend class GameplayTagRegistry;
-        static GameplayTag FromName(std::string name) { return {std::move(name)}; }
+        friend class ModuleRegistry;
+
+        explicit GameplayTag(std::string name) : m_name(std::move(name)) {}
+        GameplayTag() = default;
+
+        std::string m_name;
     };
 
     /**
@@ -74,7 +75,6 @@ namespace Wayfinder
         bool HasAll(const GameplayTagContainer& other) const;
 
         void AddTag(const GameplayTag& tag);
-        void AddTagByName(const std::string& name);
         void RemoveTag(const GameplayTag& tag);
         bool IsEmpty() const { return Tags.empty(); }
     };

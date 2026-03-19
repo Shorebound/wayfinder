@@ -1,5 +1,6 @@
 #pragma once
 
+#include "GameplayTag.h"
 #include "wayfinder_exports.h"
 
 #include <functional>
@@ -33,9 +34,9 @@ namespace Wayfinder
     WAYFINDER_API RunCondition NotInState(std::string stateName);
 
     /// Returns a run condition that is true when the given gameplay tag is active.
-    WAYFINDER_API RunCondition HasTag(std::string tagName);
+    WAYFINDER_API RunCondition HasTag(GameplayTag tag);
 
     /// Returns a run condition that is true when any of the given tags is active.
-    WAYFINDER_API RunCondition HasAnyTag(std::vector<std::string> tagNames);
+    WAYFINDER_API RunCondition HasAnyTag(std::vector<GameplayTag> tags);
 
 } // namespace Wayfinder

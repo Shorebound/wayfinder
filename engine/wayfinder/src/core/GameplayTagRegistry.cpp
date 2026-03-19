@@ -6,14 +6,14 @@
 
 namespace Wayfinder
 {
-    void GameplayTagRegistry::RegisterTag(const std::string& name, const std::string& comment)
+    GameplayTag GameplayTagRegistry::RegisterTag(const std::string& name, const std::string& comment)
     {
         if (auto it = m_index.find(name); it != m_index.end())
         {
             // Update existing definition (code overrides data comment if non-empty).
             if (!comment.empty())
                 m_definitions[it->second].Comment = comment;
-            return;
+            return GameplayTag{name};
         }
 
         EnsureAncestors(name, "(code)");
@@ -24,6 +24,8 @@ namespace Wayfinder
 
         WAYFINDER_INFO(LogEngine, "GameplayTagRegistry: registered tag '{}'{}", name,
                        comment.empty() ? "" : " — " + comment);
+
+        return GameplayTag{name};
     }
 
     int GameplayTagRegistry::LoadTagFile(const std::filesystem::path& path)
@@ -117,7 +119,7 @@ namespace Wayfinder
                 name);
         }
 
-        return GameplayTag::FromName(name);
+        return GameplayTag{name};
     }
 
     bool GameplayTagRegistry::IsRegistered(const std::string& name) const

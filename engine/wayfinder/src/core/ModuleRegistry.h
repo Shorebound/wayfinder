@@ -107,8 +107,9 @@ namespace Wayfinder
         /// during initialization, after all registrations are applied.
         void SetInitialState(std::string stateName);
 
-        /// Register a gameplay tag name. Used for editor tooling and validation.
-        void RegisterTag(std::string tagName, std::string comment = {});
+        /// Register a gameplay tag name. Returns a GameplayTag that can be
+        /// captured and used immediately (e.g. passed to HasTag run conditions).
+        GameplayTag RegisterTag(std::string tagName, std::string comment = {});
 
         /// Register a tag definition file to be loaded at startup.
         /// Path is relative to the project's config directory.
