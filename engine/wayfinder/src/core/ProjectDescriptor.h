@@ -4,6 +4,7 @@
 
 #include <filesystem>
 #include <string>
+#include <vector>
 
 namespace Wayfinder
 {
@@ -44,7 +45,18 @@ namespace Wayfinder
         /// Returns empty path if no module is configured.
         std::filesystem::path ResolveModulePath() const;
 
-        static ProjectDescriptor LoadFromFile(const std::filesystem::path& path);
+        /// Result of loading a project descriptor with validation information.
+        struct LoadResult
+        {
+            ProjectDescriptor Descriptor;
+            bool Valid = true;
+            std::vector<std::string> Warnings;
+        };
+
+        /// Load a project descriptor from a file with validation.
+        /// Returns a LoadResult containing the descriptor, validity flag, and
+        /// any warnings encountered during parsing/validation.
+        static LoadResult LoadFromFile(const std::filesystem::path& path);
     };
 
 } // namespace Wayfinder
