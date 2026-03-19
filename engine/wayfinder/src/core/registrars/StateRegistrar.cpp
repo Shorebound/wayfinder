@@ -20,7 +20,16 @@ namespace Wayfinder
 
     void StateRegistrar::SetInitial(std::string stateName)
     {
-        m_initialState = std::move(stateName);
+        for (const auto& desc : m_descriptors)
+        {
+            if (desc.Name == stateName)
+            {
+                m_initialState = std::move(stateName);
+                return;
+            }
+        }
+
+        WAYFINDER_ERROR(LogEngine, "StateRegistrar: SetInitial '{}' — state not registered; ignoring", stateName);
     }
 
 } // namespace Wayfinder
