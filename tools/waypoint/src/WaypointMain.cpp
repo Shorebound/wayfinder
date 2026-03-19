@@ -155,6 +155,19 @@ int main(int argc, char** argv)
         }
 
         auto loadResult = Wayfinder::ProjectDescriptor::LoadFromFile(*projectFile);
+
+        if (!loadResult.Valid)
+        {
+            std::cerr << "Failed to load project descriptor from: " << projectFile->string() << '\n';
+            Wayfinder::Log::Shutdown();
+            return 1;
+        }
+
+        for (const auto& warning : loadResult.Warnings)
+        {
+            WAYFINDER_WARNING(Wayfinder::LogEngine, "Project: {}", warning);
+        }
+
         project = std::move(loadResult.Descriptor);
     }
 

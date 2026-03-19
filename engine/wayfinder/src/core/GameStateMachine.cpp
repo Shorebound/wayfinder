@@ -93,6 +93,7 @@ namespace Wayfinder
 
     std::string_view GameStateMachine::GetCurrentState() const
     {
+        WAYFINDER_ASSERT(m_world, "GetCurrentState() called before Configure()");
         const ActiveGameState& state = m_world->get<ActiveGameState>();
         return state.Current.GetString();
     }
