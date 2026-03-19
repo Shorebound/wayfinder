@@ -5,16 +5,7 @@ add_executable(${SANDBOX_NAME})
 wayfinder_set_output_directories(${SANDBOX_NAME})
 message(STATUS "Sandbox: Configuring target ${SANDBOX_NAME}")
 
-# --- Installation ---
-#install(TARGETS ${SANDBOX_NAME}
-#    RUNTIME DESTINATION bin 
-#)
-
 # --- Sources ---
-file(GLOB_RECURSE SANDBOX_SOURCES CONFIGURE_DEPENDS
-  "src/*.h"
-  "src/*.cpp"
-)
 target_sources(${SANDBOX_NAME} 
     PRIVATE
         src/JourneyModule.cpp 
@@ -39,10 +30,6 @@ wayfinder_set_output_directories(${MODULE_NAME})
 target_include_directories(${MODULE_NAME} PRIVATE src)
 target_link_libraries(${MODULE_NAME} PUBLIC ${ENGINE_NAME})
 target_compile_definitions(${MODULE_NAME} PRIVATE JOURNEY_MODULE_EXPORTS)
-set_target_properties(${MODULE_NAME} PROPERTIES
-    RUNTIME_OUTPUT_DIRECTORY "${OUTPUT_DIR_BASE}/$<CONFIG>"
-    LIBRARY_OUTPUT_DIRECTORY "${OUTPUT_DIR_BASE}/$<CONFIG>"
-)
 
 add_custom_command(TARGET ${SANDBOX_NAME} POST_BUILD
   COMMAND ${CMAKE_COMMAND} -E copy_directory
@@ -69,7 +56,7 @@ add_custom_command(TARGET ${SANDBOX_NAME} POST_BUILD
 )
 
 # --- Shader Compilation ---
-include(${CMAKE_SOURCE_DIR}/cmake/WayfinderShaders.cmake)
+include(WayfinderShaders)
 file(GLOB SHADER_SOURCES CONFIGURE_DEPENDS
     "${CMAKE_SOURCE_DIR}/engine/wayfinder/shaders/*.vert"
     "${CMAKE_SOURCE_DIR}/engine/wayfinder/shaders/*.frag"
@@ -77,13 +64,7 @@ file(GLOB SHADER_SOURCES CONFIGURE_DEPENDS
 wayfinder_compile_shaders(
     TARGET ${SANDBOX_NAME}
     SHADERS ${SHADER_SOURCES}
-    OUTPUT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/assets/shaders"
-)
-
-# --- Target Properties ---
-# Output directory for the executable file (.exe)
-set_target_properties(${SANDBOX_NAME} PROPERTIES
-  RUNTIME_OUTPUT_DIRECTORY "${OUTPUT_DIR_BASE}/$<CONFIG>"
+    OUTPUT_DIR "$<TARGET_FILE_DIR:${SANDBOX_NAME}>/assets/shaders"
 )
 
 # --- Platform Specifics for THIS Executable ---

@@ -40,31 +40,6 @@ file(GLOB_RECURSE ENGINE_ALL_SOURCES CONFIGURE_DEPENDS
 
 # glob for now
 target_sources(${ENGINE_NAME} PRIVATE ${ENGINE_ALL_SOURCES})
-#target_sources(${ENGINE_NAME} PRIVATE
-    # Core
-#    src/application/Application.cpp
-#    src/core/Game.cpp
-#    src/core/ServiceLocator.cpp
-
-    # Platform
-#    src/platform/raylib/RaylibWindow.cpp
-#    src/platform/raylib/RaylibInput.cpp
-#    src/platform/raylib/RaylibTime.cpp
-
-    # Rendering
-#    src/rendering/Renderer.cpp
-#    src/rendering/raylib/RaylibGraphicsContext.cpp
-#    src/rendering/raylib/RaylibRenderAPI.cpp
-
-    # Scene
-#    src/scene/Scene.cpp
-#    src/scene/entity/Entity.cpp
-#    src/scene/entity/Component.cpp
-#    src/scene/entity/Transform.cpp
-
-    # Input
-#    src/input/InputManager.cpp
-#)
 
 foreach(FILEPATH ${ENGINE_ALL_SOURCES})
     # Get the path relative to src/
@@ -94,12 +69,7 @@ target_include_directories(${ENGINE_NAME}
     # Allows #include "core/Application.h", etc.
     ${CMAKE_CURRENT_SOURCE_DIR}/src
     # PUBLIC: Needed by consumers to find the generated Wayfinder_export.h
-    # $<BUILD_INTERFACE:...> ensures this path is only added for consumers
     $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/include>
-
-  PRIVATE
-    # Needed by Wayfinder itself to find Wayfinder_export.h for its PCH
-    ${CMAKE_CURRENT_BINARY_DIR}/include
 )
 
 target_link_libraries(${ENGINE_NAME}
@@ -122,17 +92,11 @@ endif()
 
 # Configure precompiled headers
 target_precompile_headers(${ENGINE_NAME}
-    PUBLIC
+    PRIVATE
         src/WayfinderPCH.h
 )
 
-# Compiler Flags (Symbols / Optimization)
-# CMake handles debug symbols (-g / /Zi) for Debug builds automatically.
-# CMake handles optimization (-O2, -O3 / /O2) for Release-like builds automatically.
-# We rely on CMake's defaults associated with the build type/configuration.
-# If more specific flags are needed, use target_compile_options with generator expressions:
-# target_compile_options(${ENGINE_NAME} PRIVATE
-#   $<$<CONFIG:Debug>:/Zi> # Example: Force specific debug info format
+message(STATUS "Engine: Configured precompiled headers for ${ENGINE_NAME}")
 #   $<$<CONFIG:Development>:/O2>
 #   $<$<CONFIG:Shipping>:/O2;/GL> # Example: Add Link-Time Optimization for Shipping
 # )

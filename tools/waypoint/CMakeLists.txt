@@ -17,6 +17,3 @@ target_link_libraries(${ASSET_PROCESSOR_NAME}
         ${ENGINE_NAME}
 )
 
-set_target_properties(${ASSET_PROCESSOR_NAME} PROPERTIES
-    RUNTIME_OUTPUT_DIRECTORY "${OUTPUT_DIR_BASE}/$<CONFIG>"
-)

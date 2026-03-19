@@ -9,11 +9,7 @@ wayfinder_set_output_directories(${WAYFINDER_RENDER_TEST_NAME})
 target_link_libraries(${WAYFINDER_RENDER_TEST_NAME}
   PRIVATE
     ${ENGINE_NAME}
-)
-
-target_include_directories(${WAYFINDER_RENDER_TEST_NAME}
-  PRIVATE
-    ${CMAKE_SOURCE_DIR}/engine/wayfinder/src
+    doctest::doctest_with_main
 )
 
 add_test(NAME ${WAYFINDER_RENDER_TEST_NAME} COMMAND ${WAYFINDER_RENDER_TEST_NAME})

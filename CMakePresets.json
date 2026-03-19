@@ -1,0 +1,88 @@
+{
+    "version": 6,
+    "cmakeMinimumRequired": {
+        "major": 4,
+        "minor": 0,
+        "patch": 1
+    },
+    "configurePresets": [
+        {
+            "name": "dev",
+            "displayName": "Development (Sandbox + Tools + Tests)",
+            "description": "Daily-driver preset: builds sandbox, tools, and tests",
+            "generator": "Visual Studio 17 2022",
+            "binaryDir": "${sourceDir}/build",
+            "cacheVariables": {
+                "WAYFINDER_BUILD_SANDBOX": "ON",
+                "WAYFINDER_BUILD_TOOLS": "ON",
+                "WAYFINDER_BUILD_TESTS": "ON",
+                "WAYFINDER_BUILD_EDITOR": "OFF",
+                "WAYFINDER_BUILD_RUNTIME": "OFF",
+                "WAYFINDER_BUILD_SAMPLES": "OFF"
+            }
+        },
+        {
+            "name": "dev-all",
+            "displayName": "Development (Everything)",
+            "description": "Builds all targets including editor, runtime, and samples",
+            "inherits": "dev",
+            "cacheVariables": {
+                "WAYFINDER_BUILD_EDITOR": "ON",
+                "WAYFINDER_BUILD_RUNTIME": "ON",
+                "WAYFINDER_BUILD_SAMPLES": "ON"
+            }
+        },
+        {
+            "name": "ci",
+            "displayName": "CI",
+            "description": "Continuous integration preset with warnings-as-errors",
+            "inherits": "dev",
+            "cacheVariables": {
+                "WAYFINDER_WARNINGS_AS_ERRORS": "ON"
+            }
+        },
+        {
+            "name": "shipping",
+            "displayName": "Shipping",
+            "description": "Sandbox only, no dev tooling",
+            "generator": "Visual Studio 17 2022",
+            "binaryDir": "${sourceDir}/build",
+            "cacheVariables": {
+                "WAYFINDER_BUILD_SANDBOX": "ON",
+                "WAYFINDER_BUILD_TOOLS": "OFF",
+                "WAYFINDER_BUILD_TESTS": "OFF",
+                "WAYFINDER_BUILD_EDITOR": "OFF",
+                "WAYFINDER_BUILD_RUNTIME": "OFF",
+                "WAYFINDER_BUILD_SAMPLES": "OFF"
+            }
+        }
+    ],
+    "buildPresets": [
+        {
+            "name": "debug",
+            "displayName": "Debug",
+            "configurePreset": "dev",
+            "configuration": "Debug"
+        },
+        {
+            "name": "development",
+            "displayName": "Development",
+            "configurePreset": "dev",
+            "configuration": "Development"
+        },
+        {
+            "name": "shipping",
+            "displayName": "Shipping",
+            "configurePreset": "shipping",
+            "configuration": "Shipping"
+        }
+    ],
+    "testPresets": [
+        {
+            "name": "test",
+            "displayName": "Run Tests (Debug)",
+            "configurePreset": "dev",
+            "configuration": "Debug"
+        }
+    ]
+}

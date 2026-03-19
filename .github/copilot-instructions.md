@@ -51,10 +51,16 @@ The engine follows an explicit, data-oriented design. See `docs/` for full detai
 ## Build
 
 ```powershell
-# Configure (sandbox on by default; add tools/tests/editor as needed)
-cmake -S . -B build -DWAYFINDER_BUILD_SANDBOX=ON -DWAYFINDER_BUILD_TOOLS=ON -DWAYFINDER_BUILD_TESTS=ON
+# Configure with presets (recommended)
+cmake --preset dev                  # sandbox + tools + tests
+cmake --preset dev-all              # everything
 
-# Build primary targets
+# Build
+cmake --build --preset debug        # Debug build
+cmake --build --preset development  # Development (optimised + debug info)
+
+# Or configure manually
+cmake -S . -B build -DWAYFINDER_BUILD_SANDBOX=ON -DWAYFINDER_BUILD_TOOLS=ON -DWAYFINDER_BUILD_TESTS=ON
 cmake --build build --config Debug --target journey waypoint wayfinder_render_tests
 
 # Run sandbox
@@ -65,7 +71,8 @@ build\bin\Debug\waypoint.exe validate-assets sandbox\journey\assets
 build\bin\Debug\waypoint.exe validate sandbox\journey\assets\scenes\default_scene.toml
 
 # Run tests
-ctest --test-dir build --build-config Debug
+ctest --preset test
+# Or manually: ctest --test-dir build --build-config Debug
 ```
 
 CMake sets `CMAKE_SUPPRESS_REGENERATION TRUE` — adding new source files requires a manual reconfigure before MSBuild sees them.
@@ -131,3 +138,8 @@ Sub-namespaces for domains (e.g. `Wayfinder::Audio`, `Wayfinder::Physics`, `Wayf
 - `CreateX`, `DestroyX` for factory/destruction functions (e.g. `CreateEntity()`, `DestroyEntity()`).
 - `LoadX`, `SaveX` for serialization functions (e.g. `LoadScene()`, `SaveScene()`).
 - `ValidateX` for validation functions (e.g. `ValidateAssets()`, `ValidateScene()`).
+
+### Data-Driven Design
+- `TOML` for straightforward configuration, definitions and authored content (e.g. gameplay tags, input mappings, material definitions, scene hierarchies).
+- `JSON` for interchange formats, generated data, and anything that benefits from schema validation (e.g. scene exports, runtime-generated data).
+- Define clear schemas for data files and validate them at load time, providing useful error messages for authors.
