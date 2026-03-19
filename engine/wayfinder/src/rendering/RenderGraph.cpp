@@ -21,7 +21,7 @@ namespace Wayfinder
 
     void RenderGraphBuilder::ReadTexture(RenderGraphHandle handle)
     {
-        if (!handle.IsValid()) return;
+        if (!handle.IsValid() || handle.Index >= m_graph.m_resources.size()) return;
         auto& pass = m_graph.m_passes[m_passIndex];
         pass.Reads.push_back(handle);
 
@@ -37,7 +37,7 @@ namespace Wayfinder
 
     void RenderGraphBuilder::WriteColor(RenderGraphHandle handle, LoadOp load, ClearValue clear)
     {
-        if (!handle.IsValid()) return;
+        if (!handle.IsValid() || handle.Index >= m_graph.m_resources.size()) return;
         auto& pass = m_graph.m_passes[m_passIndex];
         pass.ColorWrite = RenderGraph::ColorWriteInfo{handle, load, clear};
 
@@ -53,7 +53,7 @@ namespace Wayfinder
 
     void RenderGraphBuilder::WriteDepth(RenderGraphHandle handle, LoadOp load, float clearDepth)
     {
-        if (!handle.IsValid()) return;
+        if (!handle.IsValid() || handle.Index >= m_graph.m_resources.size()) return;
         auto& pass = m_graph.m_passes[m_passIndex];
         pass.DepthWrite = RenderGraph::DepthWriteInfo{handle, load, clearDepth};
 
@@ -129,6 +129,9 @@ namespace Wayfinder
             }
         }
 
+        // Imported/externally-provided textures use a default-constructed desc
+        // (width/height == 0) so the transient allocation step skips them —
+        // their GPU handles are supplied externally before Execute().
         RenderGraphTextureDesc desc;
         return AllocateResource(desc, name);
     }
