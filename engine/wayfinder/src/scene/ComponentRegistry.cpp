@@ -450,6 +450,44 @@ namespace
             && ValidateOptionalNumber(componentTable, "sort_priority", error);
     }
 
+    bool ValidatePostProcessVolume(const toml::table& componentTable, std::string& error)
+    {
+        if (!ValidateOptionalEnumValue(componentTable, "shape", {"global", "box", "sphere"}, error))
+            return false;
+
+        if (!ValidateOptionalNumber(componentTable, "priority", error))
+            return false;
+
+        if (!ValidateOptionalNumber(componentTable, "blend_distance", error))
+            return false;
+
+        if (!ValidateOptionalVector3(componentTable, "dimensions", error))
+            return false;
+
+        if (!ValidateOptionalNumber(componentTable, "radius", error))
+            return false;
+
+        // Validate the overrides sub-table if present
+        const toml::table* overrides = componentTable["overrides"].as_table();
+        if (overrides)
+        {
+            if (!ValidateOptionalNumber(*overrides, "exposure", error))
+                return false;
+            if (!ValidateOptionalNumber(*overrides, "fog_density", error))
+                return false;
+            if (!ValidateOptionalColor(*overrides, "fog_color", error))
+                return false;
+            if (!ValidateOptionalNumber(*overrides, "bloom_threshold", error))
+                return false;
+            if (!ValidateOptionalNumber(*overrides, "bloom_intensity", error))
+                return false;
+            if (!ValidateOptionalNumber(*overrides, "vignette", error))
+                return false;
+        }
+
+        return true;
+    }
+
     void ApplyTransform(const toml::table& componentTable, Wayfinder::Entity& entity)
     {
         Wayfinder::TransformComponent transform;
@@ -517,6 +555,15 @@ namespace
         const int64_t sortPriority = componentTable["sort_priority"].value_or(static_cast<int64_t>(renderable.SortPriority));
         renderable.SortPriority = ClampToByte(sortPriority);
         entity.AddComponent<Wayfinder::RenderableComponent>(renderable);
+    }
+    Wayfinder::PostProcessVolumeShape ReadVolumeShape(const toml::table& table, const char* key, Wayfinder::PostProcessVolumeShape fallback)
+    {
+        const auto value = table[key].value<std::string>();
+        if (!value) return fallback;
+        if (*value == "global") return Wayfinder::PostProcessVolumeShape::Global;
+        if (*value == "box") return Wayfinder::PostProcessVolumeShape::Box;
+        if (*value == "sphere") return Wayfinder::PostProcessVolumeShape::Sphere;
+        return fallback;
     }
 
     // ── GameplayTagContainer ────────────────────────────────
@@ -590,6 +637,48 @@ namespace
         toml::table t;
         t.insert_or_assign("tags", std::move(arr));
         componentTables.insert_or_assign("gameplay_tags", std::move(t));
+    }
+
+    // ── PostProcessVolumeComponent ──────────────────────────
+
+    const char* ToString(Wayfinder::PostProcessVolumeShape shape)
+    {
+        switch (shape)
+        {
+        case Wayfinder::PostProcessVolumeShape::Global: return "global";
+        case Wayfinder::PostProcessVolumeShape::Box: return "box";
+        case Wayfinder::PostProcessVolumeShape::Sphere: return "sphere";
+        }
+        return "global";
+    }
+
+    void ApplyPostProcessVolume(const toml::table& componentTable, Wayfinder::Entity& entity)
+    {
+        Wayfinder::PostProcessVolumeComponent volume;
+        volume.Shape = ReadVolumeShape(componentTable, "shape", volume.Shape);
+        volume.Priority = static_cast<int>(componentTable["priority"].value_or(static_cast<int64_t>(volume.Priority)));
+        volume.BlendDistance = ReadFloat(componentTable, "blend_distance", volume.BlendDistance);
+        volume.Dimensions = ReadVector3(componentTable, "dimensions", volume.Dimensions);
+        volume.Radius = ReadFloat(componentTable, "radius", volume.Radius);
+
+        const toml::table* overrides = componentTable["overrides"].as_table();
+        if (overrides)
+        {
+            if (overrides->contains("exposure"))
+                volume.Overrides.Exposure = ReadFloat(*overrides, "exposure", 1.0f);
+            if (overrides->contains("fog_density"))
+                volume.Overrides.FogDensity = ReadFloat(*overrides, "fog_density", 0.0f);
+            if (overrides->contains("fog_color"))
+                volume.Overrides.FogColor = ReadColor(*overrides, "fog_color", Wayfinder::Color::White());
+            if (overrides->contains("bloom_threshold"))
+                volume.Overrides.BloomThreshold = ReadFloat(*overrides, "bloom_threshold", 1.5f);
+            if (overrides->contains("bloom_intensity"))
+                volume.Overrides.BloomIntensity = ReadFloat(*overrides, "bloom_intensity", 0.0f);
+            if (overrides->contains("vignette"))
+                volume.Overrides.Vignette = ReadFloat(*overrides, "vignette", 0.0f);
+        }
+
+        entity.AddComponent<Wayfinder::PostProcessVolumeComponent>(volume);
     }
 
     void SerializeTransform(const Wayfinder::Entity& entity, toml::table& componentTables)
@@ -697,7 +786,38 @@ namespace
         componentTables.insert_or_assign("renderable", componentTable);
     }
 
-    constexpr std::array<Wayfinder::SceneComponentRegistry::Entry, 7> kEntries = {{
+    void SerializePostProcessVolume(const Wayfinder::Entity& entity, toml::table& componentTables)
+    {
+        if (!entity.HasComponent<Wayfinder::PostProcessVolumeComponent>())
+        {
+            return;
+        }
+
+        const Wayfinder::PostProcessVolumeComponent& volume = entity.GetComponent<Wayfinder::PostProcessVolumeComponent>();
+        toml::table componentTable;
+        componentTable.insert_or_assign("shape", std::string{ToString(volume.Shape)});
+        componentTable.insert_or_assign("priority", static_cast<int64_t>(volume.Priority));
+        componentTable.insert_or_assign("blend_distance", volume.BlendDistance);
+        componentTable.insert_or_assign("dimensions", WriteVector3(volume.Dimensions));
+        componentTable.insert_or_assign("radius", volume.Radius);
+
+        toml::table overridesTable;
+        if (volume.Overrides.Exposure) overridesTable.insert_or_assign("exposure", *volume.Overrides.Exposure);
+        if (volume.Overrides.FogDensity) overridesTable.insert_or_assign("fog_density", *volume.Overrides.FogDensity);
+        if (volume.Overrides.FogColor) overridesTable.insert_or_assign("fog_color", WriteColor(*volume.Overrides.FogColor));
+        if (volume.Overrides.BloomThreshold) overridesTable.insert_or_assign("bloom_threshold", *volume.Overrides.BloomThreshold);
+        if (volume.Overrides.BloomIntensity) overridesTable.insert_or_assign("bloom_intensity", *volume.Overrides.BloomIntensity);
+        if (volume.Overrides.Vignette) overridesTable.insert_or_assign("vignette", *volume.Overrides.Vignette);
+
+        if (!overridesTable.empty())
+        {
+            componentTable.insert_or_assign("overrides", overridesTable);
+        }
+
+        componentTables.insert_or_assign("post_process_volume", componentTable);
+    }
+
+    constexpr std::array<Wayfinder::SceneComponentRegistry::Entry, 9> kEntries = {{
         {"transform", &RegisterComponent<Wayfinder::TransformComponent>, &ApplyTransform, &SerializeTransform, &ValidateTransform},
         {"mesh", &RegisterComponent<Wayfinder::MeshComponent>, &ApplyMesh, &SerializeMesh, &ValidateMesh},
         {"camera", &RegisterComponent<Wayfinder::CameraComponent>, &ApplyCamera, &SerializeCamera, &ValidateCamera},
@@ -705,6 +825,7 @@ namespace
         {"material", &RegisterComponent<Wayfinder::MaterialComponent>, &ApplyMaterial, &SerializeMaterial, &ValidateMaterial},
         {"renderable", &RegisterComponent<Wayfinder::RenderableComponent>, &ApplyRenderable, &SerializeRenderable, &ValidateRenderable},
         {"gameplay_tags", &RegisterComponent<Wayfinder::GameplayTagContainer>, &ApplyTags, &SerializeTags, &ValidateTags},
+        {"post_process_volume", &RegisterComponent<Wayfinder::PostProcessVolumeComponent>, &ApplyPostProcessVolume, &SerializePostProcessVolume, &ValidatePostProcessVolume},
     }};
 }
 

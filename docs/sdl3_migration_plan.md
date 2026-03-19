@@ -506,7 +506,6 @@ What we skip: Unity's replaceable pipeline concept (URP vs HDRP) is for a multi-
    - Extend existing `waypoint` validation to cover new asset formats
 
 4. **Documentation finalization**
-   - Update `runtime_architecture.md` to describe the final post-migration architecture including the render graph and feature API
    - Document how to create a `RenderFeature` (the primary game-developer extension point)
    - Update `workspace_guide.md` build commands if they changed
    - Archive or remove this migration plan document once complete
@@ -651,3 +650,10 @@ The migration is complete when:
 6. `waypoint` headless validation works unchanged
 7. Null/headless backend works for automated tests
 8. Dear ImGui SDL3 backend is verified to compile (ready for Cartographer)
+
+
+I just ran journey.exe. It seems like everything is upside down.
+
+Add in extensibility for PostProcessing. Developers should be able to add in post processing as well if they haven't got it.
+
+SDL_Shadercross usage

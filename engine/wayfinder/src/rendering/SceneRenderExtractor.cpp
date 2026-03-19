@@ -1,4 +1,5 @@
 #include "SceneRenderExtractor.h"
+#include "PostProcessVolume.h"
 #include "SortKey.h"
 
 #include "../core/Log.h"
@@ -10,6 +11,7 @@
 #include <array>
 #include <cstddef>
 #include <cstdint>
+#include <vector>
 
 namespace
 {
@@ -213,6 +215,34 @@ namespace Wayfinder
                 }
             }
         });
+
+        // Extract post-process volumes and blend settings at the camera position
+        Float3 cameraPosition{0.0f, 0.0f, 0.0f};
+        if (scene.GetWorld().has<ActiveCameraStateComponent>())
+        {
+            const auto& cam = scene.GetWorld().get<ActiveCameraStateComponent>();
+            if (cam.IsValid) { cameraPosition = cam.Position; }
+        }
+
+        std::vector<PostProcessVolumeInstance> volumeInstances;
+        scene.GetWorld().each([&volumeInstances](flecs::entity entityHandle, const TransformComponent& transform, const PostProcessVolumeComponent& volume)
+        {
+            Float3 position = transform.Position;
+            Float3 scale = transform.Scale;
+            if (entityHandle.has<WorldTransformComponent>())
+            {
+                const auto& worldTransform = entityHandle.get<WorldTransformComponent>();
+                position = worldTransform.Position;
+                scale = worldTransform.Scale;
+            }
+
+            volumeInstances.push_back({.Volume = &volume, .WorldPosition = position, .WorldScale = scale});
+        });
+
+        if (!volumeInstances.empty())
+        {
+            frame.PostProcess = BlendPostProcessVolumes(cameraPosition, volumeInstances);
+        }
 
         return frame;
     }

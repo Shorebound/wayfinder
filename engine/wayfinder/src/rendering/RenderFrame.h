@@ -9,6 +9,7 @@
 
 #include "../core/Identifiers.h"
 #include "MaterialParameter.h"
+#include "PostProcessVolume.h"
 #include "RenderIntent.h"
 #include "RenderTypes.h"
 
@@ -174,6 +175,7 @@ namespace Wayfinder
         std::vector<RenderView> Views;
         std::vector<RenderPass> Passes;
         std::vector<RenderLightSubmission> Lights;
+        PostProcessSettings PostProcess;
 
         size_t AddView(const RenderView& view)
         {
