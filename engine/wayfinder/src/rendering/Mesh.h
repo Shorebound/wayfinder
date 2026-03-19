@@ -38,6 +38,7 @@ namespace Wayfinder
         // ── Built-in Primitives ──────────────────────────────
 
         static Mesh CreateUnitCube(RenderDevice& device);
+        static Mesh CreateUnitCubeWithNormals(RenderDevice& device);
 
     private:
         GPUBuffer m_vertexBuffer;

@@ -44,6 +44,7 @@ namespace Wayfinder
                          uint32_t firstIndex = 0, int32_t vertexOffset = 0) override;
         void DrawPrimitives(uint32_t vertexCount, uint32_t instanceCount = 1, uint32_t firstVertex = 0) override;
         void PushVertexUniform(uint32_t slot, const void* data, uint32_t sizeInBytes) override;
+        void PushFragmentUniform(uint32_t slot, const void* data, uint32_t sizeInBytes) override;
 
         GPUComputePipelineHandle CreateComputePipeline(const ComputePipelineCreateDesc& desc) override;
         void DestroyComputePipeline(GPUComputePipelineHandle pipeline) override;

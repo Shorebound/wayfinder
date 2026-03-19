@@ -8,6 +8,8 @@
 #include "TransientBufferAllocator.h"
 
 #include <memory>
+#include <string>
+#include <unordered_map>
 
 namespace Wayfinder
 {
@@ -15,6 +17,7 @@ namespace Wayfinder
     class RenderDevice;
     struct EngineConfig;
     struct RenderFrame;
+    struct RenderLightSubmission;
     class RenderPipeline;
     class RenderResourceCache;
 
@@ -38,12 +41,24 @@ namespace Wayfinder
 
         void RenderDebugPass(const RenderFrame& frame, const Matrix4& view, const Matrix4& projection);
 
+        // Returns the GPUPipeline for a given shader name, or nullptr if not found.
+        GPUPipeline* GetPipelineForShader(const std::string& shaderName);
+        // Returns the appropriate mesh for a given shader name.
+        Mesh* GetMeshForShader(const std::string& shaderName);
+        // Extracts the primary directional light from the frame. Returns a default if none found.
+        void ExtractPrimaryLight(const RenderFrame& frame, Float3& direction, float& intensity, Float3& color) const;
+
         ShaderManager m_shaderManager;
-        GPUPipeline m_unlitPipeline;
-        GPUPipeline m_debugLinePipeline;
-        Mesh m_cubeMesh;
         PipelineCache m_pipelineCache;
         TransientBufferAllocator m_transientAllocator;
+
+        // Named pipelines — keyed by shader name
+        std::unordered_map<std::string, GPUPipeline> m_pipelines;
+        GPUPipeline m_debugLinePipeline;
+
+        // Built-in meshes
+        Mesh m_cubeMesh;         // PosColor — for unlit
+        Mesh m_litCubeMesh;      // PosNormalColor — for basic_lit
 
         int m_screenWidth;
         int m_screenHeight;

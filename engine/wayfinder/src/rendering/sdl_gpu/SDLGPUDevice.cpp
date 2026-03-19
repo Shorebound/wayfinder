@@ -550,6 +550,16 @@ namespace Wayfinder
         SDL_PushGPUVertexUniformData(m_commandBuffer, slot, data, sizeInBytes);
     }
 
+    void SDLGPUDevice::PushFragmentUniform(uint32_t slot, const void* data, uint32_t sizeInBytes)
+    {
+        if (!m_commandBuffer || !data || sizeInBytes == 0)
+        {
+            return;
+        }
+
+        SDL_PushGPUFragmentUniformData(m_commandBuffer, slot, data, sizeInBytes);
+    }
+
     void SDLGPUDevice::DrawPrimitives(uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex)
     {
         if (!m_renderPass)

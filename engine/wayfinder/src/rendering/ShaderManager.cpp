@@ -26,9 +26,11 @@ namespace Wayfinder
         m_device = nullptr;
     }
 
-    GPUShaderHandle ShaderManager::GetShader(const std::string& name, ShaderStage stage, const ShaderResourceCounts& resources)
+    GPUShaderHandle ShaderManager::GetShader(const std::string& name, ShaderStage stage,
+                                              const ShaderResourceCounts& resources,
+                                              ShaderVariantKey variant)
     {
-        ShaderKey key{name, stage};
+        ShaderKey key{name, stage, variant};
         auto it = m_cache.find(key);
         if (it != m_cache.end())
         {
@@ -36,6 +38,7 @@ namespace Wayfinder
         }
 
         // Build filename: <name>.vert.spv or <name>.frag.spv
+        // Future: variant != 0 would append a suffix, e.g. <name>_VC.vert.spv
         const char* stageSuffix = (stage == ShaderStage::Vertex) ? ".vert.spv" : ".frag.spv";
         std::string filePath = (std::filesystem::path(m_shaderDir) / (name + stageSuffix)).string();
 

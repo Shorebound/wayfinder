@@ -183,6 +183,7 @@ namespace Wayfinder
                                  uint32_t firstIndex = 0, int32_t vertexOffset = 0) = 0;
         virtual void DrawPrimitives(uint32_t vertexCount, uint32_t instanceCount = 1, uint32_t firstVertex = 0) = 0;
         virtual void PushVertexUniform(uint32_t slot, const void* data, uint32_t sizeInBytes) = 0;
+        virtual void PushFragmentUniform(uint32_t slot, const void* data, uint32_t sizeInBytes) = 0;
 
         // ── Compute ──────────────────────────────────────────────
 

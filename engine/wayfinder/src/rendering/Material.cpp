@@ -5,6 +5,7 @@ namespace
     constexpr std::string_view kAssetIdKey = "asset_id";
     constexpr std::string_view kAssetTypeKey = "asset_type";
     constexpr std::string_view kNameKey = "name";
+    constexpr std::string_view kShaderKey = "shader";
     constexpr std::string_view kBaseColorKey = "base_color";
     constexpr std::string_view kWireframeKey = "wireframe";
 
@@ -68,6 +69,7 @@ namespace Wayfinder
         MaterialAsset parsed;
         parsed.Id = *assetId;
         parsed.Name = document[kNameKey].value_or(std::filesystem::path(sourceLabel).stem().string());
+        parsed.ShaderName = document[kShaderKey].value_or(std::string("unlit"));
 
         if (document.contains(kBaseColorKey) && !ParseColor(document, kBaseColorKey, parsed.BaseColor, error))
         {
@@ -114,6 +116,7 @@ namespace Wayfinder
 
         toml::table table;
         table.insert_or_assign("material_id", material.Id.ToString());
+        table.insert_or_assign("shader", material.ShaderName);
         table.insert_or_assign("base_color", std::move(baseColor));
         table.insert_or_assign("wireframe", material.Wireframe);
         return table;

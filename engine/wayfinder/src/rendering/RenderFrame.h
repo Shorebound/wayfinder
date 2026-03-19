@@ -67,6 +67,7 @@ namespace Wayfinder
     {
         RenderMaterialHandle Handle{};
         RenderMaterialDomain Domain = RenderMaterialDomain::Surface;
+        std::string ShaderName = "unlit";
         Color BaseColor = Color::White();
         bool HasBaseColorOverride = false;
         Color WireframeColor = Color::DarkGray();

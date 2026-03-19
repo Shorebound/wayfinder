@@ -26,6 +26,39 @@ namespace Wayfinder
                 static_cast<float>(c.b) / 255.0f,
             };
         }
+
+        glm::vec4 ColorToVec4(const Color& c)
+        {
+            return {
+                static_cast<float>(c.r) / 255.0f,
+                static_cast<float>(c.g) / 255.0f,
+                static_cast<float>(c.b) / 255.0f,
+                static_cast<float>(c.a) / 255.0f,
+            };
+        }
+
+        // Fragment UBO for the unlit shader (16 bytes)
+        struct UnlitMaterialUBO
+        {
+            glm::vec4 baseColor;
+        };
+
+        // Vertex UBO for the basic_lit shader (128 bytes: two 4×4 matrices)
+        struct BasicLitTransformUBO
+        {
+            Matrix4 mvp;
+            Matrix4 model;
+        };
+
+        // Fragment UBO for the basic_lit shader (48 bytes)
+        struct BasicLitMaterialUBO
+        {
+            glm::vec4 baseColor;       // 16 bytes
+            Float3 lightDirection;     // 12 bytes
+            float lightIntensity;      //  4 bytes
+            Float3 lightColor;         // 12 bytes
+            float ambient;             //  4 bytes
+        };
     }
 
     Renderer::Renderer()
@@ -53,33 +86,61 @@ namespace Wayfinder
         m_shaderManager.Initialize(device, config.Shaders.Directory);
         m_pipelineCache.Initialize(device);
 
-        // Create the unlit pipeline (depth test + write enabled for correct occlusion)
-        GPUPipelineDesc unlitDesc{};
-        unlitDesc.vertexShaderName = "unlit";
-        unlitDesc.fragmentShaderName = "unlit";
-        unlitDesc.vertexLayout = VertexLayouts::PosColor;
-        unlitDesc.cullMode = CullMode::Back;
-        unlitDesc.depthTestEnabled = true;
-        unlitDesc.depthWriteEnabled = true;
-
-        if (!m_unlitPipeline.Create(device, m_shaderManager, unlitDesc, &m_pipelineCache))
+        // ── Unlit pipeline ───────────────────────────────────
         {
-            WAYFINDER_WARNING(LogRenderer, "Renderer: Failed to create unlit pipeline");
+            GPUPipelineDesc desc{};
+            desc.vertexShaderName = "unlit";
+            desc.fragmentShaderName = "unlit";
+            desc.vertexResources = {.numUniformBuffers = 1};
+            desc.fragmentResources = {.numUniformBuffers = 1};
+            desc.vertexLayout = VertexLayouts::PosColor;
+            desc.cullMode = CullMode::Back;
+            desc.depthTestEnabled = true;
+            desc.depthWriteEnabled = true;
+
+            auto& pipeline = m_pipelines["unlit"];
+            if (!pipeline.Create(device, m_shaderManager, desc, &m_pipelineCache))
+            {
+                WAYFINDER_WARNING(LogRenderer, "Renderer: Failed to create unlit pipeline");
+            }
         }
 
-        // Create the debug line pipeline (same shader, line topology, no culling, no depth)
-        GPUPipelineDesc debugLineDesc{};
-        debugLineDesc.vertexShaderName = "unlit";
-        debugLineDesc.fragmentShaderName = "unlit";
-        debugLineDesc.vertexLayout = VertexLayouts::PosColor;
-        debugLineDesc.primitiveType = PrimitiveType::LineList;
-        debugLineDesc.cullMode = CullMode::None;
-        debugLineDesc.depthTestEnabled = false;
-        debugLineDesc.depthWriteEnabled = false;
-
-        if (!m_debugLinePipeline.Create(device, m_shaderManager, debugLineDesc, &m_pipelineCache))
+        // ── Basic lit pipeline ───────────────────────────────
         {
-            WAYFINDER_WARNING(LogRenderer, "Renderer: Failed to create debug line pipeline");
+            GPUPipelineDesc desc{};
+            desc.vertexShaderName = "basic_lit";
+            desc.fragmentShaderName = "basic_lit";
+            desc.vertexResources = {.numUniformBuffers = 1};
+            desc.fragmentResources = {.numUniformBuffers = 1};
+            desc.vertexLayout = VertexLayouts::PosNormalColor;
+            desc.cullMode = CullMode::Back;
+            desc.depthTestEnabled = true;
+            desc.depthWriteEnabled = true;
+
+            auto& pipeline = m_pipelines["basic_lit"];
+            if (!pipeline.Create(device, m_shaderManager, desc, &m_pipelineCache))
+            {
+                WAYFINDER_WARNING(LogRenderer, "Renderer: Failed to create basic_lit pipeline");
+            }
+        }
+
+        // ── Debug line pipeline ──────────────────────────────
+        {
+            GPUPipelineDesc desc{};
+            desc.vertexShaderName = "unlit";
+            desc.fragmentShaderName = "unlit";
+            desc.vertexResources = {.numUniformBuffers = 1};
+            desc.fragmentResources = {.numUniformBuffers = 1};
+            desc.vertexLayout = VertexLayouts::PosColor;
+            desc.primitiveType = PrimitiveType::LineList;
+            desc.cullMode = CullMode::None;
+            desc.depthTestEnabled = false;
+            desc.depthWriteEnabled = false;
+
+            if (!m_debugLinePipeline.Create(device, m_shaderManager, desc, &m_pipelineCache))
+            {
+                WAYFINDER_WARNING(LogRenderer, "Renderer: Failed to create debug line pipeline");
+            }
         }
 
         // Transient allocator: 4 MB vertex ring, 1 MB index ring
@@ -90,6 +151,7 @@ namespace Wayfinder
 
         // Create built-in geometry
         m_cubeMesh = Mesh::CreateUnitCube(device);
+        m_litCubeMesh = Mesh::CreateUnitCubeWithNormals(device);
 
         WAYFINDER_INFO(LogRenderer, "Renderer initialized ({}x{}, backend: {})",
             m_screenWidth, m_screenHeight, device.GetDeviceInfo().BackendName);
@@ -100,9 +162,16 @@ namespace Wayfinder
     void Renderer::Shutdown()
     {
         m_transientAllocator.Shutdown();
+        m_litCubeMesh.Destroy();
         m_cubeMesh.Destroy();
         m_debugLinePipeline.Destroy();
-        m_unlitPipeline.Destroy();
+
+        for (auto& [name, pipeline] : m_pipelines)
+        {
+            pipeline.Destroy();
+        }
+        m_pipelines.clear();
+
         m_pipelineCache.Shutdown();
         m_shaderManager.Shutdown();
 
@@ -122,6 +191,52 @@ namespace Wayfinder
         if (m_renderResources)
         {
             m_renderResources->SetAssetService(assetService);
+        }
+    }
+
+    GPUPipeline* Renderer::GetPipelineForShader(const std::string& shaderName)
+    {
+        auto it = m_pipelines.find(shaderName);
+        if (it != m_pipelines.end() && it->second.IsValid())
+        {
+            return &it->second;
+        }
+
+        // Fallback to unlit
+        it = m_pipelines.find("unlit");
+        if (it != m_pipelines.end() && it->second.IsValid())
+        {
+            return &it->second;
+        }
+
+        return nullptr;
+    }
+
+    Mesh* Renderer::GetMeshForShader(const std::string& shaderName)
+    {
+        if (shaderName == "basic_lit" && m_litCubeMesh.IsValid())
+        {
+            return &m_litCubeMesh;
+        }
+        return &m_cubeMesh;
+    }
+
+    void Renderer::ExtractPrimaryLight(const RenderFrame& frame, Float3& direction, float& intensity, Float3& color) const
+    {
+        // Default: sun-like light from upper-right
+        direction = glm::normalize(Float3{-0.4f, -0.7f, -0.5f});
+        intensity = 1.0f;
+        color = Float3{1.0f, 1.0f, 1.0f};
+
+        for (const auto& light : frame.Lights)
+        {
+            if (light.Type == RenderLightType::Directional)
+            {
+                direction = glm::normalize(light.Direction);
+                intensity = light.Intensity;
+                color = ColorToFloat3(light.Tint);
+                return;
+            }
         }
     }
 
@@ -154,21 +269,21 @@ namespace Wayfinder
                 for (int i = -slices; i <= slices; ++i)
                 {
                     const float coord = static_cast<float>(i) * spacing;
-                    const Float3& color = (i == 0) ? majorColor : minorColor;
+                    const Float3& gridColor = (i == 0) ? majorColor : minorColor;
 
-                    lineVertices.push_back({Float3{-extent, 0.0f, coord}, color});
-                    lineVertices.push_back({Float3{ extent, 0.0f, coord}, color});
-                    lineVertices.push_back({Float3{coord, 0.0f, -extent}, color});
-                    lineVertices.push_back({Float3{coord, 0.0f,  extent}, color});
+                    lineVertices.push_back({Float3{-extent, 0.0f, coord}, gridColor});
+                    lineVertices.push_back({Float3{ extent, 0.0f, coord}, gridColor});
+                    lineVertices.push_back({Float3{coord, 0.0f, -extent}, gridColor});
+                    lineVertices.push_back({Float3{coord, 0.0f,  extent}, gridColor});
                 }
             }
 
             // Explicit debug lines
             for (const auto& line : pass.DebugDraw->Lines)
             {
-                const Float3 color = ColorToFloat3(line.Color);
-                lineVertices.push_back({line.Start, color});
-                lineVertices.push_back({line.End, color});
+                const Float3 lineColor = ColorToFloat3(line.Color);
+                lineVertices.push_back({line.Start, lineColor});
+                lineVertices.push_back({line.End, lineColor});
             }
         }
 
@@ -181,16 +296,19 @@ namespace Wayfinder
             if (alloc.IsValid())
             {
                 const Matrix4 mvp = projection * view;
+                const UnlitMaterialUBO materialUBO{glm::vec4(1.0f)}; // white pass-through
 
                 m_debugLinePipeline.Bind();
                 m_device->BindVertexBuffer(alloc.Buffer, 0, alloc.Offset);
                 m_device->PushVertexUniform(0, &mvp, sizeof(Matrix4));
+                m_device->PushFragmentUniform(0, &materialUBO, sizeof(UnlitMaterialUBO));
                 m_device->DrawPrimitives(static_cast<uint32_t>(lineVertices.size()));
             }
         }
 
         // ── Draw debug boxes (reuse unit cube mesh) ──────────
-        if (!m_unlitPipeline.IsValid() || !m_cubeMesh.IsValid())
+        GPUPipeline* unlitPipeline = GetPipelineForShader("unlit");
+        if (!unlitPipeline || !m_cubeMesh.IsValid())
         {
             return;
         }
@@ -210,7 +328,7 @@ namespace Wayfinder
             return;
         }
 
-        m_unlitPipeline.Bind();
+        unlitPipeline->Bind();
         m_cubeMesh.Bind(*m_device);
 
         for (const auto& pass : frame.Passes)
@@ -223,7 +341,10 @@ namespace Wayfinder
             for (const auto& box : pass.DebugDraw->Boxes)
             {
                 const Matrix4 mvp = projection * view * box.LocalToWorld;
+                const UnlitMaterialUBO materialUBO{glm::vec4(1.0f)};
+
                 m_device->PushVertexUniform(0, &mvp, sizeof(Matrix4));
+                m_device->PushFragmentUniform(0, &materialUBO, sizeof(UnlitMaterialUBO));
                 m_cubeMesh.Draw(*m_device);
             }
         }
@@ -291,42 +412,89 @@ namespace Wayfinder
                 projection = glm::orthoRH_ZO(-halfW, halfW, -halfH, halfH, 0.1f, 1000.0f);
             }
 
-            // ── Scene passes ─────────────────────────────────
-            if (m_unlitPipeline.IsValid() && m_cubeMesh.IsValid())
-            {
-                m_unlitPipeline.Bind();
-                m_cubeMesh.Bind(*m_device);
+            // Extract primary directional light for basic_lit
+            Float3 lightDir;
+            float lightIntensity;
+            Float3 lightColor;
+            ExtractPrimaryLight(preparedFrame, lightDir, lightIntensity, lightColor);
 
-                // Sort all scene pass submissions by sort key
-                for (auto& pass : preparedFrame.Passes)
+            // ── Scene passes — per-material pipeline binding ─
+            // Sort all scene pass submissions by sort key
+            for (auto& pass : preparedFrame.Passes)
+            {
+                if (pass.Enabled && pass.Kind == RenderPassKind::Scene)
                 {
-                    if (pass.Enabled && pass.Kind == RenderPassKind::Scene)
-                    {
-                        std::sort(pass.Meshes.begin(), pass.Meshes.end(),
-                            [](const RenderMeshSubmission& a, const RenderMeshSubmission& b)
-                            {
-                                return a.SortKey < b.SortKey;
-                            });
-                    }
+                    std::sort(pass.Meshes.begin(), pass.Meshes.end(),
+                        [](const RenderMeshSubmission& a, const RenderMeshSubmission& b)
+                        {
+                            return a.SortKey < b.SortKey;
+                        });
+                }
+            }
+
+            std::string lastBoundShader;
+
+            for (const auto& pass : preparedFrame.Passes)
+            {
+                if (!pass.Enabled || pass.Kind != RenderPassKind::Scene)
+                {
+                    continue;
                 }
 
-                for (const auto& pass : preparedFrame.Passes)
+                for (const auto& submission : pass.Meshes)
                 {
-                    if (!pass.Enabled || pass.Kind != RenderPassKind::Scene)
+                    if (!submission.Visible)
                     {
                         continue;
                     }
 
-                    for (const auto& submission : pass.Meshes)
+                    const std::string& shaderName = submission.Material.ShaderName;
+
+                    // Bind pipeline + mesh if shader changed
+                    if (shaderName != lastBoundShader)
                     {
-                        if (!submission.Visible)
+                        GPUPipeline* pipeline = GetPipelineForShader(shaderName);
+                        Mesh* mesh = GetMeshForShader(shaderName);
+
+                        if (!pipeline || !mesh || !mesh->IsValid())
                         {
                             continue;
                         }
 
+                        pipeline->Bind();
+                        mesh->Bind(*m_device);
+                        lastBoundShader = shaderName;
+                    }
+
+                    // Push uniforms and draw based on shader type
+                    if (shaderName == "basic_lit")
+                    {
+                        BasicLitTransformUBO transformUBO;
+                        transformUBO.mvp = projection * view * submission.LocalToWorld;
+                        transformUBO.model = submission.LocalToWorld;
+                        m_device->PushVertexUniform(0, &transformUBO, sizeof(BasicLitTransformUBO));
+
+                        BasicLitMaterialUBO materialUBO;
+                        materialUBO.baseColor = ColorToVec4(submission.Material.BaseColor);
+                        materialUBO.lightDirection = lightDir;
+                        materialUBO.lightIntensity = lightIntensity;
+                        materialUBO.lightColor = lightColor;
+                        materialUBO.ambient = 0.15f;
+                        m_device->PushFragmentUniform(0, &materialUBO, sizeof(BasicLitMaterialUBO));
+
+                        GetMeshForShader(shaderName)->Draw(*m_device);
+                    }
+                    else
+                    {
+                        // Unlit path (default)
                         const Matrix4 mvp = projection * view * submission.LocalToWorld;
                         m_device->PushVertexUniform(0, &mvp, sizeof(Matrix4));
-                        m_cubeMesh.Draw(*m_device);
+
+                        UnlitMaterialUBO materialUBO;
+                        materialUBO.baseColor = ColorToVec4(submission.Material.BaseColor);
+                        m_device->PushFragmentUniform(0, &materialUBO, sizeof(UnlitMaterialUBO));
+
+                        GetMeshForShader(shaderName)->Draw(*m_device);
                     }
                 }
             }

@@ -16,6 +16,7 @@ namespace Wayfinder
     {
         AssetId Id;
         std::string Name;
+        std::string ShaderName = "unlit";
         Color BaseColor = Color::White();
         bool Wireframe = true;
     };

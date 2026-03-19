@@ -36,6 +36,7 @@ namespace Wayfinder
         void              DrawIndexed(uint32_t, uint32_t, uint32_t, int32_t) override {}
         void              DrawPrimitives(uint32_t, uint32_t, uint32_t) override {}
         void              PushVertexUniform(uint32_t, const void*, uint32_t) override {}
+        void              PushFragmentUniform(uint32_t, const void*, uint32_t) override {}
 
         // ── Compute (no-ops) ──
         GPUComputePipelineHandle CreateComputePipeline(const ComputePipelineCreateDesc&) override { return nullptr; }

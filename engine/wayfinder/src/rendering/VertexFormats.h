@@ -28,6 +28,13 @@ namespace Wayfinder
         glm::vec2 UV;
     };
 
+    struct VertexPosNormalColor
+    {
+        Float3 Position;
+        Float3 Normal;
+        Float3 Color;
+    };
+
     // ── Vertex Layout Descriptors (SDL_GPU-oriented) ─────────
 
     // These are lightweight structs that mirror SDL_GPUVertexAttribute
@@ -89,6 +96,18 @@ namespace Wayfinder
             .stride = sizeof(VertexPosNormalUV),
             .attribs = PosNormalUVAttribs.data(),
             .attribCount = static_cast<uint32_t>(PosNormalUVAttribs.size()),
+        };
+
+        inline constexpr std::array<VertexAttrib, 3> PosNormalColorAttribs = {{
+            {0, offsetof(VertexPosNormalColor, Position), VertexAttribFormat::Float3},
+            {1, offsetof(VertexPosNormalColor, Normal),   VertexAttribFormat::Float3},
+            {2, offsetof(VertexPosNormalColor, Color),    VertexAttribFormat::Float3},
+        }};
+
+        inline constexpr VertexLayout PosNormalColor = {
+            .stride = sizeof(VertexPosNormalColor),
+            .attribs = PosNormalColorAttribs.data(),
+            .attribCount = static_cast<uint32_t>(PosNormalColorAttribs.size()),
         };
     }
 

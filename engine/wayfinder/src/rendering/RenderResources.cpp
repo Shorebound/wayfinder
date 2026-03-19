@@ -107,6 +107,7 @@ namespace Wayfinder
         }
 
         resource.IsLoadedFromAsset = true;
+        resource.Binding.ShaderName = materialAsset->ShaderName;
         resource.Binding.BaseColor = materialAsset->BaseColor;
         resource.Binding.HasBaseColorOverride = false;
         resource.Binding.WireframeColor = binding.WireframeColor;
