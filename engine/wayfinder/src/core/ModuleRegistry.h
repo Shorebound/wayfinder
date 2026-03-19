@@ -3,6 +3,9 @@
 #include "GameState.h"
 #include "Plugin.h"
 #include "Subsystem.h"
+#include "registrars/StateRegistrar.h"
+#include "registrars/SystemRegistrar.h"
+#include "registrars/TagRegistrar.h"
 #include "wayfinder_exports.h"
 
 #include <functional>
@@ -31,6 +34,9 @@ namespace Wayfinder
     /// This is a descriptor store, not a live world facade. Game modules
     /// declare their systems/components here, and the engine applies those
     /// declarations once into the persistent flecs::world at startup.
+    ///
+    /// Internally delegates system, state, and tag storage to focused
+    /// sub-registries (SystemRegistrar, StateRegistrar, TagRegistrar).
     class WAYFINDER_API ModuleRegistry
     {
     public:
@@ -41,14 +47,10 @@ namespace Wayfinder
         using ComponentValidateFn = bool(*)(const toml::table& componentTable, std::string& error);
         using GlobalFactory = std::function<void(flecs::world&)>;
 
-        struct SystemDescriptor
-        {
-            std::string Name;
-            SystemFactory Factory;
-            RunCondition Condition;
-            std::vector<std::string> After;  ///< Names of systems this must run after.
-            std::vector<std::string> Before; ///< Names of systems this must run before.
-        };
+        /// Type aliases that keep external consumers working unchanged.
+        using SystemDescriptor = SystemRegistrar::Descriptor;
+        using StateDescriptor = StateRegistrar::Descriptor;
+        using TagDescriptor = TagRegistrar::Descriptor;
 
         /// Describes a serializable ECS component for scene authoring.
         struct ComponentDescriptor
@@ -65,21 +67,6 @@ namespace Wayfinder
         {
             std::string Name;
             GlobalFactory Factory;
-        };
-
-        /// Describes a named game state with enter/exit lifecycle callbacks.
-        struct StateDescriptor
-        {
-            std::string Name;
-            std::function<void(flecs::world&)> OnEnter;
-            std::function<void(flecs::world&)> OnExit;
-        };
-
-        /// Describes a code-registered gameplay tag.
-        struct TagDescriptor
-        {
-            std::string Name;
-            std::string Comment;
         };
 
         ModuleRegistry(const ProjectDescriptor& project,
@@ -146,19 +133,19 @@ namespace Wayfinder
         const std::vector<ComponentDescriptor>& GetComponentDescriptors() const { return m_components; }
 
         /// Read-only access to registered system descriptors.
-        const std::vector<SystemDescriptor>& GetSystems() const { return m_systems; }
+        const std::vector<SystemDescriptor>& GetSystems() const { return m_systems.GetDescriptors(); }
 
         /// Read-only access to registered state descriptors.
-        const std::vector<StateDescriptor>& GetStateDescriptors() const { return m_states; }
+        const std::vector<StateDescriptor>& GetStateDescriptors() const { return m_states.GetDescriptors(); }
 
         /// Returns the initial state name (empty if none was set).
-        const std::string& GetInitialState() const { return m_initialState; }
+        const std::string& GetInitialState() const { return m_states.GetInitial(); }
 
         /// Read-only access to registered tag descriptors.
-        const std::vector<TagDescriptor>& GetRegisteredTags() const { return m_tags; }
+        const std::vector<TagDescriptor>& GetRegisteredTags() const { return m_tags.GetDescriptors(); }
 
         /// Read-only access to registered tag file paths.
-        const std::vector<std::string>& GetTagFiles() const { return m_tagFiles; }
+        const std::vector<std::string>& GetTagFiles() const { return m_tags.GetFiles(); }
 
         /// Subsystem factory entry for SubsystemCollection integration.
         struct SubsystemFactoryEntry
@@ -174,21 +161,16 @@ namespace Wayfinder
         /// Read-only access to the project descriptor.
         const ProjectDescriptor& GetProject() const;
 
-        /// Read-only access to engine configuration.
-        const EngineConfig& GetConfig() const;
-
     private:
         const ProjectDescriptor& m_project;
         const EngineConfig& m_config;
         std::vector<std::unique_ptr<Plugin>> m_plugins;
-        std::vector<SystemDescriptor> m_systems;
+        SystemRegistrar m_systems;
+        StateRegistrar m_states;
+        TagRegistrar m_tags;
         std::vector<ComponentDescriptor> m_components;
         std::vector<GlobalDescriptor> m_globals;
-        std::vector<StateDescriptor> m_states;
-        std::vector<TagDescriptor> m_tags;
-        std::vector<std::string> m_tagFiles;
         std::vector<SubsystemFactoryEntry> m_subsystemFactories;
-        std::string m_initialState;
     };
 
 } // namespace Wayfinder
