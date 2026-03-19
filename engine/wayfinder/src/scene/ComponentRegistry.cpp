@@ -450,6 +450,34 @@ namespace
             && ValidateOptionalNumber(componentTable, "sort_priority", error);
     }
 
+    bool ValidateEffectParameter(std::string_view key, const toml::node& node, std::string& error)
+    {
+        if (node.is_integer() || node.is_floating_point() || node.is_boolean()) { return true; }
+
+        if (const toml::array* arr = node.as_array())
+        {
+            if (arr->size() < 3 || arr->size() > 4)
+            {
+                error = std::string("effect parameter '") + std::string(key) + "' array must have 3 or 4 elements";
+                return false;
+            }
+
+            for (size_t i = 0; i < arr->size(); ++i)
+            {
+                if (!arr->get(i)->is_integer() && !arr->get(i)->is_floating_point())
+                {
+                    error = std::string("effect parameter '") + std::string(key) + "' array elements must be numbers";
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        error = std::string("effect parameter '") + std::string(key) + "' must be a number, boolean, or array of numbers";
+        return false;
+    }
+
     bool ValidatePostProcessVolume(const toml::table& componentTable, std::string& error)
     {
         if (!ValidateOptionalEnumValue(componentTable, "shape", {"global", "box", "sphere"}, error))
@@ -467,22 +495,39 @@ namespace
         if (!ValidateOptionalNumber(componentTable, "radius", error))
             return false;
 
-        // Validate the overrides sub-table if present
-        const toml::table* overrides = componentTable["overrides"].as_table();
-        if (overrides)
+        // Validate the effects array if present
+        const toml::node* effectsNode = componentTable.get("effects");
+        if (effectsNode)
         {
-            if (!ValidateOptionalNumber(*overrides, "exposure", error))
+            const toml::array* effectsArray = effectsNode->as_array();
+            if (!effectsArray)
+            {
+                error = "'effects' must be an array of tables";
                 return false;
-            if (!ValidateOptionalNumber(*overrides, "fog_density", error))
-                return false;
-            if (!ValidateOptionalColor(*overrides, "fog_color", error))
-                return false;
-            if (!ValidateOptionalNumber(*overrides, "bloom_threshold", error))
-                return false;
-            if (!ValidateOptionalNumber(*overrides, "bloom_intensity", error))
-                return false;
-            if (!ValidateOptionalNumber(*overrides, "vignette", error))
-                return false;
+            }
+
+            for (size_t i = 0; i < effectsArray->size(); ++i)
+            {
+                const toml::table* effectTable = effectsArray->get(i)->as_table();
+                if (!effectTable)
+                {
+                    error = "each entry in 'effects' must be a table";
+                    return false;
+                }
+
+                const auto* typeNode = effectTable->get("type");
+                if (!typeNode || !typeNode->is_string() || typeNode->value_or(std::string{}).empty())
+                {
+                    error = "each effect must have a non-empty 'type' string";
+                    return false;
+                }
+
+                for (const auto& [key, node] : *effectTable)
+                {
+                    if (key == "type" || key == "enabled") { continue; }
+                    if (!ValidateEffectParameter(key.str(), node, error)) { return false; }
+                }
+            }
         }
 
         return true;
@@ -652,6 +697,57 @@ namespace
         return "global";
     }
 
+    Wayfinder::PostProcessParamValue ReadEffectParam(const toml::node& node)
+    {
+        if (node.is_floating_point()) return static_cast<float>(node.value_or(0.0));
+        if (node.is_integer()) return static_cast<int32_t>(node.value_or(int64_t{0}));
+
+        if (const toml::array* arr = node.as_array())
+        {
+            // All-integer arrays → Color; otherwise → Float3
+            bool allInts = true;
+            for (size_t i = 0; i < arr->size(); ++i)
+            {
+                if (!arr->get(i)->is_integer()) { allInts = false; break; }
+            }
+
+            if (allInts)
+            {
+                Wayfinder::Color c;
+                c.r = static_cast<uint8_t>(arr->get(0)->value_or(int64_t{0}));
+                c.g = static_cast<uint8_t>(arr->get(1)->value_or(int64_t{0}));
+                c.b = static_cast<uint8_t>(arr->get(2)->value_or(int64_t{0}));
+                c.a = arr->size() >= 4 ? static_cast<uint8_t>(arr->get(3)->value_or(int64_t{255})) : 255;
+                return c;
+            }
+
+            if (arr->size() >= 3)
+            {
+                return Wayfinder::Float3{
+                    ReadArrayFloat(*arr, 0, 0.0f),
+                    ReadArrayFloat(*arr, 1, 0.0f),
+                    ReadArrayFloat(*arr, 2, 0.0f)};
+            }
+        }
+
+        return 0.0f;
+    }
+
+    Wayfinder::PostProcessEffect ReadEffect(const toml::table& effectTable)
+    {
+        Wayfinder::PostProcessEffect effect;
+        effect.Type = effectTable["type"].value_or(std::string{});
+        effect.Enabled = effectTable["enabled"].value_or(true);
+
+        for (const auto& [key, node] : effectTable)
+        {
+            if (key == "type" || key == "enabled") { continue; }
+            effect.Parameters[std::string(key.str())] = ReadEffectParam(node);
+        }
+
+        return effect;
+    }
+
     void ApplyPostProcessVolume(const toml::table& componentTable, Wayfinder::Entity& entity)
     {
         Wayfinder::PostProcessVolumeComponent volume;
@@ -661,21 +757,15 @@ namespace
         volume.Dimensions = ReadVector3(componentTable, "dimensions", volume.Dimensions);
         volume.Radius = ReadFloat(componentTable, "radius", volume.Radius);
 
-        const toml::table* overrides = componentTable["overrides"].as_table();
-        if (overrides)
+        if (const toml::array* effectsArray = componentTable["effects"].as_array())
         {
-            if (overrides->contains("exposure"))
-                volume.Overrides.Exposure = ReadFloat(*overrides, "exposure", 1.0f);
-            if (overrides->contains("fog_density"))
-                volume.Overrides.FogDensity = ReadFloat(*overrides, "fog_density", 0.0f);
-            if (overrides->contains("fog_color"))
-                volume.Overrides.FogColor = ReadColor(*overrides, "fog_color", Wayfinder::Color::White());
-            if (overrides->contains("bloom_threshold"))
-                volume.Overrides.BloomThreshold = ReadFloat(*overrides, "bloom_threshold", 1.5f);
-            if (overrides->contains("bloom_intensity"))
-                volume.Overrides.BloomIntensity = ReadFloat(*overrides, "bloom_intensity", 0.0f);
-            if (overrides->contains("vignette"))
-                volume.Overrides.Vignette = ReadFloat(*overrides, "vignette", 0.0f);
+            for (size_t i = 0; i < effectsArray->size(); ++i)
+            {
+                if (const toml::table* effectTable = effectsArray->get(i)->as_table())
+                {
+                    volume.Effects.push_back(ReadEffect(*effectTable));
+                }
+            }
         }
 
         entity.AddComponent<Wayfinder::PostProcessVolumeComponent>(volume);
@@ -786,6 +876,22 @@ namespace
         componentTables.insert_or_assign("renderable", componentTable);
     }
 
+    void WriteEffectParam(toml::table& table, const std::string& key, const Wayfinder::PostProcessParamValue& value)
+    {
+        std::visit([&](const auto& v)
+        {
+            using T = std::decay_t<decltype(v)>;
+            if constexpr (std::is_same_v<T, float>)
+                table.insert_or_assign(key, static_cast<double>(v));
+            else if constexpr (std::is_same_v<T, int32_t>)
+                table.insert_or_assign(key, static_cast<int64_t>(v));
+            else if constexpr (std::is_same_v<T, Wayfinder::Float3>)
+                table.insert_or_assign(key, WriteVector3(v));
+            else if constexpr (std::is_same_v<T, Wayfinder::Color>)
+                table.insert_or_assign(key, WriteColor(v));
+        }, value);
+    }
+
     void SerializePostProcessVolume(const Wayfinder::Entity& entity, toml::table& componentTables)
     {
         if (!entity.HasComponent<Wayfinder::PostProcessVolumeComponent>())
@@ -801,17 +907,24 @@ namespace
         componentTable.insert_or_assign("dimensions", WriteVector3(volume.Dimensions));
         componentTable.insert_or_assign("radius", volume.Radius);
 
-        toml::table overridesTable;
-        if (volume.Overrides.Exposure) overridesTable.insert_or_assign("exposure", *volume.Overrides.Exposure);
-        if (volume.Overrides.FogDensity) overridesTable.insert_or_assign("fog_density", *volume.Overrides.FogDensity);
-        if (volume.Overrides.FogColor) overridesTable.insert_or_assign("fog_color", WriteColor(*volume.Overrides.FogColor));
-        if (volume.Overrides.BloomThreshold) overridesTable.insert_or_assign("bloom_threshold", *volume.Overrides.BloomThreshold);
-        if (volume.Overrides.BloomIntensity) overridesTable.insert_or_assign("bloom_intensity", *volume.Overrides.BloomIntensity);
-        if (volume.Overrides.Vignette) overridesTable.insert_or_assign("vignette", *volume.Overrides.Vignette);
-
-        if (!overridesTable.empty())
+        if (!volume.Effects.empty())
         {
-            componentTable.insert_or_assign("overrides", overridesTable);
+            toml::array effectsArray;
+            for (const auto& effect : volume.Effects)
+            {
+                toml::table effectTable;
+                effectTable.insert_or_assign("type", effect.Type);
+                if (!effect.Enabled) { effectTable.insert_or_assign("enabled", false); }
+
+                for (const auto& [key, value] : effect.Parameters)
+                {
+                    WriteEffectParam(effectTable, key, value);
+                }
+
+                effectsArray.push_back(effectTable);
+            }
+
+            componentTable.insert_or_assign("effects", effectsArray);
         }
 
         componentTables.insert_or_assign("post_process_volume", componentTable);

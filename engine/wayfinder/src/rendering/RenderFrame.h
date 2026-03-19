@@ -175,7 +175,7 @@ namespace Wayfinder
         std::vector<RenderView> Views;
         std::vector<RenderPass> Passes;
         std::vector<RenderLightSubmission> Lights;
-        PostProcessSettings PostProcess;
+        PostProcessStack PostProcess;
 
         size_t AddView(const RenderView& view)
         {

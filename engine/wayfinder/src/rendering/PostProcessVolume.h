@@ -1,7 +1,11 @@
 #pragma once
 
-#include <optional>
+#include <cstdint>
 #include <span>
+#include <string>
+#include <unordered_map>
+#include <variant>
+#include <vector>
 
 #include "RenderTypes.h"
 #include "wayfinder_exports.h"
@@ -15,26 +19,27 @@ namespace Wayfinder
         Sphere
     };
 
-    // Blended post-processing parameters — concrete values consumed by render features.
-    struct PostProcessSettings
-    {
-        float Exposure = 1.0f;
-        float FogDensity = 0.0f;
-        Color FogColor = Color{.r = 180, .g = 200, .b = 220, .a = 255};
-        float BloomThreshold = 1.5f;
-        float BloomIntensity = 0.0f;
-        float Vignette = 0.0f;
-    };
+    // Value type for post-process effect parameters.
+    using PostProcessParamValue = std::variant<float, int32_t, Float3, Color>;
 
-    // Per-volume partial overrides — only set fields participate in blending.
-    struct PostProcessOverrides
+    // A named post-processing effect with a generic parameter bag.
+    // Effects are stacked inside PostProcessVolumeComponents and blended across volumes.
+    // RenderFeatures consume these by querying their effect type from the blended stack.
+    struct WAYFINDER_API PostProcessEffect
     {
-        std::optional<float> Exposure;
-        std::optional<float> FogDensity;
-        std::optional<Color> FogColor;
-        std::optional<float> BloomThreshold;
-        std::optional<float> BloomIntensity;
-        std::optional<float> Vignette;
+        std::string Type; // e.g. "exposure", "bloom", "fog", "vignette"
+        bool Enabled = true;
+        std::unordered_map<std::string, PostProcessParamValue> Parameters;
+
+        float GetFloat(const std::string& name, float fallback = 0.0f) const;
+        int32_t GetInt(const std::string& name, int32_t fallback = 0) const;
+        Float3 GetFloat3(const std::string& name, const Float3& fallback = {0.0f, 0.0f, 0.0f}) const;
+        Color GetColor(const std::string& name, const Color& fallback = Color::White()) const;
+
+        void SetFloat(const std::string& name, float v) { Parameters[name] = v; }
+        void SetInt(const std::string& name, int32_t v) { Parameters[name] = v; }
+        void SetFloat3(const std::string& name, const Float3& v) { Parameters[name] = v; }
+        void SetColor(const std::string& name, const Color& v) { Parameters[name] = v; }
     };
 
     // ECS component placed on scene entities to define post-processing influence volumes.
@@ -45,7 +50,7 @@ namespace Wayfinder
         float BlendDistance = 0.0f;
         Float3 Dimensions = {10.0f, 10.0f, 10.0f}; // full extents for Box shape
         float Radius = 10.0f;                        // radius for Sphere shape
-        PostProcessOverrides Overrides;
+        std::vector<PostProcessEffect> Effects;
 
         PostProcessVolumeComponent() = default;
         PostProcessVolumeComponent(const PostProcessVolumeComponent&) = default;
@@ -59,8 +64,17 @@ namespace Wayfinder
         Float3 WorldScale = {1.0f, 1.0f, 1.0f};
     };
 
-    // Evaluate all active volumes against the camera position and produce blended settings.
-    WAYFINDER_API PostProcessSettings BlendPostProcessVolumes(
+    // Blended result: per-effect-type parameter blocks, ready for consumption by RenderFeatures.
+    struct WAYFINDER_API PostProcessStack
+    {
+        std::unordered_map<std::string, PostProcessEffect> Effects;
+
+        const PostProcessEffect* FindEffect(const std::string& type) const;
+        bool HasEffect(const std::string& type) const;
+    };
+
+    // Evaluate all active volumes against the camera position and produce a blended stack.
+    WAYFINDER_API PostProcessStack BlendPostProcessVolumes(
         const Float3& cameraPosition,
         std::span<const PostProcessVolumeInstance> volumes);
 } // namespace Wayfinder

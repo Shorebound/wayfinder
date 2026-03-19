@@ -56,33 +56,111 @@ namespace
             .a = LerpByte(a.a, b.a, t)};
     }
 
-    void ApplyOverrides(
-        Wayfinder::PostProcessSettings& settings,
-        const Wayfinder::PostProcessOverrides& overrides,
+    // Blend a single parameter value toward a target by weight.
+    Wayfinder::PostProcessParamValue LerpParam(
+        const Wayfinder::PostProcessParamValue& current,
+        const Wayfinder::PostProcessParamValue& target,
         float weight)
     {
-        if (overrides.Exposure)
-            settings.Exposure = glm::mix(settings.Exposure, *overrides.Exposure, weight);
-        if (overrides.FogDensity)
-            settings.FogDensity = glm::mix(settings.FogDensity, *overrides.FogDensity, weight);
-        if (overrides.FogColor)
-            settings.FogColor = LerpColor(settings.FogColor, *overrides.FogColor, weight);
-        if (overrides.BloomThreshold)
-            settings.BloomThreshold = glm::mix(settings.BloomThreshold, *overrides.BloomThreshold, weight);
-        if (overrides.BloomIntensity)
-            settings.BloomIntensity = glm::mix(settings.BloomIntensity, *overrides.BloomIntensity, weight);
-        if (overrides.Vignette)
-            settings.Vignette = glm::mix(settings.Vignette, *overrides.Vignette, weight);
+        // Both sides must hold the same type; if mismatched, take the target.
+        if (current.index() != target.index()) { return target; }
+
+        return std::visit([&](const auto& a) -> Wayfinder::PostProcessParamValue
+        {
+            using T = std::decay_t<decltype(a)>;
+            const auto& b = std::get<T>(target);
+
+            if constexpr (std::is_same_v<T, float>)
+                return glm::mix(a, b, weight);
+            else if constexpr (std::is_same_v<T, int32_t>)
+                return static_cast<int32_t>(std::round(glm::mix(static_cast<float>(a), static_cast<float>(b), weight)));
+            else if constexpr (std::is_same_v<T, Wayfinder::Float3>)
+                return glm::mix(a, b, weight);
+            else if constexpr (std::is_same_v<T, Wayfinder::Color>)
+                return LerpColor(a, b, weight);
+            else
+                return b;
+        }, current);
+    }
+
+    void BlendEffectInto(
+        Wayfinder::PostProcessEffect& result,
+        const Wayfinder::PostProcessEffect& source,
+        float weight)
+    {
+        for (const auto& [key, value] : source.Parameters)
+        {
+            auto it = result.Parameters.find(key);
+            if (it != result.Parameters.end())
+            {
+                it->second = LerpParam(it->second, value, weight);
+            }
+            else
+            {
+                result.Parameters[key] = value;
+            }
+        }
     }
 }
 
 namespace Wayfinder
 {
-    PostProcessSettings BlendPostProcessVolumes(
+    // ── PostProcessEffect accessors ──────────────────────────
+
+    float PostProcessEffect::GetFloat(const std::string& name, float fallback) const
+    {
+        auto it = Parameters.find(name);
+        if (it == Parameters.end()) return fallback;
+        if (const auto* v = std::get_if<float>(&it->second)) return *v;
+        if (const auto* v = std::get_if<int32_t>(&it->second)) return static_cast<float>(*v);
+        return fallback;
+    }
+
+    int32_t PostProcessEffect::GetInt(const std::string& name, int32_t fallback) const
+    {
+        auto it = Parameters.find(name);
+        if (it == Parameters.end()) return fallback;
+        if (const auto* v = std::get_if<int32_t>(&it->second)) return *v;
+        if (const auto* v = std::get_if<float>(&it->second)) return static_cast<int32_t>(*v);
+        return fallback;
+    }
+
+    Float3 PostProcessEffect::GetFloat3(const std::string& name, const Float3& fallback) const
+    {
+        auto it = Parameters.find(name);
+        if (it == Parameters.end()) return fallback;
+        if (const auto* v = std::get_if<Float3>(&it->second)) return *v;
+        return fallback;
+    }
+
+    Color PostProcessEffect::GetColor(const std::string& name, const Color& fallback) const
+    {
+        auto it = Parameters.find(name);
+        if (it == Parameters.end()) return fallback;
+        if (const auto* v = std::get_if<Color>(&it->second)) return *v;
+        return fallback;
+    }
+
+    // ── PostProcessStack ─────────────────────────────────────
+
+    const PostProcessEffect* PostProcessStack::FindEffect(const std::string& type) const
+    {
+        auto it = Effects.find(type);
+        return it != Effects.end() ? &it->second : nullptr;
+    }
+
+    bool PostProcessStack::HasEffect(const std::string& type) const
+    {
+        return Effects.contains(type);
+    }
+
+    // ── Blending ─────────────────────────────────────────────
+
+    PostProcessStack BlendPostProcessVolumes(
         const Float3& cameraPosition,
         std::span<const PostProcessVolumeInstance> volumes)
     {
-        PostProcessSettings result;
+        PostProcessStack result;
 
         if (volumes.empty()) { return result; }
 
@@ -104,7 +182,24 @@ namespace Wayfinder
 
             if (weight <= 0.0f) { continue; }
 
-            ApplyOverrides(result, instance->Volume->Overrides, weight);
+            for (const auto& effect : instance->Volume->Effects)
+            {
+                if (!effect.Enabled) { continue; }
+
+                auto it = result.Effects.find(effect.Type);
+                if (it != result.Effects.end())
+                {
+                    BlendEffectInto(it->second, effect, weight);
+                }
+                else
+                {
+                    // First contribution for this effect type — copy it directly.
+                    PostProcessEffect& entry = result.Effects[effect.Type];
+                    entry.Type = effect.Type;
+                    entry.Enabled = true;
+                    entry.Parameters = effect.Parameters;
+                }
+            }
         }
 
         return result;
