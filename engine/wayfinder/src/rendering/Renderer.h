@@ -64,9 +64,19 @@ namespace Wayfinder
         }
 
         template <typename T>
-        T* GetFeature() const
+        const T* GetFeature() const
         {
             for (const auto& f : m_features)
+            {
+                if (auto* ptr = dynamic_cast<const T*>(f.get())) return ptr;
+            }
+            return nullptr;
+        }
+
+        template <typename T>
+        T* GetFeature()
+        {
+            for (auto& f : m_features)
             {
                 if (auto* ptr = dynamic_cast<T*>(f.get())) return ptr;
             }

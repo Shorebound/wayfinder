@@ -32,7 +32,7 @@ namespace Wayfinder
             pass.DependsOn.push_back(res.WrittenByPass);
         }
         res.IsReadAsSampler = true;
-        res.LastReadByPass = std::max(res.LastReadByPass, m_passIndex);
+        res.LastReadByPass = (res.LastReadByPass == UINT32_MAX) ? m_passIndex : std::max(res.LastReadByPass, m_passIndex);
     }
 
     void RenderGraphBuilder::WriteColor(RenderGraphHandle handle, LoadOp load, ClearValue clear)
@@ -257,6 +257,18 @@ namespace Wayfinder
     {
         if (!m_compiled) return;
 
+        auto deriveUsage = [](const ResourceEntry& res) -> TextureUsage
+        {
+            TextureUsage usage = TextureUsage::ColorTarget;
+            if (res.Desc.Format == TextureFormat::D32_FLOAT ||
+                res.Desc.Format == TextureFormat::D24_UNORM_S8)
+            {
+                usage = TextureUsage::DepthTarget;
+            }
+            if (res.IsReadAsSampler) { usage |= TextureUsage::Sampler; }
+            return usage;
+        };
+
         // ── Allocate transient textures ──────────────────────
         RenderGraphResources resources;
         resources.m_textures.resize(m_resources.size(), nullptr);
@@ -271,18 +283,7 @@ namespace Wayfinder
             texDesc.width = res.Desc.Width;
             texDesc.height = res.Desc.Height;
             texDesc.format = res.Desc.Format;
-
-            // Determine usage flags from how the resource is used
-            texDesc.usage = TextureUsage::ColorTarget;
-            if (res.Desc.Format == TextureFormat::D32_FLOAT ||
-                res.Desc.Format == TextureFormat::D24_UNORM_S8)
-            {
-                texDesc.usage = TextureUsage::DepthTarget;
-            }
-            if (res.IsReadAsSampler)
-            {
-                texDesc.usage = texDesc.usage | TextureUsage::Sampler;
-            }
+            texDesc.usage = deriveUsage(res);
 
             resources.m_textures[i] = pool.Acquire(texDesc);
         }
@@ -346,17 +347,7 @@ namespace Wayfinder
             texDesc.width = res.Desc.Width;
             texDesc.height = res.Desc.Height;
             texDesc.format = res.Desc.Format;
-
-            texDesc.usage = TextureUsage::ColorTarget;
-            if (res.Desc.Format == TextureFormat::D32_FLOAT ||
-                res.Desc.Format == TextureFormat::D24_UNORM_S8)
-            {
-                texDesc.usage = TextureUsage::DepthTarget;
-            }
-            if (res.IsReadAsSampler)
-            {
-                texDesc.usage = texDesc.usage | TextureUsage::Sampler;
-            }
+            texDesc.usage = deriveUsage(res);
 
             pool.Release(resources.m_textures[i], texDesc);
         }

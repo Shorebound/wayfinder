@@ -101,6 +101,23 @@ namespace Wayfinder
         return static_cast<TextureUsage>(static_cast<uint32_t>(a) | static_cast<uint32_t>(b));
     }
 
+    inline TextureUsage& operator|=(TextureUsage& lhs, TextureUsage rhs)
+    {
+        lhs = lhs | rhs;
+        return lhs;
+    }
+
+    inline TextureUsage operator&(TextureUsage a, TextureUsage b)
+    {
+        return static_cast<TextureUsage>(static_cast<uint32_t>(a) & static_cast<uint32_t>(b));
+    }
+
+    inline TextureUsage& operator&=(TextureUsage& lhs, TextureUsage rhs)
+    {
+        lhs = lhs & rhs;
+        return lhs;
+    }
+
     inline bool HasFlag(TextureUsage value, TextureUsage flag)
     {
         return (static_cast<uint32_t>(value) & static_cast<uint32_t>(flag)) != 0;

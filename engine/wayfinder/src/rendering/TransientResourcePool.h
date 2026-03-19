@@ -17,7 +17,7 @@ namespace Wayfinder
     {
     public:
         TransientResourcePool() = default;
-        ~TransientResourcePool() = default;
+        ~TransientResourcePool() { Shutdown(); }
 
         void Initialize(RenderDevice& device);
         void Shutdown();
@@ -43,10 +43,11 @@ namespace Wayfinder
         {
             size_t operator()(const PoolKey& k) const
             {
-                size_t h = std::hash<uint32_t>{}(k.Width);
-                h ^= std::hash<uint32_t>{}(k.Height) << 1;
-                h ^= std::hash<uint8_t>{}(static_cast<uint8_t>(k.Format)) << 2;
-                h ^= std::hash<uint32_t>{}(static_cast<uint32_t>(k.Usage)) << 3;
+                size_t h = 17;
+                h = h * 31 + std::hash<uint32_t>{}(k.Width);
+                h = h * 31 + std::hash<uint32_t>{}(k.Height);
+                h = h * 31 + static_cast<size_t>(k.Format);
+                h = h * 31 + static_cast<size_t>(k.Usage);
                 return h;
             }
         };

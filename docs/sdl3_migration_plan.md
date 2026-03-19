@@ -650,8 +650,3 @@ The migration is complete when:
 6. `waypoint` headless validation works unchanged
 7. Null/headless backend works for automated tests
 8. Dear ImGui SDL3 backend is verified to compile (ready for Cartographer)
-
-
-
-
-

@@ -139,7 +139,7 @@ namespace Wayfinder
             bool IsTransient = true;
             bool IsReadAsSampler = false;
             uint32_t WrittenByPass = UINT32_MAX;  // Last pass that writes this
-            uint32_t LastReadByPass = 0;
+            uint32_t LastReadByPass = UINT32_MAX;
         };
 
         struct ColorWriteInfo

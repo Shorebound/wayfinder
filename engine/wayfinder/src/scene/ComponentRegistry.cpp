@@ -601,6 +601,7 @@ namespace
         renderable.SortPriority = ClampToByte(sortPriority);
         entity.AddComponent<Wayfinder::RenderableComponent>(renderable);
     }
+
     Wayfinder::PostProcessVolumeShape ReadVolumeShape(const toml::table& table, const char* key, Wayfinder::PostProcessVolumeShape fallback)
     {
         const auto value = table[key].value<std::string>();

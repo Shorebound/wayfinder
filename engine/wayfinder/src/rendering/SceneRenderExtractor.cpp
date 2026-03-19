@@ -241,9 +241,10 @@ namespace Wayfinder
             volumeInstances.push_back({.Volume = &volume, .WorldPosition = position, .WorldScale = scale, .LocalToWorld = localToWorld});
         });
 
-        if (!volumeInstances.empty())
+        if (!volumeInstances.empty() && !frame.Views.empty())
         {
-            frame.PostProcess = BlendPostProcessVolumes(cameraPosition, volumeInstances);
+            PostProcessStack blended = BlendPostProcessVolumes(cameraPosition, volumeInstances);
+            for (auto& view : frame.Views) { view.PostProcess = blended; }
         }
 
         return frame;

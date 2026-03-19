@@ -139,6 +139,7 @@ namespace Wayfinder
         Camera CameraState{};
         Color ClearColor = Color::White();
         bool IsPrimary = true;
+        PostProcessStack PostProcess;
     };
 
     enum class RenderPassKind
@@ -175,7 +176,6 @@ namespace Wayfinder
         std::vector<RenderView> Views;
         std::vector<RenderPass> Passes;
         std::vector<RenderLightSubmission> Lights;
-        PostProcessStack PostProcess;
 
         size_t AddView(const RenderView& view)
         {
