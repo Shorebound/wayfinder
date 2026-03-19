@@ -3,7 +3,10 @@
 #include <memory>
 #include <string>
 
+#include <flecs.h>
+
 #include "wayfinder_exports.h"
+#include "../scene/RuntimeComponentRegistry.h"
 
 namespace Wayfinder
 {
@@ -29,12 +32,17 @@ namespace Wayfinder
         const Scene* GetCurrentScene() const { return m_currentScene.get(); }
         std::shared_ptr<AssetService> GetAssetService() const { return m_assetService; }
 
+        flecs::world& GetWorld() { return m_world; }
+        const flecs::world& GetWorld() const { return m_world; }
+
         void SetRunning(bool isRunning) { m_running = isRunning; }
         bool IsRunning() const { return m_running; }
 
     private:
-        void InitializeScene(Scene& scene) const;
+        void InitializeWorld();
 
+        flecs::world m_world;
+        RuntimeComponentRegistry m_componentRegistry;
         std::unique_ptr<Scene> m_currentScene;
         std::shared_ptr<AssetService> m_assetService;
         const ModuleRegistry* m_moduleRegistry = nullptr;

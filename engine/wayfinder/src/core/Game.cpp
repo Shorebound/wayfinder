@@ -28,6 +28,8 @@ namespace Wayfinder
         m_moduleRegistry = ctx.moduleRegistry;
         m_assetService = std::make_shared<AssetService>();
 
+        InitializeWorld();
+
         const auto bootScenePath = ctx.project.ResolveBootScene();
 
         if (!std::filesystem::exists(bootScenePath))
@@ -38,9 +40,8 @@ namespace Wayfinder
 
         const auto resolvedPath = std::filesystem::weakly_canonical(bootScenePath);
 
-        m_currentScene = std::make_unique<Scene>("Default Scene");
+        m_currentScene = std::make_unique<Scene>(m_world, m_componentRegistry, "Default Scene");
         m_currentScene->SetAssetService(m_assetService);
-        InitializeScene(*m_currentScene);
 
         if (!m_currentScene->LoadFromFile(resolvedPath.string()))
         {
@@ -55,15 +56,27 @@ namespace Wayfinder
         return true;
     }
 
+    void Game::InitializeWorld()
+    {
+        // Build the unified component registry: core entries + game entries
+        m_componentRegistry.AddCoreEntries();
+        if (m_moduleRegistry)
+            m_componentRegistry.AddGameEntries(*m_moduleRegistry);
+
+        // Register ECS infrastructure and all components into the world
+        Scene::RegisterCoreECS(m_world);
+        m_componentRegistry.RegisterComponents(m_world);
+
+        if (m_moduleRegistry)
+            m_moduleRegistry->ApplyToWorld(m_world);
+    }
+
     void Game::Update(const float deltaTime)
     {
         if (!m_running || !m_initialized)
             return;
 
-        if (m_currentScene)
-        {
-            m_currentScene->Update(deltaTime);
-        }
+        m_world.progress(deltaTime);
     }
 
     void Game::Shutdown()
@@ -80,9 +93,8 @@ namespace Wayfinder
     {
         UnloadCurrentScene();
 
-        m_currentScene = std::make_unique<Scene>(scenePath);
+        m_currentScene = std::make_unique<Scene>(m_world, m_componentRegistry, scenePath);
         m_currentScene->SetAssetService(m_assetService);
-        InitializeScene(*m_currentScene);
 
         if (std::filesystem::exists(scenePath))
         {
@@ -90,14 +102,6 @@ namespace Wayfinder
         }
 
         WAYFINDER_INFO(LogGame, "Loaded scene: {}", scenePath);
-    }
-
-    void Game::InitializeScene(Scene& scene) const
-    {
-        scene.Initialize();
-
-        if (m_moduleRegistry)
-            m_moduleRegistry->ApplyToWorld(scene.GetWorld());
     }
 
     void Game::UnloadCurrentScene()

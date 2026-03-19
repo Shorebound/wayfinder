@@ -15,8 +15,27 @@ namespace Wayfinder
         m_systems.push_back({std::move(name), std::move(factory)});
     }
 
+    void ModuleRegistry::RegisterComponent(ComponentDescriptor descriptor)
+    {
+        WAYFINDER_INFO(LogEngine, "ModuleRegistry: registered component '{}'", descriptor.Key);
+        m_components.push_back(std::move(descriptor));
+    }
+
+    void ModuleRegistry::RegisterGlobal(std::string name, GlobalFactory factory)
+    {
+        WAYFINDER_INFO(LogEngine, "ModuleRegistry: registered global '{}'", name);
+        m_globals.push_back({std::move(name), std::move(factory)});
+    }
+
     void ModuleRegistry::ApplyToWorld(flecs::world& world) const
     {
+        // Component registration is handled by RuntimeComponentRegistry,
+        // which merges core + game entries. Here we only apply globals and systems.
+        for (const auto& desc : m_globals)
+        {
+            desc.Factory(world);
+        }
+
         for (const auto& desc : m_systems)
         {
             desc.Factory(world);

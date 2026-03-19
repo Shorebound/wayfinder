@@ -638,6 +638,11 @@ namespace Wayfinder
         return registry;
     }
 
+    std::span<const SceneComponentRegistry::Entry> SceneComponentRegistry::GetEntries()
+    {
+        return kEntries;
+    }
+
     void SceneComponentRegistry::RegisterComponents(flecs::world& world) const
     {
         for (const Entry& entry : kEntries)

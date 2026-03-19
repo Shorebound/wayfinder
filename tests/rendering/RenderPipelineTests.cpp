@@ -3,9 +3,11 @@
 #include "rendering/RenderDevice.h"
 #include "rendering/SceneRenderExtractor.h"
 #include "scene/Components.h"
+#include "scene/RuntimeComponentRegistry.h"
 #include "scene/Scene.h"
 #include "scene/entity/Entity.h"
 
+#include <flecs.h>
 #include <cstdlib>
 #include <iostream>
 #include <string>
@@ -71,8 +73,12 @@ namespace
 
     bool TestExtractorBuildsExplicitPassesAndDebugPayload()
     {
-        Wayfinder::Scene scene("Extractor Test Scene");
-        scene.Initialize();
+        flecs::world world;
+        Wayfinder::Scene::RegisterCoreECS(world);
+        Wayfinder::RuntimeComponentRegistry registry;
+        registry.AddCoreEntries();
+        registry.RegisterComponents(world);
+        Wayfinder::Scene scene(world, registry, "Extractor Test Scene");
 
         Wayfinder::Entity camera = scene.CreateEntity("Camera");
         camera.AddComponent<Wayfinder::TransformComponent>(Wayfinder::TransformComponent{{4.0f, 3.0f, 4.0f}});
@@ -95,7 +101,7 @@ namespace
         lightComponent.DebugDraw = true;
         light.AddComponent<Wayfinder::LightComponent>(lightComponent);
 
-        scene.Update(0.016f);
+        world.progress(0.016f);
 
         Wayfinder::SceneRenderExtractor extractor;
         const Wayfinder::RenderFrame frame = extractor.Extract(scene);
@@ -116,8 +122,12 @@ namespace
 
     bool TestExtractorSkipsMeshWithoutRenderable()
     {
-        Wayfinder::Scene scene("Extractor Skip Scene");
-        scene.Initialize();
+        flecs::world world;
+        Wayfinder::Scene::RegisterCoreECS(world);
+        Wayfinder::RuntimeComponentRegistry registry;
+        registry.AddCoreEntries();
+        registry.RegisterComponents(world);
+        Wayfinder::Scene scene(world, registry, "Extractor Skip Scene");
 
         Wayfinder::Entity camera = scene.CreateEntity("Camera");
         camera.AddComponent<Wayfinder::TransformComponent>(Wayfinder::TransformComponent{{2.0f, 2.0f, 2.0f}});
@@ -129,7 +139,7 @@ namespace
         invisibleCube.AddComponent<Wayfinder::TransformComponent>(Wayfinder::TransformComponent{{0.0f, 0.5f, 0.0f}});
         invisibleCube.AddComponent<Wayfinder::MeshComponent>(Wayfinder::MeshComponent{});
 
-        scene.Update(0.016f);
+        world.progress(0.016f);
 
         Wayfinder::SceneRenderExtractor extractor;
         const Wayfinder::RenderFrame frame = extractor.Extract(scene);

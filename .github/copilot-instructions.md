@@ -37,7 +37,7 @@ Enforced by `.clang-format` at the workspace root. Short or empty blocks are one
 - **Members**: `m_` prefix (e.g. `m_window`, `m_capabilities`).
 - **Includes**: Relative to `engine/wayfinder/src/` (e.g. `#include "core/Application.h"`).
 - **Exports**: `WAYFINDER_API` macro on public class declarations.
-- **Doxygen comments**: `/** */` style for classes and public APIs, `///` for internal comments. Use @param, @return, @todo, and @brief tags as appropriate. 
+- **Doxygen comments**: `/** */` style for structs, classes and public APIs. Use @struct, @class, @param, @return, @todo, and @brief tags as appropriate.  `///` for internal comments.
 
 ## Pillars
 

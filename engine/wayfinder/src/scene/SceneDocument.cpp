@@ -1,5 +1,6 @@
 #include "SceneDocument.h"
 
+#include "RuntimeComponentRegistry.h"
 #include "../assets/AssetService.h"
 #include "../rendering/Material.h"
 
@@ -134,7 +135,7 @@ namespace
 
     Wayfinder::SceneDocumentEntity ParseEntityDefinition(
         const toml::table& table,
-        const Wayfinder::SceneComponentRegistry& registry,
+        const Wayfinder::RuntimeComponentRegistry& registry,
         const std::string& fallbackName,
         const std::string& sourceLabel,
         std::vector<std::string>& errors)
@@ -197,7 +198,7 @@ namespace
 
     std::optional<Wayfinder::SceneDocumentEntity> ParsePrefabDefinition(
         const std::filesystem::path& prefabPath,
-        const Wayfinder::SceneComponentRegistry& registry,
+        const Wayfinder::RuntimeComponentRegistry& registry,
         std::unordered_map<std::string, Wayfinder::SceneDocumentEntity>& prefabCache,
         std::vector<std::string>& errors)
     {
@@ -317,7 +318,7 @@ namespace
 
 namespace Wayfinder
 {
-    SceneDocumentLoadResult LoadSceneDocument(const std::string& filePath, const SceneComponentRegistry& registry, AssetService* assetService)
+    SceneDocumentLoadResult LoadSceneDocument(const std::string& filePath, const RuntimeComponentRegistry& registry, AssetService* assetService)
     {
         SceneDocumentLoadResult result;
 
