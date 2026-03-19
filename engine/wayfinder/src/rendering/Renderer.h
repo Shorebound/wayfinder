@@ -4,6 +4,7 @@
 #include "ShaderManager.h"
 #include "GPUPipeline.h"
 #include "Mesh.h"
+#include "PipelineCache.h"
 #include "TransientBufferAllocator.h"
 
 #include <memory>
@@ -41,6 +42,7 @@ namespace Wayfinder
         GPUPipeline m_unlitPipeline;
         GPUPipeline m_debugLinePipeline;
         Mesh m_cubeMesh;
+        PipelineCache m_pipelineCache;
         TransientBufferAllocator m_transientAllocator;
 
         int m_screenWidth;

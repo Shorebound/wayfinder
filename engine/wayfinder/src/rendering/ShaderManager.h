@@ -24,7 +24,8 @@ namespace Wayfinder
 
         // Loads bytecode from "<shaderDirectory>/<name>.vert.spv" or "<name>.frag.spv",
         // creates a GPU shader, and caches it. Returns nullptr on failure.
-        GPUShaderHandle GetShader(const std::string& name, ShaderStage stage);
+        // Resource counts describe the shader's bindings — passed through to ShaderCreateDesc.
+        GPUShaderHandle GetShader(const std::string& name, ShaderStage stage, const ShaderResourceCounts& resources = {});
 
         // Loads compute shader bytecode from "<shaderDirectory>/<name>.comp.spv".
         // Returns the raw bytecode for use with RenderDevice::CreateComputePipeline.

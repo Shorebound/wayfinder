@@ -51,22 +51,23 @@ namespace Wayfinder
         m_isInitialized = true;
 
         m_shaderManager.Initialize(device, config.Shaders.Directory);
+        m_pipelineCache.Initialize(device);
 
-        // Create the unlit pipeline
+        // Create the unlit pipeline (depth test + write enabled for correct occlusion)
         GPUPipelineDesc unlitDesc{};
         unlitDesc.vertexShaderName = "unlit";
         unlitDesc.fragmentShaderName = "unlit";
         unlitDesc.vertexLayout = VertexLayouts::PosColor;
         unlitDesc.cullMode = CullMode::Back;
-        unlitDesc.depthTestEnabled = false;
-        unlitDesc.depthWriteEnabled = false;
+        unlitDesc.depthTestEnabled = true;
+        unlitDesc.depthWriteEnabled = true;
 
-        if (!m_unlitPipeline.Create(device, m_shaderManager, unlitDesc))
+        if (!m_unlitPipeline.Create(device, m_shaderManager, unlitDesc, &m_pipelineCache))
         {
             WAYFINDER_WARNING(LogRenderer, "Renderer: Failed to create unlit pipeline");
         }
 
-        // Create the debug line pipeline (same shader, line topology, no culling)
+        // Create the debug line pipeline (same shader, line topology, no culling, no depth)
         GPUPipelineDesc debugLineDesc{};
         debugLineDesc.vertexShaderName = "unlit";
         debugLineDesc.fragmentShaderName = "unlit";
@@ -76,7 +77,7 @@ namespace Wayfinder
         debugLineDesc.depthTestEnabled = false;
         debugLineDesc.depthWriteEnabled = false;
 
-        if (!m_debugLinePipeline.Create(device, m_shaderManager, debugLineDesc))
+        if (!m_debugLinePipeline.Create(device, m_shaderManager, debugLineDesc, &m_pipelineCache))
         {
             WAYFINDER_WARNING(LogRenderer, "Renderer: Failed to create debug line pipeline");
         }
@@ -102,6 +103,7 @@ namespace Wayfinder
         m_cubeMesh.Destroy();
         m_debugLinePipeline.Destroy();
         m_unlitPipeline.Destroy();
+        m_pipelineCache.Shutdown();
         m_shaderManager.Shutdown();
 
         m_renderPipeline = std::make_unique<RenderPipeline>();
@@ -262,6 +264,10 @@ namespace Wayfinder
         passDesc.colorAttachment.loadOp = LoadOp::Clear;
         passDesc.colorAttachment.storeOp = StoreOp::Store;
         passDesc.targetSwapchain = true;
+        passDesc.depthAttachment.enabled = true;
+        passDesc.depthAttachment.clearDepth = 1.0f;
+        passDesc.depthAttachment.loadOp = LoadOp::Clear;
+        passDesc.depthAttachment.storeOp = StoreOp::DontCare;
 
         m_device->BeginRenderPass(passDesc);
 

@@ -84,15 +84,22 @@ namespace Wayfinder
         ClearValue clearValue{};
         LoadOp loadOp = LoadOp::Clear;
         StoreOp storeOp = StoreOp::Store;
-        // Stage 6: RenderTargetHandle for off-screen targets
+    };
+
+    struct DepthAttachmentDescriptor
+    {
+        float clearDepth = 1.0f;
+        LoadOp loadOp = LoadOp::Clear;
+        StoreOp storeOp = StoreOp::DontCare;
+        bool enabled = false;
     };
 
     struct RenderPassDescriptor
     {
         std::string debugName;
         ColorAttachmentDescriptor colorAttachment{};
+        DepthAttachmentDescriptor depthAttachment{};
         bool targetSwapchain = true;
-        // Stage 6: DepthAttachmentDescriptor, multiple color attachments
     };
 
     // ── Device Info ──────────────────────────────────────────

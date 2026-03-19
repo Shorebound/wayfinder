@@ -72,6 +72,12 @@ namespace Wayfinder
     {
         if (m_device)
         {
+            if (m_depthTexture)
+            {
+                SDL_ReleaseGPUTexture(m_device, m_depthTexture);
+                m_depthTexture = nullptr;
+            }
+
             if (m_window)
             {
                 SDL_ReleaseWindowFromGPUDevice(m_device, m_window);
@@ -110,6 +116,8 @@ namespace Wayfinder
             return false;
         }
 
+        EnsureDepthTexture(m_swapchainWidth, m_swapchainHeight);
+
         return true;
     }
 
@@ -122,6 +130,39 @@ namespace Wayfinder
         }
 
         m_swapchainTexture = nullptr;
+    }
+
+    void SDLGPUDevice::EnsureDepthTexture(uint32_t width, uint32_t height)
+    {
+        if (m_depthTexture && m_depthWidth == width && m_depthHeight == height)
+        {
+            return;
+        }
+
+        if (m_depthTexture)
+        {
+            SDL_ReleaseGPUTexture(m_device, m_depthTexture);
+            m_depthTexture = nullptr;
+        }
+
+        SDL_GPUTextureCreateInfo info{};
+        info.type = SDL_GPU_TEXTURETYPE_2D;
+        info.format = SDL_GPU_TEXTUREFORMAT_D32_FLOAT;
+        info.width = width;
+        info.height = height;
+        info.layer_count_or_depth = 1;
+        info.num_levels = 1;
+        info.usage = SDL_GPU_TEXTUREUSAGE_DEPTH_STENCIL_TARGET;
+
+        m_depthTexture = SDL_CreateGPUTexture(m_device, &info);
+        if (!m_depthTexture)
+        {
+            WAYFINDER_ERROR(LogRenderer, "SDLGPUDevice: Failed to create depth texture ({}x{}) — {}", width, height, SDL_GetError());
+            return;
+        }
+
+        m_depthWidth = width;
+        m_depthHeight = height;
     }
 
     // ── Render Pass ──────────────────────────────────────────
@@ -153,7 +194,34 @@ namespace Wayfinder
         case StoreOp::DontCare: colorTarget.store_op = SDL_GPU_STOREOP_DONT_CARE; break;
         }
 
-        m_renderPass = SDL_BeginGPURenderPass(m_commandBuffer, &colorTarget, 1, nullptr);
+        if (descriptor.depthAttachment.enabled && m_depthTexture)
+        {
+            SDL_GPUDepthStencilTargetInfo depthTarget{};
+            depthTarget.texture = m_depthTexture;
+            depthTarget.clear_depth = descriptor.depthAttachment.clearDepth;
+
+            switch (descriptor.depthAttachment.loadOp)
+            {
+            case LoadOp::Clear:    depthTarget.load_op = SDL_GPU_LOADOP_CLEAR; break;
+            case LoadOp::Load:     depthTarget.load_op = SDL_GPU_LOADOP_LOAD; break;
+            case LoadOp::DontCare: depthTarget.load_op = SDL_GPU_LOADOP_DONT_CARE; break;
+            }
+
+            switch (descriptor.depthAttachment.storeOp)
+            {
+            case StoreOp::Store:    depthTarget.store_op = SDL_GPU_STOREOP_STORE; break;
+            case StoreOp::DontCare: depthTarget.store_op = SDL_GPU_STOREOP_DONT_CARE; break;
+            }
+
+            depthTarget.stencil_load_op = SDL_GPU_LOADOP_DONT_CARE;
+            depthTarget.stencil_store_op = SDL_GPU_STOREOP_DONT_CARE;
+
+            m_renderPass = SDL_BeginGPURenderPass(m_commandBuffer, &colorTarget, 1, &depthTarget);
+        }
+        else
+        {
+            m_renderPass = SDL_BeginGPURenderPass(m_commandBuffer, &colorTarget, 1, nullptr);
+        }
     }
 
     void SDLGPUDevice::EndRenderPass()
@@ -288,7 +356,11 @@ namespace Wayfinder
         SDL_GPUGraphicsPipelineTargetInfo targetInfo{};
         targetInfo.color_target_descriptions = &colorTargetDesc;
         targetInfo.num_color_targets = 1;
-        targetInfo.has_depth_stencil_target = false;
+        targetInfo.has_depth_stencil_target = desc.depthTestEnabled || desc.depthWriteEnabled;
+        if (targetInfo.has_depth_stencil_target)
+        {
+            targetInfo.depth_stencil_format = SDL_GPU_TEXTUREFORMAT_D32_FLOAT;
+        }
 
         // Depth-stencil
         SDL_GPUDepthStencilState depthStencil{};

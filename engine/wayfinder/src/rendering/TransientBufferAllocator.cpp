@@ -80,16 +80,20 @@ namespace Wayfinder
             return {};
         }
 
-        if (cursor + sizeInBytes > capacity)
+        // Align cursor to GPU minimum buffer offset alignment (256 bytes for Vulkan)
+        static constexpr uint32_t kMinAlignment = 256;
+        const uint32_t alignedCursor = (cursor + kMinAlignment - 1) & ~(kMinAlignment - 1);
+
+        if (alignedCursor + sizeInBytes > capacity)
         {
             WAYFINDER_WARNING(LogRenderer, "TransientBufferAllocator: Ring buffer overflow ({} + {} > {} bytes)",
-                cursor, sizeInBytes, capacity);
+                alignedCursor, sizeInBytes, capacity);
             return {};
         }
 
-        const uint32_t offset = cursor;
+        const uint32_t offset = alignedCursor;
         m_device->UploadToBuffer(ring, data, sizeInBytes, offset);
-        cursor += sizeInBytes;
+        cursor = alignedCursor + sizeInBytes;
 
         return { ring, offset, sizeInBytes };
     }

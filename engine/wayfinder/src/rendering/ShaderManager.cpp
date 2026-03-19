@@ -26,7 +26,7 @@ namespace Wayfinder
         m_device = nullptr;
     }
 
-    GPUShaderHandle ShaderManager::GetShader(const std::string& name, ShaderStage stage)
+    GPUShaderHandle ShaderManager::GetShader(const std::string& name, ShaderStage stage, const ShaderResourceCounts& resources)
     {
         ShaderKey key{name, stage};
         auto it = m_cache.find(key);
@@ -51,9 +51,10 @@ namespace Wayfinder
         desc.codeSize = bytecode.size();
         desc.entryPoint = (stage == ShaderStage::Vertex) ? "VSMain" : "PSMain";
         desc.stage = stage;
-        // The vertex shader has 1 UBO (MVP), the fragment shader has 0.
-        // TODO: This should come from shader reflection or a descriptor file.
-        desc.numUniformBuffers = (stage == ShaderStage::Vertex) ? 1 : 0;
+        desc.numUniformBuffers = resources.numUniformBuffers;
+        desc.numSamplers = resources.numSamplers;
+        desc.numStorageTextures = resources.numStorageTextures;
+        desc.numStorageBuffers = resources.numStorageBuffers;
 
         GPUShaderHandle handle = m_device->CreateShader(desc);
         if (!handle)

@@ -41,6 +41,16 @@ namespace Wayfinder
         uint32_t numUniformBuffers = 0;
     };
 
+    // Shader resource counts — describes the resource bindings a shader uses.
+    // Carried by GPUPipelineDesc so ShaderManager can create shaders with correct metadata.
+    struct ShaderResourceCounts
+    {
+        uint32_t numUniformBuffers = 0;
+        uint32_t numSamplers = 0;
+        uint32_t numStorageTextures = 0;
+        uint32_t numStorageBuffers = 0;
+    };
+
     // ── Pipeline Create Descriptor ───────────────────────────
 
     enum class PrimitiveType : uint8_t

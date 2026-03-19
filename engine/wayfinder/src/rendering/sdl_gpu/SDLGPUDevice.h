@@ -71,6 +71,12 @@ namespace Wayfinder
 
         // Compute pass state
         SDL_GPUComputePass* m_computePass = nullptr;
+
+        // Depth buffer — owned by device, matched to swapchain dimensions
+        SDL_GPUTexture* m_depthTexture = nullptr;
+        uint32_t m_depthWidth = 0;
+        uint32_t m_depthHeight = 0;
+        void EnsureDepthTexture(uint32_t width, uint32_t height);
     };
 
 } // namespace Wayfinder

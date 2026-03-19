@@ -37,7 +37,14 @@ namespace
     uint16_t MaterialIdBits(const std::optional<Wayfinder::AssetId>& assetId)
     {
         if (!assetId) return 0;
-        return static_cast<uint16_t>(MakeStableKey(*assetId) & 0xFFFF);
+        // XOR-fold all 16 UUID bytes into 16 bits for better distribution
+        const std::array<std::uint8_t, 16>& bytes = assetId->Value.GetBytes();
+        uint16_t hash = 0;
+        for (size_t i = 0; i < 16; i += 2)
+        {
+            hash ^= static_cast<uint16_t>(bytes[i]) | (static_cast<uint16_t>(bytes[i + 1]) << 8);
+        }
+        return hash;
     }
 }
 
