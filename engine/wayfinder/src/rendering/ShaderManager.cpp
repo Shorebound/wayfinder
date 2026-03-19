@@ -87,4 +87,15 @@ namespace Wayfinder
         return buffer;
     }
 
+    std::vector<uint8_t> ShaderManager::LoadComputeShaderBytecode(const std::string& name)
+    {
+        std::string filePath = (std::filesystem::path(m_shaderDir) / (name + ".comp.spv")).string();
+        std::vector<uint8_t> bytecode = ReadFile(filePath);
+        if (bytecode.empty())
+        {
+            WAYFINDER_ERROR(LogRenderer, "ShaderManager: Failed to load compute shader '{}'", filePath);
+        }
+        return bytecode;
+    }
+
 } // namespace Wayfinder

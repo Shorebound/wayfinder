@@ -7,6 +7,7 @@ struct SDL_GPUDevice;
 struct SDL_GPUCommandBuffer;
 struct SDL_GPURenderPass;
 struct SDL_GPUTexture;
+struct SDL_GPUComputePass;
 
 namespace Wayfinder
 {
@@ -35,13 +36,21 @@ namespace Wayfinder
 
         GPUBufferHandle CreateBuffer(const BufferCreateDesc& desc) override;
         void DestroyBuffer(GPUBufferHandle buffer) override;
-        void UploadToBuffer(GPUBufferHandle buffer, const void* data, uint32_t sizeInBytes) override;
+        void UploadToBuffer(GPUBufferHandle buffer, const void* data, uint32_t sizeInBytes, uint32_t dstOffsetInBytes = 0) override;
 
-        void BindVertexBuffer(GPUBufferHandle buffer, uint32_t slot = 0) override;
-        void BindIndexBuffer(GPUBufferHandle buffer, IndexElementSize indexSize) override;
+        void BindVertexBuffer(GPUBufferHandle buffer, uint32_t slot = 0, uint32_t offsetInBytes = 0) override;
+        void BindIndexBuffer(GPUBufferHandle buffer, IndexElementSize indexSize, uint32_t offsetInBytes = 0) override;
         void DrawIndexed(uint32_t indexCount, uint32_t instanceCount = 1,
                          uint32_t firstIndex = 0, int32_t vertexOffset = 0) override;
+        void DrawPrimitives(uint32_t vertexCount, uint32_t instanceCount = 1, uint32_t firstVertex = 0) override;
         void PushVertexUniform(uint32_t slot, const void* data, uint32_t sizeInBytes) override;
+
+        GPUComputePipelineHandle CreateComputePipeline(const ComputePipelineCreateDesc& desc) override;
+        void DestroyComputePipeline(GPUComputePipelineHandle pipeline) override;
+        void BeginComputePass() override;
+        void EndComputePass() override;
+        void BindComputePipeline(GPUComputePipelineHandle pipeline) override;
+        void DispatchCompute(uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ) override;
 
         const RenderDeviceInfo& GetDeviceInfo() const override { return m_info; }
 
@@ -59,6 +68,9 @@ namespace Wayfinder
         uint32_t m_swapchainHeight = 0;
 
         RenderDeviceInfo m_info;
+
+        // Compute pass state
+        SDL_GPUComputePass* m_computePass = nullptr;
     };
 
 } // namespace Wayfinder

@@ -16,6 +16,7 @@ namespace Wayfinder
     using GPUShaderHandle = void*;
     using GPUPipelineHandle = void*;
     using GPUBufferHandle = void*;
+    using GPUComputePipelineHandle = void*;
 
     // ── Shader Stage ─────────────────────────────────────────
 
@@ -23,6 +24,7 @@ namespace Wayfinder
     {
         Vertex,
         Fragment,
+        Compute,
     };
 
     // ── Shader Create Descriptor ─────────────────────────────
@@ -105,6 +107,24 @@ namespace Wayfinder
         // Stage 6: Blend state, depth format, multiple color targets
     };
 
+    // ── Compute Pipeline Create Descriptor ───────────────────
+
+    struct ComputePipelineCreateDesc
+    {
+        const uint8_t* code = nullptr;
+        size_t codeSize = 0;
+        const char* entryPoint = "main";
+        uint32_t numSamplers = 0;
+        uint32_t numReadOnlyStorageTextures = 0;
+        uint32_t numReadOnlyStorageBuffers = 0;
+        uint32_t numReadWriteStorageTextures = 0;
+        uint32_t numReadWriteStorageBuffers = 0;
+        uint32_t numUniformBuffers = 0;
+        uint32_t threadCountX = 1;
+        uint32_t threadCountY = 1;
+        uint32_t threadCountZ = 1;
+    };
+
     class WAYFINDER_API RenderDevice
     {
     public:
@@ -143,15 +163,26 @@ namespace Wayfinder
 
         virtual GPUBufferHandle CreateBuffer(const BufferCreateDesc& desc) = 0;
         virtual void DestroyBuffer(GPUBufferHandle buffer) = 0;
-        virtual void UploadToBuffer(GPUBufferHandle buffer, const void* data, uint32_t sizeInBytes) = 0;
+        virtual void UploadToBuffer(GPUBufferHandle buffer, const void* data, uint32_t sizeInBytes, uint32_t dstOffsetInBytes = 0) = 0;
 
         // ── Draw Commands ────────────────────────────────────────
 
-        virtual void BindVertexBuffer(GPUBufferHandle buffer, uint32_t slot = 0) = 0;
-        virtual void BindIndexBuffer(GPUBufferHandle buffer, IndexElementSize indexSize) = 0;
+        virtual void BindVertexBuffer(GPUBufferHandle buffer, uint32_t slot = 0, uint32_t offsetInBytes = 0) = 0;
+        virtual void BindIndexBuffer(GPUBufferHandle buffer, IndexElementSize indexSize, uint32_t offsetInBytes = 0) = 0;
         virtual void DrawIndexed(uint32_t indexCount, uint32_t instanceCount = 1,
                                  uint32_t firstIndex = 0, int32_t vertexOffset = 0) = 0;
+        virtual void DrawPrimitives(uint32_t vertexCount, uint32_t instanceCount = 1, uint32_t firstVertex = 0) = 0;
         virtual void PushVertexUniform(uint32_t slot, const void* data, uint32_t sizeInBytes) = 0;
+
+        // ── Compute ──────────────────────────────────────────────
+
+        virtual GPUComputePipelineHandle CreateComputePipeline(const ComputePipelineCreateDesc& desc) = 0;
+        virtual void DestroyComputePipeline(GPUComputePipelineHandle pipeline) = 0;
+        virtual void BeginComputePass() = 0;
+        virtual void EndComputePass() = 0;
+        virtual void BindComputePipeline(GPUComputePipelineHandle pipeline) = 0;
+        virtual void DispatchCompute(uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ) = 0;
+
         // ── Device Info ──────────────────────────────────────
 
         virtual const RenderDeviceInfo& GetDeviceInfo() const = 0;

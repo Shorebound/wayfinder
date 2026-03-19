@@ -4,6 +4,7 @@
 #include "ShaderManager.h"
 #include "GPUPipeline.h"
 #include "Mesh.h"
+#include "TransientBufferAllocator.h"
 
 #include <memory>
 
@@ -34,9 +35,13 @@ namespace Wayfinder
         std::unique_ptr<RenderPipeline> m_renderPipeline;
         std::unique_ptr<RenderResourceCache> m_renderResources;
 
+        void RenderDebugPass(const RenderFrame& frame, const Matrix4& view, const Matrix4& projection);
+
         ShaderManager m_shaderManager;
         GPUPipeline m_unlitPipeline;
+        GPUPipeline m_debugLinePipeline;
         Mesh m_cubeMesh;
+        TransientBufferAllocator m_transientAllocator;
 
         int m_screenWidth;
         int m_screenHeight;

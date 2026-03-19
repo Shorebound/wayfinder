@@ -1,8 +1,11 @@
 #include "SceneRenderExtractor.h"
+#include "SortKey.h"
 
 #include "../core/Log.h"
 #include "../scene/Components.h"
 #include "../scene/Scene.h"
+
+#include <glm/gtc/matrix_transform.hpp>
 
 #include <array>
 #include <cstddef>
@@ -25,11 +28,16 @@ namespace
         return result;
     }
 
-    uint64_t BuildSortKey(const std::optional<Wayfinder::AssetId>& materialAssetId, const Wayfinder::RenderGeometryType geometryType)
+    Wayfinder::SortLayer MapLayer(const Wayfinder::RenderLayerId& layer)
     {
-        const uint64_t geometryBits = static_cast<uint64_t>(geometryType) & 0xFFull;
-        const uint64_t materialBits = materialAssetId ? (MakeStableKey(*materialAssetId) & 0xFFFFFFFFFFFFFF00ull) : 0ull;
-        return materialBits | geometryBits;
+        if (layer == Wayfinder::RenderLayers::Overlay) return Wayfinder::SortLayer::Overlay;
+        return Wayfinder::SortLayer::Opaque;
+    }
+
+    uint16_t MaterialIdBits(const std::optional<Wayfinder::AssetId>& assetId)
+    {
+        if (!assetId) return 0;
+        return static_cast<uint16_t>(MakeStableKey(*assetId) & 0xFFFF);
     }
 }
 
@@ -60,7 +68,18 @@ namespace Wayfinder
             }
         }
 
-        scene.GetWorld().each([&frame](flecs::entity entityHandle, const TransformComponent& transform, const MeshComponent& mesh, const RenderableComponent& renderable)
+        // Compute view matrix for sort-key depth calculation
+        Matrix4 cameraView = glm::mat4(1.0f);
+        if (scene.GetWorld().has<ActiveCameraStateComponent>())
+        {
+            const ActiveCameraStateComponent& activeCamera = scene.GetWorld().get<ActiveCameraStateComponent>();
+            if (activeCamera.IsValid)
+            {
+                cameraView = glm::lookAt(activeCamera.Position, activeCamera.Target, activeCamera.Up);
+            }
+        }
+
+        scene.GetWorld().each([&frame, &cameraView](flecs::entity entityHandle, const TransformComponent& transform, const MeshComponent& mesh, const RenderableComponent& renderable)
         {
             RenderMeshSubmission submission;
             submission.Mesh.Origin = RenderResourceOrigin::BuiltIn;
@@ -113,7 +132,16 @@ namespace Wayfinder
             submission.SortPriority = renderable.SortPriority;
 
             submission.LocalToWorld = localToWorld;
-            submission.SortKey = BuildSortKey(submission.Material.Handle.AssetId, submission.Geometry.Type);
+
+            // Compute camera-space Z for depth sorting
+            const glm::vec4 worldPos = glm::vec4(glm::vec3(localToWorld[3]), 1.0f);
+            const float cameraSpaceZ = (cameraView * worldPos).z;
+
+            submission.SortKey = SortKeyBuilder::Build(
+                MapLayer(submission.Layer),
+                MaterialIdBits(submission.Material.Handle.AssetId),
+                cameraSpaceZ,
+                static_cast<uint16_t>(submission.SortPriority));
 
             RenderPass* owningPass = frame.FindScenePassForSubmission(submission, 0);
             if (!owningPass)

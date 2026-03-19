@@ -365,7 +365,7 @@ namespace Wayfinder
         }
     }
 
-    void SDLGPUDevice::UploadToBuffer(GPUBufferHandle buffer, const void* data, uint32_t sizeInBytes)
+    void SDLGPUDevice::UploadToBuffer(GPUBufferHandle buffer, const void* data, uint32_t sizeInBytes, uint32_t dstOffsetInBytes)
     {
         if (!m_device || !buffer || !data || sizeInBytes == 0)
         {
@@ -413,7 +413,7 @@ namespace Wayfinder
 
         SDL_GPUBufferRegion dst{};
         dst.buffer = static_cast<SDL_GPUBuffer*>(buffer);
-        dst.offset = 0;
+        dst.offset = dstOffsetInBytes;
         dst.size = sizeInBytes;
 
         SDL_UploadToGPUBuffer(copyPass, &src, &dst, false);
@@ -425,7 +425,7 @@ namespace Wayfinder
 
     // ── Draw Commands ────────────────────────────────────────
 
-    void SDLGPUDevice::BindVertexBuffer(GPUBufferHandle buffer, uint32_t slot)
+    void SDLGPUDevice::BindVertexBuffer(GPUBufferHandle buffer, uint32_t slot, uint32_t offsetInBytes)
     {
         if (!m_renderPass || !buffer)
         {
@@ -434,12 +434,12 @@ namespace Wayfinder
 
         SDL_GPUBufferBinding binding{};
         binding.buffer = static_cast<SDL_GPUBuffer*>(buffer);
-        binding.offset = 0;
+        binding.offset = offsetInBytes;
 
         SDL_BindGPUVertexBuffers(m_renderPass, slot, &binding, 1);
     }
 
-    void SDLGPUDevice::BindIndexBuffer(GPUBufferHandle buffer, IndexElementSize indexSize)
+    void SDLGPUDevice::BindIndexBuffer(GPUBufferHandle buffer, IndexElementSize indexSize, uint32_t offsetInBytes)
     {
         if (!m_renderPass || !buffer)
         {
@@ -448,7 +448,7 @@ namespace Wayfinder
 
         SDL_GPUBufferBinding binding{};
         binding.buffer = static_cast<SDL_GPUBuffer*>(buffer);
-        binding.offset = 0;
+        binding.offset = offsetInBytes;
 
         SDL_GPUIndexElementSize sdlIndexSize = (indexSize == IndexElementSize::Uint16)
             ? SDL_GPU_INDEXELEMENTSIZE_16BIT
@@ -476,6 +476,94 @@ namespace Wayfinder
         }
 
         SDL_PushGPUVertexUniformData(m_commandBuffer, slot, data, sizeInBytes);
+    }
+
+    void SDLGPUDevice::DrawPrimitives(uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex)
+    {
+        if (!m_renderPass)
+        {
+            return;
+        }
+
+        SDL_DrawGPUPrimitives(m_renderPass, vertexCount, instanceCount, firstVertex, 0);
+    }
+
+    // ── Compute ──────────────────────────────────────────────
+
+    GPUComputePipelineHandle SDLGPUDevice::CreateComputePipeline(const ComputePipelineCreateDesc& desc)
+    {
+        if (!m_device)
+        {
+            WAYFINDER_ERROR(LogRenderer, "SDLGPUDevice::CreateComputePipeline: No GPU device");
+            return nullptr;
+        }
+
+        SDL_GPUComputePipelineCreateInfo info{};
+        info.code = desc.code;
+        info.code_size = desc.codeSize;
+        info.entrypoint = desc.entryPoint;
+        info.format = SDL_GPU_SHADERFORMAT_SPIRV;
+        info.num_samplers = desc.numSamplers;
+        info.num_readonly_storage_textures = desc.numReadOnlyStorageTextures;
+        info.num_readonly_storage_buffers = desc.numReadOnlyStorageBuffers;
+        info.num_readwrite_storage_textures = desc.numReadWriteStorageTextures;
+        info.num_readwrite_storage_buffers = desc.numReadWriteStorageBuffers;
+        info.num_uniform_buffers = desc.numUniformBuffers;
+        info.threadcount_x = desc.threadCountX;
+        info.threadcount_y = desc.threadCountY;
+        info.threadcount_z = desc.threadCountZ;
+
+        SDL_GPUComputePipeline* pipeline = SDL_CreateGPUComputePipeline(m_device, &info);
+        if (!pipeline)
+        {
+            WAYFINDER_ERROR(LogRenderer, "SDLGPUDevice::CreateComputePipeline: Failed — {}", SDL_GetError());
+            return nullptr;
+        }
+
+        return static_cast<GPUComputePipelineHandle>(pipeline);
+    }
+
+    void SDLGPUDevice::DestroyComputePipeline(GPUComputePipelineHandle pipeline)
+    {
+        if (m_device && pipeline)
+        {
+            SDL_ReleaseGPUComputePipeline(m_device, static_cast<SDL_GPUComputePipeline*>(pipeline));
+        }
+    }
+
+    void SDLGPUDevice::BeginComputePass()
+    {
+        if (!m_commandBuffer)
+        {
+            return;
+        }
+
+        m_computePass = SDL_BeginGPUComputePass(m_commandBuffer, nullptr, 0, nullptr, 0);
+    }
+
+    void SDLGPUDevice::EndComputePass()
+    {
+        if (m_computePass)
+        {
+            SDL_EndGPUComputePass(m_computePass);
+            m_computePass = nullptr;
+        }
+    }
+
+    void SDLGPUDevice::BindComputePipeline(GPUComputePipelineHandle pipeline)
+    {
+        if (m_computePass && pipeline)
+        {
+            SDL_BindGPUComputePipeline(m_computePass, static_cast<SDL_GPUComputePipeline*>(pipeline));
+        }
+    }
+
+    void SDLGPUDevice::DispatchCompute(uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ)
+    {
+        if (m_computePass)
+        {
+            SDL_DispatchGPUCompute(m_computePass, groupCountX, groupCountY, groupCountZ);
+        }
     }
 
 } // namespace Wayfinder
