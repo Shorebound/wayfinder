@@ -1,5 +1,10 @@
 scene_name = "Journey Bootstrap"
 
+[settings]
+gravity = [0.0, -9.81, 0.0]
+ambient_color = [50, 50, 80, 255]
+time_scale = 1.0
+
 [[entities]]
 id = "d43f13fe-fd18-46ad-9e2a-10d9cd0f6f9c"
 name = "WorldRoot"

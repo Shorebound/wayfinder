@@ -1,5 +1,6 @@
 #include "core/Module.h"
 #include "core/ModuleRegistry.h"
+#include "core/GameplayTag.h"
 #include "core/GameState.h"
 #include "core/Plugin.h"
 #include "scene/entity/Entity.h"
@@ -104,12 +105,44 @@ public:
     }
 };
 
+/// Example plugin demonstrating gameplay tag registration.
+class TagDemoPlugin : public Wayfinder::Plugin
+{
+public:
+    void Build(Wayfinder::ModuleRegistry& registry) override
+    {
+        // Declare known tags for editor tooling / validation
+        registry.RegisterTag("Status.Alive");
+        registry.RegisterTag("Status.Burning");
+        registry.RegisterTag("Status.Poisoned");
+        registry.RegisterTag("Faction.Player");
+        registry.RegisterTag("Faction.Enemy");
+
+        // A system that only runs when the "Status.Burning" tag is active
+        registry.RegisterSystem("BurnDamage", [](flecs::world& world)
+        {
+            world.system<HealthComponent>("BurnDamage")
+                .kind(flecs::OnUpdate)
+                .each([](HealthComponent& health)
+                {
+                    if (health.CurrentHealth > 0.0f)
+                    {
+                        health.CurrentHealth -= 0.5f;
+                        if (health.CurrentHealth < 0.0f)
+                            health.CurrentHealth = 0.0f;
+                    }
+                });
+        }, Wayfinder::HasTag("Status.Burning"));
+    }
+};
+
 class JourneyModule : public Wayfinder::Module
 {
     void Register(Wayfinder::ModuleRegistry& registry) override
     {
         registry.AddPlugin<HealthPlugin>();
         registry.AddPlugin<GameplayPlugin>();
+        registry.AddPlugin<TagDemoPlugin>();
     }
 };
 

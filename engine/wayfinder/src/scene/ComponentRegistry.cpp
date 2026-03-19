@@ -2,6 +2,7 @@
 
 #include "Components.h"
 #include "entity/Entity.h"
+#include "../core/GameplayTag.h"
 
 #include <array>
 #include <sstream>
@@ -515,6 +516,65 @@ namespace
         entity.AddComponent<Wayfinder::RenderableComponent>(renderable);
     }
 
+    // ── GameplayTagContainer ────────────────────────────────
+
+    bool ValidateTags(const toml::table& componentTable, std::string& error)
+    {
+        const toml::node* node = componentTable.get("tags");
+        if (!node)
+            return true;
+
+        const toml::array* values = node->as_array();
+        if (!values)
+        {
+            error = "'tags' must be an array of strings";
+            return false;
+        }
+
+        for (size_t i = 0; i < values->size(); ++i)
+        {
+            if (!values->get(i)->is_string())
+            {
+                error = "'tags' array element #" + std::to_string(i) + " must be a string";
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    void ApplyTags(const toml::table& componentTable, Wayfinder::Entity& entity)
+    {
+        Wayfinder::GameplayTagContainer container;
+        if (const toml::array* tags = componentTable["tags"].as_array())
+        {
+            for (const toml::node& node : *tags)
+            {
+                if (const auto str = node.value<std::string>())
+                    container.AddTag(Wayfinder::GameplayTag::FromString(*str));
+            }
+        }
+        entity.AddComponent<Wayfinder::GameplayTagContainer>(container);
+    }
+
+    void SerializeTags(const Wayfinder::Entity& entity, toml::table& componentTables)
+    {
+        if (!entity.HasComponent<Wayfinder::GameplayTagContainer>())
+            return;
+
+        const auto& container = entity.GetComponent<Wayfinder::GameplayTagContainer>();
+        if (container.Tags.empty())
+            return;
+
+        toml::array arr;
+        for (const auto& tag : container.Tags)
+            arr.push_back(tag.Name);
+
+        toml::table t;
+        t.insert_or_assign("tags", std::move(arr));
+        componentTables.insert_or_assign("gameplay_tags", std::move(t));
+    }
+
     void SerializeTransform(const Wayfinder::Entity& entity, toml::table& componentTables)
     {
         if (!entity.HasComponent<Wayfinder::TransformComponent>())
@@ -620,13 +680,14 @@ namespace
         componentTables.insert_or_assign("renderable", componentTable);
     }
 
-    constexpr std::array<Wayfinder::SceneComponentRegistry::Entry, 6> kEntries = {{
+    constexpr std::array<Wayfinder::SceneComponentRegistry::Entry, 7> kEntries = {{
         {"transform", &RegisterComponent<Wayfinder::TransformComponent>, &ApplyTransform, &SerializeTransform, &ValidateTransform},
         {"mesh", &RegisterComponent<Wayfinder::MeshComponent>, &ApplyMesh, &SerializeMesh, &ValidateMesh},
         {"camera", &RegisterComponent<Wayfinder::CameraComponent>, &ApplyCamera, &SerializeCamera, &ValidateCamera},
         {"light", &RegisterComponent<Wayfinder::LightComponent>, &ApplyLight, &SerializeLight, &ValidateLight},
         {"material", &RegisterComponent<Wayfinder::MaterialComponent>, &ApplyMaterial, &SerializeMaterial, &ValidateMaterial},
         {"renderable", &RegisterComponent<Wayfinder::RenderableComponent>, &ApplyRenderable, &SerializeRenderable, &ValidateRenderable},
+        {"gameplay_tags", &RegisterComponent<Wayfinder::GameplayTagContainer>, &ApplyTags, &SerializeTags, &ValidateTags},
     }};
 }
 

@@ -4,6 +4,7 @@
 
 #include <functional>
 #include <string>
+#include <vector>
 
 namespace flecs
 {
@@ -30,5 +31,11 @@ namespace Wayfinder
 
     /// Returns a run condition that is true when the given state is NOT active.
     WAYFINDER_API RunCondition NotInState(std::string stateName);
+
+    /// Returns a run condition that is true when the given gameplay tag is active.
+    WAYFINDER_API RunCondition HasTag(std::string tagName);
+
+    /// Returns a run condition that is true when any of the given tags is active.
+    WAYFINDER_API RunCondition HasAnyTag(std::vector<std::string> tagNames);
 
 } // namespace Wayfinder

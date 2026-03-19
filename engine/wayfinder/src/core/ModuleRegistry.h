@@ -100,6 +100,9 @@ namespace Wayfinder
         /// during initialization, after all registrations are applied.
         void SetInitialState(std::string stateName);
 
+        /// Register a gameplay tag name. Used for editor tooling and validation.
+        void RegisterTag(std::string tagName);
+
         /// Apply all registered system factories into the given world.
         /// Called once by Game::InitializeWorld after core ECS setup.
         void ApplyToWorld(flecs::world& world) const;
@@ -116,6 +119,9 @@ namespace Wayfinder
         /// Returns the initial state name (empty if none was set).
         const std::string& GetInitialState() const { return m_initialState; }
 
+        /// Read-only access to registered tag names.
+        const std::vector<std::string>& GetRegisteredTags() const { return m_tags; }
+
         /// Read-only access to the project descriptor.
         const ProjectDescriptor& GetProject() const;
 
@@ -130,6 +136,7 @@ namespace Wayfinder
         std::vector<ComponentDescriptor> m_components;
         std::vector<GlobalDescriptor> m_globals;
         std::vector<StateDescriptor> m_states;
+        std::vector<std::string> m_tags;
         std::string m_initialState;
     };
 

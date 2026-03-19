@@ -26,6 +26,7 @@ namespace Wayfinder
     struct SceneDocument
     {
         std::string Name;
+        toml::table Settings;
         std::vector<SceneDocumentEntity> Entities;
     };
 

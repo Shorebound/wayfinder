@@ -6,6 +6,7 @@
 #include "entity/Entity.h"
 #include "Components.h"
 #include "../core/Log.h"
+#include "../core/SceneSettings.h"
 
 #include <filesystem>
 #include <unordered_map>
@@ -83,6 +84,9 @@ namespace Wayfinder
         {
             m_world.entity(entityId).destruct();
         }
+
+        // Reset scene-scoped settings
+        m_world.set<SceneSettings>({});
     }
 
     void Scene::Shutdown()
@@ -212,6 +216,10 @@ namespace Wayfinder
             }
 
             WAYFINDER_INFO(LogScene, "Loaded scene data from: {0}", filePath);
+
+            // Apply scene settings as a world singleton
+            m_world.set<SceneSettings>({loadResult.Document->Settings});
+
             return true;
         }
         catch (const std::exception& error)

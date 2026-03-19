@@ -13,6 +13,7 @@
 namespace
 {
     constexpr std::string_view kSceneNameKey = "scene_name";
+    constexpr std::string_view kSettingsKey = "settings";
     constexpr std::string_view kEntitiesKey = "entities";
     constexpr std::string_view kIdKey = "id";
     constexpr std::string_view kNameKey = "name";
@@ -343,6 +344,9 @@ namespace Wayfinder
 
             document.Name = sceneData[kSceneNameKey].value_or(std::string{"Default Scene"});
 
+            if (const toml::table* settings = sceneData[kSettingsKey].as_table())
+                document.Settings = *settings;
+
             const toml::array* entities = sceneData[kEntitiesKey].as_array();
             if (!entities)
             {
@@ -457,6 +461,9 @@ namespace Wayfinder
             toml::array entitiesArray;
 
             sceneData.insert_or_assign(std::string{kSceneNameKey}, document.Name);
+
+            if (!document.Settings.empty())
+                sceneData.insert_or_assign(std::string{kSettingsKey}, document.Settings);
 
             std::vector<SceneDocumentEntity> sortedEntities = document.Entities;
             std::sort(sortedEntities.begin(), sortedEntities.end(), [](const SceneDocumentEntity& left, const SceneDocumentEntity& right)

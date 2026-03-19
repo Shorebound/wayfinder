@@ -7,7 +7,9 @@
 
 #include <flecs.h>
 
+#include "GameplayTag.h"
 #include "GameState.h"
+#include "SceneSettings.h"
 #include "wayfinder_exports.h"
 #include "../scene/RuntimeComponentRegistry.h"
 
@@ -38,6 +40,15 @@ namespace Wayfinder
 
         /// Returns the name of the currently active game state.
         std::string_view GetCurrentState() const;
+
+        /// Add a gameplay tag to the world-level active tag set.
+        void AddGameplayTag(const std::string& tagName);
+
+        /// Remove a gameplay tag from the world-level active tag set.
+        void RemoveGameplayTag(const std::string& tagName);
+
+        /// Check if a gameplay tag is active at the world level.
+        bool HasGameplayTag(const std::string& tagName) const;
 
         Scene* GetCurrentScene() { return m_currentScene.get(); }
         const Scene* GetCurrentScene() const { return m_currentScene.get(); }

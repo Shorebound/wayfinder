@@ -39,6 +39,12 @@ namespace Wayfinder
         m_initialState = std::move(stateName);
     }
 
+    void ModuleRegistry::RegisterTag(std::string tagName)
+    {
+        WAYFINDER_INFO(LogEngine, "ModuleRegistry: registered tag '{}'", tagName);
+        m_tags.push_back(std::move(tagName));
+    }
+
     void ModuleRegistry::ApplyToWorld(flecs::world& world) const
     {
         // Component registration is handled by RuntimeComponentRegistry,

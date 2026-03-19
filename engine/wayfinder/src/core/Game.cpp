@@ -1,9 +1,11 @@
 #include "Game.h"
 #include "EngineConfig.h"
 #include "EngineContext.h"
+#include "GameplayTag.h"
 #include "Log.h"
 #include "ModuleRegistry.h"
 #include "ProjectDescriptor.h"
+#include "SceneSettings.h"
 #include "../assets/AssetService.h"
 #include "../scene/Scene.h"
 
@@ -70,6 +72,14 @@ namespace Wayfinder
         // Initialize the game state singleton
         m_world.component<ActiveGameState>();
         m_world.set<ActiveGameState>({});
+
+        // Initialize scene settings singleton
+        m_world.component<SceneSettings>();
+        m_world.set<SceneSettings>({});
+
+        // Initialize active gameplay tags singleton
+        m_world.component<ActiveGameplayTags>();
+        m_world.set<ActiveGameplayTags>({});
 
         if (m_moduleRegistry)
         {
@@ -168,6 +178,28 @@ namespace Wayfinder
     {
         const ActiveGameState& state = m_world.get<ActiveGameState>();
         return state.Current;
+    }
+
+    void Game::AddGameplayTag(const std::string& tagName)
+    {
+        ActiveGameplayTags& tags = m_world.get_mut<ActiveGameplayTags>();
+        tags.Tags.AddTag(GameplayTag::FromString(tagName));
+        WAYFINDER_INFO(LogGame, "Added gameplay tag: '{}'", tagName);
+        EvaluateRunConditions();
+    }
+
+    void Game::RemoveGameplayTag(const std::string& tagName)
+    {
+        ActiveGameplayTags& tags = m_world.get_mut<ActiveGameplayTags>();
+        tags.Tags.RemoveTag(GameplayTag::FromString(tagName));
+        WAYFINDER_INFO(LogGame, "Removed gameplay tag: '{}'", tagName);
+        EvaluateRunConditions();
+    }
+
+    bool Game::HasGameplayTag(const std::string& tagName) const
+    {
+        const ActiveGameplayTags& tags = m_world.get<ActiveGameplayTags>();
+        return tags.Tags.HasTag(GameplayTag::FromString(tagName));
     }
 
     void Game::BindConditionedSystems()
