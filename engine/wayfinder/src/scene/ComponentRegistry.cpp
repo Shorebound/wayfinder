@@ -546,17 +546,14 @@ namespace
 
     void ApplyTags(const toml::table& componentTable, Wayfinder::Entity& entity)
     {
+        auto& registry = Wayfinder::GameplayTagRegistry::Get();
         Wayfinder::GameplayTagContainer container;
         if (const toml::array* tags = componentTable["tags"].as_array())
         {
             for (const toml::node& node : *tags)
             {
                 if (const auto str = node.value<std::string>())
-                {
-                    const auto* ref = entity.GetHandle().world().try_get<Wayfinder::GameplayTagRegistryRef>();
-                    if (ref && ref->Registry)
-                        container.AddTag(ref->Registry->RequestTag(*str));
-                }
+                    container.AddTag(registry.RequestTag(*str));
             }
         }
         entity.AddComponent<Wayfinder::GameplayTagContainer>(container);

@@ -83,10 +83,6 @@ namespace Wayfinder
         m_world.component<ActiveGameplayTags>();
         m_world.set<ActiveGameplayTags>({});
 
-        // Expose the tag registry to the world so run conditions and scene loading can use it
-        m_world.component<GameplayTagRegistryRef>();
-        m_world.set<GameplayTagRegistryRef>({&m_tagRegistry});
-
         if (m_moduleRegistry)
         {
             m_moduleRegistry->ApplyToWorld(m_world);
@@ -113,6 +109,8 @@ namespace Wayfinder
         WAYFINDER_INFO(LogGame, "Shutting down game");
 
         UnloadCurrentScene();
+
+        GameplayTagRegistry::SetInstance(nullptr);
 
         m_running = false;
         m_initialized = false;
@@ -210,6 +208,9 @@ namespace Wayfinder
 
     void Game::InitializeTagRegistry()
     {
+        // Make this registry globally accessible via GameplayTagRegistry::Get()
+        GameplayTagRegistry::SetInstance(&m_tagRegistry);
+
         if (!m_moduleRegistry)
             return;
 

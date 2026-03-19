@@ -2,10 +2,22 @@
 #include "Log.h"
 
 #include <algorithm>
+#include <cassert>
 #include <toml++/toml.hpp>
 
 namespace Wayfinder
 {
+    GameplayTagRegistry& GameplayTagRegistry::Get()
+    {
+        assert(s_instance && "GameplayTagRegistry::Get() called before Game initialisation");
+        return *s_instance;
+    }
+
+    void GameplayTagRegistry::SetInstance(GameplayTagRegistry* instance)
+    {
+        s_instance = instance;
+    }
+
     GameplayTag GameplayTagRegistry::RegisterTag(const std::string& name, const std::string& comment)
     {
         if (auto it = m_index.find(name); it != m_index.end())

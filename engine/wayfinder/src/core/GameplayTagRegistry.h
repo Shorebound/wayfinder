@@ -33,6 +33,17 @@ namespace Wayfinder
      * The registry validates tag requests and issues warnings for unregistered tags.
      * Tag files can be loaded and unloaded dynamically (e.g. for DLC or game modes).
      *
+     * Access the active instance from anywhere via GameplayTagRegistry::Get().
+     * Ownership lives in Game, which sets/clears the instance pointer during
+     * initialisation and shutdown.
+     *
+     * @note This follows a simple static-accessor singleton pattern. If the engine
+     *       gains a formal EngineSubsystem framework (lifecycle-managed services
+     *       registered with the Application or Game), this class is a natural
+     *       candidate for conversion. The public API (Get(), RegisterTag, RequestTag,
+     *       etc.) would stay the same — only the ownership and discovery mechanism
+     *       would change from a static pointer to a subsystem lookup.
+     *
      * TOML tag file format:
      * @code
      * [[tags]]
@@ -47,6 +58,9 @@ namespace Wayfinder
     class WAYFINDER_API GameplayTagRegistry
     {
     public:
+        /// Access the active GameplayTagRegistry instance.
+        /// Requires that Game has been initialised (asserts in debug).
+        static GameplayTagRegistry& Get();
         /// Register a tag programmatically (from code). Returns the tag.
         /// Updates existing definition's comment if the tag was already registered.
         GameplayTag RegisterTag(const std::string& name, const std::string& comment = {});
@@ -76,22 +90,16 @@ namespace Wayfinder
         /// Ensures all ancestor tags exist (e.g. registering "A.B.C" also registers "A" and "A.B").
         void EnsureAncestors(const std::string& name, const std::string& sourceFile);
 
+        /// Called by Game during init/shutdown to set/clear the active instance.
+        static void SetInstance(GameplayTagRegistry* instance);
+
+        friend class Game;
+
         std::vector<GameplayTagDefinition> m_definitions;
         std::unordered_map<std::string, size_t> m_index; ///< Name -> index into m_definitions.
         std::vector<std::string> m_loadedFiles;
-    };
 
-    /**
-     * @struct GameplayTagRegistryRef
-     * @brief World singleton storing a non-owning pointer to the GameplayTagRegistry.
-     *
-     * Used by component deserialization (e.g. gameplay_tags TOML loading) to
-     * validate tag names during scene loading. General code should obtain tags
-     * from ModuleRegistry::RegisterTag() or GameplayTagRegistry::RequestTag().
-     */
-    struct GameplayTagRegistryRef
-    {
-        GameplayTagRegistry* Registry = nullptr;
+        static inline GameplayTagRegistry* s_instance = nullptr;
     };
 
 } // namespace Wayfinder
