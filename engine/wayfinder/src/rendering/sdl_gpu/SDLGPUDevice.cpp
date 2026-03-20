@@ -393,6 +393,13 @@ namespace Wayfinder
             return GPUPipelineHandle::Invalid();
         }
 
+        if (desc.numColourTargets == 0 || desc.numColourTargets > MAX_COLOUR_TARGETS)
+        {
+            WAYFINDER_ERROR(LogRenderer, "SDLGPUDevice::CreatePipeline: numColourTargets={} is out of range [1, {}]",
+                desc.numColourTargets, MAX_COLOUR_TARGETS);
+            return GPUPipelineHandle::Invalid();
+        }
+
         // Build vertex attributes
         std::vector<SDL_GPUVertexAttribute> vertexAttribs;
         vertexAttribs.reserve(desc.vertexLayout.attribCount);

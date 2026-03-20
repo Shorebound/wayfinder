@@ -18,6 +18,13 @@ namespace Wayfinder
             return false;
         }
 
+        if (desc.numColourTargets == 0 || desc.numColourTargets > MAX_COLOUR_TARGETS)
+        {
+            WAYFINDER_ERROR(LogRenderer, "GPUPipeline: numColourTargets={} is out of range [1, {}]",
+                desc.numColourTargets, MAX_COLOUR_TARGETS);
+            return false;
+        }
+
         PipelineCreateDesc pipeDesc{};
         pipeDesc.vertexShader = vs;
         pipeDesc.fragmentShader = fs;
