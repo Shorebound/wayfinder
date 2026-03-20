@@ -124,13 +124,14 @@ namespace Wayfinder
                     submission.Material.HasOverrides = true;
                     submission.Material.Overrides.SetColor("base_color", LinearColor::FromColor(material.BaseColor));
                 }
+            }
 
-                if (material.HasWireframeOverride || !material.MaterialAssetId)
-                {
-                    submission.Material.StateOverrides.FillMode = material.Wireframe
-                        ? RenderFillMode::SolidAndWireframe
-                        : RenderFillMode::Solid;
-                }
+            if (entityHandle.has<RenderOverrideComponent>())
+            {
+                const auto& renderOverride = entityHandle.get<RenderOverrideComponent>();
+                submission.Material.StateOverrides.FillMode = renderOverride.Wireframe
+                    ? RenderFillMode::SolidAndWireframe
+                    : RenderFillMode::Solid;
             }
 
             submission.Visible = renderable.Visible;

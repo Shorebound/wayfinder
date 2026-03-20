@@ -107,9 +107,6 @@ namespace Wayfinder
         resource.Binding.ShaderName = materialAsset->ShaderName;
         resource.Binding.Parameters = materialAsset->Parameters;
         resource.Binding.HasOverrides = false;
-        resource.Binding.StateOverrides.FillMode = materialAsset->Wireframe
-            ? RenderFillMode::SolidAndWireframe
-            : RenderFillMode::Solid;
         return resource;
     }
 } // namespace Wayfinder

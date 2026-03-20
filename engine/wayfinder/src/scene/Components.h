@@ -101,6 +101,7 @@ namespace Wayfinder
     {
         MeshPrimitive Primitive = MeshPrimitive::Cube;
         Float3 Dimensions = { 1.0f, 1.0f, 1.0f };
+        std::optional<AssetId> MeshAssetId;
 
         MeshComponent() = default;
         MeshComponent(const MeshComponent&) = default;
@@ -111,11 +112,20 @@ namespace Wayfinder
         std::optional<AssetId> MaterialAssetId;
         Color BaseColor = Color::White();
         bool HasBaseColorOverride = false;
-        bool Wireframe = true;
-        bool HasWireframeOverride = false;
 
         MaterialComponent() = default;
         MaterialComponent(const MaterialComponent&) = default;
+    };
+
+    /// Opt-in render-state overrides — controls rasteriser behaviour
+    /// independently of material surface properties.
+    struct RenderOverrideComponent
+    {
+        bool Wireframe = true;
+        /// Future: CullMode, blend overrides, etc.
+
+        RenderOverrideComponent() = default;
+        RenderOverrideComponent(const RenderOverrideComponent&) = default;
     };
 
     struct RenderableComponent

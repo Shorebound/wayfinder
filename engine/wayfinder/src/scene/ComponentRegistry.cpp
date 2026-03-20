@@ -429,7 +429,8 @@ namespace
     bool ValidateMesh(const toml::table& componentTable, std::string& error)
     {
         return ValidateOptionalEnumValue(componentTable, "primitive", {"cube"}, error)
-            && ValidateOptionalVector3(componentTable, "dimensions", error);
+            && ValidateOptionalVector3(componentTable, "dimensions", error)
+            && ValidateOptionalAssetId(componentTable, "asset_id", error);
     }
 
     bool ValidateCamera(const toml::table& componentTable, std::string& error)
@@ -453,8 +454,12 @@ namespace
     bool ValidateMaterial(const toml::table& componentTable, std::string& error)
     {
         return ValidateOptionalAssetId(componentTable, "material_id", error)
-            && ValidateOptionalColor(componentTable, "base_color", error)
-            && ValidateOptionalBool(componentTable, "wireframe", error);
+            && ValidateOptionalColor(componentTable, "base_color", error);
+    }
+
+    bool ValidateRenderOverride(const toml::table& componentTable, std::string& error)
+    {
+        return ValidateOptionalBool(componentTable, "wireframe", error);
     }
 
     bool ValidateRenderable(const toml::table& componentTable, std::string& error)
@@ -591,6 +596,7 @@ namespace
         Wayfinder::MeshComponent mesh;
         mesh.Primitive = ReadPrimitive(componentTable, "primitive", mesh.Primitive);
         mesh.Dimensions = ReadVector3(componentTable, "dimensions", mesh.Dimensions);
+        mesh.MeshAssetId = ReadOptionalAssetId(componentTable, "asset_id");
         entity.AddComponent<Wayfinder::MeshComponent>(mesh);
     }
 
@@ -621,18 +627,19 @@ namespace
         Wayfinder::MaterialComponent material;
         material.MaterialAssetId = ReadOptionalAssetId(componentTable, "material_id");
         material.HasBaseColorOverride = componentTable.contains("base_color");
-        material.HasWireframeOverride = componentTable.contains("wireframe");
         if (material.HasBaseColorOverride)
         {
             material.BaseColor = ReadColor(componentTable, "base_color", material.BaseColor);
         }
 
-        if (material.HasWireframeOverride)
-        {
-            material.Wireframe = componentTable["wireframe"].value_or(material.Wireframe);
-        }
-
         entity.AddComponent<Wayfinder::MaterialComponent>(material);
+    }
+
+    void ApplyRenderOverride(const toml::table& componentTable, Wayfinder::Entity& entity)
+    {
+        Wayfinder::RenderOverrideComponent renderOverride;
+        renderOverride.Wireframe = componentTable["wireframe"].value_or(renderOverride.Wireframe);
+        entity.AddComponent<Wayfinder::RenderOverrideComponent>(renderOverride);
     }
 
     void ApplyRenderable(const toml::table& componentTable, Wayfinder::Entity& entity)
@@ -842,6 +849,10 @@ namespace
         toml::table componentTable;
         componentTable.insert_or_assign("primitive", std::string{ToString(mesh.Primitive)});
         componentTable.insert_or_assign("dimensions", WriteVector3(mesh.Dimensions));
+        if (mesh.MeshAssetId)
+        {
+            componentTable.insert_or_assign("asset_id", mesh.MeshAssetId->ToString());
+        }
         componentTables.insert_or_assign("mesh", componentTable);
     }
 
@@ -898,12 +909,20 @@ namespace
             componentTable.insert_or_assign("base_color", WriteColor(material.BaseColor));
         }
 
-        if (!material.MaterialAssetId || material.HasWireframeOverride)
+        componentTables.insert_or_assign("material", componentTable);
+    }
+
+    void SerializeRenderOverride(const Wayfinder::Entity& entity, toml::table& componentTables)
+    {
+        if (!entity.HasComponent<Wayfinder::RenderOverrideComponent>())
         {
-            componentTable.insert_or_assign("wireframe", material.Wireframe);
+            return;
         }
 
-        componentTables.insert_or_assign("material", componentTable);
+        const Wayfinder::RenderOverrideComponent& renderOverride = entity.GetComponent<Wayfinder::RenderOverrideComponent>();
+        toml::table componentTable;
+        componentTable.insert_or_assign("wireframe", renderOverride.Wireframe);
+        componentTables.insert_or_assign("render_override", componentTable);
     }
 
     void SerializeRenderable(const Wayfinder::Entity& entity, toml::table& componentTables)
@@ -975,13 +994,14 @@ namespace
         componentTables.insert_or_assign("post_process_volume", componentTable);
     }
 
-    constexpr std::array<Wayfinder::SceneComponentRegistry::Entry, 8> kEntries = {{
+    constexpr std::array<Wayfinder::SceneComponentRegistry::Entry, 9> kEntries = {{
         {"transform", &RegisterComponent<Wayfinder::TransformComponent>, &ApplyTransform, &SerializeTransform, &ValidateTransform},
         {"mesh", &RegisterComponent<Wayfinder::MeshComponent>, &ApplyMesh, &SerializeMesh, &ValidateMesh},
         {"camera", &RegisterComponent<Wayfinder::CameraComponent>, &ApplyCamera, &SerializeCamera, &ValidateCamera},
         {"light", &RegisterComponent<Wayfinder::LightComponent>, &ApplyLight, &SerializeLight, &ValidateLight},
         {"material", &RegisterComponent<Wayfinder::MaterialComponent>, &ApplyMaterial, &SerializeMaterial, &ValidateMaterial},
         {"renderable", &RegisterComponent<Wayfinder::RenderableComponent>, &ApplyRenderable, &SerializeRenderable, &ValidateRenderable},
+        {"render_override", &RegisterComponent<Wayfinder::RenderOverrideComponent>, &ApplyRenderOverride, &SerializeRenderOverride, &ValidateRenderOverride},
         {"gameplay_tags", &RegisterComponent<Wayfinder::GameplayTagContainer>, &ApplyTags, &SerializeTags, &ValidateTags},
         {"post_process_volume", &RegisterComponent<Wayfinder::PostProcessVolumeComponent>, &ApplyPostProcessVolume, &SerializePostProcessVolume, &ValidatePostProcessVolume},
     }};

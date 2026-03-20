@@ -5,6 +5,7 @@ add_executable(${WAYFINDER_RENDER_TEST_NAME}
   rendering/RenderGraphTests.cpp
   rendering/RenderFeatureTests.cpp
   rendering/RenderContextTests.cpp
+  rendering/SceneComponentTests.cpp
 )
 
 wayfinder_set_output_directories(${WAYFINDER_RENDER_TEST_NAME})
