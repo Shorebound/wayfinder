@@ -1,5 +1,13 @@
 #pragma once
 
+/**
+ * @brief Fundamental engine types — math aliases and colour primitives.
+ *
+ * This header is dependency-free within the engine (no rendering, scene, or
+ * platform includes) so that any module can use these types without pulling
+ * in heavier subsystems.
+ */
+
 #include <cstdint>
 
 #include <glm/glm.hpp>
@@ -15,6 +23,7 @@ namespace Wayfinder
 
     // ── Color ────────────────────────────────────────────────
 
+    /** @brief 8-bit sRGB colour (authored / on-disk representation). */
     struct Color
     {
         uint8_t r, g, b, a;
@@ -30,9 +39,11 @@ namespace Wayfinder
     };
 
     // ── Linear Color ─────────────────────────────────────────
-    // Float4 color in linear space for GPU-side work.
-    // Conversions from authored sRGB Color happen once at load/extract time.
 
+    /** @brief Float colour in linear space for GPU-side work.
+     *
+     * Conversions from authored sRGB Color happen once at load/extract time.
+     */
     struct LinearColor
     {
         float r = 1.0f, g = 1.0f, b = 1.0f, a = 1.0f;
