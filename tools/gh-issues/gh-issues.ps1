@@ -695,8 +695,14 @@ function Show-Chain {
     $visited = @{}
     $chain = [System.Collections.ArrayList]::new()
 
+    $maxWalkDepth = 25
+
     function Walk-Blockers([int]$Num, [int]$Depth) {
         if ($visited.ContainsKey($Num)) { return }
+        if ($Depth -ge $maxWalkDepth) {
+            Write-Host "  Walk-Blockers: depth cap ($maxWalkDepth) reached at #$Num — stopping" -ForegroundColor Yellow
+            return
+        }
         $visited[$Num] = $true
 
         $query = @"

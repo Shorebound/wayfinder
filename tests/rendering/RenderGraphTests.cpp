@@ -215,12 +215,13 @@ TEST_CASE("Transitive dependency keeps producer alive")
 
 // ── Cycle Detection ──────────────────────────────────────
 
-TEST_CASE("Cyclic dependency is detected and compilation fails")
+TEST_CASE("Graph API prevents cycle formation by construction")
 {
-    // We create a situation where pass ordering cannot be resolved.
-    // Pass A writes to Tex1, reads Tex2
-    // Pass B writes to Tex2, reads Tex1
-    // This creates a cycle: A -> B -> A
+    // The graph builder records WrittenByPass at setup time, and passes are
+    // set up in AddPass order. Because a pass can only read textures that
+    // already have a writer at the time of setup, natural cycles are impossible
+    // through the public API. This test verifies Compile() succeeds for a
+    // pattern that would be cyclic if dependencies could form retroactively.
 
     Wayfinder::RenderGraph graph;
 

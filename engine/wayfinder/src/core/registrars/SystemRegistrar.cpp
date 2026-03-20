@@ -15,6 +15,12 @@ namespace Wayfinder
                                    std::vector<std::string> after,
                                    std::vector<std::string> before)
     {
+        if (!factory)
+        {
+            WAYFINDER_ERROR(LogEngine, "SystemRegistrar: empty factory for system '{}' — registration rejected", name);
+            return;
+        }
+
         for (const auto& existing : m_descriptors)
         {
             if (existing.Name == name)

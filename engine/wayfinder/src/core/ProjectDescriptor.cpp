@@ -72,9 +72,9 @@ namespace Wayfinder
         }
 
         // --- Post-parse validation ---
-        if (result.Descriptor.Name == DEFAULT_PROJECT_NAME)
+        if (result.Descriptor.Name.empty() || result.Descriptor.Name == DEFAULT_PROJECT_NAME)
         {
-            result.Warnings.emplace_back("Project name is 'Untitled' — [project] table may be missing or empty");
+            result.Warnings.emplace_back("Project name is missing or empty — [project] table may be incomplete");
         }
 
         if (result.Descriptor.Paths.BootScene.empty())

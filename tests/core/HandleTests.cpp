@@ -3,6 +3,7 @@
 
 #include <doctest/doctest.h>
 
+#include <type_traits>
 #include <unordered_set>
 
 namespace
@@ -13,6 +14,10 @@ namespace
 
     struct OtherTag {};
     using OtherHandle = Wayfinder::Handle<OtherTag>;
+
+    // Compile-time proof that Handle<A> and Handle<B> are distinct types.
+    static_assert(!std::is_same_v<TestHandle, OtherHandle>,
+                  "Handles with different tags must be distinct types");
 }
 
 // ── Handle Basics ────────────────────────────────────────

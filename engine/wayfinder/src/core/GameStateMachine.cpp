@@ -12,6 +12,8 @@ namespace Wayfinder
     {
         m_world = &world;
         m_moduleRegistry = moduleRegistry;
+        m_conditionedSystems.clear();
+        m_runConditionsDirty = false;
     }
 
     void GameStateMachine::Setup()

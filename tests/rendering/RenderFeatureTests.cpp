@@ -230,7 +230,7 @@ TEST_CASE("NullDevice pipeline creation returns handle")
 
     Wayfinder::PipelineCreateDesc desc;
     auto pipeline = device->CreatePipeline(desc);
-    // NullDevice returns nullptr, but doesn't crash
+    CHECK_FALSE(pipeline.IsValid());
     device->DestroyPipeline(pipeline);
 }
 
@@ -243,7 +243,8 @@ TEST_CASE("NullDevice buffer upload does not crash")
     desc.sizeInBytes = 1024;
 
     auto buffer = device->CreateBuffer(desc);
-    
+    CHECK_FALSE(buffer.IsValid());
+
     // Upload some data — should be a no-op on NullDevice
     uint8_t data[64] = {};
     device->UploadToBuffer(buffer, data, sizeof(data));
@@ -260,6 +261,7 @@ TEST_CASE("NullDevice shader creation returns handle")
     desc.entryPoint = "main";
 
     auto shader = device->CreateShader(desc);
+    CHECK_FALSE(shader.IsValid());
     device->DestroyShader(shader);
 }
 
@@ -287,4 +289,11 @@ TEST_CASE("RenderResourceCache resolves built-in materials")
 
     const auto& resolved = resources.ResolveMesh(scenePass.Meshes[0]);
     CHECK(resolved.Geometry.Type == Wayfinder::RenderGeometryType::Box);
+    CHECK(resolved.Handle.Origin == Wayfinder::RenderResourceOrigin::BuiltIn);
+    CHECK(resolved.Handle.StableKey == 42);
+
+    // Verify that the submission's material binding was set up correctly
+    CHECK(scenePass.Meshes[0].Material.Handle.Origin == Wayfinder::RenderResourceOrigin::BuiltIn);
+    CHECK(scenePass.Meshes[0].Material.ShaderName == "unlit");
+    CHECK(scenePass.Meshes[0].Material.Parameters.Has("base_color"));
 }

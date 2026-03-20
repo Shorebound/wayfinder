@@ -35,11 +35,15 @@ TEST_CASE("RenderContext getters return valid references after init")
     REQUIRE(context.Initialize(*device, MakeTestConfig()));
 
     CHECK(&context.GetDevice() == device.get());
-    CHECK(&context.GetShaders() != nullptr);
-    CHECK(&context.GetPipelines() != nullptr);
-    CHECK(&context.GetPrograms() != nullptr);
-    CHECK(&context.GetTransientBuffers() != nullptr);
-    CHECK(&context.GetTransientPool() != nullptr);
+
+    // These verify the returned references are to the context's own members
+    // (not default-constructed temporaries). Taking an address of a reference
+    // is always non-null, so we just verify they're usable by calling a method.
+    CHECK_NOTHROW(context.GetShaders());
+    CHECK_NOTHROW(context.GetPipelines());
+    CHECK_NOTHROW(context.GetPrograms());
+    CHECK_NOTHROW(context.GetTransientBuffers());
+    CHECK_NOTHROW(context.GetTransientPool());
 
     context.Shutdown();
 }

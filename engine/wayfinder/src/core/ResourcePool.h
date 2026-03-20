@@ -39,7 +39,11 @@ namespace Wayfinder
             }
             else
             {
-                assert(m_entries.size() < MAX_INDEX && "ResourcePool: exceeded maximum slot count");
+                if (m_entries.size() >= MAX_INDEX)
+                {
+                    assert(false && "ResourcePool: exceeded maximum slot count");
+                    return HandleType{};
+                }
                 index = static_cast<uint32_t>(m_entries.size());
                 m_entries.emplace_back();
             }
@@ -120,14 +124,22 @@ namespace Wayfinder
         }
 
         /**
-         * @brief Clears all entries and the free list. Does not call destructors on stored resources
-         *        beyond what the vector clear provides — caller should Release() or otherwise clean
-         *        up resources before calling Clear().
+         * @brief Clears all entries, preserving per-slot generation counters so that
+         *        handles issued before Clear() cannot pass validation after it.
+         *        Caller should Release() or otherwise clean up GPU resources before calling Clear().
          */
         void Clear()
         {
-            m_entries.clear();
             m_freeList.clear();
+            for (uint32_t i = 0; i < m_entries.size(); ++i)
+            {
+                auto& entry = m_entries[i];
+                entry.Resource = TResource{};
+                entry.Alive = false;
+                entry.Generation = (entry.Generation + 1) & MAX_GENERATION;
+                if (entry.Generation == 0) entry.Generation = 1;
+                m_freeList.push_back(i);
+            }
         }
 
     private:

@@ -61,6 +61,7 @@ namespace Wayfinder
         {
             m_device->DestroyBuffer(m_handle);
             m_handle = {};
+            m_size = 0;
         }
     }
 

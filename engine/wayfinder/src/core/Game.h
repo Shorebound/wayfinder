@@ -78,7 +78,7 @@ namespace Wayfinder
         std::unique_ptr<Scene> m_currentScene;
         std::shared_ptr<AssetService> m_assetService;
         const ModuleRegistry* m_moduleRegistry = nullptr;
-        GameStateMachine* m_stateMachine = nullptr;
+        GameStateMachine* m_stateMachine = nullptr; ///< Non-owning; owned by m_subsystems.
         bool m_running = false;
         bool m_initialized = false;
     };

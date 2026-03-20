@@ -6,6 +6,8 @@
 #include "TransientBufferAllocator.h"
 #include "TransientResourcePool.h"
 
+#include <cassert>
+
 namespace Wayfinder
 {
     class RenderDevice;
@@ -29,8 +31,8 @@ namespace Wayfinder
         void Shutdown();
 
         // ── Accessors ────────────────────────────────────────
-        RenderDevice& GetDevice() { return *m_device; }
-        const RenderDevice& GetDevice() const { return *m_device; }
+        RenderDevice& GetDevice() { assert(m_device && "RenderContext::GetDevice called before Initialize"); return *m_device; }
+        const RenderDevice& GetDevice() const { assert(m_device && "RenderContext::GetDevice called before Initialize"); return *m_device; }
 
         ShaderManager& GetShaders() { return m_shaderManager; }
         const ShaderManager& GetShaders() const { return m_shaderManager; }

@@ -14,7 +14,8 @@ namespace Wayfinder
         m_pipelineCache.Initialize(device);
         m_programRegistry.Initialize(device, m_shaderManager, m_pipelineCache);
 
-        // Transient allocator: 4 MB vertex ring, 1 MB index ring
+        // Transient allocator: 4 MB vertex ring, 1 MB index ring.
+        // May fail on Null backend (no real GPU buffers) — non-fatal in that case.
         if (!m_transientAllocator.Initialize(device, 4u * 1024u * 1024u, 1u * 1024u * 1024u))
         {
             WAYFINDER_WARNING(LogRenderer, "RenderContext: Failed to initialize transient buffer allocator");

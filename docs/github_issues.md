@@ -213,7 +213,7 @@ Remove-Item temp.graphql
 
 ## Issue Body Template
 
-Issue bodies should be concise. Labels carry priority, difficulty, and domain. Sub-issues carry the task breakdown. The body provides the context that neither of those can.
+Issue bodies should be concise. Labels carry priority, difficulty, and domain. Sub-issues carry the task breakdown. The body provides the context that neither of these can.
 
 ### Structure
 

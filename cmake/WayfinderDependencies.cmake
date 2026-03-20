@@ -109,7 +109,7 @@ if(WAYFINDER_BUILD_TESTS)
         add_library(doctest::doctest ALIAS doctest_headers)
 
         # Single-TU implementation with main() — link to one test executable
-        add_library(doctest_with_main STATIC "${CMAKE_CURRENT_SOURCE_DIR}/cmake/doctest_main.cpp")
+        add_library(doctest_with_main STATIC "${CMAKE_CURRENT_LIST_DIR}/doctest_main.cpp")
         target_link_libraries(doctest_with_main PUBLIC doctest_headers)
         target_compile_definitions(doctest_with_main PRIVATE DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN)
         add_library(doctest::doctest_with_main ALIAS doctest_with_main)

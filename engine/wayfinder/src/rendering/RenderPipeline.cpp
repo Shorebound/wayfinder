@@ -219,6 +219,10 @@ namespace Wayfinder
                 auto& registry = m_context->GetPrograms();
                 const ShaderProgram* lastBoundProgram = nullptr;
 
+                /// Scratch buffer for material UBO data — reused across draws to avoid
+                /// per-submission heap allocations.
+                std::vector<uint8_t> materialUBOData;
+
                 for (const auto& pass : preparedFrame.Passes)
                 {
                     if (!pass.Enabled || pass.Kind != RenderPassKind::Scene) continue;
@@ -250,7 +254,7 @@ namespace Wayfinder
                             device.PushVertexUniform(0, &transformUBO, sizeof(UnlitTransformUBO));
                         }
 
-                        std::vector<uint8_t> materialUBOData(program->Desc.MaterialUBOSize, 0);
+                        materialUBOData.assign(program->Desc.MaterialUBOSize, 0);
 
                         MaterialParameterBlock mergedParams = submission.Material.Parameters;
                         if (submission.Material.HasOverrides)

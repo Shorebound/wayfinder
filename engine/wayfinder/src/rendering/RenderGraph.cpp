@@ -77,7 +77,12 @@ namespace Wayfinder
 
     GPUTextureHandle RenderGraphResources::GetTexture(RenderGraphHandle handle) const
     {
-        if (!handle.IsValid() || handle.Index >= m_textures.size()) return GPUTextureHandle::Invalid();
+        if (!handle.IsValid() || handle.Index >= m_textures.size())
+        {
+            WAYFINDER_VERBOSE(LogRenderer, "RenderGraphResources::GetTexture: invalid handle (index={}, valid={}, count={})",
+                            handle.Index, handle.IsValid(), m_textures.size());
+            return GPUTextureHandle::Invalid();
+        }
         return m_textures[handle.Index];
     }
 

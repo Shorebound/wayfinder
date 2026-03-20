@@ -53,6 +53,7 @@ namespace Wayfinder
             WAYFINDER_ERROR(LogEngine,
                 "No project.wayfinder found in current directory or any parent. "
                 "Run the engine from within a project directory.");
+            Log::Shutdown();
             return false;
         }
 
@@ -61,6 +62,7 @@ namespace Wayfinder
         if (!loadResult.Valid)
         {
             WAYFINDER_ERROR(LogEngine, "Failed to load project descriptor");
+            Log::Shutdown();
             return false;
         }
 
@@ -87,6 +89,7 @@ namespace Wayfinder
         if (!m_runtime->Initialize())
         {
             WAYFINDER_ERROR(LogEngine, "Failed to initialize EngineRuntime");
+            Shutdown();
             return false;
         }
 
@@ -104,6 +107,7 @@ namespace Wayfinder
         if (!m_game->Initialize(gameCtx))
         {
             WAYFINDER_ERROR(LogEngine, "Failed to initialize Game");
+            Shutdown();
             return false;
         }
 
