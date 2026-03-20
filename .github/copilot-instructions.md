@@ -83,6 +83,7 @@ Issue dependencies use GitHub's native **blocked-by/blocking** API and **sub-iss
 - **Starting a task:** use `show` to check for unresolved blockers before beginning work.
 - **Completing a task:** close the issue and check if any issues it was blocking are now unblocked.
 - **Breaking down a large issue:** create new issues for the sub-tasks, then use `sub-issue` to link them to the parent.
+- **Writing issue bodies:** keep bodies lean — labels carry metadata, sub-issues carry task breakdowns. Follow the template in `docs/github_issues.md`.
 
 Repo is `Shorebound/wayfinder`. The `gh` CLI must be authenticated with repo scope.
 

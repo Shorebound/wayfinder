@@ -176,6 +176,50 @@ gh api graphql -F query=@temp.graphql
 Remove-Item temp.graphql
 ```
 
+## Issue Body Template
+
+Issue bodies should be concise. Labels carry priority, difficulty, and domain. Sub-issues carry the task breakdown. The body provides the context that neither of those can.
+
+### Structure
+
+```markdown
+## Summary
+
+2-3 sentences: what the issue addresses and why it matters.
+No metadata — labels handle priority, difficulty, and domain.
+
+## Implementation Notes
+
+Shared guidance that applies across sub-issues or that someone picking
+this up needs to know. Technical constraints, design decisions, links
+to relevant code or docs. Optional — skip if the summary says it all.
+
+## Definition of Done
+
+- Overarching acceptance criteria.
+- For parent issues: "All sub-issues closed" plus any cross-cutting
+  verification (e.g. "CI green", "no regressions in existing tests").
+- For leaf issues: specific, testable conditions.
+
+**Plan reference:** `docs/plans/<relevant_plan>.md`, section name.
+```
+
+### What goes where
+
+| Information | Where it lives | Not in the body |
+|---|---|---|
+| Priority, difficulty, domain | Labels | ~~Metadata blocks~~ |
+| Phase / scheduling | Milestone | ~~"Phase 2" headers~~ |
+| Task breakdown | Sub-issues | ~~Checklists, tables of sub-tasks~~ |
+| Dependencies | Blocked-by relationships | ~~"Depends on #X" prose~~ |
+| Context and intent | **Issue body** | — |
+
+### Tips
+
+- If an issue has sub-issues, the body is a **parent overview** — don't duplicate what the children already describe.
+- Link to plan docs rather than copying content from them.
+- Keep formatting flat. One or two heading levels is enough.
+
 ## Workflow
 
 When **completing a task**: close the issue and check if any issues it was blocking are now unblocked.
