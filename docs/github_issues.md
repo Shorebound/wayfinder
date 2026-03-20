@@ -251,6 +251,38 @@ to relevant code or docs. Optional — skip if the summary says it all.
 | Dependencies | Blocked-by relationships | ~~"Depends on #X" prose~~ |
 | Context and intent | **Issue body** | — |
 
+### Variants
+
+**Sub-issues** use a lighter structure — no plan reference (the parent carries it), and "Scope" instead of "Implementation Notes" since they describe a single concrete piece of work:
+
+```markdown
+## Summary
+
+One sentence: what this sub-issue delivers.
+
+## Scope
+
+What to build, what to test, key constraints.
+
+## Definition of Done
+
+- Specific, testable conditions for this piece.
+```
+
+**Closed issues** that were completed before the template existed use a retrospective format:
+
+```markdown
+## Summary
+
+What the problem was.
+
+## What Was Done
+
+What was built or changed to solve it.
+
+**Status:** Done.
+```
+
 ### Tips
 
 - If an issue has sub-issues, the body is a **parent overview** — don't duplicate what the children already describe.
