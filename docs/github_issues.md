@@ -86,14 +86,49 @@ A PowerShell script that manages issue relationships via the GitHub GraphQL API.
 ### Show relationships
 
 ```powershell
+# Detailed view with completion status, labels, assignees, and blocker summary
 .\tools\gh-issues\gh-issues.ps1 show 12
-# Output:
-# Issue #12 - P2.1: Scene Entity Index (O(1) lookup) [OPEN]
-#   Blocked by:
-#     [ ] #7 - P1.1: Test Coverage Expansion
+
+# Compact table for comparing multiple issues
+.\tools\gh-issues\gh-issues.ps1 show 12,15,20
 ```
 
-Closed dependencies show `[x]`, open ones show `[ ]`.
+### Sub-issue tree
+
+```powershell
+# Two-level hierarchy with completion counts
+.\tools\gh-issues\gh-issues.ps1 tree 10
+```
+
+### Dependency chain
+
+```powershell
+# Walk the full blocked-by chain recursively, highlights the critical path
+.\tools\gh-issues\gh-issues.ps1 chain 12
+```
+
+### Ready issues
+
+```powershell
+# List all open issues with no unresolved blockers
+.\tools\gh-issues\gh-issues.ps1 ready 0
+```
+
+### Milestone status
+
+```powershell
+# Progress bar and issue breakdown for a milestone
+.\tools\gh-issues\gh-issues.ps1 status 0 -Milestone "Phase 1: Foundation"
+```
+
+### Orphaned issues
+
+```powershell
+# Find open issues with no parent and no milestone
+.\tools\gh-issues\gh-issues.ps1 orphans 0
+```
+
+For `ready`, `status`, and `orphans`, pass `0` as the issue number (it's ignored).
 
 ## GraphQL API Reference
 
@@ -222,8 +257,12 @@ to relevant code or docs. Optional — skip if the summary says it all.
 
 ## Workflow
 
+When **starting a task**: use `show` to check for unresolved blockers. If blocked, use `chain` to find what needs doing first.
+
+When **picking what to work on**: use `ready 0` to see all unblocked issues, or `status 0 -Milestone "..."` for milestone-scoped priorities.
+
 When **completing a task**: close the issue and check if any issues it was blocking are now unblocked.
 
-When **breaking down a large issue**: create new issues for the sub-tasks, then use `sub-issue` to link them to the parent.
+When **breaking down a large issue**: create new issues for the sub-tasks, then use `sub-issue` to link them to the parent. Use `tree` to verify the hierarchy.
 
-When **starting a new task**: use `show` to check if it has unresolved blockers before beginning work.
+When **triaging**: use `orphans 0` to find issues that slipped through without a parent or milestone.

@@ -73,14 +73,21 @@ Issue dependencies use GitHub's native **blocked-by/blocking** API and **sub-iss
 .\tools\gh-issues\gh-issues.ps1 blocked-by 12 7      # #12 is blocked by #7
 .\tools\gh-issues\gh-issues.ps1 blocking 7 12,15     # #7 is blocking #12 and #15
 .\tools\gh-issues\gh-issues.ps1 sub-issue 10 41,42   # #41, #42 are sub-issues of #10
-.\tools\gh-issues\gh-issues.ps1 show 12              # show all relationships for #12
+.\tools\gh-issues\gh-issues.ps1 show 12              # relationships + completion status
+.\tools\gh-issues\gh-issues.ps1 show 12,15,20        # compact table for multiple issues
+.\tools\gh-issues\gh-issues.ps1 tree 10              # sub-issue hierarchy with progress
+.\tools\gh-issues\gh-issues.ps1 chain 12             # walk blocked-by chain, find critical path
+.\tools\gh-issues\gh-issues.ps1 ready 0              # all open unblocked issues
+.\tools\gh-issues\gh-issues.ps1 status 0 -Milestone "Phase 1: Foundation"  # milestone progress
+.\tools\gh-issues\gh-issues.ps1 orphans 0            # issues with no parent or milestone
 .\tools\gh-issues\gh-issues.ps1 remove-blocked-by 12 7  # undo: #12 no longer blocked by #7
 .\tools\gh-issues\gh-issues.ps1 remove-sub-issue 10 41  # undo: #41 no longer sub-issue of #10
 ```
 
 ### Workflow
 
-- **Starting a task:** use `show` to check for unresolved blockers before beginning work.
+- **Starting a task:** run `show` to check for unresolved blockers. If blocked, run `chain` to find the critical path.
+- **Picking work:** run `ready 0` for all unblocked issues, or `status 0 -Milestone "..."` for milestone priorities.
 - **Completing a task:** close the issue and check if any issues it was blocking are now unblocked.
 - **Breaking down a large issue:** create new issues for the sub-tasks, then use `sub-issue` to link them to the parent.
 - **Writing issue bodies:** keep bodies lean — labels carry metadata, sub-issues carry task breakdowns. Follow the template in `docs/github_issues.md`.

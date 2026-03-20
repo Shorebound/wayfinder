@@ -8,7 +8,7 @@ message(STATUS "Configuring dependencies...")
 CPMAddPackage(
     NAME SDL3
     GIT_REPOSITORY https://github.com/libsdl-org/SDL.git
-    GIT_TAG release-3.2.30
+    GIT_TAG release-3.4.2
     OPTIONS
         "SDL_SHARED OFF"
         "SDL_STATIC ON"
@@ -20,12 +20,12 @@ CPMAddPackage(
 CPMAddPackage(
     NAME glm
     GIT_REPOSITORY https://github.com/g-truc/glm.git
-    GIT_TAG 1.0.1
+    GIT_TAG 1.0.3
 )
 
 # --- spdlog ---
 set(SPDLOG_USE_STD_FORMAT ON CACHE BOOL "Use std::format instead of bundled fmt" FORCE)
-CPMAddPackage("gh:gabime/spdlog@1.15.2")
+CPMAddPackage("gh:gabime/spdlog@1.17.0")
 
 # --- tomlplusplus ---
 CPMAddPackage("gh:marzer/tomlplusplus@3.4.0")
@@ -34,13 +34,13 @@ CPMAddPackage("gh:marzer/tomlplusplus@3.4.0")
 CPMAddPackage("gh:nlohmann/json@3.12.0")
 
 # --- Tracy ---
-CPMAddPackage("gh:wolfpld/tracy@0.11.1")
+CPMAddPackage("gh:wolfpld/tracy@0.13.1")
 
 # --- Box2D ---
 CPMAddPackage(
     NAME box2d
     GITHUB_REPOSITORY erincatto/box2d
-    VERSION 3.1.0
+    VERSION 3.1.1
     OPTIONS
         "BOX2D_BUILD_TESTBED OFF"
 )
@@ -72,7 +72,7 @@ CPMAddPackage(
 CPMAddPackage(
     NAME imgui
     GITHUB_REPOSITORY ocornut/imgui
-    VERSION 1.91.9b
+    VERSION 1.92.6
     DOWNLOAD_ONLY YES
 )
 

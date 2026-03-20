@@ -18,14 +18,25 @@
       remove-blocked-by  - Remove a blocked-by relationship
       remove-blocking    - Remove a blocking relationship
       remove-sub-issue   - Remove a sub-issue from its parent
-      show               - Show relationships for an issue
+      show               - Show relationships for an issue (or multiple with -Target)
+      tree               - Show sub-issue hierarchy with completion progress
+      ready              - List open issues that are unblocked and ready to work on
+      status             - Show milestone progress (requires -Milestone)
+      orphans            - Find open issues with no parent and no milestone
+      chain              - Walk the blocked-by dependency chain for an issue
 
 .PARAMETER Issue
-    The issue number to operate on.
+    The issue number(s) to operate on. Most commands take a single number.
+    For show, pass multiple comma-separated numbers for a batch summary.
+    Not required for ready, status, or orphans.
 
 .PARAMETER Target
     The target issue number(s). For blocked-by/blocking: the other issue(s).
     For sub-issue: the child issue(s) to add under Issue.
+    For show: additional issue numbers to display in a compact table.
+
+.PARAMETER Milestone
+    The milestone title for the status command.
 
 .EXAMPLE
     .\tools\gh-issues\gh-issues.ps1 blocked-by 12 7
@@ -53,19 +64,46 @@
 
 .EXAMPLE
     .\tools\gh-issues\gh-issues.ps1 show 12
-    # Shows all relationships for issue #12
+    # Shows all relationships for issue #12 with completion status
+
+.EXAMPLE
+    .\tools\gh-issues\gh-issues.ps1 show 12,15,20
+    # Shows a compact summary table for issues #12, #15, and #20
+
+.EXAMPLE
+    .\tools\gh-issues\gh-issues.ps1 tree 10
+    # Shows sub-issue tree with completion counts for issue #10
+
+.EXAMPLE
+    .\tools\gh-issues\gh-issues.ps1 ready 0
+    # Lists all open issues that are ready to work on (no unresolved blockers)
+
+.EXAMPLE
+    .\tools\gh-issues\gh-issues.ps1 status 0 -Milestone "v0.1"
+    # Shows progress for milestone "v0.1"
+
+.EXAMPLE
+    .\tools\gh-issues\gh-issues.ps1 orphans 0
+    # Finds open issues with no parent and no milestone
+
+.EXAMPLE
+    .\tools\gh-issues\gh-issues.ps1 chain 12
+    # Shows the full dependency chain for issue #12
 #>
 
 param(
     [Parameter(Mandatory, Position = 0)]
-    [ValidateSet("blocked-by", "blocking", "sub-issue", "remove-blocked-by", "remove-blocking", "remove-sub-issue", "show")]
+    [ValidateSet("blocked-by", "blocking", "sub-issue", "remove-blocked-by", "remove-blocking", "remove-sub-issue", "show", "tree", "ready", "status", "orphans", "chain")]
     [string]$Action,
 
-    [Parameter(Mandatory, Position = 1)]
-    [int]$Issue,
+    [Parameter(Position = 1)]
+    [int[]]$Issue = @(0),
 
     [Parameter(Position = 2)]
-    [int[]]$Target
+    [int[]]$Target,
+
+    [Parameter()]
+    [string]$Milestone
 )
 
 $ErrorActionPreference = "Continue"
@@ -294,10 +332,12 @@ query {
     issue(number: $IssueNumber) {
       title
       state
+      labels(first: 20) { nodes { name } }
+      assignees(first: 10) { nodes { login } }
       blockedBy(first: 50) { nodes { number title state } }
       blocking(first: 50) { nodes { number title state } }
       subIssues(first: 50) { nodes { number title state } }
-      parent { number title }
+      parent { number title state }
     }
   }
 }
@@ -314,53 +354,517 @@ query {
     }
 
     if ($result.errors) {
-        # Might not support all fields - fall back to simpler query
         Write-Host "Note: Some relationship fields may not be available on your GitHub plan." -ForegroundColor Yellow
         Write-Error $result.errors[0].message
         return
     }
 
     $issue = $result.data.repository.issue
+    $stateColor = if ($issue.state -eq "CLOSED") { "Green" } else { "White" }
+
     Write-Host ""
-    Write-Host "Issue #$IssueNumber - $($issue.title) [$($issue.state)]" -ForegroundColor Cyan
+    Write-Host "  #$IssueNumber - $($issue.title) " -NoNewline -ForegroundColor Cyan
+    Write-Host "[$($issue.state)]" -ForegroundColor $stateColor
+
+    # Labels
+    if ($issue.labels.nodes.Count -gt 0) {
+        $labelStr = ($issue.labels.nodes | ForEach-Object { $_.name }) -join ", "
+        Write-Host "  Labels: $labelStr" -ForegroundColor DarkGray
+    }
+
+    # Assignees
+    if ($issue.assignees.nodes.Count -gt 0) {
+        $assigneeStr = ($issue.assignees.nodes | ForEach-Object { "@$($_.login)" }) -join ", "
+        Write-Host "  Assigned: $assigneeStr" -ForegroundColor DarkGray
+    }
+
     Write-Host ""
 
+    # Parent with state
     if ($issue.parent) {
-        Write-Host "  Parent: #$($issue.parent.number) ($($issue.parent.title))" -ForegroundColor Magenta
+        $parentIcon = if ($issue.parent.state -eq "CLOSED") { "[x]" } else { "[ ]" }
+        $parentColor = if ($issue.parent.state -eq "CLOSED") { "DarkGray" } else { "Magenta" }
+        Write-Host "  Parent: $parentIcon #$($issue.parent.number) - $($issue.parent.title)" -ForegroundColor $parentColor
     }
 
-    if ($issue.blockedBy.nodes.Count -gt 0) {
-        Write-Host "  Blocked by:" -ForegroundColor Yellow
-        foreach ($b in $issue.blockedBy.nodes) {
+    # Blocked by with completion count
+    $blockedByNodes = @($issue.blockedBy.nodes)
+    if ($blockedByNodes.Count -gt 0) {
+        $resolvedCount = @($blockedByNodes | Where-Object { $_.state -eq "CLOSED" }).Count
+        $totalCount = $blockedByNodes.Count
+        if ($resolvedCount -eq $totalCount) {
+            Write-Host "  Blocked by (ALL RESOLVED):" -ForegroundColor Green
+        } else {
+            Write-Host "  Blocked by ($resolvedCount/$totalCount resolved):" -ForegroundColor Yellow
+        }
+        foreach ($b in $blockedByNodes) {
             $icon = if ($b.state -eq "CLOSED") { "[x]" } else { "[ ]" }
-            Write-Host "    $icon #$($b.number) - $($b.title)" -ForegroundColor $(if ($b.state -eq "CLOSED") { "DarkGray" } else { "White" })
+            $color = if ($b.state -eq "CLOSED") { "DarkGray" } else { "White" }
+            Write-Host "    $icon #$($b.number) - $($b.title)" -ForegroundColor $color
         }
     }
 
-    if ($issue.blocking.nodes.Count -gt 0) {
-        Write-Host "  Blocking:" -ForegroundColor Yellow
-        foreach ($b in $issue.blocking.nodes) {
+    # Blocking with completion count
+    $blockingNodes = @($issue.blocking.nodes)
+    if ($blockingNodes.Count -gt 0) {
+        $doneCount = @($blockingNodes | Where-Object { $_.state -eq "CLOSED" }).Count
+        $totalCount = $blockingNodes.Count
+        Write-Host "  Blocking ($doneCount/$totalCount done):" -ForegroundColor Yellow
+        foreach ($b in $blockingNodes) {
             $icon = if ($b.state -eq "CLOSED") { "[x]" } else { "[ ]" }
-            Write-Host "    $icon #$($b.number) - $($b.title)" -ForegroundColor $(if ($b.state -eq "CLOSED") { "DarkGray" } else { "White" })
+            $color = if ($b.state -eq "CLOSED") { "DarkGray" } else { "White" }
+            Write-Host "    $icon #$($b.number) - $($b.title)" -ForegroundColor $color
         }
     }
 
-    if ($issue.subIssues.nodes.Count -gt 0) {
-        Write-Host "  Sub-issues:" -ForegroundColor Yellow
-        foreach ($s in $issue.subIssues.nodes) {
+    # Sub-issues with completion count
+    $subNodes = @($issue.subIssues.nodes)
+    if ($subNodes.Count -gt 0) {
+        $doneCount = @($subNodes | Where-Object { $_.state -eq "CLOSED" }).Count
+        $totalCount = $subNodes.Count
+        $subColor = if ($doneCount -eq $totalCount) { "Green" } else { "Yellow" }
+        Write-Host "  Sub-issues ($doneCount/$totalCount complete):" -ForegroundColor $subColor
+        foreach ($s in $subNodes) {
             $icon = if ($s.state -eq "CLOSED") { "[x]" } else { "[ ]" }
-            Write-Host "    $icon #$($s.number) - $($s.title)" -ForegroundColor $(if ($s.state -eq "CLOSED") { "DarkGray" } else { "White" })
+            $color = if ($s.state -eq "CLOSED") { "DarkGray" } else { "White" }
+            Write-Host "    $icon #$($s.number) - $($s.title)" -ForegroundColor $color
         }
     }
 
-    $hasAny = $issue.parent -or $issue.blockedBy.nodes.Count -gt 0 -or $issue.blocking.nodes.Count -gt 0 -or $issue.subIssues.nodes.Count -gt 0
+    $hasAny = $issue.parent -or $blockedByNodes.Count -gt 0 -or $blockingNodes.Count -gt 0 -or $subNodes.Count -gt 0
     if (-not $hasAny) {
         Write-Host "  No relationships found." -ForegroundColor DarkGray
+    }
+
+    # Overall status summary
+    Write-Host ""
+    if ($issue.state -eq "CLOSED") {
+        Write-Host "  Status: DONE" -ForegroundColor Green
+    } elseif ($blockedByNodes.Count -gt 0) {
+        $unresolvedCount = @($blockedByNodes | Where-Object { $_.state -ne "CLOSED" }).Count
+        if ($unresolvedCount -gt 0) {
+            $plural = if ($unresolvedCount -ne 1) { "s" } else { "" }
+            Write-Host "  Status: BLOCKED ($unresolvedCount unresolved blocker$plural)" -ForegroundColor Red
+        } else {
+            Write-Host "  Status: READY (all blockers resolved)" -ForegroundColor Green
+        }
+    } else {
+        Write-Host "  Status: READY" -ForegroundColor Green
+    }
+    Write-Host ""
+}
+
+function Show-BatchSummary {
+    param([int[]]$IssueNumbers)
+
+    # Build a single GraphQL query for all issues
+    $fields = ($IssueNumbers | ForEach-Object { "i$($_): issue(number: $_) { number title state labels(first: 10) { nodes { name } } assignees(first: 5) { nodes { login } } blockedBy(first: 50) { nodes { state } } subIssues(first: 50) { nodes { state } } }" }) -join " "
+    $query = "query { repository(owner: `"$OWNER`", name: `"$REPO`") { $fields } }"
+
+    $tempFile = [System.IO.Path]::GetTempFileName()
+    try {
+        Set-Content -Path $tempFile -Value $query -Encoding ascii -NoNewline
+        $raw = gh api graphql -F query=@$tempFile 2>&1
+        $result = ($raw | Where-Object { $_ -is [string] -or $_.GetType().Name -ne 'ErrorRecord' }) -join "`n" | ConvertFrom-Json
+    }
+    finally {
+        Remove-Item -Path $tempFile -ErrorAction SilentlyContinue
+    }
+
+    if ($result.errors) {
+        Write-Error "GraphQL error: $($result.errors[0].message)"
+        return
+    }
+
+    Write-Host ""
+    Write-Host "  #       State    Status     Sub-issues  Title" -ForegroundColor Cyan
+    Write-Host "  $('-' * 75)" -ForegroundColor DarkGray
+
+    foreach ($num in $IssueNumbers) {
+        $issue = $result.data.repository."i$num"
+        if (-not $issue) { continue }
+
+        $stateStr = $issue.state.PadRight(6)
+
+        # Determine status
+        $blockers = @($issue.blockedBy.nodes)
+        $unresolvedBlockers = @($blockers | Where-Object { $_.state -ne "CLOSED" }).Count
+        if ($issue.state -eq "CLOSED") {
+            $statusStr = "DONE"
+            $statusColor = "Green"
+        } elseif ($unresolvedBlockers -gt 0) {
+            $statusStr = "BLOCKED"
+            $statusColor = "Red"
+        } else {
+            $statusStr = "READY"
+            $statusColor = "Green"
+        }
+
+        # Sub-issue progress
+        $subs = @($issue.subIssues.nodes)
+        if ($subs.Count -gt 0) {
+            $subDone = @($subs | Where-Object { $_.state -eq "CLOSED" }).Count
+            $subStr = "$subDone/$($subs.Count)"
+        } else {
+            $subStr = "-"
+        }
+
+        $stateColor = if ($issue.state -eq "CLOSED") { "DarkGray" } else { "White" }
+
+        Write-Host "  " -NoNewline
+        Write-Host ("#$num").PadRight(8) -NoNewline -ForegroundColor $stateColor
+        Write-Host $stateStr.PadRight(9) -NoNewline -ForegroundColor $stateColor
+        Write-Host $statusStr.PadRight(11) -NoNewline -ForegroundColor $statusColor
+        Write-Host $subStr.PadRight(12) -NoNewline -ForegroundColor $stateColor
+        Write-Host $issue.title -ForegroundColor $stateColor
+    }
+    Write-Host ""
+}
+
+function Show-Ready {
+    # Fetch all open issues, then check which ones have no unresolved blockers
+    $raw = gh issue list --repo "$OWNER/$REPO" --state open --limit 200 --json number,title,labels,assignees 2>&1
+    $issues = ($raw | Where-Object { $_ -is [string] -or $_.GetType().Name -ne 'ErrorRecord' }) -join "`n" | ConvertFrom-Json
+
+    if (-not $issues -or $issues.Count -eq 0) {
+        Write-Host "No open issues found." -ForegroundColor DarkGray
+        return
+    }
+
+    # Batch-query blockers for all open issues via GraphQL
+    $fields = ($issues | ForEach-Object { "i$($_.number): issue(number: $($_.number)) { number title blockedBy(first: 50) { nodes { state } } labels(first: 10) { nodes { name } } assignees(first: 5) { nodes { login } } }" }) -join " "
+    $query = "query { repository(owner: `"$OWNER`", name: `"$REPO`") { $fields } }"
+
+    $tempFile = [System.IO.Path]::GetTempFileName()
+    try {
+        Set-Content -Path $tempFile -Value $query -Encoding ascii -NoNewline
+        $rawGql = gh api graphql -F query=@$tempFile 2>&1
+        $result = ($rawGql | Where-Object { $_ -is [string] -or $_.GetType().Name -ne 'ErrorRecord' }) -join "`n" | ConvertFrom-Json
+    }
+    finally {
+        Remove-Item -Path $tempFile -ErrorAction SilentlyContinue
+    }
+
+    if ($result.errors) {
+        Write-Error "GraphQL error: $($result.errors[0].message)"
+        return
+    }
+
+    $readyIssues = @()
+    foreach ($issue in $issues) {
+        $gqlIssue = $result.data.repository."i$($issue.number)"
+        if (-not $gqlIssue) { continue }
+
+        $blockers = @($gqlIssue.blockedBy.nodes)
+        $unresolvedBlockers = @($blockers | Where-Object { $_.state -ne "CLOSED" }).Count
+        if ($unresolvedBlockers -eq 0) {
+            $readyIssues += $gqlIssue
+        }
+    }
+
+    Write-Host ""
+    if ($readyIssues.Count -eq 0) {
+        Write-Host "  No ready issues found. Everything is blocked!" -ForegroundColor Yellow
+    } else {
+        Write-Host "  Ready to work ($($readyIssues.Count) issues):" -ForegroundColor Green
+        Write-Host ""
+        Write-Host "  #       Labels                          Assigned   Title" -ForegroundColor Cyan
+        Write-Host "  $('-' * 80)" -ForegroundColor DarkGray
+
+        foreach ($r in $readyIssues | Sort-Object { $_.number }) {
+            $labels = ($r.labels.nodes | ForEach-Object { $_.name }) -join ", "
+            if ($labels.Length -gt 30) { $labels = $labels.Substring(0, 27) + "..." }
+            $assignees = ($r.assignees.nodes | ForEach-Object { "@$($_.login)" }) -join ", "
+            if (-not $assignees) { $assignees = "-" }
+
+            Write-Host "  " -NoNewline
+            Write-Host ("#$($r.number)").PadRight(8) -NoNewline -ForegroundColor White
+            Write-Host $labels.PadRight(32) -NoNewline -ForegroundColor DarkGray
+            Write-Host $assignees.PadRight(11) -NoNewline -ForegroundColor DarkGray
+            Write-Host $r.title -ForegroundColor White
+        }
+    }
+    Write-Host ""
+}
+
+function Show-MilestoneStatus {
+    param([string]$MilestoneTitle)
+
+    $raw = gh issue list --repo "$OWNER/$REPO" --milestone "$MilestoneTitle" --state all --limit 200 --json number,title,state,labels 2>&1
+    $issues = ($raw | Where-Object { $_ -is [string] -or $_.GetType().Name -ne 'ErrorRecord' }) -join "`n" | ConvertFrom-Json
+
+    if (-not $issues -or $issues.Count -eq 0) {
+        Write-Host "No issues found for milestone '$MilestoneTitle'." -ForegroundColor Yellow
+        return
+    }
+
+    $open = @($issues | Where-Object { $_.state -eq "OPEN" })
+    $closed = @($issues | Where-Object { $_.state -eq "CLOSED" })
+    $total = $issues.Count
+    $doneCount = $closed.Count
+    $pct = [math]::Round(($doneCount / $total) * 100)
+
+    # Progress bar
+    $barWidth = 40
+    $filled = [math]::Round(($doneCount / $total) * $barWidth)
+    $empty = $barWidth - $filled
+    $bar = ("#" * $filled) + ("." * $empty)
+    $barColor = if ($pct -eq 100) { "Green" } elseif ($pct -ge 50) { "Yellow" } else { "White" }
+
+    Write-Host ""
+    Write-Host "  Milestone: $MilestoneTitle" -ForegroundColor Cyan
+    Write-Host "  $bar $pct% ($doneCount/$total)" -ForegroundColor $barColor
+    Write-Host ""
+
+    # Group by label category if possible
+    if ($open.Count -gt 0) {
+        Write-Host "  Open ($($open.Count)):" -ForegroundColor Yellow
+        foreach ($i in $open | Sort-Object { $_.number }) {
+            $labels = ($i.labels | ForEach-Object { $_.name }) -join ", "
+            $labelSuffix = if ($labels) { " [$labels]" } else { "" }
+            Write-Host "    [ ] #$($i.number) - $($i.title)$labelSuffix" -ForegroundColor White
+        }
+    }
+
+    if ($closed.Count -gt 0) {
+        Write-Host "  Closed ($($closed.Count)):" -ForegroundColor Green
+        foreach ($i in $closed | Sort-Object { $_.number }) {
+            Write-Host "    [x] #$($i.number) - $($i.title)" -ForegroundColor DarkGray
+        }
+    }
+    Write-Host ""
+}
+
+function Show-Orphans {
+    $raw = gh issue list --repo "$OWNER/$REPO" --state open --limit 200 --no-milestone --json number,title,labels 2>&1
+    $issues = ($raw | Where-Object { $_ -is [string] -or $_.GetType().Name -ne 'ErrorRecord' }) -join "`n" | ConvertFrom-Json
+
+    if (-not $issues -or $issues.Count -eq 0) {
+        Write-Host ""
+        Write-Host "  No open issues without a milestone." -ForegroundColor Green
+        Write-Host ""
+        return
+    }
+
+    # Check which of these also have no parent
+    $fields = ($issues | ForEach-Object { "i$($_.number): issue(number: $($_.number)) { number title parent { number } labels(first: 10) { nodes { name } } }" }) -join " "
+    $query = "query { repository(owner: `"$OWNER`", name: `"$REPO`") { $fields } }"
+
+    $tempFile = [System.IO.Path]::GetTempFileName()
+    try {
+        Set-Content -Path $tempFile -Value $query -Encoding ascii -NoNewline
+        $rawGql = gh api graphql -F query=@$tempFile 2>&1
+        $result = ($rawGql | Where-Object { $_ -is [string] -or $_.GetType().Name -ne 'ErrorRecord' }) -join "`n" | ConvertFrom-Json
+    }
+    finally {
+        Remove-Item -Path $tempFile -ErrorAction SilentlyContinue
+    }
+
+    if ($result.errors) {
+        Write-Error "GraphQL error: $($result.errors[0].message)"
+        return
+    }
+
+    $orphans = @()
+    foreach ($issue in $issues) {
+        $gqlIssue = $result.data.repository."i$($issue.number)"
+        if (-not $gqlIssue) { continue }
+        if (-not $gqlIssue.parent) {
+            $orphans += $gqlIssue
+        }
+    }
+
+    Write-Host ""
+    if ($orphans.Count -eq 0) {
+        Write-Host "  No orphaned issues found. Everything has a parent or milestone." -ForegroundColor Green
+    } else {
+        Write-Host "  Orphaned issues ($($orphans.Count) -- no parent, no milestone):" -ForegroundColor Yellow
+        Write-Host ""
+        foreach ($o in $orphans | Sort-Object { $_.number }) {
+            $labels = ($o.labels.nodes | ForEach-Object { $_.name }) -join ", "
+            $labelSuffix = if ($labels) { " [$labels]" } else { "" }
+            Write-Host "    [ ] #$($o.number) - $($o.title)$labelSuffix" -ForegroundColor White
+        }
+    }
+    Write-Host ""
+}
+
+function Show-Chain {
+    param([int]$IssueNumber)
+
+    $visited = @{}
+    $chain = [System.Collections.ArrayList]::new()
+
+    function Walk-Blockers([int]$Num, [int]$Depth) {
+        if ($visited.ContainsKey($Num)) { return }
+        $visited[$Num] = $true
+
+        $query = @"
+query {
+  repository(owner: "$OWNER", name: "$REPO") {
+    issue(number: $Num) {
+      number title state
+      blockedBy(first: 50) { nodes { number title state } }
+    }
+  }
+}
+"@
+        $tempFile = [System.IO.Path]::GetTempFileName()
+        try {
+            Set-Content -Path $tempFile -Value $query -Encoding ascii -NoNewline
+            $raw = gh api graphql -F query=@$tempFile 2>&1
+            $result = ($raw | Where-Object { $_ -is [string] -or $_.GetType().Name -ne 'ErrorRecord' }) -join "`n" | ConvertFrom-Json
+        }
+        finally {
+            Remove-Item -Path $tempFile -ErrorAction SilentlyContinue
+        }
+
+        if ($result.errors) { return }
+
+        $issue = $result.data.repository.issue
+        [void]$chain.Add(@{ Number = $issue.number; Title = $issue.title; State = $issue.state; Depth = $Depth })
+
+        $blockers = @($issue.blockedBy.nodes)
+        foreach ($b in $blockers) {
+            Walk-Blockers -Num $b.number -Depth ($Depth + 1)
+        }
+        Start-Sleep -Milliseconds 100
+    }
+
+    Walk-Blockers -Num $IssueNumber -Depth 0
+
+    Write-Host ""
+    Write-Host "  Dependency chain for #${IssueNumber}:" -ForegroundColor Cyan
+    Write-Host ""
+
+    if ($chain.Count -le 1) {
+        Write-Host "  No blockers in the chain. Issue is independent." -ForegroundColor Green
+        Write-Host ""
+        return
+    }
+
+    # Find leaf nodes (deepest unresolved) -- these are the critical path
+    $maxDepth = ($chain | ForEach-Object { $_.Depth } | Measure-Object -Maximum).Maximum
+
+    foreach ($entry in $chain) {
+        $indent = "    " * $entry.Depth
+        $icon = if ($entry.State -eq "CLOSED") { "[x]" } else { "[ ]" }
+        $color = if ($entry.State -eq "CLOSED") { "DarkGray" } elseif ($entry.Depth -eq $maxDepth) { "Red" } else { "White" }
+        $prefix = if ($entry.Depth -eq 0) { "" } else { "blocked by -> " }
+        Write-Host "  $indent$prefix$icon #$($entry.Number) - $($entry.Title)" -ForegroundColor $color
+    }
+
+    # Summary
+    $unresolvedLeaves = @($chain | Where-Object { $_.Depth -eq $maxDepth -and $_.State -ne "CLOSED" })
+    $totalUnresolved = @($chain | Where-Object { $_.State -ne "CLOSED" -and $_.Depth -gt 0 }).Count
+    Write-Host ""
+    if ($totalUnresolved -eq 0) {
+        Write-Host "  All blockers resolved! Issue is ready." -ForegroundColor Green
+    } else {
+        Write-Host "  $totalUnresolved unresolved blocker(s) in chain, depth $maxDepth" -ForegroundColor Yellow
+        if ($unresolvedLeaves.Count -gt 0) {
+            $leafNums = ($unresolvedLeaves | ForEach-Object { "#$($_.Number)" }) -join ", "
+            Write-Host "  Start here: $leafNums" -ForegroundColor Red
+        }
+    }
+    Write-Host ""
+}
+
+function Show-Tree {
+    param([int]$IssueNumber)
+
+    $query = @"
+query {
+  repository(owner: "$OWNER", name: "$REPO") {
+    issue(number: $IssueNumber) {
+      title
+      state
+      subIssues(first: 50) {
+        nodes {
+          number title state
+          subIssues(first: 50) {
+            nodes { number title state }
+          }
+        }
+      }
+    }
+  }
+}
+"@
+
+    $tempFile = [System.IO.Path]::GetTempFileName()
+    try {
+        Set-Content -Path $tempFile -Value $query -Encoding ascii -NoNewline
+        $raw = gh api graphql -F query=@$tempFile 2>&1
+        $result = ($raw | Where-Object { $_ -is [string] -or $_.GetType().Name -ne 'ErrorRecord' }) -join "`n" | ConvertFrom-Json
+    }
+    finally {
+        Remove-Item -Path $tempFile -ErrorAction SilentlyContinue
+    }
+
+    if ($result.errors) {
+        Write-Host "Note: Some fields may not be available on your GitHub plan." -ForegroundColor Yellow
+        Write-Error $result.errors[0].message
+        return
+    }
+
+    $issue = $result.data.repository.issue
+    $subNodes = @($issue.subIssues.nodes)
+
+    # Count all descendants recursively
+    function Get-TreeCounts($nodes) {
+        $done = 0; $total = 0
+        foreach ($n in $nodes) {
+            $total++
+            if ($n.state -eq "CLOSED") { $done++ }
+            $children = @($n.subIssues.nodes)
+            if ($children.Count -gt 0) {
+                $sub = Get-TreeCounts $children
+                $done += $sub.Done; $total += $sub.Total
+            }
+        }
+        return @{ Done = $done; Total = $total }
+    }
+
+    $counts = Get-TreeCounts $subNodes
+    $rootIcon = if ($issue.state -eq "CLOSED") { "[x]" } else { "[ ]" }
+    $rootColor = if ($issue.state -eq "CLOSED") { "Green" } else { "Cyan" }
+    $progress = if ($counts.Total -gt 0) { " ($($counts.Done)/$($counts.Total))" } else { "" }
+
+    Write-Host ""
+    Write-Host "  $rootIcon #$IssueNumber - $($issue.title)$progress" -ForegroundColor $rootColor
+
+    foreach ($s in $subNodes) {
+        $icon = if ($s.state -eq "CLOSED") { "[x]" } else { "[ ]" }
+        $color = if ($s.state -eq "CLOSED") { "DarkGray" } else { "White" }
+        $children = @($s.subIssues.nodes)
+        $childProgress = ""
+        if ($children.Count -gt 0) {
+            $childDone = @($children | Where-Object { $_.state -eq "CLOSED" }).Count
+            $childProgress = " ($childDone/$($children.Count))"
+        }
+        Write-Host "      $icon #$($s.number) - $($s.title)$childProgress" -ForegroundColor $color
+
+        foreach ($c in $children) {
+            $childIcon = if ($c.state -eq "CLOSED") { "[x]" } else { "[ ]" }
+            $childColor = if ($c.state -eq "CLOSED") { "DarkGray" } else { "White" }
+            Write-Host "            $childIcon #$($c.number) - $($c.title)" -ForegroundColor $childColor
+        }
     }
     Write-Host ""
 }
 
 # --- Main ---
+
+# Validate required parameters per action
+$needsIssue = @("blocked-by", "blocking", "sub-issue", "remove-blocked-by", "remove-blocking", "remove-sub-issue", "show", "tree", "chain")
+if ($Action -in $needsIssue -and $Issue.Count -eq 1 -and $Issue[0] -eq 0) {
+    Write-Error "$Action requires an issue number. Example: .\gh-issues.ps1 $Action 12"
+    exit 1
+}
+
+# For commands that need a single issue number
+$SingleIssue = $Issue[0]
 
 switch ($Action) {
     "blocked-by" {
@@ -368,44 +872,67 @@ switch ($Action) {
             Write-Error "blocked-by requires -Target issue number(s). Example: .\gh-issues.ps1 blocked-by 12 7,8"
             exit 1
         }
-        Add-BlockedBy -BlockedIssue $Issue -BlockingIssues $Target
+        Add-BlockedBy -BlockedIssue $SingleIssue -BlockingIssues $Target
     }
     "blocking" {
         if (-not $Target -or $Target.Count -eq 0) {
             Write-Error "blocking requires -Target issue number(s). Example: .\gh-issues.ps1 blocking 7 12,15"
             exit 1
         }
-        Add-Blocking -BlockingIssue $Issue -BlockedIssues $Target
+        Add-Blocking -BlockingIssue $SingleIssue -BlockedIssues $Target
     }
     "sub-issue" {
         if (-not $Target -or $Target.Count -eq 0) {
             Write-Error "sub-issue requires -Target issue number(s). Example: .\gh-issues.ps1 sub-issue 10 41,42"
             exit 1
         }
-        Add-SubIssue -ParentIssue $Issue -ChildIssues $Target
+        Add-SubIssue -ParentIssue $SingleIssue -ChildIssues $Target
     }
     "remove-blocked-by" {
         if (-not $Target -or $Target.Count -eq 0) {
             Write-Error "remove-blocked-by requires -Target issue number(s). Example: .\gh-issues.ps1 remove-blocked-by 12 7"
             exit 1
         }
-        Remove-BlockedBy -BlockedIssue $Issue -BlockingIssues $Target
+        Remove-BlockedBy -BlockedIssue $SingleIssue -BlockingIssues $Target
     }
     "remove-blocking" {
         if (-not $Target -or $Target.Count -eq 0) {
             Write-Error "remove-blocking requires -Target issue number(s). Example: .\gh-issues.ps1 remove-blocking 7 12,15"
             exit 1
         }
-        Remove-Blocking -BlockingIssue $Issue -BlockedIssues $Target
+        Remove-Blocking -BlockingIssue $SingleIssue -BlockedIssues $Target
     }
     "remove-sub-issue" {
         if (-not $Target -or $Target.Count -eq 0) {
             Write-Error "remove-sub-issue requires -Target issue number(s). Example: .\gh-issues.ps1 remove-sub-issue 10 41"
             exit 1
         }
-        Remove-SubIssue -ParentIssue $Issue -ChildIssues $Target
+        Remove-SubIssue -ParentIssue $SingleIssue -ChildIssues $Target
     }
     "show" {
-        Show-Relationships -IssueNumber $Issue
+        if ($Issue.Count -gt 1) {
+            Show-BatchSummary -IssueNumbers $Issue
+        } else {
+            Show-Relationships -IssueNumber $SingleIssue
+        }
+    }
+    "tree" {
+        Show-Tree -IssueNumber $SingleIssue
+    }
+    "ready" {
+        Show-Ready
+    }
+    "status" {
+        if (-not $Milestone) {
+            Write-Error "status requires -Milestone. Example: .\gh-issues.ps1 status 0 -Milestone 'v0.1'"
+            exit 1
+        }
+        Show-MilestoneStatus -MilestoneTitle $Milestone
+    }
+    "orphans" {
+        Show-Orphans
+    }
+    "chain" {
+        Show-Chain -IssueNumber $SingleIssue
     }
 }
