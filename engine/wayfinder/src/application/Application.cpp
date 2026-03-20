@@ -1,5 +1,6 @@
 #include "Application.h"
 
+#include "core/Assert.h"
 #include "core/EngineConfig.h"
 #include "core/EngineRuntime.h"
 #include "core/Game.h"
@@ -133,12 +134,7 @@ namespace Wayfinder
             // Drain queued input events — single batch at a well-defined frame point
             m_eventQueue.Drain([this](Event& e)
             {
-                for (auto it = m_layerStack->rbegin(); it != m_layerStack->rend(); ++it)
-                {
-                    if (e.Handled)
-                        break;
-                    (*it)->OnEvent(e);
-                }
+                PropagateToLayers(e);
             });
 
             const float dt = m_runtime->GetDeltaTime();
@@ -187,11 +183,20 @@ namespace Wayfinder
         // Defer input events to the queue for batched dispatch
         if (event.IsInCategory(EventCategory::Input))
         {
-            m_eventQueue.Push(event.Clone());
+            auto queuedEvent = event.Clone();
+            WAYFINDER_ASSERT(queuedEvent != nullptr,
+                             "Deferred event '{}' must implement Clone()",
+                             event.GetName());
+            m_eventQueue.Push(std::move(queuedEvent));
             return;
         }
 
         // Non-input, non-handled events: propagate to layers immediately
+        PropagateToLayers(event);
+    }
+
+    void Application::PropagateToLayers(Event& event)
+    {
         for (auto it = m_layerStack->rbegin(); it != m_layerStack->rend(); ++it)
         {
             if (event.Handled)

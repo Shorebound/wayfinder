@@ -44,11 +44,6 @@ namespace Wayfinder
             return std::format("{}: {}, {}", GetName(), m_xOffset, m_yOffset);
         }
 
-        std::unique_ptr<Event> Clone() const override
-        {
-            return std::make_unique<MouseScrolledEvent>(*this);
-        }
-
     private:
         float m_xOffset;
         float m_yOffset;

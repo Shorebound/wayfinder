@@ -2,7 +2,6 @@
 
 #include "core/events/Event.h"
 #include <format>
-#include <memory>
 
 namespace Wayfinder
 {
@@ -20,11 +19,6 @@ namespace Wayfinder
             return std::format("{}: {}, {}", GetName(), m_width, m_height);
         }
 
-        std::unique_ptr<Event> Clone() const override
-        {
-            return std::make_unique<WindowResizeEvent>(*this);
-        }
-
     private:
         uint32_t m_width;
         uint32_t m_height;
@@ -34,43 +28,23 @@ namespace Wayfinder
     {
     public:
         WindowCloseEvent() = default;
-
-        std::unique_ptr<Event> Clone() const override
-        {
-            return std::make_unique<WindowCloseEvent>(*this);
-        }
     };
 
     class AppTickEvent : public EventImpl<Event, EventType::AppTick, EventCategory::Application>
     {
     public:
         AppTickEvent() = default;
-
-        std::unique_ptr<Event> Clone() const override
-        {
-            return std::make_unique<AppTickEvent>(*this);
-        }
     };
 
     class AppUpdateEvent : public EventImpl<Event, EventType::AppUpdate, EventCategory::Application>
     {
     public:
         AppUpdateEvent() = default;
-
-        std::unique_ptr<Event> Clone() const override
-        {
-            return std::make_unique<AppUpdateEvent>(*this);
-        }
     };
 
     class AppRenderEvent : public EventImpl<Event, EventType::AppRender, EventCategory::Application>
     {
     public:
         AppRenderEvent() = default;
-
-        std::unique_ptr<Event> Clone() const override
-        {
-            return std::make_unique<AppRenderEvent>(*this);
-        }
     };
 }

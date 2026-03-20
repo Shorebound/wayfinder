@@ -3,20 +3,14 @@
 namespace Wayfinder
 {
 
+    EventQueue::EventQueue()
+    {
+        m_events.reserve(INITIAL_CAPACITY);
+    }
+
     void EventQueue::Push(std::unique_ptr<Event> event)
     {
         m_events.push_back(std::move(event));
-    }
-
-    void EventQueue::Drain(const std::function<void(Event&)>& handler)
-    {
-        std::vector<std::unique_ptr<Event>> batch;
-        batch.swap(m_events);
-
-        for (auto& event : batch)
-        {
-            handler(*event);
-        }
     }
 
     void EventQueue::Clear()

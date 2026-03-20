@@ -61,6 +61,38 @@ TEST_CASE("Queue is empty after Drain")
     CHECK(queue.Size() == 0);
 }
 
+TEST_CASE("Events queued during Drain are deferred to the next drain cycle")
+{
+    Wayfinder::EventQueue queue;
+    queue.Push(std::make_unique<Wayfinder::KeyPressedEvent>(Wayfinder::Key::A));
+
+    std::vector<Wayfinder::KeyCode> received;
+    queue.Drain([&](Wayfinder::Event& e)
+    {
+        auto& typed = static_cast<Wayfinder::KeyPressedEvent&>(e);
+        received.push_back(typed.GetKeyCode());
+
+        if (typed.GetKeyCode() == Wayfinder::Key::A)
+        {
+            queue.Push(std::make_unique<Wayfinder::KeyPressedEvent>(Wayfinder::Key::B));
+        }
+    });
+
+    REQUIRE(received.size() == 1);
+    CHECK(received[0] == Wayfinder::Key::A);
+    CHECK(queue.Size() == 1);
+
+    queue.Drain([&](Wayfinder::Event& e)
+    {
+        auto& typed = static_cast<Wayfinder::KeyPressedEvent&>(e);
+        received.push_back(typed.GetKeyCode());
+    });
+
+    REQUIRE(received.size() == 2);
+    CHECK(received[1] == Wayfinder::Key::B);
+    CHECK(queue.IsEmpty());
+}
+
 TEST_CASE("Drain on empty queue does not invoke handler")
 {
     Wayfinder::EventQueue queue;
@@ -115,17 +147,12 @@ TEST_CASE("Clone preserves event type and data for MouseMovedEvent")
     CHECK(typed.GetY() == doctest::Approx(99.0f));
 }
 
-TEST_CASE("Clone preserves event type and data for WindowResizeEvent")
+TEST_CASE("Non-deferred application events do not provide Clone")
 {
     Wayfinder::WindowResizeEvent original(1920, 1080);
     auto cloned = original.Clone();
 
-    REQUIRE(cloned != nullptr);
-    CHECK(cloned->GetEventType() == Wayfinder::EventType::WindowResize);
-
-    auto& typed = static_cast<Wayfinder::WindowResizeEvent&>(*cloned);
-    CHECK(typed.GetWidth() == 1920);
-    CHECK(typed.GetHeight() == 1080);
+    CHECK(cloned == nullptr);
 }
 
 TEST_CASE("Cloned event is independent of original")

@@ -114,7 +114,10 @@ namespace Wayfinder
         virtual std::string ToString() const { return GetName(); }
 
         /** @brief Create a heap-allocated copy of this event for deferred dispatch. */
-        virtual std::unique_ptr<Event> Clone() const = 0;
+        virtual std::unique_ptr<Event> Clone() const
+        {
+            return nullptr;
+        }
 
         bool IsInCategory(const EventCategory category) const
         {
