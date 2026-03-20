@@ -117,12 +117,15 @@ namespace Wayfinder
         MaterialComponent(const MaterialComponent&) = default;
     };
 
-    /// Opt-in render-state overrides — controls rasteriser behaviour
-    /// independently of material surface properties.
+    /**
+     * @brief Opt-in render-state overrides — controls rasteriser behaviour
+     *        independently of material surface properties.
+     *
+     * @todo Add CullMode, blend overrides, and other rasteriser state fields.
+     */
     struct RenderOverrideComponent
     {
         bool Wireframe = true;
-        /// Future: CullMode, blend overrides, etc.
 
         RenderOverrideComponent() = default;
         RenderOverrideComponent(const RenderOverrideComponent&) = default;
