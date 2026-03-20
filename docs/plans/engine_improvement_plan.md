@@ -1444,6 +1444,79 @@ Items within the same phase can generally be done in parallel. Phase boundaries 
 
 ---
 
+## Parallel Work Lanes
+
+Independent agents that can't collaborate need tasks that don't share files. Below are concrete lane assignments for each phase — tasks in different lanes can be given to separate agents simultaneously. Merge and verify at the phase boundary before starting the next phase.
+
+### Phase 1 — Three Independent Lanes
+
+| Lane | Task | Primary files touched |
+|------|------|-----------------------|
+| A | P1.1 Test coverage | `tests/`, header tweaks for testability |
+| B | P1.2 Generational handles | `core/Identifiers.h`, render device/resource types |
+| C | P1.3 InternedString IDs | Render pipeline/pass/layer ID types |
+
+**Conflict risk:** Low. Lane B (handles) and C (string IDs) both touch type definitions in render code but in different types and different files. Lane A is almost entirely additive (new test files).
+
+### Phase 2 — Two Lanes
+
+| Lane | Tasks | Primary files touched |
+|------|-------|-----------------------|
+| A | P1.4 Break up Renderer + P2.6 RenderPipeline | `renderer/`, render graph, render features — wide blast radius |
+| B | P2.5 Blend state | Pipeline state, D3D11 backend blend enums |
+
+P1.5 (Application decomp) depends on P1.4 and should follow in Lane A once the renderer breakup lands. P2.5 is a focused addition (new enum + pipeline state field) that can proceed in parallel as long as the agent avoids refactoring renderer internals that Lane A is actively restructuring.
+
+**Conflict risk:** Medium. Both lanes touch render pipeline code. Assign P2.5 only if Lane A hasn't started modifying `RenderPipeline` files yet, otherwise fold P2.5 into Lane A.
+
+### Phase 3 — Up to Four Lanes
+
+| Lane | Tasks | Primary files touched |
+|------|-------|-----------------------|
+| A | P2.1 Scene entity index | `scene/Scene.h/cpp`, entity lookup |
+| B | P2.2 MeshComponent split + P2.3 Frame allocator | Components, mesh data, render graph allocator |
+| C | P2.4 Physics subsystem | `physics/` (new directory), subsystem registration |
+| D | P2.8 Event queue | `events/`, `Application` loop |
+
+P2.7 (Error handling) is incremental and touches any file where errors are handled — it conflicts with every lane. Best done as a follow-up pass after the phase, or folded into each lane's scope (each agent adopts the error handling pattern for the files they touch).
+
+**Conflict risk:** Low. Each lane operates in a distinct subsystem directory. Lane B combines mesh + allocator because frame allocator serves the render path that mesh refactoring also touches.
+
+### Phase 4 — Up to Five Lanes
+
+| Lane | Tasks | Primary files touched |
+|------|-------|-----------------------|
+| A | P3.2 Explicit CMake lists + P3.3 clang-tidy | `CMakeLists.txt`, `.clang-tidy` |
+| B | P3.1 Hot-reload | Config/TOML loading, file watcher |
+| C | P3.4 Prefab instantiation | Scene system, entity factories |
+| D | P3.5 RenderMeshHandle + P3.6 GPU debug annotations | Render types, D3D11 backend |
+| E | P3.7 MRT + P3.8 Upload batching + P3.9 Sub-sort key | Render graph targets, transient buffer, sort keys |
+
+**Conflict risk:** Low. Lane D and E both touch render code but in different subsystems (handle types vs. graph targets/buffers). Lane A is build-system only.
+
+### Phase 5 — Up to Five Lanes
+
+| Lane | Tasks | Primary files touched |
+|------|-------|-----------------------|
+| A | P4.1 Mesh assets → P4.2 Composable vertex | Asset pipeline, mesh loading (sequential within lane) |
+| B | P4.3 Texture asset pipeline | Asset pipeline, texture loading |
+| C | P4.5 Audio subsystem | `audio/` (new directory, fully isolated) |
+| D | P4.8 CI pipeline | `.github/workflows/` (fully isolated) |
+| E | P4.9 Input action mapping | `input/`, TOML action maps |
+
+P4.4 (ImGui — needs P1.4, P1.5), P4.6 (Scripting — needs all of P1+P2 stable), and P4.7 (Editor — needs P1.5, P4.4, P2.2) have heavy cross-cutting dependencies. Do them sequentially: P4.4 first, then P4.6 and P4.7 can follow once the core is stable.
+
+**Conflict risk:** Very low. Lanes C, D, and E are in entirely separate directories. Lane A and B both create asset pipeline code — if they share a common `AssetLoader` interface, coordinate the interface design up front and split implementation.
+
+### Guidelines for Agent Assignment
+
+1. **Merge gate:** After all lanes in a phase complete, merge everything to a single branch, build, and run the full test suite before starting the next phase.
+2. **Interface contracts first:** When two lanes will eventually interact (e.g., Lane A mesh assets + Lane B texture assets in Phase 5), agree on shared interfaces/headers before agents start. Check these shared headers in first, then let agents work independently.
+3. **P2.7 (Error handling) is special:** It's incremental and cross-cutting. Either fold it into each agent's lane ("adopt `Result<T>` for any new API you write") or run a dedicated cleanup pass after each phase.
+4. **Smallest viable phase:** If you only have two agents, pick the two most valuable lanes per phase. Phase 1 with two agents: Lane A (tests) + Lane B (handles). Phase 3 with two agents: Lane C (physics) + Lane D (events).
+
+---
+
 ## Appendix: Current State Snapshot
 
 For reference, this plan was written against the following engine state:
