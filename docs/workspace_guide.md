@@ -46,7 +46,7 @@ The rendering subsystem is further organised into subdirectories:
 | `rendering/resources/` | GPU resource management — `RenderResources`, transient buffer and resource pools |
 | `rendering/materials/` | Material and shader system — `Material`, parameters, post-process volumes, shader programs and manager |
 | `rendering/mesh/` | Geometry data — `Mesh`, vertex formats |
-| `rendering/RenderTypes.h` | Rendering-specific types — camera, textures, samplers, render passes, device info (re-exports `core/Types.h`) |
+| `rendering/RenderTypes.h` | Rendering-specific types — camera, textures, samplers, render passes, device info |
 
 ### Sandboxes
 

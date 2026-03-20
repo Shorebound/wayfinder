@@ -1,6 +1,6 @@
 #pragma once
 
-#include "rendering/RenderTypes.h"
+#include "core/Types.h"
 
 #include <array>
 #include <cstddef>

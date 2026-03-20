@@ -1,7 +1,5 @@
 #pragma once
 
-#include "rendering/RenderTypes.h"
-
 #include <cstdint>
 #include <cstring>
 

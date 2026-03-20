@@ -8,6 +8,7 @@
 #include <vector>
 
 #include "core/Identifiers.h"
+#include "core/Types.h"
 #include "rendering/materials/MaterialParameter.h"
 #include "rendering/materials/PostProcessVolume.h"
 #include "RenderIntent.h"

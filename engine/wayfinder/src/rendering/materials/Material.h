@@ -8,7 +8,7 @@
 
 #include "core/Identifiers.h"
 #include "MaterialParameter.h"
-#include "rendering/RenderTypes.h"
+#include "core/Types.h"
 #include "wayfinder_exports.h"
 
 namespace Wayfinder
