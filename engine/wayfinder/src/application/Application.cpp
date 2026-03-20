@@ -129,6 +129,18 @@ namespace Wayfinder
         while (m_running && !m_runtime->ShouldClose())
         {
             m_runtime->BeginFrame();
+
+            // Drain queued input events — single batch at a well-defined frame point
+            m_eventQueue.Drain([this](Event& e)
+            {
+                for (auto it = m_layerStack->rbegin(); it != m_layerStack->rend(); ++it)
+                {
+                    if (e.Handled)
+                        break;
+                    (*it)->OnEvent(e);
+                }
+            });
+
             const float dt = m_runtime->GetDeltaTime();
 
             // Propagate frame through layers (bottom → top)
@@ -154,13 +166,14 @@ namespace Wayfinder
 
     void Application::OnEvent(Event& event)
     {
+        // Latency-sensitive events: dispatch immediately
         EventDispatcher dispatcher(event);
         dispatcher.Dispatch<WindowCloseEvent>(
             [this](WindowCloseEvent& e) { return OnWindowClose(e); });
         dispatcher.Dispatch<WindowResizeEvent>(
             [this](WindowResizeEvent& e) { return OnWindowResize(e); });
 
-        // Feed scroll events into input accumulator
+        // Feed scroll events into input accumulator immediately
         dispatcher.Dispatch<MouseScrolledEvent>(
             [this](MouseScrolledEvent& e)
             {
@@ -168,7 +181,17 @@ namespace Wayfinder
                 return false;
             });
 
-        // Propagate to layers (top → bottom, overlays first)
+        if (event.Handled)
+            return;
+
+        // Defer input events to the queue for batched dispatch
+        if (event.IsInCategory(EventCategory::Input))
+        {
+            m_eventQueue.Push(event.Clone());
+            return;
+        }
+
+        // Non-input, non-handled events: propagate to layers immediately
         for (auto it = m_layerStack->rbegin(); it != m_layerStack->rend(); ++it)
         {
             if (event.Handled)

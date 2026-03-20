@@ -1,16 +1,16 @@
 #pragma once
 
 #include <functional>
+#include <memory>
 #include <ostream>
 #include <string>
 
 namespace Wayfinder
 {
 
-    // Events in Wayfinder are currently blocking, meaning when an event occurs it
-    // immediately gets dispatched and must be dealt with right then an there.
-    // For the future, a better strategy might be to buffer events in an event
-    // bus and process them during the "event" part of the update stage.
+    // Input events use deferred dispatch via EventQueue — they are buffered
+    // during SDL polling and drained at a well-defined point in the frame loop.
+    // Latency-sensitive events (window close, resize) still dispatch immediately.
 
     enum class EventType
     {
@@ -110,6 +110,9 @@ namespace Wayfinder
         virtual const char* GetName() const = 0;
         virtual EventCategory GetCategoryFlags() const = 0;
         virtual std::string ToString() const { return GetName(); }
+
+        /** @brief Create a heap-allocated copy of this event for deferred dispatch. */
+        virtual std::unique_ptr<Event> Clone() const = 0;
 
         bool IsInCategory(const EventCategory category) const
         {

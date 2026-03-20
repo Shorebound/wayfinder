@@ -1,5 +1,7 @@
 #pragma once
 
+#include "core/events/EventQueue.h"
+
 #include <memory>
 #include <string>
 
@@ -54,6 +56,7 @@ namespace Wayfinder
         std::unique_ptr<EngineRuntime> m_runtime;
         std::unique_ptr<LayerStack> m_layerStack;
         std::unique_ptr<Game> m_game;
+        EventQueue m_eventQueue;
     };
 
 } // namespace Wayfinder
