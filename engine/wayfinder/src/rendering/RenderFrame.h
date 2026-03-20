@@ -58,7 +58,7 @@ namespace Wayfinder
         uint64_t StableKey = 0;
     };
 
-    struct RenderMaterialHandle
+    struct RenderMaterialRef
     {
         RenderResourceOrigin Origin = RenderResourceOrigin::BuiltIn;
         std::optional<AssetId> AssetId;
@@ -74,7 +74,7 @@ namespace Wayfinder
 
     struct RenderMaterialBinding
     {
-        RenderMaterialHandle Handle{};
+        RenderMaterialRef Ref{};
         RenderMaterialDomain Domain = RenderMaterialDomain::Surface;
         std::string ShaderName = "unlit";
 

@@ -95,8 +95,8 @@ namespace Wayfinder
             submission.Mesh.StableKey = kBuiltInBoxMeshKey;
             submission.Geometry.Type = RenderGeometryType::Box;
             submission.Geometry.Dimensions = mesh.Dimensions;
-            submission.Material.Handle.Origin = RenderResourceOrigin::BuiltIn;
-            submission.Material.Handle.StableKey = kBuiltInSurfaceMaterialKey;
+            submission.Material.Ref.Origin = RenderResourceOrigin::BuiltIn;
+            submission.Material.Ref.StableKey = kBuiltInSurfaceMaterialKey;
             submission.Material.Domain = RenderMaterialDomain::Surface;
             submission.Material.Parameters.SetColor("base_color", LinearColor::White());
             submission.Material.StateOverrides.FillMode = RenderFillMode::SolidAndWireframe;
@@ -114,9 +114,9 @@ namespace Wayfinder
                 const auto& material = entityHandle.get<MaterialComponent>();
                 if (material.MaterialAssetId)
                 {
-                    submission.Material.Handle.Origin = RenderResourceOrigin::Asset;
-                    submission.Material.Handle.AssetId = material.MaterialAssetId;
-                    submission.Material.Handle.StableKey = MakeStableKey(*material.MaterialAssetId);
+                    submission.Material.Ref.Origin = RenderResourceOrigin::Asset;
+                    submission.Material.Ref.AssetId = material.MaterialAssetId;
+                    submission.Material.Ref.StableKey = MakeStableKey(*material.MaterialAssetId);
                 }
 
                 if (material.HasBaseColorOverride || !material.MaterialAssetId)
@@ -145,7 +145,7 @@ namespace Wayfinder
 
             submission.SortKey = SortKeyBuilder::Build(
                 MapLayer(submission.Layer),
-                MaterialIdBits(submission.Material.Handle.AssetId),
+                MaterialIdBits(submission.Material.Ref.AssetId),
                 cameraSpaceZ,
                 static_cast<uint16_t>(submission.SortPriority));
 
@@ -190,8 +190,8 @@ namespace Wayfinder
                 RenderDebugBox debugBox;
                 debugBox.LocalToWorld = debugTransform;
                 debugBox.Dimensions = {1.0f, 1.0f, 1.0f};
-                debugBox.Material.Handle.Origin = RenderResourceOrigin::BuiltIn;
-                debugBox.Material.Handle.StableKey = 100ull;
+                debugBox.Material.Ref.Origin = RenderResourceOrigin::BuiltIn;
+                debugBox.Material.Ref.StableKey = 100ull;
                 debugBox.Material.Domain = RenderMaterialDomain::Debug;
                 debugBox.Material.Parameters.SetColor("base_color", LinearColor::FromColor(light.Tint));
 

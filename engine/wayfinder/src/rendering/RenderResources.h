@@ -20,7 +20,7 @@ namespace Wayfinder
 
     struct RenderMaterialResource
     {
-        RenderMaterialHandle Handle{};
+        RenderMaterialRef Ref{};
         RenderMaterialBinding Binding{};
         bool IsLoadedFromAsset = false;
     };

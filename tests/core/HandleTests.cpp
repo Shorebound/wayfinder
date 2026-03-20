@@ -29,6 +29,18 @@ namespace
                   "RenderMeshHandle must not be the same type as GPUShaderHandle");
     static_assert(!std::is_same_v<Wayfinder::RenderMeshHandle, Wayfinder::GPUPipelineHandle>,
                   "RenderMeshHandle must not be the same type as GPUPipelineHandle");
+
+    // Compile-time proof that RenderMaterialHandle is distinct from all GPU handle types and RenderMeshHandle.
+    static_assert(!std::is_same_v<Wayfinder::RenderMaterialHandle, Wayfinder::GPUBufferHandle>,
+                  "RenderMaterialHandle must not be the same type as GPUBufferHandle");
+    static_assert(!std::is_same_v<Wayfinder::RenderMaterialHandle, Wayfinder::GPUTextureHandle>,
+                  "RenderMaterialHandle must not be the same type as GPUTextureHandle");
+    static_assert(!std::is_same_v<Wayfinder::RenderMaterialHandle, Wayfinder::GPUShaderHandle>,
+                  "RenderMaterialHandle must not be the same type as GPUShaderHandle");
+    static_assert(!std::is_same_v<Wayfinder::RenderMaterialHandle, Wayfinder::GPUPipelineHandle>,
+                  "RenderMaterialHandle must not be the same type as GPUPipelineHandle");
+    static_assert(!std::is_same_v<Wayfinder::RenderMaterialHandle, Wayfinder::RenderMeshHandle>,
+                  "RenderMaterialHandle must not be the same type as RenderMeshHandle");
 }
 
 // ── Handle Basics ────────────────────────────────────────

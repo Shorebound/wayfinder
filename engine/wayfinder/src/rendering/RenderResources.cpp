@@ -55,19 +55,19 @@ namespace Wayfinder
 
     RenderMaterialBinding RenderResourceCache::PrepareMaterialBinding(const RenderMaterialBinding& binding)
     {
-        if (binding.Handle.Origin != RenderResourceOrigin::Asset)
+        if (binding.Ref.Origin != RenderResourceOrigin::Asset)
         {
             return binding;
         }
 
-        auto existing = m_materialsByKey.find(binding.Handle.StableKey);
+        auto existing = m_materialsByKey.find(binding.Ref.StableKey);
         if (existing == m_materialsByKey.end())
         {
-            existing = m_materialsByKey.emplace(binding.Handle.StableKey, CreateMaterialResource(binding)).first;
+            existing = m_materialsByKey.emplace(binding.Ref.StableKey, CreateMaterialResource(binding)).first;
         }
 
         RenderMaterialBinding resolved = existing->second.Binding;
-        resolved.Handle = binding.Handle;
+        resolved.Ref = binding.Ref;
         resolved.Domain = binding.Domain;
 
         // Apply per-entity overrides on top of asset-loaded parameters
@@ -88,16 +88,16 @@ namespace Wayfinder
     RenderMaterialResource RenderResourceCache::CreateMaterialResource(const RenderMaterialBinding& binding)
     {
         RenderMaterialResource resource;
-        resource.Handle = binding.Handle;
+        resource.Ref = binding.Ref;
         resource.Binding = binding;
 
-        if (binding.Handle.Origin != RenderResourceOrigin::Asset || !binding.Handle.AssetId || !m_assetService)
+        if (binding.Ref.Origin != RenderResourceOrigin::Asset || !binding.Ref.AssetId || !m_assetService)
         {
             return resource;
         }
 
         std::string error;
-        const MaterialAsset* materialAsset = m_assetService->LoadMaterialAsset(*binding.Handle.AssetId, error);
+        const MaterialAsset* materialAsset = m_assetService->LoadMaterialAsset(*binding.Ref.AssetId, error);
         if (!materialAsset)
         {
             return resource;
