@@ -24,6 +24,7 @@ CPMAddPackage(
 )
 
 # --- spdlog ---
+set(SPDLOG_USE_STD_FORMAT ON CACHE BOOL "Use std::format instead of bundled fmt" FORCE)
 CPMAddPackage("gh:gabime/spdlog@1.15.2")
 
 # --- tomlplusplus ---
