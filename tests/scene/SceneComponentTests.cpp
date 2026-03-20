@@ -162,7 +162,7 @@ TEST_CASE("RenderOverrideComponent serialisation round-trip with wireframe=false
     scene.Shutdown();
 }
 
-TEST_CASE("RenderOverrideComponent serialisation round-trip with no wireframe set")
+TEST_CASE("RenderOverrideComponent serialisation skips empty component")
 {
     flecs::world world;
     Wayfinder::Scene::RegisterCoreECS(world);
@@ -175,22 +175,11 @@ TEST_CASE("RenderOverrideComponent serialisation round-trip with no wireframe se
     entity.AddComponent<Wayfinder::TransformComponent>(Wayfinder::TransformComponent{});
     entity.AddComponent<Wayfinder::RenderOverrideComponent>(Wayfinder::RenderOverrideComponent{});
 
-    // Serialize
+    // Serialize — component with no fields set should not emit a table
     toml::table componentTables;
     registry.SerializeComponents(entity, componentTables);
 
-    CHECK(componentTables.contains("render_override"));
-    const toml::table* overrideTable = componentTables["render_override"].as_table();
-    REQUIRE(overrideTable != nullptr);
-    CHECK_FALSE(overrideTable->contains("wireframe"));
-
-    // Deserialize into a new entity
-    Wayfinder::Entity entity2 = scene.CreateEntity("DeserializedEmpty");
-    registry.ApplyComponents(componentTables, entity2);
-
-    CHECK(entity2.HasComponent<Wayfinder::RenderOverrideComponent>());
-    const auto& restored = entity2.GetComponent<Wayfinder::RenderOverrideComponent>();
-    CHECK_FALSE(restored.Wireframe.has_value());
+    CHECK_FALSE(componentTables.contains("render_override"));
 
     scene.Shutdown();
 }

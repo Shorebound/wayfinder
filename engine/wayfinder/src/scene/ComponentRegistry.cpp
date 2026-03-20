@@ -922,7 +922,11 @@ namespace
         {
             componentTable.insert_or_assign("wireframe", *renderOverride.Wireframe);
         }
-        componentTables.insert_or_assign("render_override", componentTable);
+
+        if (!componentTable.empty())
+        {
+            componentTables.insert_or_assign("render_override", componentTable);
+        }
     }
 
     void SerializeRenderable(const Wayfinder::Entity& entity, toml::table& componentTables)
