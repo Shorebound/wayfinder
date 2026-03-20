@@ -38,7 +38,7 @@ namespace Wayfinder
         // Fragment material UBO for the debug pipeline (16 bytes)
         struct DebugMaterialUBO
         {
-            glm::vec4 baseColor;
+            Float4 baseColor;
         };
     }
 

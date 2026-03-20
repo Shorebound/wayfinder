@@ -185,9 +185,8 @@ function Invoke-GraphQLMutation {
     $tempFile = [System.IO.Path]::GetTempFileName()
     try {
         Set-Content -Path $tempFile -Value $Mutation -Encoding ascii -NoNewline
-        $raw = gh api graphql -F query=@$tempFile 2>&1
-        $json = ($raw | Where-Object { $_ -is [string] -or $_.GetType().Name -ne 'ErrorRecord' }) -join "`n" | ConvertFrom-Json
-        return $json
+        $result = Invoke-GhJson -Arguments @("api", "graphql", "-F", "query=@$tempFile") -ErrorContext "Invoke-GraphQLMutation"
+        return $result
     }
     finally {
         Remove-Item -Path $tempFile -ErrorAction SilentlyContinue
@@ -285,6 +284,7 @@ function Add-SubIssue {
 }
 
 function Remove-BlockedBy {
+    [CmdletBinding(SupportsShouldProcess=$true, ConfirmImpact='Medium')]
     param([int]$BlockedIssue, [int[]]$BlockingIssues)
 
     $allNums = @($BlockedIssue) + $BlockingIssues | Select-Object -Unique
@@ -296,6 +296,9 @@ function Remove-BlockedBy {
 
     foreach ($blocker in $BlockingIssues) {
         $blockerInfo = $ids[$blocker]
+        if (-not $PSCmdlet.ShouldProcess("#$BlockedIssue ($($blockedInfo.Title))", "Remove blocked-by #$blocker ($($blockerInfo.Title))")) {
+            continue
+        }
         $mutation = "mutation { removeBlockedBy(input: { issueId: `"$($blockedInfo.Id)`", blockingIssueId: `"$($blockerInfo.Id)`" }) { clientMutationId } }"
         $result = Invoke-GraphQLMutation -Mutation $mutation
 
@@ -309,6 +312,7 @@ function Remove-BlockedBy {
 }
 
 function Remove-Blocking {
+    [CmdletBinding(SupportsShouldProcess=$true, ConfirmImpact='Medium')]
     param([int]$BlockingIssue, [int[]]$BlockedIssues)
 
     $allNums = @($BlockingIssue) + $BlockedIssues | Select-Object -Unique
@@ -320,6 +324,9 @@ function Remove-Blocking {
 
     foreach ($blocked in $BlockedIssues) {
         $blockedInfo = $ids[$blocked]
+        if (-not $PSCmdlet.ShouldProcess("#$blocked ($($blockedInfo.Title))", "Remove blocking from #$BlockingIssue ($($blockingInfo.Title))")) {
+            continue
+        }
         $mutation = "mutation { removeBlockedBy(input: { issueId: `"$($blockedInfo.Id)`", blockingIssueId: `"$($blockingInfo.Id)`" }) { clientMutationId } }"
         $result = Invoke-GraphQLMutation -Mutation $mutation
 
@@ -333,6 +340,7 @@ function Remove-Blocking {
 }
 
 function Remove-SubIssue {
+    [CmdletBinding(SupportsShouldProcess=$true, ConfirmImpact='Medium')]
     param([int]$ParentIssue, [int[]]$ChildIssues)
 
     $allNums = @($ParentIssue) + $ChildIssues | Select-Object -Unique
@@ -344,6 +352,9 @@ function Remove-SubIssue {
 
     foreach ($child in $ChildIssues) {
         $childInfo = $ids[$child]
+        if (-not $PSCmdlet.ShouldProcess("#$child ($($childInfo.Title))", "Remove sub-issue from #$ParentIssue ($($parentInfo.Title))")) {
+            continue
+        }
         $mutation = "mutation { removeSubIssue(input: { issueId: `"$($parentInfo.Id)`", subIssueId: `"$($childInfo.Id)`" }) { clientMutationId } }"
         $result = Invoke-GraphQLMutation -Mutation $mutation
 
@@ -379,8 +390,8 @@ query {
     $tempFile = [System.IO.Path]::GetTempFileName()
     try {
         Set-Content -Path $tempFile -Value $query -Encoding ascii -NoNewline
-        $raw = gh api graphql -F query=@$tempFile 2>&1
-        $result = ($raw | Where-Object { $_ -is [string] -or $_.GetType().Name -ne 'ErrorRecord' }) -join "`n" | ConvertFrom-Json
+        $result = Invoke-GhJson -Arguments @("api", "graphql", "-F", "query=@$tempFile") -ErrorContext "Show-Relationships"
+        if (-not $result) { return }
     }
     finally {
         Remove-Item -Path $tempFile -ErrorAction SilentlyContinue
@@ -504,8 +515,8 @@ function Show-BatchSummary {
     $tempFile = [System.IO.Path]::GetTempFileName()
     try {
         Set-Content -Path $tempFile -Value $query -Encoding ascii -NoNewline
-        $raw = gh api graphql -F query=@$tempFile 2>&1
-        $result = ($raw | Where-Object { $_ -is [string] -or $_.GetType().Name -ne 'ErrorRecord' }) -join "`n" | ConvertFrom-Json
+        $result = Invoke-GhJson -Arguments @("api", "graphql", "-F", "query=@$tempFile") -ErrorContext "Show-BatchSummary"
+        if (-not $result) { return }
     }
     finally {
         Remove-Item -Path $tempFile -ErrorAction SilentlyContinue
@@ -577,8 +588,8 @@ function Show-Ready {
     $tempFile = [System.IO.Path]::GetTempFileName()
     try {
         Set-Content -Path $tempFile -Value $query -Encoding ascii -NoNewline
-        $rawGql = gh api graphql -F query=@$tempFile 2>&1
-        $result = ($rawGql | Where-Object { $_ -is [string] -or $_.GetType().Name -ne 'ErrorRecord' }) -join "`n" | ConvertFrom-Json
+        $result = Invoke-GhJson -Arguments @("api", "graphql", "-F", "query=@$tempFile") -ErrorContext "Show-Ready"
+        if (-not $result) { return }
     }
     finally {
         Remove-Item -Path $tempFile -ErrorAction SilentlyContinue
@@ -690,8 +701,8 @@ function Show-Orphans {
     $tempFile = [System.IO.Path]::GetTempFileName()
     try {
         Set-Content -Path $tempFile -Value $query -Encoding ascii -NoNewline
-        $rawGql = gh api graphql -F query=@$tempFile 2>&1
-        $result = ($rawGql | Where-Object { $_ -is [string] -or $_.GetType().Name -ne 'ErrorRecord' }) -join "`n" | ConvertFrom-Json
+        $result = Invoke-GhJson -Arguments @("api", "graphql", "-F", "query=@$tempFile") -ErrorContext "Show-Orphans"
+        if (-not $result) { return }
     }
     finally {
         Remove-Item -Path $tempFile -ErrorAction SilentlyContinue
@@ -755,8 +766,8 @@ query {
         $tempFile = [System.IO.Path]::GetTempFileName()
         try {
             Set-Content -Path $tempFile -Value $query -Encoding ascii -NoNewline
-            $raw = gh api graphql -F query=@$tempFile 2>&1
-            $result = ($raw | Where-Object { $_ -is [string] -or $_.GetType().Name -ne 'ErrorRecord' }) -join "`n" | ConvertFrom-Json
+            $result = Invoke-GhJson -Arguments @("api", "graphql", "-F", "query=@$tempFile") -ErrorContext "Show-Chain"
+            if (-not $result) { return }
         }
         finally {
             Remove-Item -Path $tempFile -ErrorAction SilentlyContinue
@@ -842,8 +853,8 @@ query {
     $tempFile = [System.IO.Path]::GetTempFileName()
     try {
         Set-Content -Path $tempFile -Value $query -Encoding ascii -NoNewline
-        $raw = gh api graphql -F query=@$tempFile 2>&1
-        $result = ($raw | Where-Object { $_ -is [string] -or $_.GetType().Name -ne 'ErrorRecord' }) -join "`n" | ConvertFrom-Json
+        $result = Invoke-GhJson -Arguments @("api", "graphql", "-F", "query=@$tempFile") -ErrorContext "Show-Tree"
+        if (-not $result) { return }
     }
     finally {
         Remove-Item -Path $tempFile -ErrorAction SilentlyContinue

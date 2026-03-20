@@ -23,6 +23,12 @@ namespace Wayfinder
     public:
         using HandleType = Handle<TTag>;
 
+        ResourcePool() = default;
+        ResourcePool(const ResourcePool&) = delete;
+        ResourcePool& operator=(const ResourcePool&) = delete;
+        ResourcePool(ResourcePool&&) = default;
+        ResourcePool& operator=(ResourcePool&&) = default;
+
         /**
          * @brief Acquires a new slot and stores the resource.
          * @param resource The resource to store (moved into the pool).
@@ -51,7 +57,8 @@ namespace Wayfinder
             auto& entry = m_entries[index];
             entry.Resource = std::move(resource);
 
-            /// Bump generation on every acquire. Start from 1 so generation 0 is always invalid.
+            /// Initialise generation to 1 for new entries (generation 0 is reserved as invalid).
+            /// Generation increments happen in Release(), not here.
             entry.Generation = (entry.Generation == 0) ? 1 : entry.Generation;
             entry.Alive = true;
             ++m_activeCount;

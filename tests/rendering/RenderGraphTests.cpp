@@ -12,16 +12,16 @@ namespace
     // Helper: create a NullDevice + TransientResourcePool for graph execution
     struct GraphTestFixture
     {
-        std::unique_ptr<Wayfinder::RenderDevice> Device;
-        Wayfinder::TransientResourcePool Pool;
+        std::unique_ptr<Wayfinder::RenderDevice> m_Device;
+        Wayfinder::TransientResourcePool m_Pool;
 
         GraphTestFixture()
-            : Device(Wayfinder::RenderDevice::Create(Wayfinder::RenderBackend::Null))
+            : m_Device(Wayfinder::RenderDevice::Create(Wayfinder::RenderBackend::Null))
         {
-            Pool.Initialize(*Device);
+            m_Pool.Initialize(*m_Device);
         }
 
-        ~GraphTestFixture() { Pool.Shutdown(); }
+        ~GraphTestFixture() { m_Pool.Shutdown(); }
     };
 }
 
@@ -79,7 +79,7 @@ TEST_CASE("Topological sort respects resource dependencies")
     REQUIRE(graph.Compile());
 
     GraphTestFixture fixture;
-    graph.Execute(*fixture.Device, fixture.Pool);
+    graph.Execute(*fixture.m_Device, fixture.m_Pool);
 
     REQUIRE(executionOrder.size() == 2);
     CHECK(executionOrder[0] == "A");
@@ -126,7 +126,7 @@ TEST_CASE("Three-pass chain executes in dependency order")
     REQUIRE(graph.Compile());
 
     GraphTestFixture fixture;
-    graph.Execute(*fixture.Device, fixture.Pool);
+    graph.Execute(*fixture.m_Device, fixture.m_Pool);
 
     REQUIRE(executionOrder.size() == 3);
     CHECK(executionOrder[0] == "First");
@@ -167,7 +167,7 @@ TEST_CASE("Orphan pass is culled")
     REQUIRE(graph.Compile());
 
     GraphTestFixture fixture;
-    graph.Execute(*fixture.Device, fixture.Pool);
+    graph.Execute(*fixture.m_Device, fixture.m_Pool);
 
     REQUIRE(executionOrder.size() == 1);
     CHECK(executionOrder[0] == "Present");
@@ -206,7 +206,7 @@ TEST_CASE("Transitive dependency keeps producer alive")
     REQUIRE(graph.Compile());
 
     GraphTestFixture fixture;
-    graph.Execute(*fixture.Device, fixture.Pool);
+    graph.Execute(*fixture.m_Device, fixture.m_Pool);
 
     REQUIRE(executionOrder.size() == 2);
     CHECK(executionOrder[0] == "Producer");
@@ -215,43 +215,15 @@ TEST_CASE("Transitive dependency keeps producer alive")
 
 // ── Cycle Detection ──────────────────────────────────────
 
-TEST_CASE("Graph API prevents cycle formation by construction")
+TEST_CASE("Complex dependency pattern compiles without cycle")
 {
-    // The graph builder records WrittenByPass at setup time, and passes are
-    // set up in AddPass order. Because a pass can only read textures that
-    // already have a writer at the time of setup, natural cycles are impossible
-    // through the public API. This test verifies Compile() succeeds for a
-    // pattern that would be cyclic if dependencies could form retroactively.
+    // The graph API prevents cycles by construction: WrittenByPass is recorded
+    // during AddPass setup, so a pass can only depend on writers already set up.
+    // This three-pass pattern would be cyclic if dependencies could form
+    // retroactively, but compiles successfully due to sequential setup semantics.
 
     Wayfinder::RenderGraph graph;
 
-    Wayfinder::RenderGraphTextureDesc desc1;
-    desc1.Width = 800;
-    desc1.Height = 600;
-    desc1.Format = Wayfinder::TextureFormat::RGBA8_UNORM;
-    desc1.DebugName = "Tex1";
-
-    Wayfinder::RenderGraphTextureDesc desc2;
-    desc2.Width = 800;
-    desc2.Height = 600;
-    desc2.Format = Wayfinder::TextureFormat::RGBA8_UNORM;
-    desc2.DebugName = "Tex2";
-
-    // Import Tex2 first so both passes can find it. 
-    // We need to use a staged approach: first create tex2, then have A read it.
-    // The trick is that the graph builder's WriteColor records WrittenByPass and 
-    // ReadTexture creates a dependency on WrittenByPass. For a cycle, we need 
-    // B to write Tex2 before A reads it, but A to write Tex1 before B reads it.
-    // With the single-pass setup approach, this means AddPass order matters for 
-    // WrittenByPass tracking.
-
-    // Actually, let's create a simpler cycle test:
-    // We manually import both textures. Then:
-    // Pass A: writes Tex1 (load from existing = dep on prior writer), reads Tex2
-    // Pass B: writes Tex2 (load from existing = dep on prior writer), reads Tex1
-    // But since no prior writer exists initially, we need to ensure cross-dependencies.
-
-    // Simpler approach: 3-pass cycle: A -> B -> C -> A
     Wayfinder::RenderGraphTextureDesc descA, descB, descC;
     descA.Width = descB.Width = descC.Width = 100;
     descA.Height = descB.Height = descC.Height = 100;
@@ -260,17 +232,14 @@ TEST_CASE("Graph API prevents cycle formation by construction")
     descB.DebugName = "TexB";
     descC.DebugName = "TexC";
 
-    // Pass 0: writes TexA, reads TexC (depends on pass 2)
     graph.AddPass("PassA", [&](Wayfinder::RenderGraphBuilder& builder) -> Wayfinder::RenderGraphExecuteFn {
         auto a = builder.CreateTransient(descA);
         builder.WriteColor(a);
-        // We need TexC to exist first — import it
         auto c = graph.ImportTexture("TexC");
-        builder.ReadTexture(c); // triggers dep on whoever wrote TexC
+        builder.ReadTexture(c);
         return [](Wayfinder::RenderDevice&, const Wayfinder::RenderGraphResources&) {};
     });
 
-    // Pass 1: writes TexB, reads TexA (depends on pass 0)
     graph.AddPass("PassB", [&](Wayfinder::RenderGraphBuilder& builder) -> Wayfinder::RenderGraphExecuteFn {
         auto b = builder.CreateTransient(descB);
         builder.WriteColor(b);
@@ -279,42 +248,16 @@ TEST_CASE("Graph API prevents cycle formation by construction")
         return [](Wayfinder::RenderDevice&, const Wayfinder::RenderGraphResources&) {};
     });
 
-    // Pass 2: writes TexC (completing the cycle), reads TexB (depends on pass 1)
     graph.AddPass("PassC", [&](Wayfinder::RenderGraphBuilder& builder) -> Wayfinder::RenderGraphExecuteFn {
-        // TexC was imported, so we find it and write to it
         auto c = graph.FindHandle("TexC");
         builder.WriteColor(c, Wayfinder::LoadOp::Clear);
         auto b = graph.FindHandle("TexB");
         builder.ReadTexture(b);
-        builder.SetSwapchainOutput(); // keep alive
+        builder.SetSwapchainOutput();
         return [](Wayfinder::RenderDevice&, const Wayfinder::RenderGraphResources&) {};
     });
 
-    // PassA reads TexC (written by PassC at index 2) -> dependency: A depends on C
-    // PassB reads TexA (written by PassA at index 0) -> dependency: B depends on A
-    // PassC reads TexB (written by PassB at index 1) -> dependency: C depends on B
-    // Cycle: A -> C -> B -> A
-    // However, because PassA is set up first and TexC has no writer at that point,
-    // ReadTexture won't register a dependency. The WrittenByPass for TexC is set
-    // AFTER PassC runs its setup. So this particular construction won't cycle.
-    // 
-    // The RenderGraph's cycle detection is tested by its topological sort.
-    // If we can't create a natural cycle through the API (because setup order 
-    // determines when WrittenByPass is recorded), that's actually correct behavior —
-    // the graph API prevents cycles by construction in most cases.
-    // 
-    // For completeness, let's verify that the compile succeeds here (no cycle),
-    // and separately test the topological sort's cycle detection capability
-    // by noting that the Compile() method correctly handles all well-formed inputs.
-    
-    // This specific test verifies the cycle detection code path exists and Compile 
-    // correctly returns true when there's no actual cycle.
-    // A true cycle would require manipulating internal state, which we don't do.
-    bool result = graph.Compile();
-    // The graph either detects a cycle (returns false) or correctly sorts.
-    // Due to setup-order semantics, this particular arrangement may not cycle.
-    // The important thing is Compile() doesn't crash.
-    CHECK(result); // no cycle formed because WrittenByPass tracking is sequential
+    CHECK(graph.Compile());
 }
 
 // ── Compute Pass ─────────────────────────────────────────
@@ -350,7 +293,7 @@ TEST_CASE("Compute pass integrates into the graph")
     REQUIRE(graph.Compile());
 
     GraphTestFixture fixture;
-    graph.Execute(*fixture.Device, fixture.Pool);
+    graph.Execute(*fixture.m_Device, fixture.m_Pool);
 
     REQUIRE(executionOrder.size() == 2);
     CHECK(executionOrder[0] == "Compute");
@@ -429,32 +372,32 @@ TEST_CASE("NullDevice supports all render graph operations")
     rpDesc.targetSwapchain = false;
 
     // These should all be no-ops without crashing
-    fixture.Device->BeginRenderPass(rpDesc);
-    fixture.Device->EndRenderPass();
+    fixture.m_Device->BeginRenderPass(rpDesc);
+    fixture.m_Device->EndRenderPass();
 
-    fixture.Device->BeginComputePass();
-    fixture.Device->EndComputePass();
+    fixture.m_Device->BeginComputePass();
+    fixture.m_Device->EndComputePass();
 
-    auto tex = fixture.Device->CreateTexture({});
-    fixture.Device->DestroyTexture(tex);
+    auto tex = fixture.m_Device->CreateTexture({});
+    fixture.m_Device->DestroyTexture(tex);
 
-    auto buf = fixture.Device->CreateBuffer({});
-    fixture.Device->DestroyBuffer(buf);
+    auto buf = fixture.m_Device->CreateBuffer({});
+    fixture.m_Device->DestroyBuffer(buf);
 
-    auto shader = fixture.Device->CreateShader({});
-    fixture.Device->DestroyShader(shader);
+    auto shader = fixture.m_Device->CreateShader({});
+    fixture.m_Device->DestroyShader(shader);
 
-    auto pipeline = fixture.Device->CreatePipeline({});
-    fixture.Device->DestroyPipeline(pipeline);
+    auto pipeline = fixture.m_Device->CreatePipeline({});
+    fixture.m_Device->DestroyPipeline(pipeline);
 
-    auto computePipeline = fixture.Device->CreateComputePipeline({});
-    fixture.Device->DestroyComputePipeline(computePipeline);
+    auto computePipeline = fixture.m_Device->CreateComputePipeline({});
+    fixture.m_Device->DestroyComputePipeline(computePipeline);
 
-    auto sampler = fixture.Device->CreateSampler({});
-    fixture.Device->DestroySampler(sampler);
+    auto sampler = fixture.m_Device->CreateSampler({});
+    fixture.m_Device->DestroySampler(sampler);
 
     uint32_t w, h;
-    fixture.Device->GetSwapchainDimensions(w, h);
+    fixture.m_Device->GetSwapchainDimensions(w, h);
     CHECK(w == 0);
     CHECK(h == 0);
 }
@@ -500,7 +443,7 @@ TEST_CASE("Depth target pass compiles and executes")
     REQUIRE(graph.Compile());
 
     GraphTestFixture fixture;
-    graph.Execute(*fixture.Device, fixture.Pool);
+    graph.Execute(*fixture.m_Device, fixture.m_Pool);
 
     REQUIRE(executionOrder.size() == 2);
     CHECK(executionOrder[0] == "Scene");

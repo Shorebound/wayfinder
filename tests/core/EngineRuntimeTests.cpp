@@ -44,7 +44,7 @@ TEST_SUITE("EngineRuntime")
         auto project = MakeTestProject();
 
         EngineRuntime runtime(config, project);
-        CHECK(runtime.Initialize());
+        CHECK(runtime.Initialise());
         runtime.Shutdown();
     }
 
@@ -54,7 +54,7 @@ TEST_SUITE("EngineRuntime")
         auto project = MakeTestProject();
 
         EngineRuntime runtime(config, project);
-        REQUIRE(runtime.Initialize());
+        REQUIRE(runtime.Initialise());
 
         // Accessors return valid references after initialisation
         CHECK_NOTHROW(runtime.GetWindow());
@@ -72,7 +72,7 @@ TEST_SUITE("EngineRuntime")
         auto project = MakeTestProject();
 
         EngineRuntime runtime(config, project);
-        REQUIRE(runtime.Initialize());
+        REQUIRE(runtime.Initialise());
 
         // Simulate a few frames
         for (int i = 0; i < 3; ++i)
@@ -90,7 +90,7 @@ TEST_SUITE("EngineRuntime")
         auto project = MakeTestProject();
 
         EngineRuntime runtime(config, project);
-        REQUIRE(runtime.Initialize());
+        REQUIRE(runtime.Initialise());
 
         runtime.BeginFrame();
         CHECK(runtime.GetDeltaTime() >= 0.0f);
@@ -105,7 +105,7 @@ TEST_SUITE("EngineRuntime")
         auto project = MakeTestProject();
 
         EngineRuntime runtime(config, project);
-        REQUIRE(runtime.Initialize());
+        REQUIRE(runtime.Initialise());
 
         CHECK_FALSE(runtime.ShouldClose());
 
@@ -118,7 +118,7 @@ TEST_SUITE("EngineRuntime")
         auto project = MakeTestProject();
 
         EngineRuntime runtime(config, project);
-        REQUIRE(runtime.Initialize());
+        REQUIRE(runtime.Initialise());
 
         runtime.Shutdown();
         CHECK_NOTHROW(runtime.Shutdown());
@@ -130,7 +130,7 @@ TEST_SUITE("EngineRuntime")
         auto project = MakeTestProject();
 
         EngineRuntime runtime(config, project);
-        REQUIRE(runtime.Initialize());
+        REQUIRE(runtime.Initialise());
 
         auto ctx = runtime.BuildContext();
         CHECK(ctx.config.Window.Width == 320);

@@ -28,9 +28,9 @@ namespace Wayfinder
 
     // ── Lifecycle ────────────────────────────────────────────
 
-    bool EngineRuntime::Initialize()
+    bool EngineRuntime::Initialise()
     {
-        WAYFINDER_INFO(LogEngine, "Initializing EngineRuntime");
+        WAYFINDER_INFO(LogEngine, "Initialising EngineRuntime");
 
         // Platform services
         m_input = Input::Create(m_config.Backends.Platform);
@@ -97,7 +97,7 @@ namespace Wayfinder
             return false;
         }
 
-        WAYFINDER_INFO(LogEngine, "EngineRuntime initialized");
+        WAYFINDER_INFO(LogEngine, "EngineRuntime initialised");
         return true;
     }
 

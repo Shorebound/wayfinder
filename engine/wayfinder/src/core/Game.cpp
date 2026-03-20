@@ -182,8 +182,12 @@ namespace Wayfinder
 
     void Game::TransitionTo(const std::string& stateName)
     {
-        if (m_stateMachine)
-            m_stateMachine->TransitionTo(stateName);
+        if (!m_stateMachine)
+        {
+            WAYFINDER_WARNING(LogGame, "TransitionTo('{}') called but no state machine is configured", stateName);
+            return;
+        }
+        m_stateMachine->TransitionTo(stateName);
     }
 
     std::string_view Game::GetCurrentState() const

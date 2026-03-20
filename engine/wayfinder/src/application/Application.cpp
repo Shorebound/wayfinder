@@ -86,7 +86,7 @@ namespace Wayfinder
 
         // 4. Platform + rendering services
         m_runtime = std::make_unique<EngineRuntime>(*m_config, *m_project);
-        if (!m_runtime->Initialize())
+        if (!m_runtime->Initialise())
         {
             WAYFINDER_ERROR(LogEngine, "Failed to initialize EngineRuntime");
             Shutdown();

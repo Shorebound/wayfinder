@@ -39,7 +39,7 @@ namespace Wayfinder
         ~EngineRuntime();
 
         // ── Lifecycle ────────────────────────────────────────
-        bool Initialize();
+        bool Initialise();
         void Shutdown();
 
         // ── Per-frame ────────────────────────────────────────
@@ -55,15 +55,15 @@ namespace Wayfinder
         float GetDeltaTime() const;
 
         // ── Non-owning accessors ─────────────────────────────
-        /// @pre Valid only after Initialize() and before Shutdown().
+        /// @pre Valid only after Initialise() and before Shutdown().
         Window& GetWindow();
-        /// @pre Valid only after Initialize() and before Shutdown().
+        /// @pre Valid only after Initialise() and before Shutdown().
         Input& GetInput();
-        /// @pre Valid only after Initialize() and before Shutdown().
+        /// @pre Valid only after Initialise() and before Shutdown().
         Time& GetTime();
-        /// @pre Valid only after Initialize() and before Shutdown().
+        /// @pre Valid only after Initialise() and before Shutdown().
         RenderDevice& GetDevice();
-        /// @pre Valid only after Initialize() and before Shutdown().
+        /// @pre Valid only after Initialise() and before Shutdown().
         Renderer& GetRenderer();
 
         // ── Context bundle for external consumers (editor) ───
