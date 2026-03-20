@@ -85,6 +85,10 @@ namespace Wayfinder
         OneMinusDstAlpha,
         SrcColour,
         OneMinusSrcColour,
+        DstColour,
+        OneMinusDstColour,
+        ConstantColour,
+        OneMinusConstantColour,
     };
 
     /** @brief Arithmetic operation used to combine source and destination blend terms. */
@@ -113,7 +117,12 @@ namespace Wayfinder
         BlendFactor DstAlphaFactor = BlendFactor::OneMinusSrcAlpha;
         BlendOp AlphaOp = BlendOp::Add;
         uint8_t ColourWriteMask = 0xF;
+
+        constexpr bool operator==(const BlendState&) const = default;
     };
+
+    /** @brief Maximum number of simultaneous colour render targets. */
+    static constexpr uint32_t MAX_COLOUR_TARGETS = 8;
 
     /** @brief Factory functions returning common blend configurations. */
     namespace BlendPresets
@@ -140,6 +149,13 @@ namespace Wayfinder
         {
             return {true, BlendFactor::One, BlendFactor::OneMinusSrcAlpha, BlendOp::Add,
                           BlendFactor::One, BlendFactor::OneMinusSrcAlpha, BlendOp::Add};
+        }
+
+        /** @return Multiplicative blending (src·dst + 0). */
+        constexpr BlendState Multiplicative()
+        {
+            return {true, BlendFactor::DstColour, BlendFactor::Zero, BlendOp::Add,
+                          BlendFactor::DstAlpha,  BlendFactor::Zero, BlendOp::Add};
         }
     }
 
@@ -176,7 +192,8 @@ namespace Wayfinder
         FrontFace frontFace = FrontFace::CounterClockwise;
         bool depthTestEnabled = false;
         bool depthWriteEnabled = false;
-        BlendState blend{};
+        uint32_t numColourTargets = 1;
+        BlendState colourTargetBlends[MAX_COLOUR_TARGETS]{};
     };
 
     // ── Compute Pipeline Create Descriptor ───────────────────

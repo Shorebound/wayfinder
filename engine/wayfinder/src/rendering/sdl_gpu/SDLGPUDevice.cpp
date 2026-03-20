@@ -356,14 +356,18 @@ namespace Wayfinder
     {
         switch (f)
         {
-        case BlendFactor::Zero:              return SDL_GPU_BLENDFACTOR_ZERO;
-        case BlendFactor::One:               return SDL_GPU_BLENDFACTOR_ONE;
-        case BlendFactor::SrcAlpha:           return SDL_GPU_BLENDFACTOR_SRC_ALPHA;
-        case BlendFactor::OneMinusSrcAlpha:   return SDL_GPU_BLENDFACTOR_ONE_MINUS_SRC_ALPHA;
-        case BlendFactor::DstAlpha:           return SDL_GPU_BLENDFACTOR_DST_ALPHA;
-        case BlendFactor::OneMinusDstAlpha:   return SDL_GPU_BLENDFACTOR_ONE_MINUS_DST_ALPHA;
-        case BlendFactor::SrcColour:          return SDL_GPU_BLENDFACTOR_SRC_COLOR;
-        case BlendFactor::OneMinusSrcColour:  return SDL_GPU_BLENDFACTOR_ONE_MINUS_SRC_COLOR;
+        case BlendFactor::Zero:                  return SDL_GPU_BLENDFACTOR_ZERO;
+        case BlendFactor::One:                   return SDL_GPU_BLENDFACTOR_ONE;
+        case BlendFactor::SrcAlpha:              return SDL_GPU_BLENDFACTOR_SRC_ALPHA;
+        case BlendFactor::OneMinusSrcAlpha:      return SDL_GPU_BLENDFACTOR_ONE_MINUS_SRC_ALPHA;
+        case BlendFactor::DstAlpha:              return SDL_GPU_BLENDFACTOR_DST_ALPHA;
+        case BlendFactor::OneMinusDstAlpha:      return SDL_GPU_BLENDFACTOR_ONE_MINUS_DST_ALPHA;
+        case BlendFactor::SrcColour:             return SDL_GPU_BLENDFACTOR_SRC_COLOR;
+        case BlendFactor::OneMinusSrcColour:     return SDL_GPU_BLENDFACTOR_ONE_MINUS_SRC_COLOR;
+        case BlendFactor::DstColour:             return SDL_GPU_BLENDFACTOR_DST_COLOR;
+        case BlendFactor::OneMinusDstColour:     return SDL_GPU_BLENDFACTOR_ONE_MINUS_DST_COLOR;
+        case BlendFactor::ConstantColour:        return SDL_GPU_BLENDFACTOR_CONSTANT_COLOR;
+        case BlendFactor::OneMinusConstantColour: return SDL_GPU_BLENDFACTOR_ONE_MINUS_CONSTANT_COLOR;
         }
         return SDL_GPU_BLENDFACTOR_ONE;
     }
@@ -450,27 +454,46 @@ namespace Wayfinder
         case PrimitiveType::PointList:     primType = SDL_GPU_PRIMITIVETYPE_POINTLIST; break;
         }
 
-        // Color target — match swapchain format
-        SDL_GPUColorTargetDescription colorTargetDesc{};
-        colorTargetDesc.format = SDL_GetGPUSwapchainTextureFormat(m_device, m_window);
-
-        // Blend state
-        if (desc.blend.Enabled)
+        // Validate blend state
+        for (uint32_t i = 0; i < desc.numColourTargets; ++i)
         {
-            colorTargetDesc.blend_state.enable_blend = true;
-            colorTargetDesc.blend_state.color_write_mask = desc.blend.ColourWriteMask;
+            const auto& blend = desc.colourTargetBlends[i];
+            if (!blend.Enabled && blend.ColourWriteMask == 0)
+            {
+                WAYFINDER_WARNING(LogRenderer, "CreatePipeline: colour target {} has blending disabled and ColourWriteMask=0 — nothing will be written", i);
+            }
+            if (blend.Enabled && blend.ColourWriteMask == 0)
+            {
+                WAYFINDER_WARNING(LogRenderer, "CreatePipeline: colour target {} has blending enabled but ColourWriteMask=0 — blended result will be discarded", i);
+            }
+        }
 
-            colorTargetDesc.blend_state.src_color_blendfactor = ToSDLBlendFactor(desc.blend.SrcColourFactor);
-            colorTargetDesc.blend_state.dst_color_blendfactor = ToSDLBlendFactor(desc.blend.DstColourFactor);
-            colorTargetDesc.blend_state.color_blend_op = ToSDLBlendOp(desc.blend.ColourOp);
-            colorTargetDesc.blend_state.src_alpha_blendfactor = ToSDLBlendFactor(desc.blend.SrcAlphaFactor);
-            colorTargetDesc.blend_state.dst_alpha_blendfactor = ToSDLBlendFactor(desc.blend.DstAlphaFactor);
-            colorTargetDesc.blend_state.alpha_blend_op = ToSDLBlendOp(desc.blend.AlphaOp);
+        // Colour targets — one per MRT attachment, all using swapchain format for now.
+        // Per-target formats will require framebuffer format plumbing in a future change.
+        const SDL_GPUTextureFormat swapchainFormat = SDL_GetGPUSwapchainTextureFormat(m_device, m_window);
+        SDL_GPUColorTargetDescription colorTargetDescs[MAX_COLOUR_TARGETS]{};
+        for (uint32_t i = 0; i < desc.numColourTargets; ++i)
+        {
+            colorTargetDescs[i].format = swapchainFormat;
+
+            const auto& blend = desc.colourTargetBlends[i];
+            if (blend.Enabled)
+            {
+                colorTargetDescs[i].blend_state.enable_blend = true;
+                colorTargetDescs[i].blend_state.color_write_mask = blend.ColourWriteMask;
+
+                colorTargetDescs[i].blend_state.src_color_blendfactor = ToSDLBlendFactor(blend.SrcColourFactor);
+                colorTargetDescs[i].blend_state.dst_color_blendfactor = ToSDLBlendFactor(blend.DstColourFactor);
+                colorTargetDescs[i].blend_state.color_blend_op = ToSDLBlendOp(blend.ColourOp);
+                colorTargetDescs[i].blend_state.src_alpha_blendfactor = ToSDLBlendFactor(blend.SrcAlphaFactor);
+                colorTargetDescs[i].blend_state.dst_alpha_blendfactor = ToSDLBlendFactor(blend.DstAlphaFactor);
+                colorTargetDescs[i].blend_state.alpha_blend_op = ToSDLBlendOp(blend.AlphaOp);
+            }
         }
 
         SDL_GPUGraphicsPipelineTargetInfo targetInfo{};
-        targetInfo.color_target_descriptions = &colorTargetDesc;
-        targetInfo.num_color_targets = 1;
+        targetInfo.color_target_descriptions = colorTargetDescs;
+        targetInfo.num_color_targets = desc.numColourTargets;
         targetInfo.has_depth_stencil_target = desc.depthTestEnabled || desc.depthWriteEnabled;
         if (targetInfo.has_depth_stencil_target)
         {

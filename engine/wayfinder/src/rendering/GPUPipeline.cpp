@@ -28,7 +28,11 @@ namespace Wayfinder
         pipeDesc.frontFace = desc.frontFace;
         pipeDesc.depthTestEnabled = desc.depthTestEnabled;
         pipeDesc.depthWriteEnabled = desc.depthWriteEnabled;
-        pipeDesc.blend = desc.blend;
+        pipeDesc.numColourTargets = desc.numColourTargets;
+        for (uint32_t i = 0; i < desc.numColourTargets; ++i)
+        {
+            pipeDesc.colourTargetBlends[i] = desc.colourTargetBlends[i];
+        }
 
         if (cache)
         {
