@@ -824,6 +824,104 @@ The event system currently uses synchronous blocking dispatch — `Event.h` itse
 
 ---
 
+### P2.9: SDL_ShaderCross Integration
+
+**Difficulty: M  |  Dependencies: None  |  Blocks: P4.10 (Mobile), P4.11 (Web)**
+
+The engine currently compiles HLSL to SPIR-V offline via DXC (`tools/shadercompiler`) and loads `.spv` files at runtime. This works for Vulkan and D3D12 on Windows, but SDL_GPU selects backends dynamically — on macOS it picks Metal, which requires MSL. Shipping only SPIR-V means the engine can never run on Apple platforms or any future backend that doesn't consume SPIR-V directly.
+
+[SDL_shadercross](https://github.com/libsdl-org/SDL_shadercross) is SDL's official companion library for exactly this problem. It takes HLSL or SPIR-V as input and produces the correct format for whatever backend SDL_GPU selects: DXBC, DXIL, SPIR-V, or MSL. It exposes both a runtime C API (returns compiled `SDL_GPUShader` objects directly) and a CLI for offline precompilation.
+
+#### Why Early
+
+- **Unlocks macOS/iOS immediately.** Metal is the only GPU path on Apple hardware. Without MSL shaders, the engine cannot run there at all. ShaderCross is the simplest path from HLSL → MSL.
+- **Prerequisite for cross-platform ambitions.** Both mobile (P4.10) and web (P4.11) need shader translation. ShaderCross solves the Metal side; WGSL needs separate tooling but starts from the same SPIR-V that ShaderCross consumes.
+- **Simplifies the build pipeline.** Instead of compiling shaders to SPIR-V at build time and loading bytecode, the engine can ship HLSL source (or SPIR-V) and let ShaderCross produce the backend-correct format at runtime. This eliminates the need to pre-produce every format and makes shader hot-reload straightforward.
+- **Enables shader reflection.** ShaderCross can extract binding metadata from HLSL/SPIR-V, which could replace the manually-specified `ShaderResourceCounts` in `ShaderManager::GetShader()`.
+
+#### Architecture: Two Phases
+
+**Phase A — Runtime Translation (Recommended Start)**
+
+Link `SDL_shadercross` as a library. Modify `ShaderManager` to:
+
+1. Load HLSL source (or SPIR-V bytecode, for backward compatibility).
+2. Call `SDL_ShaderCross_CompileGraphicsShaderFromHLSL()` (or the SPIR-V variant) to produce a compiled `SDL_GPUShader` for the active backend.
+3. Cache the result as before.
+
+This keeps shader authoring in HLSL, removes the offline DXC step from the build, and works on every SDL_GPU backend including Metal.
+
+```cpp
+// ShaderManager — conceptual change
+GPUShaderHandle GetShader(const std::string& name, ShaderStage stage, ...)
+{
+    // Load HLSL source from disk (not pre-compiled SPIR-V)
+    std::string hlslSource = ReadTextFile(m_shaderDir / (name + ".hlsl"));
+
+    // ShaderCross produces the right format for the current backend
+    SDL_GPUShader* shader = SDL_ShaderCross_CompileGraphicsShaderFromHLSL(
+        m_device->GetSDLDevice(),
+        &shaderInfo  // HLSL source, entry point, stage, resource counts
+    );
+    // ... wrap in handle, cache, return
+}
+```
+
+**Phase B — Offline Precompilation for Shipping Builds**
+
+For shipping configurations where runtime compilation latency is unacceptable:
+
+1. Use the `shadercross` CLI in CMake (replaces DXC) to produce backend-specific bytecode for each target platform.
+2. Ship pre-compiled bytecode bundles (SPIR-V for Vulkan, DXIL for D3D12, MSL for Metal).
+3. `ShaderManager` loads the format that matches the active backend, skipping runtime translation.
+
+This is a build pipeline concern — the runtime API stays the same. Defer Phase B until shipping build optimisation matters.
+
+#### Dependency Addition
+
+```cmake
+# cmake/WayfinderDependencies.cmake
+CPMAddPackage(
+    NAME SDL_shadercross
+    GIT_REPOSITORY https://github.com/libsdl-org/SDL_shadercross.git
+    GIT_TAG main  # pin to a release tag when one exists
+)
+```
+
+ShaderCross itself depends on SPIRV-Cross (for SPIR-V → MSL/HLSL) and optionally on DXC (for HLSL → DXIL). SPIRV-Cross is bundled; DXC binaries can be shipped or pulled at configure time.
+
+#### Files Touched
+
+- `cmake/WayfinderDependencies.cmake` — add ShaderCross dependency.
+- `cmake/WayfinderShaders.cmake` — Phase B: replace DXC invocation with ShaderCross CLI.
+- `rendering/ShaderManager.h/cpp` — accept HLSL source, call ShaderCross API, remove `.spv`-only assumption.
+- `rendering/SDLGPUDevice.h/cpp` — may need to expose `SDL_GPUDevice*` for ShaderCross calls.
+- Shader source files — rename from `.vert`/`.frag` to `.hlsl` (or keep separate files with stage-specific entry points).
+
+#### Future Consideration: Slang Shading Language
+
+[Slang](https://shader-slang.org/) is a Khronos-hosted shading language and compiler that supersedes HLSL in several key ways: a real module system with separate compilation and runtime linking, generics and interfaces for type-checked shader specialisation (no preprocessor permutation hacks), automatic differentiation for neural rendering, and multi-target output (SPIR-V, DXIL, MSL, WGSL, CUDA, CPU) from a single source file. It is HLSL-compatible — most HLSL compiles with Slang out of the box or with minimal changes.
+
+**Why not now:** With ~7 shader files and no variant complexity, the module system and generics solve problems we don't have yet. ShaderCross is the SDL-native path, lighter-weight, and solves the immediate cross-platform problem. Slang's Metal output is still listed as "experimental" and its WGSL output is work-in-progress. Slang is also a substantially heavier dependency (full compiler toolchain with LLVM, spirv-tools, glslang bundled).
+
+**Re-evaluate when:**
+- The shader codebase grows past ~20–30 files and variant/permutation management in HLSL becomes a maintenance burden.
+- A material graph or node-based shader system is under development — Slang's generics and interfaces are genuinely superior to anything HLSL offers for composable shader specialisation.
+- Slang's WGSL output stabilises — at which point it could replace the entire ShaderCross + Tint/Naga chain for all targets, including web, in a single tool.
+- Neural rendering or differentiable techniques become relevant to the engine's feature set.
+
+**Migration cost stays low.** Since Slang is HLSL-compatible, adopting HLSL now via ShaderCross does not lock us out. When the inflection point arrives, porting is close to mechanical: rename files, swap the compiler invocation, and incrementally adopt modules/generics where they add value.
+
+#### Definition of Done
+
+- `ShaderManager` loads HLSL source and produces GPU shaders via ShaderCross at runtime.
+- Engine runs on both Vulkan (Windows/Linux) and Metal (macOS) without shader pipeline changes.
+- Offline DXC step removed from the default build (Phase A). Optional precompilation available (Phase B).
+- Existing shaders work unchanged (same HLSL source, same entry points).
+- All tests pass. Sandbox builds and runs.
+
+---
+
 ## P3 — Nice-to-Have
 
 ### P3.1: TOML Hot-Reload via File Watching
@@ -1395,6 +1493,154 @@ The raw input layer provides `IsKeyPressed(KeyCode)` / `IsMouseButtonPressed(Mou
 
 ---
 
+### P4.10: Mobile Build Targets (iOS + Android)
+
+**Dependencies: P2.9 (ShaderCross — required for Metal/iOS), P1.5 (Application decomp), P4.8 (CI)**
+
+SDL_GPU already supports the mobile backends:
+
+- **iOS/tvOS**: Metal backend. Requires macOS + Xcode, A9 GPU or newer (iOS/tvOS 13.0+).
+- **Android**: Vulkan backend. Requires NDK, devices with Vulkan 1.0 support.
+
+SDL3's platform layer (window, input, events, touch, sensors) supports both platforms. The engine's `RenderDevice` abstraction doesn't need to change — SDL_GPU handles the backend selection. The main work is build infrastructure and platform-specific input handling.
+
+#### Build Infrastructure
+
+1. **CMake cross-compilation presets** for iOS and Android:
+   ```json
+   // CMakePresets.json additions
+   {
+     "name": "ios",
+     "inherits": "default",
+     "cacheVariables": {
+       "CMAKE_SYSTEM_NAME": "iOS",
+       "CMAKE_OSX_DEPLOYMENT_TARGET": "13.0"
+     }
+   },
+   {
+     "name": "android",
+     "inherits": "default",
+     "toolchainFile": "${ANDROID_NDK}/build/cmake/android.toolchain.cmake",
+     "cacheVariables": {
+       "ANDROID_ABI": "arm64-v8a",
+       "ANDROID_PLATFORM": "android-26"
+     }
+   }
+   ```
+2. **Shader delivery**: ShaderCross (P2.9) handles MSL for iOS and SPIR-V for Android. No separate shader pipeline per platform.
+3. **Asset packaging**: Mobile platforms need bundled assets (iOS app bundle, Android APK assets folder). Add CMake install rules or post-build copy steps.
+
+#### Platform Considerations
+
+| Concern | iOS | Android |
+|---------|-----|---------|
+| GPU API | Metal (via SDL_GPU) | Vulkan (via SDL_GPU) |
+| Shaders | HLSL → MSL (ShaderCross) | HLSL → SPIR-V (ShaderCross) |
+| Input | Touch events via SDL3 | Touch events via SDL3 |
+| Window | SDL handles UIKit integration | SDL handles ANativeActivity |
+| Audio | Core Audio (via future audio subsystem) | AAudio/OpenSL (via future audio subsystem) |
+| File I/O | App bundle + Documents dir | APK assets + internal storage |
+
+#### Scope
+
+Phase 1 is a build-and-boot milestone: the sandbox (`journey`) compiles, launches, and renders on a physical device or simulator. No mobile-specific features (touch gestures, on-screen controls, app lifecycle suspend/resume) — those come later.
+
+#### Definition of Done
+
+- `cmake --preset ios` + `cmake --build` produces an Xcode project that builds and runs on an iOS device/simulator.
+- `cmake --preset android` + `cmake --build` produces an APK that runs on an Android device/emulator.
+- Sandbox renders the same scene as the desktop build.
+- No mobile-specific code paths in engine internals — SDL_GPU and ShaderCross handle backend differences.
+
+---
+
+### P4.11: Web Build Target (WebGPU + Emscripten)
+
+**Dependencies: P2.9 (ShaderCross), P4.8 (CI), P1.5 (Application decomp)**
+
+This is the most complex cross-platform target. The web requires WebGPU for GPU access and Emscripten for C++ → WebAssembly compilation. The landscape is evolving rapidly but has reached a critical inflection point.
+
+#### Current State of the Ecosystem (March 2026)
+
+- **WebGPU in browsers**: Shipped in Chrome 113+, Firefox 121+, Safari 18+. The API is stable and widely available.
+- **webgpu-native headers**: [Declared stable](https://github.com/webgpu-native/webgpu-headers) as of October 2025. This was the blocker the SDL team was waiting on.
+- **SDL_GPU WebGPU backend**: Not yet official. SDL team ([icculus, Oct 2025](https://github.com/libsdl-org/SDL/issues/10768)) plans to target **SDL 3.6.0**. A community implementation by [klukaszek](https://github.com/klukaszek/SDL) demonstrates feasibility — the full test suite runs in-browser.
+- **Emscripten WebGPU bindings**: The old bindings were [deprecated and removed](https://github.com/emscripten-core/emscripten/pull/24220). Google's [emdawnwebgpu](https://github.com/nicebyte/niceshade) library is the replacement, wrapping Dawn for Emscripten.
+- **Shader language**: Browsers require **WGSL**. Chrome dropped SPIR-V support entirely. SPIR-V → WGSL translation is available via [Tint](https://dawn.googlesource.com/tint) (C++, part of Dawn) or [Naga](https://github.com/gfx-rs/wgpu/tree/trunk/naga) (Rust, part of wgpu). SDL_shadercross does **not** output WGSL yet.
+
+#### Strategy: Layered Approach
+
+The web target has two independent problems: **GPU abstraction** and **shader translation**. Solve them separately.
+
+**GPU Abstraction — Three Options, Ordered by Preference:**
+
+1. **Wait for SDL_GPU WebGPU backend (SDL 3.6.0).** This is the ideal path — zero engine-side abstraction work. SDL_GPU handles WebGPU the same way it handles Vulkan/D3D12/Metal. The engine's `SDLGPUDevice` works unchanged. The `RenderDevice` abstraction doesn't even need to know.
+   - *Risk*: SDL 3.6.0 timeline is uncertain. Could slip past the point where a web build is wanted.
+   - *Mitigation*: The klukaszek community implementation can be used as a stopgap, or Wayfinder can implement its own backend (option 2).
+
+2. **Implement a `WebGPURenderDevice` behind the existing `RenderDevice` interface.** Use `wgpu-native` (Rust, exposes a C API implementing `webgpu.h`) as the WebGPU implementation. This targets both native (Vulkan/D3D12/Metal via wgpu internals) and browser (WebGPU via Emscripten). The `RenderDevice` abstraction was designed for exactly this extensibility.
+   - *Effort*: Large (XL). A full `RenderDevice` implementation is ~2000 lines based on `SDLGPUDevice`.
+   - *Benefit*: Full control, no dependency on SDL WebGPU timeline. Can be removed later when SDL catches up.
+   - *Risk*: Maintenance burden of two render backends.
+
+3. **Minimal Emscripten + raw `webgpu.h`.** A thin `RenderDevice` implementation directly against the browser's WebGPU API via Emscripten's `webgpu.h` bindings (or emdawnwebgpu). Web-only — no native WebGPU path.
+   - *Effort*: Large, and web-only. Less value than option 2.
+
+**Recommendation**: Start with option 1 (wait for SDL 3.6.0). If a web build is needed before SDL ships it, fall back to option 2 (`wgpu-native` backend). Option 3 is not recommended — if you're writing a custom backend, `wgpu-native` gives you native + web from one implementation.
+
+**Shader Translation — HLSL → WGSL Pipeline:**
+
+ShaderCross (P2.9) handles HLSL → SPIR-V/MSL/DXIL but **does not produce WGSL**. A separate translation step is needed for the web target:
+
+```
+HLSL source
+  ├─ ShaderCross → SPIR-V (Vulkan)
+  ├─ ShaderCross → MSL    (Metal / iOS)
+  ├─ ShaderCross → DXIL   (D3D12 / Xbox)
+  └─ ShaderCross → SPIR-V → Tint/Naga → WGSL (WebGPU / browser)
+```
+
+- **Tint** (Google/Dawn, C++): Can be compiled to WASM and linked with the Emscripten build. klukaszek's SDL WebGPU work demonstrated this approach — ported Tint's SPIR-V → WGSL path to WASM. If SDL's WebGPU backend lands, it will likely handle this internally.
+- **Naga** (Rust/wgpu): Available as a CLI tool. Better suited for offline SPIR-V → WGSL conversion at build time.
+- **Build-time approach** (preferred): Extend the shader compilation step to also produce `.wgsl` files alongside `.spv`. Ship WGSL for web builds, SPIR-V for desktop. No runtime translation needed.
+
+#### Emscripten Build Integration
+
+```cmake
+# CMakePresets.json
+{
+  "name": "web",
+  "inherits": "default",
+  "toolchainFile": "$EMSDK/upstream/emscripten/cmake/Modules/Platform/Emscripten.cmake",
+  "cacheVariables": {
+    "WAYFINDER_BUILD_WEB": "ON"
+  }
+}
+```
+
+SDL3 already compiles to Emscripten. Window, input, and event handling transfer. The main integration points:
+
+- **Main loop**: Emscripten requires `emscripten_set_main_loop()` instead of a blocking `while(running)` loop. The `Application` decomposition (P1.5) should ensure the loop body is a callable function.
+- **Asset loading**: Emscripten virtual filesystem (embed or fetch). Assets must be preloaded or fetched asynchronously.
+- **Threading**: Web Workers support is limited. Single-threaded path must work.
+
+#### Phasing
+
+1. **Now**: Adopt ShaderCross (P2.9). Ensure `Application` loop is callable as a single function (P1.5).
+2. **When SDL 3.6.0 ships with WebGPU**: Add Emscripten CMake preset, compile, test. The engine should largely work — SDL handles the WebGPU backend, ShaderCross handles shaders.
+3. **If SDL 3.6.0 slips and web is needed sooner**: Implement `WebGPURenderDevice` with `wgpu-native`. Add Naga or Tint to the shader pipeline for WGSL output.
+4. **If ShaderCross adds WGSL output**: Simplify the shader pipeline to ShaderCross-only.
+
+#### Definition of Done
+
+- `cmake --preset web` + `cmake --build` produces a WASM binary that runs in a browser.
+- Sandbox renders the same scene as the desktop build.
+- Shader pipeline produces WGSL for the web target (build-time or runtime).
+- Touch/mouse input works in-browser via SDL3's Emscripten support.
+- No web-specific code paths in engine internals beyond the main loop adaptation and asset loading.
+
+---
+
 ## Execution Order (Recommended)
 
 ```
@@ -1415,7 +1661,8 @@ Phase 3: Data & Systems
 ├── P2.3  Frame allocator       
 ├── P2.4  Physics subsystem     (validates architecture)
 ├── P2.7  Error handling        (incremental, alongside everything)
-└── P2.8  Event queue           (decouple dispatch from polling)
+├── P2.8  Event queue           (decouple dispatch from polling)
+└── P2.9  ShaderCross           (unlocks Metal/macOS, prerequisite for mobile + web)
 
 Phase 4: Polish
 ├── P3.1  Hot-reload
@@ -1437,7 +1684,9 @@ Phase 5: Horizon
 ├── P4.6  Scripting
 ├── P4.7  Editor bootstrap
 ├── P4.8  CI pipeline
-└── P4.9  Input action mapping  (data-driven input abstraction)
+├── P4.9  Input action mapping  (data-driven input abstraction)
+├── P4.10 Mobile targets        (iOS + Android, after ShaderCross)
+└── P4.11 Web target             (WebGPU + Emscripten, after ShaderCross + SDL 3.6)
 ```
 
 Items within the same phase can generally be done in parallel. Phase boundaries represent recommended checkpoints — verify everything builds and passes before crossing.
@@ -1469,7 +1718,7 @@ P1.5 (Application decomp) depends on P1.4 and should follow in Lane A once the r
 
 **Conflict risk:** Medium. Both lanes touch render pipeline code. Assign P2.5 only if Lane A hasn't started modifying `RenderPipeline` files yet, otherwise fold P2.5 into Lane A.
 
-### Phase 3 — Up to Four Lanes
+### Phase 3 — Up to Five Lanes
 
 | Lane | Tasks | Primary files touched |
 |------|-------|-----------------------|
@@ -1477,10 +1726,13 @@ P1.5 (Application decomp) depends on P1.4 and should follow in Lane A once the r
 | B | P2.2 MeshComponent split + P2.3 Frame allocator | Components, mesh data, render graph allocator |
 | C | P2.4 Physics subsystem | `physics/` (new directory), subsystem registration |
 | D | P2.8 Event queue | `events/`, `Application` loop |
+| E | P2.9 ShaderCross integration | `ShaderManager`, `cmake/`, shader files |
 
 P2.7 (Error handling) is incremental and touches any file where errors are handled — it conflicts with every lane. Best done as a follow-up pass after the phase, or folded into each lane's scope (each agent adopts the error handling pattern for the files they touch).
 
-**Conflict risk:** Low. Each lane operates in a distinct subsystem directory. Lane B combines mesh + allocator because frame allocator serves the render path that mesh refactoring also touches.
+P2.9 (ShaderCross) is isolated to shader infrastructure and doesn't conflict with any other lane. It can run in parallel freely and unblocks Mobile (P4.10) and Web (P4.11) later.
+
+**Conflict risk:** Low. Each lane operates in a distinct subsystem directory. Lane B combines mesh + allocator because frame allocator serves the render path that mesh refactoring also touches. Lane E is fully isolated to shader loading code.
 
 ### Phase 4 — Up to Five Lanes
 
@@ -1494,7 +1746,7 @@ P2.7 (Error handling) is incremental and touches any file where errors are handl
 
 **Conflict risk:** Low. Lane D and E both touch render code but in different subsystems (handle types vs. graph targets/buffers). Lane A is build-system only.
 
-### Phase 5 — Up to Five Lanes
+### Phase 5 — Up to Seven Lanes
 
 | Lane | Tasks | Primary files touched |
 |------|-------|-----------------------|
@@ -1503,10 +1755,14 @@ P2.7 (Error handling) is incremental and touches any file where errors are handl
 | C | P4.5 Audio subsystem | `audio/` (new directory, fully isolated) |
 | D | P4.8 CI pipeline | `.github/workflows/` (fully isolated) |
 | E | P4.9 Input action mapping | `input/`, TOML action maps |
+| F | P4.10 Mobile targets | `CMakePresets.json`, platform build scripts (isolated) |
+| G | P4.11 Web target | `CMakePresets.json`, Emscripten build, WGSL shader pipeline |
 
 P4.4 (ImGui — needs P1.4, P1.5), P4.6 (Scripting — needs all of P1+P2 stable), and P4.7 (Editor — needs P1.5, P4.4, P2.2) have heavy cross-cutting dependencies. Do them sequentially: P4.4 first, then P4.6 and P4.7 can follow once the core is stable.
 
-**Conflict risk:** Very low. Lanes C, D, and E are in entirely separate directories. Lane A and B both create asset pipeline code — if they share a common `AssetLoader` interface, coordinate the interface design up front and split implementation.
+P4.10 and P4.11 both depend on P2.9 (ShaderCross). P4.11 additionally depends on SDL 3.6.0 for the WebGPU backend (or a custom `WebGPURenderDevice` if SDL slips). Lane F (mobile) and G (web) touch `CMakePresets.json` — coordinate preset names up front, then work independently.
+
+**Conflict risk:** Very low. Lanes C, D, E, F, and G are in entirely separate directories or build configuration files. Lane A and B both create asset pipeline code — if they share a common `AssetLoader` interface, coordinate the interface design up front and split implementation.
 
 ### Guidelines for Agent Assignment
 
