@@ -99,7 +99,6 @@ namespace Wayfinder
             submission.Material.Handle.StableKey = kBuiltInSurfaceMaterialKey;
             submission.Material.Domain = RenderMaterialDomain::Surface;
             submission.Material.Parameters.SetColor("base_color", LinearColor::White());
-            submission.Material.StateOverrides.FillMode = RenderFillMode::SolidAndWireframe;
 
             Matrix4 localToWorld = transform.GetLocalMatrix();
 
@@ -124,10 +123,14 @@ namespace Wayfinder
                     submission.Material.HasOverrides = true;
                     submission.Material.Overrides.SetColor("base_color", LinearColor::FromColor(material.BaseColor));
                 }
+            }
 
-                if (material.HasWireframeOverride || !material.MaterialAssetId)
+            if (entityHandle.has<RenderOverrideComponent>())
+            {
+                const auto& renderOverride = entityHandle.get<RenderOverrideComponent>();
+                if (renderOverride.Wireframe.has_value())
                 {
-                    submission.Material.StateOverrides.FillMode = material.Wireframe
+                    submission.Material.StateOverrides.FillMode = *renderOverride.Wireframe
                         ? RenderFillMode::SolidAndWireframe
                         : RenderFillMode::Solid;
                 }

@@ -71,6 +71,8 @@ scale = [1.0, 1.0, 1.0]
 
 [entities.material]
 base_color = [214, 78, 56, 255]
+
+[entities.render_override]
 wireframe = true
 
 [[entities]]
@@ -86,6 +88,8 @@ scale = [1.0, 1.0, 1.0]
 
 [entities.material]
 base_color = [71, 133, 255, 255]
+
+[entities.render_override]
 wireframe = true
 
 [[entities]]
@@ -101,4 +105,6 @@ scale = [1.25, 1.25, 1.25]
 
 [entities.material]
 base_color = [85, 168, 120, 255]
+
+[entities.render_override]
 wireframe = true
