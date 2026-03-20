@@ -95,6 +95,9 @@ namespace Wayfinder
         uint32_t m_depthHeight = 0;
         void EnsureDepthTexture(uint32_t width, uint32_t height);
 
+        // Shader format accepted by the chosen backend (queried at init)
+        uint32_t m_shaderFormats = 0;
+
         // ── Resource Pools ───────────────────────────────────
         // Raw SDL pointers never leave the backend — the pools map
         // generational handles to the underlying GPU objects.

@@ -40,8 +40,10 @@ namespace Wayfinder
             return false;
         }
 
+        // Only request formats we can actually provide.
+        // Currently all shaders are compiled to SPIR-V.
         m_device = SDL_CreateGPUDevice(
-            SDL_GPU_SHADERFORMAT_SPIRV | SDL_GPU_SHADERFORMAT_DXIL,
+            SDL_GPU_SHADERFORMAT_SPIRV,
             true, // debug mode
             nullptr);
 
@@ -50,6 +52,8 @@ namespace Wayfinder
             WAYFINDER_ERROR(LogRenderer, "SDLGPUDevice: Failed to create GPU device — {}", SDL_GetError());
             return false;
         }
+
+        m_shaderFormats = SDL_GetGPUShaderFormats(m_device);
 
         if (!SDL_ClaimWindowForGPUDevice(m_device, m_window))
         {
@@ -293,7 +297,7 @@ namespace Wayfinder
         info.code = desc.code;
         info.code_size = desc.codeSize;
         info.entrypoint = desc.entryPoint;
-        info.format = SDL_GPU_SHADERFORMAT_SPIRV;
+        info.format = static_cast<SDL_GPUShaderFormat>(m_shaderFormats & SDL_GPU_SHADERFORMAT_SPIRV);
         info.stage = (desc.stage == ShaderStage::Vertex)
             ? SDL_GPU_SHADERSTAGE_VERTEX
             : SDL_GPU_SHADERSTAGE_FRAGMENT;
@@ -654,7 +658,7 @@ namespace Wayfinder
         info.code = desc.code;
         info.code_size = desc.codeSize;
         info.entrypoint = desc.entryPoint;
-        info.format = SDL_GPU_SHADERFORMAT_SPIRV;
+        info.format = static_cast<SDL_GPUShaderFormat>(m_shaderFormats & SDL_GPU_SHADERFORMAT_SPIRV);
         info.num_samplers = desc.numSamplers;
         info.num_readonly_storage_textures = desc.numReadOnlyStorageTextures;
         info.num_readonly_storage_buffers = desc.numReadOnlyStorageBuffers;
