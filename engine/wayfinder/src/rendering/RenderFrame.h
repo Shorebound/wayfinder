@@ -51,7 +51,7 @@ namespace Wayfinder
         Float3 Dimensions{1.0f, 1.0f, 1.0f};
     };
 
-    struct RenderMeshHandle
+    struct RenderMeshRef
     {
         RenderResourceOrigin Origin = RenderResourceOrigin::BuiltIn;
         std::optional<AssetId> AssetId;
@@ -90,7 +90,7 @@ namespace Wayfinder
 
     struct RenderMeshSubmission
     {
-        RenderMeshHandle Mesh{};
+        RenderMeshRef Mesh{};
         Matrix4 LocalToWorld = glm::mat4(1.0f);
         RenderGeometry Geometry{};
         RenderMaterialBinding Material{};

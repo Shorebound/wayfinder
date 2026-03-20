@@ -289,8 +289,8 @@ TEST_CASE("RenderResourceCache resolves built-in materials")
 
     const auto& resolved = resources.ResolveMesh(scenePass.Meshes[0]);
     CHECK(resolved.Geometry.Type == Wayfinder::RenderGeometryType::Box);
-    CHECK(resolved.Handle.Origin == Wayfinder::RenderResourceOrigin::BuiltIn);
-    CHECK(resolved.Handle.StableKey == 42);
+    CHECK(resolved.Ref.Origin == Wayfinder::RenderResourceOrigin::BuiltIn);
+    CHECK(resolved.Ref.StableKey == 42);
 
     // Verify that the submission's material binding was set up correctly
     CHECK(scenePass.Meshes[0].Material.Handle.Origin == Wayfinder::RenderResourceOrigin::BuiltIn);

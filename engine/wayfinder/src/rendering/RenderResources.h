@@ -14,7 +14,7 @@ namespace Wayfinder
 {
     struct RenderMeshResource
     {
-        RenderMeshHandle Handle{};
+        RenderMeshRef Ref{};
         RenderGeometry Geometry{};
     };
 
