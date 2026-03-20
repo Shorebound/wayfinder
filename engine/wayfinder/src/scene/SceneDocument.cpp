@@ -1,8 +1,8 @@
 #include "SceneDocument.h"
 
 #include "RuntimeComponentRegistry.h"
-#include "../assets/AssetService.h"
-#include "../rendering/Material.h"
+#include "assets/AssetService.h"
+#include "rendering/materials/Material.h"
 
 #include <algorithm>
 #include <filesystem>

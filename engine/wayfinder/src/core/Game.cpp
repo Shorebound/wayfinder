@@ -8,8 +8,8 @@
 #include "ModuleRegistry.h"
 #include "ProjectDescriptor.h"
 #include "SceneSettings.h"
-#include "../assets/AssetService.h"
-#include "../scene/Scene.h"
+#include "assets/AssetService.h"
+#include "scene/Scene.h"
 
 #include <filesystem>
 #include <functional>

@@ -2,7 +2,7 @@
 #include "RuntimeComponentRegistry.h"
 #include "SceneDocument.h"
 #include "SceneModuleRegistry.h"
-#include "entity/Entity.h"
+#include "scene/entity/Entity.h"
 #include "Components.h"
 #include "core/Log.h"
 #include "core/SceneSettings.h"

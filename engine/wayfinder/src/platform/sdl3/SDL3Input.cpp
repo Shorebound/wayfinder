@@ -1,5 +1,5 @@
 #include "SDL3Input.h"
-#include "../null/NullInput.h"
+#include "platform/null/NullInput.h"
 
 #include <SDL3/SDL.h>
 #include <cstring>

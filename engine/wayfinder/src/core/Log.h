@@ -1,6 +1,6 @@
 #pragma once
-#include "logging/ILogger.h"
-#include "logging/LogTypes.h"
+#include "core/logging/ILogger.h"
+#include "core/logging/LogTypes.h"
 
 #include <memory>
 #include <string>

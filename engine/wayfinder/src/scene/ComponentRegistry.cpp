@@ -1,11 +1,11 @@
 #include "ComponentRegistry.h"
 
 #include "Components.h"
-#include "entity/Entity.h"
-#include "../core/GameplayTag.h"
-#include "../core/GameplayTagRegistry.h"
-#include "../core/Log.h"
-#include "../core/Subsystem.h"
+#include "scene/entity/Entity.h"
+#include "core/GameplayTag.h"
+#include "core/GameplayTagRegistry.h"
+#include "core/Log.h"
+#include "core/Subsystem.h"
 
 #include <array>
 #include <sstream>

@@ -5,7 +5,7 @@
 #include "core/GameState.h"
 #include "core/Plugin.h"
 #include "scene/entity/Entity.h"
-#include "application/EntryPoint.h"
+#include "core/EntryPoint.h"
 
 #include <flecs.h>
 #include <toml++/toml.hpp>

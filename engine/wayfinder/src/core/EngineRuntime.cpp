@@ -4,13 +4,13 @@
 #include "EngineContext.h"
 #include "Log.h"
 #include "ProjectDescriptor.h"
-#include "../platform/Input.h"
-#include "../platform/Time.h"
-#include "../platform/Window.h"
-#include "../rendering/RenderDevice.h"
-#include "../rendering/Renderer.h"
-#include "../rendering/SceneRenderExtractor.h"
-#include "../scene/Scene.h"
+#include "platform/Input.h"
+#include "platform/Time.h"
+#include "platform/Window.h"
+#include "rendering/backend/RenderDevice.h"
+#include "rendering/pipeline/Renderer.h"
+#include "rendering/pipeline/SceneRenderExtractor.h"
+#include "scene/Scene.h"
 
 #include <cassert>
 

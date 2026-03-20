@@ -1,5 +1,5 @@
 #include "TagRegistrar.h"
-#include "../Log.h"
+#include "core/Log.h"
 
 namespace Wayfinder
 {

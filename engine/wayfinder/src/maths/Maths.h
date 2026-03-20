@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../rendering/RenderTypes.h"
+#include "rendering/RenderTypes.h"
 
 namespace Wayfinder::Math3D
 {

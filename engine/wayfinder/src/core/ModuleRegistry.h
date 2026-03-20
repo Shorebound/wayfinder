@@ -3,9 +3,9 @@
 #include "GameState.h"
 #include "Plugin.h"
 #include "Subsystem.h"
-#include "registrars/StateRegistrar.h"
-#include "registrars/SystemRegistrar.h"
-#include "registrars/TagRegistrar.h"
+#include "core/registrars/StateRegistrar.h"
+#include "core/registrars/SystemRegistrar.h"
+#include "core/registrars/TagRegistrar.h"
 #include "wayfinder_exports.h"
 
 #include <functional>

@@ -1,5 +1,5 @@
 #pragma once
-#include "../Window.h"
+#include "platform/Window.h"
 
 struct SDL_Window;
 

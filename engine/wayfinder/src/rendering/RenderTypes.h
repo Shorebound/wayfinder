@@ -5,8 +5,8 @@
 
 #include <glm/glm.hpp>
 
-#include "../core/BackendConfig.h"
-#include "GPUHandles.h"
+#include "core/BackendConfig.h"
+#include "rendering/backend/GPUHandles.h"
 #include "wayfinder_exports.h"
 
 namespace Wayfinder

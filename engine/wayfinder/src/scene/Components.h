@@ -3,11 +3,11 @@
 #include <optional>
 #include <string>
 
-#include "../core/Identifiers.h"
-#include "../maths/Maths.h"
-#include "../rendering/PostProcessVolume.h"
-#include "../rendering/RenderIntent.h"
-#include "../rendering/RenderTypes.h"
+#include "core/Identifiers.h"
+#include "maths/Maths.h"
+#include "rendering/materials/PostProcessVolume.h"
+#include "rendering/graph/RenderIntent.h"
+#include "rendering/RenderTypes.h"
 
 namespace Wayfinder
 {

@@ -1,5 +1,5 @@
-#include "rendering/RenderContext.h"
-#include "rendering/RenderDevice.h"
+#include "rendering/pipeline/RenderContext.h"
+#include "rendering/backend/RenderDevice.h"
 #include "core/EngineConfig.h"
 
 #include <doctest/doctest.h>

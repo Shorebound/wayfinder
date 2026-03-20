@@ -1,7 +1,7 @@
 #include "WayfinderPCH.h"
 #include "Entity.h"
-#include "../Components.h"
-#include "../Scene.h"
+#include "scene/Components.h"
+#include "scene/Scene.h"
 
 namespace Wayfinder
 {
