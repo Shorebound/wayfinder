@@ -31,7 +31,3 @@ This file documents common mistakes, confusion points, and non-obvious behaviour
 ## Module System
 
 - **`Module::Register()` stores factories, not live registrations.** `ModuleRegistry` collects descriptors that are applied once via `ApplyToWorld(flecs::world&)` at startup.
-
-## GitHub Issues & Project Tracking
-
-See the "GitHub Issues & Project Tracking" section in `copilot-instructions.md` for workflow, the CLI tool, and relationship management.
