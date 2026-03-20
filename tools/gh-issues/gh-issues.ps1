@@ -109,6 +109,7 @@ param(
 $ErrorActionPreference = "Continue"
 $OWNER = "Shorebound"
 $REPO  = "wayfinder"
+$MAX_RECURSION_DEPTH = 25
 
 # --- Helpers ---
 
@@ -774,7 +775,7 @@ function Show-Chain {
     $visited = @{}
     $chain = [System.Collections.ArrayList]::new()
 
-    $maxWalkDepth = 25
+    $maxWalkDepth = $MAX_RECURSION_DEPTH
 
     function Walk-Blockers([int]$Num, [int]$Depth) {
         if ($visited.ContainsKey($Num)) { return }
@@ -868,7 +869,7 @@ function Show-Tree {
     # Recursively fetch sub-issues for a given issue number.
     # Returns a tree node: @{ number; title; state; children = @(...) }
     function Fetch-SubIssueTree([int]$Num, [int]$Depth) {
-        if ($Depth -gt 25) {
+        if ($Depth -gt $MAX_RECURSION_DEPTH) {
             Write-Host "  Show-Tree: depth cap reached at #$Num — stopping" -ForegroundColor Yellow
             return $null
         }
