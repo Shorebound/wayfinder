@@ -803,7 +803,8 @@ The event system currently uses synchronous blocking dispatch — `Event.h` itse
 
 #### Design
 
-- `EventQueue` class backed by `std::vector<std::unique_ptr<Event>>`.
+- `EventQueue` class with a per-frame buffer of polymorphic events.
+- Initial implementation can use `std::vector<std::unique_ptr<Event>>` — simple and correct, but incurs a heap allocation per event. Once P2.3 (Frame-Linear Allocator) lands, replace with arena-backed storage to eliminate per-event allocation overhead.
 - `Push(event)` during SDL polling; `Drain()` at a defined frame point.
 - `Application` decides dispatch timing: immediate for latency-sensitive events (window close), queued for input events that benefit from batching.
 - Queue is drained once per frame at a well-defined point in the update loop.
