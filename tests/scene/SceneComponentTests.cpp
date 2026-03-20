@@ -214,6 +214,21 @@ TEST_CASE("MaterialComponent serialisation has no wireframe field")
     scene.Shutdown();
 }
 
+// ── Validation rejects malformed authoring ───────────────
+
+TEST_CASE("Validation rejects non-boolean wireframe in render_override")
+{
+    Wayfinder::RuntimeComponentRegistry registry;
+    registry.AddCoreEntries();
+
+    toml::table badTable;
+    badTable.insert_or_assign("wireframe", "yes");
+
+    std::string error;
+    CHECK_FALSE(registry.ValidateComponent("render_override", badTable, error));
+    CHECK_FALSE(error.empty());
+}
+
 // ── Extractor reads RenderOverrideComponent ──────────────
 
 TEST_CASE("Extractor uses RenderOverrideComponent for wireframe")
