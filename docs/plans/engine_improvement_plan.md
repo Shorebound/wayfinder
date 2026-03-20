@@ -1644,7 +1644,7 @@ SDL3 already compiles to Emscripten. Window, input, and event handling transfer.
 ## Execution Order (Recommended)
 
 ```
-Phase 1: Foundation
+Phase 1: Foundation (DONE)
 ├── P1.1  Test coverage         ←── START HERE
 ├── P1.2  Generational handles   (can parallel with P1.1)
 └── P1.3  InternedString IDs    (can parallel with P1.1)
