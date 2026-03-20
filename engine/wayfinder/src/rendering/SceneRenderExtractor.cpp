@@ -128,9 +128,12 @@ namespace Wayfinder
             if (entityHandle.has<RenderOverrideComponent>())
             {
                 const auto& renderOverride = entityHandle.get<RenderOverrideComponent>();
-                submission.Material.StateOverrides.FillMode = renderOverride.Wireframe
-                    ? RenderFillMode::SolidAndWireframe
-                    : RenderFillMode::Solid;
+                if (renderOverride.Wireframe.has_value())
+                {
+                    submission.Material.StateOverrides.FillMode = *renderOverride.Wireframe
+                        ? RenderFillMode::SolidAndWireframe
+                        : RenderFillMode::Solid;
+                }
             }
 
             submission.Visible = renderable.Visible;

@@ -2,6 +2,7 @@
 
 #include "GPUPipeline.h"
 #include "Mesh.h"
+#include "PipelineCache.h"
 #include "RenderContext.h"
 #include "RenderDevice.h"
 #include "RenderFeature.h"
@@ -40,6 +41,28 @@ namespace Wayfinder
         {
             Float4 baseColor;
         };
+
+        /// Builds a PipelineCreateDesc for the wireframe variant of a shader program.
+        /// Returns std::nullopt if the shader handles cannot be resolved.
+        std::optional<PipelineCreateDesc> MakeWireframeVariant(
+            const ShaderProgramDesc& desc, ShaderManager& shaders)
+        {
+            GPUShaderHandle vs = shaders.GetShader(desc.VertexShaderName, ShaderStage::Vertex, desc.VertexResources);
+            GPUShaderHandle fs = shaders.GetShader(desc.FragmentShaderName, ShaderStage::Fragment, desc.FragmentResources);
+            if (!vs || !fs) return std::nullopt;
+
+            PipelineCreateDesc pipeDesc{};
+            pipeDesc.vertexShader = vs;
+            pipeDesc.fragmentShader = fs;
+            pipeDesc.vertexLayout = desc.VertexLayout;
+            pipeDesc.primitiveType = PrimitiveType::TriangleList;
+            pipeDesc.cullMode = desc.Cull;
+            pipeDesc.fillMode = FillMode::Line;
+            pipeDesc.frontFace = FrontFace::CounterClockwise;
+            pipeDesc.depthTestEnabled = desc.DepthTest;
+            pipeDesc.depthWriteEnabled = desc.DepthWrite;
+            return pipeDesc;
+        }
     }
 
     void RenderPipeline::Initialise(RenderContext& context)
@@ -217,6 +240,8 @@ namespace Wayfinder
 
                 const auto& primitiveMesh = params.PrimitiveMesh;
                 auto& registry = m_context->GetPrograms();
+                auto& pipelineCache = m_context->GetPipelines();
+                auto& shaderManager = m_context->GetShaders();
                 const ShaderProgram* lastBoundProgram = nullptr;
 
                 /// Scratch buffer for material UBO data — reused across draws to avoid
@@ -259,49 +284,81 @@ namespace Wayfinder
                         const ShaderProgram* program = registry.FindOrDefault(submission.Material.ShaderName);
                         if (!program || !program->Pipeline) continue;
 
-                        if (program != lastBoundProgram)
-                        {
-                            program->Pipeline->Bind();
-                            primitiveMesh.Bind(device);
-                            lastBoundProgram = program;
-                        }
+                        // Determine fill mode: use override if set, otherwise default solid
+                        const RenderFillMode fillMode = submission.Material.StateOverrides.FillMode
+                            .value_or(RenderFillMode::Solid);
 
-                        if (program->Desc.NeedsSceneGlobals)
+                        // Helper: push transform + material uniforms for this submission
+                        auto pushUniforms = [&]()
                         {
-                            TransformUBO transformUBO;
-                            transformUBO.mvp = passProj * passView * submission.LocalToWorld;
-                            transformUBO.model = submission.LocalToWorld;
-                            device.PushVertexUniform(0, &transformUBO, sizeof(TransformUBO));
-                        }
-                        else
-                        {
-                            UnlitTransformUBO transformUBO{passProj * passView * submission.LocalToWorld};
-                            device.PushVertexUniform(0, &transformUBO, sizeof(UnlitTransformUBO));
-                        }
-
-                        materialUBOData.assign(program->Desc.MaterialUBOSize, 0);
-
-                        MaterialParameterBlock mergedParams = submission.Material.Parameters;
-                        if (submission.Material.HasOverrides)
-                        {
-                            for (const auto& [name, value] : submission.Material.Overrides.Values)
+                            if (program->Desc.NeedsSceneGlobals)
                             {
-                                mergedParams.Values[name] = value;
+                                TransformUBO transformUBO;
+                                transformUBO.mvp = passProj * passView * submission.LocalToWorld;
+                                transformUBO.model = submission.LocalToWorld;
+                                device.PushVertexUniform(0, &transformUBO, sizeof(TransformUBO));
+                            }
+                            else
+                            {
+                                UnlitTransformUBO transformUBO{passProj * passView * submission.LocalToWorld};
+                                device.PushVertexUniform(0, &transformUBO, sizeof(UnlitTransformUBO));
+                            }
+
+                            materialUBOData.assign(program->Desc.MaterialUBOSize, 0);
+
+                            MaterialParameterBlock mergedParams = submission.Material.Parameters;
+                            if (submission.Material.HasOverrides)
+                            {
+                                for (const auto& [name, value] : submission.Material.Overrides.Values)
+                                {
+                                    mergedParams.Values[name] = value;
+                                }
+                            }
+
+                            mergedParams.SerializeToUBO(program->Desc.MaterialParams,
+                                                         materialUBOData.data(),
+                                                         static_cast<uint32_t>(materialUBOData.size()));
+                            device.PushFragmentUniform(0, materialUBOData.data(),
+                                                         static_cast<uint32_t>(materialUBOData.size()));
+
+                            if (program->Desc.NeedsSceneGlobals)
+                            {
+                                device.PushFragmentUniform(1, &sceneGlobals, sizeof(SceneGlobalsUBO));
+                            }
+                        };
+
+                        // Solid draw (for Solid and SolidAndWireframe modes)
+                        if (fillMode == RenderFillMode::Solid || fillMode == RenderFillMode::SolidAndWireframe)
+                        {
+                            if (program != lastBoundProgram)
+                            {
+                                program->Pipeline->Bind();
+                                primitiveMesh.Bind(device);
+                                lastBoundProgram = program;
+                            }
+
+                            pushUniforms();
+                            primitiveMesh.Draw(device);
+                        }
+
+                        // Wireframe draw (for Wireframe and SolidAndWireframe modes)
+                        if (fillMode == RenderFillMode::Wireframe || fillMode == RenderFillMode::SolidAndWireframe)
+                        {
+                            const auto wireframeDesc = MakeWireframeVariant(program->Desc, shaderManager);
+                            if (wireframeDesc)
+                            {
+                                GPUPipelineHandle wireframePipeline = pipelineCache.GetOrCreate(*wireframeDesc);
+                                if (wireframePipeline.IsValid())
+                                {
+                                    device.BindPipeline(wireframePipeline);
+                                    primitiveMesh.Bind(device);
+                                    lastBoundProgram = nullptr; // Force re-bind on next solid draw
+
+                                    pushUniforms();
+                                    primitiveMesh.Draw(device);
+                                }
                             }
                         }
-
-                        mergedParams.SerializeToUBO(program->Desc.MaterialParams,
-                                                     materialUBOData.data(),
-                                                     static_cast<uint32_t>(materialUBOData.size()));
-                        device.PushFragmentUniform(0, materialUBOData.data(),
-                                                    static_cast<uint32_t>(materialUBOData.size()));
-
-                        if (program->Desc.NeedsSceneGlobals)
-                        {
-                            device.PushFragmentUniform(1, &sceneGlobals, sizeof(SceneGlobalsUBO));
-                        }
-
-                        primitiveMesh.Draw(device);
                     }
                 }
             };

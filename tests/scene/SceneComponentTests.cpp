@@ -7,40 +7,15 @@
 #include <doctest/doctest.h>
 #include <flecs.h>
 
-// ── MeshComponent with optional AssetId ──────────────────
+// ── MeshComponent ────────────────────────────────────────
 
-TEST_CASE("MeshComponent supports primitive fallback and optional asset id")
+TEST_CASE("MeshComponent stores primitive and dimensions")
 {
-    flecs::world world;
-    Wayfinder::Scene::RegisterCoreECS(world);
-    Wayfinder::RuntimeComponentRegistry registry;
-    registry.AddCoreEntries();
-    registry.RegisterComponents(world);
-    Wayfinder::Scene scene(world, registry, "MeshAssetId Test");
-
-    SUBCASE("Default MeshComponent has no asset id")
-    {
-        Wayfinder::Entity entity = scene.CreateEntity("DefaultMesh");
-        entity.AddComponent<Wayfinder::MeshComponent>(Wayfinder::MeshComponent{});
-
-        const auto& mesh = entity.GetComponent<Wayfinder::MeshComponent>();
-        CHECK(mesh.Primitive == Wayfinder::MeshPrimitive::Cube);
-        CHECK_FALSE(mesh.MeshAssetId.has_value());
-    }
-
-    SUBCASE("MeshComponent can hold an AssetId")
-    {
-        Wayfinder::MeshComponent mesh;
-        mesh.MeshAssetId = Wayfinder::AssetId::Generate();
-        Wayfinder::Entity entity = scene.CreateEntity("AssetMesh");
-        entity.AddComponent<Wayfinder::MeshComponent>(mesh);
-
-        const auto& stored = entity.GetComponent<Wayfinder::MeshComponent>();
-        CHECK(stored.MeshAssetId.has_value());
-        CHECK(stored.MeshAssetId == mesh.MeshAssetId);
-    }
-
-    scene.Shutdown();
+    Wayfinder::MeshComponent mesh;
+    CHECK(mesh.Primitive == Wayfinder::MeshPrimitive::Cube);
+    CHECK(mesh.Dimensions.x == doctest::Approx(1.0f));
+    CHECK(mesh.Dimensions.y == doctest::Approx(1.0f));
+    CHECK(mesh.Dimensions.z == doctest::Approx(1.0f));
 }
 
 // ── MaterialComponent has no render-state fields ─────────
@@ -56,6 +31,12 @@ TEST_CASE("MaterialComponent has no wireframe field")
 }
 
 // ── RenderOverrideComponent ──────────────────────────────
+
+TEST_CASE("RenderOverrideComponent defaults to no overrides")
+{
+    Wayfinder::RenderOverrideComponent renderOverride;
+    CHECK_FALSE(renderOverride.Wireframe.has_value());
+}
 
 TEST_CASE("RenderOverrideComponent is an opt-in override")
 {
@@ -88,7 +69,17 @@ TEST_CASE("RenderOverrideComponent is an opt-in override")
         entity.AddComponent<Wayfinder::RenderOverrideComponent>(renderOverride);
 
         CHECK(entity.HasComponent<Wayfinder::RenderOverrideComponent>());
-        CHECK(entity.GetComponent<Wayfinder::RenderOverrideComponent>().Wireframe == true);
+        CHECK(entity.GetComponent<Wayfinder::RenderOverrideComponent>().Wireframe.has_value());
+        CHECK(*entity.GetComponent<Wayfinder::RenderOverrideComponent>().Wireframe == true);
+    }
+
+    SUBCASE("RenderOverrideComponent with no fields set has no wireframe value")
+    {
+        Wayfinder::Entity entity = scene.CreateEntity("EmptyOverride");
+        entity.AddComponent<Wayfinder::RenderOverrideComponent>(Wayfinder::RenderOverrideComponent{});
+
+        CHECK(entity.HasComponent<Wayfinder::RenderOverrideComponent>());
+        CHECK_FALSE(entity.GetComponent<Wayfinder::RenderOverrideComponent>().Wireframe.has_value());
     }
 
     scene.Shutdown();
@@ -96,14 +87,14 @@ TEST_CASE("RenderOverrideComponent is an opt-in override")
 
 // ── Serialisation round-trip ─────────────────────────────
 
-TEST_CASE("RenderOverrideComponent serialisation round-trip")
+TEST_CASE("RenderOverrideComponent serialisation round-trip with wireframe=true")
 {
     flecs::world world;
     Wayfinder::Scene::RegisterCoreECS(world);
     Wayfinder::RuntimeComponentRegistry registry;
     registry.AddCoreEntries();
     registry.RegisterComponents(world);
-    Wayfinder::Scene scene(world, registry, "Serialise RenderOverride");
+    Wayfinder::Scene scene(world, registry, "Serialise RenderOverride True");
 
     Wayfinder::Entity entity = scene.CreateEntity("WireframeEntity");
     entity.AddComponent<Wayfinder::TransformComponent>(Wayfinder::TransformComponent{});
@@ -126,47 +117,80 @@ TEST_CASE("RenderOverrideComponent serialisation round-trip")
     registry.ApplyComponents(componentTables, entity2);
 
     CHECK(entity2.HasComponent<Wayfinder::RenderOverrideComponent>());
-    CHECK(entity2.GetComponent<Wayfinder::RenderOverrideComponent>().Wireframe == true);
+    const auto& restored = entity2.GetComponent<Wayfinder::RenderOverrideComponent>();
+    CHECK(restored.Wireframe.has_value());
+    CHECK(*restored.Wireframe == true);
 
     scene.Shutdown();
 }
 
-TEST_CASE("MeshComponent with AssetId serialisation round-trip")
+TEST_CASE("RenderOverrideComponent serialisation round-trip with wireframe=false")
 {
     flecs::world world;
     Wayfinder::Scene::RegisterCoreECS(world);
     Wayfinder::RuntimeComponentRegistry registry;
     registry.AddCoreEntries();
     registry.RegisterComponents(world);
-    Wayfinder::Scene scene(world, registry, "Serialise MeshAssetId");
+    Wayfinder::Scene scene(world, registry, "Serialise RenderOverride False");
 
-    Wayfinder::MeshComponent mesh;
-    mesh.Primitive = Wayfinder::MeshPrimitive::Cube;
-    mesh.Dimensions = { 2.0f, 3.0f, 4.0f };
-    mesh.MeshAssetId = Wayfinder::AssetId::Generate();
+    Wayfinder::Entity entity = scene.CreateEntity("SolidEntity");
+    entity.AddComponent<Wayfinder::TransformComponent>(Wayfinder::TransformComponent{});
 
-    Wayfinder::Entity entity = scene.CreateEntity("AssetMesh");
-    entity.AddComponent<Wayfinder::MeshComponent>(mesh);
+    Wayfinder::RenderOverrideComponent renderOverride;
+    renderOverride.Wireframe = false;
+    entity.AddComponent<Wayfinder::RenderOverrideComponent>(renderOverride);
 
     // Serialize
     toml::table componentTables;
     registry.SerializeComponents(entity, componentTables);
 
-    CHECK(componentTables.contains("mesh"));
-    const toml::table* meshTable = componentTables["mesh"].as_table();
-    REQUIRE(meshTable != nullptr);
-    CHECK(meshTable->contains("asset_id"));
-    CHECK(meshTable->at("asset_id").value_or(std::string{}) == mesh.MeshAssetId->ToString());
+    CHECK(componentTables.contains("render_override"));
+    const toml::table* overrideTable = componentTables["render_override"].as_table();
+    REQUIRE(overrideTable != nullptr);
+    CHECK(overrideTable->contains("wireframe"));
+    CHECK(overrideTable->at("wireframe").value_or(true) == false);
 
     // Deserialize into a new entity
-    Wayfinder::Entity entity2 = scene.CreateEntity("DeserializedMesh");
+    Wayfinder::Entity entity2 = scene.CreateEntity("DeserializedSolid");
     registry.ApplyComponents(componentTables, entity2);
 
-    CHECK(entity2.HasComponent<Wayfinder::MeshComponent>());
-    const auto& restored = entity2.GetComponent<Wayfinder::MeshComponent>();
-    CHECK(restored.MeshAssetId.has_value());
-    CHECK(restored.MeshAssetId->ToString() == mesh.MeshAssetId->ToString());
-    CHECK(restored.Primitive == Wayfinder::MeshPrimitive::Cube);
+    CHECK(entity2.HasComponent<Wayfinder::RenderOverrideComponent>());
+    const auto& restored = entity2.GetComponent<Wayfinder::RenderOverrideComponent>();
+    CHECK(restored.Wireframe.has_value());
+    CHECK(*restored.Wireframe == false);
+
+    scene.Shutdown();
+}
+
+TEST_CASE("RenderOverrideComponent serialisation round-trip with no wireframe set")
+{
+    flecs::world world;
+    Wayfinder::Scene::RegisterCoreECS(world);
+    Wayfinder::RuntimeComponentRegistry registry;
+    registry.AddCoreEntries();
+    registry.RegisterComponents(world);
+    Wayfinder::Scene scene(world, registry, "Serialise RenderOverride Empty");
+
+    Wayfinder::Entity entity = scene.CreateEntity("EmptyOverrideEntity");
+    entity.AddComponent<Wayfinder::TransformComponent>(Wayfinder::TransformComponent{});
+    entity.AddComponent<Wayfinder::RenderOverrideComponent>(Wayfinder::RenderOverrideComponent{});
+
+    // Serialize
+    toml::table componentTables;
+    registry.SerializeComponents(entity, componentTables);
+
+    CHECK(componentTables.contains("render_override"));
+    const toml::table* overrideTable = componentTables["render_override"].as_table();
+    REQUIRE(overrideTable != nullptr);
+    CHECK_FALSE(overrideTable->contains("wireframe"));
+
+    // Deserialize into a new entity
+    Wayfinder::Entity entity2 = scene.CreateEntity("DeserializedEmpty");
+    registry.ApplyComponents(componentTables, entity2);
+
+    CHECK(entity2.HasComponent<Wayfinder::RenderOverrideComponent>());
+    const auto& restored = entity2.GetComponent<Wayfinder::RenderOverrideComponent>();
+    CHECK_FALSE(restored.Wireframe.has_value());
 
     scene.Shutdown();
 }
@@ -237,6 +261,13 @@ TEST_CASE("Extractor uses RenderOverrideComponent for wireframe")
     solidOverride.Wireframe = false;
     solidCube.AddComponent<Wayfinder::RenderOverrideComponent>(solidOverride);
 
+    // Entity with RenderOverrideComponent but no Wireframe set — FillMode left unset
+    Wayfinder::Entity emptyOverrideCube = scene.CreateEntity("EmptyOverrideCube");
+    emptyOverrideCube.AddComponent<Wayfinder::TransformComponent>(Wayfinder::TransformComponent{{1.0f, 0.5f, 0.0f}});
+    emptyOverrideCube.AddComponent<Wayfinder::MeshComponent>(Wayfinder::MeshComponent{});
+    emptyOverrideCube.AddComponent<Wayfinder::RenderableComponent>(Wayfinder::RenderableComponent{});
+    emptyOverrideCube.AddComponent<Wayfinder::RenderOverrideComponent>(Wayfinder::RenderOverrideComponent{});
+
     // Entity without RenderOverrideComponent — FillMode left unset (no override)
     Wayfinder::Entity defaultCube = scene.CreateEntity("DefaultCube");
     defaultCube.AddComponent<Wayfinder::TransformComponent>(Wayfinder::TransformComponent{{2.0f, 0.5f, 0.0f}});
@@ -252,31 +283,32 @@ TEST_CASE("Extractor uses RenderOverrideComponent for wireframe")
     scene.Shutdown();
 
     REQUIRE(mainPass != nullptr);
-    REQUIRE(mainPass->Meshes.size() == 3);
+    REQUIRE(mainPass->Meshes.size() == 4);
 
-    // Verify: wireframe override (true) → SolidAndWireframe,
-    //         wireframe override (false) → Solid,
-    //         no override → FillMode unset.
-    bool foundSolid = false;
-    bool foundSolidAndWireframe = false;
-    bool foundUnset = false;
+    // Verify: wireframe=true → SolidAndWireframe,
+    //         wireframe=false → Solid,
+    //         wireframe unset (component present) → FillMode unset,
+    //         no component → FillMode unset.
+    int countSolid = 0;
+    int countSolidAndWireframe = 0;
+    int countUnset = 0;
     for (const auto& mesh : mainPass->Meshes)
     {
         if (!mesh.Material.StateOverrides.FillMode.has_value())
         {
-            foundUnset = true;
+            ++countUnset;
         }
         else if (mesh.Material.StateOverrides.FillMode == Wayfinder::RenderFillMode::Solid)
         {
-            foundSolid = true;
+            ++countSolid;
         }
         else if (mesh.Material.StateOverrides.FillMode == Wayfinder::RenderFillMode::SolidAndWireframe)
         {
-            foundSolidAndWireframe = true;
+            ++countSolidAndWireframe;
         }
     }
 
-    CHECK(foundSolidAndWireframe);
-    CHECK(foundSolid);
-    CHECK(foundUnset);
+    CHECK(countSolidAndWireframe == 1);
+    CHECK(countSolid == 1);
+    CHECK(countUnset == 2);
 }

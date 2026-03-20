@@ -429,8 +429,7 @@ namespace
     bool ValidateMesh(const toml::table& componentTable, std::string& error)
     {
         return ValidateOptionalEnumValue(componentTable, "primitive", {"cube"}, error)
-            && ValidateOptionalVector3(componentTable, "dimensions", error)
-            && ValidateOptionalAssetId(componentTable, "asset_id", error);
+            && ValidateOptionalVector3(componentTable, "dimensions", error);
     }
 
     bool ValidateCamera(const toml::table& componentTable, std::string& error)
@@ -596,7 +595,6 @@ namespace
         Wayfinder::MeshComponent mesh;
         mesh.Primitive = ReadPrimitive(componentTable, "primitive", mesh.Primitive);
         mesh.Dimensions = ReadVector3(componentTable, "dimensions", mesh.Dimensions);
-        mesh.MeshAssetId = ReadOptionalAssetId(componentTable, "asset_id");
         entity.AddComponent<Wayfinder::MeshComponent>(mesh);
     }
 
@@ -638,7 +636,10 @@ namespace
     void ApplyRenderOverride(const toml::table& componentTable, Wayfinder::Entity& entity)
     {
         Wayfinder::RenderOverrideComponent renderOverride;
-        renderOverride.Wireframe = componentTable["wireframe"].value_or(renderOverride.Wireframe);
+        if (const auto wireframe = componentTable["wireframe"].value<bool>())
+        {
+            renderOverride.Wireframe = *wireframe;
+        }
         entity.AddComponent<Wayfinder::RenderOverrideComponent>(renderOverride);
     }
 
@@ -849,10 +850,6 @@ namespace
         toml::table componentTable;
         componentTable.insert_or_assign("primitive", std::string{ToString(mesh.Primitive)});
         componentTable.insert_or_assign("dimensions", WriteVector3(mesh.Dimensions));
-        if (mesh.MeshAssetId)
-        {
-            componentTable.insert_or_assign("asset_id", mesh.MeshAssetId->ToString());
-        }
         componentTables.insert_or_assign("mesh", componentTable);
     }
 
@@ -921,7 +918,10 @@ namespace
 
         const Wayfinder::RenderOverrideComponent& renderOverride = entity.GetComponent<Wayfinder::RenderOverrideComponent>();
         toml::table componentTable;
-        componentTable.insert_or_assign("wireframe", renderOverride.Wireframe);
+        if (renderOverride.Wireframe.has_value())
+        {
+            componentTable.insert_or_assign("wireframe", *renderOverride.Wireframe);
+        }
         componentTables.insert_or_assign("render_override", componentTable);
     }
 
