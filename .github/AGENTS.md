@@ -34,18 +34,4 @@ This file documents common mistakes, confusion points, and non-obvious behaviour
 
 ## GitHub Issues & Project Tracking
 
-All engine work is tracked via GitHub Issues. See `docs/github_issues.md` for labels, milestones, relationships, and the GraphQL API reference.
-
-- **Issue relationships use GitHub's native blocked-by/blocking API**, not comments or tasklist syntax. The `addBlockedBy` GraphQL mutation is the correct way to create these.
-- **Use `tools/gh-issues/gh-issues.ps1`** to manage relationships from the terminal. It handles node ID lookups automatically:
-  ```powershell
-  .\tools\gh-issues\gh-issues.ps1 blocked-by 12 7      # #12 is blocked by #7
-  .\tools\gh-issues\gh-issues.ps1 blocking 7 12,15     # #7 is blocking #12 and #15
-  .\tools\gh-issues\gh-issues.ps1 sub-issue 10 41,42   # #41, #42 are sub-issues of #10
-  .\tools\gh-issues\gh-issues.ps1 show 12              # show all relationships for #12
-  .\tools\gh-issues\gh-issues.ps1 remove-blocked-by 12 7  # undo: #12 no longer blocked by #7
-  .\tools\gh-issues\gh-issues.ps1 remove-sub-issue 10 41  # undo: #41 no longer sub-issue of #10
-  ```
-- **When completing a task**, close the issue and check if any issues it was blocking are now unblocked.
-- **When creating sub-tasks** for a large issue, create new issues and use `sub-issue` to link them.
-- **Repo is `Shorebound/wayfinder`**. The `gh` CLI must be authenticated with repo scope.
+See the "GitHub Issues & Project Tracking" section in `copilot-instructions.md` for workflow, the CLI tool, and relationship management.

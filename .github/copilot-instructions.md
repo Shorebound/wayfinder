@@ -61,6 +61,31 @@ Key targets: `wayfinder` (engine lib), `journey` (sandbox), `waypoint` (asset CL
 
 Adding new source files requires a CMake reconfigure (`CMAKE_SUPPRESS_REGENERATION` is on). Engine sources use `GLOB_RECURSE`, so a reconfigure picks them up automatically.
 
+## GitHub Issues & Project Tracking
+
+All engine work is tracked via GitHub Issues. See `docs/github_issues.md` for labels, milestones, relationships, and the GraphQL API reference.
+
+### Relationships
+
+Issue dependencies use GitHub's native **blocked-by/blocking** API and **sub-issues** (parent/child), not comments or tasklist syntax. Use `tools/gh-issues/gh-issues.ps1` to manage them — it handles node ID lookups automatically:
+
+```powershell
+.\tools\gh-issues\gh-issues.ps1 blocked-by 12 7      # #12 is blocked by #7
+.\tools\gh-issues\gh-issues.ps1 blocking 7 12,15     # #7 is blocking #12 and #15
+.\tools\gh-issues\gh-issues.ps1 sub-issue 10 41,42   # #41, #42 are sub-issues of #10
+.\tools\gh-issues\gh-issues.ps1 show 12              # show all relationships for #12
+.\tools\gh-issues\gh-issues.ps1 remove-blocked-by 12 7  # undo: #12 no longer blocked by #7
+.\tools\gh-issues\gh-issues.ps1 remove-sub-issue 10 41  # undo: #41 no longer sub-issue of #10
+```
+
+### Workflow
+
+- **Starting a task:** use `show` to check for unresolved blockers before beginning work.
+- **Completing a task:** close the issue and check if any issues it was blocking are now unblocked.
+- **Breaking down a large issue:** create new issues for the sub-tasks, then use `sub-issue` to link them to the parent.
+
+Repo is `Shorebound/wayfinder`. The `gh` CLI must be authenticated with repo scope.
+
 ## Code Style
 
 Formatting is enforced by `.clang-format` (Allman braces, 4-space indent, no column limit).
