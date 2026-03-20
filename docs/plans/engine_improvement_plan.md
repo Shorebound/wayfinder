@@ -795,6 +795,34 @@ Don't rewrite everything at once. Apply `Result` at system boundaries as they're
 
 ---
 
+### P2.8: Event Queue (Deferred Dispatch)
+
+**Difficulty: M  |  Dependencies: None**
+
+The event system currently uses synchronous blocking dispatch — `Event.h` itself notes this as a known limitation. Every event is handled the instant it fires, which prevents batching, makes deterministic replay impossible, and couples the dispatch callsite to every handler's execution time.
+
+#### Design
+
+- `EventQueue` class backed by `std::vector<std::unique_ptr<Event>>`.
+- `Push(event)` during SDL polling; `Drain()` at a defined frame point.
+- `Application` decides dispatch timing: immediate for latency-sensitive events (window close), queued for input events that benefit from batching.
+- Queue is drained once per frame at a well-defined point in the update loop.
+
+#### Benefits
+
+- Deterministic replay / networking: record the queue, play it back.
+- Profiling: one clear span for "event processing" per frame.
+- Decouples event producers from handler execution order.
+
+#### Definition of Done
+
+- `EventQueue` exists with `Push()` and `Drain()` API.
+- `Application::Loop()` uses the queue for input events.
+- Latency-sensitive events (window close, resize) still dispatch immediately.
+- Existing event handlers work unchanged.
+
+---
+
 ## P3 — Nice-to-Have
 
 ### P3.1: TOML Hot-Reload via File Watching
@@ -1057,6 +1085,52 @@ During execution, the render pass descriptor is built with N colour attachments 
 
 ---
 
+### P3.8: Upload Batching for TransientBufferAllocator
+
+**Difficulty: M  |  Dependencies: P2.3 (frame allocator)**
+
+Each `UploadToBuffer` call currently creates a staging transfer buffer, acquires a dedicated command buffer, begins a copy pass, uploads, ends the pass, submits, and releases the transfer buffer. This is O(N) command buffer submissions for N transient allocations per frame. With 1–2 allocations (debug lines, grid) this is fine, but it will become a bottleneck with particles, text quads, or many dynamic geometry sources.
+
+#### Design
+
+- Queue all staging writes during the frame into a single large staging buffer.
+- At a defined flush point (after all `Allocate` calls, before rendering), submit one command buffer with one copy pass containing all uploads.
+- Alternatively: use persistent buffer mapping (if SDL_GPU exposes it) to skip staging entirely for transient data.
+
+#### When
+
+When profiling shows upload overhead matters — particles, lots of dynamic geometry, or many transient allocations per frame.
+
+#### Definition of Done
+
+- Single command buffer submission per frame for all transient uploads.
+- Profiling confirms reduced overhead compared to per-allocation submission.
+- Existing transient allocation API unchanged for callers.
+
+---
+
+### P3.9: Sub-Sort Key Utilization
+
+**Difficulty: S  |  Dependencies: None**
+
+The 64-bit sort key reserves 14 bits for sub-sort (tiebreaker), but currently only uses `SortPriority` (a `uint8_t`, 0–255). The extra 6 bits of headroom are unused. Potential uses: entity ID hash for deterministic ordering across frames, sequence counter for submission-order stability.
+
+#### When
+
+When non-deterministic draw ordering causes visible artifacts (shimmer, Z-fighting between co-planar meshes).
+
+#### Design
+
+- Hash the entity ID or use a frame-monotonic sequence counter to fill the remaining sub-sort bits.
+- Ensures draw order is deterministic across frames for identical sort keys.
+
+#### Definition of Done
+
+- Sub-sort field uses all 14 bits with a deterministic tiebreaker.
+- No visible ordering flicker between objects sharing the same pipeline, material, and depth.
+
+---
+
 ## P4 — Horizon
 
 These are larger initiatives that build on earlier tiers. They're documented here for planning visibility but shouldn't be started until their dependencies are complete.
@@ -1284,6 +1358,42 @@ No CI exists. Minimum viable pipeline:
 
 ---
 
+### P4.9: Data-Driven Input Action Mapping
+
+**Dependencies: P2.8 (event queue), P3.1 (hot-reload for rebinding persistence)**
+
+The raw input layer provides `IsKeyPressed(KeyCode)` / `IsMouseButtonPressed(MouseCode)` — correct and type-safe, but game code must hard-wire physical inputs to gameplay intent. The next step is an abstraction that maps physical inputs to semantic game actions, configured in data.
+
+#### Design Sketch
+
+- TOML-defined action map loaded at startup:
+  ```toml
+  [actions.move_forward]
+  keys = ["W"]
+  gamepad = ["LeftStickUp"]
+
+  [actions.jump]
+  keys = ["Space"]
+  gamepad = ["South"]
+
+  [actions.fire]
+  mouse = ["ButtonLeft"]
+  gamepad = ["RightTrigger"]
+  ```
+- `InputActionMap` class: loads TOML, maps raw `KeyCode`/`MouseCode`/gamepad inputs to named actions.
+- Query API: `inputActions.IsActionPressed("jump")`, `inputActions.GetAxis("move_horizontal")`.
+- Supports rebinding at runtime (write back to TOML).
+- Composable: multiple maps can be layered (gameplay map + UI map + debug map) with priority.
+
+#### Definition of Done
+
+- `InputActionMap` loads from TOML and resolves named actions.
+- Game code queries actions by name, not raw keys.
+- Runtime rebinding works and persists to TOML.
+- Multiple action maps can be layered with priority.
+
+---
+
 ## Execution Order (Recommended)
 
 ```
@@ -1303,7 +1413,8 @@ Phase 3: Data & Systems
 ├── P2.2  MeshComponent split
 ├── P2.3  Frame allocator       
 ├── P2.4  Physics subsystem     (validates architecture)
-└── P2.7  Error handling        (incremental, alongside everything)
+├── P2.7  Error handling        (incremental, alongside everything)
+└── P2.8  Event queue           (decouple dispatch from polling)
 
 Phase 4: Polish
 ├── P3.1  Hot-reload
@@ -1312,7 +1423,9 @@ Phase 4: Polish
 ├── P3.4  Prefab instantiation
 ├── P3.5  RenderMeshHandle
 ├── P3.6  GPU debug annotations
-└── P3.7  Multiple render targets (MRT)
+├── P3.7  Multiple render targets (MRT)
+├── P3.8  Upload batching       (when profiling shows need)
+└── P3.9  Sub-sort key          (when ordering artifacts appear)
 
 Phase 5: Horizon
 ├── P4.1  Mesh assets
@@ -1322,7 +1435,8 @@ Phase 5: Horizon
 ├── P4.5  Audio
 ├── P4.6  Scripting
 ├── P4.7  Editor bootstrap
-└── P4.8  CI pipeline
+├── P4.8  CI pipeline
+└── P4.9  Input action mapping  (data-driven input abstraction)
 ```
 
 Items within the same phase can generally be done in parallel. Phase boundaries represent recommended checkpoints — verify everything builds and passes before crossing.
