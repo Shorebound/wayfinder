@@ -26,6 +26,7 @@ add_executable(${WAYFINDER_CORE_TEST_NAME}
   core/HandleTests.cpp
   core/InternedStringTests.cpp
   core/EngineRuntimeTests.cpp
+  core/EventQueueTests.cpp
   core/IdentifierTests.cpp
   core/GameplayTagTests.cpp
   core/GameplayTagRegistryTests.cpp

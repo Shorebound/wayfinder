@@ -1,5 +1,6 @@
 #include "Application.h"
 
+#include "core/Assert.h"
 #include "core/EngineConfig.h"
 #include "core/EngineRuntime.h"
 #include "core/Game.h"
@@ -129,6 +130,13 @@ namespace Wayfinder
         while (m_running && !m_runtime->ShouldClose())
         {
             m_runtime->BeginFrame();
+
+            // Drain queued input events — single batch at a well-defined frame point
+            m_eventQueue.Drain([this](Event& e)
+            {
+                PropagateToLayers(e);
+            });
+
             const float dt = m_runtime->GetDeltaTime();
 
             // Propagate frame through layers (bottom → top)
@@ -154,21 +162,41 @@ namespace Wayfinder
 
     void Application::OnEvent(Event& event)
     {
+        // Latency-sensitive events: dispatch immediately
         EventDispatcher dispatcher(event);
         dispatcher.Dispatch<WindowCloseEvent>(
             [this](WindowCloseEvent& e) { return OnWindowClose(e); });
         dispatcher.Dispatch<WindowResizeEvent>(
             [this](WindowResizeEvent& e) { return OnWindowResize(e); });
 
-        // Feed scroll events into input accumulator
+        // Feed scroll events into input accumulator immediately
         dispatcher.Dispatch<MouseScrolledEvent>(
             [this](MouseScrolledEvent& e)
             {
                 m_runtime->GetInput().AccumulateScroll(e.GetXOffset(), e.GetYOffset());
-                return false;
+                return true;
             });
 
-        // Propagate to layers (top → bottom, overlays first)
+        if (event.Handled)
+            return;
+
+        // Defer input events to the queue for batched dispatch
+        if (event.IsInCategory(EventCategory::Input))
+        {
+            auto queuedEvent = event.Clone();
+            WAYFINDER_ASSERT(queuedEvent != nullptr,
+                             "Deferred event '{}' must implement Clone()",
+                             event.GetName());
+            m_eventQueue.Push(std::move(queuedEvent));
+            return;
+        }
+
+        // Non-input, non-handled events: propagate to layers immediately
+        PropagateToLayers(event);
+    }
+
+    void Application::PropagateToLayers(Event& event)
+    {
         for (auto it = m_layerStack->rbegin(); it != m_layerStack->rend(); ++it)
         {
             if (event.Handled)
