@@ -68,7 +68,7 @@ TEST_CASE("RenderContext program registry is functional after init")
     Wayfinder::RenderContext context;
     REQUIRE(context.Initialize(*device, MakeTestConfig()));
 
-    // Contract: RenderPipeline::Initialize depends on being able to call
+    // Contract: RenderPipeline::Initialise depends on being able to call
     // Register. With NullDevice, pipeline creation fails (no shader files),
     // but the registry itself is functional and doesn't crash.
     Wayfinder::ShaderProgramDesc desc;

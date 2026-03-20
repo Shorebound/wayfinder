@@ -46,7 +46,7 @@ namespace Wayfinder
     {
     public:
         /// Registers built-in shader programs and stores context for BuildGraph.
-        void Initialize(RenderContext& context);
+        void Initialise(RenderContext& context);
         void Shutdown();
 
         /// Validates views/passes, sorts scene submissions by sort key.

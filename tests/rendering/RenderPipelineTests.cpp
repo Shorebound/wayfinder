@@ -155,7 +155,7 @@ TEST_CASE("Resource cache resolves mesh")
     CHECK(resolved.Geometry.Type == Wayfinder::RenderGeometryType::Box);
 }
 
-TEST_CASE("RenderPipeline::Initialize registers built-in programs")
+TEST_CASE("RenderPipeline::Initialise registers built-in programs")
 {
     auto device = Wayfinder::RenderDevice::Create(Wayfinder::RenderBackend::Null);
     REQUIRE(device);
@@ -168,17 +168,17 @@ TEST_CASE("RenderPipeline::Initialize registers built-in programs")
     REQUIRE(context.Initialize(*device, config));
 
     Wayfinder::RenderPipeline pipeline;
-    // Initialize must not crash — it registers programs via the context.
+    // Initialise must not crash — it registers programs via the context.
     // With NullDevice, pipeline creation fails (no shader files on disk),
-    // so Find returns nullptr. The contract being tested is that Initialize
+    // so Find returns nullptr. The contract being tested is that Initialise
     // calls Register for each built-in program without crashing.
-    pipeline.Initialize(context);
+    pipeline.Initialise(context);
 
     pipeline.Shutdown();
     context.Shutdown();
 }
 
-TEST_CASE("RenderPipeline::Shutdown is safe after Initialize")
+TEST_CASE("RenderPipeline::Shutdown is safe after Initialise")
 {
     auto device = Wayfinder::RenderDevice::Create(Wayfinder::RenderBackend::Null);
     REQUIRE(device);
@@ -191,7 +191,7 @@ TEST_CASE("RenderPipeline::Shutdown is safe after Initialize")
     REQUIRE(context.Initialize(*device, config));
 
     Wayfinder::RenderPipeline pipeline;
-    pipeline.Initialize(context);
+    pipeline.Initialise(context);
     pipeline.Shutdown();
     pipeline.Shutdown(); // Double shutdown is safe
 
