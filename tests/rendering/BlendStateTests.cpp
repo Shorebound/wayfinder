@@ -1,4 +1,5 @@
 #include "rendering/RenderDevice.h"
+#include "rendering/PipelineCache.h"
 
 #include <doctest/doctest.h>
 
@@ -107,4 +108,40 @@ TEST_CASE("ColourWriteMask can be customised")
     BlendState state = BlendPresets::AlphaBlend();
     state.ColourWriteMask = 0x7; // RGB only
     CHECK(state.ColourWriteMask == 0x7);
+}
+
+// ── Pipeline cache hash — blend differentiation ─────────
+
+TEST_CASE("Pipeline hash differs when blend preset changes")
+{
+    PipelineCreateDesc opaqueDesc{};
+    opaqueDesc.blend = BlendPresets::Opaque();
+
+    PipelineCreateDesc alphaDesc{};
+    alphaDesc.blend = BlendPresets::AlphaBlend();
+
+    CHECK(PipelineCache::HashDesc(opaqueDesc) != PipelineCache::HashDesc(alphaDesc));
+}
+
+TEST_CASE("Pipeline hash differs when only ColourWriteMask changes")
+{
+    PipelineCreateDesc fullMaskDesc{};
+    fullMaskDesc.blend = BlendPresets::AlphaBlend();
+
+    PipelineCreateDesc rgbOnlyDesc{};
+    rgbOnlyDesc.blend = BlendPresets::AlphaBlend();
+    rgbOnlyDesc.blend.ColourWriteMask = 0x7; // RGB only
+
+    CHECK(PipelineCache::HashDesc(fullMaskDesc) != PipelineCache::HashDesc(rgbOnlyDesc));
+}
+
+TEST_CASE("Pipeline hash is equal for identical blend states")
+{
+    PipelineCreateDesc firstDesc{};
+    firstDesc.blend = BlendPresets::AlphaBlend();
+
+    PipelineCreateDesc secondDesc{};
+    secondDesc.blend = BlendPresets::AlphaBlend();
+
+    CHECK(PipelineCache::HashDesc(firstDesc) == PipelineCache::HashDesc(secondDesc));
 }
