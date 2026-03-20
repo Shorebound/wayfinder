@@ -95,7 +95,7 @@ namespace Wayfinder
         RenderGeometry Geometry{};
         RenderMaterialBinding Material{};
         bool Visible = true;
-        RenderLayerId Layer = std::string(RenderLayers::Main);
+        RenderLayerId Layer = RenderLayers::Main;
         uint8_t SortPriority = 128;
         uint64_t SortKey = 0;
     };
@@ -150,7 +150,7 @@ namespace Wayfinder
 
     struct RenderPass
     {
-        RenderPassId Id = std::string(RenderPassIds::MainScene);
+        RenderPassId Id = RenderPassIds::MainScene;
         RenderPassKind Kind = RenderPassKind::Scene;
         size_t ViewIndex = 0;
         std::optional<RenderLayerId> SceneLayer;
@@ -183,21 +183,21 @@ namespace Wayfinder
             return Views.size() - 1;
         }
 
-        RenderPass& AddScenePass(std::string_view id, size_t viewIndex, std::string_view sceneLayer)
+        RenderPass& AddScenePass(const RenderPassId& id, size_t viewIndex, const RenderLayerId& sceneLayer)
         {
             RenderPass pass;
-            pass.Id = std::string(id);
+            pass.Id = id;
             pass.Kind = RenderPassKind::Scene;
             pass.ViewIndex = viewIndex;
-            pass.SceneLayer = std::string(sceneLayer);
+            pass.SceneLayer = sceneLayer;
             Passes.push_back(std::move(pass));
             return Passes.back();
         }
 
-        RenderPass& AddDebugPass(std::string_view id, size_t viewIndex)
+        RenderPass& AddDebugPass(const RenderPassId& id, size_t viewIndex)
         {
             RenderPass pass;
-            pass.Id = std::string(id);
+            pass.Id = id;
             pass.Kind = RenderPassKind::Debug;
             pass.ViewIndex = viewIndex;
             pass.DebugDraw = RenderDebugDrawList{};
@@ -205,7 +205,7 @@ namespace Wayfinder
             return Passes.back();
         }
 
-        RenderPass* FindPass(std::string_view id)
+        RenderPass* FindPass(const RenderPassId& id)
         {
             for (RenderPass& pass : Passes)
             {
@@ -218,7 +218,7 @@ namespace Wayfinder
             return nullptr;
         }
 
-        const RenderPass* FindPass(std::string_view id) const
+        const RenderPass* FindPass(const RenderPassId& id) const
         {
             for (const RenderPass& pass : Passes)
             {

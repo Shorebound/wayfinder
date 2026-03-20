@@ -32,7 +32,7 @@ namespace Wayfinder
         if (cache)
         {
             m_pipeline = cache->GetOrCreate(pipeDesc);
-            m_isFromCache = (m_pipeline != nullptr);
+            m_isFromCache = m_pipeline.IsValid();
         }
         else
         {
@@ -54,15 +54,15 @@ namespace Wayfinder
     {
         if (m_isFromCache)
         {
-            m_pipeline = nullptr;
+            m_pipeline = {};
             m_isFromCache = false;
             return;
         }
 
-        if (m_device && m_pipeline)
+        if (m_device && m_pipeline.IsValid())
         {
             m_device->DestroyPipeline(m_pipeline);
-            m_pipeline = nullptr;
+            m_pipeline = {};
         }
     }
 

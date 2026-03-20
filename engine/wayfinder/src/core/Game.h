@@ -10,6 +10,7 @@
 #include "GameplayTag.h"
 #include "GameplayTagRegistry.h"
 #include "GameState.h"
+#include "GameStateMachine.h"
 #include "SceneSettings.h"
 #include "Subsystem.h"
 #include "wayfinder_exports.h"
@@ -20,7 +21,7 @@ namespace Wayfinder
     class AssetService;
     class ModuleRegistry;
     class Scene;
-    struct EngineContext;
+    struct GameContext;
 
     class WAYFINDER_API Game
     {
@@ -28,16 +29,14 @@ namespace Wayfinder
         Game();
         ~Game();
 
-        bool Initialize(const EngineContext& ctx);
+        bool Initialize(const GameContext& ctx);
         void Update(float deltaTime);
         void Shutdown();
 
         void LoadScene(const std::string& scenePath);
         void UnloadCurrentScene();
 
-        /// Transition to a named game state. Calls OnExit for the old state,
-        /// updates the ActiveGameState singleton, calls OnEnter for the new
-        /// state, and re-evaluates all run conditions.
+        /// Transition to a named game state. Forwards to GameStateMachine.
         void TransitionTo(const std::string& stateName);
 
         /// Returns the name of the currently active game state.
@@ -69,18 +68,9 @@ namespace Wayfinder
         bool IsRunning() const { return m_running; }
 
     private:
-        struct ConditionedSystem
-        {
-            flecs::entity SystemEntity;
-            RunCondition Condition;
-            bool Enabled = true;
-        };
-
         void InitializeWorld();
         void InitializeSubsystems();
         void InitializeTagRegistry();
-        void BindConditionedSystems();
-        void EvaluateRunConditions();
 
         flecs::world m_world;
         SubsystemCollection<GameSubsystem> m_subsystems;
@@ -88,10 +78,9 @@ namespace Wayfinder
         std::unique_ptr<Scene> m_currentScene;
         std::shared_ptr<AssetService> m_assetService;
         const ModuleRegistry* m_moduleRegistry = nullptr;
-        std::vector<ConditionedSystem> m_conditionedSystems;
+        GameStateMachine* m_stateMachine = nullptr; ///< Non-owning; owned by m_subsystems.
         bool m_running = false;
         bool m_initialized = false;
-        bool m_runConditionsDirty = false;
     };
 
 } // namespace Wayfinder

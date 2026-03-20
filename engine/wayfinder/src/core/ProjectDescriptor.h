@@ -4,6 +4,7 @@
 
 #include <filesystem>
 #include <string>
+#include <vector>
 
 namespace Wayfinder
 {
@@ -16,9 +17,11 @@ namespace Wayfinder
         std::string Module;  ///< Shared library name for game module (empty = none).
     };
 
+    inline constexpr const char* DEFAULT_PROJECT_NAME = "Untitled";
+
     struct WAYFINDER_API ProjectDescriptor
     {
-        std::string Name = "Untitled";
+        std::string Name = DEFAULT_PROJECT_NAME;
         std::string Version = "0.1.0";
         std::string EngineVersion = "0.1.0";
 
@@ -44,7 +47,22 @@ namespace Wayfinder
         /// Returns empty path if no module is configured.
         std::filesystem::path ResolveModulePath() const;
 
-        static ProjectDescriptor LoadFromFile(const std::filesystem::path& path);
+        /// Result of loading a project descriptor with validation information.
+        struct LoadResult;
+
+        /// Load a project descriptor from a file with validation.
+        /// Returns a LoadResult containing the descriptor, validity flag, and
+        /// any warnings encountered during parsing/validation.
+        static LoadResult LoadFromFile(const std::filesystem::path& path);
+    };
+
+    /// Result of loading a project descriptor with validation information.
+    /// Defined outside ProjectDescriptor so it can hold a ProjectDescriptor by value.
+    struct WAYFINDER_API ProjectDescriptor::LoadResult
+    {
+        ProjectDescriptor Descriptor;
+        bool Valid = true;
+        std::vector<std::string> Warnings;
     };
 
 } // namespace Wayfinder

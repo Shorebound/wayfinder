@@ -24,7 +24,7 @@ namespace Wayfinder
         const auto pos = name.rfind('.');
         if (pos == std::string::npos)
             return std::nullopt;
-        return GameplayTag{InternedString::Intern(name.substr(0, pos))};
+        return GameplayTag::FromName(name.substr(0, pos));
     }
 
     int GameplayTag::Depth() const

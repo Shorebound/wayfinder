@@ -1,4 +1,5 @@
 #include "SDL3Window.h"
+#include "../null/NullWindow.h"
 
 #include "../../core/events/ApplicationEvent.h"
 #include "../../core/events/KeyEvent.h"
@@ -14,6 +15,8 @@ namespace Wayfinder
         {
         case PlatformBackend::SDL3:
             return std::make_unique<SDL3Window>(config);
+        case PlatformBackend::Null:
+            return std::make_unique<NullWindow>(config);
         }
 
         return nullptr;

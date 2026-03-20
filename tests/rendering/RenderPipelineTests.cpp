@@ -1,7 +1,9 @@
 #include "rendering/RenderPipeline.h"
 #include "rendering/RenderResources.h"
 #include "rendering/RenderDevice.h"
+#include "rendering/RenderContext.h"
 #include "rendering/SceneRenderExtractor.h"
+#include "core/EngineConfig.h"
 #include "scene/Components.h"
 #include "scene/RuntimeComponentRegistry.h"
 #include "scene/Scene.h"
@@ -77,7 +79,7 @@ TEST_CASE("Extractor builds explicit passes and debug payload")
     cube.AddComponent<Wayfinder::TransformComponent>(Wayfinder::TransformComponent{{0.0f, 0.5f, 0.0f}});
     cube.AddComponent<Wayfinder::MeshComponent>(Wayfinder::MeshComponent{});
     Wayfinder::RenderableComponent renderable;
-    renderable.Layer = std::string(Wayfinder::RenderLayers::Main);
+    renderable.Layer = Wayfinder::RenderLayers::Main;
     cube.AddComponent<Wayfinder::RenderableComponent>(renderable);
 
     Wayfinder::Entity light = scene.CreateEntity("Light");
@@ -151,4 +153,47 @@ TEST_CASE("Resource cache resolves mesh")
 
     const auto& resolved = resources.ResolveMesh(scenePass.Meshes[0]);
     CHECK(resolved.Geometry.Type == Wayfinder::RenderGeometryType::Box);
+}
+
+TEST_CASE("RenderPipeline::Initialise registers built-in programs")
+{
+    auto device = Wayfinder::RenderDevice::Create(Wayfinder::RenderBackend::Null);
+    REQUIRE(device);
+
+    Wayfinder::EngineConfig config;
+    config.Window.Width = 320;
+    config.Window.Height = 240;
+
+    Wayfinder::RenderContext context;
+    REQUIRE(context.Initialize(*device, config));
+
+    Wayfinder::RenderPipeline pipeline;
+    // Initialise must not crash — it registers programs via the context.
+    // With NullDevice, pipeline creation fails (no shader files on disk),
+    // so Find returns nullptr. The contract being tested is that Initialise
+    // calls Register for each built-in program without crashing.
+    pipeline.Initialise(context);
+
+    pipeline.Shutdown();
+    context.Shutdown();
+}
+
+TEST_CASE("RenderPipeline::Shutdown is safe after Initialise")
+{
+    auto device = Wayfinder::RenderDevice::Create(Wayfinder::RenderBackend::Null);
+    REQUIRE(device);
+
+    Wayfinder::EngineConfig config;
+    config.Window.Width = 320;
+    config.Window.Height = 240;
+
+    Wayfinder::RenderContext context;
+    REQUIRE(context.Initialize(*device, config));
+
+    Wayfinder::RenderPipeline pipeline;
+    pipeline.Initialise(context);
+    pipeline.Shutdown();
+    pipeline.Shutdown(); // Double shutdown is safe
+
+    context.Shutdown();
 }

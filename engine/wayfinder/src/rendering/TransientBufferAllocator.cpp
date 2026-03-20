@@ -29,7 +29,7 @@ namespace Wayfinder
         {
             WAYFINDER_ERROR(LogRenderer, "TransientBufferAllocator: Failed to create index ring buffer ({} bytes)", indexCapacity);
             device.DestroyBuffer(m_vertexRing);
-            m_vertexRing = nullptr;
+            m_vertexRing = {};
             return false;
         }
 
@@ -47,8 +47,8 @@ namespace Wayfinder
             if (m_indexRing) m_device->DestroyBuffer(m_indexRing);
         }
 
-        m_vertexRing = nullptr;
-        m_indexRing = nullptr;
+        m_vertexRing = {};
+        m_indexRing = {};
         m_device = nullptr;
         m_vertexCapacity = 0;
         m_indexCapacity = 0;

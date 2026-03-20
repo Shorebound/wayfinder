@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../RenderDevice.h"
+#include "../../core/ResourcePool.h"
 
 struct SDL_Window;
 struct SDL_GPUDevice;
@@ -8,6 +9,11 @@ struct SDL_GPUCommandBuffer;
 struct SDL_GPURenderPass;
 struct SDL_GPUTexture;
 struct SDL_GPUComputePass;
+struct SDL_GPUShader;
+struct SDL_GPUGraphicsPipeline;
+struct SDL_GPUBuffer;
+struct SDL_GPUSampler;
+struct SDL_GPUComputePipeline;
 
 namespace Wayfinder
 {
@@ -88,6 +94,19 @@ namespace Wayfinder
         uint32_t m_depthWidth = 0;
         uint32_t m_depthHeight = 0;
         void EnsureDepthTexture(uint32_t width, uint32_t height);
+
+        // Shader format accepted by the chosen backend (queried at init)
+        uint32_t m_shaderFormats = 0;
+
+        // ── Resource Pools ───────────────────────────────────
+        // Raw SDL pointers never leave the backend — the pools map
+        // generational handles to the underlying GPU objects.
+        ResourcePool<GPUShaderTag, SDL_GPUShader*>              m_shaderPool;
+        ResourcePool<GPUPipelineTag, SDL_GPUGraphicsPipeline*>  m_pipelinePool;
+        ResourcePool<GPUBufferTag, SDL_GPUBuffer*>              m_bufferPool;
+        ResourcePool<GPUTextureTag, SDL_GPUTexture*>            m_texturePool;
+        ResourcePool<GPUSamplerTag, SDL_GPUSampler*>            m_samplerPool;
+        ResourcePool<GPUComputePipelineTag, SDL_GPUComputePipeline*> m_computePipelinePool;
     };
 
 } // namespace Wayfinder

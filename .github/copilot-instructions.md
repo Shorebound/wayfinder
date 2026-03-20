@@ -1,145 +1,142 @@
 # Wayfinder
 
-A modern C++23 game engine and toolchain. An engine for a "fantasy" console. 
+A C++23 game engine and toolchain targeting a "fantasy console" — sixth-gen aesthetics with modern compute, architecture, and tooling. The goal is a clean, extensible engine that is a joy to work with. See `docs/project_vision.md` for the full rationale and `docs/workspace_guide.md` for repo navigation.
 
-## Philosophy
+Read `.github/AGENTS.md` for known pitfalls, gotchas, and confusion points that agents might encounter when working in the codebase. If you hit something surprising, alert the developer working with you and add it.
 
-The thought experiment is straight-forward: imagine sixth-gen console development culture with 2026-era compute budgets, architecture knowledge, and tooling convenience. The artistic target still belongs to the sixth console generation, so the production values are not about photorealism. What changes is how much of the world can stay alive, dynamic, and responsive at runtime.
+## Design Pillars
 
-The goal is an engine that is a joy to work with: clean code, clear architecture, and a great developer experience. Focus on avoiding technical debt and hacks, even if it means slower initial progress. Design systems that are flexible, extensible, and can grow with the needs of the game. Future-proofing and forward-thinking design are core pillars. The engine should be extensible and moddable by design, while remaining grounded in the project's artistic vision and technical goals.
+- **Dynamic over baked** — prefer runtime computation over offline preprocessing.
+- **Data-driven** — if it can be a file on disk, it should be. Hot-reload without code changes.
+- **Explicit over implicit** — capabilities are checked, passes are validated, nothing silently dropped.
+- **Engine is a library** — the game and editor are consumers. The engine never knows who's calling it.
+- **Data flows down, events flow up** — systems read data and produce data. Side effects go through event bus or command queue.
+- **Composition over inheritance** — component-based design, flat hierarchies, minimal virtual dispatch.
+- **Performance with clarity** — efficient code that stays readable. Optimise measured bottlenecks, not hunches.
 
-The role of `.github/AGENTS.md` is to describe common mistakes and confusion points that agents might encounter as they work in this project. If you ever encounter something in the project that surprises or confuses you, please alert the developer working with you and indicate that this is a potential addition to the AGENTS.md file to help prevent future confusion for others. 
+This project is greenfield. Breaking changes, rewrites, and architectural pivots are welcome. If something is bad, say so and offer the better path. Don't be afraid to throw away code or whole systems if it leads to a cleaner, more maintainable codebase. The goal is a great engine, not to preserve work that isn't up to standard.
 
-## Pillars
+## Engineering Standards
 
-- **Dynamic over baked**
-    - Prefer runtime computation over offline preprocessing.
-    - Example: real-time lighting and shadows instead of lightmaps, global illumination, and reflection probes. Real-time physics and destruction instead of pre-authored animations. Data-driven behavior instead of hardcoded logic.
-- **Data-driven design**
-    - If it can be a file on disk, it should be so that it can be authored, iterated on, and hot-reloaded without code changes.
-    - Example: gameplay tags, input mappings, material definitions, scene hierarchies, and even some systems can be defined in data rather than code.
-- **Explicit over implicit**
-    - Capabilities are checked, passes are validated. Nothing is silently dropped or assumed.
-- **The engine is a library, not an application**
-    - The game (and later, the editor) are consumers of the engine. The engine never knows it's being used by an editor.
-- **Data flows down, events flow up**
-    - Systems read data and produce data. Side effects are explicit and channeled through an event bus or command queue.
-- **Composition over inheritance**: 
-    - Prefer component-based design and data-driven behavior over deep class hierarchies and virtual dispatch.
-- **Modularity and extensibility**: 
-    - Design systems to be self-contained and decoupled, with clear interfaces for extension and replacement.
-- **Performance with clarity**: 
-    - Write efficient code, but not at the cost of readability and maintainability. Optimize bottlenecks when they are identified, not prematurely.
-- **Zero API stability guarantees**: 
-    - The codebase is free to evolve and pivot as needed. Breaking changes are expected and accepted. 
+- **Modern C++ idioms and design patterns.** Use current best practices, not legacy habits. This applies to language features, architecture, and API design equally.
+- **Readable over clever.** Performance matters, but clarity comes first. Optimise hot paths; keep everything else clean and obvious.
+- **Modular and extensible where it counts.** Systems that game or editor code touches must have clear extension points. Internal plumbing can be simple.
+- **Production-quality framing from the start.** Initial implementations can be minimal, but the surrounding architecture — interfaces, data flow, error handling — must be sound enough to build on without ripping out later. Get the shape right first.
+- **Elegant by default.** Strive for APIs and systems that feel clean and satisfying to use. If two approaches are otherwise equal, pick the one that reads better and composes more naturally.
+- **Favour the modern and unconventional when it's better.** Don't default to "the way engines usually do it" if a newer technique or a less obvious design is genuinely superior. Be willing to explore — but justify the departure and make sure it still ships.
+- **Professional, not precious.** Code should look like it belongs in a shipping engine. If a proposal, plan, or implementation doesn't meet that bar, rework it before moving on.
 
-## Stability
+### Testing
 
-This project is super greenfield. You have full license to propose breaking changes, rewrites, architectural pivots, dependency swaps, or paradigm shifts. It's okay if you change the architecture, rewrite systems, or throw away code that doesn't fit the vision. 
+When implementing a new system, feature, or non-trivial refactor, include or update the tests that cover its important behaviour — the things that would break silently without them.
 
-If something is bad, say so and offer the better path. The only way to find the right design is to try things out and iterate quickly. Don't be afraid to break things, as long as you are improving the overall design and moving towards the vision.
+**Test these:**
+- Correctness boundaries: valid/invalid input, edge cases, error paths.
+- Round-trip fidelity: serialise → deserialise → compare.
+- Contracts between systems: does the output of A satisfy the expectations of B?
+- State transitions and lifecycle: initialisation order, shutdown cleanup, ownership semantics.
 
-## Architecture
+**Skip these:**
+- Trivial accessors, simple forwarding, one-line wrappers.
+- Third-party internals already tested by their own suites (flecs, SDL, doctest).
+- Speculative tests for code paths that don't exist yet.
 
-The engine follows an explicit, data-oriented design. See `docs/` for full details:
-
-- `docs/project_vision.md` — why the project exists. 
-    - Read this when you want to understand the "why" behind design decisions and tradeoffs.
-- `docs/future_features.md` — design sketches for future features and systems
-- `docs/workspace_guide.md` — how to navigate the workspace, build, and run things
+**Rules:**
+- Use doctest. Follow the patterns in `tests/`.
+- Tests must be headless — no window, no GPU device (use the Null render backend where a device is needed), no filesystem outside `tests/fixtures/`.
+- One test file per domain or system, not per class. Group related cases together.
+- Test names describe the behaviour being verified, not the function being called.
 
 ## Build
 
+CMake 4.0+, MSVC (Visual Studio 17 2022). Presets are the recommended workflow:
+
 ```powershell
-# Configure with presets (recommended)
-cmake --preset dev                  # sandbox + tools + tests
-cmake --preset dev-all              # everything
+cmake --preset dev              # sandbox + tools + tests
+cmake --build --preset debug    # Debug build
+ctest --preset test             # run all tests
+```
+Configurations are `Debug`, `Development`, and `Shipping` — not the usual `Debug`/`Release`/`RelWithDebInfo`.
+Key targets: `wayfinder` (engine lib), `journey` (sandbox), `waypoint` (asset CLI), `wayfinder_render_tests`, `wayfinder_core_tests`.
 
-# Build
-cmake --build --preset debug        # Debug build
-cmake --build --preset development  # Development (optimised + debug info)
+Adding new source files requires a CMake reconfigure (`CMAKE_SUPPRESS_REGENERATION` is on). Engine sources use `GLOB_RECURSE`, so a reconfigure picks them up automatically.
 
-# Or configure manually
-cmake -S . -B build -DWAYFINDER_BUILD_SANDBOX=ON -DWAYFINDER_BUILD_TOOLS=ON -DWAYFINDER_BUILD_TESTS=ON
-cmake --build build --config Debug --target journey waypoint wayfinder_render_tests
+## GitHub Issues & Project Tracking
 
-# Run sandbox
-build\bin\Debug\journey.exe
+All engine work is tracked via GitHub Issues. See `docs/github_issues.md` for labels, milestones, relationships, and the GraphQL API reference.
 
-# Validate authored assets
-build\bin\Debug\waypoint.exe validate-assets sandbox\journey\assets
-build\bin\Debug\waypoint.exe validate sandbox\journey\assets\scenes\default_scene.toml
+### Relationships
 
-# Run tests
-ctest --preset test
-# Or manually: ctest --test-dir build --build-config Debug
+Issue dependencies use GitHub's native **blocked-by/blocking** API and **sub-issues** (parent/child), not comments or tasklist syntax. Use `gh-issues` (built via CMake, output in `build/bin/<config>/`) to manage them — it handles node ID lookups automatically:
+
+```powershell
+gh-issues blocked-by 12 7      # #12 is blocked by #7
+gh-issues blocking 7 12,15     # #7 is blocking #12 and #15
+gh-issues sub-issue 10 41,42   # #41, #42 are sub-issues of #10
+gh-issues show 12              # relationships + completion status
+gh-issues show 12,15,20        # compact table for multiple issues
+gh-issues tree 10              # sub-issue hierarchy with progress
+gh-issues chain 12             # walk blocked-by chain, find critical path
+gh-issues ready                # all open unblocked issues
+gh-issues status --milestone "Phase 1: Foundation"  # milestone progress
+gh-issues orphans              # issues with no parent or milestone
+gh-issues remove-blocked-by 12 7  # undo: #12 no longer blocked by #7
+gh-issues remove-sub-issue 10 41  # undo: #41 no longer sub-issue of #10
 ```
 
-CMake sets `CMAKE_SUPPRESS_REGENERATION TRUE` — adding new source files requires a manual reconfigure before MSBuild sees them.
+### Workflow
+
+- **Starting a task:** run `show` to check for unresolved blockers. If blocked, run `chain` to find the critical path.
+- **Picking work:** run `ready` for all unblocked issues, or `status --milestone "..."` for milestone priorities.
+- **Completing a task:** close the issue and check if any issues it was blocking are now unblocked.
+- **Breaking down a large issue:** create new issues for the sub-tasks, then use `sub-issue` to link them to the parent.
+- **Writing issue bodies:** keep bodies lean — labels carry metadata, sub-issues carry task breakdowns. Follow the template in `docs/github_issues.md`.
+
+Repo is `Shorebound/wayfinder`. The `gh` CLI must be authenticated with repo scope.
 
 ## Code Style
 
-Enforced by `.clang-format` at the workspace root. Short or empty blocks are one-liners.
+Formatting is enforced by `.clang-format` (Allman braces, 4-space indent, no column limit).
 
-### General
-- Types: PascalCase (structs, classes, enums, aliases).
-- Components: `Component` suffix.
-    - Do: `TransformComponent`, `RenderableComponent`, `CameraComponent`.
-- Systems: `System` suffix.
-    - Do: `RenderSystem`, `PhysicsSystem`, `InputSystem`.
-- Interfaces: `I` prefix, prefer adjectives when it makes sense to do so
-    - Do: `IRenderDevice`, `IAssetLoader`, etc. for core interfaces.
-    - Do: `IUpdatable`, `IDrawable`, etc. for component interfaces.
-- Functions: PascalCase (e.g. `Initialise`, `Update`, `Render`).
-- Members: `m_` prefix (e.g. `m_window`, `m_capabilities`).
-- Constants & Macros: SCREAMING_SNAKE_CASE (e.g. `MAX_ENTITIES`, `DEFAULT_SCREEN_WIDTH`).
-- Typedefs/Aliases: PascalCase without `T` prefix (e.g. `using MyVector = std::vector<int>`).
-- Templates: `T` prefix for template parameters (e.g. `template<typename TMyType>`).
-- Prefer British spelling (e.g. `Initialise`, `Colour`) for public APIs, but American spelling is fine for internal code.
-- Prefer full words over abbreviations, unless the abbreviation is widely recognized and unambiguous (e.g. `Config`, `Params`).
-- Use `auto` (specifically `auto*` or `auto&`) when the type is obvious from the right-hand side, otherwise be explicit.
-- Prefer modern C++23+ features and standard library facilities over custom implementations, unless there is a compelling reason not to.
-    - `std::span` for array views, `std::optional` for optional values, `std::variant` for tagged unions, `std::string_view` for string parameters, etc.
-    - RAII for resource management, smart pointers for ownership semantics, structured bindings for tuple-like types, etc.
-- Use concepts and `requires` for template constraints where it improves readability.
-- Avoid macros where possible; prefer `constexpr`, `inline` functions, or templates.
+### Naming
+
+| Element | Convention | Example |
+|---------|-----------|---------|
+| Types | PascalCase | `TransformComponent`, `RenderGraph` |
+| Components | `…Component` suffix | `RenderableComponent`, `CameraComponent` |
+| Systems | `…System` suffix | `RenderSystem`, `PhysicsSystem` |
+| Interfaces | `I` prefix | `ILogger`, `IUpdatable` |
+| Functions | PascalCase | `Initialise()`, `GetPosition()` |
+| Members | `m_` prefix | `m_window`, `m_entries` |
+| Constants | SCREAMING_SNAKE_CASE | `MAX_ENTITIES`, `DEFAULT_WIDTH` |
+| Aliases | PascalCase | `using MeshId = uint32_t;` |
+| Template params | `T` prefix | `template<typename TResource>` |
+
+### Function verbs
+
+`IsX` / `HasX` / `WasX` (bool queries), `GetX` / `SetX` (accessors), `CreateX` / `DestroyX` (lifecycle), `LoadX` / `SaveX` (serialisation), `ValidateX` (validation), `OnX` (event handlers), `SubscribeX` / `UnsubscribeX` (event registration).
+
+### Language
+
+- British/Australian spelling throughout: `Initialise`, `Colour`, `Serialise`, `Behaviour`, etc.
+- Prefer full words over abbreviations unless widely unambiguous (`Config`, `Params` are fine).
+- Use `auto` / `auto*` / `auto&` when the type is obvious from the RHS; be explicit otherwise.
+- Prefer C++23 standard library: `std::span`, `std::optional`, `std::variant`, `std::string_view`, `std::format`, concepts and `requires`, RAII and smart pointers.
+- Avoid macros; prefer `constexpr`, `inline`, or templates.
 
 ### Namespaces
-All engine code lives in `Wayfinder`.
-Sub-namespaces for domains (e.g. `Wayfinder::Audio`, `Wayfinder::Physics`, `Wayfinder::UI`)
+
+All engine code lives in `Wayfinder`. Subdirectories under `engine/wayfinder/src/` should use sub-namespaces matching their domain:
+
+- `Wayfinder::Rendering`, `Wayfinder::Audio`, `Wayfinder::Physics`, `Wayfinder::UI`, `Wayfinder::Math3D`, etc.
 
 ### Comments
-- Doxygen-style comments for public APIs (`/** */` with `@param`, `@return`, etc.).
-    - Do:
-        ```cpp
-        /**
-        * @brief Initialises the rendering device with the specified parameters.
-        * @param windowHandle The native handle to the application window.
-        * @param width The width of the rendering surface.
-        * @param height The height of the rendering surface.
-        * @return True if initialisation succeeded, false otherwise.
-        */
-        ```
-    - Do:
-        ```cpp
-        /**
-        * @struct RenderableComponent
-        * @brief A component that marks an entity as renderable and holds its mesh and material references.
-        * @todo Add support for multiple meshes/materials per entity in the future.
-        */
-        ```
-- `///` for internal comments and explanations of non-obvious code.
 
-### Functions
-- `IsX`, `HasX`, `WasX` for boolean queries (e.g. `IsRunning`, `HasFocus`, `WasPressed`).
-- `GetX`, `SetX` for accessors/mutators (e.g. `GetPosition()`, `SetColour()`).
-- `SubscribeX`, `UnsubscribeX` for event subscription (e.g. `SubscribeOnKeyPressed()`, `UnsubscribeOnKeyPressed()`).
-- `OnX` for event handlers (e.g. `OnKeyPressed()`, `OnCollision()`).
-- `CreateX`, `DestroyX` for factory/destruction functions (e.g. `CreateEntity()`, `DestroyEntity()`).
-- `LoadX`, `SaveX` for serialization functions (e.g. `LoadScene()`, `SaveScene()`).
-- `ValidateX` for validation functions (e.g. `ValidateAssets()`, `ValidateScene()`).
+- `/** … */` Javadoc-style (with `@brief`, `@param`, `@return`, `@todo`, etc.) for public API and types.
+- `///` for inline implementation notes.
 
-### Data-Driven Design
-- `TOML` for straightforward configuration, definitions and authored content (e.g. gameplay tags, input mappings, material definitions, scene hierarchies).
-- `JSON` for interchange formats, generated data, and anything that benefits from schema validation (e.g. scene exports, runtime-generated data).
-- Define clear schemas for data files and validate them at load time, providing useful error messages for authors.
+### Data Files
+
+- **TOML** for authored content: configuration, gameplay tags, input mappings, materials, scenes, prefabs.
+- **JSON** for interchange formats, generated data, and anything benefiting from schema validation.
+- Validate data files at load time with clear error messages for authors.

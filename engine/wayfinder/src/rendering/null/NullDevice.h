@@ -21,14 +21,14 @@ namespace Wayfinder
         void EndRenderPass() override {}
 
         // ── Shader / Pipeline (no-ops) ──
-        GPUShaderHandle   CreateShader(const ShaderCreateDesc&) override { return nullptr; }
+        GPUShaderHandle   CreateShader(const ShaderCreateDesc&) override { return {}; }
         void              DestroyShader(GPUShaderHandle) override {}
-        GPUPipelineHandle CreatePipeline(const PipelineCreateDesc&) override { return nullptr; }
+        GPUPipelineHandle CreatePipeline(const PipelineCreateDesc&) override { return {}; }
         void              DestroyPipeline(GPUPipelineHandle) override {}
         void              BindPipeline(GPUPipelineHandle) override {}
 
         // ── Buffer / Draw (no-ops) ──
-        GPUBufferHandle   CreateBuffer(const BufferCreateDesc&) override { return nullptr; }
+        GPUBufferHandle   CreateBuffer(const BufferCreateDesc&) override { return {}; }
         void              DestroyBuffer(GPUBufferHandle) override {}
         void              UploadToBuffer(GPUBufferHandle, const void*, uint32_t, uint32_t) override {}
         void              BindVertexBuffer(GPUBufferHandle, uint32_t, uint32_t) override {}
@@ -39,7 +39,7 @@ namespace Wayfinder
         void              PushFragmentUniform(uint32_t, const void*, uint32_t) override {}
 
         // ── Compute (no-ops) ──
-        GPUComputePipelineHandle CreateComputePipeline(const ComputePipelineCreateDesc&) override { return nullptr; }
+        GPUComputePipelineHandle CreateComputePipeline(const ComputePipelineCreateDesc&) override { return {}; }
         void              DestroyComputePipeline(GPUComputePipelineHandle) override {}
         void              BeginComputePass() override {}
         void              EndComputePass() override {}
@@ -47,11 +47,11 @@ namespace Wayfinder
         void              DispatchCompute(uint32_t, uint32_t, uint32_t) override {}
 
         // ── Textures (no-ops) ──
-        GPUTextureHandle  CreateTexture(const TextureCreateDesc&) override { return nullptr; }
+        GPUTextureHandle  CreateTexture(const TextureCreateDesc&) override { return {}; }
         void              DestroyTexture(GPUTextureHandle) override {}
 
         // ── Samplers (no-ops) ──
-        GPUSamplerHandle  CreateSampler(const SamplerCreateDesc&) override { return nullptr; }
+        GPUSamplerHandle  CreateSampler(const SamplerCreateDesc&) override { return {}; }
         void              DestroySampler(GPUSamplerHandle) override {}
         void              BindFragmentSampler(uint32_t, GPUTextureHandle, GPUSamplerHandle) override {}
 

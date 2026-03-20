@@ -15,7 +15,7 @@ namespace Wayfinder
                 m_definitions[it->second].Comment = comment;
             // Mark as code-owned so UnloadTagFile() won't remove it.
             m_definitions[it->second].SourceFile = "(code)";
-            return GameplayTag{name};
+            return GameplayTag::FromName(name);
         }
 
         EnsureAncestors(name, "(code)");
@@ -27,7 +27,7 @@ namespace Wayfinder
         WAYFINDER_INFO(LogEngine, "GameplayTagRegistry: registered tag '{}'{}", name,
                        comment.empty() ? "" : " — " + comment);
 
-        return GameplayTag{name};
+        return GameplayTag::FromName(name);
     }
 
     int GameplayTagRegistry::LoadTagFile(const std::filesystem::path& path)
@@ -124,7 +124,7 @@ namespace Wayfinder
                 name);
         }
 
-        return GameplayTag{name};
+        return GameplayTag::FromName(name);
     }
 
     bool GameplayTagRegistry::IsRegistered(const std::string& name) const

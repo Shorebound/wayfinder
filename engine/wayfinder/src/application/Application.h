@@ -5,16 +5,11 @@
 
 namespace Wayfinder
 {
+    class EngineRuntime;
     class Game;
     class Module;
     class ModuleRegistry;
-    class Input;
     class LayerStack;
-    class RenderDevice;
-    class Renderer;
-    class SceneRenderExtractor;
-    class Time;
-    class Window;
     struct EngineConfig;
     struct ProjectDescriptor;
 
@@ -56,15 +51,9 @@ namespace Wayfinder
         bool m_running = false;
         bool m_moduleStarted = false;
 
-        std::unique_ptr<Window> m_window;
-        std::unique_ptr<Input> m_input;
-        std::unique_ptr<Time> m_time;
+        std::unique_ptr<EngineRuntime> m_runtime;
         std::unique_ptr<LayerStack> m_layerStack;
-
-        std::unique_ptr<RenderDevice> m_device;
         std::unique_ptr<Game> m_game;
-        std::unique_ptr<Renderer> m_renderer;
-        std::unique_ptr<SceneRenderExtractor> m_sceneRenderExtractor;
     };
 
 } // namespace Wayfinder

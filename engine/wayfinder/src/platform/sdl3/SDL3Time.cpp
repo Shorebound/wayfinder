@@ -1,4 +1,5 @@
 #include "SDL3Time.h"
+#include "../null/NullTime.h"
 
 #include <SDL3/SDL.h>
 
@@ -10,6 +11,8 @@ namespace Wayfinder
         {
         case PlatformBackend::SDL3:
             return std::make_unique<SDL3Time>();
+        case PlatformBackend::Null:
+            return std::make_unique<NullTime>();
         }
 
         return nullptr;

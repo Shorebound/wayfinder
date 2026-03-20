@@ -44,10 +44,15 @@ namespace Wayfinder
         /// Returns an empty/invalid tag.
         static GameplayTag None() { return {}; }
 
-    private:
-        friend class GameplayTagRegistry;
-        friend class ModuleRegistry;
+        /// Construct a tag from a pre-interned string.  Used by registries
+        /// and internal code that already holds an InternedString.
+        static GameplayTag FromInterned(InternedString name) { return GameplayTag{name}; }
 
+        /// Construct a tag from a plain name string.  Interns the string
+        /// and returns the tag.
+        static GameplayTag FromName(const std::string& name) { return GameplayTag{name}; }
+
+    private:
         explicit GameplayTag(const std::string& name) : m_name(InternedString::Intern(name)) {}
         explicit GameplayTag(InternedString name) : m_name(name) {}
         GameplayTag() = default;

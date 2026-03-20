@@ -1,23 +1,22 @@
 #pragma once
 
-#include <string>
-#include <string_view>
+#include "../core/InternedString.h"
 
 namespace Wayfinder
 {
-    using RenderLayerId = std::string;
-    using RenderPassId = std::string;
+    using RenderLayerId = InternedString;
+    using RenderPassId = InternedString;
 
     namespace RenderLayers
     {
-        inline constexpr std::string_view Main = "main";
-        inline constexpr std::string_view Overlay = "overlay";
+        inline const InternedString Main = InternedString::Intern("main");
+        inline const InternedString Overlay = InternedString::Intern("overlay");
     }
 
     namespace RenderPassIds
     {
-        inline constexpr std::string_view MainScene = "main_scene";
-        inline constexpr std::string_view OverlayScene = "overlay_scene";
-        inline constexpr std::string_view Debug = "debug";
+        inline const InternedString MainScene = InternedString::Intern("main_scene");
+        inline const InternedString OverlayScene = InternedString::Intern("overlay_scene");
+        inline const InternedString Debug = InternedString::Intern("debug");
     }
 } // namespace Wayfinder
