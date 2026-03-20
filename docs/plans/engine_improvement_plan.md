@@ -13,9 +13,9 @@
 |--------|------|------|-------|--------------|--------|--------|
 | **P1** | **Must-Do** | | **1** | | | |
 | P1.1 | Test Coverage Expansion | L | 1 | None | P2.1, P2.4, P3.4, P4.8 | |
-| P1.2 | Generational Handle System | M | 1 | None | P2.5, P3.5, P4.1, P4.3 | |
-| P1.3 | InternedString IDs | S | 1 | None | P2.3 | |
-| P1.4 | Break Up Renderer | L | 2 | P1.2 (soft) | P1.5, P2.3, P2.6, P3.7, P4.4 | ✅ Done |
+| P1.2 | Generational Handle System | M | 1 | None | P2.5, P3.5, P4.1, P4.3 | Done |
+| P1.3 | InternedString IDs | S | 1 | None | P2.3 | Done |
+| P1.4 | Break Up Renderer | L | 2 | P1.2 (soft) | P1.5, P2.3, P2.6, P3.7, P4.4 | Done |
 | P1.5 | Application Decomposition | M | 2 | P1.4 | P4.4, P4.7, P4.10, P4.11 | |
 | **P2** | **Should-Do** | | **2–3** | | | |
 | P2.1 | Scene Entity Index | S | 3 | P1.1 | — | |
@@ -23,7 +23,7 @@
 | P2.3 | Frame-Linear Allocator | M | 3 | P1.4 | P3.8 | |
 | P2.4 | Physics Subsystem (E2E) | L | 3 | P1.1 | P4.1, P4.5 | |
 | P2.5 | Blend State Support | M | 2 | P1.2 | P3.7 | |
-| P2.6 | Evolve/Remove RenderPipeline | S | 2 | P1.4 | — | ✅ Done |
+| P2.6 | Evolve/Remove RenderPipeline | S | 2 | P1.4 | — | Done |
 | P2.7 | Error Handling Strategy | M | 3 | None | P3.1, P4.3 | |
 | P2.8 | Event Queue | M | 3 | None | P4.9 | |
 | P2.9 | SDL_ShaderCross | M | 3 | None | P4.10, P4.11 | |
@@ -62,6 +62,8 @@ Each item has a **priority tier**, a **difficulty estimate**, and a **dependency
 - **Horizon (P4)** — Larger initiatives that depend on earlier tiers being substantially complete.
 
 Difficulty: **S** (a focused session), **M** (a day or two), **L** (multiple days), **XL** (a week+).
+
+**Status tracking:** The Task Index table has a `Status` column. Completed tasks are marked `Done` in the table and their detail sections are moved to the **Completed** section near the end of the document to keep the active sections focused on remaining work.
 
 ---
 
@@ -133,288 +135,6 @@ add_executable(wayfinder_tests
 - `ctest --preset test` runs clean.
 - Each test file covers at minimum the cases described in the table.
 - No test requires a window, GPU device, or filesystem outside `tests/fixtures/`.
-
----
-
-### P1.2: Generational Handle System
-
-**Difficulty: M  |  Dependencies: None  |  Blocks: P2.5, P3.5, P4.1, P4.3  |  Scope: Engine-wide**
-
-All GPU resource handles (`GPUShaderHandle`, `GPUPipelineHandle`, `GPUBufferHandle`, `GPUTextureHandle`, `GPUSamplerHandle`, `GPUComputePipelineHandle`) are currently `void*`. This allows silent misuse — passing a texture where a sampler is expected compiles without error — and provides zero defence against use-after-free. Beyond rendering, the engine needs managed handles for physics bodies, audio instances, assets, UI widgets, and any other pooled resource.
-
-Rather than a half-measure typed `void*` wrapper, implement **generational handles** from the start. Each handle carries an index + generation counter. The owning pool validates the generation on every access, catching use-after-free at runtime while the tag type catches wrong-type misuse at compile time.
-
-#### Design
-
-A single engine-wide `Handle<TTag>` template in `core/`, paired with a `ResourcePool<TTag, TResource>` that manages the index→resource mapping and validates generations on access.
-
-```cpp
-// core/Handle.h — engine-wide infrastructure
-
-namespace Wayfinder
-{
-    template <typename TTag>
-    struct Handle
-    {
-        uint32_t Index      : 20 = 0;
-        uint32_t Generation : 12 = 0;
-
-        [[nodiscard]] constexpr bool IsValid() const noexcept { return Generation != 0; }
-        constexpr explicit operator bool() const noexcept { return IsValid(); }
-        constexpr auto operator<=>(const Handle&) const = default;
-        static constexpr Handle Invalid() noexcept { return {}; }
-    };
-}
-
-// std::hash specialisation for unordered containers
-template <typename TTag>
-struct std::hash<Wayfinder::Handle<TTag>>
-{
-    size_t operator()(const Wayfinder::Handle<TTag>& h) const noexcept
-    {
-        return std::hash<uint32_t>{}(
-            (static_cast<uint32_t>(h.Index) << 12) | h.Generation);
-    }
-};
-```
-
-Paired with a resource pool:
-
-```cpp
-// core/ResourcePool.h
-
-namespace Wayfinder
-{
-    template <typename TTag, typename TResource>
-    class ResourcePool
-    {
-    public:
-        using HandleType = Handle<TTag>;
-
-        HandleType Acquire(TResource&& resource);
-        void Release(HandleType handle);
-
-        [[nodiscard]] bool IsValid(HandleType handle) const;
-        [[nodiscard]] TResource* Get(HandleType handle);
-        [[nodiscard]] const TResource* Get(HandleType handle) const;
-        [[nodiscard]] size_t ActiveCount() const;
-
-    private:
-        struct Entry
-        {
-            TResource Resource{};
-            uint32_t Generation = 0;
-            bool Alive = false;
-        };
-
-        std::vector<Entry> m_entries;
-        std::vector<uint32_t> m_freeList;
-    };
-}
-```
-
-GPU-specific aliases stay thin:
-
-```cpp
-// rendering/GPUHandle.h — aliases only
-
-struct GPUShaderTag {};
-struct GPUPipelineTag {};
-struct GPUBufferTag {};
-struct GPUTextureTag {};
-struct GPUSamplerTag {};
-struct GPUComputePipelineTag {};
-
-using GPUShaderHandle          = Handle<GPUShaderTag>;
-using GPUPipelineHandle        = Handle<GPUPipelineTag>;
-using GPUBufferHandle          = Handle<GPUBufferTag>;
-using GPUTextureHandle         = Handle<GPUTextureTag>;
-using GPUSamplerHandle         = Handle<GPUSamplerTag>;
-using GPUComputePipelineHandle = Handle<GPUComputePipelineTag>;
-```
-
-`SDLGPUDevice` owns the pools internally — raw SDL pointers never leave the backend:
-
-```cpp
-// In SDLGPUDevice (private)
-ResourcePool<GPUTextureTag, SDL_GPUTexture*> m_textures;
-ResourcePool<GPUShaderTag, SDL_GPUShader*>   m_shaders;
-ResourcePool<GPUBufferTag, SDL_GPUBuffer*>   m_buffers;
-// etc.
-```
-
-#### Bit Split: 20 Index / 12 Generation
-
-- **20-bit index** → ~1M concurrent resources per type. The codebase currently has ~10-100 active per GPU resource type. Even at engine-wide scale (mesh assets, texture atlases, audio clips, physics bodies), thousands is a realistic ceiling, not millions. This is well within budget.
-- **12-bit generation** → 4095 reuses per slot before wraparound. A slot must be created and destroyed 4095 times *while a stale handle to that exact slot persists* to produce a false positive. Practically impossible under normal use.
-- **Total: 32 bits** → fits in a register, trivially hashable, sorts naturally, serialisable, and `sizeof(Handle<T>) == 4`.
-
-This is the same split used by EnTT, bgfx, and sokol_gfx. It's the industry standard for resource handles. If a future domain genuinely requires more (unlikely), a `Handle64<TTag>` variant with 32:32 split can be added alongside without disrupting existing code.
-
-#### Engine-wide Applicability
-
-The handle system lives in `core/`, not `rendering/`. Other domains will use it as they come online:
-
-| Domain | Tag | Managed Resource |
-|---|---|---|
-| GPU Textures | `GPUTextureTag` | `SDL_GPUTexture*` |
-| GPU Shaders | `GPUShaderTag` | `SDL_GPUShader*` |
-| GPU Buffers | `GPUBufferTag` | `SDL_GPUBuffer*` |
-| GPU Pipelines | `GPUPipelineTag` | `SDL_GPUGraphicsPipeline*` |
-| GPU Samplers | `GPUSamplerTag` | `SDL_GPUSampler*` |
-| Physics Bodies (P2.4) | `PhysicsBodyTag` | Jolt `BodyID` |
-| Audio Instances (P4.5) | `AudioInstanceTag` | Audio source state |
-| Mesh Assets (P4.1) | `MeshAssetTag` | Mesh data |
-| Loaded Assets (P4.3) | `TextureAssetTag` | Texture metadata |
-
-Each `ResourcePool` is owned by the subsystem that manages that resource type. The handle is the only thing that crosses subsystem boundaries.
-
-#### Migration Steps
-
-1. Create `core/Handle.h` with the template, `operator<=>`, `std::hash` specialisation.
-2. Create `core/ResourcePool.h` with the template implementation.
-3. Create `rendering/GPUHandle.h` with tag types and `using` aliases.
-4. Remove `using GPUShaderHandle = void*` etc. from `RenderDevice.h` and `RenderTypes.h`.
-5. Add `ResourcePool` members to `SDLGPUDevice` for each resource type.
-6. Update `Create*()` methods to acquire from pool + return handle. Update `Destroy*()` to release.
-7. Update `NullDevice` similarly (can use dummy pools or skip validation).
-8. Update all call sites: `== nullptr` → `.IsValid()`, `= nullptr` → `= Handle::Invalid()` or `= {}`.
-9. Update `PipelineCache`, `ShaderManager`, `TransientResourcePool`, `TransientBufferAllocator` to store/compare handles instead of raw pointers.
-10. Add unit tests for `Handle` and `ResourcePool` (see P1.1 test table).
-11. Ensure all existing render tests pass. Sandbox builds and runs.
-
-#### Definition of Done
-
-- `Handle<T>` and `ResourcePool<T, R>` exist in `core/` with full unit tests.
-- No `void*` GPU handles remain in public API.
-- Passing the wrong handle type is a compile error.
-- Use-after-free is caught at runtime (generation mismatch → `Get()` returns `nullptr`).
-- `ResourcePool` unit tests cover: acquire, release, re-acquire (generation bump), stale handle rejection, pool growth, `ActiveCount`.
-- All existing tests pass. Sandbox builds and runs.
-
----
-
-### P1.3: Use InternedString for RenderLayerId and RenderPassId
-
-**Difficulty: S  |  Dependencies: None  |  Blocks: P2.3 (pass name conversion)**
-
-`RenderLayerId` and `RenderPassId` are currently `std::string`. They're used in equality comparisons on every mesh submission, every frame, for pass filtering. This is unnecessary allocation and comparison overhead for a fixed set of well-known values.
-
-The engine already has `InternedString` (pointer-equality comparison) and `StringHash` (uint64 comparison). Either works; `InternedString` is preferred because it preserves debug-printable names while giving O(1) equality.
-
-#### Migration
-
-1. In `rendering/RenderIntent.h`, change the aliases:
-   ```cpp
-   // Before
-   using RenderLayerId = std::string;
-   using RenderPassId  = std::string;
-   
-   // After
-   using RenderLayerId = InternedString;
-   using RenderPassId  = InternedString;
-   ```
-2. Change well-known constants from `inline constexpr const char*` to `inline const InternedString`:
-   ```cpp
-   namespace RenderLayers
-   {
-       inline const InternedString Main  = InternedString::Intern("main");
-       inline const InternedString Overlay = InternedString::Intern("overlay");
-   }
-   namespace RenderPassIds
-   {
-       inline const InternedString MainScene    = InternedString::Intern("main_scene");
-       inline const InternedString OverlayScene = InternedString::Intern("overlay_scene");
-       inline const InternedString Debug        = InternedString::Intern("debug");
-   }
-   ```
-3. Fix all construction sites — anywhere doing `= std::string(RenderLayers::Main)` or `std::string(id)` becomes direct assignment.
-4. Fix `RenderPass::AcceptsSceneSubmission` — the `==` comparison becomes pointer equality (fast).
-5. Fix `RenderFrame::FindPass` — `pass.Id == id` becomes pointer equality.
-6. Fix `RenderableComponent::Layer` default initialiser.
-
-#### Files Touched
-
-- `rendering/RenderIntent.h` (type aliases + constants)
-- `rendering/RenderFrame.h` (RenderMeshSubmission, RenderPass, RenderFrame methods)
-- `scene/Components.h` (RenderableComponent::Layer default)
-- `rendering/SceneRenderExtractor.cpp` (layer mapping logic)
-- `rendering/Renderer.cpp` (pass construction)
-- Possibly `rendering/RenderPipeline.cpp`
-
-#### Definition of Done
-
-- `RenderLayerId` and `RenderPassId` are `InternedString`.
-- No `std::string` allocation occurs for layer/pass identification during frame submission.
-- All tests pass. Sandbox builds and runs.
-
----
-
-### P1.4: Break Up Renderer
-
-**Difficulty: L  |  Dependencies: P1.2 (recommended but not blocking)  |  Blocks: P1.5, P2.3, P2.6, P3.7, P4.4**
-
-`Renderer` currently owns 11+ members and is responsible for shader management, pipeline caching, buffer allocation, transient resource pooling, debug pipeline setup, scene globals construction, render graph orchestration, feature management, and the actual render loop. This is a god object.
-
-#### Target Decomposition
-
-| New Type | Responsibility | Owns |
-|---|---|---|
-| `Renderer` (slimmed) | Frame orchestration only. Builds `RenderGraph`, calls `Compile()` + `Execute()`, manages feature lifecycle. | `RenderContext*`, `RenderPipeline*`, `std::vector<RenderFeature>` |
-| `RenderContext` | Resource infrastructure. Created once at init, passed to anyone that needs to create GPU resources. | `ShaderManager`, `PipelineCache`, `ShaderProgramRegistry`, `TransientBufferAllocator`, `TransientResourcePool`, `GPUSamplerHandle(s)` |
-| `RenderPipeline` (evolved) | Per-pass execution logic. Given a `RenderContext` + pass data, executes draw calls. | Nothing new — receives what it needs as params |
-
-#### Migration Steps
-
-1. **Create `RenderContext.h/cpp`**:
-   ```cpp
-   struct RenderContext
-   {
-       RenderDevice& Device;
-       ShaderManager& Shaders;
-       PipelineCache& Pipelines;
-       ShaderProgramRegistry& Programs;
-       TransientBufferAllocator& TransientBuffers;
-       TransientResourcePool& TransientPool;
-       GPUSamplerHandle NearestSampler;
-   };
-   ```
-   This can start as a non-owning reference struct (members owned by `Renderer` during transition), then ownership can transfer later.
-2. **Move shader program registration** out of `Renderer::Initialize()` into a dedicated setup function or into `RenderContext` init.
-3. **Update `RenderFeatureContext`** to just carry a `RenderContext&` instead of individual members.
-4. **Update `RenderPipeline`** to accept `RenderContext&` in its methods instead of getting individual pieces.
-5. **Slim `Renderer`** — it should read approximately:
-   ```cpp
-   class Renderer
-   {
-   public:
-       bool Initialize(RenderDevice& device, const EngineConfig& config);
-       void Render(const RenderFrame& frame);
-       void AddFeature(std::unique_ptr<RenderFeature> feature);
-       // ...
-   private:
-       RenderContext m_context;    // or unique_ptr
-       RenderPipeline m_pipeline;
-       std::vector<std::unique_ptr<RenderFeature>> m_features;
-       Mesh m_primitiveMesh;      // temporary until mesh asset system
-       GPUPipeline m_debugLinePipeline; // temporary
-   };
-   ```
-
-#### Phasing
-
-This can be done incrementally:
-1. First introduce `RenderContext` as a non-owning struct, populate it from `Renderer`'s existing members.
-2. Pass it around. Nothing changes externally.
-3. Gradually move ownership into `RenderContext`.
-4. Remove redundant members from `Renderer`.
-
-#### Definition of Done
-
-- `Renderer::Render()` is < 50 lines — builds graph, compiles, executes.
-- `RenderContext` holds all reusable GPU infrastructure.
-- `RenderFeatureContext` wraps or extends `RenderContext`.
-- No functional changes — same visual output, same tests passing.
 
 ---
 
@@ -760,27 +480,6 @@ namespace BlendPresets
 - SDL_GPU backend correctly creates blended pipelines.
 - An alpha-blended material renders correctly in the sandbox.
 - Pipeline cache differentiates opaque vs blended pipelines.
-
----
-
-### P2.6: Evolve or Remove RenderPipeline
-
-**Difficulty: S  |  Dependencies: P1.4**
-
-`RenderPipeline` currently has a single method: `bool Prepare(RenderFrame& frame) const`. It validates/sorts the frame's passes. With the render graph doing topological ordering and pass culling, `RenderPipeline::Prepare` is vestigial — the graph handles execution ordering.
-
-#### Options
-
-**Option A: Remove** — Inline the validation into `Renderer::Render()` or `RenderGraph::Compile()`. Delete `RenderPipeline.h/cpp`.
-
-**Option B: Evolve** — Make `RenderPipeline` the owner of render graph construction policy. It decides which passes to add based on the `RenderFrame` contents, rather than `Renderer::Render()` doing this inline.
-
-Recommendation: **Option B**, because as the engine grows (more render features, conditional passes, debug overlays), having a dedicated object that maps `RenderFrame` → `RenderGraph` is the right abstraction. But keep it thin until complexity demands more.
-
-#### Definition of Done
-
-- Either `RenderPipeline` is removed, or it owns `RenderGraph` construction.
-- No orphaned code.
 
 ---
 
@@ -1852,6 +1551,313 @@ P4.10 and P4.11 both depend on P2.9 (ShaderCross). P4.11 additionally depends on
 2. **Interface contracts first:** When two lanes will eventually interact (e.g., Lane A mesh assets + Lane B texture assets in Phase 5), agree on shared interfaces/headers before agents start. Check these shared headers in first, then let agents work independently.
 3. **P2.7 (Error handling) is special:** It's incremental and cross-cutting. Either fold it into each agent's lane ("adopt `Result<T>` for any new API you write") or run a dedicated cleanup pass after each phase.
 4. **Smallest viable phase:** If you only have two agents, pick the two most valuable lanes per phase. Phase 1 with two agents: Lane A (tests) + Lane B (handles). Phase 3 with two agents: Lane C (physics) + Lane D (events).
+
+---
+
+## Completed
+
+> Full detail for tasks marked **Done** in the Task Index. Preserved for reference — design decisions recorded here inform downstream work.
+
+### P1.2: Generational Handle System
+
+**Difficulty: M  |  Dependencies: None  |  Blocks: P2.5, P3.5, P4.1, P4.3  |  Scope: Engine-wide  |  Status: Done**
+
+All GPU resource handles (`GPUShaderHandle`, `GPUPipelineHandle`, `GPUBufferHandle`, `GPUTextureHandle`, `GPUSamplerHandle`, `GPUComputePipelineHandle`) are currently `void*`. This allows silent misuse — passing a texture where a sampler is expected compiles without error — and provides zero defence against use-after-free. Beyond rendering, the engine needs managed handles for physics bodies, audio instances, assets, UI widgets, and any other pooled resource.
+
+Rather than a half-measure typed `void*` wrapper, implement **generational handles** from the start. Each handle carries an index + generation counter. The owning pool validates the generation on every access, catching use-after-free at runtime while the tag type catches wrong-type misuse at compile time.
+
+#### Design
+
+A single engine-wide `Handle<TTag>` template in `core/`, paired with a `ResourcePool<TTag, TResource>` that manages the index→resource mapping and validates generations on access.
+
+```cpp
+// core/Handle.h — engine-wide infrastructure
+
+namespace Wayfinder
+{
+    template <typename TTag>
+    struct Handle
+    {
+        uint32_t Index      : 20 = 0;
+        uint32_t Generation : 12 = 0;
+
+        [[nodiscard]] constexpr bool IsValid() const noexcept { return Generation != 0; }
+        constexpr explicit operator bool() const noexcept { return IsValid(); }
+        constexpr auto operator<=>(const Handle&) const = default;
+        static constexpr Handle Invalid() noexcept { return {}; }
+    };
+}
+
+// std::hash specialisation for unordered containers
+template <typename TTag>
+struct std::hash<Wayfinder::Handle<TTag>>
+{
+    size_t operator()(const Wayfinder::Handle<TTag>& h) const noexcept
+    {
+        return std::hash<uint32_t>{}(
+            (static_cast<uint32_t>(h.Index) << 12) | h.Generation);
+    }
+};
+```
+
+Paired with a resource pool:
+
+```cpp
+// core/ResourcePool.h
+
+namespace Wayfinder
+{
+    template <typename TTag, typename TResource>
+    class ResourcePool
+    {
+    public:
+        using HandleType = Handle<TTag>;
+
+        HandleType Acquire(TResource&& resource);
+        void Release(HandleType handle);
+
+        [[nodiscard]] bool IsValid(HandleType handle) const;
+        [[nodiscard]] TResource* Get(HandleType handle);
+        [[nodiscard]] const TResource* Get(HandleType handle) const;
+        [[nodiscard]] size_t ActiveCount() const;
+
+    private:
+        struct Entry
+        {
+            TResource Resource{};
+            uint32_t Generation = 0;
+            bool Alive = false;
+        };
+
+        std::vector<Entry> m_entries;
+        std::vector<uint32_t> m_freeList;
+    };
+}
+```
+
+GPU-specific aliases stay thin:
+
+```cpp
+// rendering/GPUHandle.h — aliases only
+
+struct GPUShaderTag {};
+struct GPUPipelineTag {};
+struct GPUBufferTag {};
+struct GPUTextureTag {};
+struct GPUSamplerTag {};
+struct GPUComputePipelineTag {};
+
+using GPUShaderHandle          = Handle<GPUShaderTag>;
+using GPUPipelineHandle        = Handle<GPUPipelineTag>;
+using GPUBufferHandle          = Handle<GPUBufferTag>;
+using GPUTextureHandle         = Handle<GPUTextureTag>;
+using GPUSamplerHandle         = Handle<GPUSamplerTag>;
+using GPUComputePipelineHandle = Handle<GPUComputePipelineTag>;
+```
+
+`SDLGPUDevice` owns the pools internally — raw SDL pointers never leave the backend:
+
+```cpp
+// In SDLGPUDevice (private)
+ResourcePool<GPUTextureTag, SDL_GPUTexture*> m_textures;
+ResourcePool<GPUShaderTag, SDL_GPUShader*>   m_shaders;
+ResourcePool<GPUBufferTag, SDL_GPUBuffer*>   m_buffers;
+// etc.
+```
+
+#### Bit Split: 20 Index / 12 Generation
+
+- **20-bit index** → ~1M concurrent resources per type. The codebase currently has ~10-100 active per GPU resource type. Even at engine-wide scale (mesh assets, texture atlases, audio clips, physics bodies), thousands is a realistic ceiling, not millions. This is well within budget.
+- **12-bit generation** → 4095 reuses per slot before wraparound. A slot must be created and destroyed 4095 times *while a stale handle to that exact slot persists* to produce a false positive. Practically impossible under normal use.
+- **Total: 32 bits** → fits in a register, trivially hashable, sorts naturally, serialisable, and `sizeof(Handle<T>) == 4`.
+
+This is the same split used by EnTT, bgfx, and sokol_gfx. It's the industry standard for resource handles. If a future domain genuinely requires more (unlikely), a `Handle64<TTag>` variant with 32:32 split can be added alongside without disrupting existing code.
+
+#### Engine-wide Applicability
+
+The handle system lives in `core/`, not `rendering/`. Other domains will use it as they come online:
+
+| Domain | Tag | Managed Resource |
+|---|---|---|
+| GPU Textures | `GPUTextureTag` | `SDL_GPUTexture*` |
+| GPU Shaders | `GPUShaderTag` | `SDL_GPUShader*` |
+| GPU Buffers | `GPUBufferTag` | `SDL_GPUBuffer*` |
+| GPU Pipelines | `GPUPipelineTag` | `SDL_GPUGraphicsPipeline*` |
+| GPU Samplers | `GPUSamplerTag` | `SDL_GPUSampler*` |
+| Physics Bodies (P2.4) | `PhysicsBodyTag` | Jolt `BodyID` |
+| Audio Instances (P4.5) | `AudioInstanceTag` | Audio source state |
+| Mesh Assets (P4.1) | `MeshAssetTag` | Mesh data |
+| Loaded Assets (P4.3) | `TextureAssetTag` | Texture metadata |
+
+Each `ResourcePool` is owned by the subsystem that manages that resource type. The handle is the only thing that crosses subsystem boundaries.
+
+#### Migration Steps
+
+1. Create `core/Handle.h` with the template, `operator<=>`, `std::hash` specialisation.
+2. Create `core/ResourcePool.h` with the template implementation.
+3. Create `rendering/GPUHandle.h` with tag types and `using` aliases.
+4. Remove `using GPUShaderHandle = void*` etc. from `RenderDevice.h` and `RenderTypes.h`.
+5. Add `ResourcePool` members to `SDLGPUDevice` for each resource type.
+6. Update `Create*()` methods to acquire from pool + return handle. Update `Destroy*()` to release.
+7. Update `NullDevice` similarly (can use dummy pools or skip validation).
+8. Update all call sites: `== nullptr` → `.IsValid()`, `= nullptr` → `= Handle::Invalid()` or `= {}`.
+9. Update `PipelineCache`, `ShaderManager`, `TransientResourcePool`, `TransientBufferAllocator` to store/compare handles instead of raw pointers.
+10. Add unit tests for `Handle` and `ResourcePool` (see P1.1 test table).
+11. Ensure all existing render tests pass. Sandbox builds and runs.
+
+#### Definition of Done
+
+- `Handle<T>` and `ResourcePool<T, R>` exist in `core/` with full unit tests.
+- No `void*` GPU handles remain in public API.
+- Passing the wrong handle type is a compile error.
+- Use-after-free is caught at runtime (generation mismatch → `Get()` returns `nullptr`).
+- `ResourcePool` unit tests cover: acquire, release, re-acquire (generation bump), stale handle rejection, pool growth, `ActiveCount`.
+- All existing tests pass. Sandbox builds and runs.
+
+---
+
+### P1.3: Use InternedString for RenderLayerId and RenderPassId
+
+**Difficulty: S  |  Dependencies: None  |  Blocks: P2.3 (pass name conversion)  |  Status: Done**
+
+`RenderLayerId` and `RenderPassId` are currently `std::string`. They're used in equality comparisons on every mesh submission, every frame, for pass filtering. This is unnecessary allocation and comparison overhead for a fixed set of well-known values.
+
+The engine already has `InternedString` (pointer-equality comparison) and `StringHash` (uint64 comparison). Either works; `InternedString` is preferred because it preserves debug-printable names while giving O(1) equality.
+
+#### Migration
+
+1. In `rendering/RenderIntent.h`, change the aliases:
+   ```cpp
+   // Before
+   using RenderLayerId = std::string;
+   using RenderPassId  = std::string;
+   
+   // After
+   using RenderLayerId = InternedString;
+   using RenderPassId  = InternedString;
+   ```
+2. Change well-known constants from `inline constexpr const char*` to `inline const InternedString`:
+   ```cpp
+   namespace RenderLayers
+   {
+       inline const InternedString Main  = InternedString::Intern("main");
+       inline const InternedString Overlay = InternedString::Intern("overlay");
+   }
+   namespace RenderPassIds
+   {
+       inline const InternedString MainScene    = InternedString::Intern("main_scene");
+       inline const InternedString OverlayScene = InternedString::Intern("overlay_scene");
+       inline const InternedString Debug        = InternedString::Intern("debug");
+   }
+   ```
+3. Fix all construction sites — anywhere doing `= std::string(RenderLayers::Main)` or `std::string(id)` becomes direct assignment.
+4. Fix `RenderPass::AcceptsSceneSubmission` — the `==` comparison becomes pointer equality (fast).
+5. Fix `RenderFrame::FindPass` — `pass.Id == id` becomes pointer equality.
+6. Fix `RenderableComponent::Layer` default initialiser.
+
+#### Files Touched
+
+- `rendering/RenderIntent.h` (type aliases + constants)
+- `rendering/RenderFrame.h` (RenderMeshSubmission, RenderPass, RenderFrame methods)
+- `scene/Components.h` (RenderableComponent::Layer default)
+- `rendering/SceneRenderExtractor.cpp` (layer mapping logic)
+- `rendering/Renderer.cpp` (pass construction)
+- Possibly `rendering/RenderPipeline.cpp`
+
+#### Definition of Done
+
+- `RenderLayerId` and `RenderPassId` are `InternedString`.
+- No `std::string` allocation occurs for layer/pass identification during frame submission.
+- All tests pass. Sandbox builds and runs.
+
+---
+
+### P1.4: Break Up Renderer
+
+**Difficulty: L  |  Dependencies: P1.2 (recommended but not blocking)  |  Blocks: P1.5, P2.3, P2.6, P3.7, P4.4  |  Status: Done**
+
+`Renderer` currently owns 11+ members and is responsible for shader management, pipeline caching, buffer allocation, transient resource pooling, debug pipeline setup, scene globals construction, render graph orchestration, feature management, and the actual render loop. This is a god object.
+
+#### Target Decomposition
+
+| New Type | Responsibility | Owns |
+|---|---|---|
+| `Renderer` (slimmed) | Frame orchestration only. Builds `RenderGraph`, calls `Compile()` + `Execute()`, manages feature lifecycle. | `RenderContext*`, `RenderPipeline*`, `std::vector<RenderFeature>` |
+| `RenderContext` | Resource infrastructure. Created once at init, passed to anyone that needs to create GPU resources. | `ShaderManager`, `PipelineCache`, `ShaderProgramRegistry`, `TransientBufferAllocator`, `TransientResourcePool`, `GPUSamplerHandle(s)` |
+| `RenderPipeline` (evolved) | Per-pass execution logic. Given a `RenderContext` + pass data, executes draw calls. | Nothing new — receives what it needs as params |
+
+#### Migration Steps
+
+1. **Create `RenderContext.h/cpp`**:
+   ```cpp
+   struct RenderContext
+   {
+       RenderDevice& Device;
+       ShaderManager& Shaders;
+       PipelineCache& Pipelines;
+       ShaderProgramRegistry& Programs;
+       TransientBufferAllocator& TransientBuffers;
+       TransientResourcePool& TransientPool;
+       GPUSamplerHandle NearestSampler;
+   };
+   ```
+   This can start as a non-owning reference struct (members owned by `Renderer` during transition), then ownership can transfer later.
+2. **Move shader program registration** out of `Renderer::Initialize()` into a dedicated setup function or into `RenderContext` init.
+3. **Update `RenderFeatureContext`** to just carry a `RenderContext&` instead of individual members.
+4. **Update `RenderPipeline`** to accept `RenderContext&` in its methods instead of getting individual pieces.
+5. **Slim `Renderer`** — it should read approximately:
+   ```cpp
+   class Renderer
+   {
+   public:
+       bool Initialize(RenderDevice& device, const EngineConfig& config);
+       void Render(const RenderFrame& frame);
+       void AddFeature(std::unique_ptr<RenderFeature> feature);
+       // ...
+   private:
+       RenderContext m_context;    // or unique_ptr
+       RenderPipeline m_pipeline;
+       std::vector<std::unique_ptr<RenderFeature>> m_features;
+       Mesh m_primitiveMesh;      // temporary until mesh asset system
+       GPUPipeline m_debugLinePipeline; // temporary
+   };
+   ```
+
+#### Phasing
+
+This can be done incrementally:
+1. First introduce `RenderContext` as a non-owning struct, populate it from `Renderer`'s existing members.
+2. Pass it around. Nothing changes externally.
+3. Gradually move ownership into `RenderContext`.
+4. Remove redundant members from `Renderer`.
+
+#### Definition of Done
+
+- `Renderer::Render()` is < 50 lines — builds graph, compiles, executes.
+- `RenderContext` holds all reusable GPU infrastructure.
+- `RenderFeatureContext` wraps or extends `RenderContext`.
+- No functional changes — same visual output, same tests passing.
+
+---
+
+### P2.6: Evolve or Remove RenderPipeline
+
+**Difficulty: S  |  Dependencies: P1.4  |  Status: Done**
+
+`RenderPipeline` currently has a single method: `bool Prepare(RenderFrame& frame) const`. It validates/sorts the frame's passes. With the render graph doing topological ordering and pass culling, `RenderPipeline::Prepare` is vestigial — the graph handles execution ordering.
+
+#### Options
+
+**Option A: Remove** — Inline the validation into `Renderer::Render()` or `RenderGraph::Compile()`. Delete `RenderPipeline.h/cpp`.
+
+**Option B: Evolve** — Make `RenderPipeline` the owner of render graph construction policy. It decides which passes to add based on the `RenderFrame` contents, rather than `Renderer::Render()` doing this inline.
+
+Recommendation: **Option B**, because as the engine grows (more render features, conditional passes, debug overlays), having a dedicated object that maps `RenderFrame` → `RenderGraph` is the right abstraction. But keep it thin until complexity demands more.
+
+#### Definition of Done
+
+- Either `RenderPipeline` is removed, or it owns `RenderGraph` construction.
+- No orphaned code.
 
 ---
 
