@@ -9,46 +9,46 @@
 > **Agent navigation:** Search for `### P{X}.{Y}:` to jump to any task's detail section. Each task heading includes a `**Difficulty: | Dependencies: | Blocks:**` metadata line.
 > Execution Order and Parallel Work Lanes at the end of this document show recommended sequencing and parallelism options.
 
-| ID | Task | Diff | Phase | Dependencies | Blocks |
-|--------|------|------|-------|--------------|--------|
-| **P1** | **Must-Do** | | **1** | | |
-| P1.1 | Test Coverage Expansion | L | 1 | None | P2.1, P2.4, P3.4, P4.8 |
-| P1.2 | Generational Handle System | M | 1 | None | P2.5, P3.5, P4.1, P4.3 |
-| P1.3 | InternedString IDs | S | 1 | None | P2.3 |
-| P1.4 | Break Up Renderer | L | 2 | P1.2 (soft) | P1.5, P2.3, P2.6, P3.7, P4.4 |
-| P1.5 | Application Decomposition | M | 2 | P1.4 | P4.4, P4.7, P4.10, P4.11 |
-| **P2** | **Should-Do** | | **2–3** | | |
-| P2.1 | Scene Entity Index | S | 3 | P1.1 | — |
-| P2.2 | Decouple MeshComponent | M | 3 | None | P3.4, P4.1, P4.7 |
-| P2.3 | Frame-Linear Allocator | M | 3 | P1.4 | P3.8 |
-| P2.4 | Physics Subsystem (E2E) | L | 3 | P1.1 | P4.1, P4.5 |
-| P2.5 | Blend State Support | M | 2 | P1.2 | P3.7 |
-| P2.6 | Evolve/Remove RenderPipeline | S | 2 | P1.4 | — |
-| P2.7 | Error Handling Strategy | M | 3 | None | P3.1, P4.3 |
-| P2.8 | Event Queue | M | 3 | None | P4.9 |
-| P2.9 | SDL_ShaderCross | M | 3 | None | P4.10, P4.11 |
-| **P3** | **Nice-to-Have** | | **4** | | |
-| P3.1 | TOML Hot-Reload | L | 4 | P2.7 | P4.9 |
-| P3.2 | Explicit CMake Source Lists | S | 4 | None | — |
-| P3.3 | clang-tidy Integration | S | 4 | None | P4.8 |
-| P3.4 | Prefab Instantiation | M | 4 | P1.1, P2.2 | — |
-| P3.5 | RenderMeshHandle Type Safety | XS | 4 | P1.2 | — |
-| P3.6 | GPU Debug Annotations | S | 4 | None | — |
-| P3.7 | MRT in Render Graph | M | 4 | P2.5, P1.4 | — |
-| P3.8 | Upload Batching | M | 4 | P2.3 | — |
-| P3.9 | Sub-Sort Key | S | 4 | None | — |
-| **P4** | **Horizon** | | **5** | | |
-| P4.1 | Mesh Asset System | L | 5 | P2.2, P2.4, P1.2 | P4.2 |
-| P4.2 | Composable Vertex Attributes | M | 5 | P4.1 | — |
-| P4.3 | Texture Asset Pipeline | L | 5 | P1.2, P2.7 | — |
-| P4.4 | Debug Tooling (ImGui) | M | 5 | P1.5, P1.4 | P4.7 |
-| P4.5 | Audio Subsystem | L | 5 | P2.4 | — |
-| P4.6 | Scripting System | XL | 5 | P1 + P2 complete | — |
-| P4.7 | Editor (Cartographer) | XL | 5 | P1.5, P4.4, P2.2 | — |
-| P4.8 | CI Pipeline | M | 5 | P1.1, P3.3 | P4.10, P4.11 |
-| P4.9 | Input Action Mapping | M | 5 | P2.8, P3.1 | — |
-| P4.10 | Mobile (iOS + Android) | L | 5 | P2.9, P1.5, P4.8 | — |
-| P4.11 | Web (WebGPU + Emscripten) | XL | 5 | P2.9, P4.8, P1.5 | — |
+| ID | Task | Diff | Phase | Dependencies | Blocks | Status |
+|--------|------|------|-------|--------------|--------|--------|
+| **P1** | **Must-Do** | | **1** | | | |
+| P1.1 | Test Coverage Expansion | L | 1 | None | P2.1, P2.4, P3.4, P4.8 | |
+| P1.2 | Generational Handle System | M | 1 | None | P2.5, P3.5, P4.1, P4.3 | |
+| P1.3 | InternedString IDs | S | 1 | None | P2.3 | |
+| P1.4 | Break Up Renderer | L | 2 | P1.2 (soft) | P1.5, P2.3, P2.6, P3.7, P4.4 | ✅ Done |
+| P1.5 | Application Decomposition | M | 2 | P1.4 | P4.4, P4.7, P4.10, P4.11 | |
+| **P2** | **Should-Do** | | **2–3** | | | |
+| P2.1 | Scene Entity Index | S | 3 | P1.1 | — | |
+| P2.2 | Decouple MeshComponent | M | 3 | None | P3.4, P4.1, P4.7 | |
+| P2.3 | Frame-Linear Allocator | M | 3 | P1.4 | P3.8 | |
+| P2.4 | Physics Subsystem (E2E) | L | 3 | P1.1 | P4.1, P4.5 | |
+| P2.5 | Blend State Support | M | 2 | P1.2 | P3.7 | |
+| P2.6 | Evolve/Remove RenderPipeline | S | 2 | P1.4 | — | ✅ Done |
+| P2.7 | Error Handling Strategy | M | 3 | None | P3.1, P4.3 | |
+| P2.8 | Event Queue | M | 3 | None | P4.9 | |
+| P2.9 | SDL_ShaderCross | M | 3 | None | P4.10, P4.11 | |
+| **P3** | **Nice-to-Have** | | **4** | | | |
+| P3.1 | TOML Hot-Reload | L | 4 | P2.7 | P4.9 | |
+| P3.2 | Explicit CMake Source Lists | S | 4 | None | — | |
+| P3.3 | clang-tidy Integration | S | 4 | None | P4.8 | |
+| P3.4 | Prefab Instantiation | M | 4 | P1.1, P2.2 | — | |
+| P3.5 | RenderMeshHandle Type Safety | XS | 4 | P1.2 | — | |
+| P3.6 | GPU Debug Annotations | S | 4 | None | — | |
+| P3.7 | MRT in Render Graph | M | 4 | P2.5, P1.4 | — | |
+| P3.8 | Upload Batching | M | 4 | P2.3 | — | |
+| P3.9 | Sub-Sort Key | S | 4 | None | — | |
+| **P4** | **Horizon** | | **5** | | | |
+| P4.1 | Mesh Asset System | L | 5 | P2.2, P2.4, P1.2 | P4.2 | |
+| P4.2 | Composable Vertex Attributes | M | 5 | P4.1 | — | |
+| P4.3 | Texture Asset Pipeline | L | 5 | P1.2, P2.7 | — | |
+| P4.4 | Debug Tooling (ImGui) | M | 5 | P1.5, P1.4 | P4.7 | |
+| P4.5 | Audio Subsystem | L | 5 | P2.4 | — | |
+| P4.6 | Scripting System | XL | 5 | P1 + P2 complete | — | |
+| P4.7 | Editor (Cartographer) | XL | 5 | P1.5, P4.4, P2.2 | — | |
+| P4.8 | CI Pipeline | M | 5 | P1.1, P3.3 | P4.10, P4.11 | |
+| P4.9 | Input Action Mapping | M | 5 | P2.8, P3.1 | — | |
+| P4.10 | Mobile (iOS + Android) | L | 5 | P2.9, P1.5, P4.8 | — | |
+| P4.11 | Web (WebGPU + Emscripten) | XL | 5 | P2.9, P4.8, P1.5 | — | |
 
 ---
 

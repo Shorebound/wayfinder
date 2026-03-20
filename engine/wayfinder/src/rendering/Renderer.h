@@ -2,39 +2,24 @@
 
 #include "RenderFeature.h"
 #include "RenderTypes.h"
-#include "ShaderManager.h"
-#include "ShaderProgram.h"
 #include "GPUPipeline.h"
 #include "Mesh.h"
-#include "PipelineCache.h"
-#include "TransientBufferAllocator.h"
-#include "TransientResourcePool.h"
-#include "RenderGraph.h"
 
 #include <algorithm>
 #include <memory>
 #include <string>
-#include <unordered_map>
 #include <vector>
 
 namespace Wayfinder
 {
     class AssetService;
+    class RenderContext;
     class RenderDevice;
     struct EngineConfig;
     struct RenderFrame;
     struct RenderLightSubmission;
     class RenderPipeline;
     class RenderResourceCache;
-
-    // Per-frame scene globals pushed to fragment UBO slot 1 for shaders that need it.
-    struct SceneGlobalsUBO
-    {
-        Float3 LightDirection{0.0f, -0.7f, -0.5f};
-        float LightIntensity = 1.0f;
-        Float3 LightColor{1.0f, 1.0f, 1.0f};
-        float Ambient = 0.15f;
-    };
 
     class WAYFINDER_API Renderer
     {
@@ -88,24 +73,12 @@ namespace Wayfinder
     private:
         std::shared_ptr<AssetService> m_assetService;
         RenderDevice* m_device = nullptr;
+        std::unique_ptr<RenderContext> m_context;
         std::unique_ptr<RenderPipeline> m_renderPipeline;
         std::unique_ptr<RenderResourceCache> m_renderResources;
 
-        // Extracts the primary directional light from the frame into the scene globals UBO.
-        SceneGlobalsUBO BuildSceneGlobals(const RenderFrame& frame) const;
-
         // Builds the context struct that features receive on attach/detach.
         RenderFeatureContext MakeFeatureContext();
-
-        // ── Shader / Pipeline infrastructure ─────────────────
-        ShaderManager m_shaderManager;
-        PipelineCache m_pipelineCache;
-        ShaderProgramRegistry m_programRegistry;
-        TransientBufferAllocator m_transientAllocator;
-
-        // ── Render Graph resources ───────────────────────────
-        TransientResourcePool m_transientPool;
-        GPUSamplerHandle m_nearestSampler{};
 
         // ── Features ─────────────────────────────────────────
         std::vector<std::unique_ptr<RenderFeature>> m_features;

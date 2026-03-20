@@ -4,6 +4,7 @@
 #include "rendering/RenderResources.h"
 #include "rendering/Renderer.h"
 #include "rendering/RenderFrame.h"
+#include "rendering/TransientResourcePool.h"
 
 #include <doctest/doctest.h>
 
