@@ -4,6 +4,54 @@
 
 ---
 
+## Quick Reference — Task Index
+
+> **Agent navigation:** Search for `### P{X}.{Y}:` to jump to any task's detail section. Each task heading includes a `**Difficulty: | Dependencies: | Blocks:**` metadata line.
+> Execution Order and Parallel Work Lanes at the end of this document show recommended sequencing and parallelism options.
+
+| ID | Task | Diff | Phase | Dependencies | Blocks |
+|--------|------|------|-------|--------------|--------|
+| **P1** | **Must-Do** | | **1** | | |
+| P1.1 | Test Coverage Expansion | L | 1 | None | P2.1, P2.4, P3.4, P4.8 |
+| P1.2 | Generational Handle System | M | 1 | None | P2.5, P3.5, P4.1, P4.3 |
+| P1.3 | InternedString IDs | S | 1 | None | P2.3 |
+| P1.4 | Break Up Renderer | L | 2 | P1.2 (soft) | P1.5, P2.3, P2.6, P3.7, P4.4 |
+| P1.5 | Application Decomposition | M | 2 | P1.4 | P4.4, P4.7, P4.10, P4.11 |
+| **P2** | **Should-Do** | | **2–3** | | |
+| P2.1 | Scene Entity Index | S | 3 | P1.1 | — |
+| P2.2 | Decouple MeshComponent | M | 3 | None | P3.4, P4.1, P4.7 |
+| P2.3 | Frame-Linear Allocator | M | 3 | P1.4 | P3.8 |
+| P2.4 | Physics Subsystem (E2E) | L | 3 | P1.1 | P4.1, P4.5 |
+| P2.5 | Blend State Support | M | 2 | P1.2 | P3.7 |
+| P2.6 | Evolve/Remove RenderPipeline | S | 2 | P1.4 | — |
+| P2.7 | Error Handling Strategy | M | 3 | None | P3.1, P4.3 |
+| P2.8 | Event Queue | M | 3 | None | P4.9 |
+| P2.9 | SDL_ShaderCross | M | 3 | None | P4.10, P4.11 |
+| **P3** | **Nice-to-Have** | | **4** | | |
+| P3.1 | TOML Hot-Reload | L | 4 | P2.7 | P4.9 |
+| P3.2 | Explicit CMake Source Lists | S | 4 | None | — |
+| P3.3 | clang-tidy Integration | S | 4 | None | P4.8 |
+| P3.4 | Prefab Instantiation | M | 4 | P1.1, P2.2 | — |
+| P3.5 | RenderMeshHandle Type Safety | XS | 4 | P1.2 | — |
+| P3.6 | GPU Debug Annotations | S | 4 | None | — |
+| P3.7 | MRT in Render Graph | M | 4 | P2.5, P1.4 | — |
+| P3.8 | Upload Batching | M | 4 | P2.3 | — |
+| P3.9 | Sub-Sort Key | S | 4 | None | — |
+| **P4** | **Horizon** | | **5** | | |
+| P4.1 | Mesh Asset System | L | 5 | P2.2, P2.4, P1.2 | P4.2 |
+| P4.2 | Composable Vertex Attributes | M | 5 | P4.1 | — |
+| P4.3 | Texture Asset Pipeline | L | 5 | P1.2, P2.7 | — |
+| P4.4 | Debug Tooling (ImGui) | M | 5 | P1.5, P1.4 | P4.7 |
+| P4.5 | Audio Subsystem | L | 5 | P2.4 | — |
+| P4.6 | Scripting System | XL | 5 | P1 + P2 complete | — |
+| P4.7 | Editor (Cartographer) | XL | 5 | P1.5, P4.4, P2.2 | — |
+| P4.8 | CI Pipeline | M | 5 | P1.1, P3.3 | P4.10, P4.11 |
+| P4.9 | Input Action Mapping | M | 5 | P2.8, P3.1 | — |
+| P4.10 | Mobile (iOS + Android) | L | 5 | P2.9, P1.5, P4.8 | — |
+| P4.11 | Web (WebGPU + Emscripten) | XL | 5 | P2.9, P4.8, P1.5 | — |
+
+---
+
 ## How to Read This Plan
 
 Each item has a **priority tier**, a **difficulty estimate**, and a **dependency list**. Work within a tier can generally be done in any order unless an explicit dependency is noted.
@@ -21,7 +69,7 @@ Difficulty: **S** (a focused session), **M** (a day or two), **L** (multiple day
 
 ### P1.1: Test Coverage Expansion
 
-**Difficulty: L  |  Dependencies: None  |  Priority: Highest**
+**Difficulty: L  |  Dependencies: None  |  Blocks: P2.1, P2.4, P3.4, P4.8  |  Priority: Highest**
 
 The engine has 3 test files, all in `tests/rendering/`. Zero coverage for scene loading, ECS integration, state machine transitions, gameplay tags, asset resolution, component serialisation round-trips, or the module/plugin system. This is the single highest-risk gap — any refactor will be flying blind without tests.
 
@@ -90,7 +138,7 @@ add_executable(wayfinder_tests
 
 ### P1.2: Generational Handle System
 
-**Difficulty: M  |  Dependencies: None  |  Scope: Engine-wide**
+**Difficulty: M  |  Dependencies: None  |  Blocks: P2.5, P3.5, P4.1, P4.3  |  Scope: Engine-wide**
 
 All GPU resource handles (`GPUShaderHandle`, `GPUPipelineHandle`, `GPUBufferHandle`, `GPUTextureHandle`, `GPUSamplerHandle`, `GPUComputePipelineHandle`) are currently `void*`. This allows silent misuse — passing a texture where a sampler is expected compiles without error — and provides zero defence against use-after-free. Beyond rendering, the engine needs managed handles for physics bodies, audio instances, assets, UI widgets, and any other pooled resource.
 
@@ -248,7 +296,7 @@ Each `ResourcePool` is owned by the subsystem that manages that resource type. T
 
 ### P1.3: Use InternedString for RenderLayerId and RenderPassId
 
-**Difficulty: S  |  Dependencies: None**
+**Difficulty: S  |  Dependencies: None  |  Blocks: P2.3 (pass name conversion)**
 
 `RenderLayerId` and `RenderPassId` are currently `std::string`. They're used in equality comparisons on every mesh submission, every frame, for pass filtering. This is unnecessary allocation and comparison overhead for a fixed set of well-known values.
 
@@ -304,7 +352,7 @@ The engine already has `InternedString` (pointer-equality comparison) and `Strin
 
 ### P1.4: Break Up Renderer
 
-**Difficulty: L  |  Dependencies: P1.2 (recommended but not blocking)**
+**Difficulty: L  |  Dependencies: P1.2 (recommended but not blocking)  |  Blocks: P1.5, P2.3, P2.6, P3.7, P4.4**
 
 `Renderer` currently owns 11+ members and is responsible for shader management, pipeline caching, buffer allocation, transient resource pooling, debug pipeline setup, scene globals construction, render graph orchestration, feature management, and the actual render loop. This is a god object.
 
@@ -372,7 +420,7 @@ This can be done incrementally:
 
 ### P1.5: Application Decomposition
 
-**Difficulty: M  |  Dependencies: P1.4 (logically related)**
+**Difficulty: M  |  Dependencies: P1.4 (logically related)  |  Blocks: P4.4, P4.7, P4.10, P4.11**
 
 `Application` owns 8 unique_ptrs: `Module`, `ModuleRegistry`, `ProjectDescriptor`, `EngineConfig`, `Window`, `Input`, `Time`, `LayerStack`, `RenderDevice`, `Game`, `Renderer`, `SceneRenderExtractor`. The `Initialize()` method is a 100+ line chain. This makes the bootstrap path hard to test, hard to vary (headless mode, editor mode), and hard to reason about.
 
@@ -449,7 +497,7 @@ Requires `std::hash<SceneObjectId>` — delegate to `std::hash<Uuid>` which shou
 
 ### P2.2: Decouple MeshComponent from Geometry
 
-**Difficulty: M  |  Dependencies: None**
+**Difficulty: M  |  Dependencies: None  |  Blocks: P3.4, P4.1, P4.7**
 
 `MeshComponent` currently stores `MeshPrimitive Primitive` and `Float3 Dimensions`. This tightly couples the component to a specific geometry representation. When mesh assets are introduced, `MeshComponent` needs to reference an asset, not encode geometry parameters.
 
@@ -504,7 +552,7 @@ struct RenderOverrideComponent
 
 ### P2.3: Frame-Linear Allocator for Render Graph
 
-**Difficulty: M  |  Dependencies: P1.4 (RenderContext)**
+**Difficulty: M  |  Dependencies: P1.4 (RenderContext)  |  Blocks: P3.8**
 
 The render graph is rebuilt every frame. Each `AddPass()` allocates `std::string` names, `std::vector` dependencies, and `std::function` closures. These are freed at end-of-frame and reallocated next frame — classic allocation churn.
 
@@ -563,7 +611,7 @@ private:
 
 ### P2.4: Implement a Non-Rendering Subsystem End-to-End
 
-**Difficulty: L  |  Dependencies: P1.1 (tests)**
+**Difficulty: L  |  Dependencies: P1.1 (tests)  |  Blocks: P4.1, P4.5**
 
 The engine links Box2D and Jolt but has zero physics code. The `physics/` directory is empty. Implementing one non-rendering domain end-to-end validates the subsystem architecture, module registration, ECS integration, and data pipeline. Physics is the most natural candidate.
 
@@ -630,7 +678,7 @@ struct ColliderComponent
 
 ### P2.5: Blend State Support in Pipeline
 
-**Difficulty: M  |  Dependencies: P1.2 (GPU handles)**
+**Difficulty: M  |  Dependencies: P1.2 (GPU handles)  |  Blocks: P3.7**
 
 `PipelineCreateDesc` has no blend state — only `CullMode`, `FillMode`, `DepthTest`, and `DepthWrite`. There is a TODO comment in the struct ("Stage 6: Blend state, depth format, multiple color targets"). Without blend state, transparent rendering, additive particles, and alpha blending are impossible.
 
@@ -738,7 +786,7 @@ Recommendation: **Option B**, because as the engine grows (more render features,
 
 ### P2.7: Error Handling Strategy
 
-**Difficulty: M  |  Dependencies: None**
+**Difficulty: M  |  Dependencies: None  |  Blocks: P3.1, P4.3**
 
 The engine uses a mix of `bool` returns, `std::optional`, and `std::string& error` out-params. There's no consistent pattern. Some failures are silent. This matters most at system boundaries (file loading, GPU resource creation, asset resolution).
 
@@ -797,7 +845,7 @@ Don't rewrite everything at once. Apply `Result` at system boundaries as they're
 
 ### P2.8: Event Queue (Deferred Dispatch)
 
-**Difficulty: M  |  Dependencies: None**
+**Difficulty: M  |  Dependencies: None  |  Blocks: P4.9**
 
 The event system currently uses synchronous blocking dispatch — `Event.h` itself notes this as a known limitation. Every event is handled the instant it fires, which prevents batching, makes deterministic replay impossible, and couples the dispatch callsite to every handler's execution time.
 
@@ -926,7 +974,7 @@ ShaderCross itself depends on SPIRV-Cross (for SPIR-V → MSL/HLSL) and optional
 
 ### P3.1: TOML Hot-Reload via File Watching
 
-**Difficulty: L  |  Dependencies: P2.7 (error handling for reload errors)**
+**Difficulty: L  |  Dependencies: P2.7 (error handling for reload errors)  |  Blocks: P4.9**
 
 The engine loads all configuration and scene data at startup with no mechanism for runtime reloading. For a data-driven engine targeting rapid iteration, this is a significant DX gap.
 
@@ -1008,7 +1056,7 @@ The existing repo memory notes: *"GLOB_RECURSE for sources — new files auto-de
 
 ### P3.3: clang-tidy Integration
 
-**Difficulty: S  |  Dependencies: None**
+**Difficulty: S  |  Dependencies: None  |  Blocks: P4.8**
 
 The project has `.clang-format` but no static analysis. clang-tidy catches bugs, enforces modernisation, and can be integrated into CI.
 
@@ -1236,7 +1284,7 @@ These are larger initiatives that build on earlier tiers. They're documented her
 
 ### P4.1: Mesh Asset System
 
-**Dependencies: P2.2, P2.4 (validates data pipeline), P1.2**
+**Difficulty: L  |  Dependencies: P2.2, P2.4 (validates data pipeline), P1.2  |  Blocks: P4.2**
 
 The engine currently has only `MeshPrimitive::Cube` with hardcoded geometry. A real mesh asset system needs:
 
@@ -1252,7 +1300,7 @@ This is a large feature. Sketch it out in detail before starting.
 
 ### P4.2: Composable Vertex Attribute System
 
-**Dependencies: P4.1 (mesh asset system)**
+**Difficulty: M  |  Dependencies: P4.1 (mesh asset system)**
 
 The engine uses hardcoded vertex structs (`VertexPosColor`, `VertexPosNormalUV`, etc.) with pre-built `VertexLayout` instances. This breaks down when mesh assets arrive — imported meshes may have arbitrary combinations of positions, normals, tangents, multiple UV sets, vertex colours, skinning weights.
 
@@ -1312,7 +1360,7 @@ struct VertexLayoutDesc
 
 ### P4.3: Texture Asset Pipeline
 
-**Dependencies: P1.2 (GPU handles), P2.7 (error handling)**
+**Difficulty: L  |  Dependencies: P1.2 (GPU handles), P2.7 (error handling)**
 
 The engine can create GPU textures (`RenderDevice::CreateTexture`) but has no pipeline for loading textures from disk. Materials reference shaders and parameters, but not texture maps (diffuse, normal, roughness, etc.). Any shader that samples a texture needs this.
 
@@ -1383,7 +1431,7 @@ normal = "textures/character_normal.png"
 
 ### P4.4: Debug Tooling Subsystem (ImGui)
 
-**Dependencies: P1.5 (Application decomposition), P1.4 (RenderContext)**
+**Difficulty: M  |  Dependencies: P1.5 (Application decomposition), P1.4 (RenderContext)  |  Blocks: P4.7**
 
 Dear ImGui is linked but unused. The engine needs a debug overlay system:
 
@@ -1396,7 +1444,7 @@ Dear ImGui is linked but unused. The engine needs a debug overlay system:
 
 ### P4.5: Audio Subsystem
 
-**Dependencies: P2.4 (validates subsystem architecture)**
+**Difficulty: L  |  Dependencies: P2.4 (validates subsystem architecture)**
 
 The `audio/` directory is empty. Needs:
 
@@ -1410,7 +1458,7 @@ The `audio/` directory is empty. Needs:
 
 ### P4.6: Scripting System
 
-**Dependencies: Core architecture stable (P1 + P2 complete)**
+**Difficulty: XL  |  Dependencies: Core architecture stable (P1 + P2 complete)**
 
 The `scripting/` directory is empty. Options:
 
@@ -1428,7 +1476,7 @@ Whatever the choice, scripts should:
 
 ### P4.7: Editor (Cartographer) Bootstrap
 
-**Dependencies: P1.5 (EngineRuntime), P4.4 (ImGui), P2.2 (component model clean)**
+**Difficulty: XL  |  Dependencies: P1.5 (EngineRuntime), P4.4 (ImGui), P2.2 (component model clean)**
 
 The `apps/cartographer/` directory is empty. Initial editor needs:
 
@@ -1445,7 +1493,7 @@ This is a major initiative. Document its design separately in `docs/plans/editor
 
 ### P4.8: CI Pipeline
 
-**Dependencies: P1.1 (tests), P3.3 (clang-tidy)**
+**Difficulty: M  |  Dependencies: P1.1 (tests), P3.3 (clang-tidy)  |  Blocks: P4.10, P4.11**
 
 No CI exists. Minimum viable pipeline:
 
@@ -1459,7 +1507,7 @@ No CI exists. Minimum viable pipeline:
 
 ### P4.9: Data-Driven Input Action Mapping
 
-**Dependencies: P2.8 (event queue), P3.1 (hot-reload for rebinding persistence)**
+**Difficulty: M  |  Dependencies: P2.8 (event queue), P3.1 (hot-reload for rebinding persistence)**
 
 The raw input layer provides `IsKeyPressed(KeyCode)` / `IsMouseButtonPressed(MouseCode)` — correct and type-safe, but game code must hard-wire physical inputs to gameplay intent. The next step is an abstraction that maps physical inputs to semantic game actions, configured in data.
 
@@ -1495,7 +1543,7 @@ The raw input layer provides `IsKeyPressed(KeyCode)` / `IsMouseButtonPressed(Mou
 
 ### P4.10: Mobile Build Targets (iOS + Android)
 
-**Dependencies: P2.9 (ShaderCross — required for Metal/iOS), P1.5 (Application decomp), P4.8 (CI)**
+**Difficulty: L  |  Dependencies: P2.9 (ShaderCross — required for Metal/iOS), P1.5 (Application decomp), P4.8 (CI)**
 
 SDL_GPU already supports the mobile backends:
 
@@ -1556,7 +1604,7 @@ Phase 1 is a build-and-boot milestone: the sandbox (`journey`) compiles, launche
 
 ### P4.11: Web Build Target (WebGPU + Emscripten)
 
-**Dependencies: P2.9 (ShaderCross), P4.8 (CI), P1.5 (Application decomp)**
+**Difficulty: XL  |  Dependencies: P2.9 (ShaderCross), P4.8 (CI), P1.5 (Application decomp)**
 
 This is the most complex cross-platform target. The web requires WebGPU for GPU access and Emscripten for C++ → WebAssembly compilation. The landscape is evolving rapidly but has reached a critical inflection point.
 
@@ -1643,6 +1691,18 @@ SDL3 already compiles to Emscripten. Window, input, and event handling transfer.
 
 ## Execution Order (Recommended)
 
+### Phase Summary
+
+| Phase | Name | Tasks | Entry Criteria | Key Deliverable |
+|-------|------|-------|----------------|-----------------|
+| 1 | Foundation | P1.1, P1.2, P1.3 | None — start here | Tests exist, handles typed, IDs interned |
+| 2 | Architecture | P1.4, P1.5, P2.5, P2.6 | Phase 1 complete | Renderer decomposed, Application clean, blend state |
+| 3 | Data & Systems | P2.1–P2.4, P2.7–P2.9 | Phase 2 complete | Physics running, error handling, ShaderCross integrated |
+| 4 | Polish | P3.1–P3.9 | Phase 3 complete | Hot-reload, static analysis, MRT, perf improvements |
+| 5 | Horizon | P4.1–P4.11 | Phase 4 substantially complete | Asset pipelines, audio, editor, CI, cross-platform |
+
+### Task Sequence
+
 ```
 Phase 1: Foundation (DONE)
 ├── P1.1  Test coverage         ←── START HERE
@@ -1691,11 +1751,33 @@ Phase 5: Horizon
 
 Items within the same phase can generally be done in parallel. Phase boundaries represent recommended checkpoints — verify everything builds and passes before crossing.
 
+### Cross-Phase Dependency Chains
+
+**Phase 1 → Phase 2:** P1.1 (tests) provides the safety net for P1.4 (renderer breakup). P1.2 (handles) is soft-required by P1.4 but not blocking. P1.2 is required by P2.5 (blend state).
+
+**Phase 2 → Phase 3:** P1.4 (RenderContext) is required by P2.3 (frame allocator) and P2.6 (RenderPipeline). P1.1 (tests) is required by P2.1 (entity index) and P2.4 (physics).
+
+**Phase 3 → Phase 4:** P2.7 (error handling) is required by P3.1 (hot-reload). P2.5 + P1.4 are required by P3.7 (MRT). P1.2 is required by P3.5 (RenderMeshHandle). P2.3 is required by P3.8 (upload batching). P1.1 + P2.2 are required by P3.4 (prefab instantiation).
+
+**Phase 4 → Phase 5:** P2.9 (ShaderCross) unlocks P4.10 (mobile) and P4.11 (web). P3.3 (clang-tidy) + P1.1 (tests) enable P4.8 (CI). P1.5 is required by P4.4, P4.7, P4.10, P4.11. P2.2 + P2.4 + P1.2 are required by P4.1 (mesh assets). P4.1 → P4.2 (vertex attributes) is sequential. P4.4 (ImGui) → P4.7 (editor) is sequential.
+
+**Critical path (longest dependency chain):** P1.1 → P1.4 → P1.5 → P4.4 → P4.7 (editor). Secondary: P1.2 → P2.2 → P4.1 → P4.2 (mesh pipeline).
+
 ---
 
 ## Parallel Work Lanes
 
 Independent agents that can't collaborate need tasks that don't share files. Below are concrete lane assignments for each phase — tasks in different lanes can be given to separate agents simultaneously. Merge and verify at the phase boundary before starting the next phase.
+
+### Phase/Lane Quick Reference
+
+| Phase | Max Lanes | Tasks per Lane | Within-Phase Dependencies |
+|-------|-----------|----------------|---------------------------|
+| 1 | 3 | A: P1.1 · B: P1.2 · C: P1.3 | None — all independent |
+| 2 | 2 | A: P1.4+P2.6, then P1.5 · B: P2.5 | P1.5 waits for P1.4 |
+| 3 | 5 | A: P2.1 · B: P2.2+P2.3 · C: P2.4 · D: P2.8 · E: P2.9 | P2.7 is cross-cutting (fold into each lane or do after) |
+| 4 | 5 | A: P3.2+P3.3 · B: P3.1 · C: P3.4 · D: P3.5+P3.6 · E: P3.7+P3.8+P3.9 | None significant |
+| 5 | 7 | A: P4.1→P4.2 · B: P4.3 · C: P4.5 · D: P4.8 · E: P4.9 · F: P4.10 · G: P4.11 | P4.1→P4.2 sequential; P4.4→P4.6→P4.7 sequential (not parallelisable) |
 
 ### Phase 1 — Three Independent Lanes
 

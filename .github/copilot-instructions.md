@@ -26,6 +26,27 @@ This project is greenfield. Breaking changes, rewrites, and architectural pivots
 - **Favour the modern and unconventional when it's better.** Don't default to "the way engines usually do it" if a newer technique or a less obvious design is genuinely superior. Be willing to explore — but justify the departure and make sure it still ships.
 - **Professional, not precious.** Code should look like it belongs in a shipping engine. If a proposal, plan, or implementation doesn't meet that bar, rework it before moving on.
 
+### Testing
+
+When implementing a new system, feature, or non-trivial refactor, include or update the tests that cover its important behaviour — the things that would break silently without them.
+
+**Test these:**
+- Correctness boundaries: valid/invalid input, edge cases, error paths.
+- Round-trip fidelity: serialise → deserialise → compare.
+- Contracts between systems: does the output of A satisfy the expectations of B?
+- State transitions and lifecycle: initialisation order, shutdown cleanup, ownership semantics.
+
+**Skip these:**
+- Trivial accessors, simple forwarding, one-line wrappers.
+- Third-party internals already tested by their own suites (flecs, SDL, doctest).
+- Speculative tests for code paths that don't exist yet.
+
+**Rules:**
+- Use doctest. Follow the patterns in `tests/`.
+- Tests must be headless — no window, no GPU device (use the Null render backend where a device is needed), no filesystem outside `tests/fixtures/`.
+- One test file per domain or system, not per class. Group related cases together.
+- Test names describe the behaviour being verified, not the function being called.
+
 ## Build
 
 CMake 4.0+, MSVC (Visual Studio 17 2022). Presets are the recommended workflow:
