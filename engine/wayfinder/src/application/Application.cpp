@@ -178,7 +178,7 @@ namespace Wayfinder
             [this](MouseScrolledEvent& e)
             {
                 m_runtime->GetInput().AccumulateScroll(e.GetXOffset(), e.GetYOffset());
-                return false;
+                return true;
             });
 
         if (event.Handled)

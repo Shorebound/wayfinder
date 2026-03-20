@@ -139,7 +139,7 @@ TEST_CASE("Cloned event is independent of original")
 
 // ── Handled flag propagation through Drain ───────────────
 
-TEST_CASE("Handled flag set in drain handler persists on the event")
+TEST_CASE("Handler receives mutable event reference during Drain")
 {
     Wayfinder::EventQueue queue;
     queue.Push(std::make_unique<Wayfinder::KeyPressedEvent>(Wayfinder::Key::A));

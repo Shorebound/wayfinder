@@ -10,11 +10,13 @@ namespace Wayfinder
 
     void EventQueue::Drain(const std::function<void(Event&)>& handler)
     {
-        for (auto& event : m_events)
+        std::vector<std::unique_ptr<Event>> batch;
+        batch.swap(m_events);
+
+        for (auto& event : batch)
         {
             handler(*event);
         }
-        m_events.clear();
     }
 
     void EventQueue::Clear()

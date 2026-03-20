@@ -8,9 +8,11 @@
 namespace Wayfinder
 {
 
-    // Input events use deferred dispatch via EventQueue — they are buffered
-    // during SDL polling and drained at a well-defined point in the frame loop.
-    // Latency-sensitive events (window close, resize) still dispatch immediately.
+    /// @brief Event dispatch model.
+    ///
+    /// Input events use deferred dispatch via EventQueue — they are buffered
+    /// during SDL polling and drained at a well-defined point in the frame loop.
+    /// Latency-sensitive events (window close, resize) still dispatch immediately.
 
     enum class EventType
     {
