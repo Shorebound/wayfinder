@@ -1,4 +1,5 @@
 #include "SceneRenderExtractor.h"
+#include "PostProcessVolume.h"
 #include "SortKey.h"
 
 #include "../core/Log.h"
@@ -10,6 +11,7 @@
 #include <array>
 #include <cstddef>
 #include <cstdint>
+#include <vector>
 
 namespace
 {
@@ -213,6 +215,41 @@ namespace Wayfinder
                 }
             }
         });
+
+        // Extract post-process volumes (global volumes may have no transform)
+        std::vector<PostProcessVolumeInstance> volumeInstances;
+        scene.GetWorld().each([&volumeInstances](flecs::entity entityHandle, const PostProcessVolumeComponent& volume)
+        {
+            Float3 position{0.0f, 0.0f, 0.0f};
+            Float3 scale{1.0f, 1.0f, 1.0f};
+            Matrix4 localToWorld = Matrix4(1.0f);
+
+            if (entityHandle.has<WorldTransformComponent>())
+            {
+                const auto& worldTransform = entityHandle.get<WorldTransformComponent>();
+                position = worldTransform.Position;
+                scale = worldTransform.Scale;
+                localToWorld = worldTransform.LocalToWorld;
+            }
+            else if (entityHandle.has<TransformComponent>())
+            {
+                const auto& transform = entityHandle.get<TransformComponent>();
+                position = transform.Position;
+                scale = transform.Scale;
+                localToWorld = transform.GetLocalMatrix();
+            }
+
+            volumeInstances.push_back({.Volume = &volume, .WorldPosition = position, .WorldScale = scale, .LocalToWorld = localToWorld});
+        });
+
+        // Blend post-process volumes per view using each view's camera position
+        if (!volumeInstances.empty())
+        {
+            for (auto& view : frame.Views)
+            {
+                view.PostProcess = BlendPostProcessVolumes(view.CameraState.Position, volumeInstances);
+            }
+        }
 
         return frame;
     }

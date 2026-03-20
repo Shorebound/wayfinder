@@ -5,6 +5,7 @@
 
 #include "../core/Identifiers.h"
 #include "../maths/Maths.h"
+#include "../rendering/PostProcessVolume.h"
 #include "../rendering/RenderIntent.h"
 #include "../rendering/RenderTypes.h"
 

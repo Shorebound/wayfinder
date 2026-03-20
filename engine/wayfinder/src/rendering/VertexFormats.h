@@ -65,6 +65,13 @@ namespace Wayfinder
 
     namespace VertexLayouts
     {
+        // Empty layout for fullscreen passes using SV_VertexID (no vertex buffer)
+        inline constexpr VertexLayout Empty = {
+            .stride = 0,
+            .attribs = nullptr,
+            .attribCount = 0,
+        };
+
         inline constexpr std::array<VertexAttrib, 1> PosAttribs = {{
             {0, offsetof(VertexPos, Position), VertexAttribFormat::Float3},
         }};
