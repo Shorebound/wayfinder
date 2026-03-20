@@ -1,4 +1,4 @@
-﻿#!/usr/bin/env pwsh
+#!/usr/bin/env pwsh
 <#
 .SYNOPSIS
     Manages GitHub issue relationships (blocked-by, sub-issues) for the Wayfinder project.
@@ -129,16 +129,14 @@ function Invoke-GhJson {
 
     if ($exitCode -ne 0) {
         $stderr = ($rawOutput | Where-Object { $_.GetType().Name -eq 'ErrorRecord' }) -join "`n"
-        Write-Error "${ErrorContext}: gh exited with code $exitCode — $stderr"
-        return $null
+        throw "${ErrorContext}: gh exited with code $exitCode — $stderr"
     }
 
     try {
         return $stdout | ConvertFrom-Json
     }
     catch {
-        Write-Error "${ErrorContext}: Failed to parse JSON — $($_.Exception.Message)"
-        return $null
+        throw "${ErrorContext}: Failed to parse JSON — $($_.Exception.Message)"
     }
 }
 
@@ -156,7 +154,6 @@ function Get-IssueNodeId {
     try {
         Set-Content -Path $tempFile -Value $query -Encoding ascii -NoNewline
         $result = Invoke-GhJson -Arguments @("api", "graphql", "-F", "query=@$tempFile") -ErrorContext "Get-IssueNodeId"
-        if (-not $result) { return $null }
 
         if ($result.errors) {
             Write-Error "GraphQL error: $($result.errors[0].message)"
@@ -185,7 +182,9 @@ function Invoke-GraphQLMutation {
     $tempFile = [System.IO.Path]::GetTempFileName()
     try {
         Set-Content -Path $tempFile -Value $Mutation -Encoding ascii -NoNewline
-        $result = Invoke-GhJson -Arguments @("api", "graphql", "-F", "query=@$tempFile") -ErrorContext "Invoke-GraphQLMutation"
+        # Invoke-GhJson throws on transport/parse failure; mutation callers
+        # still check $result.errors for GraphQL-level API errors.
+        $result = Invoke-GhJson -Arguments @("api", "graphql", "-F", "query=@$tempFile") -ErrorContext "GraphQL mutation"
         return $result
     }
     finally {
@@ -208,7 +207,13 @@ function Add-BlockedBy {
     foreach ($blocker in $BlockingIssues) {
         $blockerInfo = $ids[$blocker]
         $mutation = "mutation { addBlockedBy(input: { issueId: `"$($blockedInfo.Id)`", blockingIssueId: `"$($blockerInfo.Id)`" }) { clientMutationId } }"
-        $result = Invoke-GraphQLMutation -Mutation $mutation
+        try {
+            $result = Invoke-GraphQLMutation -Mutation $mutation
+        } catch {
+            Write-Host "  FAIL  blocked by #$blocker ($($blockerInfo.Title)) - $($_.Exception.Message)" -ForegroundColor Red
+            Start-Sleep -Milliseconds 250
+            continue
+        }
 
         if ($result.errors) {
             $msg = $result.errors[0].message
@@ -238,7 +243,13 @@ function Add-Blocking {
         $blockedInfo = $ids[$blocked]
         # addBlockedBy: issueId = the blocked one, blockingIssueId = the blocker
         $mutation = "mutation { addBlockedBy(input: { issueId: `"$($blockedInfo.Id)`", blockingIssueId: `"$($blockingInfo.Id)`" }) { clientMutationId } }"
-        $result = Invoke-GraphQLMutation -Mutation $mutation
+        try {
+            $result = Invoke-GraphQLMutation -Mutation $mutation
+        } catch {
+            Write-Host "  FAIL  #$blocked ($($blockedInfo.Title)) - $($_.Exception.Message)" -ForegroundColor Red
+            Start-Sleep -Milliseconds 250
+            continue
+        }
 
         if ($result.errors) {
             $msg = $result.errors[0].message
@@ -267,7 +278,13 @@ function Add-SubIssue {
     foreach ($child in $ChildIssues) {
         $childInfo = $ids[$child]
         $mutation = "mutation { addSubIssue(input: { issueId: `"$($parentInfo.Id)`", subIssueId: `"$($childInfo.Id)`" }) { clientMutationId } }"
-        $result = Invoke-GraphQLMutation -Mutation $mutation
+        try {
+            $result = Invoke-GraphQLMutation -Mutation $mutation
+        } catch {
+            Write-Host "  FAIL  sub-issue #$child ($($childInfo.Title)) - $($_.Exception.Message)" -ForegroundColor Red
+            Start-Sleep -Milliseconds 250
+            continue
+        }
 
         if ($result.errors) {
             $msg = $result.errors[0].message
@@ -300,7 +317,13 @@ function Remove-BlockedBy {
             continue
         }
         $mutation = "mutation { removeBlockedBy(input: { issueId: `"$($blockedInfo.Id)`", blockingIssueId: `"$($blockerInfo.Id)`" }) { clientMutationId } }"
-        $result = Invoke-GraphQLMutation -Mutation $mutation
+        try {
+            $result = Invoke-GraphQLMutation -Mutation $mutation
+        } catch {
+            Write-Host "  FAIL  remove blocked-by #$blocker ($($blockerInfo.Title)) - $($_.Exception.Message)" -ForegroundColor Red
+            Start-Sleep -Milliseconds 250
+            continue
+        }
 
         if ($result.errors) {
             Write-Host "  FAIL  remove blocked-by #$blocker ($($blockerInfo.Title)) - $($result.errors[0].message)" -ForegroundColor Red
@@ -328,7 +351,13 @@ function Remove-Blocking {
             continue
         }
         $mutation = "mutation { removeBlockedBy(input: { issueId: `"$($blockedInfo.Id)`", blockingIssueId: `"$($blockingInfo.Id)`" }) { clientMutationId } }"
-        $result = Invoke-GraphQLMutation -Mutation $mutation
+        try {
+            $result = Invoke-GraphQLMutation -Mutation $mutation
+        } catch {
+            Write-Host "  FAIL  remove blocking #$blocked ($($blockedInfo.Title)) - $($_.Exception.Message)" -ForegroundColor Red
+            Start-Sleep -Milliseconds 250
+            continue
+        }
 
         if ($result.errors) {
             Write-Host "  FAIL  remove blocking #$blocked ($($blockedInfo.Title)) - $($result.errors[0].message)" -ForegroundColor Red
@@ -356,7 +385,13 @@ function Remove-SubIssue {
             continue
         }
         $mutation = "mutation { removeSubIssue(input: { issueId: `"$($parentInfo.Id)`", subIssueId: `"$($childInfo.Id)`" }) { clientMutationId } }"
-        $result = Invoke-GraphQLMutation -Mutation $mutation
+        try {
+            $result = Invoke-GraphQLMutation -Mutation $mutation
+        } catch {
+            Write-Host "  FAIL  remove sub-issue #$child ($($childInfo.Title)) - $($_.Exception.Message)" -ForegroundColor Red
+            Start-Sleep -Milliseconds 250
+            continue
+        }
 
         if ($result.errors) {
             Write-Host "  FAIL  remove sub-issue #$child ($($childInfo.Title)) - $($result.errors[0].message)" -ForegroundColor Red
@@ -391,7 +426,6 @@ query {
     try {
         Set-Content -Path $tempFile -Value $query -Encoding ascii -NoNewline
         $result = Invoke-GhJson -Arguments @("api", "graphql", "-F", "query=@$tempFile") -ErrorContext "Show-Relationships"
-        if (-not $result) { return }
     }
     finally {
         Remove-Item -Path $tempFile -ErrorAction SilentlyContinue
@@ -516,7 +550,6 @@ function Show-BatchSummary {
     try {
         Set-Content -Path $tempFile -Value $query -Encoding ascii -NoNewline
         $result = Invoke-GhJson -Arguments @("api", "graphql", "-F", "query=@$tempFile") -ErrorContext "Show-BatchSummary"
-        if (-not $result) { return }
     }
     finally {
         Remove-Item -Path $tempFile -ErrorAction SilentlyContinue
@@ -589,7 +622,6 @@ function Show-Ready {
     try {
         Set-Content -Path $tempFile -Value $query -Encoding ascii -NoNewline
         $result = Invoke-GhJson -Arguments @("api", "graphql", "-F", "query=@$tempFile") -ErrorContext "Show-Ready"
-        if (-not $result) { return }
     }
     finally {
         Remove-Item -Path $tempFile -ErrorAction SilentlyContinue
@@ -702,7 +734,6 @@ function Show-Orphans {
     try {
         Set-Content -Path $tempFile -Value $query -Encoding ascii -NoNewline
         $result = Invoke-GhJson -Arguments @("api", "graphql", "-F", "query=@$tempFile") -ErrorContext "Show-Orphans"
-        if (-not $result) { return }
     }
     finally {
         Remove-Item -Path $tempFile -ErrorAction SilentlyContinue
@@ -767,16 +798,19 @@ query {
         try {
             Set-Content -Path $tempFile -Value $query -Encoding ascii -NoNewline
             $result = Invoke-GhJson -Arguments @("api", "graphql", "-F", "query=@$tempFile") -ErrorContext "Show-Chain"
-            if (-not $result) { return }
         }
         finally {
             Remove-Item -Path $tempFile -ErrorAction SilentlyContinue
         }
 
-        if ($result.errors) { return }
+        if ($result.errors) {
+            if ($Depth -eq 0) { throw "Show-Chain: GraphQL error for root issue #${Num}: $($result.errors[0].message)" }
+            return
+        }
 
         $issue = $result.data.repository.issue
         if ($null -eq $issue) {
+            if ($Depth -eq 0) { throw "Show-Chain: Issue not found or inaccessible: #$Num" }
             Write-Error "Issue not found or inaccessible: #$Num"
             return
         }
@@ -831,88 +865,104 @@ query {
 function Show-Tree {
     param([int]$IssueNumber)
 
-    $query = @"
+    # Recursively fetch sub-issues for a given issue number.
+    # Returns a tree node: @{ number; title; state; children = @(...) }
+    function Fetch-SubIssueTree([int]$Num, [int]$Depth) {
+        if ($Depth -gt 25) {
+            Write-Host "  Show-Tree: depth cap reached at #$Num — stopping" -ForegroundColor Yellow
+            return $null
+        }
+
+        $query = @"
 query {
   repository(owner: "$OWNER", name: "$REPO") {
-    issue(number: $IssueNumber) {
-      title
-      state
+    issue(number: $Num) {
+      number title state
       subIssues(first: 50) {
-        nodes {
-          number title state
-          subIssues(first: 50) {
-            nodes { number title state }
-          }
-        }
+        nodes { number title state }
       }
     }
   }
 }
 "@
+        $tempFile = [System.IO.Path]::GetTempFileName()
+        try {
+            Set-Content -Path $tempFile -Value $query -Encoding ascii -NoNewline
+            $result = Invoke-GhJson -Arguments @("api", "graphql", "-F", "query=@$tempFile") -ErrorContext "Show-Tree"
+        }
+        finally {
+            Remove-Item -Path $tempFile -ErrorAction SilentlyContinue
+        }
 
-    $tempFile = [System.IO.Path]::GetTempFileName()
-    try {
-        Set-Content -Path $tempFile -Value $query -Encoding ascii -NoNewline
-        $result = Invoke-GhJson -Arguments @("api", "graphql", "-F", "query=@$tempFile") -ErrorContext "Show-Tree"
-        if (-not $result) { return }
-    }
-    finally {
-        Remove-Item -Path $tempFile -ErrorAction SilentlyContinue
+        if ($result.errors) {
+            Write-Host "Note: Some fields may not be available on your GitHub plan." -ForegroundColor Yellow
+            Write-Error $result.errors[0].message
+            return $null
+        }
+
+        $issue = $result.data.repository.issue
+        if ($null -eq $issue) { return $null }
+
+        $children = @()
+        foreach ($child in @($issue.subIssues.nodes)) {
+            $childTree = Fetch-SubIssueTree -Num $child.number -Depth ($Depth + 1)
+            if ($null -ne $childTree) {
+                $children += $childTree
+            } else {
+                # Leaf node or fetch failed — include with no children
+                $children += @{ number = $child.number; title = $child.title; state = $child.state; children = @() }
+            }
+            Start-Sleep -Milliseconds 50
+        }
+
+        return @{ number = $issue.number; title = $issue.title; state = $issue.state; children = $children }
     }
 
-    if ($result.errors) {
-        Write-Host "Note: Some fields may not be available on your GitHub plan." -ForegroundColor Yellow
-        Write-Error $result.errors[0].message
-        return
-    }
-
-    $issue = $result.data.repository.issue
-    if ($null -eq $issue) {
+    $tree = Fetch-SubIssueTree -Num $IssueNumber -Depth 0
+    if ($null -eq $tree) {
         Write-Error "Issue not found or inaccessible: #$IssueNumber"
         return
     }
-    $subNodes = @($issue.subIssues.nodes)
 
-    # Count all descendants recursively
+    # Count all descendants recursively from the tree structure
     function Get-TreeCounts($nodes) {
         $done = 0; $total = 0
         foreach ($n in $nodes) {
             $total++
             if ($n.state -eq "CLOSED") { $done++ }
-            $children = @($n.subIssues.nodes)
-            if ($children.Count -gt 0) {
-                $sub = Get-TreeCounts $children
+            if ($n.children.Count -gt 0) {
+                $sub = Get-TreeCounts $n.children
                 $done += $sub.Done; $total += $sub.Total
             }
         }
         return @{ Done = $done; Total = $total }
     }
 
-    $counts = Get-TreeCounts $subNodes
-    $rootIcon = if ($issue.state -eq "CLOSED") { "[x]" } else { "[ ]" }
-    $rootColor = if ($issue.state -eq "CLOSED") { "Green" } else { "Cyan" }
-    $progress = if ($counts.Total -gt 0) { " ($($counts.Done)/$($counts.Total))" } else { "" }
-
-    Write-Host ""
-    Write-Host "  $rootIcon #$IssueNumber - $($issue.title)$progress" -ForegroundColor $rootColor
-
-    foreach ($s in $subNodes) {
-        $icon = if ($s.state -eq "CLOSED") { "[x]" } else { "[ ]" }
-        $color = if ($s.state -eq "CLOSED") { "DarkGray" } else { "White" }
-        $children = @($s.subIssues.nodes)
-        $childProgress = ""
-        if ($children.Count -gt 0) {
-            $childDone = @($children | Where-Object { $_.state -eq "CLOSED" }).Count
-            $childProgress = " ($childDone/$($children.Count))"
+    # Print the tree recursively
+    function Print-TreeNode($node, [int]$Depth) {
+        $indent = "    " * $Depth
+        $icon = if ($node.state -eq "CLOSED") { "[x]" } else { "[ ]" }
+        $color = if ($Depth -eq 0) {
+            if ($node.state -eq "CLOSED") { "Green" } else { "Cyan" }
+        } else {
+            if ($node.state -eq "CLOSED") { "DarkGray" } else { "White" }
         }
-        Write-Host "      $icon #$($s.number) - $($s.title)$childProgress" -ForegroundColor $color
 
-        foreach ($c in $children) {
-            $childIcon = if ($c.state -eq "CLOSED") { "[x]" } else { "[ ]" }
-            $childColor = if ($c.state -eq "CLOSED") { "DarkGray" } else { "White" }
-            Write-Host "            $childIcon #$($c.number) - $($c.title)" -ForegroundColor $childColor
+        $childProgress = ""
+        if ($node.children.Count -gt 0) {
+            $counts = Get-TreeCounts $node.children
+            $childProgress = " ($($counts.Done)/$($counts.Total))"
+        }
+
+        Write-Host "  ${indent}$icon #$($node.number) - $($node.title)$childProgress" -ForegroundColor $color
+
+        foreach ($child in $node.children) {
+            Print-TreeNode $child ($Depth + 1)
         }
     }
+
+    Write-Host ""
+    Print-TreeNode $tree 0
     Write-Host ""
 }
 
@@ -922,6 +972,13 @@ query {
 $needsIssue = @("blocked-by", "blocking", "sub-issue", "remove-blocked-by", "remove-blocking", "remove-sub-issue", "show", "tree", "chain")
 if ($Action -in $needsIssue -and $Issue.Count -eq 1 -and $Issue[0] -eq 0) {
     Write-Error "$Action requires an issue number. Example: .\gh-issues.ps1 $Action 12"
+    exit 1
+}
+
+# Actions that accept only a single issue number (show handles multiple via batch summary)
+$singleIssueOnly = @("blocked-by", "blocking", "sub-issue", "remove-blocked-by", "remove-blocking", "remove-sub-issue", "tree", "chain")
+if ($Action -in $singleIssueOnly -and $Issue.Count -gt 1) {
+    Write-Error "$Action accepts only a single issue number. Got: $($Issue -join ', ')"
     exit 1
 }
 
