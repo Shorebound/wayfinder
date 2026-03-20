@@ -44,7 +44,7 @@ namespace Wayfinder
         }
 
         // ── Render pipeline (registers shader programs) ──────
-        m_renderPipeline->Initialize(*m_context);
+        m_renderPipeline->Initialise(*m_context);
 
         // ── Debug line pipeline (PosColor, uses debug_unlit shaders) ──
         {

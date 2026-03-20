@@ -42,7 +42,7 @@ namespace Wayfinder
         };
     }
 
-    void RenderPipeline::Initialize(RenderContext& context)
+    void RenderPipeline::Initialise(RenderContext& context)
     {
         m_context = &context;
 
