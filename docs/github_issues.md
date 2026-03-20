@@ -7,6 +7,7 @@ Repository: `Shorebound/wayfinder`. Requires `gh` CLI authenticated with repo sc
 ## Labels
 
 ### Priority
+
 | Label | Meaning |
 |-------|---------|
 | `P1-must-do` | Foundation work, unblocks everything else |
@@ -21,6 +22,7 @@ Repository: `Shorebound/wayfinder`. Requires `gh` CLI authenticated with repo sc
 `domain:rendering`, `domain:core`, `domain:scene`, `domain:physics`, `domain:build`, `domain:audio`, `domain:platform`, `domain:assets`, `domain:tools`
 
 ### Workflow
+
 | Label | Meaning |
 |-------|---------|
 | `agent-ready` | Well-specified enough for an AI agent to pick up |

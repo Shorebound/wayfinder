@@ -76,22 +76,30 @@ namespace Wayfinder
     {
         if (m_device)
         {
-            // Resource pools are cleared but SDL objects must be released first.
-            // The pools only store raw pointers — we don't release through them.
-            // Instead we just clear and let the GPU device destruction clean up.
+            // Release all pooled GPU resources before destroying the device.
+            m_shaderPool.ForEachAlive([&](SDL_GPUShader* s) { SDL_ReleaseGPUShader(m_device, s); });
+            m_shaderPool.Clear();
+
+            m_pipelinePool.ForEachAlive([&](SDL_GPUGraphicsPipeline* p) { SDL_ReleaseGPUGraphicsPipeline(m_device, p); });
+            m_pipelinePool.Clear();
+
+            m_computePipelinePool.ForEachAlive([&](SDL_GPUComputePipeline* p) { SDL_ReleaseGPUComputePipeline(m_device, p); });
+            m_computePipelinePool.Clear();
+
+            m_bufferPool.ForEachAlive([&](SDL_GPUBuffer* b) { SDL_ReleaseGPUBuffer(m_device, b); });
+            m_bufferPool.Clear();
+
+            m_samplerPool.ForEachAlive([&](SDL_GPUSampler* s) { SDL_ReleaseGPUSampler(m_device, s); });
+            m_samplerPool.Clear();
+
+            m_texturePool.ForEachAlive([&](SDL_GPUTexture* t) { SDL_ReleaseGPUTexture(m_device, t); });
+            m_texturePool.Clear();
 
             if (m_depthTexture)
             {
                 SDL_ReleaseGPUTexture(m_device, m_depthTexture);
                 m_depthTexture = nullptr;
             }
-
-            m_shaderPool.Clear();
-            m_pipelinePool.Clear();
-            m_bufferPool.Clear();
-            m_texturePool.Clear();
-            m_samplerPool.Clear();
-            m_computePipelinePool.Clear();
 
             if (m_window)
             {
@@ -297,6 +305,12 @@ namespace Wayfinder
         info.code = desc.code;
         info.code_size = desc.codeSize;
         info.entrypoint = desc.entryPoint;
+
+        if (!(m_shaderFormats & SDL_GPU_SHADERFORMAT_SPIRV))
+        {
+            WAYFINDER_ERROR(LogRenderer, "SDLGPUDevice::CreateShader: Device does not support SPIR-V");
+            return GPUShaderHandle::Invalid();
+        }
         info.format = static_cast<SDL_GPUShaderFormat>(m_shaderFormats & SDL_GPU_SHADERFORMAT_SPIRV);
         info.stage = (desc.stage == ShaderStage::Vertex)
             ? SDL_GPU_SHADERSTAGE_VERTEX
@@ -658,6 +672,12 @@ namespace Wayfinder
         info.code = desc.code;
         info.code_size = desc.codeSize;
         info.entrypoint = desc.entryPoint;
+
+        if (!(m_shaderFormats & SDL_GPU_SHADERFORMAT_SPIRV))
+        {
+            WAYFINDER_ERROR(LogRenderer, "SDLGPUDevice::CreateComputePipeline: Device does not support SPIR-V");
+            return GPUComputePipelineHandle::Invalid();
+        }
         info.format = static_cast<SDL_GPUShaderFormat>(m_shaderFormats & SDL_GPU_SHADERFORMAT_SPIRV);
         info.num_samplers = desc.numSamplers;
         info.num_readonly_storage_textures = desc.numReadOnlyStorageTextures;

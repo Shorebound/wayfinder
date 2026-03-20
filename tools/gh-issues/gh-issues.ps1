@@ -112,8 +112,41 @@ $REPO  = "wayfinder"
 
 # --- Helpers ---
 
+function Invoke-GhJson {
+    <#
+    .SYNOPSIS
+        Runs a gh CLI command, validates the exit code, and parses stdout as JSON.
+    #>
+    param(
+        [Parameter(Mandatory)]
+        [string[]]$Arguments,
+        [string]$ErrorContext = "gh"
+    )
+
+    $rawOutput = & gh @Arguments 2>&1
+    $exitCode = $LASTEXITCODE
+    $stdout = ($rawOutput | Where-Object { $_ -is [string] -or $_.GetType().Name -ne 'ErrorRecord' }) -join "`n"
+
+    if ($exitCode -ne 0) {
+        $stderr = ($rawOutput | Where-Object { $_.GetType().Name -eq 'ErrorRecord' }) -join "`n"
+        Write-Error "${ErrorContext}: gh exited with code $exitCode — $stderr"
+        return $null
+    }
+
+    try {
+        return $stdout | ConvertFrom-Json
+    }
+    catch {
+        Write-Error "${ErrorContext}: Failed to parse JSON — $($_.Exception.Message)"
+        return $null
+    }
+}
+
 function Get-IssueNodeId {
     param([int[]]$Numbers)
+
+    # Deduplicate to avoid GraphQL alias collisions
+    $Numbers = $Numbers | Select-Object -Unique
 
     # Build aliases: i7, i12, etc.
     $fields = ($Numbers | ForEach-Object { "i$($_): issue(number: $_) { id title }" }) -join " "
@@ -122,8 +155,8 @@ function Get-IssueNodeId {
     $tempFile = [System.IO.Path]::GetTempFileName()
     try {
         Set-Content -Path $tempFile -Value $query -Encoding ascii -NoNewline
-        $raw = gh api graphql -F query=@$tempFile 2>&1
-        $result = ($raw | Where-Object { $_ -is [string] -or $_.GetType().Name -ne 'ErrorRecord' }) -join "`n" | ConvertFrom-Json
+        $result = Invoke-GhJson -Arguments @("api", "graphql", "-F", "query=@$tempFile") -ErrorContext "Get-IssueNodeId"
+        if (-not $result) { return $null }
 
         if ($result.errors) {
             Write-Error "GraphQL error: $($result.errors[0].message)"
@@ -360,6 +393,10 @@ query {
     }
 
     $issue = $result.data.repository.issue
+    if ($null -eq $issue) {
+        Write-Error "Issue not found or inaccessible: #$IssueNumber"
+        return
+    }
     $stateColor = if ($issue.state -eq "CLOSED") { "Green" } else { "White" }
 
     Write-Host ""
@@ -457,6 +494,9 @@ query {
 function Show-BatchSummary {
     param([int[]]$IssueNumbers)
 
+    # Deduplicate to avoid GraphQL alias collisions
+    $IssueNumbers = $IssueNumbers | Select-Object -Unique
+
     # Build a single GraphQL query for all issues
     $fields = ($IssueNumbers | ForEach-Object { "i$($_): issue(number: $_) { number title state labels(first: 10) { nodes { name } } assignees(first: 5) { nodes { login } } blockedBy(first: 50) { nodes { state } } subIssues(first: 50) { nodes { state } } }" }) -join " "
     $query = "query { repository(owner: `"$OWNER`", name: `"$REPO`") { $fields } }"
@@ -523,8 +563,7 @@ function Show-BatchSummary {
 
 function Show-Ready {
     # Fetch all open issues, then check which ones have no unresolved blockers
-    $raw = gh issue list --repo "$OWNER/$REPO" --state open --limit 200 --json number,title,labels,assignees 2>&1
-    $issues = ($raw | Where-Object { $_ -is [string] -or $_.GetType().Name -ne 'ErrorRecord' }) -join "`n" | ConvertFrom-Json
+    $issues = Invoke-GhJson -Arguments @("issue", "list", "--repo", "$OWNER/$REPO", "--state", "open", "--limit", "200", "--json", "number,title,labels,assignees") -ErrorContext "Show-Ready"
 
     if (-not $issues -or $issues.Count -eq 0) {
         Write-Host "No open issues found." -ForegroundColor DarkGray
@@ -590,8 +629,7 @@ function Show-Ready {
 function Show-MilestoneStatus {
     param([string]$MilestoneTitle)
 
-    $raw = gh issue list --repo "$OWNER/$REPO" --milestone "$MilestoneTitle" --state all --limit 200 --json number,title,state,labels 2>&1
-    $issues = ($raw | Where-Object { $_ -is [string] -or $_.GetType().Name -ne 'ErrorRecord' }) -join "`n" | ConvertFrom-Json
+    $issues = Invoke-GhJson -Arguments @("issue", "list", "--repo", "$OWNER/$REPO", "--milestone", "$MilestoneTitle", "--state", "all", "--limit", "200", "--json", "number,title,state,labels") -ErrorContext "Show-MilestoneStatus"
 
     if (-not $issues -or $issues.Count -eq 0) {
         Write-Host "No issues found for milestone '$MilestoneTitle'." -ForegroundColor Yellow
@@ -636,8 +674,7 @@ function Show-MilestoneStatus {
 }
 
 function Show-Orphans {
-    $raw = gh issue list --repo "$OWNER/$REPO" --state open --limit 200 --no-milestone --json number,title,labels 2>&1
-    $issues = ($raw | Where-Object { $_ -is [string] -or $_.GetType().Name -ne 'ErrorRecord' }) -join "`n" | ConvertFrom-Json
+    $issues = Invoke-GhJson -Arguments @("issue", "list", "--repo", "$OWNER/$REPO", "--state", "open", "--limit", "200", "--no-milestone", "--json", "number,title,labels") -ErrorContext "Show-Orphans"
 
     if (-not $issues -or $issues.Count -eq 0) {
         Write-Host ""
@@ -728,6 +765,10 @@ query {
         if ($result.errors) { return }
 
         $issue = $result.data.repository.issue
+        if ($null -eq $issue) {
+            Write-Error "Issue not found or inaccessible: #$Num"
+            return
+        }
         [void]$chain.Add(@{ Number = $issue.number; Title = $issue.title; State = $issue.state; Depth = $Depth })
 
         $blockers = @($issue.blockedBy.nodes)
@@ -815,6 +856,10 @@ query {
     }
 
     $issue = $result.data.repository.issue
+    if ($null -eq $issue) {
+        Write-Error "Issue not found or inaccessible: #$IssueNumber"
+        return
+    }
     $subNodes = @($issue.subIssues.nodes)
 
     # Count all descendants recursively

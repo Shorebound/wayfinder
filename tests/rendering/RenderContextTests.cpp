@@ -11,7 +11,7 @@ namespace
         Wayfinder::EngineConfig config;
         config.Window.Width = 320;
         config.Window.Height = 240;
-        config.Shaders.Directory = "assets/shaders"; // NullDevice doesn't load files
+        config.Shaders.Directory = ""; // NullDevice doesn't load files
         return config;
     }
 }

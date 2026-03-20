@@ -169,7 +169,7 @@ namespace Wayfinder
         Matrix4 projection = glm::mat4(1.0f);
         bool hasCamera = false;
 
-        if (!preparedFrame.Views.empty())
+        if (!preparedFrame.Views.empty() && swapW > 0 && swapH > 0)
         {
             clearColor = preparedFrame.Views.front().ClearColor;
             const auto& camera = preparedFrame.Views.front().CameraState;
@@ -211,7 +211,7 @@ namespace Wayfinder
             builder.WriteColor(color, LoadOp::Clear, ClearValue::FromColor(clearColor));
             builder.WriteDepth(depth, LoadOp::Clear, 1.0f);
 
-            return [this, &preparedFrame, &params, viewMat, projMat, &sceneGlobals, hasCamera]
+            return [this, &preparedFrame, &params, viewMat, projMat, sceneGlobals, hasCamera]
                    (RenderDevice& device, const RenderGraphResources& /*resources*/) {
                 if (!hasCamera) return;
 
@@ -226,6 +226,31 @@ namespace Wayfinder
                 for (const auto& pass : preparedFrame.Passes)
                 {
                     if (!pass.Enabled || pass.Kind != RenderPassKind::Scene) continue;
+
+                    // Per-pass camera from the pass's own view
+                    Matrix4 passView = viewMat;
+                    Matrix4 passProj = projMat;
+
+                    if (pass.ViewIndex < preparedFrame.Views.size())
+                    {
+                        const auto& pv = preparedFrame.Views[pass.ViewIndex];
+                        const auto& cam = pv.CameraState;
+                        const float aspect = (params.SwapchainHeight > 0)
+                            ? static_cast<float>(params.SwapchainWidth) / static_cast<float>(params.SwapchainHeight)
+                            : 1.0f;
+
+                        passView = glm::lookAt(cam.Position, cam.Target, cam.Up);
+                        if (cam.ProjectionType == 0)
+                        {
+                            passProj = glm::perspectiveRH_ZO(glm::radians(cam.FOV), aspect, 0.1f, 1000.0f);
+                        }
+                        else
+                        {
+                            const float halfH = cam.FOV * 0.5f;
+                            const float halfW = halfH * aspect;
+                            passProj = glm::orthoRH_ZO(-halfW, halfW, -halfH, halfH, 0.1f, 1000.0f);
+                        }
+                    }
 
                     for (const auto& submission : pass.Meshes)
                     {
@@ -244,13 +269,13 @@ namespace Wayfinder
                         if (program->Desc.NeedsSceneGlobals)
                         {
                             TransformUBO transformUBO;
-                            transformUBO.mvp = projMat * viewMat * submission.LocalToWorld;
+                            transformUBO.mvp = passProj * passView * submission.LocalToWorld;
                             transformUBO.model = submission.LocalToWorld;
                             device.PushVertexUniform(0, &transformUBO, sizeof(TransformUBO));
                         }
                         else
                         {
-                            UnlitTransformUBO transformUBO{projMat * viewMat * submission.LocalToWorld};
+                            UnlitTransformUBO transformUBO{passProj * passView * submission.LocalToWorld};
                             device.PushVertexUniform(0, &transformUBO, sizeof(UnlitTransformUBO));
                         }
 

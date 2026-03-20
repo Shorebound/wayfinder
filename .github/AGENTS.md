@@ -31,3 +31,7 @@ This file documents common mistakes, confusion points, and non-obvious behaviour
 ## Module System
 
 - **`Module::Register()` stores factories, not live registrations.** `ModuleRegistry` collects descriptors that are applied once via `ApplyToWorld(flecs::world&)` at startup.
+
+## gh-issues.ps1
+
+- **Pass `0` as the issue number for `ready`, `status`, and `orphans`.** These commands don't operate on a specific issue — the number is ignored. Always pass `0` as the positional issue argument (e.g., `.\gh-issues.ps1 ready 0`). If you encounter surprising behavior with the tool, note it here.

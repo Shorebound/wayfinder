@@ -34,7 +34,19 @@ namespace Wayfinder
 
         // Platform services
         m_input = Input::Create(m_config.Backends.Platform);
+        if (!m_input)
+        {
+            WAYFINDER_ERROR(LogEngine, "EngineRuntime: Failed to create Input");
+            return false;
+        }
+
         m_time = Time::Create(m_config.Backends.Platform);
+        if (!m_time)
+        {
+            WAYFINDER_ERROR(LogEngine, "EngineRuntime: Failed to create Time");
+            m_input = nullptr;
+            return false;
+        }
 
         // Window — must exist before RenderDevice (swapchain needs a surface)
         const auto windowConfig = Window::Config{
@@ -44,10 +56,20 @@ namespace Wayfinder
             m_config.Window.VSync};
 
         m_window = Window::Create(windowConfig, m_config.Backends.Platform);
+        if (!m_window)
+        {
+            WAYFINDER_ERROR(LogEngine, "EngineRuntime: Failed to create Window");
+            m_time = nullptr;
+            m_input = nullptr;
+            return false;
+        }
 
         if (!m_window->Initialize())
         {
             WAYFINDER_ERROR(LogEngine, "EngineRuntime: Failed to initialize Window");
+            m_window = nullptr;
+            m_time = nullptr;
+            m_input = nullptr;
             return false;
         }
 
@@ -57,6 +79,11 @@ namespace Wayfinder
         if (!m_device || !m_device->Initialize(*m_window))
         {
             WAYFINDER_ERROR(LogEngine, "EngineRuntime: Failed to initialize RenderDevice");
+            m_device = nullptr;
+            m_window->Shutdown();
+            m_window = nullptr;
+            m_time = nullptr;
+            m_input = nullptr;
             return false;
         }
 

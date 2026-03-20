@@ -28,6 +28,13 @@ namespace Wayfinder
     class WAYFINDER_API EngineRuntime
     {
     public:
+        /**
+         * @brief Constructs an EngineRuntime.
+         * @param config  Engine configuration. The caller must keep this alive
+         *                for the lifetime of the EngineRuntime.
+         * @param project Project descriptor. The caller must keep this alive
+         *                for the lifetime of the EngineRuntime.
+         */
         EngineRuntime(const EngineConfig& config, const ProjectDescriptor& project);
         ~EngineRuntime();
 
@@ -48,10 +55,15 @@ namespace Wayfinder
         float GetDeltaTime() const;
 
         // ── Non-owning accessors ─────────────────────────────
+        /// @pre Valid only after Initialize() and before Shutdown().
         Window& GetWindow();
+        /// @pre Valid only after Initialize() and before Shutdown().
         Input& GetInput();
+        /// @pre Valid only after Initialize() and before Shutdown().
         Time& GetTime();
+        /// @pre Valid only after Initialize() and before Shutdown().
         RenderDevice& GetDevice();
+        /// @pre Valid only after Initialize() and before Shutdown().
         Renderer& GetRenderer();
 
         // ── Context bundle for external consumers (editor) ───

@@ -130,14 +130,10 @@ namespace Wayfinder
                 "Cyclic systems skipped: {}. Initialising {} non-cyclic system(s) in topological order.",
                 cycleMembers,
                 sorted.size());
-            for (const size_t idx : sorted)
-                m_descriptors[idx].Factory(world);
         }
-        else
-        {
-            for (const size_t idx : sorted)
-                m_descriptors[idx].Factory(world);
-        }
+
+        for (const size_t idx : sorted)
+            m_descriptors[idx].Factory(world);
     }
 
 } // namespace Wayfinder

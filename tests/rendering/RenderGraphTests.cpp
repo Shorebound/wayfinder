@@ -371,13 +371,16 @@ TEST_CASE("Transient pool acquire and release roundtrip")
     desc.format = Wayfinder::TextureFormat::RGBA8_UNORM;
     desc.usage = Wayfinder::TextureUsage::ColourTarget;
 
-    // NullDevice returns nullptr for textures, but the pool should not crash
+    // NullDevice returns invalid handles for textures. This test verifies that
+    // the acquire/release cycle doesn't crash with a null backend.  The reuse
+    // assertion is vacuous here because Release is a no-op for invalid handles.
+    // A real reuse test requires a device that produces valid texture handles.
     auto tex = pool.Acquire(desc);
+    CHECK_FALSE(tex.IsValid()); // NullDevice yields invalid handles
     pool.Release(tex, desc);
 
-    // Second acquire should reuse the pooled texture
     auto tex2 = pool.Acquire(desc);
-    CHECK(tex2 == tex); // Same handle returned from pool
+    CHECK_FALSE(tex2.IsValid());
 
     pool.Shutdown();
 }

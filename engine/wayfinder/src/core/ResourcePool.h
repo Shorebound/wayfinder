@@ -54,6 +54,7 @@ namespace Wayfinder
             /// Bump generation on every acquire. Start from 1 so generation 0 is always invalid.
             entry.Generation = (entry.Generation == 0) ? 1 : entry.Generation;
             entry.Alive = true;
+            ++m_activeCount;
 
             HandleType handle{};
             handle.Index = index;
@@ -72,6 +73,7 @@ namespace Wayfinder
             auto& entry = m_entries[handle.Index];
             entry.Resource = TResource{};
             entry.Alive = false;
+            --m_activeCount;
 
             /// Bump generation so stale handles to this slot fail validation.
             entry.Generation = (entry.Generation + 1) & MAX_GENERATION;
@@ -115,12 +117,19 @@ namespace Wayfinder
          */
         [[nodiscard]] size_t ActiveCount() const
         {
-            size_t count = 0;
-            for (const auto& entry : m_entries)
+            return m_activeCount;
+        }
+
+        /**
+         * @brief Calls fn(TResource&) for each alive entry.
+         */
+        template <typename TFn>
+        void ForEachAlive(TFn&& fn)
+        {
+            for (auto& entry : m_entries)
             {
-                if (entry.Alive) ++count;
+                if (entry.Alive) fn(entry.Resource);
             }
-            return count;
         }
 
         /**
@@ -131,6 +140,7 @@ namespace Wayfinder
         void Clear()
         {
             m_freeList.clear();
+            m_activeCount = 0;
             for (uint32_t i = 0; i < m_entries.size(); ++i)
             {
                 auto& entry = m_entries[i];
@@ -155,6 +165,7 @@ namespace Wayfinder
 
         std::vector<Entry> m_entries;
         std::vector<uint32_t> m_freeList;
+        size_t m_activeCount = 0;
     };
 
 } // namespace Wayfinder

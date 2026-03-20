@@ -141,6 +141,9 @@ namespace Wayfinder
 
     void Game::Shutdown()
     {
+        if (!m_initialized)
+            return;
+
         WAYFINDER_INFO(LogGame, "Shutting down game");
 
         UnloadCurrentScene();
