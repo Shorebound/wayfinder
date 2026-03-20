@@ -8,12 +8,14 @@ Repository: `Shorebound/wayfinder`. Requires `gh` CLI authenticated with repo sc
 
 ### Priority
 
+Labels express importance, not scheduling (milestones handle "when").
+
 | Label | Meaning |
 |-------|---------|
-| `P1-must-do` | Foundation work, unblocks everything else |
-| `P2-should-do` | Core engine systems |
-| `P3-nice-to-have` | Important but not blocking |
-| `P4-horizon` | Future / aspirational |
+| `priority:critical` | Can't ship without it. Blocks correctness or architecture. |
+| `priority:high` | Core capability with significant impact. Real cost to skipping. |
+| `priority:medium` | Valuable but engine functions without it for now. |
+| `priority:low` | Polish, experiments, future-proofing. |
 
 ### Difficulty
 `difficulty:XS`, `difficulty:S`, `difficulty:M`, `difficulty:L`, `difficulty:XL`
@@ -46,169 +48,82 @@ GitHub also supports **sub-issues** (parent/child hierarchy) for breaking large 
 
 ## CLI Tool: `tools/gh-issues/gh-issues.ps1`
 
-A PowerShell script that manages issue relationships via the GitHub GraphQL API. Handles node ID lookups automatically - you just pass issue numbers.
-
-### Blocked-by (issue depends on another)
+Manages issue relationships via the GitHub GraphQL API. Handles node ID lookups automatically — just pass issue numbers. Targets accept comma-separated lists (e.g. `7,8,9`).
 
 ```powershell
-# Issue #12 is blocked by #7
-.\tools\gh-issues\gh-issues.ps1 blocked-by 12 7
+$tool = ".\tools\gh-issues\gh-issues.ps1"
 
-# Issue #12 is blocked by multiple issues
-.\tools\gh-issues\gh-issues.ps1 blocked-by 12 7,8,9
+# Add relationships
+& $tool blocked-by 12 7         # #12 is blocked by #7
+& $tool blocking 7 12,15        # #7 is blocking #12 and #15
+& $tool sub-issue 10 41,42      # #41, #42 become sub-issues of #10
+
+# Remove relationships
+& $tool remove-blocked-by 12 7  # undo blocked-by
+& $tool remove-blocking 7 12    # undo blocking
+& $tool remove-sub-issue 10 41  # undo sub-issue
+
+# Inspect
+& $tool show 12                 # relationships, labels, blocker summary
+& $tool show 12,15,20           # compact table for multiple issues
+& $tool tree 10                 # sub-issue hierarchy with completion counts
+& $tool chain 12                # walk blocked-by chain, find critical path
+
+# Discovery (pass 0 as the issue number — it's ignored)
+& $tool ready 0                                        # all open unblocked issues
+& $tool status 0 -Milestone "Phase 1: Foundation"      # milestone progress
+& $tool orphans 0                                       # issues with no parent or milestone
 ```
-
-### Blocking (issue prevents another from proceeding)
-
-```powershell
-# Issue #7 is blocking #12 and #15
-.\tools\gh-issues\gh-issues.ps1 blocking 7 12,15
-```
-
-### Sub-issues
-
-```powershell
-# Issues #41, #42 become sub-issues of #10
-.\tools\gh-issues\gh-issues.ps1 sub-issue 10 41,42
-```
-
-### Remove relationships
-
-```powershell
-# Remove: #12 is no longer blocked by #7
-.\tools\gh-issues\gh-issues.ps1 remove-blocked-by 12 7
-
-# Remove: #7 no longer blocking #12
-.\tools\gh-issues\gh-issues.ps1 remove-blocking 7 12
-
-# Remove: #41 is no longer a sub-issue of #10
-.\tools\gh-issues\gh-issues.ps1 remove-sub-issue 10 41
-```
-
-### Show relationships
-
-```powershell
-# Detailed view with completion status, labels, assignees, and blocker summary
-.\tools\gh-issues\gh-issues.ps1 show 12
-
-# Compact table for comparing multiple issues
-.\tools\gh-issues\gh-issues.ps1 show 12,15,20
-```
-
-### Sub-issue tree
-
-```powershell
-# Two-level hierarchy with completion counts
-.\tools\gh-issues\gh-issues.ps1 tree 10
-```
-
-### Dependency chain
-
-```powershell
-# Walk the full blocked-by chain recursively, highlights the critical path
-.\tools\gh-issues\gh-issues.ps1 chain 12
-```
-
-### Ready issues
-
-```powershell
-# List all open issues with no unresolved blockers
-.\tools\gh-issues\gh-issues.ps1 ready 0
-```
-
-### Milestone status
-
-```powershell
-# Progress bar and issue breakdown for a milestone
-.\tools\gh-issues\gh-issues.ps1 status 0 -Milestone "Phase 1: Foundation"
-```
-
-### Orphaned issues
-
-```powershell
-# Find open issues with no parent and no milestone
-.\tools\gh-issues\gh-issues.ps1 orphans 0
-```
-
-For `ready`, `status`, and `orphans`, pass `0` as the issue number (it's ignored).
 
 ## GraphQL API Reference
 
-For agents or scripts that need to call the API directly instead of using the tool.
+For agents or scripts calling the API directly instead of using the CLI tool.
 
 ### Mutations
 
-**Add blocked-by:**
+All relationship mutations follow the same shape. The input field names vary:
+
+| Mutation | Input fields |
+|----------|-------------|
+| `addBlockedBy` | `issueId` (blocked), `blockingIssueId` (blocker) |
+| `removeBlockedBy` | `issueId` (blocked), `blockingIssueId` (blocker) |
+| `addSubIssue` | `issueId` (parent), `subIssueId` (child) |
+| `removeSubIssue` | `issueId` (parent), `subIssueId` (child) |
+
 ```graphql
 mutation {
   addBlockedBy(input: {
-    issueId: "<NODE_ID_OF_BLOCKED_ISSUE>"
-    blockingIssueId: "<NODE_ID_OF_BLOCKING_ISSUE>"
-  }) { clientMutationId }
-}
-```
-
-**Remove blocked-by:**
-```graphql
-mutation {
-  removeBlockedBy(input: {
-    issueId: "<NODE_ID_OF_BLOCKED_ISSUE>"
-    blockingIssueId: "<NODE_ID_OF_BLOCKING_ISSUE>"
-  }) { clientMutationId }
-}
-```
-
-**Add sub-issue:**
-```graphql
-mutation {
-  addSubIssue(input: {
-    issueId: "<NODE_ID_OF_PARENT>"
-    subIssueId: "<NODE_ID_OF_CHILD>"
-  }) { clientMutationId }
-}
-```
-
-**Remove sub-issue:**
-```graphql
-mutation {
-  removeSubIssue(input: {
-    issueId: "<NODE_ID_OF_PARENT>"
-    subIssueId: "<NODE_ID_OF_CHILD>"
+    issueId: "<NODE_ID_A>"
+    blockingIssueId: "<NODE_ID_B>"
   }) { clientMutationId }
 }
 ```
 
 ### Queries
 
-**Get an issue's node ID:**
 ```graphql
-query {
-  repository(owner: "Shorebound", name: "wayfinder") {
-    issue(number: 12) { id title }
+# Get node ID
+query { repository(owner: "Shorebound", name: "wayfinder") {
+  issue(number: 12) { id title }
+}}
+
+# Get all relationships
+query { repository(owner: "Shorebound", name: "wayfinder") {
+  issue(number: 12) {
+    blockedBy(first: 50) { nodes { number title state } }
+    blocking(first: 50)  { nodes { number title state } }
+    subIssues(first: 50) { nodes { number title state } }
+    parent { number title }
   }
-}
+}}
 ```
 
-**Query all relationships for an issue:**
-```graphql
-query {
-  repository(owner: "Shorebound", name: "wayfinder") {
-    issue(number: 12) {
-      blockedBy(first: 50) { nodes { number title state } }
-      blocking(first: 50)  { nodes { number title state } }
-      subIssues(first: 50) { nodes { number title state } }
-      parent { number title }
-    }
-  }
-}
-```
+### `gh` CLI tip
 
-### Working with the `gh` CLI
-
-GraphQL queries must be passed via file to avoid PowerShell escaping issues:
+GraphQL queries must go through a file to avoid PowerShell escaping issues:
 
 ```powershell
-Set-Content -Path temp.graphql -Value 'mutation { addBlockedBy(input: { issueId: "NODE_ID", blockingIssueId: "NODE_ID" }) { clientMutationId } }' -Encoding ascii -NoNewline
+Set-Content -Path temp.graphql -Value 'mutation { ... }' -Encoding ascii -NoNewline
 gh api graphql -F query=@temp.graphql
 Remove-Item temp.graphql
 ```
@@ -253,33 +168,19 @@ to relevant code or docs. Optional — skip if the summary says it all.
 
 ### Variants
 
-**Sub-issues** use a lighter structure — no plan reference (the parent carries it), and "Scope" instead of "Implementation Notes" since they describe a single concrete piece of work:
+**Sub-issues** use a lighter structure (no plan reference — the parent carries it):
 
 ```markdown
-## Summary
-
-One sentence: what this sub-issue delivers.
-
-## Scope
-
-What to build, what to test, key constraints.
-
+## Summary         — one sentence: what this sub-issue delivers
+## Scope           — what to build, what to test, key constraints
 ## Definition of Done
-
-- Specific, testable conditions for this piece.
 ```
 
-**Closed issues** that were completed before the template existed use a retrospective format:
+**Closed issues** that predate the template use a retrospective format:
 
 ```markdown
-## Summary
-
-What the problem was.
-
-## What Was Done
-
-What was built or changed to solve it.
-
+## Summary         — what the problem was
+## What Was Done   — what was built or changed
 **Status:** Done.
 ```
 
