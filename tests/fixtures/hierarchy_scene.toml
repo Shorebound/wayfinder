@@ -1,0 +1,20 @@
+scene_name = "Hierarchy Scene"
+
+[[entities]]
+id = "550e8400-e29b-41d4-a716-446655440010"
+name = "Parent"
+
+[entities.transform]
+position = [0.0, 0.0, 0.0]
+rotation = [0.0, 0.0, 0.0]
+scale = [1.0, 1.0, 1.0]
+
+[[entities]]
+id = "550e8400-e29b-41d4-a716-446655440011"
+name = "Child"
+parent_id = "550e8400-e29b-41d4-a716-446655440010"
+
+[entities.transform]
+position = [1.0, 0.0, 0.0]
+rotation = [0.0, 0.0, 0.0]
+scale = [1.0, 1.0, 1.0]
