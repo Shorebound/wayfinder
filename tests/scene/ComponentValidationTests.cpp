@@ -1,4 +1,5 @@
 #include "scene/RuntimeComponentRegistry.h"
+#include "TestHelpers.h"
 
 #include <doctest/doctest.h>
 
@@ -6,16 +7,7 @@
 #include <toml++/toml.hpp>
 
 using namespace Wayfinder;
-
-namespace
-{
-    RuntimeComponentRegistry MakeTestRegistry()
-    {
-        RuntimeComponentRegistry registry;
-        registry.AddCoreEntries();
-        return registry;
-    }
-}
+using TestHelpers::MakeTestRegistry;
 
 TEST_SUITE("Component Validation")
 {

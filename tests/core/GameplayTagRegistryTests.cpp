@@ -1,20 +1,12 @@
 #include "core/GameplayTagRegistry.h"
+#include "TestHelpers.h"
 
 #include <doctest/doctest.h>
 
 #include <filesystem>
 
 using namespace Wayfinder;
-
-namespace
-{
-    /// Returns the path to the test fixtures directory.
-    std::filesystem::path FixturesDir()
-    {
-        // __FILE__ is tests/core/GameplayTagRegistryTests.cpp
-        return std::filesystem::path(__FILE__).parent_path().parent_path() / "fixtures";
-    }
-}
+using TestHelpers::FixturesDir;
 
 // ── Code Registration ────────────────────────────────────
 

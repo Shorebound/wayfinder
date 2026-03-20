@@ -3,6 +3,7 @@
 #include "scene/Scene.h"
 #include "scene/SceneDocument.h"
 #include "scene/entity/Entity.h"
+#include "TestHelpers.h"
 
 #include <doctest/doctest.h>
 
@@ -12,21 +13,8 @@
 #include <flecs.h>
 
 using namespace Wayfinder;
-
-namespace
-{
-    std::filesystem::path FixturesDir()
-    {
-        return std::filesystem::path(__FILE__).parent_path().parent_path() / "fixtures";
-    }
-
-    RuntimeComponentRegistry MakeTestRegistry()
-    {
-        RuntimeComponentRegistry registry;
-        registry.AddCoreEntries();
-        return registry;
-    }
-}
+using TestHelpers::FixturesDir;
+using TestHelpers::MakeTestRegistry;
 
 TEST_SUITE("Scene Loading")
 {

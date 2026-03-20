@@ -2,6 +2,7 @@
 #include "scene/RuntimeComponentRegistry.h"
 #include "scene/Scene.h"
 #include "scene/entity/Entity.h"
+#include "TestHelpers.h"
 
 #include <doctest/doctest.h>
 
@@ -9,16 +10,10 @@
 #include <toml++/toml.hpp>
 
 using namespace Wayfinder;
+using TestHelpers::MakeTestRegistry;
 
 namespace
 {
-    RuntimeComponentRegistry MakeTestRegistry()
-    {
-        RuntimeComponentRegistry registry;
-        registry.AddCoreEntries();
-        return registry;
-    }
-
     /// Helper: create a scene with a single entity, apply component data, then serialise.
     /// Returns the serialised TOML table containing component data.
     toml::table RoundTrip(const std::string& componentKey, const toml::table& inputData)
@@ -69,6 +64,13 @@ TEST_SUITE("Component Serialization")
         const auto* scale = (*xform)["scale"].as_array();
         REQUIRE(scale);
         CHECK(scale->get(0)->value_or(0.0) == doctest::Approx(2.0));
+
+        const auto* rot = (*xform)["rotation"].as_array();
+        REQUIRE(rot);
+        REQUIRE(rot->size() == 3);
+        CHECK(rot->get(0)->value_or(0.0) == doctest::Approx(10.0));
+        CHECK(rot->get(1)->value_or(0.0) == doctest::Approx(20.0));
+        CHECK(rot->get(2)->value_or(0.0) == doctest::Approx(30.0));
     }
 
     TEST_CASE("Transform default values round-trip")
@@ -157,5 +159,6 @@ TEST_SUITE("Component Serialization")
         REQUIRE(renderable);
 
         CHECK((*renderable)["visible"].value_or(true) == false);
+        CHECK((*renderable)["sort_priority"].value_or(static_cast<int64_t>(0)) == 200);
     }
 }

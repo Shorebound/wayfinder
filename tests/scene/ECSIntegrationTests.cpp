@@ -2,23 +2,14 @@
 #include "scene/RuntimeComponentRegistry.h"
 #include "scene/Scene.h"
 #include "scene/entity/Entity.h"
+#include "TestHelpers.h"
 
 #include <doctest/doctest.h>
 
 #include <flecs.h>
 
 using namespace Wayfinder;
-
-namespace
-{
-    /// Creates a RuntimeComponentRegistry with core entries for testing.
-    RuntimeComponentRegistry MakeTestRegistry()
-    {
-        RuntimeComponentRegistry registry;
-        registry.AddCoreEntries();
-        return registry;
-    }
-}
+using TestHelpers::MakeTestRegistry;
 
 // ── Entity Create / Destroy ─────────────────────────────
 

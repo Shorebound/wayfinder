@@ -3,6 +3,7 @@
 #include "scene/Scene.h"
 #include "scene/SceneDocument.h"
 #include "scene/entity/Entity.h"
+#include "TestHelpers.h"
 
 #include <doctest/doctest.h>
 
@@ -12,25 +13,21 @@
 #include <flecs.h>
 
 using namespace Wayfinder;
+using TestHelpers::FixturesDir;
+using TestHelpers::MakeTestRegistry;
 
 namespace
 {
-    std::filesystem::path FixturesDir()
-    {
-        return std::filesystem::path(__FILE__).parent_path().parent_path() / "fixtures";
-    }
-
-    /// Temporary file path under /tmp for save tests.
+    /// Temporary file path under the fixtures directory for save tests.
     std::filesystem::path TempScenePath()
     {
-        return std::filesystem::temp_directory_path() / "wayfinder_test_scene_save.toml";
-    }
-
-    RuntimeComponentRegistry MakeTestRegistry()
-    {
-        RuntimeComponentRegistry registry;
-        registry.AddCoreEntries();
-        return registry;
+        static const auto dir = []()
+        {
+            auto d = FixturesDir() / "temp";
+            std::filesystem::create_directories(d);
+            return d;
+        }();
+        return dir / "wayfinder_test_scene_save.toml";
     }
 }
 
@@ -59,76 +56,107 @@ TEST_SUITE("Scene Save")
 
     TEST_CASE("Save and reload preserves entity count")
     {
-        flecs::world world;
         auto registry = MakeTestRegistry();
-        registry.RegisterComponents(world);
-        Scene::RegisterCoreECS(world);
-        Scene scene(world, registry, "RoundTrip");
 
-        scene.CreateEntity("Alpha");
-        scene.CreateEntity("Beta");
-        scene.CreateEntity("Gamma");
-
+        // Save phase
         auto path = TempScenePath();
-        REQUIRE(scene.SaveToFile(path.string()));
+        {
+            flecs::world world;
+            registry.RegisterComponents(world);
+            Scene::RegisterCoreECS(world);
+            Scene scene(world, registry, "RoundTrip");
 
-        // Reload into a new scene
-        Scene reloaded(world, registry, "Reloaded");
-        REQUIRE(reloaded.LoadFromFile(path.string()));
+            scene.CreateEntity("Alpha");
+            scene.CreateEntity("Beta");
+            scene.CreateEntity("Gamma");
 
-        auto alpha = reloaded.GetEntityByName("Alpha");
-        auto beta = reloaded.GetEntityByName("Beta");
-        auto gamma = reloaded.GetEntityByName("Gamma");
+            REQUIRE(scene.SaveToFile(path.string()));
+        }
 
-        CHECK(alpha.IsValid());
-        CHECK(beta.IsValid());
-        CHECK(gamma.IsValid());
+        // Reload into a fresh world so no leftover entities
+        {
+            flecs::world reloadWorld;
+            registry.RegisterComponents(reloadWorld);
+            Scene::RegisterCoreECS(reloadWorld);
+            Scene reloaded(reloadWorld, registry, "Reloaded");
+            REQUIRE(reloaded.LoadFromFile(path.string()));
+
+            auto alpha = reloaded.GetEntityByName("Alpha");
+            auto beta = reloaded.GetEntityByName("Beta");
+            auto gamma = reloaded.GetEntityByName("Gamma");
+
+            CHECK(alpha.IsValid());
+            CHECK(beta.IsValid());
+            CHECK(gamma.IsValid());
+        }
 
         std::filesystem::remove(path);
     }
 
     TEST_CASE("Save and reload preserves scene name")
     {
-        flecs::world world;
         auto registry = MakeTestRegistry();
-        registry.RegisterComponents(world);
-        Scene::RegisterCoreECS(world);
-
-        auto path = FixturesDir() / "test_scene.toml";
-        Scene scene(world, registry, "Default");
-        REQUIRE(scene.LoadFromFile(path.string()));
-
         auto savePath = TempScenePath();
-        REQUIRE(scene.SaveToFile(savePath.string()));
 
-        Scene reloaded(world, registry, "Reloaded");
-        REQUIRE(reloaded.LoadFromFile(savePath.string()));
+        // Load and save phase
+        {
+            flecs::world world;
+            registry.RegisterComponents(world);
+            Scene::RegisterCoreECS(world);
 
-        CHECK(reloaded.GetName() == "Test Scene");
+            auto path = FixturesDir() / "test_scene.toml";
+            Scene scene(world, registry, "Default");
+            REQUIRE(scene.LoadFromFile(path.string()));
+            REQUIRE(scene.SaveToFile(savePath.string()));
+        }
+
+        // Reload into a fresh world
+        {
+            flecs::world reloadWorld;
+            registry.RegisterComponents(reloadWorld);
+            Scene::RegisterCoreECS(reloadWorld);
+
+            Scene reloaded(reloadWorld, registry, "Reloaded");
+            REQUIRE(reloaded.LoadFromFile(savePath.string()));
+
+            CHECK(reloaded.GetName() == "Test Scene");
+        }
 
         std::filesystem::remove(savePath);
     }
 
     TEST_CASE("Save and reload preserves SceneObjectIds")
     {
-        flecs::world world;
         auto registry = MakeTestRegistry();
-        registry.RegisterComponents(world);
-        Scene::RegisterCoreECS(world);
-        Scene scene(world, registry, "IdTest");
-
-        auto entity = scene.CreateEntity("Tracked");
-        auto originalId = entity.GetSceneObjectId();
-
         auto path = TempScenePath();
-        REQUIRE(scene.SaveToFile(path.string()));
+        SceneObjectId originalId;
 
-        Scene reloaded(world, registry, "Reloaded");
-        REQUIRE(reloaded.LoadFromFile(path.string()));
+        // Save phase
+        {
+            flecs::world world;
+            registry.RegisterComponents(world);
+            Scene::RegisterCoreECS(world);
+            Scene scene(world, registry, "IdTest");
 
-        auto found = reloaded.GetEntityByName("Tracked");
-        REQUIRE(found.IsValid());
-        CHECK(found.GetSceneObjectId() == originalId);
+            auto entity = scene.CreateEntity("Tracked");
+            originalId = entity.GetSceneObjectId();
+
+            REQUIRE(scene.SaveToFile(path.string()));
+        }
+
+        // Reload into a fresh world
+        {
+            flecs::world reloadWorld;
+            registry.RegisterComponents(reloadWorld);
+            Scene::RegisterCoreECS(reloadWorld);
+
+            Scene reloaded(reloadWorld, registry, "Reloaded");
+            REQUIRE(reloaded.LoadFromFile(path.string()));
+
+            auto found = reloaded.GetEntityByName("Tracked");
+            REQUIRE(found.IsValid());
+            CHECK(found.GetSceneObjectId() == originalId);
+        }
 
         std::filesystem::remove(path);
     }

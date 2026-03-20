@@ -1,18 +1,12 @@
 #include "core/EngineConfig.h"
+#include "TestHelpers.h"
 
 #include <doctest/doctest.h>
 
 #include <filesystem>
 
 using namespace Wayfinder;
-
-namespace
-{
-    std::filesystem::path FixturesDir()
-    {
-        return std::filesystem::path(__FILE__).parent_path().parent_path() / "fixtures";
-    }
-}
+using TestHelpers::FixturesDir;
 
 // ── EngineConfig Tests ──────────────────────────────────
 
@@ -51,5 +45,10 @@ TEST_SUITE("EngineConfig")
 
         CHECK(config.Window.Width == 1920);
         CHECK(config.Window.Height == 1080);
+        CHECK(config.Window.Title == "Wayfinder Engine");
+        CHECK(config.Window.VSync == false);
+        CHECK(config.Backends.Platform == PlatformBackend::SDL3);
+        CHECK(config.Backends.Rendering == RenderBackend::SDL_GPU);
+        CHECK(config.Shaders.Directory == "assets/shaders");
     }
 }

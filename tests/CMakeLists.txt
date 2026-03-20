@@ -43,6 +43,10 @@ target_link_libraries(${WAYFINDER_CORE_TEST_NAME}
     doctest::doctest_with_main
 )
 
+target_include_directories(${WAYFINDER_CORE_TEST_NAME}
+  PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}
+)
+
 add_test(NAME ${WAYFINDER_CORE_TEST_NAME} COMMAND ${WAYFINDER_CORE_TEST_NAME})
 set_target_properties(${WAYFINDER_CORE_TEST_NAME} PROPERTIES FOLDER "${TESTS_DIRECTORY}")
 
@@ -64,6 +68,10 @@ target_link_libraries(${WAYFINDER_SCENE_TEST_NAME}
   PRIVATE
     ${ENGINE_NAME}
     doctest::doctest_with_main
+)
+
+target_include_directories(${WAYFINDER_SCENE_TEST_NAME}
+  PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}
 )
 
 add_test(NAME ${WAYFINDER_SCENE_TEST_NAME} COMMAND ${WAYFINDER_SCENE_TEST_NAME})
