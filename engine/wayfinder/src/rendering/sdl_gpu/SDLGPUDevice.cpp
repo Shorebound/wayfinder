@@ -425,6 +425,49 @@ namespace Wayfinder
         SDL_GPUColorTargetDescription colorTargetDesc{};
         colorTargetDesc.format = SDL_GetGPUSwapchainTextureFormat(m_device, m_window);
 
+        // Blend state
+        if (desc.blend.Enabled)
+        {
+            colorTargetDesc.blend_state.enable_blend = true;
+            colorTargetDesc.blend_state.color_write_mask = 0xF; // RGBA
+
+            auto toSDLBlendFactor = [](BlendFactor f) -> SDL_GPUBlendFactor
+            {
+                switch (f)
+                {
+                case BlendFactor::Zero:              return SDL_GPU_BLENDFACTOR_ZERO;
+                case BlendFactor::One:               return SDL_GPU_BLENDFACTOR_ONE;
+                case BlendFactor::SrcAlpha:           return SDL_GPU_BLENDFACTOR_SRC_ALPHA;
+                case BlendFactor::OneMinusSrcAlpha:   return SDL_GPU_BLENDFACTOR_ONE_MINUS_SRC_ALPHA;
+                case BlendFactor::DstAlpha:           return SDL_GPU_BLENDFACTOR_DST_ALPHA;
+                case BlendFactor::OneMinusDstAlpha:   return SDL_GPU_BLENDFACTOR_ONE_MINUS_DST_ALPHA;
+                case BlendFactor::SrcColor:           return SDL_GPU_BLENDFACTOR_SRC_COLOR;
+                case BlendFactor::OneMinusSrcColor:   return SDL_GPU_BLENDFACTOR_ONE_MINUS_SRC_COLOR;
+                }
+                return SDL_GPU_BLENDFACTOR_ONE;
+            };
+
+            auto toSDLBlendOp = [](BlendOp op) -> SDL_GPUBlendOp
+            {
+                switch (op)
+                {
+                case BlendOp::Add:             return SDL_GPU_BLENDOP_ADD;
+                case BlendOp::Subtract:        return SDL_GPU_BLENDOP_SUBTRACT;
+                case BlendOp::ReverseSubtract: return SDL_GPU_BLENDOP_REVERSE_SUBTRACT;
+                case BlendOp::Min:             return SDL_GPU_BLENDOP_MIN;
+                case BlendOp::Max:             return SDL_GPU_BLENDOP_MAX;
+                }
+                return SDL_GPU_BLENDOP_ADD;
+            };
+
+            colorTargetDesc.blend_state.src_color_blendfactor = toSDLBlendFactor(desc.blend.SrcColorFactor);
+            colorTargetDesc.blend_state.dst_color_blendfactor = toSDLBlendFactor(desc.blend.DstColorFactor);
+            colorTargetDesc.blend_state.color_blend_op = toSDLBlendOp(desc.blend.ColorOp);
+            colorTargetDesc.blend_state.src_alpha_blendfactor = toSDLBlendFactor(desc.blend.SrcAlphaFactor);
+            colorTargetDesc.blend_state.dst_alpha_blendfactor = toSDLBlendFactor(desc.blend.DstAlphaFactor);
+            colorTargetDesc.blend_state.alpha_blend_op = toSDLBlendOp(desc.blend.AlphaOp);
+        }
+
         SDL_GPUGraphicsPipelineTargetInfo targetInfo{};
         targetInfo.color_target_descriptions = &colorTargetDesc;
         targetInfo.num_color_targets = 1;

@@ -72,6 +72,63 @@ namespace Wayfinder
         Clockwise,
     };
 
+    // ── Blend State ─────────────────────────────────────────
+
+    enum class BlendFactor : uint8_t
+    {
+        Zero,
+        One,
+        SrcAlpha,
+        OneMinusSrcAlpha,
+        DstAlpha,
+        OneMinusDstAlpha,
+        SrcColor,
+        OneMinusSrcColor,
+    };
+
+    enum class BlendOp : uint8_t
+    {
+        Add,
+        Subtract,
+        ReverseSubtract,
+        Min,
+        Max,
+    };
+
+    struct BlendState
+    {
+        bool Enabled = false;
+        BlendFactor SrcColorFactor = BlendFactor::SrcAlpha;
+        BlendFactor DstColorFactor = BlendFactor::OneMinusSrcAlpha;
+        BlendOp ColorOp = BlendOp::Add;
+        BlendFactor SrcAlphaFactor = BlendFactor::One;
+        BlendFactor DstAlphaFactor = BlendFactor::OneMinusSrcAlpha;
+        BlendOp AlphaOp = BlendOp::Add;
+    };
+
+    namespace BlendPresets
+    {
+        constexpr BlendState Opaque() { return {}; }
+
+        constexpr BlendState AlphaBlend()
+        {
+            return {true, BlendFactor::SrcAlpha, BlendFactor::OneMinusSrcAlpha, BlendOp::Add,
+                          BlendFactor::One,      BlendFactor::OneMinusSrcAlpha, BlendOp::Add};
+        }
+
+        constexpr BlendState Additive()
+        {
+            return {true, BlendFactor::SrcAlpha, BlendFactor::One, BlendOp::Add,
+                          BlendFactor::SrcAlpha, BlendFactor::One, BlendOp::Add};
+        }
+
+        constexpr BlendState Premultiplied()
+        {
+            return {true, BlendFactor::One, BlendFactor::OneMinusSrcAlpha, BlendOp::Add,
+                          BlendFactor::One, BlendFactor::OneMinusSrcAlpha, BlendOp::Add};
+        }
+    }
+
     // ── Buffer Enums / Descriptors ──────────────────────────
 
     enum class BufferUsage : uint8_t
@@ -105,7 +162,7 @@ namespace Wayfinder
         FrontFace frontFace = FrontFace::CounterClockwise;
         bool depthTestEnabled = false;
         bool depthWriteEnabled = false;
-        // Stage 6: Blend state, depth format, multiple color targets
+        BlendState blend{};
     };
 
     // ── Compute Pipeline Create Descriptor ───────────────────

@@ -28,6 +28,7 @@ namespace Wayfinder
         pipeDesc.frontFace = desc.frontFace;
         pipeDesc.depthTestEnabled = desc.depthTestEnabled;
         pipeDesc.depthWriteEnabled = desc.depthWriteEnabled;
+        pipeDesc.blend = desc.blend;
 
         if (cache)
         {

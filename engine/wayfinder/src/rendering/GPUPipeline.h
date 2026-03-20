@@ -23,6 +23,7 @@ namespace Wayfinder
         FrontFace frontFace = FrontFace::CounterClockwise;
         bool depthTestEnabled = false;
         bool depthWriteEnabled = false;
+        BlendState blend{};
     };
 
     class PipelineCache;
