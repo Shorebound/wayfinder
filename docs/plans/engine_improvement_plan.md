@@ -795,6 +795,35 @@ Don't rewrite everything at once. Apply `Result` at system boundaries as they're
 
 ---
 
+### P2.8: Event Queue (Deferred Dispatch)
+
+**Difficulty: M  |  Dependencies: None**
+
+The event system currently uses synchronous blocking dispatch — `Event.h` itself notes this as a known limitation. Every event is handled the instant it fires, which prevents batching, makes deterministic replay impossible, and couples the dispatch callsite to every handler's execution time.
+
+#### Design
+
+- `EventQueue` class with a per-frame buffer of polymorphic events.
+- Initial implementation can use `std::vector<std::unique_ptr<Event>>` — simple and correct, but incurs a heap allocation per event. Once P2.3 (Frame-Linear Allocator) lands, replace with arena-backed storage to eliminate per-event allocation overhead.
+- `Push(event)` during SDL polling; `Drain()` at a defined frame point.
+- `Application` decides dispatch timing: immediate for latency-sensitive events (window close), queued for input events that benefit from batching.
+- Queue is drained once per frame at a well-defined point in the update loop.
+
+#### Benefits
+
+- Deterministic replay / networking: record the queue, play it back.
+- Profiling: one clear span for "event processing" per frame.
+- Decouples event producers from handler execution order.
+
+#### Definition of Done
+
+- `EventQueue` exists with `Push()` and `Drain()` API.
+- `Application::Loop()` uses the queue for input events.
+- Latency-sensitive events (window close, resize) still dispatch immediately.
+- Existing event handlers work unchanged.
+
+---
+
 ## P3 — Nice-to-Have
 
 ### P3.1: TOML Hot-Reload via File Watching
@@ -1057,6 +1086,52 @@ During execution, the render pass descriptor is built with N colour attachments 
 
 ---
 
+### P3.8: Upload Batching for TransientBufferAllocator
+
+**Difficulty: M  |  Dependencies: P2.3 (frame allocator)**
+
+Each `UploadToBuffer` call currently creates a staging transfer buffer, acquires a dedicated command buffer, begins a copy pass, uploads, ends the pass, submits, and releases the transfer buffer. This is O(N) command buffer submissions for N transient allocations per frame. With 1–2 allocations (debug lines, grid) this is fine, but it will become a bottleneck with particles, text quads, or many dynamic geometry sources.
+
+#### Design
+
+- Queue all staging writes during the frame into a single large staging buffer.
+- At a defined flush point (after all `Allocate` calls, before rendering), submit one command buffer with one copy pass containing all uploads.
+- Alternatively: use persistent buffer mapping (if SDL_GPU exposes it) to skip staging entirely for transient data.
+
+#### When
+
+When profiling shows upload overhead matters — particles, lots of dynamic geometry, or many transient allocations per frame.
+
+#### Definition of Done
+
+- Single command buffer submission per frame for all transient uploads.
+- Profiling confirms reduced overhead compared to per-allocation submission.
+- Existing transient allocation API unchanged for callers.
+
+---
+
+### P3.9: Sub-Sort Key Utilization
+
+**Difficulty: S  |  Dependencies: None**
+
+The 64-bit sort key reserves 14 bits for sub-sort (tiebreaker), but currently only uses `SortPriority` (a `uint8_t`, 0–255). The extra 6 bits of headroom are unused. Potential uses: entity ID hash for deterministic ordering across frames, sequence counter for submission-order stability.
+
+#### When
+
+When non-deterministic draw ordering causes visible artifacts (shimmer, Z-fighting between co-planar meshes).
+
+#### Design
+
+- Hash the entity ID or use a frame-monotonic sequence counter to fill the remaining sub-sort bits.
+- Ensures draw order is deterministic across frames for identical sort keys.
+
+#### Definition of Done
+
+- Sub-sort field uses all 14 bits with a deterministic tiebreaker.
+- No visible ordering flicker between objects sharing the same pipeline, material, and depth.
+
+---
+
 ## P4 — Horizon
 
 These are larger initiatives that build on earlier tiers. They're documented here for planning visibility but shouldn't be started until their dependencies are complete.
@@ -1284,6 +1359,42 @@ No CI exists. Minimum viable pipeline:
 
 ---
 
+### P4.9: Data-Driven Input Action Mapping
+
+**Dependencies: P2.8 (event queue), P3.1 (hot-reload for rebinding persistence)**
+
+The raw input layer provides `IsKeyPressed(KeyCode)` / `IsMouseButtonPressed(MouseCode)` — correct and type-safe, but game code must hard-wire physical inputs to gameplay intent. The next step is an abstraction that maps physical inputs to semantic game actions, configured in data.
+
+#### Design Sketch
+
+- TOML-defined action map loaded at startup:
+  ```toml
+  [actions.move_forward]
+  keys = ["W"]
+  gamepad = ["LeftStickUp"]
+
+  [actions.jump]
+  keys = ["Space"]
+  gamepad = ["South"]
+
+  [actions.fire]
+  mouse = ["ButtonLeft"]
+  gamepad = ["RightTrigger"]
+  ```
+- `InputActionMap` class: loads TOML, maps raw `KeyCode`/`MouseCode`/gamepad inputs to named actions.
+- Query API: `inputActions.IsActionPressed("jump")`, `inputActions.GetAxis("move_horizontal")`.
+- Supports rebinding at runtime (write back to TOML).
+- Composable: multiple maps can be layered (gameplay map + UI map + debug map) with priority.
+
+#### Definition of Done
+
+- `InputActionMap` loads from TOML and resolves named actions.
+- Game code queries actions by name, not raw keys.
+- Runtime rebinding works and persists to TOML.
+- Multiple action maps can be layered with priority.
+
+---
+
 ## Execution Order (Recommended)
 
 ```
@@ -1303,7 +1414,8 @@ Phase 3: Data & Systems
 ├── P2.2  MeshComponent split
 ├── P2.3  Frame allocator       
 ├── P2.4  Physics subsystem     (validates architecture)
-└── P2.7  Error handling        (incremental, alongside everything)
+├── P2.7  Error handling        (incremental, alongside everything)
+└── P2.8  Event queue           (decouple dispatch from polling)
 
 Phase 4: Polish
 ├── P3.1  Hot-reload
@@ -1312,7 +1424,9 @@ Phase 4: Polish
 ├── P3.4  Prefab instantiation
 ├── P3.5  RenderMeshHandle
 ├── P3.6  GPU debug annotations
-└── P3.7  Multiple render targets (MRT)
+├── P3.7  Multiple render targets (MRT)
+├── P3.8  Upload batching       (when profiling shows need)
+└── P3.9  Sub-sort key          (when ordering artifacts appear)
 
 Phase 5: Horizon
 ├── P4.1  Mesh assets
@@ -1322,10 +1436,84 @@ Phase 5: Horizon
 ├── P4.5  Audio
 ├── P4.6  Scripting
 ├── P4.7  Editor bootstrap
-└── P4.8  CI pipeline
+├── P4.8  CI pipeline
+└── P4.9  Input action mapping  (data-driven input abstraction)
 ```
 
 Items within the same phase can generally be done in parallel. Phase boundaries represent recommended checkpoints — verify everything builds and passes before crossing.
+
+---
+
+## Parallel Work Lanes
+
+Independent agents that can't collaborate need tasks that don't share files. Below are concrete lane assignments for each phase — tasks in different lanes can be given to separate agents simultaneously. Merge and verify at the phase boundary before starting the next phase.
+
+### Phase 1 — Three Independent Lanes
+
+| Lane | Task | Primary files touched |
+|------|------|-----------------------|
+| A | P1.1 Test coverage | `tests/`, header tweaks for testability |
+| B | P1.2 Generational handles | `core/Identifiers.h`, render device/resource types |
+| C | P1.3 InternedString IDs | Render pipeline/pass/layer ID types |
+
+**Conflict risk:** Low. Lane B (handles) and C (string IDs) both touch type definitions in render code but in different types and different files. Lane A is almost entirely additive (new test files).
+
+### Phase 2 — Two Lanes
+
+| Lane | Tasks | Primary files touched |
+|------|-------|-----------------------|
+| A | P1.4 Break up Renderer + P2.6 RenderPipeline | `renderer/`, render graph, render features — wide blast radius |
+| B | P2.5 Blend state | Pipeline state, D3D11 backend blend enums |
+
+P1.5 (Application decomp) depends on P1.4 and should follow in Lane A once the renderer breakup lands. P2.5 is a focused addition (new enum + pipeline state field) that can proceed in parallel as long as the agent avoids refactoring renderer internals that Lane A is actively restructuring.
+
+**Conflict risk:** Medium. Both lanes touch render pipeline code. Assign P2.5 only if Lane A hasn't started modifying `RenderPipeline` files yet, otherwise fold P2.5 into Lane A.
+
+### Phase 3 — Up to Four Lanes
+
+| Lane | Tasks | Primary files touched |
+|------|-------|-----------------------|
+| A | P2.1 Scene entity index | `scene/Scene.h/cpp`, entity lookup |
+| B | P2.2 MeshComponent split + P2.3 Frame allocator | Components, mesh data, render graph allocator |
+| C | P2.4 Physics subsystem | `physics/` (new directory), subsystem registration |
+| D | P2.8 Event queue | `events/`, `Application` loop |
+
+P2.7 (Error handling) is incremental and touches any file where errors are handled — it conflicts with every lane. Best done as a follow-up pass after the phase, or folded into each lane's scope (each agent adopts the error handling pattern for the files they touch).
+
+**Conflict risk:** Low. Each lane operates in a distinct subsystem directory. Lane B combines mesh + allocator because frame allocator serves the render path that mesh refactoring also touches.
+
+### Phase 4 — Up to Five Lanes
+
+| Lane | Tasks | Primary files touched |
+|------|-------|-----------------------|
+| A | P3.2 Explicit CMake lists + P3.3 clang-tidy | `CMakeLists.txt`, `.clang-tidy` |
+| B | P3.1 Hot-reload | Config/TOML loading, file watcher |
+| C | P3.4 Prefab instantiation | Scene system, entity factories |
+| D | P3.5 RenderMeshHandle + P3.6 GPU debug annotations | Render types, D3D11 backend |
+| E | P3.7 MRT + P3.8 Upload batching + P3.9 Sub-sort key | Render graph targets, transient buffer, sort keys |
+
+**Conflict risk:** Low. Lane D and E both touch render code but in different subsystems (handle types vs. graph targets/buffers). Lane A is build-system only.
+
+### Phase 5 — Up to Five Lanes
+
+| Lane | Tasks | Primary files touched |
+|------|-------|-----------------------|
+| A | P4.1 Mesh assets → P4.2 Composable vertex | Asset pipeline, mesh loading (sequential within lane) |
+| B | P4.3 Texture asset pipeline | Asset pipeline, texture loading |
+| C | P4.5 Audio subsystem | `audio/` (new directory, fully isolated) |
+| D | P4.8 CI pipeline | `.github/workflows/` (fully isolated) |
+| E | P4.9 Input action mapping | `input/`, TOML action maps |
+
+P4.4 (ImGui — needs P1.4, P1.5), P4.6 (Scripting — needs all of P1+P2 stable), and P4.7 (Editor — needs P1.5, P4.4, P2.2) have heavy cross-cutting dependencies. Do them sequentially: P4.4 first, then P4.6 and P4.7 can follow once the core is stable.
+
+**Conflict risk:** Very low. Lanes C, D, and E are in entirely separate directories. Lane A and B both create asset pipeline code — if they share a common `AssetLoader` interface, coordinate the interface design up front and split implementation.
+
+### Guidelines for Agent Assignment
+
+1. **Merge gate:** After all lanes in a phase complete, merge everything to a single branch, build, and run the full test suite before starting the next phase.
+2. **Interface contracts first:** When two lanes will eventually interact (e.g., Lane A mesh assets + Lane B texture assets in Phase 5), agree on shared interfaces/headers before agents start. Check these shared headers in first, then let agents work independently.
+3. **P2.7 (Error handling) is special:** It's incremental and cross-cutting. Either fold it into each agent's lane ("adopt `Result<T>` for any new API you write") or run a dedicated cleanup pass after each phase.
+4. **Smallest viable phase:** If you only have two agents, pick the two most valuable lanes per phase. Phase 1 with two agents: Lane A (tests) + Lane B (handles). Phase 3 with two agents: Lane C (physics) + Lane D (events).
 
 ---
 

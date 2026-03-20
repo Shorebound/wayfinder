@@ -45,7 +45,7 @@ The engine follows an explicit, data-oriented design. See `docs/` for full detai
 
 - `docs/project_vision.md` — why the project exists. 
     - Read this when you want to understand the "why" behind design decisions and tradeoffs.
-- `docs/future_features.md` — design sketches for future features and systems
+- `docs/plans/engine_improvement_plan.md` — prioritised improvement plan with design sketches
 - `docs/workspace_guide.md` — how to navigate the workspace, build, and run things
 
 ## Build
