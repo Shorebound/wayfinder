@@ -10,12 +10,13 @@ TEST_CASE("Default BlendState is disabled")
 {
     BlendState state{};
     CHECK_FALSE(state.Enabled);
-    CHECK(state.SrcColorFactor == BlendFactor::SrcAlpha);
-    CHECK(state.DstColorFactor == BlendFactor::OneMinusSrcAlpha);
-    CHECK(state.ColorOp == BlendOp::Add);
+    CHECK(state.SrcColourFactor == BlendFactor::SrcAlpha);
+    CHECK(state.DstColourFactor == BlendFactor::OneMinusSrcAlpha);
+    CHECK(state.ColourOp == BlendOp::Add);
     CHECK(state.SrcAlphaFactor == BlendFactor::One);
     CHECK(state.DstAlphaFactor == BlendFactor::OneMinusSrcAlpha);
     CHECK(state.AlphaOp == BlendOp::Add);
+    CHECK(state.ColourWriteMask == 0xF);
 }
 
 // ── BlendPresets ─────────────────────────────────────────
@@ -30,9 +31,9 @@ TEST_CASE("AlphaBlend preset has correct factors")
 {
     constexpr auto state = BlendPresets::AlphaBlend();
     CHECK(state.Enabled);
-    CHECK(state.SrcColorFactor == BlendFactor::SrcAlpha);
-    CHECK(state.DstColorFactor == BlendFactor::OneMinusSrcAlpha);
-    CHECK(state.ColorOp == BlendOp::Add);
+    CHECK(state.SrcColourFactor == BlendFactor::SrcAlpha);
+    CHECK(state.DstColourFactor == BlendFactor::OneMinusSrcAlpha);
+    CHECK(state.ColourOp == BlendOp::Add);
     CHECK(state.SrcAlphaFactor == BlendFactor::One);
     CHECK(state.DstAlphaFactor == BlendFactor::OneMinusSrcAlpha);
     CHECK(state.AlphaOp == BlendOp::Add);
@@ -42,9 +43,9 @@ TEST_CASE("Additive preset uses One as dst factor")
 {
     constexpr auto state = BlendPresets::Additive();
     CHECK(state.Enabled);
-    CHECK(state.SrcColorFactor == BlendFactor::SrcAlpha);
-    CHECK(state.DstColorFactor == BlendFactor::One);
-    CHECK(state.ColorOp == BlendOp::Add);
+    CHECK(state.SrcColourFactor == BlendFactor::SrcAlpha);
+    CHECK(state.DstColourFactor == BlendFactor::One);
+    CHECK(state.ColourOp == BlendOp::Add);
     CHECK(state.SrcAlphaFactor == BlendFactor::SrcAlpha);
     CHECK(state.DstAlphaFactor == BlendFactor::One);
     CHECK(state.AlphaOp == BlendOp::Add);
@@ -54,9 +55,9 @@ TEST_CASE("Premultiplied preset uses One as src factor")
 {
     constexpr auto state = BlendPresets::Premultiplied();
     CHECK(state.Enabled);
-    CHECK(state.SrcColorFactor == BlendFactor::One);
-    CHECK(state.DstColorFactor == BlendFactor::OneMinusSrcAlpha);
-    CHECK(state.ColorOp == BlendOp::Add);
+    CHECK(state.SrcColourFactor == BlendFactor::One);
+    CHECK(state.DstColourFactor == BlendFactor::OneMinusSrcAlpha);
+    CHECK(state.ColourOp == BlendOp::Add);
     CHECK(state.SrcAlphaFactor == BlendFactor::One);
     CHECK(state.DstAlphaFactor == BlendFactor::OneMinusSrcAlpha);
     CHECK(state.AlphaOp == BlendOp::Add);
@@ -75,7 +76,7 @@ TEST_CASE("PipelineCreateDesc carries blend state")
     PipelineCreateDesc desc{};
     desc.blend = BlendPresets::AlphaBlend();
     CHECK(desc.blend.Enabled);
-    CHECK(desc.blend.SrcColorFactor == BlendFactor::SrcAlpha);
+    CHECK(desc.blend.SrcColourFactor == BlendFactor::SrcAlpha);
 }
 
 // ── Presets are constexpr ────────────────────────────────
@@ -91,4 +92,19 @@ TEST_CASE("BlendPresets are usable in constexpr context")
     CHECK(alpha.Enabled);
     CHECK(additive.Enabled);
     CHECK(premul.Enabled);
+}
+
+// ── ColourWriteMask ──────────────────────────────────────
+
+TEST_CASE("ColourWriteMask defaults to all channels")
+{
+    constexpr auto alpha = BlendPresets::AlphaBlend();
+    CHECK(alpha.ColourWriteMask == 0xF);
+}
+
+TEST_CASE("ColourWriteMask can be customised")
+{
+    BlendState state = BlendPresets::AlphaBlend();
+    state.ColourWriteMask = 0x7; // RGB only
+    CHECK(state.ColourWriteMask == 0x7);
 }

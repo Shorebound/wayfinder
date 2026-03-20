@@ -74,6 +74,7 @@ namespace Wayfinder
 
     // ── Blend State ─────────────────────────────────────────
 
+    /** @brief Source or destination factor applied during colour/alpha blending. */
     enum class BlendFactor : uint8_t
     {
         Zero,
@@ -82,10 +83,11 @@ namespace Wayfinder
         OneMinusSrcAlpha,
         DstAlpha,
         OneMinusDstAlpha,
-        SrcColor,
-        OneMinusSrcColor,
+        SrcColour,
+        OneMinusSrcColour,
     };
 
+    /** @brief Arithmetic operation used to combine source and destination blend terms. */
     enum class BlendOp : uint8_t
     {
         Add,
@@ -95,33 +97,45 @@ namespace Wayfinder
         Max,
     };
 
+    /**
+     * @brief Per-target colour blending configuration.
+     *
+     * When Enabled is false the target writes opaque fragments with no blending.
+     * ColourWriteMask is a 4-bit RGBA mask (0xF = all channels).
+     */
     struct BlendState
     {
         bool Enabled = false;
-        BlendFactor SrcColorFactor = BlendFactor::SrcAlpha;
-        BlendFactor DstColorFactor = BlendFactor::OneMinusSrcAlpha;
-        BlendOp ColorOp = BlendOp::Add;
+        BlendFactor SrcColourFactor = BlendFactor::SrcAlpha;
+        BlendFactor DstColourFactor = BlendFactor::OneMinusSrcAlpha;
+        BlendOp ColourOp = BlendOp::Add;
         BlendFactor SrcAlphaFactor = BlendFactor::One;
         BlendFactor DstAlphaFactor = BlendFactor::OneMinusSrcAlpha;
         BlendOp AlphaOp = BlendOp::Add;
+        uint8_t ColourWriteMask = 0xF;
     };
 
+    /** @brief Factory functions returning common blend configurations. */
     namespace BlendPresets
     {
+        /** @return Disabled blending (opaque fragments). */
         constexpr BlendState Opaque() { return {}; }
 
+        /** @return Standard alpha blending (src·α + dst·(1−α)). */
         constexpr BlendState AlphaBlend()
         {
             return {true, BlendFactor::SrcAlpha, BlendFactor::OneMinusSrcAlpha, BlendOp::Add,
                           BlendFactor::One,      BlendFactor::OneMinusSrcAlpha, BlendOp::Add};
         }
 
+        /** @return Additive blending (src·α + dst). */
         constexpr BlendState Additive()
         {
             return {true, BlendFactor::SrcAlpha, BlendFactor::One, BlendOp::Add,
                           BlendFactor::SrcAlpha, BlendFactor::One, BlendOp::Add};
         }
 
+        /** @return Pre-multiplied alpha blending (src + dst·(1−α)). */
         constexpr BlendState Premultiplied()
         {
             return {true, BlendFactor::One, BlendFactor::OneMinusSrcAlpha, BlendOp::Add,

@@ -362,8 +362,8 @@ namespace Wayfinder
         case BlendFactor::OneMinusSrcAlpha:   return SDL_GPU_BLENDFACTOR_ONE_MINUS_SRC_ALPHA;
         case BlendFactor::DstAlpha:           return SDL_GPU_BLENDFACTOR_DST_ALPHA;
         case BlendFactor::OneMinusDstAlpha:   return SDL_GPU_BLENDFACTOR_ONE_MINUS_DST_ALPHA;
-        case BlendFactor::SrcColor:           return SDL_GPU_BLENDFACTOR_SRC_COLOR;
-        case BlendFactor::OneMinusSrcColor:   return SDL_GPU_BLENDFACTOR_ONE_MINUS_SRC_COLOR;
+        case BlendFactor::SrcColour:          return SDL_GPU_BLENDFACTOR_SRC_COLOR;
+        case BlendFactor::OneMinusSrcColour:  return SDL_GPU_BLENDFACTOR_ONE_MINUS_SRC_COLOR;
         }
         return SDL_GPU_BLENDFACTOR_ONE;
     }
@@ -458,11 +458,11 @@ namespace Wayfinder
         if (desc.blend.Enabled)
         {
             colorTargetDesc.blend_state.enable_blend = true;
-            colorTargetDesc.blend_state.color_write_mask = 0xF; // RGBA
+            colorTargetDesc.blend_state.color_write_mask = desc.blend.ColourWriteMask;
 
-            colorTargetDesc.blend_state.src_color_blendfactor = ToSDLBlendFactor(desc.blend.SrcColorFactor);
-            colorTargetDesc.blend_state.dst_color_blendfactor = ToSDLBlendFactor(desc.blend.DstColorFactor);
-            colorTargetDesc.blend_state.color_blend_op = ToSDLBlendOp(desc.blend.ColorOp);
+            colorTargetDesc.blend_state.src_color_blendfactor = ToSDLBlendFactor(desc.blend.SrcColourFactor);
+            colorTargetDesc.blend_state.dst_color_blendfactor = ToSDLBlendFactor(desc.blend.DstColourFactor);
+            colorTargetDesc.blend_state.color_blend_op = ToSDLBlendOp(desc.blend.ColourOp);
             colorTargetDesc.blend_state.src_alpha_blendfactor = ToSDLBlendFactor(desc.blend.SrcAlphaFactor);
             colorTargetDesc.blend_state.dst_alpha_blendfactor = ToSDLBlendFactor(desc.blend.DstAlphaFactor);
             colorTargetDesc.blend_state.alpha_blend_op = ToSDLBlendOp(desc.blend.AlphaOp);

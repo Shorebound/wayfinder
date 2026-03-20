@@ -81,12 +81,13 @@ namespace Wayfinder
 
         // Blend state
         combine(std::hash<bool>{}(desc.blend.Enabled));
-        combine(std::hash<uint8_t>{}(static_cast<uint8_t>(desc.blend.SrcColorFactor)));
-        combine(std::hash<uint8_t>{}(static_cast<uint8_t>(desc.blend.DstColorFactor)));
-        combine(std::hash<uint8_t>{}(static_cast<uint8_t>(desc.blend.ColorOp)));
+        combine(std::hash<uint8_t>{}(static_cast<uint8_t>(desc.blend.SrcColourFactor)));
+        combine(std::hash<uint8_t>{}(static_cast<uint8_t>(desc.blend.DstColourFactor)));
+        combine(std::hash<uint8_t>{}(static_cast<uint8_t>(desc.blend.ColourOp)));
         combine(std::hash<uint8_t>{}(static_cast<uint8_t>(desc.blend.SrcAlphaFactor)));
         combine(std::hash<uint8_t>{}(static_cast<uint8_t>(desc.blend.DstAlphaFactor)));
         combine(std::hash<uint8_t>{}(static_cast<uint8_t>(desc.blend.AlphaOp)));
+        combine(std::hash<uint8_t>{}(desc.blend.ColourWriteMask));
 
         return h;
     }
