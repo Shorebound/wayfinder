@@ -46,33 +46,31 @@ GitHub has native **blocked-by / blocking** dependency relationships (same conce
 
 GitHub also supports **sub-issues** (parent/child hierarchy) for breaking large tasks into smaller pieces.
 
-## CLI Tool: `tools/gh-issues/gh-issues.ps1`
+## CLI Tool: `gh-issues`
 
-Manages issue relationships via the GitHub GraphQL API. Handles node ID lookups automatically — just pass issue numbers. Targets accept comma-separated lists (e.g. `7,8,9`).
+Compiled C++ tool (source: `tools/gh-issues/src/Main.cpp`). Built via CMake when `WAYFINDER_BUILD_TOOLS=ON`, output to `build/bin/<config>/gh-issues.exe`. Manages issue relationships via the GitHub GraphQL API. Handles node ID lookups automatically — just pass issue numbers. Targets accept comma-separated lists (e.g. `7,8,9`).
 
 ```powershell
-$tool = ".\tools\gh-issues\gh-issues.ps1"
-
 # Add relationships
-& $tool blocked-by 12 7         # #12 is blocked by #7
-& $tool blocking 7 12,15        # #7 is blocking #12 and #15
-& $tool sub-issue 10 41,42      # #41, #42 become sub-issues of #10
+gh-issues blocked-by 12 7         # #12 is blocked by #7
+gh-issues blocking 7 12,15        # #7 is blocking #12 and #15
+gh-issues sub-issue 10 41,42      # #41, #42 become sub-issues of #10
 
 # Remove relationships
-& $tool remove-blocked-by 12 7  # undo blocked-by
-& $tool remove-blocking 7 12    # undo blocking
-& $tool remove-sub-issue 10 41  # undo sub-issue
+gh-issues remove-blocked-by 12 7  # undo blocked-by
+gh-issues remove-blocking 7 12    # undo blocking
+gh-issues remove-sub-issue 10 41  # undo sub-issue
 
 # Inspect
-& $tool show 12                 # relationships, labels, blocker summary
-& $tool show 12,15,20           # compact table for multiple issues
-& $tool tree 10                 # sub-issue hierarchy with completion counts
-& $tool chain 12                # walk blocked-by chain, find critical path
+gh-issues show 12                 # relationships, labels, blocker summary
+gh-issues show 12,15,20           # compact table for multiple issues
+gh-issues tree 10                 # sub-issue hierarchy with completion counts
+gh-issues chain 12                # walk blocked-by chain, find critical path
 
-# Discovery (pass 0 as the issue number — it's ignored)
-& $tool ready 0                                        # all open unblocked issues
-& $tool status 0 -Milestone "Phase 1: Foundation"      # milestone progress
-& $tool orphans 0                                       # issues with no parent or milestone
+# Discovery
+gh-issues ready                                        # all open unblocked issues
+gh-issues status --milestone "Phase 1: Foundation"      # milestone progress
+gh-issues orphans                                       # issues with no parent or milestone
 ```
 
 ## GraphQL API Reference

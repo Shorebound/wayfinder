@@ -32,6 +32,8 @@ This file documents common mistakes, confusion points, and non-obvious behaviour
 
 - **`Module::Register()` stores factories, not live registrations.** `ModuleRegistry` collects descriptors that are applied once via `ApplyToWorld(flecs::world&)` at startup.
 
-## gh-issues.ps1
+## gh-issues
 
-- **Pass `0` as the issue number for `ready`, `status`, and `orphans`.** These commands don't operate on a specific issue — the number is ignored. Always pass `0` as the positional issue argument (e.g., `.\gh-issues.ps1 ready 0`). If you encounter surprising behavior with the tool, note it here.
+- **gh-issues is a compiled C++ tool** (source: `tools/gh-issues/src/Main.cpp`). It is built via CMake when `WAYFINDER_BUILD_TOOLS=ON` and output to `build/bin/<config>/gh-issues.exe`.
+- **`ready`, `status`, and `orphans` take no issue number.** Just run `gh-issues ready`, `gh-issues orphans`, or `gh-issues status --milestone "..."` directly.
+- If you encounter surprising behaviour with the tool, note it here.
