@@ -1,8 +1,9 @@
 #include "Application.h"
 
 #include "core/EngineConfig.h"
-#include "core/EngineContext.h"
+#include "core/EngineRuntime.h"
 #include "core/Game.h"
+#include "core/GameContext.h"
 #include "core/Module.h"
 #include "core/ModuleRegistry.h"
 #include "core/LayerStack.h"
@@ -12,11 +13,7 @@
 #include "core/events/ApplicationEvent.h"
 #include "core/events/MouseEvent.h"
 #include "platform/Input.h"
-#include "platform/Time.h"
 #include "platform/Window.h"
-#include "rendering/RenderDevice.h"
-#include "rendering/Renderer.h"
-#include "rendering/SceneRenderExtractor.h"
 #include "scene/Scene.h"
 
 namespace Wayfinder
@@ -49,7 +46,7 @@ namespace Wayfinder
         Log::Init();
         WAYFINDER_INFO(LogEngine, "Initializing Wayfinder Engine");
 
-        // Discover project descriptor from CWD
+        // 1. Discover project descriptor from CWD
         const auto projectFile = FindProjectFile();
         if (!projectFile)
         {
@@ -74,75 +71,45 @@ namespace Wayfinder
 
         m_project = std::make_unique<ProjectDescriptor>(std::move(loadResult.Descriptor));
 
-        // Load engine config from the project's config directory (falls back to defaults)
+        // 2. Load engine config
         m_config = std::make_unique<EngineConfig>(
             EngineConfig::LoadFromFile(m_project->ResolveEngineConfigPath()));
 
-        // Platform services — owned directly, no ServiceLocator
-        m_input = Input::Create(m_config->Backends.Platform);
-        m_time = Time::Create(m_config->Backends.Platform);
-        m_layerStack = std::make_unique<LayerStack>();
-
-        // Window — must exist before RenderDevice
-        const auto windowConfig = Window::Config{
-            m_config->Window.Width,
-            m_config->Window.Height,
-            m_config->Window.Title,
-            m_config->Window.VSync};
-
-        m_window = Window::Create(windowConfig, m_config->Backends.Platform);
-
-        if (!m_window->Initialize())
-        {
-            WAYFINDER_ERROR(LogEngine, "Failed to initialize Window");
-            return false;
-        }
-
-        // Wire window events → Application::OnEvent
-        m_window->SetEventCallback(
-            [this](Event& e) { OnEvent(e); });
-
-        // GPU device — needs window handle for swapchain
-        m_device = RenderDevice::Create(m_config->Backends.Rendering);
-
-        if (!m_device || !m_device->Initialize(*m_window))
-        {
-            WAYFINDER_ERROR(LogEngine, "Failed to initialize RenderDevice");
-            return false;
-        }
-
-        // Create module registry and let the game module declare its systems.
-        // This must happen before Game::Initialize so scene creation can
-        // replay the registered system factories into every new world.
+        // 3. Module registration (before Game so scene creation can use factories)
         if (m_module)
         {
             m_moduleRegistry = std::make_unique<ModuleRegistry>(*m_project, *m_config);
             m_module->Register(*m_moduleRegistry);
         }
 
-        // Build context bundle for systems that need it
-        EngineContext ctx{*m_window, *m_input, *m_time, *m_config, *m_project,
-                          m_moduleRegistry.get()};
+        // 4. Platform + rendering services
+        m_runtime = std::make_unique<EngineRuntime>(*m_config, *m_project);
+        if (!m_runtime->Initialize())
+        {
+            WAYFINDER_ERROR(LogEngine, "Failed to initialize EngineRuntime");
+            return false;
+        }
 
-        // Game and renderer
+        // Wire window events → Application::OnEvent
+        m_runtime->GetWindow().SetEventCallback(
+            [this](Event& e) { OnEvent(e); });
+
+        // 5. Layer stack
+        m_layerStack = std::make_unique<LayerStack>();
+
+        // 6. Game
+        GameContext gameCtx{*m_project, m_moduleRegistry.get()};
         m_game = std::make_unique<Game>();
-        m_renderer = std::make_unique<Renderer>();
-        m_sceneRenderExtractor = std::make_unique<SceneRenderExtractor>();
 
-        if (!m_game->Initialize(ctx))
+        if (!m_game->Initialize(gameCtx))
         {
             WAYFINDER_ERROR(LogEngine, "Failed to initialize Game");
             return false;
         }
 
-        m_renderer->SetAssetService(m_game->GetAssetService());
+        m_runtime->SetAssetService(m_game->GetAssetService());
 
-        if (!m_renderer->Initialize(*m_device, *m_config))
-        {
-            WAYFINDER_ERROR(LogEngine, "Failed to initialize Renderer");
-            return false;
-        }
-
+        // 7. Module startup
         if (m_module)
         {
             m_module->OnStartup();
@@ -155,31 +122,28 @@ namespace Wayfinder
 
     void Application::Loop()
     {
-        while (m_running && !m_window->ShouldClose())
+        while (m_running && !m_runtime->ShouldClose())
         {
-            m_time->Update();
-            m_input->BeginFrame();
-            m_window->Update(); // polls SDL events → dispatches via OnEvent
+            m_runtime->BeginFrame();
+            const float dt = m_runtime->GetDeltaTime();
 
             // Propagate frame through layers (bottom → top)
             for (auto& layer : *m_layerStack)
             {
-                layer->OnUpdate(m_time->GetDeltaTime());
+                layer->OnUpdate(dt);
             }
 
             if (m_game)
             {
-                m_game->Update(m_time->GetDeltaTime());
+                m_game->Update(dt);
 
-                if (m_renderer)
+                if (const auto* currentScene = m_game->GetCurrentScene())
                 {
-                    if (const auto* currentScene = m_game->GetCurrentScene())
-                    {
-                        m_renderer->Render(m_sceneRenderExtractor->Extract(*currentScene));
-                    }
+                    m_runtime->RenderScene(*currentScene);
                 }
             }
 
+            m_runtime->EndFrame();
             m_running = m_game->IsRunning();
         }
     }
@@ -196,7 +160,7 @@ namespace Wayfinder
         dispatcher.Dispatch<MouseScrolledEvent>(
             [this](MouseScrolledEvent& e)
             {
-                m_input->AccumulateScroll(e.GetXOffset(), e.GetYOffset());
+                m_runtime->GetInput().AccumulateScroll(e.GetXOffset(), e.GetYOffset());
                 return false;
             });
 
@@ -240,35 +204,19 @@ namespace Wayfinder
 
         m_moduleRegistry = nullptr;
 
-        if (m_renderer)
-        {
-            m_renderer->Shutdown();
-            m_renderer = nullptr;
-        }
-
-        m_sceneRenderExtractor = nullptr;
-
         if (m_game)
         {
             m_game->Shutdown();
             m_game = nullptr;
         }
 
-        if (m_device)
+        if (m_runtime)
         {
-            m_device->Shutdown();
-            m_device = nullptr;
-        }
-
-        if (m_window)
-        {
-            m_window->Shutdown();
-            m_window = nullptr;
+            m_runtime->Shutdown();
+            m_runtime = nullptr;
         }
 
         m_layerStack = nullptr;
-        m_input = nullptr;
-        m_time = nullptr;
         m_config = nullptr;
         m_project = nullptr;
 

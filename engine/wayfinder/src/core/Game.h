@@ -21,7 +21,7 @@ namespace Wayfinder
     class AssetService;
     class ModuleRegistry;
     class Scene;
-    struct EngineContext;
+    struct GameContext;
 
     class WAYFINDER_API Game
     {
@@ -29,7 +29,7 @@ namespace Wayfinder
         Game();
         ~Game();
 
-        bool Initialize(const EngineContext& ctx);
+        bool Initialize(const GameContext& ctx);
         void Update(float deltaTime);
         void Shutdown();
 

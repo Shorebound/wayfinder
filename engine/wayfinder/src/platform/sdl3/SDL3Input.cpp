@@ -1,4 +1,5 @@
 #include "SDL3Input.h"
+#include "../null/NullInput.h"
 
 #include <SDL3/SDL.h>
 #include <cstring>
@@ -11,6 +12,8 @@ namespace Wayfinder
         {
         case PlatformBackend::SDL3:
             return std::make_unique<SDL3Input>();
+        case PlatformBackend::Null:
+            return std::make_unique<NullInput>();
         }
 
         return nullptr;

@@ -7,6 +7,7 @@ namespace Wayfinder
     enum class PlatformBackend
     {
         SDL3,
+        Null,
     };
 
     enum class RenderBackend

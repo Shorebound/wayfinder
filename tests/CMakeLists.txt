@@ -25,6 +25,7 @@ set(WAYFINDER_CORE_TEST_NAME wayfinder_core_tests)
 add_executable(${WAYFINDER_CORE_TEST_NAME}
   core/HandleTests.cpp
   core/InternedStringTests.cpp
+  core/EngineRuntimeTests.cpp
 )
 
 wayfinder_set_output_directories(${WAYFINDER_CORE_TEST_NAME})

@@ -1,6 +1,5 @@
 #include "Game.h"
-#include "EngineConfig.h"
-#include "EngineContext.h"
+#include "GameContext.h"
 #include "GameplayTag.h"
 #include "GameplayTagRegistry.h"
 #include "GameStateMachine.h"
@@ -28,7 +27,7 @@ namespace Wayfinder
         }
     }
 
-    bool Game::Initialize(const EngineContext& ctx)
+    bool Game::Initialize(const GameContext& ctx)
     {
         WAYFINDER_INFO(LogGame, "Initializing game");
 
