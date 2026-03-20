@@ -12,6 +12,8 @@
 #include "../rendering/SceneRenderExtractor.h"
 #include "../scene/Scene.h"
 
+#include <cassert>
+
 namespace Wayfinder
 {
     EngineRuntime::EngineRuntime(const EngineConfig& config,
@@ -94,6 +96,14 @@ namespace Wayfinder
         if (!m_renderer->Initialize(*m_device, m_config))
         {
             WAYFINDER_ERROR(LogEngine, "EngineRuntime: Failed to initialize Renderer");
+            m_renderer = nullptr;
+            m_extractor = nullptr;
+            m_device->Shutdown();
+            m_device = nullptr;
+            m_window->Shutdown();
+            m_window = nullptr;
+            m_time = nullptr;
+            m_input = nullptr;
             return false;
         }
 
@@ -103,8 +113,8 @@ namespace Wayfinder
 
     void EngineRuntime::Shutdown()
     {
-        if (!m_renderer && !m_device && !m_window)
-            return; // already shut down or never initialized
+        if (!m_renderer && !m_device && !m_window && !m_input && !m_time)
+            return; // already shut down or never initialised
 
         WAYFINDER_INFO(LogEngine, "Shutting down EngineRuntime");
 
@@ -178,11 +188,11 @@ namespace Wayfinder
 
     // ── Non-owning accessors ─────────────────────────────────
 
-    Window& EngineRuntime::GetWindow() { return *m_window; }
-    Input& EngineRuntime::GetInput() { return *m_input; }
-    Time& EngineRuntime::GetTime() { return *m_time; }
-    RenderDevice& EngineRuntime::GetDevice() { return *m_device; }
-    Renderer& EngineRuntime::GetRenderer() { return *m_renderer; }
+    Window& EngineRuntime::GetWindow() { assert(m_window && "GetWindow called before Initialise or after Shutdown"); return *m_window; }
+    Input& EngineRuntime::GetInput() { assert(m_input && "GetInput called before Initialise or after Shutdown"); return *m_input; }
+    Time& EngineRuntime::GetTime() { assert(m_time && "GetTime called before Initialise or after Shutdown"); return *m_time; }
+    RenderDevice& EngineRuntime::GetDevice() { assert(m_device && "GetDevice called before Initialise or after Shutdown"); return *m_device; }
+    Renderer& EngineRuntime::GetRenderer() { assert(m_renderer && "GetRenderer called before Initialise or after Shutdown"); return *m_renderer; }
 
     // ── Context bundle ───────────────────────────────────────
 
