@@ -7,7 +7,7 @@
 #include "maths/Maths.h"
 #include "rendering/materials/PostProcessVolume.h"
 #include "rendering/graph/RenderIntent.h"
-#include "rendering/RenderTypes.h"
+#include "core/Types.h"
 
 namespace Wayfinder
 {
