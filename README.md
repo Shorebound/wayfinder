@@ -67,13 +67,15 @@ By default, the top-level build enables the sandbox and leaves standalone tools 
 
 ## Technology Choices
 
-- `raylib` is the current platform and rendering backend
+- `SDL3` provides windowing, input, events, and GPU rendering (via SDL_GPU)
 - `flecs` is the current ECS and scene world foundation
 - `tomlplusplus` backs hand-authored runtime assets
 - `nlohmann/json` is reserved for generated, interchange, or diagnostic data
 - `spdlog` provides logging
 - `JoltPhysics` is the intended near-term 3D physics direction
-- `Box2D`, `Tracy`, and `ImGui` are available in the dependency plan but are not yet central to the checked-in workflow
+- `ImGui` provides immediate-mode UI (editor integration ready)
+- `Box2D` and `Tracy` are available in the dependency plan but are not yet central to the checked-in workflow
+- `doctest` provides unit testing
 
 ## Repository Map
 

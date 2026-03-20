@@ -72,7 +72,26 @@ CPMAddPackage(
     NAME imgui
     GITHUB_REPOSITORY ocornut/imgui
     VERSION 1.91.9b
+    DOWNLOAD_ONLY YES
 )
+
+if(imgui_ADDED)
+    # Build ImGui core + SDL3/SDL_GPU backend as a static library.
+    add_library(imgui STATIC
+        "${imgui_SOURCE_DIR}/imgui.cpp"
+        "${imgui_SOURCE_DIR}/imgui_draw.cpp"
+        "${imgui_SOURCE_DIR}/imgui_tables.cpp"
+        "${imgui_SOURCE_DIR}/imgui_widgets.cpp"
+        "${imgui_SOURCE_DIR}/imgui_demo.cpp"
+        "${imgui_SOURCE_DIR}/backends/imgui_impl_sdl3.cpp"
+        "${imgui_SOURCE_DIR}/backends/imgui_impl_sdlgpu3.cpp"
+    )
+    target_include_directories(imgui PUBLIC
+        "${imgui_SOURCE_DIR}"
+        "${imgui_SOURCE_DIR}/backends"
+    )
+    target_link_libraries(imgui PUBLIC SDL3::SDL3)
+endif()
 
 # --- doctest (test framework, header-only) ---
 if(WAYFINDER_BUILD_TESTS)
@@ -83,9 +102,15 @@ if(WAYFINDER_BUILD_TESTS)
         DOWNLOAD_ONLY YES
     )
     if(doctest_ADDED)
-        add_library(doctest_with_main INTERFACE)
-        target_include_directories(doctest_with_main INTERFACE "${doctest_SOURCE_DIR}")
-        target_compile_definitions(doctest_with_main INTERFACE DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN)
+        # Header-only interface (no implementation — use in all test TUs)
+        add_library(doctest_headers INTERFACE)
+        target_include_directories(doctest_headers INTERFACE "${doctest_SOURCE_DIR}")
+        add_library(doctest::doctest ALIAS doctest_headers)
+
+        # Single-TU implementation with main() — link to one test executable
+        add_library(doctest_with_main STATIC "${CMAKE_CURRENT_SOURCE_DIR}/cmake/doctest_main.cpp")
+        target_link_libraries(doctest_with_main PUBLIC doctest_headers)
+        target_compile_definitions(doctest_with_main PRIVATE DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN)
         add_library(doctest::doctest_with_main ALIAS doctest_with_main)
     endif()
 endif()

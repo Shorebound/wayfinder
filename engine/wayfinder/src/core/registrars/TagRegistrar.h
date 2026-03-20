@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../wayfinder_exports.h"
+#include "wayfinder_exports.h"
 
 #include <string>
 #include <vector>

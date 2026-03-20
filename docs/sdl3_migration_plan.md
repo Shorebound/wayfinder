@@ -1,5 +1,7 @@
 # SDL3 Migration Plan
 
+> **Status: Complete.** All stages of the migration have been implemented. This document is retained as a historical reference for the architectural decisions and migration sequence. The engine now runs entirely on SDL3 + SDL_GPU with no Raylib dependencies.
+
 ## Purpose
 
 This document is the tactical plan for migrating Wayfinder from Raylib to SDL3 + SDL_GPU.

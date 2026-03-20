@@ -48,17 +48,21 @@ namespace Wayfinder
         std::filesystem::path ResolveModulePath() const;
 
         /// Result of loading a project descriptor with validation information.
-        struct LoadResult
-        {
-            ProjectDescriptor Descriptor;
-            bool Valid = true;
-            std::vector<std::string> Warnings;
-        };
+        struct LoadResult;
 
         /// Load a project descriptor from a file with validation.
         /// Returns a LoadResult containing the descriptor, validity flag, and
         /// any warnings encountered during parsing/validation.
         static LoadResult LoadFromFile(const std::filesystem::path& path);
+    };
+
+    /// Result of loading a project descriptor with validation information.
+    /// Defined outside ProjectDescriptor so it can hold a ProjectDescriptor by value.
+    struct WAYFINDER_API ProjectDescriptor::LoadResult
+    {
+        ProjectDescriptor Descriptor;
+        bool Valid = true;
+        std::vector<std::string> Warnings;
     };
 
 } // namespace Wayfinder

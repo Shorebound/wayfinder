@@ -136,16 +136,27 @@ All third-party dependencies are fetched via [CPM.cmake](https://github.com/cpm-
 
 Current dependencies:
 
-- `SDL3` for windowing, input, events, and GPU rendering (via SDL_GPU) — replacing Raylib
+- `SDL3` for windowing, input, events, and GPU rendering (via SDL_GPU)
 - `flecs` for ECS and scene world management
 - `tomlplusplus` for authored data
 - `nlohmann/json` for generated and interchange data
 - `spdlog` for logging
 - `JoltPhysics` as the intended near-term 3D physics path
-- `Box2D`, `Tracy`, and `ImGui` as available dependencies that are not yet part of the main checked-in workflow
+- `ImGui` for immediate-mode UI (editor integration ready)
+- `Box2D` and `Tracy` as available dependencies that are not yet part of the main checked-in workflow
 - `doctest` for unit testing (linked only when `WAYFINDER_BUILD_TESTS=ON`)
 
-Note: Raylib was the original platform and rendering backend. The engine is migrating to SDL3 + SDL_GPU. See `docs/sdl3_migration_plan.md` for the full plan.
+## Running Tests
+
+Tests are built when `WAYFINDER_BUILD_TESTS=ON` (included in the `dev` preset). The test executable runs all rendering and engine tests headlessly using `NullDevice`.
+
+```powershell
+# Run via CTest
+ctest --preset test
+
+# Or directly
+build\bin\Debug\wayfinder_render_tests.exe
+```
 
 ## Recommended Reading Order
 
@@ -155,5 +166,6 @@ If you are new to the repository, read the docs in this order:
 2. `docs/project_vision.md`
 3. `docs/runtime_architecture.md`
 4. `docs/data_authoring_and_editor.md`
-5. `docs/sdl3_migration_plan.md`
-6. `docs/implementation_plan.md`
+5. `docs/render_features.md`
+6. `docs/sdl3_migration_plan.md`
+7. `docs/implementation_plan.md`

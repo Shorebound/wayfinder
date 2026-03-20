@@ -1,7 +1,7 @@
 #pragma once
 
 #include "../GameState.h"
-#include "../wayfinder_exports.h"
+#include "wayfinder_exports.h"
 
 #include <functional>
 #include <string>
