@@ -6,14 +6,11 @@
 #include <glm/glm.hpp>
 
 #include "../core/BackendConfig.h"
+#include "GPUHandles.h"
 #include "wayfinder_exports.h"
 
 namespace Wayfinder
 {
-    // ── Opaque GPU Handle Types ────────────────────────────
-
-    using GPUTextureHandle = void*;
-    using GPUSamplerHandle = void*;
 
     // ── Engine Math Aliases ──────────────────────────────────
 
@@ -208,8 +205,8 @@ namespace Wayfinder
         ColorAttachmentDescriptor colorAttachment{};
         DepthAttachmentDescriptor depthAttachment{};
         bool targetSwapchain = true;
-        GPUTextureHandle colorTarget = nullptr;  // If set and !targetSwapchain, render to this texture
-        GPUTextureHandle depthTarget = nullptr;  // If set, use instead of auto-managed depth
+        GPUTextureHandle colorTarget{};  // If set and !targetSwapchain, render to this texture
+        GPUTextureHandle depthTarget{};  // If set, use instead of auto-managed depth
     };
 
     // ── Device Info ──────────────────────────────────────────

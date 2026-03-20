@@ -24,7 +24,7 @@ namespace Wayfinder
         if (!m_device)
         {
             WAYFINDER_ERROR(LogRenderer, "TransientResourcePool::Acquire called before Initialize");
-            return nullptr;
+            return GPUTextureHandle::Invalid();
         }
 
         PoolKey key{desc.width, desc.height, desc.format, desc.usage};
@@ -47,7 +47,7 @@ namespace Wayfinder
 
     void TransientResourcePool::Release(GPUTextureHandle texture, const TextureCreateDesc& desc)
     {
-        if (!texture) return;
+        if (!texture.IsValid()) return;
         if (!m_device) return;
 
         PoolKey key{desc.width, desc.height, desc.format, desc.usage};

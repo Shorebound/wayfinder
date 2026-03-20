@@ -17,7 +17,7 @@ namespace Wayfinder
     {
         for (auto& [key, handle] : m_cache)
         {
-            if (handle)
+            if (handle.IsValid())
             {
                 m_device->DestroyShader(handle);
             }
@@ -46,7 +46,7 @@ namespace Wayfinder
         if (bytecode.empty())
         {
             WAYFINDER_ERROR(LogRenderer, "ShaderManager: Failed to load '{}'", filePath);
-            return nullptr;
+            return GPUShaderHandle::Invalid();
         }
 
         ShaderCreateDesc desc{};
@@ -63,7 +63,7 @@ namespace Wayfinder
         if (!handle)
         {
             WAYFINDER_ERROR(LogRenderer, "ShaderManager: GPU shader creation failed for '{}'", filePath);
-            return nullptr;
+            return GPUShaderHandle::Invalid();
         }
 
         m_cache[key] = handle;

@@ -9,15 +9,6 @@ namespace Wayfinder
 {
     class Window;
 
-    // ── GPU Handle Types ─────────────────────────────────────
-
-    // Opaque handles wrapping backend-specific objects.
-    // Engines hold these; only the RenderDevice knows the concrete type.
-    using GPUShaderHandle = void*;
-    using GPUPipelineHandle = void*;
-    using GPUBufferHandle = void*;
-    using GPUComputePipelineHandle = void*;
-
     // ── Shader Stage ─────────────────────────────────────────
 
     enum class ShaderStage : uint8_t
@@ -105,8 +96,8 @@ namespace Wayfinder
 
     struct PipelineCreateDesc
     {
-        GPUShaderHandle vertexShader = nullptr;
-        GPUShaderHandle fragmentShader = nullptr;
+        GPUShaderHandle vertexShader{};
+        GPUShaderHandle fragmentShader{};
         VertexLayout vertexLayout{};
         PrimitiveType primitiveType = PrimitiveType::TriangleList;
         CullMode cullMode = CullMode::Back;

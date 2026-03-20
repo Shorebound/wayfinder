@@ -7,7 +7,7 @@ namespace Wayfinder
         : m_device(other.m_device), m_handle(other.m_handle), m_size(other.m_size)
     {
         other.m_device = nullptr;
-        other.m_handle = nullptr;
+        other.m_handle = {};
         other.m_size = 0;
     }
 
@@ -20,7 +20,7 @@ namespace Wayfinder
             m_handle = other.m_handle;
             m_size = other.m_size;
             other.m_device = nullptr;
-            other.m_handle = nullptr;
+            other.m_handle = {};
             other.m_size = 0;
         }
         return *this;
@@ -57,10 +57,10 @@ namespace Wayfinder
 
     void GPUBuffer::Destroy()
     {
-        if (m_device && m_handle)
+        if (m_device && m_handle.IsValid())
         {
             m_device->DestroyBuffer(m_handle);
-            m_handle = nullptr;
+            m_handle = {};
         }
     }
 

@@ -2,6 +2,7 @@
 
 #include "wayfinder_exports.h"
 
+#include <format>
 #include <functional>
 #include <string>
 #include <string_view>
@@ -68,5 +69,15 @@ struct std::hash<Wayfinder::InternedString>
     size_t operator()(const Wayfinder::InternedString& s) const noexcept
     {
         return std::hash<const void*>{}(&s.GetString());
+    }
+};
+
+/// std::formatter specialisation so InternedString works with std::format / std::print.
+template <>
+struct std::formatter<Wayfinder::InternedString> : std::formatter<std::string>
+{
+    auto format(const Wayfinder::InternedString& s, std::format_context& ctx) const
+    {
+        return std::formatter<std::string>::format(s.GetString(), ctx);
     }
 };

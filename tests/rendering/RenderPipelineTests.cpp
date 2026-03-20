@@ -77,7 +77,7 @@ TEST_CASE("Extractor builds explicit passes and debug payload")
     cube.AddComponent<Wayfinder::TransformComponent>(Wayfinder::TransformComponent{{0.0f, 0.5f, 0.0f}});
     cube.AddComponent<Wayfinder::MeshComponent>(Wayfinder::MeshComponent{});
     Wayfinder::RenderableComponent renderable;
-    renderable.Layer = std::string(Wayfinder::RenderLayers::Main);
+    renderable.Layer = Wayfinder::RenderLayers::Main;
     cube.AddComponent<Wayfinder::RenderableComponent>(renderable);
 
     Wayfinder::Entity light = scene.CreateEntity("Light");

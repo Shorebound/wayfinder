@@ -44,11 +44,11 @@ namespace Wayfinder
         void Destroy();
         void Bind();
 
-        bool IsValid() const { return m_pipeline != nullptr; }
+        bool IsValid() const { return m_pipeline.IsValid(); }
 
     private:
         RenderDevice* m_device = nullptr;
-        GPUPipelineHandle m_pipeline = nullptr;
+        GPUPipelineHandle m_pipeline{};
         bool m_isFromCache = false;
     };
 

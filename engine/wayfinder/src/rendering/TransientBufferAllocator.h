@@ -9,11 +9,11 @@ namespace Wayfinder
     // A sub-allocation from a transient ring buffer.
     struct TransientAllocation
     {
-        GPUBufferHandle Buffer = nullptr;
+        GPUBufferHandle Buffer{};
         uint32_t Offset = 0;
         uint32_t Size = 0;
 
-        bool IsValid() const { return Buffer != nullptr && Size > 0; }
+        bool IsValid() const { return Buffer.IsValid() && Size > 0; }
     };
 
     // Per-frame ring-buffer allocator for dynamic vertex/index data.
@@ -47,8 +47,8 @@ namespace Wayfinder
 
         RenderDevice* m_device = nullptr;
 
-        GPUBufferHandle m_vertexRing = nullptr;
-        GPUBufferHandle m_indexRing = nullptr;
+        GPUBufferHandle m_vertexRing{};
+        GPUBufferHandle m_indexRing{};
 
         uint32_t m_vertexCapacity = 0;
         uint32_t m_indexCapacity = 0;

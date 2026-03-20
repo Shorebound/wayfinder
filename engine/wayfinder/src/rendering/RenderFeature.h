@@ -20,7 +20,7 @@ namespace Wayfinder
         ShaderProgramRegistry& ProgramRegistry;
         ShaderManager& ShaderManager;
         PipelineCache& PipelineCache;
-        GPUSamplerHandle NearestSampler = nullptr;
+        GPUSamplerHandle NearestSampler{};
     };
 
     // Base class for registerable rendering extensions.

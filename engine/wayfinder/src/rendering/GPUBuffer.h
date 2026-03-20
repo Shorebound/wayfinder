@@ -23,12 +23,12 @@ namespace Wayfinder
         void Destroy();
 
         GPUBufferHandle GetHandle() const { return m_handle; }
-        bool IsValid() const { return m_handle != nullptr; }
+        bool IsValid() const { return m_handle.IsValid(); }
         uint32_t GetSize() const { return m_size; }
 
     private:
         RenderDevice* m_device = nullptr;
-        GPUBufferHandle m_handle = nullptr;
+        GPUBufferHandle m_handle{};
         uint32_t m_size = 0;
     };
 

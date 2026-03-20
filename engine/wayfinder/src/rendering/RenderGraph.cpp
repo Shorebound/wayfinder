@@ -77,7 +77,7 @@ namespace Wayfinder
 
     GPUTextureHandle RenderGraphResources::GetTexture(RenderGraphHandle handle) const
     {
-        if (!handle.IsValid() || handle.Index >= m_textures.size()) return nullptr;
+        if (!handle.IsValid() || handle.Index >= m_textures.size()) return GPUTextureHandle::Invalid();
         return m_textures[handle.Index];
     }
 
@@ -274,7 +274,7 @@ namespace Wayfinder
 
         // ── Allocate transient textures ──────────────────────
         RenderGraphResources resources;
-        resources.m_textures.resize(m_resources.size(), nullptr);
+        resources.m_textures.resize(m_resources.size(), GPUTextureHandle::Invalid());
 
         for (uint32_t i = 0; i < m_resources.size(); ++i)
         {

@@ -148,7 +148,7 @@ namespace
         return "point";
     }
 
-    std::string ReadRenderLayer(const toml::table& table, const char* key, const std::string& fallback)
+    Wayfinder::InternedString ReadRenderLayer(const toml::table& table, const char* key, const Wayfinder::InternedString& fallback)
     {
         const auto layer = table[key].value<std::string>();
         if (!layer || layer->empty())
@@ -156,7 +156,7 @@ namespace
             return fallback;
         }
 
-        return *layer;
+        return Wayfinder::InternedString::Intern(*layer);
     }
 
     Wayfinder::MeshPrimitive ReadPrimitive(const toml::table& table, const char* key, Wayfinder::MeshPrimitive fallback)
@@ -916,7 +916,7 @@ namespace
         const Wayfinder::RenderableComponent& renderable = entity.GetComponent<Wayfinder::RenderableComponent>();
         toml::table componentTable;
         componentTable.insert_or_assign("visible", renderable.Visible);
-        componentTable.insert_or_assign("layer", renderable.Layer);
+        componentTable.insert_or_assign("layer", renderable.Layer.GetString());
         componentTable.insert_or_assign("sort_priority", static_cast<int64_t>(renderable.SortPriority));
         componentTables.insert_or_assign("renderable", componentTable);
     }

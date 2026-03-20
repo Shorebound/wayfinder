@@ -196,7 +196,7 @@ namespace Wayfinder
         if (m_nearestSampler)
         {
             m_device->DestroySampler(m_nearestSampler);
-            m_nearestSampler = nullptr;
+            m_nearestSampler = {};
         }
 
         m_transientPool.Shutdown();

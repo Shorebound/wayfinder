@@ -24,7 +24,7 @@ namespace Wayfinder
 
         for (RenderPass& pass : frame.Passes)
         {
-            if (!pass.Enabled || pass.Id.empty())
+            if (!pass.Enabled || pass.Id.IsEmpty())
             {
                 continue;
             }

@@ -105,7 +105,7 @@ namespace Wayfinder
 
         // ── Render Graph resources ───────────────────────────
         TransientResourcePool m_transientPool;
-        GPUSamplerHandle m_nearestSampler = nullptr;
+        GPUSamplerHandle m_nearestSampler{};
 
         // ── Features ─────────────────────────────────────────
         std::vector<std::unique_ptr<RenderFeature>> m_features;

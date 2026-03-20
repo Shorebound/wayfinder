@@ -31,7 +31,7 @@ namespace Wayfinder
     {
         if (!m_device)
         {
-            return nullptr;
+            return GPUPipelineHandle::Invalid();
         }
 
         const size_t hash = HashDesc(desc);
@@ -42,7 +42,7 @@ namespace Wayfinder
         }
 
         GPUPipelineHandle handle = m_device->CreatePipeline(desc);
-        if (handle)
+        if (handle.IsValid())
         {
             m_cache[hash] = handle;
             WAYFINDER_INFO(LogRenderer, "PipelineCache: Cached new pipeline (hash={:#x}, total={})", hash, m_cache.size());
@@ -59,8 +59,8 @@ namespace Wayfinder
             h ^= v + 0x9e3779b9 + (h << 6) + (h >> 2);
         };
 
-        combine(std::hash<void*>{}(desc.vertexShader));
-        combine(std::hash<void*>{}(desc.fragmentShader));
+        combine(std::hash<GPUShaderHandle>{}(desc.vertexShader));
+        combine(std::hash<GPUShaderHandle>{}(desc.fragmentShader));
         combine(std::hash<uint32_t>{}(desc.vertexLayout.stride));
         combine(std::hash<uint32_t>{}(desc.vertexLayout.attribCount));
 
