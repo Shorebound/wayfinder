@@ -1,0 +1,19 @@
+[[tags]]
+name = "Status"
+comment = "Root tag for all entity status effects"
+
+[[tags]]
+name = "Status.Burning"
+comment = "Entity is on fire"
+
+[[tags]]
+name = "Status.Frozen"
+comment = "Entity is frozen"
+
+[[tags]]
+name = "Ability"
+comment = "Root tag for abilities"
+
+[[tags]]
+name = "Ability.Fireball"
+comment = "Fireball ability"

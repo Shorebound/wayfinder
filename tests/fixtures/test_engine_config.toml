@@ -1,0 +1,12 @@
+[window]
+width = 800
+height = 600
+title = "Test Window"
+vsync = true
+
+[backends]
+platform = "sdl3"
+rendering = "null"
+
+[shaders]
+directory = "test/shaders"

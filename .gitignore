@@ -70,3 +70,6 @@ Thumbs.db
 
 # Generated files
 *.generated.*
+
+# Test temp files
+tests/fixtures/temp/
