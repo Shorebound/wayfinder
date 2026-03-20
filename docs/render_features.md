@@ -64,7 +64,7 @@ namespace Wayfinder
 
 ## Registering a Feature
 
-Register features with the `Renderer` after initialization:
+Register features with the `Renderer` after initialisation:
 
 ```cpp
 renderer.AddFeature(std::make_unique<BloomFeature>());

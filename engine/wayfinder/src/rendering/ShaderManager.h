@@ -38,7 +38,7 @@ namespace Wayfinder
         ShaderManager(const ShaderManager&) = delete;
         ShaderManager& operator=(const ShaderManager&) = delete;
 
-        void Initialize(RenderDevice& device, const std::string& shaderDirectory);
+        void Initialise(RenderDevice& device, const std::string& shaderDirectory);
         void Shutdown();
 
         // Loads bytecode from "<shaderDirectory>/<name>.vert.spv" or "<name>.frag.spv",

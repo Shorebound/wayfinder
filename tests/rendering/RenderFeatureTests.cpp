@@ -166,7 +166,7 @@ TEST_CASE("Feature pass executes in compiled graph")
 {
     auto device = Wayfinder::RenderDevice::Create(Wayfinder::RenderBackend::Null);
     Wayfinder::TransientResourcePool pool;
-    pool.Initialize(*device);
+    pool.Initialise(*device);
 
     OverlayFeature overlay;
     Wayfinder::RenderFrame frame;

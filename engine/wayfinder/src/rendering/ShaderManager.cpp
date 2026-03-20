@@ -6,11 +6,11 @@
 
 namespace Wayfinder
 {
-    void ShaderManager::Initialize(RenderDevice& device, const std::string& shaderDirectory)
+    void ShaderManager::Initialise(RenderDevice& device, const std::string& shaderDirectory)
     {
         m_device = &device;
         m_shaderDir = shaderDirectory;
-        WAYFINDER_INFO(LogRenderer, "ShaderManager: initialized with directory '{}'", m_shaderDir);
+        WAYFINDER_INFO(LogRenderer, "ShaderManager: initialised with directory '{}'", m_shaderDir);
     }
 
     void ShaderManager::Shutdown()

@@ -2,7 +2,7 @@
 
 ## Purpose
 
-This document explains how the repository is organized, what targets currently matter, and how to work with the project without already knowing its history.
+This document explains how the repository is organised, what targets currently matter, and how to work with the project without already knowing its history.
 
 ## Repository Layout
 

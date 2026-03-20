@@ -46,7 +46,7 @@ namespace Wayfinder
         }
     }
 
-    void MaterialParameterBlock::SerializeToUBO(const std::vector<MaterialParamDecl>& decls,
+    void MaterialParameterBlock::SerialiseToUBO(const std::vector<MaterialParamDecl>& decls,
                                                 void* outBuffer, uint32_t bufferSize) const
     {
         auto* bytes = static_cast<uint8_t*>(outBuffer);

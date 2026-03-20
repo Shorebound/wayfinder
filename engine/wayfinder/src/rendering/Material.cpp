@@ -190,7 +190,7 @@ namespace Wayfinder
         table.insert_or_assign("shader", material.ShaderName);
         table.insert_or_assign("wireframe", material.Wireframe);
 
-        // Serialize parameters as a [parameters] table
+        // Serialise parameters as a [parameters] table
         toml::table paramsTable;
         for (const auto& [name, value] : material.Parameters.Values)
         {

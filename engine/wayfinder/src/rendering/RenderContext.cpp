@@ -6,22 +6,22 @@
 
 namespace Wayfinder
 {
-    bool RenderContext::Initialize(RenderDevice& device, const EngineConfig& config)
+    bool RenderContext::Initialise(RenderDevice& device, const EngineConfig& config)
     {
         m_device = &device;
 
-        m_shaderManager.Initialize(device, config.Shaders.Directory);
-        m_pipelineCache.Initialize(device);
-        m_programRegistry.Initialize(device, m_shaderManager, m_pipelineCache);
+        m_shaderManager.Initialise(device, config.Shaders.Directory);
+        m_pipelineCache.Initialise(device);
+        m_programRegistry.Initialise(device, m_shaderManager, m_pipelineCache);
 
         // Transient allocator: 4 MB vertex ring, 1 MB index ring.
         // May fail on Null backend (no real GPU buffers) — non-fatal in that case.
-        if (!m_transientAllocator.Initialize(device, 4u * 1024u * 1024u, 1u * 1024u * 1024u))
+        if (!m_transientAllocator.Initialise(device, 4u * 1024u * 1024u, 1u * 1024u * 1024u))
         {
-            WAYFINDER_WARNING(LogRenderer, "RenderContext: Failed to initialize transient buffer allocator");
+            WAYFINDER_WARNING(LogRenderer, "RenderContext: Failed to initialise transient buffer allocator");
         }
 
-        m_transientPool.Initialize(device);
+        m_transientPool.Initialise(device);
 
         // Nearest-point sampler for composition blit
         {

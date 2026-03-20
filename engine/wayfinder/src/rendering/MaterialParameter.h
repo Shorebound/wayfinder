@@ -50,7 +50,7 @@ namespace Wayfinder
     // ── Material Parameter Block ─────────────────────────────
     // Runtime storage for material parameters, keyed by name.
     // Authored materials populate this from TOML [parameters].
-    // The renderer serializes it into UBO bytes using the shader program's declarations.
+    // The renderer serialises it into UBO bytes using the shader program's declarations.
 
     struct WAYFINDER_API MaterialParameterBlock
     {
@@ -67,7 +67,7 @@ namespace Wayfinder
 
         // Write all parameters into a byte buffer using the given declarations.
         // Unknown parameters are skipped; missing parameters use the declaration's default.
-        void SerializeToUBO(const std::vector<MaterialParamDecl>& decls, void* outBuffer, uint32_t bufferSize) const;
+        void SerialiseToUBO(const std::vector<MaterialParamDecl>& decls, void* outBuffer, uint32_t bufferSize) const;
     };
 
 } // namespace Wayfinder

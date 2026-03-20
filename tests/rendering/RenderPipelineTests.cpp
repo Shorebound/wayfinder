@@ -165,7 +165,7 @@ TEST_CASE("RenderPipeline::Initialise registers built-in programs")
     config.Window.Height = 240;
 
     Wayfinder::RenderContext context;
-    REQUIRE(context.Initialize(*device, config));
+    REQUIRE(context.Initialise(*device, config));
 
     Wayfinder::RenderPipeline pipeline;
     // Initialise must not crash — it registers programs via the context.
@@ -188,7 +188,7 @@ TEST_CASE("RenderPipeline::Shutdown is safe after Initialise")
     config.Window.Height = 240;
 
     Wayfinder::RenderContext context;
-    REQUIRE(context.Initialize(*device, config));
+    REQUIRE(context.Initialise(*device, config));
 
     Wayfinder::RenderPipeline pipeline;
     pipeline.Initialise(context);

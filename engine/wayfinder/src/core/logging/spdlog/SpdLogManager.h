@@ -11,7 +11,7 @@ namespace Wayfinder
     class SpdLogManager
     {
     public:
-        static void Initialize()
+        static void Initialise()
         {
             // Set up default pattern
             spdlog::set_pattern("%^[%T] %n: %v%$");
@@ -77,7 +77,7 @@ namespace Wayfinder
         static std::unordered_map<std::string, std::shared_ptr<ILogger>> s_loggers;
     };
 
-    // Static member initialization
+    // Static member initialisation
     std::unordered_map<std::string, std::shared_ptr<ILogger>> SpdLogManager::s_loggers;
 
 } // namespace Wayfinder

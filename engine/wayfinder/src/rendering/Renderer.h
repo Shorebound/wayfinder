@@ -27,7 +27,7 @@ namespace Wayfinder
         Renderer();
         ~Renderer();
 
-        bool Initialize(RenderDevice& device, const EngineConfig& config);
+        bool Initialise(RenderDevice& device, const EngineConfig& config);
         void Shutdown();
 
         void Render(const RenderFrame& frame);
@@ -92,7 +92,7 @@ namespace Wayfinder
         int m_screenWidth;
         int m_screenHeight;
 
-        bool m_isInitialized;
+        bool m_isInitialised;
     };
 
 } // namespace Wayfinder

@@ -2,7 +2,7 @@
 // Compiled with DXC: dxc -T ps_6_0 -E PSMain -spirv basic_lit.frag -Fo basic_lit.frag.spv
 // SDL_GPU SPIR-V convention: fragment UBOs at set 3
 
-// Material parameters (binding 0) — serialized from MaterialParameterBlock
+// Material parameters (binding 0) — serialised from MaterialParameterBlock
 [[vk::binding(0, 3)]]
 cbuffer MaterialUBO : register(b0)
 {

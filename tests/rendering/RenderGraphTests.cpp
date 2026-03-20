@@ -18,7 +18,7 @@ namespace
         GraphTestFixture()
             : m_Device(Wayfinder::RenderDevice::Create(Wayfinder::RenderBackend::Null))
         {
-            m_Pool.Initialize(*m_Device);
+            m_Pool.Initialise(*m_Device);
         }
 
         ~GraphTestFixture() { m_Pool.Shutdown(); }
@@ -306,7 +306,7 @@ TEST_CASE("Transient pool acquire and release roundtrip")
 {
     auto device = Wayfinder::RenderDevice::Create(Wayfinder::RenderBackend::Null);
     Wayfinder::TransientResourcePool pool;
-    pool.Initialize(*device);
+    pool.Initialise(*device);
 
     Wayfinder::TextureCreateDesc desc;
     desc.width = 800;

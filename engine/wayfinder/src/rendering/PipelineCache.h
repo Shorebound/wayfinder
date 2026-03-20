@@ -18,7 +18,7 @@ namespace Wayfinder
         PipelineCache(const PipelineCache&) = delete;
         PipelineCache& operator=(const PipelineCache&) = delete;
 
-        void Initialize(RenderDevice& device);
+        void Initialise(RenderDevice& device);
         void Shutdown();
 
         // Returns an existing pipeline for this configuration, or creates and caches a new one.

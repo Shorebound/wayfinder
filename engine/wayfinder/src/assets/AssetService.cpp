@@ -37,7 +37,7 @@ namespace Wayfinder
     {
         if (!m_hasAssetRegistry)
         {
-            error = "Asset registry is not initialized for the current asset root.";
+            error = "Asset registry is not initialised for the current asset root.";
             return nullptr;
         }
 

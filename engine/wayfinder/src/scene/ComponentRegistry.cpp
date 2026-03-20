@@ -711,7 +711,7 @@ namespace
         entity.AddComponent<Wayfinder::GameplayTagContainer>(container);
     }
 
-    void SerializeTags(const Wayfinder::Entity& entity, toml::table& componentTables)
+    void SerialiseTags(const Wayfinder::Entity& entity, toml::table& componentTables)
     {
         if (!entity.HasComponent<Wayfinder::GameplayTagContainer>())
             return;
@@ -816,7 +816,7 @@ namespace
         entity.AddComponent<Wayfinder::PostProcessVolumeComponent>(volume);
     }
 
-    void SerializeTransform(const Wayfinder::Entity& entity, toml::table& componentTables)
+    void SerialiseTransform(const Wayfinder::Entity& entity, toml::table& componentTables)
     {
         if (!entity.HasComponent<Wayfinder::TransformComponent>())
         {
@@ -831,7 +831,7 @@ namespace
         componentTables.insert_or_assign("transform", componentTable);
     }
 
-    void SerializeMesh(const Wayfinder::Entity& entity, toml::table& componentTables)
+    void SerialiseMesh(const Wayfinder::Entity& entity, toml::table& componentTables)
     {
         if (!entity.HasComponent<Wayfinder::MeshComponent>())
         {
@@ -845,7 +845,7 @@ namespace
         componentTables.insert_or_assign("mesh", componentTable);
     }
 
-    void SerializeCamera(const Wayfinder::Entity& entity, toml::table& componentTables)
+    void SerialiseCamera(const Wayfinder::Entity& entity, toml::table& componentTables)
     {
         if (!entity.HasComponent<Wayfinder::CameraComponent>())
         {
@@ -862,7 +862,7 @@ namespace
         componentTables.insert_or_assign("camera", componentTable);
     }
 
-    void SerializeLight(const Wayfinder::Entity& entity, toml::table& componentTables)
+    void SerialiseLight(const Wayfinder::Entity& entity, toml::table& componentTables)
     {
         if (!entity.HasComponent<Wayfinder::LightComponent>())
         {
@@ -879,7 +879,7 @@ namespace
         componentTables.insert_or_assign("light", componentTable);
     }
 
-    void SerializeMaterial(const Wayfinder::Entity& entity, toml::table& componentTables)
+    void SerialiseMaterial(const Wayfinder::Entity& entity, toml::table& componentTables)
     {
         if (!entity.HasComponent<Wayfinder::MaterialComponent>())
         {
@@ -906,7 +906,7 @@ namespace
         componentTables.insert_or_assign("material", componentTable);
     }
 
-    void SerializeRenderable(const Wayfinder::Entity& entity, toml::table& componentTables)
+    void SerialiseRenderable(const Wayfinder::Entity& entity, toml::table& componentTables)
     {
         if (!entity.HasComponent<Wayfinder::RenderableComponent>())
         {
@@ -937,7 +937,7 @@ namespace
         }, value);
     }
 
-    void SerializePostProcessVolume(const Wayfinder::Entity& entity, toml::table& componentTables)
+    void SerialisePostProcessVolume(const Wayfinder::Entity& entity, toml::table& componentTables)
     {
         if (!entity.HasComponent<Wayfinder::PostProcessVolumeComponent>())
         {
@@ -976,14 +976,14 @@ namespace
     }
 
     constexpr std::array<Wayfinder::SceneComponentRegistry::Entry, 8> kEntries = {{
-        {"transform", &RegisterComponent<Wayfinder::TransformComponent>, &ApplyTransform, &SerializeTransform, &ValidateTransform},
-        {"mesh", &RegisterComponent<Wayfinder::MeshComponent>, &ApplyMesh, &SerializeMesh, &ValidateMesh},
-        {"camera", &RegisterComponent<Wayfinder::CameraComponent>, &ApplyCamera, &SerializeCamera, &ValidateCamera},
-        {"light", &RegisterComponent<Wayfinder::LightComponent>, &ApplyLight, &SerializeLight, &ValidateLight},
-        {"material", &RegisterComponent<Wayfinder::MaterialComponent>, &ApplyMaterial, &SerializeMaterial, &ValidateMaterial},
-        {"renderable", &RegisterComponent<Wayfinder::RenderableComponent>, &ApplyRenderable, &SerializeRenderable, &ValidateRenderable},
-        {"gameplay_tags", &RegisterComponent<Wayfinder::GameplayTagContainer>, &ApplyTags, &SerializeTags, &ValidateTags},
-        {"post_process_volume", &RegisterComponent<Wayfinder::PostProcessVolumeComponent>, &ApplyPostProcessVolume, &SerializePostProcessVolume, &ValidatePostProcessVolume},
+        {"transform", &RegisterComponent<Wayfinder::TransformComponent>, &ApplyTransform, &SerialiseTransform, &ValidateTransform},
+        {"mesh", &RegisterComponent<Wayfinder::MeshComponent>, &ApplyMesh, &SerialiseMesh, &ValidateMesh},
+        {"camera", &RegisterComponent<Wayfinder::CameraComponent>, &ApplyCamera, &SerialiseCamera, &ValidateCamera},
+        {"light", &RegisterComponent<Wayfinder::LightComponent>, &ApplyLight, &SerialiseLight, &ValidateLight},
+        {"material", &RegisterComponent<Wayfinder::MaterialComponent>, &ApplyMaterial, &SerialiseMaterial, &ValidateMaterial},
+        {"renderable", &RegisterComponent<Wayfinder::RenderableComponent>, &ApplyRenderable, &SerialiseRenderable, &ValidateRenderable},
+        {"gameplay_tags", &RegisterComponent<Wayfinder::GameplayTagContainer>, &ApplyTags, &SerialiseTags, &ValidateTags},
+        {"post_process_volume", &RegisterComponent<Wayfinder::PostProcessVolumeComponent>, &ApplyPostProcessVolume, &SerialisePostProcessVolume, &ValidatePostProcessVolume},
     }};
 }
 
@@ -1028,13 +1028,13 @@ namespace Wayfinder
         }
     }
 
-    void SceneComponentRegistry::SerializeComponents(const Entity& entity, toml::table& componentTables) const
+    void SceneComponentRegistry::SerialiseComponents(const Entity& entity, toml::table& componentTables) const
     {
         for (const Entry& entry : kEntries)
         {
-            if (entry.SerializeFn)
+            if (entry.SerialiseFn)
             {
-                entry.SerializeFn(entity, componentTables);
+                entry.SerialiseFn(entity, componentTables);
             }
         }
     }

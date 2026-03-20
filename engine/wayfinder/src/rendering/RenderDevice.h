@@ -105,7 +105,7 @@ namespace Wayfinder
         FrontFace frontFace = FrontFace::CounterClockwise;
         bool depthTestEnabled = false;
         bool depthWriteEnabled = false;
-        // Stage 6: Blend state, depth format, multiple color targets
+        // Stage 6: Blend state, depth format, multiple colour targets
     };
 
     // ── Compute Pipeline Create Descriptor ───────────────────
@@ -133,13 +133,13 @@ namespace Wayfinder
 
         // ── Lifecycle ────────────────────────────────────────
 
-        virtual bool Initialize(Window& window) = 0;
+        virtual bool Initialise(Window& window) = 0;
         virtual void Shutdown() = 0;
 
         // ── Frame Lifecycle ──────────────────────────────────
 
         // Acquires a command buffer and the swapchain texture for this frame.
-        // Returns false if the swapchain is unavailable (e.g. window minimized). 
+        // Returns false if the swapchain is unavailable (e.g. window minimised).
         // When false, skip rendering and call EndFrame().
         virtual bool BeginFrame() = 0;
 

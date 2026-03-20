@@ -31,7 +31,7 @@ namespace Wayfinder
         Shutdown();
     }
 
-    bool SDLGPUDevice::Initialize(Window& window)
+    bool SDLGPUDevice::Initialise(Window& window)
     {
         m_window = static_cast<SDL_Window*>(window.GetNativeHandle());
         if (!m_window)
@@ -68,7 +68,7 @@ namespace Wayfinder
         const char* driver = SDL_GetGPUDeviceDriver(m_device);
         m_info.DriverInfo = driver ? driver : "unknown";
 
-        WAYFINDER_INFO(LogRenderer, "SDLGPUDevice: Initialized (driver: {})", m_info.DriverInfo);
+        WAYFINDER_INFO(LogRenderer, "SDLGPUDevice: Initialised (driver: {})", m_info.DriverInfo);
         return true;
     }
 
@@ -133,7 +133,7 @@ namespace Wayfinder
 
         if (!m_swapchainTexture)
         {
-            // Window is minimized or occluded — submit empty command buffer and skip rendering
+            // Window is minimised or occluded — submit empty command buffer and skip rendering
             SDL_SubmitGPUCommandBuffer(m_commandBuffer);
             m_commandBuffer = nullptr;
             return false;
@@ -197,7 +197,7 @@ namespace Wayfinder
             return;
         }
 
-        // Determine color target texture
+        // Determine colour target texture
         SDL_GPUTexture* colorTexture = nullptr;
         if (descriptor.targetSwapchain)
         {
@@ -421,7 +421,7 @@ namespace Wayfinder
         case PrimitiveType::PointList:     primType = SDL_GPU_PRIMITIVETYPE_POINTLIST; break;
         }
 
-        // Color target — match swapchain format
+        // Colour target — match swapchain format
         SDL_GPUColorTargetDescription colorTargetDesc{};
         colorTargetDesc.format = SDL_GetGPUSwapchainTextureFormat(m_device, m_window);
 

@@ -285,7 +285,7 @@ namespace Wayfinder
                     record.PrefabAssetId = entity.GetPrefabAssetId();
                 }
 
-                m_componentRegistry.SerializeComponents(entity, record.ComponentData);
+                m_componentRegistry.SerialiseComponents(entity, record.ComponentData);
                 document.Entities.push_back(std::move(record));
             });
 

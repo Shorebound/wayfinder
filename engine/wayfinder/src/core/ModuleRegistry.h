@@ -43,7 +43,7 @@ namespace Wayfinder
         using SystemFactory = std::function<void(flecs::world&)>;
         using ComponentRegisterFn = void(*)(flecs::world& world);
         using ComponentApplyFn = void(*)(const toml::table& componentTable, Entity& entity);
-        using ComponentSerializeFn = void(*)(const Entity& entity, toml::table& componentTables);
+        using ComponentSerialiseFn = void(*)(const Entity& entity, toml::table& componentTables);
         using ComponentValidateFn = bool(*)(const toml::table& componentTable, std::string& error);
         using GlobalFactory = std::function<void(flecs::world&)>;
 
@@ -52,13 +52,13 @@ namespace Wayfinder
         using StateDescriptor = StateRegistrar::Descriptor;
         using TagDescriptor = TagRegistrar::Descriptor;
 
-        /// Describes a serializable ECS component for scene authoring.
+        /// Describes a serialisable ECS component for scene authoring.
         struct ComponentDescriptor
         {
             std::string Key;
             ComponentRegisterFn RegisterFn = nullptr;
             ComponentApplyFn ApplyFn = nullptr;
-            ComponentSerializeFn SerializeFn = nullptr;
+            ComponentSerialiseFn SerialiseFn = nullptr;
             ComponentValidateFn ValidateFn = nullptr;
         };
 
@@ -90,7 +90,7 @@ namespace Wayfinder
                             std::vector<std::string> after = {},
                             std::vector<std::string> before = {});
 
-        /// Register a serializable component for scene authoring.
+        /// Register a serialisable component for scene authoring.
         void RegisterComponent(ComponentDescriptor descriptor);
 
         /// Register a typed world singleton (global data).
@@ -100,7 +100,7 @@ namespace Wayfinder
         void RegisterState(StateDescriptor descriptor);
 
         /// Set the initial game state. Game will transition to this state
-        /// during initialization, after all registrations are applied.
+        /// during initialisation, after all registrations are applied.
         void SetInitialState(std::string stateName);
 
         /// Register a gameplay tag name. Returns a GameplayTag that can be
@@ -126,7 +126,7 @@ namespace Wayfinder
         }
 
         /// Apply all registered system factories into the given world.
-        /// Called once by Game::InitializeWorld after core ECS setup.
+        /// Called once by Game::InitialiseWorld after core ECS setup.
         void ApplyToWorld(flecs::world& world) const;
 
         /// Read-only access to registered component descriptors.

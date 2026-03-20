@@ -32,9 +32,9 @@ namespace Wayfinder
 
     void Application::Run()
     {
-        if (!Initialize())
+        if (!Initialise())
         {
-            WAYFINDER_ERROR(LogEngine, "Initialization failed — aborting");
+            WAYFINDER_ERROR(LogEngine, "Initialisation failed — aborting");
             return;
         }
 
@@ -42,7 +42,7 @@ namespace Wayfinder
         Shutdown();
     }
 
-    bool Application::Initialize()
+    bool Application::Initialise()
     {
         Log::Init();
         WAYFINDER_INFO(LogEngine, "Initializing Wayfinder Engine");
@@ -89,7 +89,7 @@ namespace Wayfinder
         m_runtime = std::make_unique<EngineRuntime>(*m_config, *m_project);
         if (!m_runtime->Initialise())
         {
-            WAYFINDER_ERROR(LogEngine, "Failed to initialize EngineRuntime");
+            WAYFINDER_ERROR(LogEngine, "Failed to initialise EngineRuntime");
             Shutdown();
             return false;
         }
@@ -105,9 +105,9 @@ namespace Wayfinder
         GameContext gameCtx{*m_project, m_moduleRegistry.get()};
         m_game = std::make_unique<Game>();
 
-        if (!m_game->Initialize(gameCtx))
+        if (!m_game->Initialise(gameCtx))
         {
-            WAYFINDER_ERROR(LogEngine, "Failed to initialize Game");
+            WAYFINDER_ERROR(LogEngine, "Failed to initialise Game");
             Shutdown();
             return false;
         }
@@ -224,7 +224,7 @@ namespace Wayfinder
 
     void Application::Shutdown()
     {
-        if (!m_config) return; // never initialized
+        if (!m_config) return; // never initialised
 
         WAYFINDER_INFO(LogEngine, "Shutting down Wayfinder Engine");
 
