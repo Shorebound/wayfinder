@@ -469,7 +469,8 @@ namespace Wayfinder
         }
 
         // Colour targets — one per MRT attachment, all using swapchain format for now.
-        // Per-target formats will require framebuffer format plumbing in a future change.
+        // Non-swapchain render targets (e.g. G-buffer, shadow maps) will require
+        // per-target format fields in PipelineCreateDesc once framebuffer abstraction lands.
         const SDL_GPUTextureFormat swapchainFormat = SDL_GetGPUSwapchainTextureFormat(m_device, m_window);
         SDL_GPUColorTargetDescription colorTargetDescs[MAX_COLOUR_TARGETS]{};
         for (uint32_t i = 0; i < desc.numColourTargets; ++i)
