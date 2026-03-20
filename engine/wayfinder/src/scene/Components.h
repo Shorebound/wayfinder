@@ -125,7 +125,7 @@ namespace Wayfinder
      */
     struct RenderOverrideComponent
     {
-        bool Wireframe = true;
+        bool Wireframe = false;
 
         RenderOverrideComponent() = default;
         RenderOverrideComponent(const RenderOverrideComponent&) = default;

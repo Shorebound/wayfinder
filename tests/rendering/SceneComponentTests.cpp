@@ -219,6 +219,15 @@ TEST_CASE("Extractor uses RenderOverrideComponent for wireframe")
     cameraComponent.Target = {0.0f, 0.5f, 0.0f};
     camera.AddComponent<Wayfinder::CameraComponent>(cameraComponent);
 
+    // Entity with wireframe override enabled — should get SolidAndWireframe fill mode
+    Wayfinder::Entity wireframeCube = scene.CreateEntity("WireframeCube");
+    wireframeCube.AddComponent<Wayfinder::TransformComponent>(Wayfinder::TransformComponent{{-2.0f, 0.5f, 0.0f}});
+    wireframeCube.AddComponent<Wayfinder::MeshComponent>(Wayfinder::MeshComponent{});
+    wireframeCube.AddComponent<Wayfinder::RenderableComponent>(Wayfinder::RenderableComponent{});
+    Wayfinder::RenderOverrideComponent wireframeOverride;
+    wireframeOverride.Wireframe = true;
+    wireframeCube.AddComponent<Wayfinder::RenderOverrideComponent>(wireframeOverride);
+
     // Entity with wireframe override disabled — should get Solid fill mode
     Wayfinder::Entity solidCube = scene.CreateEntity("SolidCube");
     solidCube.AddComponent<Wayfinder::TransformComponent>(Wayfinder::TransformComponent{{0.0f, 0.5f, 0.0f}});
@@ -228,7 +237,7 @@ TEST_CASE("Extractor uses RenderOverrideComponent for wireframe")
     solidOverride.Wireframe = false;
     solidCube.AddComponent<Wayfinder::RenderOverrideComponent>(solidOverride);
 
-    // Entity without RenderOverrideComponent — keeps extractor default (SolidAndWireframe)
+    // Entity without RenderOverrideComponent — FillMode left unset (no override)
     Wayfinder::Entity defaultCube = scene.CreateEntity("DefaultCube");
     defaultCube.AddComponent<Wayfinder::TransformComponent>(Wayfinder::TransformComponent{{2.0f, 0.5f, 0.0f}});
     defaultCube.AddComponent<Wayfinder::MeshComponent>(Wayfinder::MeshComponent{});
@@ -243,15 +252,21 @@ TEST_CASE("Extractor uses RenderOverrideComponent for wireframe")
     scene.Shutdown();
 
     REQUIRE(mainPass != nullptr);
-    REQUIRE(mainPass->Meshes.size() == 2);
+    REQUIRE(mainPass->Meshes.size() == 3);
 
-    // One should have Solid (from override with Wireframe=false),
-    // the other should have SolidAndWireframe (the extractor default).
+    // Verify: wireframe override (true) → SolidAndWireframe,
+    //         wireframe override (false) → Solid,
+    //         no override → FillMode unset.
     bool foundSolid = false;
     bool foundSolidAndWireframe = false;
+    bool foundUnset = false;
     for (const auto& mesh : mainPass->Meshes)
     {
-        if (mesh.Material.StateOverrides.FillMode == Wayfinder::RenderFillMode::Solid)
+        if (!mesh.Material.StateOverrides.FillMode.has_value())
+        {
+            foundUnset = true;
+        }
+        else if (mesh.Material.StateOverrides.FillMode == Wayfinder::RenderFillMode::Solid)
         {
             foundSolid = true;
         }
@@ -261,6 +276,7 @@ TEST_CASE("Extractor uses RenderOverrideComponent for wireframe")
         }
     }
 
-    CHECK(foundSolid);
     CHECK(foundSolidAndWireframe);
+    CHECK(foundSolid);
+    CHECK(foundUnset);
 }

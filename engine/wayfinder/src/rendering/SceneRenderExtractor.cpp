@@ -99,7 +99,6 @@ namespace Wayfinder
             submission.Material.Handle.StableKey = kBuiltInSurfaceMaterialKey;
             submission.Material.Domain = RenderMaterialDomain::Surface;
             submission.Material.Parameters.SetColor("base_color", LinearColor::White());
-            submission.Material.StateOverrides.FillMode = RenderFillMode::SolidAndWireframe;
 
             Matrix4 localToWorld = transform.GetLocalMatrix();
 
