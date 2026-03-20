@@ -72,6 +72,93 @@ namespace Wayfinder
         Clockwise,
     };
 
+    // ── Blend State ─────────────────────────────────────────
+
+    /** @brief Source or destination factor applied during colour/alpha blending. */
+    enum class BlendFactor : uint8_t
+    {
+        Zero,
+        One,
+        SrcAlpha,
+        OneMinusSrcAlpha,
+        DstAlpha,
+        OneMinusDstAlpha,
+        SrcColour,
+        OneMinusSrcColour,
+        DstColour,
+        OneMinusDstColour,
+        ConstantColour,
+        OneMinusConstantColour,
+    };
+
+    /** @brief Arithmetic operation used to combine source and destination blend terms. */
+    enum class BlendOp : uint8_t
+    {
+        Add,
+        Subtract,
+        ReverseSubtract,
+        Min,
+        Max,
+    };
+
+    /**
+     * @brief Per-target colour blending configuration.
+     *
+     * When Enabled is false the target writes opaque fragments with no blending.
+     * ColourWriteMask is a 4-bit RGBA mask (0xF = all channels).
+     */
+    struct BlendState
+    {
+        bool Enabled = false;
+        BlendFactor SrcColourFactor = BlendFactor::SrcAlpha;
+        BlendFactor DstColourFactor = BlendFactor::OneMinusSrcAlpha;
+        BlendOp ColourOp = BlendOp::Add;
+        BlendFactor SrcAlphaFactor = BlendFactor::One;
+        BlendFactor DstAlphaFactor = BlendFactor::OneMinusSrcAlpha;
+        BlendOp AlphaOp = BlendOp::Add;
+        uint8_t ColourWriteMask = 0xF;
+
+        constexpr bool operator==(const BlendState&) const = default;
+    };
+
+    /** @brief Maximum number of simultaneous colour render targets. */
+    static constexpr uint32_t MAX_COLOUR_TARGETS = 8;
+
+    /** @brief Factory functions returning common blend configurations. */
+    namespace BlendPresets
+    {
+        /** @return Disabled blending (opaque fragments). */
+        constexpr BlendState Opaque() { return {}; }
+
+        /** @return Standard alpha blending (src·α + dst·(1−α)). */
+        constexpr BlendState AlphaBlend()
+        {
+            return {true, BlendFactor::SrcAlpha, BlendFactor::OneMinusSrcAlpha, BlendOp::Add,
+                          BlendFactor::One,      BlendFactor::OneMinusSrcAlpha, BlendOp::Add};
+        }
+
+        /** @return Additive blending (src·α + dst). */
+        constexpr BlendState Additive()
+        {
+            return {true, BlendFactor::SrcAlpha, BlendFactor::One, BlendOp::Add,
+                          BlendFactor::SrcAlpha, BlendFactor::One, BlendOp::Add};
+        }
+
+        /** @return Pre-multiplied alpha blending (src + dst·(1−α)). */
+        constexpr BlendState Premultiplied()
+        {
+            return {true, BlendFactor::One, BlendFactor::OneMinusSrcAlpha, BlendOp::Add,
+                          BlendFactor::One, BlendFactor::OneMinusSrcAlpha, BlendOp::Add};
+        }
+
+        /** @return Multiplicative blending (src·dst + 0). */
+        constexpr BlendState Multiplicative()
+        {
+            return {true, BlendFactor::DstColour, BlendFactor::Zero, BlendOp::Add,
+                          BlendFactor::DstAlpha,  BlendFactor::Zero, BlendOp::Add};
+        }
+    }
+
     // ── Buffer Enums / Descriptors ──────────────────────────
 
     enum class BufferUsage : uint8_t
@@ -105,7 +192,8 @@ namespace Wayfinder
         FrontFace frontFace = FrontFace::CounterClockwise;
         bool depthTestEnabled = false;
         bool depthWriteEnabled = false;
-        // Stage 6: Blend state, depth format, multiple color targets
+        uint32_t numColourTargets = 1;
+        BlendState colourTargetBlends[MAX_COLOUR_TARGETS]{};
     };
 
     // ── Compute Pipeline Create Descriptor ───────────────────

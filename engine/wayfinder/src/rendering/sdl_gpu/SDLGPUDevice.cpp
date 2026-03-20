@@ -352,11 +352,51 @@ namespace Wayfinder
         return SDL_GPU_VERTEXELEMENTFORMAT_FLOAT3;
     }
 
+    static SDL_GPUBlendFactor ToSDLBlendFactor(BlendFactor f)
+    {
+        switch (f)
+        {
+        case BlendFactor::Zero:                  return SDL_GPU_BLENDFACTOR_ZERO;
+        case BlendFactor::One:                   return SDL_GPU_BLENDFACTOR_ONE;
+        case BlendFactor::SrcAlpha:              return SDL_GPU_BLENDFACTOR_SRC_ALPHA;
+        case BlendFactor::OneMinusSrcAlpha:      return SDL_GPU_BLENDFACTOR_ONE_MINUS_SRC_ALPHA;
+        case BlendFactor::DstAlpha:              return SDL_GPU_BLENDFACTOR_DST_ALPHA;
+        case BlendFactor::OneMinusDstAlpha:      return SDL_GPU_BLENDFACTOR_ONE_MINUS_DST_ALPHA;
+        case BlendFactor::SrcColour:             return SDL_GPU_BLENDFACTOR_SRC_COLOR;
+        case BlendFactor::OneMinusSrcColour:     return SDL_GPU_BLENDFACTOR_ONE_MINUS_SRC_COLOR;
+        case BlendFactor::DstColour:             return SDL_GPU_BLENDFACTOR_DST_COLOR;
+        case BlendFactor::OneMinusDstColour:     return SDL_GPU_BLENDFACTOR_ONE_MINUS_DST_COLOR;
+        case BlendFactor::ConstantColour:        return SDL_GPU_BLENDFACTOR_CONSTANT_COLOR;
+        case BlendFactor::OneMinusConstantColour: return SDL_GPU_BLENDFACTOR_ONE_MINUS_CONSTANT_COLOR;
+        }
+        return SDL_GPU_BLENDFACTOR_ONE;
+    }
+
+    static SDL_GPUBlendOp ToSDLBlendOp(BlendOp op)
+    {
+        switch (op)
+        {
+        case BlendOp::Add:             return SDL_GPU_BLENDOP_ADD;
+        case BlendOp::Subtract:        return SDL_GPU_BLENDOP_SUBTRACT;
+        case BlendOp::ReverseSubtract: return SDL_GPU_BLENDOP_REVERSE_SUBTRACT;
+        case BlendOp::Min:             return SDL_GPU_BLENDOP_MIN;
+        case BlendOp::Max:             return SDL_GPU_BLENDOP_MAX;
+        }
+        return SDL_GPU_BLENDOP_ADD;
+    }
+
     GPUPipelineHandle SDLGPUDevice::CreatePipeline(const PipelineCreateDesc& desc)
     {
         if (!m_device || !m_window)
         {
             WAYFINDER_ERROR(LogRenderer, "SDLGPUDevice::CreatePipeline: No GPU device or window");
+            return GPUPipelineHandle::Invalid();
+        }
+
+        if (desc.numColourTargets == 0 || desc.numColourTargets > MAX_COLOUR_TARGETS)
+        {
+            WAYFINDER_ERROR(LogRenderer, "SDLGPUDevice::CreatePipeline: numColourTargets={} is out of range [1, {}]",
+                desc.numColourTargets, MAX_COLOUR_TARGETS);
             return GPUPipelineHandle::Invalid();
         }
 
@@ -421,13 +461,47 @@ namespace Wayfinder
         case PrimitiveType::PointList:     primType = SDL_GPU_PRIMITIVETYPE_POINTLIST; break;
         }
 
-        // Color target — match swapchain format
-        SDL_GPUColorTargetDescription colorTargetDesc{};
-        colorTargetDesc.format = SDL_GetGPUSwapchainTextureFormat(m_device, m_window);
+        // Validate blend state
+        for (uint32_t i = 0; i < desc.numColourTargets; ++i)
+        {
+            const auto& blend = desc.colourTargetBlends[i];
+            if (!blend.Enabled && blend.ColourWriteMask == 0)
+            {
+                WAYFINDER_WARNING(LogRenderer, "CreatePipeline: colour target {} has blending disabled and ColourWriteMask=0 — nothing will be written", i);
+            }
+            if (blend.Enabled && blend.ColourWriteMask == 0)
+            {
+                WAYFINDER_WARNING(LogRenderer, "CreatePipeline: colour target {} has blending enabled but ColourWriteMask=0 — blended result will be discarded", i);
+            }
+        }
+
+        // Colour targets — one per MRT attachment, all using swapchain format for now.
+        // Non-swapchain render targets (e.g. G-buffer, shadow maps) will require
+        // per-target format fields in PipelineCreateDesc once framebuffer abstraction lands.
+        const SDL_GPUTextureFormat swapchainFormat = SDL_GetGPUSwapchainTextureFormat(m_device, m_window);
+        SDL_GPUColorTargetDescription colorTargetDescs[MAX_COLOUR_TARGETS]{};
+        for (uint32_t i = 0; i < desc.numColourTargets; ++i)
+        {
+            colorTargetDescs[i].format = swapchainFormat;
+
+            const auto& blend = desc.colourTargetBlends[i];
+            if (blend.Enabled)
+            {
+                colorTargetDescs[i].blend_state.enable_blend = true;
+                colorTargetDescs[i].blend_state.color_write_mask = blend.ColourWriteMask;
+
+                colorTargetDescs[i].blend_state.src_color_blendfactor = ToSDLBlendFactor(blend.SrcColourFactor);
+                colorTargetDescs[i].blend_state.dst_color_blendfactor = ToSDLBlendFactor(blend.DstColourFactor);
+                colorTargetDescs[i].blend_state.color_blend_op = ToSDLBlendOp(blend.ColourOp);
+                colorTargetDescs[i].blend_state.src_alpha_blendfactor = ToSDLBlendFactor(blend.SrcAlphaFactor);
+                colorTargetDescs[i].blend_state.dst_alpha_blendfactor = ToSDLBlendFactor(blend.DstAlphaFactor);
+                colorTargetDescs[i].blend_state.alpha_blend_op = ToSDLBlendOp(blend.AlphaOp);
+            }
+        }
 
         SDL_GPUGraphicsPipelineTargetInfo targetInfo{};
-        targetInfo.color_target_descriptions = &colorTargetDesc;
-        targetInfo.num_color_targets = 1;
+        targetInfo.color_target_descriptions = colorTargetDescs;
+        targetInfo.num_color_targets = desc.numColourTargets;
         targetInfo.has_depth_stencil_target = desc.depthTestEnabled || desc.depthWriteEnabled;
         if (targetInfo.has_depth_stencil_target)
         {

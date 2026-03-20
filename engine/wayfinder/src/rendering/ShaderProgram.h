@@ -47,6 +47,7 @@ namespace Wayfinder
         CullMode Cull = CullMode::Back;
         bool DepthTest = true;
         bool DepthWrite = true;
+        BlendState Blend{};
 
         // Fragment material UBO layout — declared parameter list.
         // The renderer calls SerializeToUBO with these declarations.
