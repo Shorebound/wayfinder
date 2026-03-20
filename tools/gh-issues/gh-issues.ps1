@@ -1,4 +1,4 @@
-#!/usr/bin/env pwsh
+﻿#!/usr/bin/env pwsh
 <#
 .SYNOPSIS
     Manages GitHub issue relationships (blocked-by, sub-issues) for the Wayfinder project.
