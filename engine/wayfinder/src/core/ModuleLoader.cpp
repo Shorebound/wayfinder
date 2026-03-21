@@ -1,6 +1,7 @@
 #include "ModuleLoader.h"
 #include "ModuleExport.h"
 #include "Log.h"
+#include "Result.h"
 
 #ifdef _WIN32
 #   define WIN32_LEAN_AND_MEAN
@@ -73,12 +74,12 @@ namespace Wayfinder
     //  ModuleLoader
     // ---------------------------------------------------------------
 
-    std::optional<LoadedModule> ModuleLoader::Load(const std::filesystem::path& libraryPath)
+    Result<LoadedModule> ModuleLoader::Load(const std::filesystem::path& libraryPath)
     {
         if (libraryPath.empty())
         {
             WAYFINDER_ERROR(LogEngine, "ModuleLoader: empty library path");
-            return std::nullopt;
+            return MakeError("Empty library path");
         }
 
 #ifdef _WIN32
@@ -87,7 +88,7 @@ namespace Wayfinder
         {
             WAYFINDER_ERROR(LogEngine, "ModuleLoader: failed to load '{}' (error {})",
                             libraryPath.string(), GetLastError());
-            return std::nullopt;
+            return MakeError("Failed to load shared library");
         }
 
         auto createFn = reinterpret_cast<WayfinderCreateModuleFn>(
@@ -100,7 +101,7 @@ namespace Wayfinder
         {
             WAYFINDER_ERROR(LogEngine, "ModuleLoader: failed to load '{}': {}",
                             libraryPath.string(), dlerror());
-            return std::nullopt;
+            return MakeError("Failed to load shared library");
         }
 
         auto createFn = reinterpret_cast<WayfinderCreateModuleFn>(
@@ -121,7 +122,7 @@ namespace Wayfinder
 #else
             dlclose(handle);
 #endif
-            return std::nullopt;
+            return MakeError("Missing required module exports");
         }
 
         LoadedModule result;
@@ -133,7 +134,7 @@ namespace Wayfinder
         {
             WAYFINDER_ERROR(LogEngine, "ModuleLoader: WayfinderCreateModule() returned null for '{}'",
                             libraryPath.string());
-            return std::nullopt; // result destructor frees the DLL handle
+            return MakeError("WayfinderCreateModule returned null");
         }
 
         WAYFINDER_INFO(LogEngine, "ModuleLoader: loaded game module from '{}'",

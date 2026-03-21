@@ -35,6 +35,7 @@ add_executable(${WAYFINDER_CORE_TEST_NAME}
   core/ModuleRegistryTests.cpp
   core/SubsystemTests.cpp
   core/EngineConfigTests.cpp
+  core/ResultTests.cpp
 )
 
 wayfinder_set_output_directories(${WAYFINDER_CORE_TEST_NAME})

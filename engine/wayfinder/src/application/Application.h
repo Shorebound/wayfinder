@@ -1,5 +1,6 @@
 #pragma once
 
+#include "core/Result.h"
 #include "core/events/EventQueue.h"
 
 #include <memory>
@@ -30,21 +31,13 @@ namespace Wayfinder
         };
 
         /**
-         * @brief Construct an Application with an explicit set of command-line arguments.
-         * @param module  The game module that supplies registrations and lifecycle hooks.
-         * @param args    Parsed command-line arguments forwarded to the engine runtime.
+         * @brief Construct an Application.
+         * @param module  Game module whose ownership is transferred to the
+         *                Application.  May be null for a bare engine run.
+         * @param args    Command-line arguments forwarded from main().
          */
         explicit Application(std::unique_ptr<Module> module,
                              const CommandLineArgs& args);
-
-        /**
-         * @brief Construct an Application with no command-line arguments.
-         *
-         * Delegates to the two-argument constructor with an empty CommandLineArgs.
-         * @param module  The game module that supplies registrations and lifecycle hooks.
-         */
-        explicit Application(std::unique_ptr<Module> module)
-            : Application(std::move(module), CommandLineArgs{}) {}
         ~Application();
 
         void Run();
@@ -52,7 +45,7 @@ namespace Wayfinder
         LayerStack& GetLayerStack();
 
     private:
-        bool Initialise();
+        Result<void> Initialise();
         void Loop();
         void Shutdown();
 
@@ -65,8 +58,10 @@ namespace Wayfinder
         std::unique_ptr<ModuleRegistry> m_moduleRegistry;
         std::unique_ptr<ProjectDescriptor> m_project;
         std::unique_ptr<EngineConfig> m_config;
+        CommandLineArgs m_args{};
         bool m_running = false;
         bool m_moduleStarted = false;
+        bool m_logInitialised = false;
 
         std::unique_ptr<EngineRuntime> m_runtime;
         std::unique_ptr<LayerStack> m_layerStack;

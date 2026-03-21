@@ -7,6 +7,7 @@
 #include "Log.h"
 #include "ModuleRegistry.h"
 #include "ProjectDescriptor.h"
+#include "Result.h"
 #include "SceneSettings.h"
 #include "../assets/AssetService.h"
 #include "../scene/Scene.h"
@@ -27,7 +28,7 @@ namespace Wayfinder
         }
     }
 
-    bool Game::Initialise(const GameContext& ctx)
+    Result<void> Game::Initialise(const GameContext& ctx)
     {
         WAYFINDER_INFO(LogGame, "Initialising game");
 
@@ -59,7 +60,7 @@ namespace Wayfinder
         if (!std::filesystem::exists(bootScenePath))
         {
             WAYFINDER_ERROR(LogGame, "Boot scene not found: {}", bootScenePath.string());
-            return false;
+            return MakeError("Boot scene not found");
         }
 
         std::error_code canonicalError;
@@ -70,7 +71,7 @@ namespace Wayfinder
                             "Failed to resolve canonical path for boot scene '{}': {}",
                             bootScenePath.string(),
                             canonicalError.message());
-            return false;
+            return MakeError("Failed to resolve boot scene path");
         }
 
         m_currentScene = std::make_unique<Scene>(m_world, m_componentRegistry, "Default Scene");
@@ -80,7 +81,7 @@ namespace Wayfinder
         {
             WAYFINDER_ERROR(LogGame, "Failed to load bootstrap scene: {}", resolvedPath.string());
             m_currentScene.reset();
-            return false;
+            return MakeError("Failed to load bootstrap scene");
         }
 
         WAYFINDER_INFO(LogGame, "Loaded bootstrap scene from: {}", resolvedPath.string());
@@ -88,7 +89,7 @@ namespace Wayfinder
         committed = true;
         m_running = true;
         m_initialised = true;
-        return true;
+        return {};
     }
 
     void Game::InitialiseWorld()

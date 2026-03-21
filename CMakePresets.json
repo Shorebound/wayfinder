@@ -55,6 +55,29 @@
                 "WAYFINDER_BUILD_RUNTIME": "OFF",
                 "WAYFINDER_BUILD_SAMPLES": "OFF"
             }
+        },
+        {
+            "name": "ci-linux",
+            "displayName": "CI (Linux / Clang)",
+            "description": "For Linux-based CI and cloud agents (Ninja + Clang)",
+            "generator": "Ninja Multi-Config",
+            "binaryDir": "${sourceDir}/build",
+            "condition": {
+                "type": "equals",
+                "lhs": "${hostSystemName}",
+                "rhs": "Linux"
+            },
+            "cacheVariables": {
+                "CMAKE_C_COMPILER": "clang",
+                "CMAKE_CXX_COMPILER": "clang++",
+                "WAYFINDER_BUILD_SANDBOX": "ON",
+                "WAYFINDER_BUILD_TOOLS": "ON",
+                "WAYFINDER_BUILD_TESTS": "ON",
+                "WAYFINDER_BUILD_EDITOR": "OFF",
+                "WAYFINDER_BUILD_RUNTIME": "OFF",
+                "WAYFINDER_BUILD_SAMPLES": "OFF",
+                "WAYFINDER_WARNINGS_AS_ERRORS": "ON"
+            }
         }
     ],
     "buildPresets": [
@@ -75,6 +98,12 @@
             "displayName": "Shipping",
             "configurePreset": "shipping",
             "configuration": "Shipping"
+        },
+        {
+            "name": "ci-linux-debug",
+            "displayName": "CI Linux (Debug)",
+            "configurePreset": "ci-linux",
+            "configuration": "Debug"
         }
     ],
     "testPresets": [
@@ -82,6 +111,12 @@
             "name": "test",
             "displayName": "Run Tests (Debug)",
             "configurePreset": "dev",
+            "configuration": "Debug"
+        },
+        {
+            "name": "ci-linux-test",
+            "displayName": "Run Tests (CI Linux)",
+            "configurePreset": "ci-linux",
             "configuration": "Debug"
         }
     ]
