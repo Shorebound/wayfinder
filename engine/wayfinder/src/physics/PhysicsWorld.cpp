@@ -1,0 +1,310 @@
+#include "PhysicsWorld.h"
+#include "../core/Log.h"
+
+// Jolt includes — Jolt.h must come first.
+#include <Jolt/Jolt.h>
+
+#include <Jolt/Core/Factory.h>
+#include <Jolt/Core/JobSystemSingleThreaded.h>
+#include <Jolt/Core/TempAllocator.h>
+#include <Jolt/Physics/Body/BodyCreationSettings.h>
+#include <Jolt/Physics/Body/BodyInterface.h>
+#include <Jolt/Physics/Collision/Shape/BoxShape.h>
+#include <Jolt/Physics/Collision/Shape/SphereShape.h>
+#include <Jolt/Physics/PhysicsSettings.h>
+#include <Jolt/Physics/PhysicsSystem.h>
+#include <Jolt/RegisterTypes.h>
+
+#include <mutex>
+
+namespace Wayfinder
+{
+    // ── Jolt layer configuration ────────────────────────────────
+
+    namespace PhysicsLayers
+    {
+        static constexpr JPH::ObjectLayer NON_MOVING = 0;
+        static constexpr JPH::ObjectLayer MOVING = 1;
+        static constexpr uint32_t NUM_LAYERS = 2;
+    } // namespace PhysicsLayers
+
+    namespace BroadPhaseLayers
+    {
+        static constexpr JPH::BroadPhaseLayer NON_MOVING(0);
+        static constexpr JPH::BroadPhaseLayer MOVING(1);
+        static constexpr uint32_t NUM_LAYERS = 2;
+    } // namespace BroadPhaseLayers
+
+    // ── Jolt callback implementations ───────────────────────────
+
+    class BPLayerInterfaceImpl final : public JPH::BroadPhaseLayerInterface
+    {
+    public:
+        BPLayerInterfaceImpl()
+        {
+            m_objectToBroadPhase[PhysicsLayers::NON_MOVING] = BroadPhaseLayers::NON_MOVING;
+            m_objectToBroadPhase[PhysicsLayers::MOVING] = BroadPhaseLayers::MOVING;
+        }
+
+        JPH::uint GetNumBroadPhaseLayers() const override
+        {
+            return BroadPhaseLayers::NUM_LAYERS;
+        }
+
+        JPH::BroadPhaseLayer GetBroadPhaseLayer(JPH::ObjectLayer inLayer) const override
+        {
+            return m_objectToBroadPhase[inLayer];
+        }
+
+    private:
+        JPH::BroadPhaseLayer m_objectToBroadPhase[PhysicsLayers::NUM_LAYERS];
+    };
+
+    class ObjectVsBroadPhaseLayerFilterImpl final : public JPH::ObjectVsBroadPhaseLayerFilter
+    {
+    public:
+        bool ShouldCollide(JPH::ObjectLayer inLayer1, JPH::BroadPhaseLayer inLayer2) const override
+        {
+            switch (inLayer1)
+            {
+            case PhysicsLayers::NON_MOVING:
+                return inLayer2 == BroadPhaseLayers::MOVING;
+            case PhysicsLayers::MOVING:
+                return true;
+            default:
+                return false;
+            }
+        }
+    };
+
+    class ObjectLayerPairFilterImpl final : public JPH::ObjectLayerPairFilter
+    {
+    public:
+        bool ShouldCollide(JPH::ObjectLayer inLayer1, JPH::ObjectLayer inLayer2) const override
+        {
+            switch (inLayer1)
+            {
+            case PhysicsLayers::NON_MOVING:
+                return inLayer2 == PhysicsLayers::MOVING;
+            case PhysicsLayers::MOVING:
+                return true;
+            default:
+                return false;
+            }
+        }
+    };
+
+    // ── Jolt global initialisation guard ────────────────────────
+
+    namespace
+    {
+        std::once_flag g_joltInitFlag;
+        bool g_joltInitialised = false;
+
+        void InitialiseJoltGlobals()
+        {
+            std::call_once(g_joltInitFlag, []()
+            {
+                JPH::RegisterDefaultAllocator();
+                JPH::Factory::sInstance = new JPH::Factory();
+                JPH::RegisterTypes();
+                g_joltInitialised = true;
+            });
+        }
+    } // anonymous namespace
+
+    // ── PhysicsWorld implementation detail ───────────────────────
+
+    struct PhysicsWorld::Impl
+    {
+        static constexpr uint32_t MAX_BODIES = 1024;
+        static constexpr uint32_t NUM_BODY_MUTEXES = 0;
+        static constexpr uint32_t MAX_BODY_PAIRS = 1024;
+        static constexpr uint32_t MAX_CONTACT_CONSTRAINTS = 1024;
+        static constexpr uint32_t TEMP_ALLOCATOR_SIZE = 10 * 1024 * 1024; // 10 MB
+
+        std::unique_ptr<JPH::PhysicsSystem> PhysSystem;
+        std::unique_ptr<JPH::TempAllocatorImpl> TempAlloc;
+        std::unique_ptr<JPH::JobSystemSingleThreaded> JobSys;
+
+        BPLayerInterfaceImpl BroadPhaseLayerIface;
+        ObjectVsBroadPhaseLayerFilterImpl ObjVsBPFilter;
+        ObjectLayerPairFilterImpl ObjPairFilter;
+    };
+
+    // ── PhysicsWorld public API ─────────────────────────────────
+
+    PhysicsWorld::PhysicsWorld() = default;
+    PhysicsWorld::~PhysicsWorld()
+    {
+        if (m_initialised)
+            Shutdown();
+    }
+
+    void PhysicsWorld::Initialise()
+    {
+        if (m_initialised)
+            return;
+
+        InitialiseJoltGlobals();
+
+        m_impl = std::make_unique<Impl>();
+        m_impl->TempAlloc = std::make_unique<JPH::TempAllocatorImpl>(Impl::TEMP_ALLOCATOR_SIZE);
+        m_impl->JobSys = std::make_unique<JPH::JobSystemSingleThreaded>(JPH::cMaxPhysicsJobs);
+
+        m_impl->PhysSystem = std::make_unique<JPH::PhysicsSystem>();
+        m_impl->PhysSystem->Init(
+            Impl::MAX_BODIES,
+            Impl::NUM_BODY_MUTEXES,
+            Impl::MAX_BODY_PAIRS,
+            Impl::MAX_CONTACT_CONSTRAINTS,
+            m_impl->BroadPhaseLayerIface,
+            m_impl->ObjVsBPFilter,
+            m_impl->ObjPairFilter);
+
+        m_initialised = true;
+        WAYFINDER_INFO(LogPhysics, "PhysicsWorld initialised (Jolt)");
+    }
+
+    void PhysicsWorld::Shutdown()
+    {
+        if (!m_initialised)
+            return;
+
+        m_impl.reset();
+        m_initialised = false;
+        WAYFINDER_INFO(LogPhysics, "PhysicsWorld shut down");
+    }
+
+    void PhysicsWorld::Step(float deltaTime)
+    {
+        if (!m_initialised || deltaTime <= 0.0f)
+            return;
+
+        constexpr int COLLISION_STEPS = 1;
+        m_impl->PhysSystem->Update(
+            deltaTime,
+            COLLISION_STEPS,
+            m_impl->TempAlloc.get(),
+            m_impl->JobSys.get());
+    }
+
+    uint32_t PhysicsWorld::CreateBody(const RigidBodyComponent& body,
+                                      const ColliderComponent& collider,
+                                      const Float3& position)
+    {
+        if (!m_initialised)
+            return INVALID_PHYSICS_BODY;
+
+        // Build shape
+        JPH::Ref<JPH::Shape> shape;
+        switch (collider.Shape)
+        {
+        case ColliderShape::Box:
+            shape = new JPH::BoxShape(
+                JPH::Vec3(collider.HalfExtents.x,
+                           collider.HalfExtents.y,
+                           collider.HalfExtents.z));
+            break;
+        case ColliderShape::Sphere:
+            shape = new JPH::SphereShape(collider.Radius);
+            break;
+        default:
+            WAYFINDER_ERROR(LogPhysics, "Unknown ColliderShape");
+            return INVALID_PHYSICS_BODY;
+        }
+
+        // Map BodyType → Jolt motion type and object layer
+        JPH::EMotionType motionType;
+        JPH::ObjectLayer objectLayer;
+        switch (body.Type)
+        {
+        case BodyType::Static:
+            motionType = JPH::EMotionType::Static;
+            objectLayer = PhysicsLayers::NON_MOVING;
+            break;
+        case BodyType::Dynamic:
+            motionType = JPH::EMotionType::Dynamic;
+            objectLayer = PhysicsLayers::MOVING;
+            break;
+        case BodyType::Kinematic:
+            motionType = JPH::EMotionType::Kinematic;
+            objectLayer = PhysicsLayers::MOVING;
+            break;
+        default:
+            motionType = JPH::EMotionType::Dynamic;
+            objectLayer = PhysicsLayers::MOVING;
+            break;
+        }
+
+        JPH::BodyCreationSettings settings(
+            shape,
+            JPH::RVec3(position.x, position.y, position.z),
+            JPH::Quat::sIdentity(),
+            motionType,
+            objectLayer);
+
+        if (body.Type == BodyType::Dynamic)
+        {
+            settings.mGravityFactor = body.GravityFactor;
+            settings.mLinearVelocity = JPH::Vec3(
+                body.LinearVelocity.x,
+                body.LinearVelocity.y,
+                body.LinearVelocity.z);
+            settings.mAngularVelocity = JPH::Vec3(
+                body.AngularVelocity.x,
+                body.AngularVelocity.y,
+                body.AngularVelocity.z);
+            settings.mFriction = collider.Friction;
+            settings.mRestitution = collider.Restitution;
+        }
+
+        JPH::BodyInterface& bodyInterface = m_impl->PhysSystem->GetBodyInterface();
+        JPH::Body* joltBody = bodyInterface.CreateBody(settings);
+        if (!joltBody)
+        {
+            WAYFINDER_ERROR(LogPhysics, "Failed to create Jolt body");
+            return INVALID_PHYSICS_BODY;
+        }
+
+        JPH::BodyID id = joltBody->GetID();
+        bodyInterface.AddBody(id, JPH::EActivation::Activate);
+        return id.GetIndexAndSequenceNumber();
+    }
+
+    void PhysicsWorld::DestroyBody(uint32_t bodyId)
+    {
+        if (!m_initialised || bodyId == INVALID_PHYSICS_BODY)
+            return;
+
+        JPH::BodyInterface& bodyInterface = m_impl->PhysSystem->GetBodyInterface();
+        JPH::BodyID joltId(bodyId);
+        bodyInterface.RemoveBody(joltId);
+        bodyInterface.DestroyBody(joltId);
+    }
+
+    Float3 PhysicsWorld::GetBodyPosition(uint32_t bodyId) const
+    {
+        if (!m_initialised || bodyId == INVALID_PHYSICS_BODY)
+            return {0.0f, 0.0f, 0.0f};
+
+        const JPH::BodyInterface& bodyInterface = m_impl->PhysSystem->GetBodyInterface();
+        JPH::RVec3 pos = bodyInterface.GetPosition(JPH::BodyID(bodyId));
+        return {static_cast<float>(pos.GetX()),
+                static_cast<float>(pos.GetY()),
+                static_cast<float>(pos.GetZ())};
+    }
+
+    void PhysicsWorld::SetBodyPosition(uint32_t bodyId, const Float3& position)
+    {
+        if (!m_initialised || bodyId == INVALID_PHYSICS_BODY)
+            return;
+
+        JPH::BodyInterface& bodyInterface = m_impl->PhysSystem->GetBodyInterface();
+        bodyInterface.SetPosition(
+            JPH::BodyID(bodyId),
+            JPH::RVec3(position.x, position.y, position.z),
+            JPH::EActivation::Activate);
+    }
+
+} // namespace Wayfinder
