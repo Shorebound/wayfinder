@@ -12,4 +12,4 @@ rendering = "null"
 directory = "test/shaders"
 
 [physics]
-fixed_timestep = 0.008333333
+fixed_timestep = 0.00833333333333 # 120 Hz

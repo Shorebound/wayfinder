@@ -12,4 +12,4 @@ rendering = "sdl_gpu"
 directory = "assets/shaders"
 
 [physics]
-fixed_timestep = 0.016666666
+fixed_timestep = 0.01666666666667 # 60 Hz

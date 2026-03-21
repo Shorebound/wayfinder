@@ -198,8 +198,8 @@ namespace Wayfinder
 
         m_accumulator += frameDeltaTime;
 
-        /// Cap the accumulator to avoid a spiral-of-death when a frame takes
-        /// much longer than expected (e.g. debugger pause, long hitch).
+        // Cap the accumulator to avoid a spiral-of-death when a frame takes
+        // much longer than expected (e.g. debugger pause, long hitch).
         constexpr float MAX_ACCUMULATED = 0.25f;
         if (m_accumulator > MAX_ACCUMULATED)
             m_accumulator = MAX_ACCUMULATED;

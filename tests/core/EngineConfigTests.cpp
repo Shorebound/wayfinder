@@ -38,7 +38,7 @@ TEST_SUITE("EngineConfig")
         CHECK(config.Backends.Platform == PlatformBackend::SDL3);
         CHECK(config.Backends.Rendering == RenderBackend::Null);
         CHECK(config.Shaders.Directory == "test/shaders");
-        CHECK(config.Physics.FixedTimestep == doctest::Approx(0.008333333f));
+        CHECK(config.Physics.FixedTimestep == doctest::Approx(0.00833333333333f));
     }
 
     TEST_CASE("LoadFromFile with missing file returns defaults")
