@@ -3,6 +3,7 @@
 #include <filesystem>
 #include <memory>
 #include <string>
+#include <unordered_map>
 
 #include <flecs.h>
 
@@ -50,11 +51,17 @@ namespace Wayfinder
         const flecs::world& GetWorld() const { return m_world; }
 
     private:
+        friend class Entity;
+
         void ClearEntities();
+        void RegisterEntityId(flecs::entity entityHandle, const SceneObjectId& id) const;
+        void UnregisterEntityId(const SceneObjectId& id) const;
+        void UpdateEntityId(flecs::entity entityHandle, const SceneObjectId& previousId, const SceneObjectId& newId) const;
 
         flecs::world& m_world;
         const RuntimeComponentRegistry& m_componentRegistry;
         flecs::entity m_sceneTag;
+        mutable std::unordered_map<SceneObjectId, flecs::entity_t> m_entitiesById;
         std::string m_name;
         std::filesystem::path m_sourcePath;
         std::filesystem::path m_assetRoot;

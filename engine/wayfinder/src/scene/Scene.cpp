@@ -36,6 +36,38 @@ namespace Wayfinder
         m_sceneTag = m_world.entity();
     }
 
+    void Scene::RegisterEntityId(flecs::entity entityHandle, const SceneObjectId& id) const
+    {
+        if (!entityHandle.is_valid() || id.IsNil())
+        {
+            return;
+        }
+
+        m_entitiesById[id] = entityHandle.id();
+    }
+
+    void Scene::UnregisterEntityId(const SceneObjectId& id) const
+    {
+        if (id.IsNil())
+        {
+            return;
+        }
+
+        m_entitiesById.erase(id);
+    }
+
+    void Scene::UpdateEntityId(flecs::entity entityHandle, const SceneObjectId& previousId, const SceneObjectId& newId) const
+    {
+        if (previousId == newId)
+        {
+            RegisterEntityId(entityHandle, newId);
+            return;
+        }
+
+        UnregisterEntityId(previousId);
+        RegisterEntityId(entityHandle, newId);
+    }
+
     Scene::~Scene()
     {
         Shutdown();
@@ -68,6 +100,8 @@ namespace Wayfinder
         {
             m_world.entity(entityId).destruct();
         }
+
+        m_entitiesById.clear();
 
         // Reset scene-scoped settings
         m_world.set<SceneSettings>({});
@@ -120,10 +154,12 @@ namespace Wayfinder
         /// scene is tracked via NameComponent / SceneObjectIdComponent,
         /// not flecs' world-global naming system.
         flecs::entity handle = m_world.entity();
+        const SceneObjectId sceneObjectId = SceneObjectId::Generate();
         handle.add<SceneEntityComponent>();
         handle.add<SceneOwnership>(m_sceneTag);
         handle.set<NameComponent>(NameComponent{uniqueName});
-        handle.set<SceneObjectIdComponent>({SceneObjectId::Generate()});
+        handle.set<SceneObjectIdComponent>({sceneObjectId});
+        RegisterEntityId(handle, sceneObjectId);
         
         WAYFINDER_INFO(LogScene, "Created entity: {0} (ID: {1})", uniqueName, handle.id());
         
@@ -149,19 +185,23 @@ namespace Wayfinder
 
     Entity Scene::GetEntityById(const SceneObjectId& id)
     {
-        Entity result;
-        m_world.each([&](flecs::entity entityHandle, const SceneObjectIdComponent& sceneObjectId)
+        const auto entityIt = m_entitiesById.find(id);
+        if (entityIt == m_entitiesById.end())
         {
-            if (result || !(sceneObjectId.Value == id))
-                return;
+            return {};
+        }
 
-            if (!entityHandle.has<SceneOwnership>(m_sceneTag))
-                return;
+        const flecs::entity entityHandle = m_world.entity(entityIt->second);
+        if (!entityHandle.is_valid() ||
+            !entityHandle.has<SceneOwnership>(m_sceneTag) ||
+            !entityHandle.has<SceneObjectIdComponent>() ||
+            !(entityHandle.get<SceneObjectIdComponent>().Value == id))
+        {
+            m_entitiesById.erase(entityIt);
+            return {};
+        }
 
-            result = Entity{entityHandle, this};
-        });
-
-        return result;
+        return Entity{entityHandle, this};
     }
 
     bool Scene::LoadFromFile(const std::string& filePath)
