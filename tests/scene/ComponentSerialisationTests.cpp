@@ -22,7 +22,7 @@ namespace
         auto registry = MakeTestRegistry();
         registry.RegisterComponents(world);
         Scene::RegisterCoreECS(world);
-        Scene scene(world, registry, "SerializeTest");
+        Scene scene(world, registry, "SerialiseTest");
 
         auto entity = scene.CreateEntity("TestEntity");
 
@@ -33,13 +33,13 @@ namespace
 
         // Serialise the entity's components back out
         toml::table output;
-        registry.SerializeComponents(entity, output);
+        registry.SerialiseComponents(entity, output);
 
         return output;
     }
 }
 
-TEST_SUITE("Component Serialization")
+TEST_SUITE("Component Serialisation")
 {
     TEST_CASE("Transform round-trip preserves values")
     {

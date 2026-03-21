@@ -13,32 +13,32 @@ namespace Wayfinder
 
     // ── Color ────────────────────────────────────────────────
 
-    struct Color
+    struct Colour
     {
         uint8_t r, g, b, a;
 
-        static Color White() { return {.r = 255, .g = 255, .b = 255, .a = 255}; }
-        static Color Black() { return {.r = 0, .g = 0, .b = 0, .a = 255}; }
-        static Color Red() { return {.r = 255, .g = 0, .b = 0, .a = 255}; }
-        static Color Green() { return {.r = 0, .g = 255, .b = 0, .a = 255}; }
-        static Color Blue() { return {.r = 0, .g = 0, .b = 255, .a = 255}; }
-        static Color Yellow() { return {.r = 255, .g = 255, .b = 0, .a = 255}; }
-        static Color Gray() { return {.r = 128, .g = 128, .b = 128, .a = 255}; }
-        static Color DarkGray() { return {.r = 80, .g = 80, .b = 80, .a = 255}; }
+        static Colour White() { return {.r = 255, .g = 255, .b = 255, .a = 255}; }
+        static Colour Black() { return {.r = 0, .g = 0, .b = 0, .a = 255}; }
+        static Colour Red() { return {.r = 255, .g = 0, .b = 0, .a = 255}; }
+        static Colour Green() { return {.r = 0, .g = 255, .b = 0, .a = 255}; }
+        static Colour Blue() { return {.r = 0, .g = 0, .b = 255, .a = 255}; }
+        static Colour Yellow() { return {.r = 255, .g = 255, .b = 0, .a = 255}; }
+        static Colour Gray() { return {.r = 128, .g = 128, .b = 128, .a = 255}; }
+        static Colour DarkGray() { return {.r = 80, .g = 80, .b = 80, .a = 255}; }
     };
 
-    // ── Linear Color ─────────────────────────────────────────
-    // Float4 color in linear space for GPU-side work.
-    // Conversions from authored sRGB Color happen once at load/extract time.
+    // ── Linear Colour ─────────────────────────────────────────
+    // Float4 colour in linear space for GPU-side work.
+    // Conversions from authored sRGB Colour happen once at load/extract time.
 
-    struct LinearColor
+    struct LinearColour
     {
         float r = 1.0f, g = 1.0f, b = 1.0f, a = 1.0f;
 
-        static LinearColor White() { return {1.0f, 1.0f, 1.0f, 1.0f}; }
-        static LinearColor Black() { return {0.0f, 0.0f, 0.0f, 1.0f}; }
+        static LinearColour White() { return {1.0f, 1.0f, 1.0f, 1.0f}; }
+        static LinearColour Black() { return {0.0f, 0.0f, 0.0f, 1.0f}; }
 
-        static LinearColor FromColor(const Color& c)
+        static LinearColour FromColour(const Colour& c)
         {
             return {
                 .r = static_cast<float>(c.r) / 255.0f,
@@ -165,7 +165,7 @@ namespace Wayfinder
         float b = 0.0f;
         float a = 1.0f;
 
-        static ClearValue FromColor(const Color& c)
+        static ClearValue FromColour(const Colour& c)
         {
             return {
                 .r = c.r / 255.0f,
@@ -178,7 +178,7 @@ namespace Wayfinder
 
     // ── Render Pass Descriptor ───────────────────────────────
 
-    struct ColorAttachmentDescriptor
+    struct ColourAttachmentDescriptor
     {
         ClearValue clearValue{};
         LoadOp loadOp = LoadOp::Clear;
@@ -196,10 +196,10 @@ namespace Wayfinder
     struct RenderPassDescriptor
     {
         std::string debugName;
-        ColorAttachmentDescriptor colorAttachment{};
+        ColourAttachmentDescriptor colourAttachment{};
         DepthAttachmentDescriptor depthAttachment{};
         bool targetSwapchain = true;
-        GPUTextureHandle colorTarget{};  // If set and !targetSwapchain, render to this texture
+        GPUTextureHandle colourTarget{};  // If set and !targetSwapchain, render to this texture
         GPUTextureHandle depthTarget{};  // If set, use instead of auto-managed depth
     };
 

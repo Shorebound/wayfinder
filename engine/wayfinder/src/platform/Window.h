@@ -22,7 +22,7 @@ namespace Wayfinder
 
         virtual ~Window() = default;
 
-        virtual bool Initialize() = 0;
+        virtual bool Initialise() = 0;
         virtual void Shutdown() = 0;
         virtual void Update() = 0;
 

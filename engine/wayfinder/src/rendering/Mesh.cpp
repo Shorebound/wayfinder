@@ -67,7 +67,7 @@ namespace Wayfinder
         constexpr Float3 nRight  = { 1.0f,  0.0f,  0.0f};
         constexpr Float3 nLeft   = {-1.0f,  0.0f,  0.0f};
 
-        // Per-face vertex colors
+        // Per-face vertex colours
         constexpr Float3 cFront  = {0.9f, 0.2f, 0.2f};
         constexpr Float3 cBack   = {0.2f, 0.8f, 0.2f};
         constexpr Float3 cTop    = {0.2f, 0.4f, 0.9f};
@@ -75,7 +75,7 @@ namespace Wayfinder
         constexpr Float3 cRight  = {0.9f, 0.2f, 0.9f};
         constexpr Float3 cLeft   = {0.2f, 0.9f, 0.9f};
 
-        std::array<VertexPosNormalColor, 24> vertices = {{
+        std::array<VertexPosNormalColour, 24> vertices = {{
             // Front (+Z)
             {{-H, -H,  H}, nFront, cFront}, {{ H, -H,  H}, nFront, cFront}, {{ H,  H,  H}, nFront, cFront}, {{-H,  H,  H}, nFront, cFront},
             // Back (-Z)
@@ -101,7 +101,7 @@ namespace Wayfinder
 
         Mesh mesh;
         if (!mesh.Create(device,
-                          vertices.data(), static_cast<uint32_t>(vertices.size() * sizeof(VertexPosNormalColor)), static_cast<uint32_t>(vertices.size()),
+                          vertices.data(), static_cast<uint32_t>(vertices.size() * sizeof(VertexPosNormalColour)), static_cast<uint32_t>(vertices.size()),
                           indices.data(), static_cast<uint32_t>(indices.size() * sizeof(uint16_t)), static_cast<uint32_t>(indices.size()),
                           IndexElementSize::Uint16))
         {

@@ -18,7 +18,7 @@ namespace Wayfinder
     enum class ShaderFeature : uint32_t
     {
         None       = 0,
-        VertexColor = 1 << 0,
+        VertexColour = 1 << 0,
         AlphaTest   = 1 << 1,
     };
 
@@ -38,7 +38,7 @@ namespace Wayfinder
         ShaderManager(const ShaderManager&) = delete;
         ShaderManager& operator=(const ShaderManager&) = delete;
 
-        void Initialize(RenderDevice& device, const std::string& shaderDirectory);
+        void Initialise(RenderDevice& device, const std::string& shaderDirectory);
         void Shutdown();
 
         // Loads bytecode from "<shaderDirectory>/<name>.vert.spv" or "<name>.frag.spv",

@@ -21,22 +21,22 @@ namespace Wayfinder
 
     Game::~Game()
     {
-        if (m_initialized)
+        if (m_initialised)
         {
             Shutdown();
         }
     }
 
-    bool Game::Initialize(const GameContext& ctx)
+    bool Game::Initialise(const GameContext& ctx)
     {
-        WAYFINDER_INFO(LogGame, "Initializing game");
+        WAYFINDER_INFO(LogGame, "Initialising game");
 
         m_moduleRegistry = ctx.moduleRegistry;
         m_assetService = std::make_shared<AssetService>();
 
-        InitializeSubsystems();
-        InitializeTagRegistry();
-        InitializeWorld();
+        InitialiseSubsystems();
+        InitialiseTagRegistry();
+        InitialiseWorld();
 
         // Guard that tears down subsystems on any early return.  Dismissed on success.
         bool committed = false;
@@ -87,11 +87,11 @@ namespace Wayfinder
 
         committed = true;
         m_running = true;
-        m_initialized = true;
+        m_initialised = true;
         return true;
     }
 
-    void Game::InitializeWorld()
+    void Game::InitialiseWorld()
     {
         // Build the unified component registry: core entries + game entries
         m_componentRegistry.AddCoreEntries();
@@ -102,15 +102,15 @@ namespace Wayfinder
         Scene::RegisterCoreECS(m_world);
         m_componentRegistry.RegisterComponents(m_world);
 
-        // Initialize the game state singleton
+        // Initialise the game state singleton
         m_world.component<ActiveGameState>();
         m_world.set<ActiveGameState>({});
 
-        // Initialize scene settings singleton
+        // Initialise scene settings singleton
         m_world.component<SceneSettings>();
         m_world.set<SceneSettings>({});
 
-        // Initialize active gameplay tags singleton
+        // Initialise active gameplay tags singleton
         m_world.component<ActiveGameplayTags>();
         m_world.set<ActiveGameplayTags>({});
 
@@ -130,7 +130,7 @@ namespace Wayfinder
 
     void Game::Update(const float deltaTime)
     {
-        if (!m_running || !m_initialized)
+        if (!m_running || !m_initialised)
             return;
 
         if (m_stateMachine)
@@ -141,7 +141,7 @@ namespace Wayfinder
 
     void Game::Shutdown()
     {
-        if (!m_initialized)
+        if (!m_initialised)
             return;
 
         WAYFINDER_INFO(LogGame, "Shutting down game");
@@ -153,7 +153,7 @@ namespace Wayfinder
 
         m_stateMachine = nullptr;
         m_running = false;
-        m_initialized = false;
+        m_initialised = false;
     }
 
     void Game::LoadScene(const std::string& scenePath)
@@ -221,7 +221,7 @@ namespace Wayfinder
         return tags.Tags.HasTag(tag);
     }
 
-    void Game::InitializeSubsystems()
+    void Game::InitialiseSubsystems()
     {
         // Register core engine subsystems
         m_subsystems.Register<GameplayTagRegistry>();
@@ -238,7 +238,7 @@ namespace Wayfinder
         GameSubsystems::Bind(&m_subsystems);
     }
 
-    void Game::InitializeTagRegistry()
+    void Game::InitialiseTagRegistry()
     {
         auto& tagRegistry = GameSubsystems::Get<GameplayTagRegistry>();
 

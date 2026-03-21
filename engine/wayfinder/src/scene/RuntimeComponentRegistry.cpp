@@ -20,7 +20,7 @@ namespace Wayfinder
             entry.Key = std::string(coreEntry.Key);
             entry.RegisterFn = coreEntry.RegisterFn;
             entry.ApplyFn = coreEntry.ApplyFn;
-            entry.SerializeFn = coreEntry.SerializeFn;
+            entry.SerialiseFn = coreEntry.SerialiseFn;
             entry.ValidateFn = coreEntry.ValidateFn;
             m_entries.push_back(std::move(entry));
             m_index[m_entries.back().Key] = m_entries.size() - 1;
@@ -42,7 +42,7 @@ namespace Wayfinder
             entry.Key = desc.Key;
             entry.RegisterFn = desc.RegisterFn;
             entry.ApplyFn = desc.ApplyFn;
-            entry.SerializeFn = desc.SerializeFn;
+            entry.SerialiseFn = desc.SerialiseFn;
             entry.ValidateFn = desc.ValidateFn;
             m_entries.push_back(std::move(entry));
             m_index[desc.Key] = m_entries.size() - 1;
@@ -74,12 +74,12 @@ namespace Wayfinder
         }
     }
 
-    void RuntimeComponentRegistry::SerializeComponents(const Entity& entity, toml::table& componentTables) const
+    void RuntimeComponentRegistry::SerialiseComponents(const Entity& entity, toml::table& componentTables) const
     {
         for (const Entry& entry : m_entries)
         {
-            if (entry.SerializeFn)
-                entry.SerializeFn(entity, componentTables);
+            if (entry.SerialiseFn)
+                entry.SerialiseFn(entity, componentTables);
         }
     }
 

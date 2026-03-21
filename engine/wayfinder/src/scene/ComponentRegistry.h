@@ -12,10 +12,12 @@ namespace Wayfinder
 {
     class Entity;
 
-    /// Static compile-time registry of core serializable ECS components.
-    ///
-    /// This holds the engine's built-in component entries. At runtime,
-    /// RuntimeComponentRegistry merges these with game-registered entries.
+    /**
+     * @brief Static compile-time registry of core serialisable ECS components.
+     *
+     * This holds the engine's built-in component entries. At runtime,
+     * RuntimeComponentRegistry merges these with game-registered entries.
+     */
     class WAYFINDER_API SceneComponentRegistry
     {
     public:
@@ -24,7 +26,7 @@ namespace Wayfinder
             std::string_view Key;
             void (*RegisterFn)(flecs::world& world);
             void (*ApplyFn)(const toml::table& componentTable, Entity& entity);
-            void (*SerializeFn)(const Entity& entity, toml::table& componentTables);
+            void (*SerialiseFn)(const Entity& entity, toml::table& componentTables);
             bool (*ValidateFn)(const toml::table& componentTable, std::string& error);
         };
 
@@ -35,7 +37,7 @@ namespace Wayfinder
 
         void RegisterComponents(flecs::world& world) const;
         void ApplyComponents(const toml::table& componentTables, Entity& entity) const;
-        void SerializeComponents(const Entity& entity, toml::table& componentTables) const;
+        void SerialiseComponents(const Entity& entity, toml::table& componentTables) const;
         bool ValidateComponent(std::string_view key, const toml::table& componentTable, std::string& error) const;
         bool IsRegistered(std::string_view key) const;
 

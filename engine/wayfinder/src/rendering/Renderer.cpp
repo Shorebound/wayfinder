@@ -14,7 +14,7 @@
 namespace Wayfinder
 {
     Renderer::Renderer()
-        : m_screenWidth(800), m_screenHeight(450), m_isInitialized(false)
+        : m_screenWidth(800), m_screenHeight(450), m_isInitialised(false)
     {
         m_renderPipeline = std::make_unique<RenderPipeline>();
         m_renderResources = std::make_unique<RenderResourceCache>();
@@ -22,38 +22,36 @@ namespace Wayfinder
 
     Renderer::~Renderer()
     {
-        if (m_isInitialized)
+        if (m_isInitialised)
         {
             Shutdown();
         }
     }
 
-    bool Renderer::Initialize(RenderDevice& device, const EngineConfig& config)
+    bool Renderer::Initialise(RenderDevice& device, const EngineConfig& config)
     {
         m_device = &device;
         m_screenWidth = static_cast<int>(config.Window.Width);
         m_screenHeight = static_cast<int>(config.Window.Height);
-        m_isInitialized = true;
-
         // ── GPU infrastructure ───────────────────────────────
         m_context = std::make_unique<RenderContext>();
-        if (!m_context->Initialize(device, config))
+        if (!m_context->Initialise(device, config))
         {
-            WAYFINDER_WARNING(LogRenderer, "Renderer: Failed to initialize RenderContext");
+            WAYFINDER_WARNING(LogRenderer, "Renderer: Failed to initialise RenderContext");
             return false;
         }
 
         // ── Render pipeline (registers shader programs) ──────
         m_renderPipeline->Initialise(*m_context);
 
-        // ── Debug line pipeline (PosColor, uses debug_unlit shaders) ──
+        // ── Debug line pipeline (PosColourrr, uses debug_unlit shaders) ──
         {
             GPUPipelineDesc desc{};
             desc.vertexShaderName = "debug_unlit";
             desc.fragmentShaderName = "unlit"; // shares the same fragment shader
             desc.vertexResources = {.numUniformBuffers = 1};
             desc.fragmentResources = {.numUniformBuffers = 1};
-            desc.vertexLayout = VertexLayouts::PosColor;
+            desc.vertexLayout = VertexLayouts::PosColour;
             desc.primitiveType = PrimitiveType::LineList;
             desc.cullMode = CullMode::None;
             desc.depthTestEnabled = false;
@@ -68,16 +66,17 @@ namespace Wayfinder
         // Single built-in mesh for all scene primitives
         m_primitiveMesh = Mesh::CreatePrimitive(device);
 
-        // Attach any features that were added before Initialize().
+        // Attach any features that were added before Initialise().
         for (auto& feature : m_features)
         {
             auto ctx = MakeFeatureContext();
             feature->OnAttach(ctx);
         }
 
-        WAYFINDER_INFO(LogRenderer, "Renderer initialized ({}x{}, backend: {})",
+        WAYFINDER_INFO(LogRenderer, "Renderer initialised ({}x{}, backend: {})",
             m_screenWidth, m_screenHeight, device.GetDeviceInfo().BackendName);
 
+        m_isInitialised = true;
         return true;
     }
 
@@ -109,7 +108,7 @@ namespace Wayfinder
             m_renderResources->SetAssetService(m_assetService);
         }
         m_device = nullptr;
-        m_isInitialized = false;
+        m_isInitialised = false;
     }
 
     void Renderer::SetAssetService(const std::shared_ptr<AssetService>& assetService)
@@ -142,7 +141,7 @@ namespace Wayfinder
 
     void Renderer::Render(const RenderFrame& frame)
     {
-        if (!m_isInitialized || !m_device) return;
+        if (!m_isInitialised || !m_device) return;
         if (!m_device->BeginFrame()) return;
 
         m_context->GetTransientBuffers().BeginFrame();

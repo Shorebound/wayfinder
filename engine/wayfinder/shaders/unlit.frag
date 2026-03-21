@@ -5,16 +5,16 @@
 [[vk::binding(0, 3)]]
 cbuffer MaterialUBO : register(b0)
 {
-    float4 base_color;
+    float4 base_colour;
 };
 
 struct PSInput
 {
     float4 Position : SV_Position;
-    float3 Color    : TEXCOORD0;
+    float3 Colour    : TEXCOORD0;
 };
 
 float4 PSMain(PSInput input) : SV_Target
 {
-    return float4(input.Color * base_color.rgb, base_color.a);
+    return float4(input.Colour * base_colour.rgb, base_colour.a);
 }

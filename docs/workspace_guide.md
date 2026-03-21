@@ -2,7 +2,7 @@
 
 ## Purpose
 
-This document explains how the repository is organized, what targets currently matter, and how to work with the project without already knowing its history.
+This document explains how the repository is organised, what targets currently matter, and how to work with the project without already knowing its history.
 
 ## Repository Layout
 
@@ -104,7 +104,7 @@ See `CMakePresets.json` at the repo root for available presets:
 
 ### Runtime Iteration
 
-Use `journey` when changing engine runtime behavior, scene loading, renderer behavior, or general gameplay-facing systems.
+Use `journey` when changing engine runtime behaviour, scene loading, renderer behaviour, or general gameplay-facing systems.
 
 ```powershell
 build\bin\Debug\journey.exe

@@ -43,7 +43,7 @@ namespace Wayfinder
             return *this;
         }
 
-        void Initialize(RenderDevice& device);
+        void Initialise(RenderDevice& device);
         void Shutdown();
 
         // Returns a texture matching the description, creating one if no match is available.

@@ -16,13 +16,13 @@ namespace
     }
 }
 
-TEST_CASE("RenderContext initializes and shuts down with NullDevice")
+TEST_CASE("RenderContext initialises and shuts down with NullDevice")
 {
     auto device = Wayfinder::RenderDevice::Create(Wayfinder::RenderBackend::Null);
     REQUIRE(device);
 
     Wayfinder::RenderContext context;
-    CHECK(context.Initialize(*device, MakeTestConfig()));
+    CHECK(context.Initialise(*device, MakeTestConfig()));
     context.Shutdown();
 }
 
@@ -32,7 +32,7 @@ TEST_CASE("RenderContext getters return valid references after init")
     REQUIRE(device);
 
     Wayfinder::RenderContext context;
-    REQUIRE(context.Initialize(*device, MakeTestConfig()));
+    REQUIRE(context.Initialise(*device, MakeTestConfig()));
 
     CHECK(&context.GetDevice() == device.get());
 
@@ -54,7 +54,7 @@ TEST_CASE("RenderContext double shutdown is safe")
     REQUIRE(device);
 
     Wayfinder::RenderContext context;
-    REQUIRE(context.Initialize(*device, MakeTestConfig()));
+    REQUIRE(context.Initialise(*device, MakeTestConfig()));
 
     context.Shutdown();
     context.Shutdown(); // Should not crash
@@ -66,7 +66,7 @@ TEST_CASE("RenderContext program registry is functional after init")
     REQUIRE(device);
 
     Wayfinder::RenderContext context;
-    REQUIRE(context.Initialize(*device, MakeTestConfig()));
+    REQUIRE(context.Initialise(*device, MakeTestConfig()));
 
     // Contract: RenderPipeline::Initialise depends on being able to call
     // Register. With NullDevice, pipeline creation fails (no shader files),

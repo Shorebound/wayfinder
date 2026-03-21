@@ -23,7 +23,7 @@ namespace Wayfinder
         SDLGPUDevice() = default;
         ~SDLGPUDevice() override;
 
-        bool Initialize(Window& window) override;
+        bool Initialise(Window& window) override;
         void Shutdown() override;
 
         bool BeginFrame() override;

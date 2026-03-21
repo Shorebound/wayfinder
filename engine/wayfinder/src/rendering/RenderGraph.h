@@ -27,7 +27,7 @@ namespace Wayfinder
 
     namespace WellKnown
     {
-        inline constexpr const char* SceneColor = "SceneColor";
+        inline constexpr const char* SceneColour = "SceneColour";
         inline constexpr const char* SceneDepth = "SceneDepth";
     }
 
@@ -59,8 +59,8 @@ namespace Wayfinder
         // Declare this pass reads a texture (for sampling in a shader).
         void ReadTexture(RenderGraphHandle handle);
 
-        // Declare this pass writes to a color render target.
-        void WriteColor(RenderGraphHandle handle, LoadOp load = LoadOp::Clear, ClearValue clear = {});
+        // Declare this pass writes to a colour render target.
+        void WriteColour(RenderGraphHandle handle, LoadOp load = LoadOp::Clear, ClearValue clear = {});
 
         // Declare this pass writes to a depth render target.
         void WriteDepth(RenderGraphHandle handle, LoadOp load = LoadOp::Clear, float clearDepth = 1.0f);
@@ -143,7 +143,7 @@ namespace Wayfinder
             uint32_t LastReadByPass = UINT32_MAX;
         };
 
-        struct ColorWriteInfo
+        struct ColourWriteInfo
         {
             RenderGraphHandle Handle;
             LoadOp Load = LoadOp::Clear;
@@ -172,7 +172,7 @@ namespace Wayfinder
             std::vector<RenderGraphHandle> Reads;
             std::vector<uint32_t> DependsOn; // Direct pass indices this pass depends on
 
-            std::optional<ColorWriteInfo> ColorWrite;
+            std::optional<ColourWriteInfo> ColourWrite;
             std::optional<DepthWriteInfo> DepthWrite;
             std::optional<SwapchainWriteInfo> SwapchainWrite;
 

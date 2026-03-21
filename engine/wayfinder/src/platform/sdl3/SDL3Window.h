@@ -11,7 +11,7 @@ namespace Wayfinder
         explicit SDL3Window(const Window::Config& config);
         ~SDL3Window() override;
 
-        bool Initialize() override;
+        bool Initialise() override;
         void Shutdown() override;
         void Update() override;
 
@@ -40,6 +40,6 @@ namespace Wayfinder
         EventCallbackFn m_eventCallback;
         SDL_Window* m_window = nullptr;
         bool m_shouldClose = false;
-        bool m_initialized = false;
+        bool m_initialised = false;
     };
 }

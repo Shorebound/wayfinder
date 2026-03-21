@@ -98,7 +98,7 @@ namespace Wayfinder
             submission.Material.Ref.Origin = RenderResourceOrigin::BuiltIn;
             submission.Material.Ref.StableKey = kBuiltInSurfaceMaterialKey;
             submission.Material.Domain = RenderMaterialDomain::Surface;
-            submission.Material.Parameters.SetColor("base_color", LinearColor::White());
+            submission.Material.Parameters.SetColour("base_colour", LinearColour::White());
 
             Matrix4 localToWorld = transform.GetLocalMatrix();
 
@@ -118,10 +118,10 @@ namespace Wayfinder
                     submission.Material.Ref.StableKey = MakeStableKey(*material.MaterialAssetId);
                 }
 
-                if (material.HasBaseColorOverride || !material.MaterialAssetId)
+                if (material.HasBaseColourOverride || !material.MaterialAssetId)
                 {
                     submission.Material.HasOverrides = true;
-                    submission.Material.Overrides.SetColor("base_color", LinearColor::FromColor(material.BaseColor));
+                    submission.Material.Overrides.SetColour("base_colour", LinearColour::FromColour(material.BaseColour));
                 }
             }
 
@@ -196,7 +196,7 @@ namespace Wayfinder
                 debugBox.Material.Ref.Origin = RenderResourceOrigin::BuiltIn;
                 debugBox.Material.Ref.StableKey = 100ull;
                 debugBox.Material.Domain = RenderMaterialDomain::Debug;
-                debugBox.Material.Parameters.SetColor("base_color", LinearColor::FromColor(light.Tint));
+                debugBox.Material.Parameters.SetColour("base_colour", LinearColour::FromColour(light.Tint));
 
                 if (RenderPass* pass = frame.FindPass(RenderPassIds::Debug))
                 {
@@ -209,7 +209,7 @@ namespace Wayfinder
                     RenderDebugLine debugLine;
                     debugLine.Start = position;
                     debugLine.End = lineEnd;
-                    debugLine.Color = light.Tint;
+                    debugLine.Colour = light.Tint;
 
                     if (RenderPass* pass = frame.FindPass(RenderPassIds::Debug))
                     {

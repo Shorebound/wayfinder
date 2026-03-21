@@ -40,7 +40,7 @@ namespace Wayfinder
         LayerStack& GetLayerStack();
 
     private:
-        bool Initialize();
+        bool Initialise();
         void Loop();
         void Shutdown();
 

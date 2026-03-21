@@ -27,10 +27,10 @@ namespace
         {
             m_log.push_back(m_name + "::AddPasses");
 
-            // Inject a simple pass that reads SceneColor and writes swapchain
+            // Inject a simple pass that reads SceneColour and writes swapchain
             graph.AddPass(m_name, [this](Wayfinder::RenderGraphBuilder& builder) -> Wayfinder::RenderGraphExecuteFn {
-                auto color = builder.CreateTransient({128, 128, Wayfinder::TextureFormat::RGBA8_UNORM, m_name.c_str()});
-                builder.WriteColor(color);
+                auto colour = builder.CreateTransient({128, 128, Wayfinder::TextureFormat::RGBA8_UNORM, m_name.c_str()});
+                builder.WriteColour(colour);
                 return [](Wayfinder::RenderDevice&, const Wayfinder::RenderGraphResources&) {};
             });
         }
@@ -50,7 +50,7 @@ namespace
         std::vector<std::string>& m_log;
     };
 
-    // A feature that injects a pass reading SceneColor and writing to swapchain.
+    // A feature that injects a pass reading SceneColour and writing to swapchain.
     class OverlayFeature : public Wayfinder::RenderFeature
     {
     public:
@@ -63,10 +63,10 @@ namespace
         void AddPasses(Wayfinder::RenderGraph& graph, const Wayfinder::RenderFrame&) override
         {
             graph.AddPass("OverlayPass", [&](Wayfinder::RenderGraphBuilder& builder) -> Wayfinder::RenderGraphExecuteFn {
-                auto color = graph.FindHandle(Wayfinder::WellKnown::SceneColor);
-                if (color.IsValid())
+                auto colour = graph.FindHandle(Wayfinder::WellKnown::SceneColour);
+                if (colour.IsValid())
                 {
-                    builder.ReadTexture(color);
+                    builder.ReadTexture(colour);
                 }
                 builder.SetSwapchainOutput();
                 return [this](Wayfinder::RenderDevice&, const Wayfinder::RenderGraphResources&) {
@@ -166,22 +166,22 @@ TEST_CASE("Feature pass executes in compiled graph")
 {
     auto device = Wayfinder::RenderDevice::Create(Wayfinder::RenderBackend::Null);
     Wayfinder::TransientResourcePool pool;
-    pool.Initialize(*device);
+    pool.Initialise(*device);
 
     OverlayFeature overlay;
     Wayfinder::RenderFrame frame;
     Wayfinder::RenderGraph graph;
 
     // Engine adds a scene pass first
-    Wayfinder::RenderGraphTextureDesc colorDesc;
-    colorDesc.Width = 800;
-    colorDesc.Height = 600;
-    colorDesc.Format = Wayfinder::TextureFormat::RGBA8_UNORM;
-    colorDesc.DebugName = Wayfinder::WellKnown::SceneColor;
+    Wayfinder::RenderGraphTextureDesc colourDesc;
+    colourDesc.Width = 800;
+    colourDesc.Height = 600;
+    colourDesc.Format = Wayfinder::TextureFormat::RGBA8_UNORM;
+    colourDesc.DebugName = Wayfinder::WellKnown::SceneColour;
 
     graph.AddPass("MainScene", [&](Wayfinder::RenderGraphBuilder& builder) -> Wayfinder::RenderGraphExecuteFn {
-        auto color = builder.CreateTransient(colorDesc);
-        builder.WriteColor(color);
+        auto colour = builder.CreateTransient(colourDesc);
+        builder.WriteColour(colour);
         return [](Wayfinder::RenderDevice&, const Wayfinder::RenderGraphResources&) {};
     });
 
@@ -281,7 +281,7 @@ TEST_CASE("RenderResourceCache resolves built-in materials")
     submission.Material.Ref.Origin = Wayfinder::RenderResourceOrigin::BuiltIn;
     submission.Material.Ref.StableKey = 42;
     submission.Material.ShaderName = "unlit";
-    submission.Material.Parameters.SetColor("base_color", Wayfinder::LinearColor::White());
+    submission.Material.Parameters.SetColour("base_colour", Wayfinder::LinearColour::White());
     scenePass.Meshes.push_back(submission);
 
     Wayfinder::RenderResourceCache resources;
@@ -295,5 +295,5 @@ TEST_CASE("RenderResourceCache resolves built-in materials")
     // Verify that the submission's material binding was set up correctly
     CHECK(scenePass.Meshes[0].Material.Ref.Origin == Wayfinder::RenderResourceOrigin::BuiltIn);
     CHECK(scenePass.Meshes[0].Material.ShaderName == "unlit");
-    CHECK(scenePass.Meshes[0].Material.Parameters.Has("base_color"));
+    CHECK(scenePass.Meshes[0].Material.Parameters.Has("base_colour"));
 }
