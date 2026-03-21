@@ -171,6 +171,30 @@
       "material": {
         "material_id": "b8f4c2d5-3e6a-4f9b-a0d7-2e1c4f8b6a3d"
       }
+    },
+    {
+      "id": "f7a8b9c0-d1e2-4f3a-b4c5-6d7e8f901a2b",
+      "name": "BouncyBrick",
+      "parent_id": "d43f13fe-fd18-46ad-9e2a-10d9cd0f6f9c",
+      "prefab_id": "f4a6f64d-7233-4d0c-bf13-cfd5f6f16b8c",
+      "transform": {
+        "position": [2.0, 6.0, -1.0],
+        "rotation": [0.0, 30.0, 0.0],
+        "scale": [1.0, 1.0, 1.0]
+      },
+      "material": {
+        "material_id": "e5f6a7b8-c9d0-4e1f-b2a3-4c5d6e7f8091"
+      },
+      "rigid_body": {
+        "type": "dynamic",
+        "mass": 1.5
+      },
+      "collider": {
+        "shape": "box",
+        "half_extents": [0.5, 0.5, 0.5],
+        "friction": 0.4,
+        "restitution": 0.85
+      }
     }
   ]
 }
