@@ -21,7 +21,7 @@ namespace Wayfinder
     };
 
     /** @brief Value type for post-process effect parameters. */
-    using PostProcessParamValue = std::variant<float, int32_t, Float3, Color>;
+    using PostProcessParamValue = std::variant<float, int32_t, Float3, Colour>;
 
     /**
     * @struct PostProcessEffect
@@ -43,8 +43,8 @@ namespace Wayfinder
         int32_t GetInt(const std::string& name, int32_t fallback = 0) const;
         /** @brief Retrieve a Float3 parameter, returning @p fallback if not found. */
         Float3 GetFloat3(const std::string& name, const Float3& fallback = {0.0f, 0.0f, 0.0f}) const;
-        /** @brief Retrieve a Color parameter, returning @p fallback if not found. */
-        Color GetColor(const std::string& name, const Color& fallback = Color::White()) const;
+        /** @brief Retrieve a Colour parameter, returning @p fallback if not found. */
+        Colour GetColour(const std::string& name, const Colour& fallback = Colour::White()) const;
 
         /** @brief Set a float parameter. */
         void SetFloat(const std::string& name, float v) { Parameters[name] = v; }
@@ -52,8 +52,8 @@ namespace Wayfinder
         void SetInt(const std::string& name, int32_t v) { Parameters[name] = v; }
         /** @brief Set a Float3 parameter. */
         void SetFloat3(const std::string& name, const Float3& v) { Parameters[name] = v; }
-        /** @brief Set a Color parameter. */
-        void SetColor(const std::string& name, const Color& v) { Parameters[name] = v; }
+        /** @brief Set a Colour parameter. */
+        void SetColour(const std::string& name, const Colour& v) { Parameters[name] = v; }
     };
 
     /**

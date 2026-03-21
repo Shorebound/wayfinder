@@ -29,7 +29,7 @@ namespace Wayfinder
         TransientBufferAllocator(const TransientBufferAllocator&) = delete;
         TransientBufferAllocator& operator=(const TransientBufferAllocator&) = delete;
 
-        bool Initialize(RenderDevice& device, uint32_t vertexCapacity, uint32_t indexCapacity);
+        bool Initialise(RenderDevice& device, uint32_t vertexCapacity, uint32_t indexCapacity);
         void Shutdown();
 
         // Call once per frame before any Allocate calls.

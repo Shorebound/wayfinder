@@ -14,20 +14,22 @@ namespace Wayfinder
 {
     class Entity;
 
-    /// Unified registry of serializable ECS components, merging engine-core
-    /// entries with game-registered entries from ModuleRegistry.
-    ///
-    /// Built once by Game::InitializeWorld() and passed by const-reference
-    /// to Scene, SceneDocument, and validation tools.
-    ///
-    /// @par Lifecycle & Thread Safety
-    /// Populated during Game::InitializeWorld() via AddCoreEntries() and
-    /// AddGameEntries() (which mutate m_entries).  After initialisation the
-    /// registry is accessed only through const methods (Find, IsRegistered,
-    /// RegisterComponents, ApplyComponents, SerializeComponents,
-    /// ValidateComponent) and is therefore safe for concurrent read-only
-    /// access.  Callers must not invoke mutating methods after initialisation
-    /// unless external synchronisation is provided.
+    /**
+     * @brief Unified registry of serialisable ECS components, merging engine-core
+     * entries with game-registered entries from ModuleRegistry.
+     *
+     * Built once by Game::InitialiseWorld() and passed by const-reference
+     * to Scene, SceneDocument, and validation tools.
+     *
+     * @par Lifecycle & Thread Safety
+     * Populated during Game::InitialiseWorld() via AddCoreEntries() and
+     * AddGameEntries() (which mutate m_entries). After initialisation the
+     * registry is accessed only through const methods (Find, IsRegistered,
+     * RegisterComponents, ApplyComponents, SerialiseComponents,
+     * ValidateComponent) and is therefore safe for concurrent read-only
+     * access. Callers must not invoke mutating methods after initialisation
+     * unless external synchronisation is provided.
+     */
     class WAYFINDER_API RuntimeComponentRegistry
     {
     public:
@@ -36,7 +38,7 @@ namespace Wayfinder
             std::string Key;
             void (*RegisterFn)(flecs::world& world);
             void (*ApplyFn)(const nlohmann::json& componentData, Entity& entity);
-            void (*SerializeFn)(const Entity& entity, nlohmann::json& componentTables);
+            void (*SerialiseFn)(const Entity& entity, nlohmann::json& componentTables);
             bool (*ValidateFn)(const nlohmann::json& componentData, std::string& error);
         };
 
@@ -50,7 +52,7 @@ namespace Wayfinder
         void RegisterComponents(flecs::world& world) const;
 
         void ApplyComponents(const nlohmann::json& componentTables, Entity& entity) const;
-        void SerializeComponents(const Entity& entity, nlohmann::json& componentTables) const;
+        void SerialiseComponents(const Entity& entity, nlohmann::json& componentTables) const;
         bool ValidateComponent(std::string_view key, const nlohmann::json& componentData, std::string& error) const;
         bool IsRegistered(std::string_view key) const;
 

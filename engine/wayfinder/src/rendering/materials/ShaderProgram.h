@@ -25,7 +25,7 @@ namespace Wayfinder
     // The renderer uses this to:
     //   1. Create/retrieve the GPU pipeline
     //   2. Select the correct built-in mesh (by vertex layout)
-    //   3. Serialize material parameters into UBO bytes
+    //   3. Serialise material parameters into UBO bytes
     //   4. Push uniforms — no branching on shader name.
 
     struct ShaderProgramDesc
@@ -47,9 +47,10 @@ namespace Wayfinder
         CullMode Cull = CullMode::Back;
         bool DepthTest = true;
         bool DepthWrite = true;
+        BlendState Blend{};
 
         // Fragment material UBO layout — declared parameter list.
-        // The renderer calls SerializeToUBO with these declarations.
+        // The renderer calls SerialiseToUBO with these declarations.
         std::vector<MaterialParamDecl> MaterialParams;
         uint32_t MaterialUBOSize = 0; // Total size of the fragment material UBO in bytes
 
@@ -83,8 +84,8 @@ namespace Wayfinder
         ShaderProgramRegistry(const ShaderProgramRegistry&) = delete;
         ShaderProgramRegistry& operator=(const ShaderProgramRegistry&) = delete;
 
-        // Initialize with device and shader manager references.
-        void Initialize(RenderDevice& device, ShaderManager& shaders, PipelineCache& cache);
+        // Initialise with device and shader manager references.
+        void Initialise(RenderDevice& device, ShaderManager& shaders, PipelineCache& cache);
         void Shutdown();
 
         // Register a shader program. Creates the GPU pipeline immediately.

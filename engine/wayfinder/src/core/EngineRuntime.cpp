@@ -66,9 +66,9 @@ namespace Wayfinder
             return false;
         }
 
-        if (!m_window->Initialize())
+        if (!m_window->Initialise())
         {
-            WAYFINDER_ERROR(LogEngine, "EngineRuntime: Failed to initialize Window");
+            WAYFINDER_ERROR(LogEngine, "EngineRuntime: Failed to initialise Window");
             m_window = nullptr;
             m_time = nullptr;
             m_input = nullptr;
@@ -78,9 +78,9 @@ namespace Wayfinder
         // GPU device — needs window handle for swapchain
         m_device = RenderDevice::Create(m_config.Backends.Rendering);
 
-        if (!m_device || !m_device->Initialize(*m_window))
+        if (!m_device || !m_device->Initialise(*m_window))
         {
-            WAYFINDER_ERROR(LogEngine, "EngineRuntime: Failed to initialize RenderDevice");
+            WAYFINDER_ERROR(LogEngine, "EngineRuntime: Failed to initialise RenderDevice");
             m_device = nullptr;
             m_window->Shutdown();
             m_window = nullptr;
@@ -93,9 +93,9 @@ namespace Wayfinder
         m_renderer = std::make_unique<Renderer>();
         m_extractor = std::make_unique<SceneRenderExtractor>();
 
-        if (!m_renderer->Initialize(*m_device, m_config))
+        if (!m_renderer->Initialise(*m_device, m_config))
         {
-            WAYFINDER_ERROR(LogEngine, "EngineRuntime: Failed to initialize Renderer");
+            WAYFINDER_ERROR(LogEngine, "EngineRuntime: Failed to initialise Renderer");
             m_renderer = nullptr;
             m_extractor = nullptr;
             m_device->Shutdown();

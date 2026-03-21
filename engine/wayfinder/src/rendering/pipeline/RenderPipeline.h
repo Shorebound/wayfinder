@@ -23,7 +23,7 @@ namespace Wayfinder
     {
         Float3 LightDirection{0.0f, -0.7f, -0.5f};
         float LightIntensity = 1.0f;
-        Float3 LightColor{1.0f, 1.0f, 1.0f};
+        Float3 LightColour{1.0f, 1.0f, 1.0f};
         float Ambient = 0.15f;
     };
     static_assert(std::is_standard_layout_v<SceneGlobalsUBO>, "SceneGlobalsUBO must be standard layout for GPU upload");

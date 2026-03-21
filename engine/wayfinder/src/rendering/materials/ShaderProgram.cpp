@@ -12,7 +12,7 @@ namespace Wayfinder
         Shutdown();
     }
 
-    void ShaderProgramRegistry::Initialize(RenderDevice& device, ShaderManager& shaders, PipelineCache& cache)
+    void ShaderProgramRegistry::Initialise(RenderDevice& device, ShaderManager& shaders, PipelineCache& cache)
     {
         m_device = &device;
         m_shaders = &shaders;
@@ -37,7 +37,7 @@ namespace Wayfinder
     {
         if (!m_device || !m_shaders || !m_cache)
         {
-            WAYFINDER_ERROR(LogRenderer, "ShaderProgramRegistry: Cannot register '{}' — not initialized", desc.Name);
+            WAYFINDER_ERROR(LogRenderer, "ShaderProgramRegistry: Cannot register '{}' — not initialised", desc.Name);
             return false;
         }
 
@@ -56,6 +56,7 @@ namespace Wayfinder
         pipelineDesc.cullMode = desc.Cull;
         pipelineDesc.depthTestEnabled = desc.DepthTest;
         pipelineDesc.depthWriteEnabled = desc.DepthWrite;
+        pipelineDesc.colourTargetBlends[0] = desc.Blend;
 
         auto* pipeline = new GPUPipeline();
         if (!pipeline->Create(*m_device, *m_shaders, pipelineDesc, m_cache))

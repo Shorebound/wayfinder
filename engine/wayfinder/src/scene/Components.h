@@ -109,13 +109,29 @@ namespace Wayfinder
     struct MaterialComponent
     {
         std::optional<AssetId> MaterialAssetId;
-        Color BaseColor = Color::White();
-        bool HasBaseColorOverride = false;
-        bool Wireframe = true;
-        bool HasWireframeOverride = false;
+        Colour BaseColour = Colour::White();
+        bool HasBaseColourOverride = false;
 
         MaterialComponent() = default;
         MaterialComponent(const MaterialComponent&) = default;
+    };
+
+    /**
+     * @brief Opt-in render-state overrides — controls rasteriser behaviour
+     *        independently of material surface properties.
+     *
+     * Each field is optional: `std::nullopt` means "not overriding this state".
+     * This prevents accidental side-effects when adding the component for one
+     * override (e.g. CullMode) without intending to change another (Wireframe).
+     *
+     * @todo Add CullMode, blend overrides, and other rasteriser state fields.
+     */
+    struct RenderOverrideComponent
+    {
+        std::optional<bool> Wireframe;
+
+        RenderOverrideComponent() = default;
+        RenderOverrideComponent(const RenderOverrideComponent&) = default;
     };
 
     struct RenderableComponent
@@ -152,7 +168,7 @@ namespace Wayfinder
     struct LightComponent
     {
         LightType Type = LightType::Point;
-        Color Tint = Color::Yellow();
+        Colour Tint = Colour::Yellow();
         float Intensity = 1.0f;
         float Range = 8.0f;
         bool DebugDraw = true;

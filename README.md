@@ -2,7 +2,7 @@
 
 Wayfinder is a C++23 game engine and toolchain experiment built around a simple question: what if a sixth-generation console era engine had modern compute budgets, modern tooling expectations, and none of the pressure to chase photorealism?
 
-The project aims for stylized, simulation-friendly worlds that feel closer to PS2, Dreamcast, and early-2000s console art direction than to physically accurate rendering. The point is not to reproduce historical constraints. The point is to explore what developers from that era might have built if dynamic lighting, runtime simulation, and aggressive iteration were cheap.
+The project aims for stylised, simulation-friendly worlds that feel closer to PS2, Dreamcast, and early-2000s console art direction than to physically accurate rendering. The point is not to reproduce historical constraints. The point is to explore what developers from that era might have built if dynamic lighting, runtime simulation, and aggressive iteration were cheap.
 
 ## What Wayfinder Is Trying To Prove
 
@@ -12,7 +12,7 @@ The project aims for stylized, simulation-friendly worlds that feel closer to PS
 - a retro visual target can still benefit from modern engine architecture
 - tools should reduce friction without dictating the creative direction
 
-That leads to a renderer and runtime that prefer runtime computation over bake-heavy workflows, stylization over physical correctness, and stable iteration loops over expensive offline setup.
+That leads to a renderer and runtime that prefer runtime computation over bake-heavy workflows, stylisation over physical correctness, and stable iteration loops over expensive offline setup.
 
 ## Current State
 

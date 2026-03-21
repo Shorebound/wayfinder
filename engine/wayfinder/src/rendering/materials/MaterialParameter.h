@@ -23,7 +23,7 @@ namespace Wayfinder
         Vec2,
         Vec3,
         Vec4,
-        Color, // LinearColor (float4, same GPU layout as Vec4)
+        Colour, // LinearColour (float4, same GPU layout as Vec4)
         Int,
     };
 
@@ -32,7 +32,7 @@ namespace Wayfinder
         glm::vec2,
         glm::vec3,
         glm::vec4,
-        LinearColor,
+        LinearColour,
         int32_t>;
 
     // ── Material Parameter Declaration ───────────────────────
@@ -50,7 +50,7 @@ namespace Wayfinder
     // ── Material Parameter Block ─────────────────────────────
     // Runtime storage for material parameters, keyed by name.
     // Authored materials populate this from TOML [parameters].
-    // The renderer serializes it into UBO bytes using the shader program's declarations.
+    // The renderer serialises it into UBO bytes using the shader program's declarations.
 
     struct WAYFINDER_API MaterialParameterBlock
     {
@@ -60,14 +60,14 @@ namespace Wayfinder
         void SetVec2(const std::string& name, const glm::vec2& v) { Values[name] = v; }
         void SetVec3(const std::string& name, const glm::vec3& v) { Values[name] = v; }
         void SetVec4(const std::string& name, const glm::vec4& v) { Values[name] = v; }
-        void SetColor(const std::string& name, const LinearColor& v) { Values[name] = v; }
+        void SetColour(const std::string& name, const LinearColour& v) { Values[name] = v; }
         void SetInt(const std::string& name, int32_t v) { Values[name] = v; }
 
         bool Has(const std::string& name) const { return Values.contains(name); }
 
         // Write all parameters into a byte buffer using the given declarations.
         // Unknown parameters are skipped; missing parameters use the declaration's default.
-        void SerializeToUBO(const std::vector<MaterialParamDecl>& decls, void* outBuffer, uint32_t bufferSize) const;
+        void SerialiseToUBO(const std::vector<MaterialParamDecl>& decls, void* outBuffer, uint32_t bufferSize) const;
     };
 
 } // namespace Wayfinder

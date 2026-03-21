@@ -41,7 +41,7 @@ public:
             entity.AddComponent<HealthComponent>(health);
         };
 
-        desc.SerializeFn = [](const Wayfinder::Entity& entity, toml::table& tables)
+        desc.SerialiseFn = [](const Wayfinder::Entity& entity, toml::table& tables)
         {
             if (!entity.HasComponent<HealthComponent>())
                 return;
