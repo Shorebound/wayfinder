@@ -32,9 +32,11 @@ namespace Wayfinder
 
     void Application::Run()
     {
-        if (!Initialise())
+        auto result = Initialise();
+        if (!result)
         {
-            WAYFINDER_ERROR(LogEngine, "Initialisation failed — aborting");
+            WAYFINDER_ERROR(LogEngine, "Initialisation failed: {}", result.error().GetMessage());
+            Shutdown();
             return;
         }
 
@@ -48,24 +50,13 @@ namespace Wayfinder
         WAYFINDER_INFO(LogEngine, "Initialising Wayfinder Engine");
 
         // 1. Discover project descriptor from CWD
-        const auto projectFile = FindProjectFile();
+        auto projectFile = FindProjectFile();
         if (!projectFile)
-        {
-            WAYFINDER_ERROR(LogEngine,
-                "No project.wayfinder found in current directory or any parent. "
-                "Run the engine from within a project directory.");
-            Log::Shutdown();
-            return MakeError("No project.wayfinder found");
-        }
+            return std::unexpected(projectFile.error());
 
         auto loadResult = ProjectDescriptor::LoadFromFile(*projectFile);
-
         if (!loadResult)
-        {
-            WAYFINDER_ERROR(LogEngine, "Failed to load project descriptor");
-            Log::Shutdown();
-            return MakeError("Failed to load project descriptor");
-        }
+            return std::unexpected(loadResult.error());
 
         for (const auto& warning : loadResult->Warnings)
         {
@@ -87,12 +78,8 @@ namespace Wayfinder
 
         // 4. Platform + rendering services
         m_runtime = std::make_unique<EngineRuntime>(*m_config, *m_project);
-        if (!m_runtime->Initialise())
-        {
-            WAYFINDER_ERROR(LogEngine, "Failed to initialise EngineRuntime");
-            Shutdown();
-            return MakeError("Failed to initialise EngineRuntime");
-        }
+        if (auto runtimeResult = m_runtime->Initialise(); !runtimeResult)
+            return std::unexpected(runtimeResult.error());
 
         // Wire window events → Application::OnEvent
         m_runtime->GetWindow().SetEventCallback(
@@ -105,12 +92,8 @@ namespace Wayfinder
         GameContext gameCtx{*m_project, m_moduleRegistry.get()};
         m_game = std::make_unique<Game>();
 
-        if (!m_game->Initialise(gameCtx))
-        {
-            WAYFINDER_ERROR(LogEngine, "Failed to initialise Game");
-            Shutdown();
-            return MakeError("Failed to initialise Game");
-        }
+        if (auto gameResult = m_game->Initialise(gameCtx); !gameResult)
+            return std::unexpected(gameResult.error());
 
         m_runtime->SetAssetService(m_game->GetAssetService());
 

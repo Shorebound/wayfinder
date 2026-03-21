@@ -41,6 +41,13 @@ namespace Wayfinder
         ~EngineRuntime();
 
         // ── Lifecycle ────────────────────────────────────────
+        /**
+         * @brief Create and initialise all platform, rendering, and game
+         *        services.
+         * @return A successful Result on success, or an Error describing the
+         *         first subsystem that failed to initialise (e.g. window
+         *         creation, device initialisation, scene loading).
+         */
         Result<void> Initialise();
         void Shutdown();
 

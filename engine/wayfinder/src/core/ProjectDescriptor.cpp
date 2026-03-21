@@ -25,13 +25,14 @@ namespace Wayfinder
     {
         ProjectLoadOutput output{};
 
-        if (!std::filesystem::exists(path))
+        std::error_code ec;
+        const bool pathExists = std::filesystem::exists(path, ec);
+        if (ec || !pathExists)
         {
             WAYFINDER_ERROR(LogEngine, "Project file not found: {}", path.string());
             return MakeError("Project file not found");
         }
 
-        std::error_code ec;
         const auto canonicalPath = std::filesystem::weakly_canonical(path, ec);
         if (ec)
         {

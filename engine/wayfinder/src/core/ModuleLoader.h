@@ -39,8 +39,14 @@ namespace Wayfinder
     class WAYFINDER_API ModuleLoader
     {
     public:
-        /// Load a game module shared library from the given path.
-        /// Returns an Error on failure (logs the error).
+        /**
+         * @brief Load a game module shared library from the given path.
+         * @param libraryPath  Absolute path to the shared library (.dll / .so / .dylib).
+         * @return On success a LoadedModule owning the module instance and
+         *         library handle.  On failure an Error describing the cause
+         *         (missing library, missing exports, null instance, etc.).
+         *         Failures are also logged via the engine logger.
+         */
         static Result<LoadedModule> Load(const std::filesystem::path& libraryPath);
     };
 

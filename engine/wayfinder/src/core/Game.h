@@ -30,6 +30,13 @@ namespace Wayfinder
         Game();
         ~Game();
 
+        /**
+         * @brief Initialise the game: subsystems, ECS world, and boot scene.
+         * @param ctx  GameContext providing the project descriptor and optional
+         *             module registry.
+         * @return A successful Result on success, or an Error if the boot
+         *         scene cannot be found, resolved, or loaded.
+         */
         Result<void> Initialise(const GameContext& ctx);
         void Update(float deltaTime);
         void Shutdown();

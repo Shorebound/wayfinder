@@ -5,6 +5,18 @@
 namespace Wayfinder
 {
 
+    Result<std::filesystem::path> FindProjectFile()
+    {
+        std::error_code ec;
+        const auto cwd = std::filesystem::current_path(ec);
+        if (ec)
+        {
+            WAYFINDER_WARNING(LogEngine, "Failed to resolve current working directory: {}", ec.message());
+            return MakeError("Failed to resolve current working directory");
+        }
+        return FindProjectFile(cwd);
+    }
+
     Result<std::filesystem::path> FindProjectFile(const std::filesystem::path& startPath)
     {
         std::error_code ec;

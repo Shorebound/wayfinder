@@ -44,6 +44,12 @@ namespace
         CHECK_FALSE(Error("a") == Error("b"));
     }
 
+    TEST_CASE("Error constructed from nullptr treats it as empty string")
+    {
+        const Error err(static_cast<const char*>(nullptr));
+        CHECK(err.GetMessage().empty());
+    }
+
     // ── Result<T> success path ───────────────────────────────
 
     TEST_CASE("Result<int> holds a value on success")

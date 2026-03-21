@@ -151,7 +151,8 @@ int main(int argc, char** argv)
         const auto projectFile = Wayfinder::FindProjectFile(startPath);
         if (!projectFile)
         {
-            std::cerr << "No project.wayfinder found from: " << startPath.string() << '\n';
+            std::cerr << "No project.wayfinder found from: " << startPath.string()
+                      << " (" << projectFile.error().GetMessage() << ")\n";
             Wayfinder::Log::Shutdown();
             return 1;
         }
@@ -160,7 +161,8 @@ int main(int argc, char** argv)
 
         if (!loadResult)
         {
-            std::cerr << "Failed to load project descriptor from: " << projectFile->string() << '\n';
+            std::cerr << "Failed to load project descriptor from: " << projectFile->string()
+                      << " (" << loadResult.error().GetMessage() << ")\n";
             Wayfinder::Log::Shutdown();
             return 1;
         }

@@ -29,7 +29,7 @@ namespace Wayfinder
         }
 
         explicit Error(const char* message)
-            : m_message(message)
+            : m_message(message ? message : "")
         {
         }
 
@@ -44,29 +44,36 @@ namespace Wayfinder
         std::string m_message;
     };
 
-    // ── Result alias ─────────────────────────────────────────
-    //
-    // Result<T, E> is the engine-wide return type for operations that
-    // can fail.  It is a thin alias over std::expected<T, E> with a
-    // default error type of Wayfinder::Error.
-    //
-    //   Result<int>          — returns int  on success, Error on failure
-    //   Result<void>         — returns void on success, Error on failure
-    //   Result<Foo, BarErr>  — custom error type override
-    //
-
+    /**
+     * @brief Engine-wide return type for operations that can fail.
+     *
+     * Thin alias over `std::expected<T, E>` with a default error type
+     * of Wayfinder::Error.
+     *
+     * @tparam T  The value type on success (may be `void`).
+     * @tparam E  The error type on failure (defaults to Wayfinder::Error).
+     */
     template <typename T, typename E = Error>
     using Result = std::expected<T, E>;
 
-    // ── Convenience factory ──────────────────────────────────
-
-    /// Construct an unexpected Error from a message string.
+    /**
+     * @brief Construct an unexpected Error from a std::string message.
+     * @param message  Human-readable description of the failure.
+     * @return An `std::unexpected<Error>` suitable for returning from a
+     *         function that yields `Result<T>`.
+     */
     [[nodiscard]] inline std::unexpected<Error> MakeError(std::string message)
     {
         return std::unexpected<Error>(Error(std::move(message)));
     }
 
-    /// Construct an unexpected Error from a C-string literal.
+    /**
+     * @brief Construct an unexpected Error from a C-string literal.
+     * @param message  Human-readable description of the failure.
+     *                 A null pointer is treated as an empty message.
+     * @return An `std::unexpected<Error>` suitable for returning from a
+     *         function that yields `Result<T>`.
+     */
     [[nodiscard]] inline std::unexpected<Error> MakeError(const char* message)
     {
         return std::unexpected<Error>(Error(message));

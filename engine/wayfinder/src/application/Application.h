@@ -30,6 +30,12 @@ namespace Wayfinder
             }
         };
 
+        /**
+         * @brief Construct an Application.
+         * @param module  Game module whose ownership is transferred to the
+         *                Application.  May be null for a bare engine run.
+         * @param args    Command-line arguments forwarded from main().
+         */
         explicit Application(std::unique_ptr<Module> module,
                              const CommandLineArgs& args);
         ~Application();
