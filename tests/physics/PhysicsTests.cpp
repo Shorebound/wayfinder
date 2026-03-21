@@ -498,7 +498,9 @@ TEST_SUITE("Physics")
         world.SetFixedTimestep(1.0f / 60.0f);
 
         // Three ticks in one frame should produce three steps.
-        // Use slightly more than 3 ticks to avoid floating-point edge cases.
+        // Add a small epsilon because 3.0f/60.0f can be slightly less than
+        // 3 * (1.0f/60.0f) due to IEEE 754 rounding, causing the accumulator
+        // to fall just short of the third tick threshold.
         int steps = world.StepFixed(3.0f / 60.0f + 0.0001f);
         CHECK(steps == 3);
 

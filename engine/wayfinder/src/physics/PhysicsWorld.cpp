@@ -290,7 +290,10 @@ namespace Wayfinder
             break;
         }
 
-        // Convert Euler ZYX degrees to Jolt quaternion (matching Math3D::ComposeTransform order).
+        // Convert Euler ZYX degrees to Jolt quaternion.
+        // Jolt's sEulerAngles applies rotations in X-Y-Z intrinsic order.
+        // TransformComponent.Rotation stores degrees in the same convention
+        // as Math3D::ComposeTransform (Z-Y-X extrinsic = X-Y-Z intrinsic).
         float rx = glm::radians(rotationDegrees.x);
         float ry = glm::radians(rotationDegrees.y);
         float rz = glm::radians(rotationDegrees.z);
