@@ -1,0 +1,19 @@
+{
+    "name": "Wayfinder Engine",
+    "image": "mcr.microsoft.com/devcontainers/cpp:ubuntu-24.04",
+    "features": {
+        "ghcr.io/devcontainers/features/cmake:1": {
+            "version": "4.0.1"
+        },
+        "ghcr.io/devcontainers/features/ninja:1": {}
+    },
+    "customizations": {
+        "vscode": {
+            "extensions": [
+                "ms-vscode.cpptools",
+                "ms-vscode.cmake-tools"
+            ]
+        }
+    },
+    "postCreateCommand": "sudo apt-get update && sudo apt-get install -y clang lld && cmake --preset ci-linux"
+}
