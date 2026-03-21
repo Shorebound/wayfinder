@@ -315,9 +315,9 @@ namespace Wayfinder
                                 }
                             }
 
-                            mergedParams.SerializeToUBO(program->Desc.MaterialParams,
-                                                         materialUBOData.data(),
-                                                         static_cast<uint32_t>(materialUBOData.size()));
+                            mergedParams.SerialiseToUBO(program->Desc.MaterialParams,
+                                                          materialUBOData.data(),
+                                                          static_cast<uint32_t>(materialUBOData.size()));
                             device.PushFragmentUniform(0, materialUBOData.data(),
                                                          static_cast<uint32_t>(materialUBOData.size()));
 

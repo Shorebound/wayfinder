@@ -105,15 +105,15 @@ TEST_CASE("RenderOverrideComponent serialisation round-trip with wireframe=true"
 
     // Serialise
     toml::table componentTables;
-    registry.SerializeComponents(entity, componentTables);
+    registry.SerialiseComponents(entity, componentTables);
 
     CHECK(componentTables.contains("render_override"));
     const toml::table* overrideTable = componentTables["render_override"].as_table();
     REQUIRE(overrideTable != nullptr);
     CHECK(overrideTable->at("wireframe").value_or(false) == true);
 
-    // Deserialize into a new entity
-    Wayfinder::Entity entity2 = scene.CreateEntity("Deserialized");
+    // Deserialise into a new entity
+    Wayfinder::Entity entity2 = scene.CreateEntity("Deserialised");
     registry.ApplyComponents(componentTables, entity2);
 
     CHECK(entity2.HasComponent<Wayfinder::RenderOverrideComponent>());
@@ -142,7 +142,7 @@ TEST_CASE("RenderOverrideComponent serialisation round-trip with wireframe=false
 
     // Serialise
     toml::table componentTables;
-    registry.SerializeComponents(entity, componentTables);
+    registry.SerialiseComponents(entity, componentTables);
 
     CHECK(componentTables.contains("render_override"));
     const toml::table* overrideTable = componentTables["render_override"].as_table();
@@ -150,8 +150,8 @@ TEST_CASE("RenderOverrideComponent serialisation round-trip with wireframe=false
     CHECK(overrideTable->contains("wireframe"));
     CHECK(overrideTable->at("wireframe").value_or(true) == false);
 
-    // Deserialize into a new entity
-    Wayfinder::Entity entity2 = scene.CreateEntity("DeserializedSolid");
+    // Deserialise into a new entity
+    Wayfinder::Entity entity2 = scene.CreateEntity("DeserialisedSolid");
     registry.ApplyComponents(componentTables, entity2);
 
     CHECK(entity2.HasComponent<Wayfinder::RenderOverrideComponent>());
@@ -177,7 +177,7 @@ TEST_CASE("RenderOverrideComponent serialisation skips empty component")
 
     // Serialise — component with no fields set should not emit a table
     toml::table componentTables;
-    registry.SerializeComponents(entity, componentTables);
+    registry.SerialiseComponents(entity, componentTables);
 
     CHECK_FALSE(componentTables.contains("render_override"));
 
@@ -201,7 +201,7 @@ TEST_CASE("MaterialComponent serialisation has no wireframe field")
 
     // Serialise
     toml::table componentTables;
-    registry.SerializeComponents(entity, componentTables);
+    registry.SerialiseComponents(entity, componentTables);
 
     CHECK(componentTables.contains("material"));
     const toml::table* materialTable = componentTables["material"].as_table();
