@@ -12,15 +12,14 @@
 
 namespace
 {
-    std::optional<Wayfinder::AssetId> ReadOptionalAssetId(const toml::table& table, const char* key)
+    std::optional<Wayfinder::AssetId> ReadOptionalAssetId(const nlohmann::json& data, const char* key)
     {
-        const auto value = table[key].value<std::string>();
-        if (!value)
+        if (!data.contains(key) || !data[key].is_string())
         {
             return std::nullopt;
         }
 
-        return Wayfinder::AssetId::Parse(*value);
+        return Wayfinder::AssetId::Parse(data[key].get<std::string>());
     }
 
     template <typename T>
@@ -29,86 +28,62 @@ namespace
         world.component<T>();
     }
 
-    float ReadFloat(const toml::table& table, const char* key, float fallback)
+    float ReadFloat(const nlohmann::json& data, const char* key, float fallback)
     {
-        if (const auto value = table[key].value<double>())
-        {
-            return static_cast<float>(*value);
-        }
-        if (const auto value = table[key].value<int64_t>())
-        {
-            return static_cast<float>(*value);
-        }
+        if (!data.contains(key)) return fallback;
+        const auto& val = data[key];
+        if (val.is_number()) return val.get<float>();
         return fallback;
     }
 
-    float ReadArrayFloat(const toml::array& array, size_t index, float fallback)
+    float ReadArrayFloat(const nlohmann::json& arr, size_t index, float fallback)
     {
-        if (index >= array.size())
-        {
-            return fallback;
-        }
-
-        if (const auto value = array[index].value<double>())
-        {
-            return static_cast<float>(*value);
-        }
-        if (const auto value = array[index].value<int64_t>())
-        {
-            return static_cast<float>(*value);
-        }
-
+        if (index >= arr.size()) return fallback;
+        const auto& val = arr[index];
+        if (val.is_number()) return val.get<float>();
         return fallback;
     }
 
-    Wayfinder::Float3 ReadVector3(const toml::table& table, const char* key, const Wayfinder::Float3& fallback)
+    Wayfinder::Float3 ReadVector3(const nlohmann::json& data, const char* key, const Wayfinder::Float3& fallback)
     {
-        const toml::array* values = table[key].as_array();
-        if (!values || values->size() != 3)
-        {
-            return fallback;
-        }
+        if (!data.contains(key)) return fallback;
+        const auto& arr = data[key];
+        if (!arr.is_array() || arr.size() != 3) return fallback;
 
         Wayfinder::Float3 result = fallback;
-        result.x = ReadArrayFloat(*values, 0, result.x);
-        result.y = ReadArrayFloat(*values, 1, result.y);
-        result.z = ReadArrayFloat(*values, 2, result.z);
+        result.x = ReadArrayFloat(arr, 0, result.x);
+        result.y = ReadArrayFloat(arr, 1, result.y);
+        result.z = ReadArrayFloat(arr, 2, result.z);
         return result;
     }
 
-    toml::array WriteVector3(const Wayfinder::Float3& value)
+    nlohmann::json WriteVector3(const Wayfinder::Float3& value)
     {
-        toml::array result;
-        result.push_back(value.x);
-        result.push_back(value.y);
-        result.push_back(value.z);
-        return result;
+        return nlohmann::json::array({value.x, value.y, value.z});
     }
 
-    Wayfinder::Color ReadColor(const toml::table& table, const char* key, const Wayfinder::Color& fallback)
+    Wayfinder::Color ReadColor(const nlohmann::json& data, const char* key, const Wayfinder::Color& fallback)
     {
-        const toml::array* values = table[key].as_array();
-        if (!values || (values->size() != 3 && values->size() != 4))
-        {
-            return fallback;
-        }
+        if (!data.contains(key)) return fallback;
+        const auto& arr = data[key];
+        if (!arr.is_array() || (arr.size() != 3 && arr.size() != 4)) return fallback;
 
         Wayfinder::Color result = fallback;
-        result.r = static_cast<uint8_t>(values->get(0)->value_or(static_cast<int64_t>(result.r)));
-        result.g = static_cast<uint8_t>(values->get(1)->value_or(static_cast<int64_t>(result.g)));
-        result.b = static_cast<uint8_t>(values->get(2)->value_or(static_cast<int64_t>(result.b)));
-        result.a = static_cast<uint8_t>(values->size() == 4 ? values->get(3)->value_or(static_cast<int64_t>(result.a)) : result.a);
+        result.r = arr[0].is_number_integer() ? static_cast<uint8_t>(arr[0].get<int64_t>()) : result.r;
+        result.g = arr[1].is_number_integer() ? static_cast<uint8_t>(arr[1].get<int64_t>()) : result.g;
+        result.b = arr[2].is_number_integer() ? static_cast<uint8_t>(arr[2].get<int64_t>()) : result.b;
+        result.a = (arr.size() == 4 && arr[3].is_number_integer()) ? static_cast<uint8_t>(arr[3].get<int64_t>()) : result.a;
         return result;
     }
 
-    toml::array WriteColor(const Wayfinder::Color& value)
+    nlohmann::json WriteColor(const Wayfinder::Color& value)
     {
-        toml::array result;
-        result.push_back(static_cast<int64_t>(value.r));
-        result.push_back(static_cast<int64_t>(value.g));
-        result.push_back(static_cast<int64_t>(value.b));
-        result.push_back(static_cast<int64_t>(value.a));
-        return result;
+        return nlohmann::json::array({
+            static_cast<int64_t>(value.r),
+            static_cast<int64_t>(value.g),
+            static_cast<int64_t>(value.b),
+            static_cast<int64_t>(value.a)
+        });
     }
 
     const char* ToString(Wayfinder::MeshPrimitive primitive)
@@ -148,26 +123,31 @@ namespace
         return "point";
     }
 
-    Wayfinder::InternedString ReadRenderLayer(const toml::table& table, const char* key, const Wayfinder::InternedString& fallback)
+    Wayfinder::InternedString ReadRenderLayer(const nlohmann::json& data, const char* key, const Wayfinder::InternedString& fallback)
     {
-        const auto layer = table[key].value<std::string>();
-        if (!layer || layer->empty())
+        if (!data.contains(key) || !data[key].is_string())
         {
             return fallback;
         }
 
-        return Wayfinder::InternedString::Intern(*layer);
+        const auto layer = data[key].get<std::string>();
+        if (layer.empty())
+        {
+            return fallback;
+        }
+
+        return Wayfinder::InternedString::Intern(layer);
     }
 
-    Wayfinder::MeshPrimitive ReadPrimitive(const toml::table& table, const char* key, Wayfinder::MeshPrimitive fallback)
+    Wayfinder::MeshPrimitive ReadPrimitive(const nlohmann::json& data, const char* key, Wayfinder::MeshPrimitive fallback)
     {
-        const auto primitive = table[key].value<std::string>();
-        if (!primitive)
+        if (!data.contains(key) || !data[key].is_string())
         {
             return fallback;
         }
 
-        if (*primitive == "cube")
+        const auto primitive = data[key].get<std::string>();
+        if (primitive == "cube")
         {
             return Wayfinder::MeshPrimitive::Cube;
         }
@@ -175,15 +155,15 @@ namespace
         return fallback;
     }
 
-    Wayfinder::ProjectionMode ReadProjection(const toml::table& table, const char* key, Wayfinder::ProjectionMode fallback)
+    Wayfinder::ProjectionMode ReadProjection(const nlohmann::json& data, const char* key, Wayfinder::ProjectionMode fallback)
     {
-        const auto projection = table[key].value<std::string>();
-        if (!projection)
+        if (!data.contains(key) || !data[key].is_string())
         {
             return fallback;
         }
 
-        if (*projection == "orthographic")
+        const auto projection = data[key].get<std::string>();
+        if (projection == "orthographic")
         {
             return Wayfinder::ProjectionMode::Orthographic;
         }
@@ -191,20 +171,20 @@ namespace
         return fallback;
     }
 
-    Wayfinder::LightType ReadLightType(const toml::table& table, const char* key, Wayfinder::LightType fallback)
+    Wayfinder::LightType ReadLightType(const nlohmann::json& data, const char* key, Wayfinder::LightType fallback)
     {
-        const auto type = table[key].value<std::string>();
-        if (!type)
+        if (!data.contains(key) || !data[key].is_string())
         {
             return fallback;
         }
 
-        if (*type == "directional")
+        const auto type = data[key].get<std::string>();
+        if (type == "directional")
         {
             return Wayfinder::LightType::Directional;
         }
 
-        if (*type == "point")
+        if (type == "point")
         {
             return Wayfinder::LightType::Point;
         }
@@ -212,21 +192,21 @@ namespace
         return fallback;
     }
 
-    bool ValidateOptionalNonEmptyString(const toml::table& componentTable, const char* key, std::string& error)
+    bool ValidateOptionalNonEmptyString(const nlohmann::json& data, const char* key, std::string& error)
     {
-        if (!componentTable.contains(key))
+        if (!data.contains(key))
         {
             return true;
         }
 
-        const auto value = componentTable[key].value<std::string>();
-        if (!value)
+        const auto& node = data[key];
+        if (!node.is_string())
         {
             error = std::string("'") + key + "' must be a string";
             return false;
         }
 
-        if (value->empty())
+        if (node.get<std::string>().empty())
         {
             error = std::string("'") + key + "' must not be empty";
             return false;
@@ -250,20 +230,19 @@ namespace
         return static_cast<uint8_t>(value);
     }
 
-    bool IsNumberNode(const toml::node& node)
+    bool IsNumberNode(const nlohmann::json& node)
     {
-        return node.is_integer() || node.is_floating_point();
+        return node.is_number();
     }
 
-    bool ValidateOptionalBool(const toml::table& componentTable, const char* key, std::string& error)
+    bool ValidateOptionalBool(const nlohmann::json& data, const char* key, std::string& error)
     {
-        const toml::node* node = componentTable.get(key);
-        if (!node)
+        if (!data.contains(key))
         {
             return true;
         }
 
-        if (!node->is_boolean())
+        if (!data[key].is_boolean())
         {
             error = std::string{"field '"} + key + "' must be a boolean";
             return false;
@@ -272,21 +251,21 @@ namespace
         return true;
     }
 
-    bool ValidateOptionalAssetId(const toml::table& componentTable, const char* key, std::string& error)
+    bool ValidateOptionalAssetId(const nlohmann::json& data, const char* key, std::string& error)
     {
-        const toml::node* node = componentTable.get(key);
-        if (!node)
+        if (!data.contains(key))
         {
             return true;
         }
 
-        if (!node->is_string())
+        const auto& node = data[key];
+        if (!node.is_string())
         {
             error = std::string{"field '"} + key + "' must be a UUID string";
             return false;
         }
 
-        const auto assetId = Wayfinder::AssetId::Parse(node->value_or(std::string{}));
+        const auto assetId = Wayfinder::AssetId::Parse(node.get<std::string>());
         if (!assetId)
         {
             error = std::string{"field '"} + key + "' must be a valid UUID";
@@ -296,15 +275,14 @@ namespace
         return true;
     }
 
-    bool ValidateOptionalNumber(const toml::table& componentTable, const char* key, std::string& error)
+    bool ValidateOptionalNumber(const nlohmann::json& data, const char* key, std::string& error)
     {
-        const toml::node* node = componentTable.get(key);
-        if (!node)
+        if (!data.contains(key))
         {
             return true;
         }
 
-        if (!IsNumberNode(*node))
+        if (!IsNumberNode(data[key]))
         {
             error = std::string{"field '"} + key + "' must be numeric";
             return false;
@@ -313,12 +291,11 @@ namespace
         return true;
     }
 
-    bool ValidateOptionalInteger(const toml::table& componentTable, const char* key, std::string& error)
+    bool ValidateOptionalInteger(const nlohmann::json& data, const char* key, std::string& error)
     {
-        const toml::node* node = componentTable.get(key);
-        if (!node) { return true; }
+        if (!data.contains(key)) { return true; }
 
-        if (!node->is_integer())
+        if (!data[key].is_number_integer())
         {
             error = std::string{"field '"} + key + "' must be an integer";
             return false;
@@ -327,25 +304,23 @@ namespace
         return true;
     }
 
-    bool ValidateOptionalVector3(const toml::table& componentTable, const char* key, std::string& error)
+    bool ValidateOptionalVector3(const nlohmann::json& data, const char* key, std::string& error)
     {
-        const toml::node* node = componentTable.get(key);
-        if (!node)
+        if (!data.contains(key))
         {
             return true;
         }
 
-        const toml::array* values = node->as_array();
-        if (!values || values->size() != 3)
+        const auto& node = data[key];
+        if (!node.is_array() || node.size() != 3)
         {
             error = std::string{"field '"} + key + "' must be an array of 3 numbers";
             return false;
         }
 
-        for (size_t index = 0; index < values->size(); ++index)
+        for (size_t index = 0; index < node.size(); ++index)
         {
-            const toml::node* value = values->get(index);
-            if (!value || !IsNumberNode(*value))
+            if (!IsNumberNode(node[index]))
             {
                 error = std::string{"field '"} + key + "' must be an array of 3 numbers";
                 return false;
@@ -355,25 +330,23 @@ namespace
         return true;
     }
 
-    bool ValidateOptionalColor(const toml::table& componentTable, const char* key, std::string& error)
+    bool ValidateOptionalColor(const nlohmann::json& data, const char* key, std::string& error)
     {
-        const toml::node* node = componentTable.get(key);
-        if (!node)
+        if (!data.contains(key))
         {
             return true;
         }
 
-        const toml::array* values = node->as_array();
-        if (!values || (values->size() != 3 && values->size() != 4))
+        const auto& node = data[key];
+        if (!node.is_array() || (node.size() != 3 && node.size() != 4))
         {
             error = std::string{"field '"} + key + "' must be an array of 3 or 4 integers";
             return false;
         }
 
-        for (size_t index = 0; index < values->size(); ++index)
+        for (size_t index = 0; index < node.size(); ++index)
         {
-            const toml::node* value = values->get(index);
-            if (!value || !value->is_integer())
+            if (!node[index].is_number_integer())
             {
                 error = std::string{"field '"} + key + "' must be an array of 3 or 4 integers";
                 return false;
@@ -384,20 +357,26 @@ namespace
     }
 
     bool ValidateOptionalEnumValue(
-        const toml::table& componentTable,
+        const nlohmann::json& data,
         const char* key,
         std::initializer_list<std::string_view> acceptedValues,
         std::string& error)
     {
-        const auto value = componentTable[key].value<std::string>();
-        if (!value)
+        if (!data.contains(key))
         {
-            return !componentTable.contains(key);
+            return true;
         }
 
+        const auto& node = data[key];
+        if (!node.is_string())
+        {
+            return false;
+        }
+
+        const std::string value = node.get<std::string>();
         for (const std::string_view acceptedValue : acceptedValues)
         {
-            if (*value == acceptedValue)
+            if (value == acceptedValue)
             {
                 return true;
             }
@@ -419,77 +398,77 @@ namespace
         return false;
     }
 
-    bool ValidateTransform(const toml::table& componentTable, std::string& error)
+    bool ValidateTransform(const nlohmann::json& data, std::string& error)
     {
-        return ValidateOptionalVector3(componentTable, "position", error)
-            && ValidateOptionalVector3(componentTable, "rotation", error)
-            && ValidateOptionalVector3(componentTable, "scale", error);
+        return ValidateOptionalVector3(data, "position", error)
+            && ValidateOptionalVector3(data, "rotation", error)
+            && ValidateOptionalVector3(data, "scale", error);
     }
 
-    bool ValidateMesh(const toml::table& componentTable, std::string& error)
+    bool ValidateMesh(const nlohmann::json& data, std::string& error)
     {
-        return ValidateOptionalEnumValue(componentTable, "primitive", {"cube"}, error)
-            && ValidateOptionalVector3(componentTable, "dimensions", error);
+        return ValidateOptionalEnumValue(data, "primitive", {"cube"}, error)
+            && ValidateOptionalVector3(data, "dimensions", error);
     }
 
-    bool ValidateCamera(const toml::table& componentTable, std::string& error)
+    bool ValidateCamera(const nlohmann::json& data, std::string& error)
     {
-        return ValidateOptionalBool(componentTable, "primary", error)
-            && ValidateOptionalVector3(componentTable, "target", error)
-            && ValidateOptionalVector3(componentTable, "up", error)
-            && ValidateOptionalNumber(componentTable, "fov", error)
-            && ValidateOptionalEnumValue(componentTable, "projection", {"perspective", "orthographic"}, error);
+        return ValidateOptionalBool(data, "primary", error)
+            && ValidateOptionalVector3(data, "target", error)
+            && ValidateOptionalVector3(data, "up", error)
+            && ValidateOptionalNumber(data, "fov", error)
+            && ValidateOptionalEnumValue(data, "projection", {"perspective", "orthographic"}, error);
     }
 
-    bool ValidateLight(const toml::table& componentTable, std::string& error)
+    bool ValidateLight(const nlohmann::json& data, std::string& error)
     {
-        return ValidateOptionalEnumValue(componentTable, "type", {"point", "directional"}, error)
-            && ValidateOptionalColor(componentTable, "color", error)
-            && ValidateOptionalNumber(componentTable, "intensity", error)
-            && ValidateOptionalNumber(componentTable, "range", error)
-            && ValidateOptionalBool(componentTable, "debug_draw", error);
+        return ValidateOptionalEnumValue(data, "type", {"point", "directional"}, error)
+            && ValidateOptionalColor(data, "color", error)
+            && ValidateOptionalNumber(data, "intensity", error)
+            && ValidateOptionalNumber(data, "range", error)
+            && ValidateOptionalBool(data, "debug_draw", error);
     }
 
-    bool ValidateMaterial(const toml::table& componentTable, std::string& error)
+    bool ValidateMaterial(const nlohmann::json& data, std::string& error)
     {
-        return ValidateOptionalAssetId(componentTable, "material_id", error)
-            && ValidateOptionalColor(componentTable, "base_color", error)
-            && ValidateOptionalBool(componentTable, "wireframe", error);
+        return ValidateOptionalAssetId(data, "material_id", error)
+            && ValidateOptionalColor(data, "base_color", error)
+            && ValidateOptionalBool(data, "wireframe", error);
     }
 
-    bool ValidateRenderable(const toml::table& componentTable, std::string& error)
+    bool ValidateRenderable(const nlohmann::json& data, std::string& error)
     {
-        return ValidateOptionalBool(componentTable, "visible", error)
-            && ValidateOptionalNonEmptyString(componentTable, "layer", error)
-            && ValidateOptionalInteger(componentTable, "sort_priority", error);
+        return ValidateOptionalBool(data, "visible", error)
+            && ValidateOptionalNonEmptyString(data, "layer", error)
+            && ValidateOptionalInteger(data, "sort_priority", error);
     }
 
-    bool ValidateEffectParameter(std::string_view key, const toml::node& node, std::string& error)
+    bool ValidateEffectParameter(std::string_view key, const nlohmann::json& node, std::string& error)
     {
-        if (node.is_integer() || node.is_floating_point()) { return true; }
+        if (node.is_number_integer() || node.is_number_float()) { return true; }
 
-        if (const toml::array* arr = node.as_array())
+        if (node.is_array())
         {
-            if (arr->size() < 3 || arr->size() > 4)
+            if (node.size() < 3 || node.size() > 4)
             {
                 error = std::string("effect parameter '") + std::string(key) + "' array must have 3 or 4 elements";
                 return false;
             }
 
             bool allInts = true;
-            for (size_t i = 0; i < arr->size(); ++i)
+            for (size_t i = 0; i < node.size(); ++i)
             {
-                if (!arr->get(i)->is_integer() && !arr->get(i)->is_floating_point())
+                if (!node[i].is_number_integer() && !node[i].is_number_float())
                 {
                     error = std::string("effect parameter '") + std::string(key) + "' array elements must be numbers";
                     return false;
                 }
-                if (!arr->get(i)->is_integer()) { allInts = false; }
+                if (!node[i].is_number_integer()) { allInts = false; }
             }
 
             // 4-element arrays are only valid as Color (all integers r,g,b,a).
             // Float3 only reads 3 elements, so a 4-element float array would silently lose data.
-            if (arr->size() == 4 && !allInts)
+            if (node.size() == 4 && !allInts)
             {
                 error = std::string("effect parameter '") + std::string(key)
                     + "' 4-element arrays must be all integers (Color r,g,b,a)";
@@ -499,7 +478,7 @@ namespace
             // 3-element all-integer arrays are ambiguous: ReadEffectParam treats them
             // as Color (r,g,b with a=255), not Float3. Require at least one float
             // for Float3 values (e.g. [1.0, 2.0, 3.0]).
-            if (arr->size() == 3 && allInts)
+            if (node.size() == 3 && allInts)
             {
                 error = std::string("effect parameter '") + std::string(key)
                     + "' 3-element all-integer arrays are interpreted as Color, not Float3; use floats for Float3 (e.g. [1.0, 2.0, 3.0])";
@@ -513,63 +492,62 @@ namespace
         return false;
     }
 
-    bool ValidatePostProcessVolume(const toml::table& componentTable, std::string& error)
+    bool ValidatePostProcessVolume(const nlohmann::json& data, std::string& error)
     {
-        if (!ValidateOptionalEnumValue(componentTable, "shape", {"global", "box", "sphere"}, error))
+        if (!ValidateOptionalEnumValue(data, "shape", {"global", "box", "sphere"}, error))
             return false;
 
-        if (!ValidateOptionalInteger(componentTable, "priority", error))
+        if (!ValidateOptionalInteger(data, "priority", error))
             return false;
 
-        if (!ValidateOptionalNumber(componentTable, "blend_distance", error))
+        if (!ValidateOptionalNumber(data, "blend_distance", error))
             return false;
 
-        if (!ValidateOptionalVector3(componentTable, "dimensions", error))
+        if (!ValidateOptionalVector3(data, "dimensions", error))
             return false;
 
-        if (!ValidateOptionalNumber(componentTable, "radius", error))
+        if (!ValidateOptionalNumber(data, "radius", error))
             return false;
 
         // Validate the effects array if present
-        const toml::node* effectsNode = componentTable.get("effects");
-        if (effectsNode)
+        if (data.contains("effects"))
         {
-            const toml::array* effectsArray = effectsNode->as_array();
-            if (!effectsArray)
+            const auto& effectsNode = data["effects"];
+            if (!effectsNode.is_array())
             {
                 error = "'effects' must be an array of tables";
                 return false;
             }
 
-            for (size_t i = 0; i < effectsArray->size(); ++i)
+            for (size_t i = 0; i < effectsNode.size(); ++i)
             {
-                const toml::table* effectTable = effectsArray->get(i)->as_table();
-                if (!effectTable)
+                const auto& effectEntry = effectsNode[i];
+                if (!effectEntry.is_object())
                 {
                     error = "each entry in 'effects' must be a table";
                     return false;
                 }
 
-                const auto* typeNode = effectTable->get("type");
-                if (!typeNode || !typeNode->is_string() || typeNode->value_or(std::string{}).empty())
+                if (!effectEntry.contains("type") || !effectEntry["type"].is_string()
+                    || effectEntry["type"].get<std::string>().empty())
                 {
                     error = "each effect must have a non-empty 'type' string";
                     return false;
                 }
 
-                for (const auto& [key, node] : *effectTable)
+                for (const auto& [key, value] : effectEntry.items())
                 {
                     if (key == "type") { continue; }
                     if (key == "enabled")
                     {
-                        if (!node.is_boolean())
+                        if (!value.is_boolean())
                         {
                             error = "effect 'enabled' must be a boolean";
                             return false;
                         }
                         continue;
                     }
-                    if (!ValidateEffectParameter(key.str(), node, error)) { return false; }
+                    if (!ValidateEffectParameter(key, value, error)) { return false; }
                 }
             }
         }
@@ -577,103 +555,102 @@ namespace
         return true;
     }
 
-    void ApplyTransform(const toml::table& componentTable, Wayfinder::Entity& entity)
+    void ApplyTransform(const nlohmann::json& data, Wayfinder::Entity& entity)
     {
         Wayfinder::TransformComponent transform;
-        transform.Position = ReadVector3(componentTable, "position", transform.Position);
-        transform.Rotation = ReadVector3(componentTable, "rotation", transform.Rotation);
-        transform.Scale = ReadVector3(componentTable, "scale", transform.Scale);
+        transform.Position = ReadVector3(data, "position", transform.Position);
+        transform.Rotation = ReadVector3(data, "rotation", transform.Rotation);
+        transform.Scale = ReadVector3(data, "scale", transform.Scale);
         entity.AddComponent<Wayfinder::TransformComponent>(transform);
     }
 
-    void ApplyMesh(const toml::table& componentTable, Wayfinder::Entity& entity)
+    void ApplyMesh(const nlohmann::json& data, Wayfinder::Entity& entity)
     {
         Wayfinder::MeshComponent mesh;
-        mesh.Primitive = ReadPrimitive(componentTable, "primitive", mesh.Primitive);
-        mesh.Dimensions = ReadVector3(componentTable, "dimensions", mesh.Dimensions);
+        mesh.Primitive = ReadPrimitive(data, "primitive", mesh.Primitive);
+        mesh.Dimensions = ReadVector3(data, "dimensions", mesh.Dimensions);
         entity.AddComponent<Wayfinder::MeshComponent>(mesh);
     }
 
-    void ApplyCamera(const toml::table& componentTable, Wayfinder::Entity& entity)
+    void ApplyCamera(const nlohmann::json& data, Wayfinder::Entity& entity)
     {
         Wayfinder::CameraComponent camera;
-        camera.Primary = componentTable["primary"].value_or(camera.Primary);
-        camera.Target = ReadVector3(componentTable, "target", camera.Target);
-        camera.Up = ReadVector3(componentTable, "up", camera.Up);
-        camera.FieldOfView = ReadFloat(componentTable, "fov", camera.FieldOfView);
-        camera.Projection = ReadProjection(componentTable, "projection", camera.Projection);
+        camera.Primary = data.value("primary", camera.Primary);
+        camera.Target = ReadVector3(data, "target", camera.Target);
+        camera.Up = ReadVector3(data, "up", camera.Up);
+        camera.FieldOfView = ReadFloat(data, "fov", camera.FieldOfView);
+        camera.Projection = ReadProjection(data, "projection", camera.Projection);
         entity.AddComponent<Wayfinder::CameraComponent>(camera);
     }
 
-    void ApplyLight(const toml::table& componentTable, Wayfinder::Entity& entity)
+    void ApplyLight(const nlohmann::json& data, Wayfinder::Entity& entity)
     {
         Wayfinder::LightComponent light;
-        light.Type = ReadLightType(componentTable, "type", light.Type);
-        light.Tint = ReadColor(componentTable, "color", light.Tint);
-        light.Intensity = ReadFloat(componentTable, "intensity", light.Intensity);
-        light.Range = ReadFloat(componentTable, "range", light.Range);
-        light.DebugDraw = componentTable["debug_draw"].value_or(light.DebugDraw);
+        light.Type = ReadLightType(data, "type", light.Type);
+        light.Tint = ReadColor(data, "color", light.Tint);
+        light.Intensity = ReadFloat(data, "intensity", light.Intensity);
+        light.Range = ReadFloat(data, "range", light.Range);
+        light.DebugDraw = data.value("debug_draw", light.DebugDraw);
         entity.AddComponent<Wayfinder::LightComponent>(light);
     }
 
-    void ApplyMaterial(const toml::table& componentTable, Wayfinder::Entity& entity)
+    void ApplyMaterial(const nlohmann::json& data, Wayfinder::Entity& entity)
     {
         Wayfinder::MaterialComponent material;
-        material.MaterialAssetId = ReadOptionalAssetId(componentTable, "material_id");
-        material.HasBaseColorOverride = componentTable.contains("base_color");
-        material.HasWireframeOverride = componentTable.contains("wireframe");
+        material.MaterialAssetId = ReadOptionalAssetId(data, "material_id");
+        material.HasBaseColorOverride = data.contains("base_color");
+        material.HasWireframeOverride = data.contains("wireframe");
         if (material.HasBaseColorOverride)
         {
-            material.BaseColor = ReadColor(componentTable, "base_color", material.BaseColor);
+            material.BaseColor = ReadColor(data, "base_color", material.BaseColor);
         }
 
         if (material.HasWireframeOverride)
         {
-            material.Wireframe = componentTable["wireframe"].value_or(material.Wireframe);
+            material.Wireframe = data.value("wireframe", material.Wireframe);
         }
 
         entity.AddComponent<Wayfinder::MaterialComponent>(material);
     }
 
-    void ApplyRenderable(const toml::table& componentTable, Wayfinder::Entity& entity)
+    void ApplyRenderable(const nlohmann::json& data, Wayfinder::Entity& entity)
     {
         Wayfinder::RenderableComponent renderable;
-        renderable.Visible = componentTable["visible"].value_or(renderable.Visible);
-        renderable.Layer = ReadRenderLayer(componentTable, "layer", renderable.Layer);
+        renderable.Visible = data.value("visible", renderable.Visible);
+        renderable.Layer = ReadRenderLayer(data, "layer", renderable.Layer);
 
-        const int64_t sortPriority = componentTable["sort_priority"].value_or(static_cast<int64_t>(renderable.SortPriority));
+        const int64_t sortPriority = data.value("sort_priority", static_cast<int64_t>(renderable.SortPriority));
         renderable.SortPriority = ClampToByte(sortPriority);
         entity.AddComponent<Wayfinder::RenderableComponent>(renderable);
     }
 
-    Wayfinder::PostProcessVolumeShape ReadVolumeShape(const toml::table& table, const char* key, Wayfinder::PostProcessVolumeShape fallback)
+    Wayfinder::PostProcessVolumeShape ReadVolumeShape(const nlohmann::json& data, const char* key, Wayfinder::PostProcessVolumeShape fallback)
     {
-        const auto value = table[key].value<std::string>();
-        if (!value) return fallback;
-        if (*value == "global") return Wayfinder::PostProcessVolumeShape::Global;
-        if (*value == "box") return Wayfinder::PostProcessVolumeShape::Box;
-        if (*value == "sphere") return Wayfinder::PostProcessVolumeShape::Sphere;
+        if (!data.contains(key) || !data[key].is_string()) return fallback;
+        const auto value = data[key].get<std::string>();
+        if (value == "global") return Wayfinder::PostProcessVolumeShape::Global;
+        if (value == "box") return Wayfinder::PostProcessVolumeShape::Box;
+        if (value == "sphere") return Wayfinder::PostProcessVolumeShape::Sphere;
         return fallback;
     }
 
     // ── GameplayTagContainer ────────────────────────────────
 
-    bool ValidateTags(const toml::table& componentTable, std::string& error)
+    bool ValidateTags(const nlohmann::json& data, std::string& error)
     {
-        const toml::node* node = componentTable.get("tags");
-        if (!node)
+        if (!data.contains("tags"))
             return true;
 
-        const toml::array* values = node->as_array();
-        if (!values)
+        const auto& node = data["tags"];
+        if (!node.is_array())
         {
             error = "'tags' must be an array of strings";
             return false;
         }
 
-        for (size_t i = 0; i < values->size(); ++i)
+        for (size_t i = 0; i < node.size(); ++i)
         {
-            if (!values->get(i)->is_string())
+            if (!node[i].is_string())
             {
                 error = "'tags' array element #" + std::to_string(i) + " must be a string";
                 return false;
@@ -683,7 +660,7 @@ namespace
         return true;
     }
 
-    void ApplyTags(const toml::table& componentTable, Wayfinder::Entity& entity)
+    void ApplyTags(const nlohmann::json& data, Wayfinder::Entity& entity)
     {
         // In non-Game contexts (e.g. waypoint, tests) the subsystem collection may not be bound.
         // Use Find() to avoid asserting and simply skip tag application if no registry is available.
@@ -692,26 +669,26 @@ namespace
         Wayfinder::GameplayTagContainer container;
         if (registry)
         {
-            if (const toml::array* tags = componentTable["tags"].as_array())
+            if (data.contains("tags") && data["tags"].is_array())
             {
-                for (const toml::node& node : *tags)
+                for (const auto& node : data["tags"])
                 {
-                    if (const auto str = node.value<std::string>())
-                        container.AddTag(registry->RequestTag(*str));
+                    if (node.is_string())
+                        container.AddTag(registry->RequestTag(node.get<std::string>()));
                 }
             }
         }
-        else if (const toml::array* tags = componentTable["tags"].as_array(); tags && !tags->empty())
+        else if (data.contains("tags") && data["tags"].is_array() && !data["tags"].empty())
         {
             Wayfinder::LogScene.GetLogger()->LogFormat(
                 Wayfinder::LogVerbosity::Warning,
                 "Entity specifies {0} tag(s) but no GameplayTagRegistry is available — tags will be ignored.",
-                tags->size());
+                data["tags"].size());
         }
         entity.AddComponent<Wayfinder::GameplayTagContainer>(container);
     }
 
-    void SerializeTags(const Wayfinder::Entity& entity, toml::table& componentTables)
+    void SerializeTags(const Wayfinder::Entity& entity, nlohmann::json& componentTables)
     {
         if (!entity.HasComponent<Wayfinder::GameplayTagContainer>())
             return;
@@ -720,13 +697,13 @@ namespace
         if (container.IsEmpty())
             return;
 
-        toml::array arr;
+        nlohmann::json arr = nlohmann::json::array();
         for (const auto& tag : container)
             arr.push_back(tag.GetName());
 
-        toml::table t;
-        t.insert_or_assign("tags", std::move(arr));
-        componentTables.insert_or_assign("gameplay_tags", std::move(t));
+        nlohmann::json t;
+        t["tags"] = std::move(arr);
+        componentTables["gameplay_tags"] = std::move(t);
     }
 
     // ── PostProcessVolumeComponent ──────────────────────────
@@ -742,73 +719,74 @@ namespace
         return "global";
     }
 
-    Wayfinder::PostProcessParamValue ReadEffectParam(const toml::node& node)
+    Wayfinder::PostProcessParamValue ReadEffectParam(const nlohmann::json& node)
     {
-        if (node.is_floating_point()) return static_cast<float>(node.value_or(0.0));
-        if (node.is_integer()) return static_cast<int32_t>(node.value_or(int64_t{0}));
+        if (node.is_number_float()) return node.get<float>();
+        if (node.is_number_integer()) return static_cast<int32_t>(node.get<int64_t>());
 
-        if (const toml::array* arr = node.as_array())
+        if (node.is_array())
         {
             // All-integer arrays → Color; otherwise → Float3
             bool allInts = true;
-            for (size_t i = 0; i < arr->size(); ++i)
+            for (size_t i = 0; i < node.size(); ++i)
             {
-                if (!arr->get(i)->is_integer()) { allInts = false; break; }
+                if (!node[i].is_number_integer()) { allInts = false; break; }
             }
 
             if (allInts)
             {
                 Wayfinder::Color c;
-                c.r = static_cast<uint8_t>(arr->get(0)->value_or(int64_t{0}));
-                c.g = static_cast<uint8_t>(arr->get(1)->value_or(int64_t{0}));
-                c.b = static_cast<uint8_t>(arr->get(2)->value_or(int64_t{0}));
-                c.a = arr->size() >= 4 ? static_cast<uint8_t>(arr->get(3)->value_or(int64_t{255})) : 255;
+                c.r = node[0].is_number_integer() ? static_cast<uint8_t>(node[0].get<int64_t>()) : 0;
+                c.g = node[1].is_number_integer() ? static_cast<uint8_t>(node[1].get<int64_t>()) : 0;
+                c.b = node[2].is_number_integer() ? static_cast<uint8_t>(node[2].get<int64_t>()) : 0;
+                c.a = (node.size() >= 4 && node[3].is_number_integer()) ? static_cast<uint8_t>(node[3].get<int64_t>()) : 255;
                 return c;
             }
 
-            if (arr->size() >= 3)
+            if (node.size() >= 3)
             {
                 return Wayfinder::Float3{
-                    ReadArrayFloat(*arr, 0, 0.0f),
-                    ReadArrayFloat(*arr, 1, 0.0f),
-                    ReadArrayFloat(*arr, 2, 0.0f)};
+                    ReadArrayFloat(node, 0, 0.0f),
+                    ReadArrayFloat(node, 1, 0.0f),
+                    ReadArrayFloat(node, 2, 0.0f)};
             }
         }
 
         return 0.0f;
     }
 
-    Wayfinder::PostProcessEffect ReadEffect(const toml::table& effectTable)
+    Wayfinder::PostProcessEffect ReadEffect(const nlohmann::json& effectData)
     {
         Wayfinder::PostProcessEffect effect;
-        effect.Type = effectTable["type"].value_or(std::string{});
-        effect.Enabled = effectTable["enabled"].value_or(true);
+        effect.Type = effectData.value("type", std::string{});
+        effect.Enabled = effectData.value("enabled", true);
 
-        for (const auto& [key, node] : effectTable)
+        for (const auto& [key, value] : effectData.items())
         {
             if (key == "type" || key == "enabled") { continue; }
-            effect.Parameters[std::string(key.str())] = ReadEffectParam(node);
+            effect.Parameters[key] = ReadEffectParam(value);
         }
 
         return effect;
     }
 
-    void ApplyPostProcessVolume(const toml::table& componentTable, Wayfinder::Entity& entity)
+    void ApplyPostProcessVolume(const nlohmann::json& data, Wayfinder::Entity& entity)
     {
         Wayfinder::PostProcessVolumeComponent volume;
-        volume.Shape = ReadVolumeShape(componentTable, "shape", volume.Shape);
-        volume.Priority = static_cast<int>(componentTable["priority"].value_or(static_cast<int64_t>(volume.Priority)));
-        volume.BlendDistance = ReadFloat(componentTable, "blend_distance", volume.BlendDistance);
-        volume.Dimensions = ReadVector3(componentTable, "dimensions", volume.Dimensions);
-        volume.Radius = ReadFloat(componentTable, "radius", volume.Radius);
+        volume.Shape = ReadVolumeShape(data, "shape", volume.Shape);
+        volume.Priority = static_cast<int>(data.value("priority", static_cast<int64_t>(volume.Priority)));
+        volume.BlendDistance = ReadFloat(data, "blend_distance", volume.BlendDistance);
+        volume.Dimensions = ReadVector3(data, "dimensions", volume.Dimensions);
+        volume.Radius = ReadFloat(data, "radius", volume.Radius);
 
-        if (const toml::array* effectsArray = componentTable["effects"].as_array())
+        if (data.contains("effects") && data["effects"].is_array())
         {
-            for (size_t i = 0; i < effectsArray->size(); ++i)
+            const auto& effectsArray = data["effects"];
+            for (size_t i = 0; i < effectsArray.size(); ++i)
             {
-                if (const toml::table* effectTable = effectsArray->get(i)->as_table())
+                if (effectsArray[i].is_object())
                 {
-                    volume.Effects.push_back(ReadEffect(*effectTable));
+                    volume.Effects.push_back(ReadEffect(effectsArray[i]));
                 }
             }
         }
@@ -816,7 +794,7 @@ namespace
         entity.AddComponent<Wayfinder::PostProcessVolumeComponent>(volume);
     }
 
-    void SerializeTransform(const Wayfinder::Entity& entity, toml::table& componentTables)
+    void SerializeTransform(const Wayfinder::Entity& entity, nlohmann::json& componentTables)
     {
         if (!entity.HasComponent<Wayfinder::TransformComponent>())
         {
@@ -824,14 +802,14 @@ namespace
         }
 
         const Wayfinder::TransformComponent& transform = entity.GetComponent<Wayfinder::TransformComponent>();
-        toml::table componentTable;
-        componentTable.insert_or_assign("position", WriteVector3(transform.Position));
-        componentTable.insert_or_assign("rotation", WriteVector3(transform.Rotation));
-        componentTable.insert_or_assign("scale", WriteVector3(transform.Scale));
-        componentTables.insert_or_assign("transform", componentTable);
+        nlohmann::json componentTable;
+        componentTable["position"] = WriteVector3(transform.Position);
+        componentTable["rotation"] = WriteVector3(transform.Rotation);
+        componentTable["scale"] = WriteVector3(transform.Scale);
+        componentTables["transform"] = std::move(componentTable);
     }
 
-    void SerializeMesh(const Wayfinder::Entity& entity, toml::table& componentTables)
+    void SerializeMesh(const Wayfinder::Entity& entity, nlohmann::json& componentTables)
     {
         if (!entity.HasComponent<Wayfinder::MeshComponent>())
         {
@@ -839,13 +817,13 @@ namespace
         }
 
         const Wayfinder::MeshComponent& mesh = entity.GetComponent<Wayfinder::MeshComponent>();
-        toml::table componentTable;
-        componentTable.insert_or_assign("primitive", std::string{ToString(mesh.Primitive)});
-        componentTable.insert_or_assign("dimensions", WriteVector3(mesh.Dimensions));
-        componentTables.insert_or_assign("mesh", componentTable);
+        nlohmann::json componentTable;
+        componentTable["primitive"] = std::string{ToString(mesh.Primitive)};
+        componentTable["dimensions"] = WriteVector3(mesh.Dimensions);
+        componentTables["mesh"] = std::move(componentTable);
     }
 
-    void SerializeCamera(const Wayfinder::Entity& entity, toml::table& componentTables)
+    void SerializeCamera(const Wayfinder::Entity& entity, nlohmann::json& componentTables)
     {
         if (!entity.HasComponent<Wayfinder::CameraComponent>())
         {
@@ -853,16 +831,16 @@ namespace
         }
 
         const Wayfinder::CameraComponent& camera = entity.GetComponent<Wayfinder::CameraComponent>();
-        toml::table componentTable;
-        componentTable.insert_or_assign("primary", camera.Primary);
-        componentTable.insert_or_assign("target", WriteVector3(camera.Target));
-        componentTable.insert_or_assign("up", WriteVector3(camera.Up));
-        componentTable.insert_or_assign("fov", camera.FieldOfView);
-        componentTable.insert_or_assign("projection", std::string{ToString(camera.Projection)});
-        componentTables.insert_or_assign("camera", componentTable);
+        nlohmann::json componentTable;
+        componentTable["primary"] = camera.Primary;
+        componentTable["target"] = WriteVector3(camera.Target);
+        componentTable["up"] = WriteVector3(camera.Up);
+        componentTable["fov"] = camera.FieldOfView;
+        componentTable["projection"] = std::string{ToString(camera.Projection)};
+        componentTables["camera"] = std::move(componentTable);
     }
 
-    void SerializeLight(const Wayfinder::Entity& entity, toml::table& componentTables)
+    void SerializeLight(const Wayfinder::Entity& entity, nlohmann::json& componentTables)
     {
         if (!entity.HasComponent<Wayfinder::LightComponent>())
         {
@@ -870,16 +848,16 @@ namespace
         }
 
         const Wayfinder::LightComponent& light = entity.GetComponent<Wayfinder::LightComponent>();
-        toml::table componentTable;
-        componentTable.insert_or_assign("type", std::string{ToString(light.Type)});
-        componentTable.insert_or_assign("color", WriteColor(light.Tint));
-        componentTable.insert_or_assign("intensity", light.Intensity);
-        componentTable.insert_or_assign("range", light.Range);
-        componentTable.insert_or_assign("debug_draw", light.DebugDraw);
-        componentTables.insert_or_assign("light", componentTable);
+        nlohmann::json componentTable;
+        componentTable["type"] = std::string{ToString(light.Type)};
+        componentTable["color"] = WriteColor(light.Tint);
+        componentTable["intensity"] = light.Intensity;
+        componentTable["range"] = light.Range;
+        componentTable["debug_draw"] = light.DebugDraw;
+        componentTables["light"] = std::move(componentTable);
     }
 
-    void SerializeMaterial(const Wayfinder::Entity& entity, toml::table& componentTables)
+    void SerializeMaterial(const Wayfinder::Entity& entity, nlohmann::json& componentTables)
     {
         if (!entity.HasComponent<Wayfinder::MaterialComponent>())
         {
@@ -887,26 +865,26 @@ namespace
         }
 
         const Wayfinder::MaterialComponent& material = entity.GetComponent<Wayfinder::MaterialComponent>();
-        toml::table componentTable;
+        nlohmann::json componentTable;
         if (material.MaterialAssetId)
         {
-            componentTable.insert_or_assign("material_id", material.MaterialAssetId->ToString());
+            componentTable["material_id"] = material.MaterialAssetId->ToString();
         }
 
         if (!material.MaterialAssetId || material.HasBaseColorOverride)
         {
-            componentTable.insert_or_assign("base_color", WriteColor(material.BaseColor));
+            componentTable["base_color"] = WriteColor(material.BaseColor);
         }
 
         if (!material.MaterialAssetId || material.HasWireframeOverride)
         {
-            componentTable.insert_or_assign("wireframe", material.Wireframe);
+            componentTable["wireframe"] = material.Wireframe;
         }
 
-        componentTables.insert_or_assign("material", componentTable);
+        componentTables["material"] = std::move(componentTable);
     }
 
-    void SerializeRenderable(const Wayfinder::Entity& entity, toml::table& componentTables)
+    void SerializeRenderable(const Wayfinder::Entity& entity, nlohmann::json& componentTables)
     {
         if (!entity.HasComponent<Wayfinder::RenderableComponent>())
         {
@@ -914,30 +892,30 @@ namespace
         }
 
         const Wayfinder::RenderableComponent& renderable = entity.GetComponent<Wayfinder::RenderableComponent>();
-        toml::table componentTable;
-        componentTable.insert_or_assign("visible", renderable.Visible);
-        componentTable.insert_or_assign("layer", renderable.Layer.GetString());
-        componentTable.insert_or_assign("sort_priority", static_cast<int64_t>(renderable.SortPriority));
-        componentTables.insert_or_assign("renderable", componentTable);
+        nlohmann::json componentTable;
+        componentTable["visible"] = renderable.Visible;
+        componentTable["layer"] = renderable.Layer.GetString();
+        componentTable["sort_priority"] = static_cast<int64_t>(renderable.SortPriority);
+        componentTables["renderable"] = std::move(componentTable);
     }
 
-    void WriteEffectParam(toml::table& table, const std::string& key, const Wayfinder::PostProcessParamValue& value)
+    void WriteEffectParam(nlohmann::json& obj, const std::string& key, const Wayfinder::PostProcessParamValue& value)
     {
         std::visit([&](const auto& v)
         {
             using T = std::decay_t<decltype(v)>;
             if constexpr (std::is_same_v<T, float>)
-                table.insert_or_assign(key, static_cast<double>(v));
+                obj[key] = v;
             else if constexpr (std::is_same_v<T, int32_t>)
-                table.insert_or_assign(key, static_cast<int64_t>(v));
+                obj[key] = static_cast<int64_t>(v);
             else if constexpr (std::is_same_v<T, Wayfinder::Float3>)
-                table.insert_or_assign(key, WriteVector3(v));
+                obj[key] = WriteVector3(v);
             else if constexpr (std::is_same_v<T, Wayfinder::Color>)
-                table.insert_or_assign(key, WriteColor(v));
+                obj[key] = WriteColor(v);
         }, value);
     }
 
-    void SerializePostProcessVolume(const Wayfinder::Entity& entity, toml::table& componentTables)
+    void SerializePostProcessVolume(const Wayfinder::Entity& entity, nlohmann::json& componentTables)
     {
         if (!entity.HasComponent<Wayfinder::PostProcessVolumeComponent>())
         {
@@ -945,34 +923,34 @@ namespace
         }
 
         const Wayfinder::PostProcessVolumeComponent& volume = entity.GetComponent<Wayfinder::PostProcessVolumeComponent>();
-        toml::table componentTable;
-        componentTable.insert_or_assign("shape", std::string{ToString(volume.Shape)});
-        componentTable.insert_or_assign("priority", static_cast<int64_t>(volume.Priority));
-        componentTable.insert_or_assign("blend_distance", volume.BlendDistance);
-        componentTable.insert_or_assign("dimensions", WriteVector3(volume.Dimensions));
-        componentTable.insert_or_assign("radius", volume.Radius);
+        nlohmann::json componentTable;
+        componentTable["shape"] = std::string{ToString(volume.Shape)};
+        componentTable["priority"] = static_cast<int64_t>(volume.Priority);
+        componentTable["blend_distance"] = volume.BlendDistance;
+        componentTable["dimensions"] = WriteVector3(volume.Dimensions);
+        componentTable["radius"] = volume.Radius;
 
         if (!volume.Effects.empty())
         {
-            toml::array effectsArray;
+            nlohmann::json effectsArray = nlohmann::json::array();
             for (const auto& effect : volume.Effects)
             {
-                toml::table effectTable;
-                effectTable.insert_or_assign("type", effect.Type);
-                if (!effect.Enabled) { effectTable.insert_or_assign("enabled", false); }
+                nlohmann::json effectTable;
+                effectTable["type"] = effect.Type;
+                if (!effect.Enabled) { effectTable["enabled"] = false; }
 
                 for (const auto& [key, value] : effect.Parameters)
                 {
                     WriteEffectParam(effectTable, key, value);
                 }
 
-                effectsArray.push_back(effectTable);
+                effectsArray.push_back(std::move(effectTable));
             }
 
-            componentTable.insert_or_assign("effects", effectsArray);
+            componentTable["effects"] = std::move(effectsArray);
         }
 
-        componentTables.insert_or_assign("post_process_volume", componentTable);
+        componentTables["post_process_volume"] = std::move(componentTable);
     }
 
     constexpr std::array<Wayfinder::SceneComponentRegistry::Entry, 8> kEntries = {{
@@ -1008,27 +986,26 @@ namespace Wayfinder
         }
     }
 
-    void SceneComponentRegistry::ApplyComponents(const toml::table& componentTables, Entity& entity) const
+    void SceneComponentRegistry::ApplyComponents(const nlohmann::json& componentTables, Entity& entity) const
     {
-        for (const auto& [key, node] : componentTables)
+        for (const auto& [key, node] : componentTables.items())
         {
-            const Entry* entry = Find(key.str());
+            const Entry* entry = Find(key);
             if (!entry || !entry->ApplyFn)
             {
                 continue;
             }
 
-            const toml::table* componentTable = node.as_table();
-            if (!componentTable)
+            if (!node.is_object())
             {
                 continue;
             }
 
-            entry->ApplyFn(*componentTable, entity);
+            entry->ApplyFn(node, entity);
         }
     }
 
-    void SceneComponentRegistry::SerializeComponents(const Entity& entity, toml::table& componentTables) const
+    void SceneComponentRegistry::SerializeComponents(const Entity& entity, nlohmann::json& componentTables) const
     {
         for (const Entry& entry : kEntries)
         {
@@ -1039,7 +1016,7 @@ namespace Wayfinder
         }
     }
 
-    bool SceneComponentRegistry::ValidateComponent(std::string_view key, const toml::table& componentTable, std::string& error) const
+    bool SceneComponentRegistry::ValidateComponent(std::string_view key, const nlohmann::json& componentData, std::string& error) const
     {
         const Entry* entry = Find(key);
         if (!entry || !entry->ValidateFn)
@@ -1048,7 +1025,7 @@ namespace Wayfinder
             return false;
         }
 
-        return entry->ValidateFn(componentTable, error);
+        return entry->ValidateFn(componentData, error);
     }
 
     bool SceneComponentRegistry::IsRegistered(std::string_view key) const
