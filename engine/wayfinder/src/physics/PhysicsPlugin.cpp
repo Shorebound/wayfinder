@@ -1,4 +1,6 @@
 #include "PhysicsPlugin.h"
+#include "PhysicsComponents.h"
+#include "PhysicsSubsystem.h"
 #include "core/EngineConfig.h"
 #include "core/Log.h"
 #include "core/ModuleRegistry.h"
@@ -6,8 +8,7 @@
 #include "maths/Maths.h"
 #include "scene/Components.h"
 #include "scene/entity/Entity.h"
-#include "PhysicsComponents.h"
-#include "PhysicsSubsystem.h"
+
 
 #include <flecs.h>
 #include <nlohmann/json.hpp>
@@ -414,35 +415,35 @@ namespace Wayfinder::Physics
         // PhysicsSyncTransforms: copy Jolt body position and rotation into
         // WorldTransformComponent.  Builds the full LocalToWorld matrix from
         // physics position, physics rotation, and the entity's existing scale.
-        registry.RegisterSystem("PhysicsSyncTransforms", [](flecs::world& world) {
+        registry.RegisterSystem("PhysicsSyncTransforms", [](flecs::world& world) 
+        {
             auto* physics = GameSubsystems::Find<PhysicsSubsystem>();
 
             world.system<const RigidBodyComponent, WorldTransformComponent>("PhysicsSyncTransforms")
-                .kind(flecs::OnValidate)
-                .each([physics](flecs::entity e,
-                         const RigidBodyComponent& rb,
-                         WorldTransformComponent& wt) {
-                    if (rb.RuntimeBodyId == INVALID_PHYSICS_BODY)
-                        return;
-                    if (rb.Type == BodyType::Static)
-                        return;
-                    if (!physics)
-                        return;
+            .kind(flecs::OnValidate)
+            .each([physics](flecs::entity e, const RigidBodyComponent& rb, WorldTransformComponent& wt) 
+            {
+                if (rb.RuntimeBodyId == INVALID_PHYSICS_BODY)
+                    return;
+                if (rb.Type == BodyType::Static)
+                    return;
+                if (!physics)
+                    return;
 
-                    Float3 pos = physics->GetWorld().GetBodyPosition(rb.RuntimeBodyId);
-                    Float4 rotQ = physics->GetWorld().GetBodyRotation(rb.RuntimeBodyId);
+                Float3 pos = physics->GetWorld().GetBodyPosition(rb.RuntimeBodyId);
+                Float4 rotQ = physics->GetWorld().GetBodyRotation(rb.RuntimeBodyId);
 
-                    wt.Position = pos;
+                wt.Position = pos;
 
-                    // Build LocalToWorld = translate * rotate * scale.
-                    Quaternion q(rotQ.w, rotQ.x, rotQ.y, rotQ.z);
-                    Matrix4 rotMat = Maths::ToMatrix4(q);
-                    Matrix4 translateMat = Maths::Translate(Matrix4(1.0f), pos);
-                    Matrix4 scaleMat = Maths::ScaleMatrix(Matrix4(1.0f), wt.Scale);
-                    wt.LocalToWorld = translateMat * rotMat * scaleMat;
-                });
+                // Build LocalToWorld = translate * rotate * scale.
+                Quaternion q(rotQ.w, rotQ.x, rotQ.y, rotQ.z);
+                Matrix4 rotMat = Maths::ToMatrix4(q);
+                Matrix4 translateMat = Maths::Translate(Matrix4(1.0f), pos);
+                Matrix4 scaleMat = Maths::ScaleMatrix(Matrix4(1.0f), wt.Scale);
+                wt.LocalToWorld = translateMat * rotMat * scaleMat;
+            });
         },
-                                {}, {"PhysicsStep"});
+        {}, {"PhysicsStep"});
 
         WAYFINDER_INFO(LogPhysics, "PhysicsPlugin registered");
     }
