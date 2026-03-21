@@ -22,8 +22,8 @@ namespace
         submission.Mesh.StableKey = static_cast<uint64_t>(sortPriority) + 1ull;
         submission.Geometry.Type = Wayfinder::RenderGeometryType::Box;
         submission.Geometry.Dimensions = {1.0f, 1.0f, 1.0f};
-        submission.Material.Handle.Origin = Wayfinder::RenderResourceOrigin::BuiltIn;
-        submission.Material.Handle.StableKey = submission.Mesh.StableKey;
+        submission.Material.Ref.Origin = Wayfinder::RenderResourceOrigin::BuiltIn;
+        submission.Material.Ref.StableKey = submission.Mesh.StableKey;
         submission.Material.StateOverrides.FillMode = Wayfinder::RenderFillMode::Solid;
         submission.Material.Parameters.SetColor("base_color", Wayfinder::LinearColor::FromColor(color));
         submission.SortPriority = sortPriority;

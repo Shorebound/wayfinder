@@ -278,8 +278,8 @@ TEST_CASE("RenderResourceCache resolves built-in materials")
     submission.Mesh.Origin = Wayfinder::RenderResourceOrigin::BuiltIn;
     submission.Mesh.StableKey = 42;
     submission.Geometry.Type = Wayfinder::RenderGeometryType::Box;
-    submission.Material.Handle.Origin = Wayfinder::RenderResourceOrigin::BuiltIn;
-    submission.Material.Handle.StableKey = 42;
+    submission.Material.Ref.Origin = Wayfinder::RenderResourceOrigin::BuiltIn;
+    submission.Material.Ref.StableKey = 42;
     submission.Material.ShaderName = "unlit";
     submission.Material.Parameters.SetColor("base_color", Wayfinder::LinearColor::White());
     scenePass.Meshes.push_back(submission);
@@ -289,11 +289,11 @@ TEST_CASE("RenderResourceCache resolves built-in materials")
 
     const auto& resolved = resources.ResolveMesh(scenePass.Meshes[0]);
     CHECK(resolved.Geometry.Type == Wayfinder::RenderGeometryType::Box);
-    CHECK(resolved.Handle.Origin == Wayfinder::RenderResourceOrigin::BuiltIn);
-    CHECK(resolved.Handle.StableKey == 42);
+    CHECK(resolved.Ref.Origin == Wayfinder::RenderResourceOrigin::BuiltIn);
+    CHECK(resolved.Ref.StableKey == 42);
 
     // Verify that the submission's material binding was set up correctly
-    CHECK(scenePass.Meshes[0].Material.Handle.Origin == Wayfinder::RenderResourceOrigin::BuiltIn);
+    CHECK(scenePass.Meshes[0].Material.Ref.Origin == Wayfinder::RenderResourceOrigin::BuiltIn);
     CHECK(scenePass.Meshes[0].Material.ShaderName == "unlit");
     CHECK(scenePass.Meshes[0].Material.Parameters.Has("base_color"));
 }

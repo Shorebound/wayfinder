@@ -51,14 +51,36 @@ namespace Wayfinder
         Float3 Dimensions{1.0f, 1.0f, 1.0f};
     };
 
-    struct RenderMeshHandle
+    /**
+     * @brief CPU-side descriptor used by `RenderResourceCache` to look up or create a mesh resource.
+     *
+     * This is a logical identifier, not a generational handle — it is never passed to the GPU directly.
+     * For the type-safe generational handle see `RenderMeshHandle` in `GPUHandles.h`.
+     *
+     * @param Origin  Whether this mesh comes from the built-in geometry library or an asset file.
+     * @param AssetId Asset identifier, populated when `Origin` is `RenderResourceOrigin::Asset`.
+     * @param StableKey Deterministic 64-bit key derived from the mesh identity, used as the cache
+     *                  lookup key in `RenderResourceCache::m_meshesByKey`.
+     */
+    struct RenderMeshRef
     {
         RenderResourceOrigin Origin = RenderResourceOrigin::BuiltIn;
         std::optional<AssetId> AssetId;
         uint64_t StableKey = 0;
     };
 
-    struct RenderMaterialHandle
+    /**
+     * @brief CPU-side descriptor used by `RenderResourceCache` to look up or create a material resource.
+     *
+     * This is a logical identifier, not a generational handle — it is never passed to the GPU directly.
+     * For the type-safe generational handle see `RenderMaterialHandle` in `GPUHandles.h`.
+     *
+     * @param Origin  Whether this material comes from the built-in material library or an asset file.
+     * @param AssetId Asset identifier, populated when `Origin` is `RenderResourceOrigin::Asset`.
+     * @param StableKey Deterministic 64-bit key derived from the material identity, used as the cache
+     *                  lookup key in `RenderResourceCache::m_materialsByKey`.
+     */
+    struct RenderMaterialRef
     {
         RenderResourceOrigin Origin = RenderResourceOrigin::BuiltIn;
         std::optional<AssetId> AssetId;
@@ -74,7 +96,7 @@ namespace Wayfinder
 
     struct RenderMaterialBinding
     {
-        RenderMaterialHandle Handle{};
+        RenderMaterialRef Ref{};
         RenderMaterialDomain Domain = RenderMaterialDomain::Surface;
         std::string ShaderName = "unlit";
 
@@ -90,7 +112,7 @@ namespace Wayfinder
 
     struct RenderMeshSubmission
     {
-        RenderMeshHandle Mesh{};
+        RenderMeshRef Mesh{};
         Matrix4 LocalToWorld = glm::mat4(1.0f);
         RenderGeometry Geometry{};
         RenderMaterialBinding Material{};
