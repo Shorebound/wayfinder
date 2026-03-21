@@ -35,7 +35,7 @@ namespace Wayfinder
      * Resolves the CWD via the non-throwing `std::filesystem::current_path`
      * overload and forwards to the single-argument FindProjectFile.
      *
-     * @return @see FindProjectFile(const std::filesystem::path&)
+     * @return See FindProjectFile(const std::filesystem::path&) for details.
      */
     WAYFINDER_API Result<std::filesystem::path> FindProjectFile();
 

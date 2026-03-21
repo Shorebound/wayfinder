@@ -25,21 +25,26 @@ namespace Wayfinder
     {
         ProjectLoadOutput output{};
 
-        std::error_code ec;
-        const bool pathExists = std::filesystem::exists(path, ec);
-        if (ec || !pathExists)
         {
-            WAYFINDER_ERROR(LogEngine, "Project file not found: {}", path.string());
-            return MakeError("Project file not found");
+            std::error_code ec;
+            const bool pathExists = std::filesystem::exists(path, ec);
+            if (ec || !pathExists)
+            {
+                WAYFINDER_ERROR(LogEngine, "Project file not found: {}", path.string());
+                return MakeError("Project file not found");
+            }
         }
 
-        const auto canonicalPath = std::filesystem::weakly_canonical(path, ec);
-        if (ec)
         {
-            WAYFINDER_ERROR(LogEngine, "Failed to resolve project root for {}: {}", path.string(), ec.message());
-            return MakeError("Failed to resolve project root");
+            std::error_code ec;
+            const auto canonicalPath = std::filesystem::weakly_canonical(path, ec);
+            if (ec)
+            {
+                WAYFINDER_ERROR(LogEngine, "Failed to resolve project root for {}: {}", path.string(), ec.message());
+                return MakeError("Failed to resolve project root");
+            }
+            output.Descriptor.ProjectRoot = canonicalPath.parent_path();
         }
-        output.Descriptor.ProjectRoot = canonicalPath.parent_path();
 
         try
         {
