@@ -94,7 +94,7 @@ namespace
         std::vector<std::string>& errors)
     {
         Wayfinder::SceneDocumentEntity definition;
-        if (const auto parsedId = ParseTypedId<Wayfinder::SceneObjectId>(data, std::string{kIdKey}, sourceLabel, errors))
+        if (const auto parsedId = ParseTypedId<Wayfinder::SceneObjectId>(data, kIdKey, sourceLabel, errors))
         {
             definition.Id = *parsedId;
         }
@@ -103,9 +103,9 @@ namespace
             definition.Id = Wayfinder::SceneObjectId::Generate();
         }
 
-        definition.Name = data.value(std::string{kNameKey}, fallbackName);
-        definition.ParentId = ParseTypedId<Wayfinder::SceneObjectId>(data, std::string{kParentIdKey}, sourceLabel, errors);
-        definition.PrefabAssetId = ParseTypedId<Wayfinder::AssetId>(data, std::string{kPrefabIdKey}, sourceLabel, errors);
+        definition.Name = data.value(kNameKey, fallbackName);
+        definition.ParentId = ParseTypedId<Wayfinder::SceneObjectId>(data, kParentIdKey, sourceLabel, errors);
+        definition.PrefabAssetId = ParseTypedId<Wayfinder::AssetId>(data, kPrefabIdKey, sourceLabel, errors);
 
         for (const auto& [key, node] : data.items())
         {
@@ -199,13 +199,13 @@ namespace
         const std::string& sourceLabel,
         std::vector<std::string>& errors)
     {
-        if (!definition.ComponentData.contains(std::string{kMaterialComponentKey})
-            || !definition.ComponentData[std::string{kMaterialComponentKey}].is_object())
+        if (!definition.ComponentData.contains(kMaterialComponentKey)
+            || !definition.ComponentData[kMaterialComponentKey].is_object())
         {
             return true;
         }
 
-        nlohmann::json& materialData = definition.ComponentData[std::string{kMaterialComponentKey}];
+        nlohmann::json& materialData = definition.ComponentData[kMaterialComponentKey];
         const std::string materialLabel = sourceLabel + " material";
         const std::optional<Wayfinder::AssetId> materialAssetId = ParseTypedId<Wayfinder::AssetId>(
             materialData,
@@ -251,8 +251,8 @@ namespace
         const std::string& sourceLabel,
         std::vector<std::string>& errors)
     {
-        if (definition.ComponentData.contains(std::string{kMeshComponentKey})
-            && !definition.ComponentData.contains(std::string{kRenderableComponentKey}))
+        if (definition.ComponentData.contains(kMeshComponentKey)
+            && !definition.ComponentData.contains(kRenderableComponentKey))
         {
             errors.push_back(sourceLabel + " has mesh data but no renderable component; renderability must now be explicit");
             return false;
@@ -295,26 +295,25 @@ namespace Wayfinder
                 return result;
             }
 
-            document.Name = sceneData.value(std::string{kSceneNameKey}, std::string{"Default Scene"});
+            document.Name = sceneData.value(kSceneNameKey, std::string{"Default Scene"});
 
-            if (sceneData.contains(std::string{kSettingsKey}) && !sceneData[std::string{kSettingsKey}].is_object())
+            if (sceneData.contains(kSettingsKey))
             {
-                result.Errors.push_back("'" + std::string{kSettingsKey} + "' must be an object");
-                return result;
+                if (!sceneData[kSettingsKey].is_object())
+                {
+                    result.Errors.push_back("'" + std::string{kSettingsKey} + "' must be an object");
+                    return result;
+                }
+                document.Settings = sceneData[kSettingsKey];
             }
 
-            if (sceneData.contains(std::string{kSettingsKey}) && sceneData[std::string{kSettingsKey}].is_object())
-            {
-                document.Settings = sceneData[std::string{kSettingsKey}];
-            }
-
-            if (!sceneData.contains(std::string{kEntitiesKey}) || !sceneData[std::string{kEntitiesKey}].is_array())
+            if (!sceneData.contains(kEntitiesKey) || !sceneData[kEntitiesKey].is_array())
             {
                 result.Errors.push_back("Scene file does not contain an entity list");
                 return result;
             }
 
-            const auto& entities = sceneData[std::string{kEntitiesKey}];
+            const auto& entities = sceneData[kEntitiesKey];
 
             size_t index = 0;
             for (const auto& entityNode : entities)
@@ -421,11 +420,11 @@ namespace Wayfinder
             nlohmann::json sceneData = nlohmann::json::object();
             nlohmann::json entitiesArray = nlohmann::json::array();
 
-            sceneData[std::string{kSceneNameKey}] = document.Name;
+            sceneData[kSceneNameKey] = document.Name;
 
             if (!document.Settings.empty())
             {
-                sceneData[std::string{kSettingsKey}] = document.Settings;
+                sceneData[kSettingsKey] = document.Settings;
             }
 
             std::vector<SceneDocumentEntity> sortedEntities = document.Entities;
@@ -437,17 +436,17 @@ namespace Wayfinder
             for (const SceneDocumentEntity& entityRecord : sortedEntities)
             {
                 nlohmann::json entityObj = nlohmann::json::object();
-                entityObj[std::string{kIdKey}] = entityRecord.Id.ToString();
-                entityObj[std::string{kNameKey}] = entityRecord.Name;
+                entityObj[kIdKey] = entityRecord.Id.ToString();
+                entityObj[kNameKey] = entityRecord.Name;
 
                 if (entityRecord.ParentId)
                 {
-                    entityObj[std::string{kParentIdKey}] = entityRecord.ParentId->ToString();
+                    entityObj[kParentIdKey] = entityRecord.ParentId->ToString();
                 }
 
                 if (entityRecord.PrefabAssetId)
                 {
-                    entityObj[std::string{kPrefabIdKey}] = entityRecord.PrefabAssetId->ToString();
+                    entityObj[kPrefabIdKey] = entityRecord.PrefabAssetId->ToString();
                 }
 
                 for (const auto& [key, value] : entityRecord.ComponentData.items())
@@ -458,7 +457,7 @@ namespace Wayfinder
                 entitiesArray.push_back(std::move(entityObj));
             }
 
-            sceneData[std::string{kEntitiesKey}] = std::move(entitiesArray);
+            sceneData[kEntitiesKey] = std::move(entitiesArray);
 
             std::filesystem::create_directories(outputDirectory);
             std::ofstream stream(outputPath, std::ios::out | std::ios::trunc | std::ios::binary);
