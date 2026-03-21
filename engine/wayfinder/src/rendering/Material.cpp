@@ -24,7 +24,7 @@ namespace
             return static_cast<float>(values->get(index)->value_or(static_cast<int64_t>(static_cast<uint8_t>(fallback * 255.0f)))) / 255.0f;
         };
 
-        colourr.r = readChannel(0,colourr.r);
+        colour.r = readChannel(0,colour.r);
         colour.g = readChannel(1, colour.g);
         colour.b = readChannel(2, colour.b);
         colour.a = values->size() == 4 ? readChannel(3, colour.a) : colour.a;

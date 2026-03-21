@@ -483,7 +483,7 @@ query {
         foreach ($b in $blockedByNodes) {
             $icon = if ($b.state -eq "CLOSED") { "[x]" } else { "[ ]" }
             $colour = if ($b.state -eq "CLOSED") { "DarkGray" } else { "White" }
-            Write-Host "    $icon #$($b.number) - $($b.title)" -ForegroundColor $colourr
+            Write-Host "    $icon #$($b.number) - $($b.title)" -ForegroundColor $colour
         }
     }
 

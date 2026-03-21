@@ -609,7 +609,7 @@ namespace
     {
         Wayfinder::LightComponent light;
         light.Type = ReadLightType(componentTable, "type", light.Type);
-        light.Tint = ReadColor(componentTable, "colourr", light.Tint);
+        light.Tint = ReadColor(componentTable, "colour", light.Tint);
         light.Intensity = ReadFloat(componentTable, "intensity", light.Intensity);
         light.Range = ReadFloat(componentTable, "range", light.Range);
         light.DebugDraw = componentTable["debug_draw"].value_or(light.DebugDraw);

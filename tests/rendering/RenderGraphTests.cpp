@@ -60,7 +60,7 @@ TEST_CASE("Topological sort respects resource dependencies")
     colorDesc.DebugName = Wayfinder::WellKnown::SceneColor;
 
     graph.AddPass("A_WriteColor", [&](Wayfinder::RenderGraphBuilder& builder) -> Wayfinder::RenderGraphExecuteFn {
-        auto colourr = builder.CreateTransient(colorDesc);
+        auto colour = builder.CreateTransient(colorDesc);
         builder.WriteColor(colour);
         return [&executionOrder](Wayfinder::RenderDevice&, const Wayfinder::RenderGraphResources&) {
             executionOrder.push_back("A");
