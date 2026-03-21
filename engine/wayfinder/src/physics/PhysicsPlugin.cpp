@@ -50,6 +50,8 @@ namespace Wayfinder
 
             rb.Mass = table["mass"].value_or(1.0f);
             rb.GravityFactor = table["gravity_factor"].value_or(1.0f);
+            rb.LinearDamping = table["linear_damping"].value_or(0.05f);
+            rb.AngularDamping = table["angular_damping"].value_or(0.05f);
             rb.LinearVelocity = ParseFloat3Array(table["linear_velocity"].as_array(), {0.0f, 0.0f, 0.0f});
             rb.AngularVelocity = ParseFloat3Array(table["angular_velocity"].as_array(), {0.0f, 0.0f, 0.0f});
 
@@ -79,6 +81,8 @@ namespace Wayfinder
 
             t.insert("mass", rb.Mass);
             t.insert("gravity_factor", rb.GravityFactor);
+            t.insert("linear_damping", rb.LinearDamping);
+            t.insert("angular_damping", rb.AngularDamping);
             t.insert("linear_velocity", toml::array{rb.LinearVelocity.x, rb.LinearVelocity.y, rb.LinearVelocity.z});
             t.insert("angular_velocity", toml::array{rb.AngularVelocity.x, rb.AngularVelocity.y, rb.AngularVelocity.z});
 
@@ -95,6 +99,16 @@ namespace Wayfinder
             if (const auto* node = table.get("mass"); node && !node->is_floating_point() && !node->is_integer())
             {
                 error = "'mass' must be a number";
+                return false;
+            }
+            if (const auto* node = table.get("linear_damping"); node && !node->is_floating_point() && !node->is_integer())
+            {
+                error = "'linear_damping' must be a number";
+                return false;
+            }
+            if (const auto* node = table.get("angular_damping"); node && !node->is_floating_point() && !node->is_integer())
+            {
+                error = "'angular_damping' must be a number";
                 return false;
             }
             return true;
@@ -115,6 +129,8 @@ namespace Wayfinder
             {
                 if (*shapeStr == "sphere")
                     col.Shape = ColliderShape::Sphere;
+                else if (*shapeStr == "capsule")
+                    col.Shape = ColliderShape::Capsule;
                 else
                     col.Shape = ColliderShape::Box;
             }
@@ -122,6 +138,7 @@ namespace Wayfinder
             col.HalfExtents = ParseFloat3Array(table["half_extents"].as_array(), {0.5f, 0.5f, 0.5f});
 
             col.Radius = table["radius"].value_or(0.5f);
+            col.Height = table["height"].value_or(1.0f);
             col.Friction = table["friction"].value_or(0.2f);
             col.Restitution = table["restitution"].value_or(0.0f);
 
@@ -136,9 +153,22 @@ namespace Wayfinder
             const auto& col = entity.GetComponent<ColliderComponent>();
             toml::table t;
 
-            t.insert("shape", col.Shape == ColliderShape::Sphere ? "sphere" : "box");
+            switch (col.Shape)
+            {
+            case ColliderShape::Box:
+                t.insert("shape", "box");
+                break;
+            case ColliderShape::Sphere:
+                t.insert("shape", "sphere");
+                break;
+            case ColliderShape::Capsule:
+                t.insert("shape", "capsule");
+                break;
+            }
+
             t.insert("half_extents", toml::array{col.HalfExtents.x, col.HalfExtents.y, col.HalfExtents.z});
             t.insert("radius", col.Radius);
+            t.insert("height", col.Height);
             t.insert("friction", col.Friction);
             t.insert("restitution", col.Restitution);
 
@@ -149,12 +179,17 @@ namespace Wayfinder
         {
             if (const auto* node = table.get("shape"); node && !node->is_string())
             {
-                error = "'shape' must be a string (box|sphere)";
+                error = "'shape' must be a string (box|sphere|capsule)";
                 return false;
             }
             if (const auto* node = table.get("friction"); node && !node->is_floating_point() && !node->is_integer())
             {
                 error = "'friction' must be a number";
+                return false;
+            }
+            if (const auto* node = table.get("height"); node && !node->is_floating_point() && !node->is_integer())
+            {
+                error = "'height' must be a number";
                 return false;
             }
             return true;
