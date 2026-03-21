@@ -43,106 +43,58 @@ namespace
 
     template <typename TId>
     std::optional<TId> ParseTypedId(
-        const toml::table& table,
-        std::string_view key,
+        const nlohmann::json& data,
+        const std::string& key,
         const std::string& sourceLabel,
         std::vector<std::string>& errors)
     {
-        const toml::node* node = table.get(key);
-        if (!node)
+        if (!data.contains(key))
         {
             return std::nullopt;
         }
 
-        if (!node->is_string())
+        const auto& node = data[key];
+        if (!node.is_string())
         {
-            errors.push_back(sourceLabel + " field '" + std::string{key} + "' must be a string");
+            errors.push_back(sourceLabel + " field '" + key + "' must be a string");
             return std::nullopt;
         }
 
-        const std::string text = node->value_or(std::string{});
+        const std::string text = node.get<std::string>();
         const std::optional<TId> parsed = TId::Parse(text);
         if (!parsed)
         {
-            errors.push_back(sourceLabel + " field '" + std::string{key} + "' must be a valid UUID");
+            errors.push_back(sourceLabel + " field '" + key + "' must be a valid UUID");
             return std::nullopt;
         }
 
         return parsed;
     }
 
-    void AssignNode(toml::table& destination, std::string_view key, const toml::node& source)
+    void MergeObjects(nlohmann::json& destination, const nlohmann::json& overrides)
     {
-        const std::string keyString{key};
-
-        if (const toml::table* value = source.as_table())
+        for (const auto& [key, value] : overrides.items())
         {
-            destination.insert_or_assign(keyString, *value);
-            return;
-        }
-
-        if (const toml::array* value = source.as_array())
-        {
-            destination.insert_or_assign(keyString, *value);
-            return;
-        }
-
-        if (const auto value = source.value<std::string>())
-        {
-            destination.insert_or_assign(keyString, *value);
-            return;
-        }
-
-        if (const auto value = source.value<bool>())
-        {
-            destination.insert_or_assign(keyString, *value);
-            return;
-        }
-
-        if (const auto value = source.value<int64_t>())
-        {
-            destination.insert_or_assign(keyString, *value);
-            return;
-        }
-
-        if (const auto value = source.value<double>())
-        {
-            destination.insert_or_assign(keyString, *value);
-        }
-    }
-
-    void MergeTables(toml::table& destination, const toml::table& overrides)
-    {
-        for (const auto& [key, node] : overrides)
-        {
-            const std::string_view keyView = key.str();
-            if (const toml::table* sourceTable = node.as_table())
+            if (value.is_object() && destination.contains(key) && destination[key].is_object())
             {
-                if (toml::table* destinationTable = destination.get_as<toml::table>(keyView))
-                {
-                    MergeTables(*destinationTable, *sourceTable);
-                }
-                else
-                {
-                    destination.insert_or_assign(std::string{keyView}, *sourceTable);
-                }
-
-                continue;
+                MergeObjects(destination[key], value);
             }
-
-            AssignNode(destination, keyView, node);
+            else
+            {
+                destination[key] = value;
+            }
         }
     }
 
     Wayfinder::SceneDocumentEntity ParseEntityDefinition(
-        const toml::table& table,
+        const nlohmann::json& data,
         const Wayfinder::RuntimeComponentRegistry& registry,
         const std::string& fallbackName,
         const std::string& sourceLabel,
         std::vector<std::string>& errors)
     {
         Wayfinder::SceneDocumentEntity definition;
-        if (const std::optional<Wayfinder::SceneObjectId> parsedId = ParseTypedId<Wayfinder::SceneObjectId>(table, kIdKey, sourceLabel, errors))
+        if (const auto parsedId = ParseTypedId<Wayfinder::SceneObjectId>(data, std::string{kIdKey}, sourceLabel, errors))
         {
             definition.Id = *parsedId;
         }
@@ -151,47 +103,37 @@ namespace
             definition.Id = Wayfinder::SceneObjectId::Generate();
         }
 
-        if (const auto name = table[kNameKey].value<std::string>())
-        {
-            definition.Name = *name;
-        }
-        else
-        {
-            definition.Name = fallbackName;
-        }
+        definition.Name = data.value(std::string{kNameKey}, fallbackName);
+        definition.ParentId = ParseTypedId<Wayfinder::SceneObjectId>(data, std::string{kParentIdKey}, sourceLabel, errors);
+        definition.PrefabAssetId = ParseTypedId<Wayfinder::AssetId>(data, std::string{kPrefabIdKey}, sourceLabel, errors);
 
-        definition.ParentId = ParseTypedId<Wayfinder::SceneObjectId>(table, kParentIdKey, sourceLabel, errors);
-        definition.PrefabAssetId = ParseTypedId<Wayfinder::AssetId>(table, kPrefabIdKey, sourceLabel, errors);
-
-        for (const auto& [key, node] : table)
+        for (const auto& [key, node] : data.items())
         {
-            const std::string_view keyView = key.str();
-            if (keyView == kIdKey || keyView == kNameKey || keyView == kParentIdKey || keyView == kPrefabIdKey || keyView == kAssetIdKey || keyView == kAssetTypeKey)
+            if (key == kIdKey || key == kNameKey || key == kParentIdKey || key == kPrefabIdKey || key == kAssetIdKey || key == kAssetTypeKey)
             {
                 continue;
             }
 
-            if (!registry.IsRegistered(keyView))
+            if (!registry.IsRegistered(key))
             {
-                errors.push_back(sourceLabel + " has unknown component table '" + std::string{keyView} + "'");
+                errors.push_back(sourceLabel + " has unknown component table '" + key + "'");
                 continue;
             }
 
-            const toml::table* componentTable = node.as_table();
-            if (!componentTable)
+            if (!node.is_object())
             {
-                errors.push_back(sourceLabel + " component '" + std::string{keyView} + "' must be a TOML table");
+                errors.push_back(sourceLabel + " component '" + key + "' must be a JSON object");
                 continue;
             }
 
             std::string validationError;
-            if (!registry.ValidateComponent(keyView, *componentTable, validationError))
+            if (!registry.ValidateComponent(key, node, validationError))
             {
-                errors.push_back(sourceLabel + " component '" + std::string{keyView} + "' is invalid: " + validationError);
+                errors.push_back(sourceLabel + " component '" + key + "' is invalid: " + validationError);
                 continue;
             }
 
-            definition.ComponentData.insert_or_assign(std::string{keyView}, *componentTable);
+            definition.ComponentData[key] = node;
         }
 
         return definition;
@@ -211,7 +153,8 @@ namespace
 
         try
         {
-            toml::table prefabData = toml::parse_file(key);
+            std::ifstream file(key);
+            nlohmann::json prefabData = nlohmann::json::parse(file);
             Wayfinder::SceneDocumentEntity definition = ParseEntityDefinition(
                 prefabData,
                 registry,
@@ -221,9 +164,9 @@ namespace
             prefabCache.emplace(key, definition);
             return definition;
         }
-        catch (const toml::parse_error& error)
+        catch (const nlohmann::json::exception& error)
         {
-            errors.push_back("Failed to parse prefab '" + prefabPath.generic_string() + "': " + std::string{error.description()});
+            errors.push_back("Failed to parse prefab '" + prefabPath.generic_string() + "': " + error.what());
             return std::nullopt;
         }
     }
@@ -247,7 +190,7 @@ namespace
             destination.PrefabAssetId = overrideData.PrefabAssetId;
         }
 
-        MergeTables(destination.ComponentData, overrideData.ComponentData);
+        MergeObjects(destination.ComponentData, overrideData.ComponentData);
     }
 
     bool ResolveMaterialComponentData(
@@ -256,15 +199,16 @@ namespace
         const std::string& sourceLabel,
         std::vector<std::string>& errors)
     {
-        toml::table* materialTable = definition.ComponentData.get_as<toml::table>(kMaterialComponentKey);
-        if (!materialTable)
+        if (!definition.ComponentData.contains(std::string{kMaterialComponentKey})
+            || !definition.ComponentData[std::string{kMaterialComponentKey}].is_object())
         {
             return true;
         }
 
+        nlohmann::json& materialData = definition.ComponentData[std::string{kMaterialComponentKey}];
         const std::string materialLabel = sourceLabel + " material";
         const std::optional<Wayfinder::AssetId> materialAssetId = ParseTypedId<Wayfinder::AssetId>(
-            *materialTable,
+            materialData,
             "material_id",
             materialLabel,
             errors);
@@ -296,9 +240,9 @@ namespace
             return false;
         }
 
-        toml::table mergedMaterialTable = Wayfinder::CreateMaterialComponentTable(*materialAsset);
-        MergeTables(mergedMaterialTable, *materialTable);
-        *materialTable = std::move(mergedMaterialTable);
+        nlohmann::json mergedMaterialData = Wayfinder::CreateMaterialComponentTable(*materialAsset);
+        MergeObjects(mergedMaterialData, materialData);
+        materialData = std::move(mergedMaterialData);
         return true;
     }
 
@@ -307,7 +251,8 @@ namespace
         const std::string& sourceLabel,
         std::vector<std::string>& errors)
     {
-        if (definition.ComponentData.contains(kMeshComponentKey) && !definition.ComponentData.contains(kRenderableComponentKey))
+        if (definition.ComponentData.contains(std::string{kMeshComponentKey})
+            && !definition.ComponentData.contains(std::string{kRenderableComponentKey}))
         {
             errors.push_back(sourceLabel + " has mesh data but no renderable component; renderability must now be explicit");
             return false;
@@ -327,7 +272,15 @@ namespace Wayfinder
         {
             const std::filesystem::path scenePath = std::filesystem::weakly_canonical(std::filesystem::path(filePath));
             const std::filesystem::path assetRoot = FindAssetRoot(scenePath);
-            toml::table sceneData = toml::parse_file(filePath);
+
+            std::ifstream file(filePath);
+            if (!file.is_open())
+            {
+                result.Errors.push_back("Failed to open scene file '" + filePath + "'");
+                return result;
+            }
+
+            nlohmann::json sceneData = nlohmann::json::parse(file);
             AssetService localAssetService;
             AssetService& activeAssetService = assetService ? *assetService : localAssetService;
             std::string assetRegistryError;
@@ -342,38 +295,40 @@ namespace Wayfinder
                 return result;
             }
 
-            document.Name = sceneData[kSceneNameKey].value_or(std::string{"Default Scene"});
+            document.Name = sceneData.value(std::string{kSceneNameKey}, std::string{"Default Scene"});
 
-            if (sceneData.contains(kSettingsKey) && !sceneData[kSettingsKey].is_table())
+            if (sceneData.contains(std::string{kSettingsKey}) && !sceneData[std::string{kSettingsKey}].is_object())
             {
-                result.Errors.push_back("'" + std::string(kSettingsKey) + "' must be a table");
+                result.Errors.push_back("'" + std::string{kSettingsKey} + "' must be an object");
                 return result;
             }
 
-            if (const toml::table* settings = sceneData[kSettingsKey].as_table())
-                document.Settings = *settings;
+            if (sceneData.contains(std::string{kSettingsKey}) && sceneData[std::string{kSettingsKey}].is_object())
+            {
+                document.Settings = sceneData[std::string{kSettingsKey}];
+            }
 
-            const toml::array* entities = sceneData[kEntitiesKey].as_array();
-            if (!entities)
+            if (!sceneData.contains(std::string{kEntitiesKey}) || !sceneData[std::string{kEntitiesKey}].is_array())
             {
                 result.Errors.push_back("Scene file does not contain an entity list");
                 return result;
             }
 
+            const auto& entities = sceneData[std::string{kEntitiesKey}];
+
             size_t index = 0;
-            for (const toml::node& entityNode : *entities)
+            for (const auto& entityNode : entities)
             {
-                const toml::table* entityTable = entityNode.as_table();
-                if (!entityTable)
+                if (!entityNode.is_object())
                 {
-                    result.Errors.push_back("Entity #" + std::to_string(index) + " must be a TOML table");
+                    result.Errors.push_back("Entity #" + std::to_string(index) + " must be a JSON object");
                     ++index;
                     continue;
                 }
 
                 const std::string entityLabel = "Entity #" + std::to_string(index);
                 SceneDocumentEntity definition = ParseEntityDefinition(
-                    *entityTable,
+                    entityNode,
                     registry,
                     "Entity" + std::to_string(index),
                     entityLabel,
@@ -449,9 +404,9 @@ namespace Wayfinder
                 result.Document = std::move(document);
             }
         }
-        catch (const toml::parse_error& error)
+        catch (const nlohmann::json::exception& error)
         {
-            result.Errors.push_back("Failed to parse scene file '" + filePath + "': " + std::string{error.description()});
+            result.Errors.push_back("Failed to parse scene file '" + filePath + "': " + error.what());
         }
 
         return result;
@@ -463,13 +418,15 @@ namespace Wayfinder
         {
             const std::filesystem::path outputPath = std::filesystem::path(filePath);
             const std::filesystem::path outputDirectory = outputPath.has_parent_path() ? outputPath.parent_path() : std::filesystem::current_path();
-            toml::table sceneData;
-            toml::array entitiesArray;
+            nlohmann::json sceneData = nlohmann::json::object();
+            nlohmann::json entitiesArray = nlohmann::json::array();
 
-            sceneData.insert_or_assign(std::string{kSceneNameKey}, document.Name);
+            sceneData[std::string{kSceneNameKey}] = document.Name;
 
             if (!document.Settings.empty())
-                sceneData.insert_or_assign(std::string{kSettingsKey}, document.Settings);
+            {
+                sceneData[std::string{kSettingsKey}] = document.Settings;
+            }
 
             std::vector<SceneDocumentEntity> sortedEntities = document.Entities;
             std::sort(sortedEntities.begin(), sortedEntities.end(), [](const SceneDocumentEntity& left, const SceneDocumentEntity& right)
@@ -479,25 +436,29 @@ namespace Wayfinder
 
             for (const SceneDocumentEntity& entityRecord : sortedEntities)
             {
-                toml::table entityTable;
-                entityTable.insert_or_assign(std::string{kIdKey}, entityRecord.Id.ToString());
-                entityTable.insert_or_assign(std::string{kNameKey}, entityRecord.Name);
+                nlohmann::json entityObj = nlohmann::json::object();
+                entityObj[std::string{kIdKey}] = entityRecord.Id.ToString();
+                entityObj[std::string{kNameKey}] = entityRecord.Name;
 
                 if (entityRecord.ParentId)
                 {
-                    entityTable.insert_or_assign(std::string{kParentIdKey}, entityRecord.ParentId->ToString());
+                    entityObj[std::string{kParentIdKey}] = entityRecord.ParentId->ToString();
                 }
 
                 if (entityRecord.PrefabAssetId)
                 {
-                    entityTable.insert_or_assign(std::string{kPrefabIdKey}, entityRecord.PrefabAssetId->ToString());
+                    entityObj[std::string{kPrefabIdKey}] = entityRecord.PrefabAssetId->ToString();
                 }
 
-                MergeTables(entityTable, entityRecord.ComponentData);
-                entitiesArray.push_back(std::move(entityTable));
+                for (const auto& [key, value] : entityRecord.ComponentData.items())
+                {
+                    entityObj[key] = value;
+                }
+
+                entitiesArray.push_back(std::move(entityObj));
             }
 
-            sceneData.insert_or_assign(std::string{kEntitiesKey}, std::move(entitiesArray));
+            sceneData[std::string{kEntitiesKey}] = std::move(entitiesArray);
 
             std::filesystem::create_directories(outputDirectory);
             std::ofstream stream(outputPath, std::ios::out | std::ios::trunc | std::ios::binary);
@@ -507,7 +468,7 @@ namespace Wayfinder
                 return false;
             }
 
-            stream << sceneData;
+            stream << sceneData.dump(2);
             stream.flush();
 
             if (!stream.good())
