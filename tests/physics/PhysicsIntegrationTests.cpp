@@ -79,7 +79,7 @@ namespace
 
         ~PhysicsIntegrationFixture()
         {
-            GameSubsystems::Bind(nullptr);
+            GameSubsystems::Unbind();
             Subsystems.Shutdown();
         }
 

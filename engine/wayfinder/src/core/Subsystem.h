@@ -238,6 +238,14 @@ namespace Wayfinder
         /// also available for integration tests that stand up subsystems
         /// outside of the full Game lifecycle.
         static void Bind(SubsystemCollection<GameSubsystem>* collection) { s_collection = collection; }
+
+        /// Detach the SubsystemCollection.  Callers should prefer this over
+        /// Bind(nullptr) so intent is explicit.
+        static void Unbind()
+        {
+            WAYFINDER_ASSERT(s_collection, "GameSubsystems::Unbind() called when no collection is bound");
+            s_collection = nullptr;
+        }
     };
 
 } // namespace Wayfinder

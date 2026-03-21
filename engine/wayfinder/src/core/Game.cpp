@@ -44,7 +44,7 @@ namespace Wayfinder
         {
             if (!committed)
             {
-                GameSubsystems::Bind(nullptr);
+                GameSubsystems::Unbind();
                 m_subsystems.Shutdown();
             }
         };
@@ -148,7 +148,7 @@ namespace Wayfinder
 
         UnloadCurrentScene();
 
-        GameSubsystems::Bind(nullptr);
+        GameSubsystems::Unbind();
         m_subsystems.Shutdown();
 
         m_stateMachine = nullptr;

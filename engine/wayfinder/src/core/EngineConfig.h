@@ -21,6 +21,12 @@ namespace Wayfinder
         std::string Directory = "assets/shaders";
     };
 
+    /**
+     * @brief Configuration for physics simulation timestepping.
+     *
+     * The physics world advances in fixed increments of FixedTimestep,
+     * accumulating leftover frame time between frames.
+     */
     struct PhysicsConfig
     {
         /// Fixed simulation timestep in seconds.  The physics world advances

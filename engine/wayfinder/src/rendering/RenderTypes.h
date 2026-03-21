@@ -11,7 +11,7 @@
 namespace Wayfinder
 {
 
-    // ── Color ────────────────────────────────────────────────
+    // ── Colour ────────────────────────────────────────────────
 
     struct Colour
     {
@@ -48,7 +48,7 @@ namespace Wayfinder
             };
         }
 
-        glm::vec4 ToVec4() const { return {r, g, b, a}; }
+        Float4 ToVec4() const { return {r, g, b, a}; }
         Float3 ToFloat3() const { return {r, g, b}; }
     };
 

@@ -348,16 +348,16 @@ namespace Wayfinder::Physics
         // authored local transform). At runtime, PhysicsSyncTransforms writes
         // simulated transforms back into WorldTransformComponent.
         registry.RegisterSystem("PhysicsCreateBodies", [](flecs::world& world) {
-            auto* physics = GameSubsystems::Find<PhysicsSubsystem>();
-
             world.observer<RigidBodyComponent, const ColliderComponent, const TransformComponent>("PhysicsCreateBodies")
                 .event(flecs::OnSet)
-                .each([physics](flecs::entity e,
+                .each([](flecs::entity e,
                          RigidBodyComponent& rb,
                          const ColliderComponent& col,
                          const TransformComponent& transform) {
                     if (rb.RuntimeBodyId != INVALID_PHYSICS_BODY)
                         return;
+
+                    auto* physics = GameSubsystems::Find<PhysicsSubsystem>();
                     if (!physics)
                         return;
 

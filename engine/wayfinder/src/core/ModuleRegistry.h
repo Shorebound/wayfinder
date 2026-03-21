@@ -167,7 +167,10 @@ namespace Wayfinder
         /// Read-only access to the project descriptor.
         const ProjectDescriptor& GetProject() const;
 
-        /// Read-only access to the engine configuration.
+        /**
+         * @brief Read-only access to the engine configuration.
+         * @return A const reference to the EngineConfig.
+         */
         const EngineConfig& GetConfig() const;
 
     private:

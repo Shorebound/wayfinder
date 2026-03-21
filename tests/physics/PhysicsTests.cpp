@@ -39,7 +39,7 @@ namespace
         {
             // Unbind before shutdown so observers that fire during
             // world teardown see a null subsystem (safe no-op).
-            GameSubsystems::Bind(nullptr);
+            GameSubsystems::Unbind();
             Subsystems.Shutdown();
         }
 

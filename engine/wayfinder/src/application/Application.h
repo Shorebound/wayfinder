@@ -29,8 +29,20 @@ namespace Wayfinder
             }
         };
 
+        /**
+         * @brief Construct an Application with an explicit set of command-line arguments.
+         * @param module  The game module that supplies registrations and lifecycle hooks.
+         * @param args    Parsed command-line arguments forwarded to the engine runtime.
+         */
         explicit Application(std::unique_ptr<Module> module,
                              const CommandLineArgs& args);
+
+        /**
+         * @brief Construct an Application with no command-line arguments.
+         *
+         * Delegates to the two-argument constructor with an empty CommandLineArgs.
+         * @param module  The game module that supplies registrations and lifecycle hooks.
+         */
         explicit Application(std::unique_ptr<Module> module)
             : Application(std::move(module), CommandLineArgs{}) {}
         ~Application();
