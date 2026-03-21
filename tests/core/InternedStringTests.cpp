@@ -7,8 +7,6 @@
 #include <unordered_map>
 #include <unordered_set>
 
-using Wayfinder::InternedString;
-
 // ── Interning Basics ─────────────────────────────────────
 namespace Wayfinder::Tests
 {

@@ -10,25 +10,25 @@
  * All tests are headless: no window, no GPU, no filesystem access.
  */
 
-#include "physics/PhysicsComponents.h"
-#include "physics/PhysicsPlugin.h"
-#include "physics/PhysicsSubsystem.h"
-#include "physics/PhysicsWorld.h"
 #include "core/EngineConfig.h"
 #include "core/ModuleRegistry.h"
 #include "core/ProjectDescriptor.h"
 #include "core/Subsystem.h"
+#include "physics/PhysicsComponents.h"
+#include "physics/PhysicsPlugin.h"
+#include "physics/PhysicsSubsystem.h"
+#include "physics/PhysicsWorld.h"
 #include "scene/Components.h"
+
 
 #include <doctest/doctest.h>
 
 #include <flecs.h>
 
-using namespace Wayfinder;
-using namespace Wayfinder::Physics;
-
-namespace Wayfinder
+namespace Wayfinder::Tests
 {
+    using namespace Wayfinder::Physics;
+
     /// Number of simulation steps (≈ 1 second at 60 Hz).
     constexpr int SIMULATION_STEPS = 60;
     constexpr float FIXED_DT = 1.0f / 60.0f;
@@ -117,163 +117,162 @@ namespace Wayfinder
         }
     };
 
-} // anonymous namespace
+    // ── Integration Tests ──────────────────────────────────────────
 
-// ── Integration Tests ──────────────────────────────────────────
-
-TEST_SUITE("Physics Integration")
-{
-    TEST_CASE("Dynamic body falls under gravity through the full plugin pipeline")
+    TEST_SUITE("Physics Integration")
     {
-        PhysicsIntegrationFixture fixture;
+        TEST_CASE("Dynamic body falls under gravity through the full plugin pipeline")
+        {
+            PhysicsIntegrationFixture fixture;
 
-        const float startY = 20.0f;
-        auto entity = fixture.CreatePhysicsEntity("FallingBox", BodyType::Dynamic, {0.0f, startY, 0.0f});
+            const float startY = 20.0f;
+            auto entity = fixture.CreatePhysicsEntity("FallingBox", BodyType::Dynamic, {0.0f, startY, 0.0f});
 
-        fixture.Simulate();
+            fixture.Simulate();
 
-        // Observer should have assigned a valid runtime body.
-        const auto& rb = entity.get<RigidBodyComponent>();
-        REQUIRE(rb.RuntimeBodyId != INVALID_PHYSICS_BODY);
+            // Observer should have assigned a valid runtime body.
+            const auto& rb = entity.get<RigidBodyComponent>();
+            REQUIRE(rb.RuntimeBodyId != INVALID_PHYSICS_BODY);
 
-        // PhysicsSyncTransforms should have written back the position.
-        const auto& wt = entity.get<WorldTransformComponent>();
-        CHECK(wt.Position.y < startY);
+            // PhysicsSyncTransforms should have written back the position.
+            const auto& wt = entity.get<WorldTransformComponent>();
+            CHECK(wt.Position.y < startY);
 
-        // LocalToWorld translation column should agree with position.
-        CHECK(wt.LocalToWorld[3].x == doctest::Approx(wt.Position.x).epsilon(0.01));
-        CHECK(wt.LocalToWorld[3].y == doctest::Approx(wt.Position.y).epsilon(0.01));
-        CHECK(wt.LocalToWorld[3].z == doctest::Approx(wt.Position.z).epsilon(0.01));
-    }
+            // LocalToWorld translation column should agree with position.
+            CHECK(wt.LocalToWorld[3].x == doctest::Approx(wt.Position.x).epsilon(0.01));
+            CHECK(wt.LocalToWorld[3].y == doctest::Approx(wt.Position.y).epsilon(0.01));
+            CHECK(wt.LocalToWorld[3].z == doctest::Approx(wt.Position.z).epsilon(0.01));
+        }
 
-    TEST_CASE("Static body does not move after stepping")
-    {
-        PhysicsIntegrationFixture fixture;
+        TEST_CASE("Static body does not move after stepping")
+        {
+            PhysicsIntegrationFixture fixture;
 
-        auto entity = fixture.CreatePhysicsEntity("Floor", BodyType::Static, {0.0f, 0.0f, 0.0f});
+            auto entity = fixture.CreatePhysicsEntity("Floor", BodyType::Static, {0.0f, 0.0f, 0.0f});
 
-        fixture.Simulate();
+            fixture.Simulate();
 
-        const auto& rb = entity.get<RigidBodyComponent>();
-        REQUIRE(rb.RuntimeBodyId != INVALID_PHYSICS_BODY);
+            const auto& rb = entity.get<RigidBodyComponent>();
+            REQUIRE(rb.RuntimeBodyId != INVALID_PHYSICS_BODY);
 
-        // Static bodies are skipped by PhysicsSyncTransforms, so query Jolt directly.
-        Float3 pos = fixture.GetPhysicsWorld().GetBodyPosition(rb.RuntimeBodyId);
-        CHECK(pos.x == doctest::Approx(0.0f));
-        CHECK(pos.y == doctest::Approx(0.0f));
-        CHECK(pos.z == doctest::Approx(0.0f));
-    }
+            // Static bodies are skipped by PhysicsSyncTransforms, so query Jolt directly.
+            Float3 pos = fixture.GetPhysicsWorld().GetBodyPosition(rb.RuntimeBodyId);
+            CHECK(pos.x == doctest::Approx(0.0f));
+            CHECK(pos.y == doctest::Approx(0.0f));
+            CHECK(pos.z == doctest::Approx(0.0f));
+        }
 
-    TEST_CASE("Kinematic body responds to explicit position setting")
-    {
-        PhysicsIntegrationFixture fixture;
+        TEST_CASE("Kinematic body responds to explicit position setting")
+        {
+            PhysicsIntegrationFixture fixture;
 
-        auto entity = fixture.CreatePhysicsEntity("KinematicPlatform", BodyType::Kinematic, {0.0f, 0.0f, 0.0f});
+            auto entity = fixture.CreatePhysicsEntity("KinematicPlatform", BodyType::Kinematic, {0.0f, 0.0f, 0.0f});
 
-        // Flush deferred operations so observer fires.
-        fixture.EcsWorld.progress(0.0f);
+            // Flush deferred operations so observer fires.
+            fixture.EcsWorld.progress(0.0f);
 
-        const auto& rb = entity.get<RigidBodyComponent>();
-        REQUIRE(rb.RuntimeBodyId != INVALID_PHYSICS_BODY);
+            const auto& rb = entity.get<RigidBodyComponent>();
+            REQUIRE(rb.RuntimeBodyId != INVALID_PHYSICS_BODY);
 
-        // Teleport the kinematic body.
-        const Float3 target = {10.0f, 5.0f, -3.0f};
-        fixture.GetPhysicsWorld().SetBodyPosition(rb.RuntimeBodyId, target);
+            // Teleport the kinematic body.
+            const Float3 target = {10.0f, 5.0f, -3.0f};
+            fixture.GetPhysicsWorld().SetBodyPosition(rb.RuntimeBodyId, target);
 
-        // Step so PhysicsSyncTransforms writes back.
-        fixture.Simulate(1);
+            // Step so PhysicsSyncTransforms writes back.
+            fixture.Simulate(1);
 
-        const auto& wt = entity.get<WorldTransformComponent>();
-        CHECK(wt.Position.x == doctest::Approx(target.x).epsilon(0.01));
-        CHECK(wt.Position.y == doctest::Approx(target.y).epsilon(0.01));
-        CHECK(wt.Position.z == doctest::Approx(target.z).epsilon(0.01));
-    }
+            const auto& wt = entity.get<WorldTransformComponent>();
+            CHECK(wt.Position.x == doctest::Approx(target.x).epsilon(0.01));
+            CHECK(wt.Position.y == doctest::Approx(target.y).epsilon(0.01));
+            CHECK(wt.Position.z == doctest::Approx(target.z).epsilon(0.01));
+        }
 
-    TEST_CASE("Removing RigidBodyComponent cleans up Jolt body")
-    {
-        PhysicsIntegrationFixture fixture;
+        TEST_CASE("Removing RigidBodyComponent cleans up Jolt body")
+        {
+            PhysicsIntegrationFixture fixture;
 
-        auto entity = fixture.CreatePhysicsEntity("Removable", BodyType::Dynamic, {0.0f, 10.0f, 0.0f});
-        fixture.EcsWorld.progress(0.0f);
+            auto entity = fixture.CreatePhysicsEntity("Removable", BodyType::Dynamic, {0.0f, 10.0f, 0.0f});
+            fixture.EcsWorld.progress(0.0f);
 
-        const auto& rb = entity.get<RigidBodyComponent>();
-        REQUIRE(rb.RuntimeBodyId != INVALID_PHYSICS_BODY);
-        uint32_t bodyId = rb.RuntimeBodyId;
+            const auto& rb = entity.get<RigidBodyComponent>();
+            REQUIRE(rb.RuntimeBodyId != INVALID_PHYSICS_BODY);
+            uint32_t bodyId = rb.RuntimeBodyId;
 
-        // Remove the component — the destruction observer should fire.
-        entity.remove<RigidBodyComponent>();
-        fixture.EcsWorld.progress(0.0f);
+            // Remove the component — the destruction observer should fire.
+            entity.remove<RigidBodyComponent>();
+            fixture.EcsWorld.progress(0.0f);
 
-        // Entity should no longer have RigidBodyComponent.
-        CHECK_FALSE(entity.has<RigidBodyComponent>());
+            // Entity should no longer have RigidBodyComponent.
+            CHECK_FALSE(entity.has<RigidBodyComponent>());
 
-        // Jolt body was destroyed — querying its position now returns the
-        // zero default because the body ID is no longer valid in Jolt.
-        // (This verifies DestroyBody was called; the engine doesn't crash.)
-        Float3 pos = fixture.GetPhysicsWorld().GetBodyPosition(bodyId);
-        (void)pos; // Reaching here without crashing proves cleanup happened.
-    }
+            // Jolt body was destroyed — querying its position now returns the
+            // zero default because the body ID is no longer valid in Jolt.
+            // (This verifies DestroyBody was called; the engine doesn't crash.)
+            Float3 pos = fixture.GetPhysicsWorld().GetBodyPosition(bodyId);
+            (void)pos; // Reaching here without crashing proves cleanup happened.
+        }
 
-    TEST_CASE("Deleting an entity cleans up its Jolt body")
-    {
-        PhysicsIntegrationFixture fixture;
+        TEST_CASE("Deleting an entity cleans up its Jolt body")
+        {
+            PhysicsIntegrationFixture fixture;
 
-        auto entity = fixture.CreatePhysicsEntity("Ephemeral", BodyType::Dynamic, {0.0f, 10.0f, 0.0f});
-        fixture.EcsWorld.progress(0.0f);
+            auto entity = fixture.CreatePhysicsEntity("Ephemeral", BodyType::Dynamic, {0.0f, 10.0f, 0.0f});
+            fixture.EcsWorld.progress(0.0f);
 
-        const auto& rb = entity.get<RigidBodyComponent>();
-        REQUIRE(rb.RuntimeBodyId != INVALID_PHYSICS_BODY);
-        uint32_t bodyId = rb.RuntimeBodyId;
+            const auto& rb = entity.get<RigidBodyComponent>();
+            REQUIRE(rb.RuntimeBodyId != INVALID_PHYSICS_BODY);
+            uint32_t bodyId = rb.RuntimeBodyId;
 
-        // Delete the entire entity.
-        entity.destruct();
-        fixture.EcsWorld.progress(0.0f);
+            // Delete the entire entity.
+            entity.destruct();
+            fixture.EcsWorld.progress(0.0f);
 
-        // Same rationale: reaching here without crash proves cleanup.
-        Float3 pos = fixture.GetPhysicsWorld().GetBodyPosition(bodyId);
-        (void)pos;
-    }
+            // Same rationale: reaching here without crash proves cleanup.
+            Float3 pos = fixture.GetPhysicsWorld().GetBodyPosition(bodyId);
+            (void)pos;
+        }
 
-    TEST_CASE("Multiple entities with mixed body types simulate independently")
-    {
-        PhysicsIntegrationFixture fixture;
+        TEST_CASE("Multiple entities with mixed body types simulate independently")
+        {
+            PhysicsIntegrationFixture fixture;
 
-        const float dynamicStartY = 20.0f;
-        auto dynamic = fixture.CreatePhysicsEntity("DynBox", BodyType::Dynamic, {0.0f, dynamicStartY, 0.0f});
-        auto floor = fixture.CreatePhysicsEntity("Floor", BodyType::Static, {0.0f, -1.0f, 0.0f});
-        auto platform = fixture.CreatePhysicsEntity("Platform", BodyType::Kinematic, {5.0f, 0.0f, 0.0f});
+            const float dynamicStartY = 20.0f;
+            auto dynamic = fixture.CreatePhysicsEntity("DynBox", BodyType::Dynamic, {0.0f, dynamicStartY, 0.0f});
+            auto floor = fixture.CreatePhysicsEntity("Floor", BodyType::Static, {0.0f, -1.0f, 0.0f});
+            auto platform = fixture.CreatePhysicsEntity("Platform", BodyType::Kinematic, {5.0f, 0.0f, 0.0f});
 
-        fixture.Simulate();
+            fixture.Simulate();
 
-        // Dynamic body should have fallen.
-        const auto& dynWt = dynamic.get<WorldTransformComponent>();
-        CHECK(dynWt.Position.y < dynamicStartY);
+            // Dynamic body should have fallen.
+            const auto& dynWt = dynamic.get<WorldTransformComponent>();
+            CHECK(dynWt.Position.y < dynamicStartY);
 
-        // Static body should not have moved.
-        const auto& floorRb = floor.get<RigidBodyComponent>();
-        Float3 floorPos = fixture.GetPhysicsWorld().GetBodyPosition(floorRb.RuntimeBodyId);
-        CHECK(floorPos.y == doctest::Approx(-1.0f));
+            // Static body should not have moved.
+            const auto& floorRb = floor.get<RigidBodyComponent>();
+            Float3 floorPos = fixture.GetPhysicsWorld().GetBodyPosition(floorRb.RuntimeBodyId);
+            CHECK(floorPos.y == doctest::Approx(-1.0f));
 
-        // Kinematic body stays where it was placed (no gravity).
-        const auto& platWt = platform.get<WorldTransformComponent>();
-        CHECK(platWt.Position.x == doctest::Approx(5.0f).epsilon(0.01));
-        CHECK(platWt.Position.y == doctest::Approx(0.0f).epsilon(0.01));
-    }
+            // Kinematic body stays where it was placed (no gravity).
+            const auto& platWt = platform.get<WorldTransformComponent>();
+            CHECK(platWt.Position.x == doctest::Approx(5.0f).epsilon(0.01));
+            CHECK(platWt.Position.y == doctest::Approx(0.0f).epsilon(0.01));
+        }
 
-    TEST_CASE("Dynamic body with sphere collider falls through full pipeline")
-    {
-        PhysicsIntegrationFixture fixture;
+        TEST_CASE("Dynamic body with sphere collider falls through full pipeline")
+        {
+            PhysicsIntegrationFixture fixture;
 
-        const float startY = 15.0f;
-        auto entity = fixture.CreatePhysicsEntity(
-            "FallingSphere", BodyType::Dynamic, {0.0f, startY, 0.0f}, ColliderShape::Sphere);
+            const float startY = 15.0f;
+            auto entity = fixture.CreatePhysicsEntity(
+                "FallingSphere", BodyType::Dynamic, {0.0f, startY, 0.0f}, ColliderShape::Sphere);
 
-        fixture.Simulate();
+            fixture.Simulate();
 
-        const auto& rb = entity.get<RigidBodyComponent>();
-        REQUIRE(rb.RuntimeBodyId != INVALID_PHYSICS_BODY);
+            const auto& rb = entity.get<RigidBodyComponent>();
+            REQUIRE(rb.RuntimeBodyId != INVALID_PHYSICS_BODY);
 
-        const auto& wt = entity.get<WorldTransformComponent>();
-        CHECK(wt.Position.y < startY);
+            const auto& wt = entity.get<WorldTransformComponent>();
+            CHECK(wt.Position.y < startY);
+        }
     }
 }

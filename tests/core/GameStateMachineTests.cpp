@@ -12,8 +12,6 @@
 #include <string>
 #include <vector>
 
-using namespace Wayfinder;
-
 namespace Wayfinder::Tests
 {
     /// Minimal helpers for headless testing.
@@ -35,7 +33,6 @@ namespace Wayfinder::Tests
         world.set<ActiveGameState>({});
         world.set<ActiveGameplayTags>({});
     }
-}
 
 TEST_SUITE("GameStateMachine")
 {
@@ -316,3 +313,4 @@ TEST_SUITE("GameStateMachine")
         CHECK(condition(world));
     }
 }
+} // namespace Wayfinder::Tests

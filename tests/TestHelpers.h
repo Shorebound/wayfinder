@@ -4,7 +4,7 @@
 
 #include <filesystem>
 
-namespace Wayfinder::TestHelpers
+namespace Wayfinder::Tests::Helpers
 {
     /// Returns the absolute path to the test fixtures directory.
     /// Works from any test file because the path is computed relative
@@ -22,4 +22,4 @@ namespace Wayfinder::TestHelpers
         return registry;
     }
 
-} // namespace Wayfinder::TestHelpers
+} // namespace Wayfinder::Tests::Helpers

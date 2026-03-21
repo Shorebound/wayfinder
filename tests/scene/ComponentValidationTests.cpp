@@ -1,231 +1,229 @@
-#include "scene/RuntimeComponentRegistry.h"
 #include "TestHelpers.h"
+#include "scene/RuntimeComponentRegistry.h"
+
 
 #include <doctest/doctest.h>
 
-#include <string>
 #include <nlohmann/json.hpp>
+#include <string>
 
-using namespace Wayfinder;
-using TestHelpers::MakeTestRegistry;
-
-TEST_SUITE("Component Validation")
+namespace Wayfinder::Tests
 {
-    // ── Transform ───────────────────────────────────────────
+    using Helpers::MakeTestRegistry;
 
-    TEST_CASE("Transform validates correctly with valid data")
+    TEST_SUITE("Component Validation")
     {
-        auto registry = MakeTestRegistry();
-        nlohmann::json input = {
-            {"position", {1.0, 2.0, 3.0}},
-            {"rotation", {0.0, 0.0, 0.0}},
-            {"scale", {1.0, 1.0, 1.0}}
-        };
+        // ── Transform ───────────────────────────────────────────
 
-        std::string error;
-        CHECK(registry.ValidateComponent("transform", input, error));
-        CHECK(error.empty());
-    }
+        TEST_CASE("Transform validates correctly with valid data")
+        {
+            auto registry = MakeTestRegistry();
+            nlohmann::json input = {
+                {"position", {1.0, 2.0, 3.0}},
+                {"rotation", {0.0, 0.0, 0.0}},
+                {"scale", {1.0, 1.0, 1.0}}};
 
-    TEST_CASE("Transform rejects non-array position")
-    {
-        auto registry = MakeTestRegistry();
-        nlohmann::json input = {{"position", "not an array"}};
+            std::string error;
+            CHECK(registry.ValidateComponent("transform", input, error));
+            CHECK(error.empty());
+        }
 
-        std::string error;
-        CHECK_FALSE(registry.ValidateComponent("transform", input, error));
-        CHECK_FALSE(error.empty());
-    }
+        TEST_CASE("Transform rejects non-array position")
+        {
+            auto registry = MakeTestRegistry();
+            nlohmann::json input = {{"position", "not an array"}};
 
-    TEST_CASE("Transform rejects position with wrong element count")
-    {
-        auto registry = MakeTestRegistry();
-        nlohmann::json input = {{"position", {1.0, 2.0}}}; // only 2 elements
+            std::string error;
+            CHECK_FALSE(registry.ValidateComponent("transform", input, error));
+            CHECK_FALSE(error.empty());
+        }
 
-        std::string error;
-        CHECK_FALSE(registry.ValidateComponent("transform", input, error));
-    }
+        TEST_CASE("Transform rejects position with wrong element count")
+        {
+            auto registry = MakeTestRegistry();
+            nlohmann::json input = {{"position", {1.0, 2.0}}}; // only 2 elements
 
-    // ── Mesh ────────────────────────────────────────────────
+            std::string error;
+            CHECK_FALSE(registry.ValidateComponent("transform", input, error));
+        }
 
-    TEST_CASE("Mesh validates correctly with valid data")
-    {
-        auto registry = MakeTestRegistry();
-        nlohmann::json input = {
-            {"primitive", "cube"},
-            {"dimensions", {1.0, 1.0, 1.0}}
-        };
+        // ── Mesh ────────────────────────────────────────────────
 
-        std::string error;
-        CHECK(registry.ValidateComponent("mesh", input, error));
-    }
+        TEST_CASE("Mesh validates correctly with valid data")
+        {
+            auto registry = MakeTestRegistry();
+            nlohmann::json input = {
+                {"primitive", "cube"},
+                {"dimensions", {1.0, 1.0, 1.0}}};
 
-    TEST_CASE("Mesh rejects unknown primitive type")
-    {
-        auto registry = MakeTestRegistry();
-        nlohmann::json input = {{"primitive", "sphere"}}; // not a valid enum value
+            std::string error;
+            CHECK(registry.ValidateComponent("mesh", input, error));
+        }
 
-        std::string error;
-        CHECK_FALSE(registry.ValidateComponent("mesh", input, error));
-    }
+        TEST_CASE("Mesh rejects unknown primitive type")
+        {
+            auto registry = MakeTestRegistry();
+            nlohmann::json input = {{"primitive", "sphere"}}; // not a valid enum value
 
-    // ── Camera ──────────────────────────────────────────────
+            std::string error;
+            CHECK_FALSE(registry.ValidateComponent("mesh", input, error));
+        }
 
-    TEST_CASE("Camera validates correctly with valid data")
-    {
-        auto registry = MakeTestRegistry();
-        nlohmann::json input = {
-            {"primary", true},
-            {"projection", "perspective"},
-            {"fov", 45.0}
-        };
+        // ── Camera ──────────────────────────────────────────────
 
-        std::string error;
-        CHECK(registry.ValidateComponent("camera", input, error));
-    }
+        TEST_CASE("Camera validates correctly with valid data")
+        {
+            auto registry = MakeTestRegistry();
+            nlohmann::json input = {
+                {"primary", true},
+                {"projection", "perspective"},
+                {"fov", 45.0}};
 
-    TEST_CASE("Camera rejects non-boolean primary field")
-    {
-        auto registry = MakeTestRegistry();
-        nlohmann::json input = {{"primary", "yes"}}; // should be bool
+            std::string error;
+            CHECK(registry.ValidateComponent("camera", input, error));
+        }
 
-        std::string error;
-        CHECK_FALSE(registry.ValidateComponent("camera", input, error));
-    }
+        TEST_CASE("Camera rejects non-boolean primary field")
+        {
+            auto registry = MakeTestRegistry();
+            nlohmann::json input = {{"primary", "yes"}}; // should be bool
 
-    TEST_CASE("Camera rejects invalid projection mode")
-    {
-        auto registry = MakeTestRegistry();
-        nlohmann::json input = {{"projection", "isometric"}}; // not a valid value
+            std::string error;
+            CHECK_FALSE(registry.ValidateComponent("camera", input, error));
+        }
 
-        std::string error;
-        CHECK_FALSE(registry.ValidateComponent("camera", input, error));
-    }
+        TEST_CASE("Camera rejects invalid projection mode")
+        {
+            auto registry = MakeTestRegistry();
+            nlohmann::json input = {{"projection", "isometric"}}; // not a valid value
 
-    // ── Light ───────────────────────────────────────────────
+            std::string error;
+            CHECK_FALSE(registry.ValidateComponent("camera", input, error));
+        }
 
-    TEST_CASE("Light validates correctly with valid data")
-    {
-        auto registry = MakeTestRegistry();
-        nlohmann::json input = {
-            {"type", "point"},
-            {"intensity", 1.0},
-            {"range", 10.0}
-        };
+        // ── Light ───────────────────────────────────────────────
 
-        std::string error;
-        CHECK(registry.ValidateComponent("light", input, error));
-    }
+        TEST_CASE("Light validates correctly with valid data")
+        {
+            auto registry = MakeTestRegistry();
+            nlohmann::json input = {
+                {"type", "point"},
+                {"intensity", 1.0},
+                {"range", 10.0}};
 
-    TEST_CASE("Light rejects invalid light type")
-    {
-        auto registry = MakeTestRegistry();
-        nlohmann::json input = {{"type", "area"}}; // not valid
+            std::string error;
+            CHECK(registry.ValidateComponent("light", input, error));
+        }
 
-        std::string error;
-        CHECK_FALSE(registry.ValidateComponent("light", input, error));
-    }
+        TEST_CASE("Light rejects invalid light type")
+        {
+            auto registry = MakeTestRegistry();
+            nlohmann::json input = {{"type", "area"}}; // not valid
 
-    TEST_CASE("Light rejects non-numeric intensity")
-    {
-        auto registry = MakeTestRegistry();
-        nlohmann::json input = {{"intensity", "bright"}}; // should be numeric
+            std::string error;
+            CHECK_FALSE(registry.ValidateComponent("light", input, error));
+        }
 
-        std::string error;
-        CHECK_FALSE(registry.ValidateComponent("light", input, error));
-    }
+        TEST_CASE("Light rejects non-numeric intensity")
+        {
+            auto registry = MakeTestRegistry();
+            nlohmann::json input = {{"intensity", "bright"}}; // should be numeric
 
-    // ── Material ────────────────────────────────────────────
+            std::string error;
+            CHECK_FALSE(registry.ValidateComponent("light", input, error));
+        }
 
-    TEST_CASE("Material validates correctly with valid data")
-    {
-        auto registry = MakeTestRegistry();
-        nlohmann::json input = {{"base_colour", nlohmann::json::array({255, 255, 255, 255})}};
+        // ── Material ────────────────────────────────────────────
 
-        std::string error;
-        CHECK(registry.ValidateComponent("material", input, error));
-    }
+        TEST_CASE("Material validates correctly with valid data")
+        {
+            auto registry = MakeTestRegistry();
+            nlohmann::json input = {{"base_colour", nlohmann::json::array({255, 255, 255, 255})}};
 
-    TEST_CASE("Render override rejects non-boolean wireframe")
-    {
-        auto registry = MakeTestRegistry();
-        nlohmann::json input = {{"wireframe", "yes"}};
+            std::string error;
+            CHECK(registry.ValidateComponent("material", input, error));
+        }
 
-        std::string error;
-        CHECK_FALSE(registry.ValidateComponent("render_override", input, error));
-    }
+        TEST_CASE("Render override rejects non-boolean wireframe")
+        {
+            auto registry = MakeTestRegistry();
+            nlohmann::json input = {{"wireframe", "yes"}};
 
-    // ── Renderable ──────────────────────────────────────────
+            std::string error;
+            CHECK_FALSE(registry.ValidateComponent("render_override", input, error));
+        }
 
-    TEST_CASE("Renderable validates correctly with valid data")
-    {
-        auto registry = MakeTestRegistry();
-        nlohmann::json input = {
-            {"visible", true},
-            {"sort_priority", 128}
-        };
+        // ── Renderable ──────────────────────────────────────────
 
-        std::string error;
-        CHECK(registry.ValidateComponent("renderable", input, error));
-    }
+        TEST_CASE("Renderable validates correctly with valid data")
+        {
+            auto registry = MakeTestRegistry();
+            nlohmann::json input = {
+                {"visible", true},
+                {"sort_priority", 128}};
 
-    TEST_CASE("Renderable rejects non-boolean visible")
-    {
-        auto registry = MakeTestRegistry();
-        nlohmann::json input = {{"visible", "true"}}; // should be bool
+            std::string error;
+            CHECK(registry.ValidateComponent("renderable", input, error));
+        }
 
-        std::string error;
-        CHECK_FALSE(registry.ValidateComponent("renderable", input, error));
-    }
+        TEST_CASE("Renderable rejects non-boolean visible")
+        {
+            auto registry = MakeTestRegistry();
+            nlohmann::json input = {{"visible", "true"}}; // should be bool
 
-    TEST_CASE("Renderable rejects non-integer sort_priority")
-    {
-        auto registry = MakeTestRegistry();
-        nlohmann::json input = {{"sort_priority", 128.5}}; // should be integer
+            std::string error;
+            CHECK_FALSE(registry.ValidateComponent("renderable", input, error));
+        }
 
-        std::string error;
-        CHECK_FALSE(registry.ValidateComponent("renderable", input, error));
-    }
+        TEST_CASE("Renderable rejects non-integer sort_priority")
+        {
+            auto registry = MakeTestRegistry();
+            nlohmann::json input = {{"sort_priority", 128.5}}; // should be integer
 
-    // ── Unknown Component ───────────────────────────────────
+            std::string error;
+            CHECK_FALSE(registry.ValidateComponent("renderable", input, error));
+        }
 
-    TEST_CASE("Unknown component key is rejected")
-    {
-        auto registry = MakeTestRegistry();
-        nlohmann::json input = nlohmann::json::object();
+        // ── Unknown Component ───────────────────────────────────
 
-        std::string error;
-        CHECK_FALSE(registry.ValidateComponent("unknown_component", input, error));
-        CHECK_FALSE(error.empty());
-    }
+        TEST_CASE("Unknown component key is rejected")
+        {
+            auto registry = MakeTestRegistry();
+            nlohmann::json input = nlohmann::json::object();
 
-    // ── RuntimeComponentRegistry ────────────────────────────
+            std::string error;
+            CHECK_FALSE(registry.ValidateComponent("unknown_component", input, error));
+            CHECK_FALSE(error.empty());
+        }
 
-    TEST_CASE("IsRegistered returns true for core components")
-    {
-        auto registry = MakeTestRegistry();
+        // ── RuntimeComponentRegistry ────────────────────────────
 
-        CHECK(registry.IsRegistered("transform"));
-        CHECK(registry.IsRegistered("mesh"));
-        CHECK(registry.IsRegistered("camera"));
-        CHECK(registry.IsRegistered("light"));
-        CHECK(registry.IsRegistered("material"));
-        CHECK(registry.IsRegistered("renderable"));
-    }
+        TEST_CASE("IsRegistered returns true for core components")
+        {
+            auto registry = MakeTestRegistry();
 
-    TEST_CASE("IsRegistered returns false for unknown components")
-    {
-        auto registry = MakeTestRegistry();
-        CHECK_FALSE(registry.IsRegistered("nonexistent"));
-    }
+            CHECK(registry.IsRegistered("transform"));
+            CHECK(registry.IsRegistered("mesh"));
+            CHECK(registry.IsRegistered("camera"));
+            CHECK(registry.IsRegistered("light"));
+            CHECK(registry.IsRegistered("material"));
+            CHECK(registry.IsRegistered("renderable"));
+        }
 
-    TEST_CASE("Empty object validates for optional-only components")
-    {
-        auto registry = MakeTestRegistry();
-        nlohmann::json emptyInput = nlohmann::json::object();
+        TEST_CASE("IsRegistered returns false for unknown components")
+        {
+            auto registry = MakeTestRegistry();
+            CHECK_FALSE(registry.IsRegistered("nonexistent"));
+        }
 
-        std::string error;
-        // Transform has all optional fields, so empty should be valid
-        CHECK(registry.ValidateComponent("transform", emptyInput, error));
+        TEST_CASE("Empty object validates for optional-only components")
+        {
+            auto registry = MakeTestRegistry();
+            nlohmann::json emptyInput = nlohmann::json::object();
+
+            std::string error;
+            // Transform has all optional fields, so empty should be valid
+            CHECK(registry.ValidateComponent("transform", emptyInput, error));
+        }
     }
 }

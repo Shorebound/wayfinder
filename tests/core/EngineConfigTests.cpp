@@ -6,13 +6,11 @@
 
 #include <filesystem>
 
-using namespace Wayfinder;
-using TestHelpers::FixturesDir;
-
 // ── EngineConfig Tests ──────────────────────────────────
 
 namespace Wayfinder::Tests
 {
+    using Helpers::FixturesDir;
 
     TEST_SUITE("EngineConfig")
     {

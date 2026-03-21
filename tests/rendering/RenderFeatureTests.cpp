@@ -1,9 +1,9 @@
 #include "rendering/backend/RenderDevice.h"
 #include "rendering/graph/RenderFeature.h"
-#include "rendering/graph/RenderGraph.h"
-#include "rendering/resources/RenderResources.h"
-#include "rendering/pipeline/Renderer.h"
 #include "rendering/graph/RenderFrame.h"
+#include "rendering/graph/RenderGraph.h"
+#include "rendering/pipeline/Renderer.h"
+#include "rendering/resources/RenderResources.h"
 #include "rendering/resources/TransientResourcePool.h"
 
 #include <doctest/doctest.h>
@@ -12,7 +12,7 @@
 #include <string>
 #include <vector>
 
-namespace Wayfinder
+namespace Wayfinder::Tests
 {
     // A minimal test feature that records when AddPasses is called.
     class TestFeature : public Wayfinder::RenderFeature
@@ -81,219 +81,219 @@ namespace Wayfinder
     private:
         bool m_executed = false;
     };
-}
 
-// ── Feature Lifecycle ────────────────────────────────────
+    // ── Feature Lifecycle ────────────────────────────────────
 
-TEST_CASE("RenderFeature default state")
-{
-    std::vector<std::string> log;
-    TestFeature feature("Test", log);
-
-    CHECK(feature.IsEnabled());
-    CHECK(feature.GetName() == "Test");
-
-    feature.SetEnabled(false);
-    CHECK_FALSE(feature.IsEnabled());
-}
-
-// ── Feature Injection into Graph ─────────────────────────
-
-TEST_CASE("Feature injects passes into render graph")
-{
-    std::vector<std::string> log;
-    TestFeature feature("MyEffect", log);
-    Wayfinder::RenderFrame frame;
-    Wayfinder::RenderGraph graph;
-
-    feature.AddPasses(graph, frame);
-
-    CHECK(log.size() == 1);
-    CHECK(log[0] == "MyEffect::AddPasses");
-}
-
-TEST_CASE("Disabled feature can be skipped by caller")
-{
-    std::vector<std::string> log;
-    TestFeature feature("Skipped", log);
-    feature.SetEnabled(false);
-
-    Wayfinder::RenderFrame frame;
-    Wayfinder::RenderGraph graph;
-
-    // The renderer checks IsEnabled() before calling AddPasses.
-    // We simulate that pattern here.
-    if (feature.IsEnabled())
+    TEST_CASE("RenderFeature default state")
     {
+        std::vector<std::string> log;
+        TestFeature feature("Test", log);
+
+        CHECK(feature.IsEnabled());
+        CHECK(feature.GetName() == "Test");
+
+        feature.SetEnabled(false);
+        CHECK_FALSE(feature.IsEnabled());
+    }
+
+    // ── Feature Injection into Graph ─────────────────────────
+
+    TEST_CASE("Feature injects passes into render graph")
+    {
+        std::vector<std::string> log;
+        TestFeature feature("MyEffect", log);
+        Wayfinder::RenderFrame frame;
+        Wayfinder::RenderGraph graph;
+
         feature.AddPasses(graph, frame);
+
+        CHECK(log.size() == 1);
+        CHECK(log[0] == "MyEffect::AddPasses");
     }
 
-    CHECK(log.empty());
-}
-
-// ── Multiple Features ────────────────────────────────────
-
-TEST_CASE("Multiple features inject passes in registration order")
-{
-    std::vector<std::string> log;
-
-    auto featureA = std::make_unique<TestFeature>("FeatureA", log);
-    auto featureB = std::make_unique<TestFeature>("FeatureB", log);
-
-    std::vector<std::unique_ptr<Wayfinder::RenderFeature>> features;
-    features.push_back(std::move(featureA));
-    features.push_back(std::move(featureB));
-
-    Wayfinder::RenderFrame frame;
-    Wayfinder::RenderGraph graph;
-
-    for (auto& feature : features)
+    TEST_CASE("Disabled feature can be skipped by caller")
     {
-        if (feature->IsEnabled())
+        std::vector<std::string> log;
+        TestFeature feature("Skipped", log);
+        feature.SetEnabled(false);
+
+        Wayfinder::RenderFrame frame;
+        Wayfinder::RenderGraph graph;
+
+        // The renderer checks IsEnabled() before calling AddPasses.
+        // We simulate that pattern here.
+        if (feature.IsEnabled())
         {
-            feature->AddPasses(graph, frame);
+            feature.AddPasses(graph, frame);
         }
+
+        CHECK(log.empty());
     }
 
-    REQUIRE(log.size() == 2);
-    CHECK(log[0] == "FeatureA::AddPasses");
-    CHECK(log[1] == "FeatureB::AddPasses");
-}
+    // ── Multiple Features ────────────────────────────────────
 
-// ── Feature With Graph Execution ─────────────────────────
-
-TEST_CASE("Feature pass executes in compiled graph")
-{
-    auto device = Wayfinder::RenderDevice::Create(Wayfinder::RenderBackend::Null);
-    Wayfinder::TransientResourcePool pool;
-    pool.Initialise(*device);
-
-    OverlayFeature overlay;
-    Wayfinder::RenderFrame frame;
-    Wayfinder::RenderGraph graph;
-
-    // Engine adds a scene pass first
-    Wayfinder::RenderGraphTextureDesc colourDesc;
-    colourDesc.Width = 800;
-    colourDesc.Height = 600;
-    colourDesc.Format = Wayfinder::TextureFormat::RGBA8_UNORM;
-    colourDesc.DebugName = Wayfinder::WellKnown::SceneColour;
-
-    graph.AddPass("MainScene", [&](Wayfinder::RenderGraphBuilder& builder) -> Wayfinder::RenderGraphExecuteFn {
-        auto colour = builder.CreateTransient(colourDesc);
-        builder.WriteColour(colour);
-        return [](Wayfinder::RenderDevice&, const Wayfinder::RenderGraphResources&) {};
-    });
-
-    // Feature injects its pass
-    overlay.AddPasses(graph, frame);
-
-    REQUIRE(graph.Compile());
-    graph.Execute(*device, pool);
-
-    CHECK(overlay.WasExecuted());
-
-    pool.Shutdown();
-}
-
-TEST_CASE("Removing a feature stops its pass injection")
-{
-    std::vector<std::string> log;
-
-    std::vector<std::unique_ptr<Wayfinder::RenderFeature>> features;
-    features.push_back(std::make_unique<TestFeature>("Removable", log));
-    features.push_back(std::make_unique<TestFeature>("Persistent", log));
-
-    // Remove the first feature (simulate Renderer::RemoveFeature)
-    features.erase(features.begin());
-
-    Wayfinder::RenderFrame frame;
-    Wayfinder::RenderGraph graph;
-
-    for (auto& feature : features)
+    TEST_CASE("Multiple features inject passes in registration order")
     {
-        if (feature->IsEnabled())
+        std::vector<std::string> log;
+
+        auto featureA = std::make_unique<TestFeature>("FeatureA", log);
+        auto featureB = std::make_unique<TestFeature>("FeatureB", log);
+
+        std::vector<std::unique_ptr<Wayfinder::RenderFeature>> features;
+        features.push_back(std::move(featureA));
+        features.push_back(std::move(featureB));
+
+        Wayfinder::RenderFrame frame;
+        Wayfinder::RenderGraph graph;
+
+        for (auto& feature : features)
         {
-            feature->AddPasses(graph, frame);
+            if (feature->IsEnabled())
+            {
+                feature->AddPasses(graph, frame);
+            }
         }
+
+        REQUIRE(log.size() == 2);
+        CHECK(log[0] == "FeatureA::AddPasses");
+        CHECK(log[1] == "FeatureB::AddPasses");
     }
 
-    REQUIRE(log.size() == 1);
-    CHECK(log[0] == "Persistent::AddPasses");
-}
+    // ── Feature With Graph Execution ─────────────────────────
 
-// ── Pipeline and Buffer Headless Tests ───────────────────
+    TEST_CASE("Feature pass executes in compiled graph")
+    {
+        auto device = Wayfinder::RenderDevice::Create(Wayfinder::RenderBackend::Null);
+        Wayfinder::TransientResourcePool pool;
+        pool.Initialise(*device);
 
-TEST_CASE("NullDevice pipeline creation returns handle")
-{
-    auto device = Wayfinder::RenderDevice::Create(Wayfinder::RenderBackend::Null);
+        OverlayFeature overlay;
+        Wayfinder::RenderFrame frame;
+        Wayfinder::RenderGraph graph;
 
-    Wayfinder::PipelineCreateDesc desc;
-    auto pipeline = device->CreatePipeline(desc);
-    CHECK_FALSE(pipeline.IsValid());
-    device->DestroyPipeline(pipeline);
-}
+        // Engine adds a scene pass first
+        Wayfinder::RenderGraphTextureDesc colourDesc;
+        colourDesc.Width = 800;
+        colourDesc.Height = 600;
+        colourDesc.Format = Wayfinder::TextureFormat::RGBA8_UNORM;
+        colourDesc.DebugName = Wayfinder::WellKnown::SceneColour;
 
-TEST_CASE("NullDevice buffer upload does not crash")
-{
-    auto device = Wayfinder::RenderDevice::Create(Wayfinder::RenderBackend::Null);
+        graph.AddPass("MainScene", [&](Wayfinder::RenderGraphBuilder& builder) -> Wayfinder::RenderGraphExecuteFn {
+            auto colour = builder.CreateTransient(colourDesc);
+            builder.WriteColour(colour);
+            return [](Wayfinder::RenderDevice&, const Wayfinder::RenderGraphResources&) {};
+        });
 
-    Wayfinder::BufferCreateDesc desc;
-    desc.usage = Wayfinder::BufferUsage::Vertex;
-    desc.sizeInBytes = 1024;
+        // Feature injects its pass
+        overlay.AddPasses(graph, frame);
 
-    auto buffer = device->CreateBuffer(desc);
-    CHECK_FALSE(buffer.IsValid());
+        REQUIRE(graph.Compile());
+        graph.Execute(*device, pool);
 
-    // Upload some data — should be a no-op on NullDevice
-    uint8_t data[64] = {};
-    device->UploadToBuffer(buffer, data, sizeof(data));
+        CHECK(overlay.WasExecuted());
 
-    device->DestroyBuffer(buffer);
-}
+        pool.Shutdown();
+    }
 
-TEST_CASE("NullDevice shader creation returns handle")
-{
-    auto device = Wayfinder::RenderDevice::Create(Wayfinder::RenderBackend::Null);
+    TEST_CASE("Removing a feature stops its pass injection")
+    {
+        std::vector<std::string> log;
 
-    Wayfinder::ShaderCreateDesc desc;
-    desc.stage = Wayfinder::ShaderStage::Vertex;
-    desc.entryPoint = "main";
+        std::vector<std::unique_ptr<Wayfinder::RenderFeature>> features;
+        features.push_back(std::make_unique<TestFeature>("Removable", log));
+        features.push_back(std::make_unique<TestFeature>("Persistent", log));
 
-    auto shader = device->CreateShader(desc);
-    CHECK_FALSE(shader.IsValid());
-    device->DestroyShader(shader);
-}
+        // Remove the first feature (simulate Renderer::RemoveFeature)
+        features.erase(features.begin());
 
-// ── Material Resolution ──────────────────────────────────
+        Wayfinder::RenderFrame frame;
+        Wayfinder::RenderGraph graph;
 
-TEST_CASE("RenderResourceCache resolves built-in materials")
-{
-    Wayfinder::RenderFrame frame;
-    const size_t viewIndex = frame.AddView(Wayfinder::RenderView{});
-    Wayfinder::RenderPass& scenePass =
-        frame.AddScenePass(Wayfinder::RenderPassIds::MainScene, viewIndex, Wayfinder::RenderLayers::Main);
+        for (auto& feature : features)
+        {
+            if (feature->IsEnabled())
+            {
+                feature->AddPasses(graph, frame);
+            }
+        }
 
-    Wayfinder::RenderMeshSubmission submission;
-    submission.Mesh.Origin = Wayfinder::RenderResourceOrigin::BuiltIn;
-    submission.Mesh.StableKey = 42;
-    submission.Geometry.Type = Wayfinder::RenderGeometryType::Box;
-    submission.Material.Ref.Origin = Wayfinder::RenderResourceOrigin::BuiltIn;
-    submission.Material.Ref.StableKey = 42;
-    submission.Material.ShaderName = "unlit";
-    submission.Material.Parameters.SetColour("base_colour", Wayfinder::LinearColour::White());
-    scenePass.Meshes.push_back(submission);
+        REQUIRE(log.size() == 1);
+        CHECK(log[0] == "Persistent::AddPasses");
+    }
 
-    Wayfinder::RenderResourceCache resources;
-    resources.PrepareFrame(frame);
+    // ── Pipeline and Buffer Headless Tests ───────────────────
 
-    const auto& resolved = resources.ResolveMesh(scenePass.Meshes[0]);
-    CHECK(resolved.Geometry.Type == Wayfinder::RenderGeometryType::Box);
-    CHECK(resolved.Ref.Origin == Wayfinder::RenderResourceOrigin::BuiltIn);
-    CHECK(resolved.Ref.StableKey == 42);
+    TEST_CASE("NullDevice pipeline creation returns handle")
+    {
+        auto device = Wayfinder::RenderDevice::Create(Wayfinder::RenderBackend::Null);
 
-    // Verify that the submission's material binding was set up correctly
-    CHECK(scenePass.Meshes[0].Material.Ref.Origin == Wayfinder::RenderResourceOrigin::BuiltIn);
-    CHECK(scenePass.Meshes[0].Material.ShaderName == "unlit");
-    CHECK(scenePass.Meshes[0].Material.Parameters.Has("base_colour"));
+        Wayfinder::PipelineCreateDesc desc;
+        auto pipeline = device->CreatePipeline(desc);
+        CHECK_FALSE(pipeline.IsValid());
+        device->DestroyPipeline(pipeline);
+    }
+
+    TEST_CASE("NullDevice buffer upload does not crash")
+    {
+        auto device = Wayfinder::RenderDevice::Create(Wayfinder::RenderBackend::Null);
+
+        Wayfinder::BufferCreateDesc desc;
+        desc.usage = Wayfinder::BufferUsage::Vertex;
+        desc.sizeInBytes = 1024;
+
+        auto buffer = device->CreateBuffer(desc);
+        CHECK_FALSE(buffer.IsValid());
+
+        // Upload some data — should be a no-op on NullDevice
+        uint8_t data[64] = {};
+        device->UploadToBuffer(buffer, data, sizeof(data));
+
+        device->DestroyBuffer(buffer);
+    }
+
+    TEST_CASE("NullDevice shader creation returns handle")
+    {
+        auto device = Wayfinder::RenderDevice::Create(Wayfinder::RenderBackend::Null);
+
+        Wayfinder::ShaderCreateDesc desc;
+        desc.stage = Wayfinder::ShaderStage::Vertex;
+        desc.entryPoint = "main";
+
+        auto shader = device->CreateShader(desc);
+        CHECK_FALSE(shader.IsValid());
+        device->DestroyShader(shader);
+    }
+
+    // ── Material Resolution ──────────────────────────────────
+
+    TEST_CASE("RenderResourceCache resolves built-in materials")
+    {
+        Wayfinder::RenderFrame frame;
+        const size_t viewIndex = frame.AddView(Wayfinder::RenderView{});
+        Wayfinder::RenderPass& scenePass =
+            frame.AddScenePass(Wayfinder::RenderPassIds::MainScene, viewIndex, Wayfinder::RenderLayers::Main);
+
+        Wayfinder::RenderMeshSubmission submission;
+        submission.Mesh.Origin = Wayfinder::RenderResourceOrigin::BuiltIn;
+        submission.Mesh.StableKey = 42;
+        submission.Geometry.Type = Wayfinder::RenderGeometryType::Box;
+        submission.Material.Ref.Origin = Wayfinder::RenderResourceOrigin::BuiltIn;
+        submission.Material.Ref.StableKey = 42;
+        submission.Material.ShaderName = "unlit";
+        submission.Material.Parameters.SetColour("base_colour", Wayfinder::LinearColour::White());
+        scenePass.Meshes.push_back(submission);
+
+        Wayfinder::RenderResourceCache resources;
+        resources.PrepareFrame(frame);
+
+        const auto& resolved = resources.ResolveMesh(scenePass.Meshes[0]);
+        CHECK(resolved.Geometry.Type == Wayfinder::RenderGeometryType::Box);
+        CHECK(resolved.Ref.Origin == Wayfinder::RenderResourceOrigin::BuiltIn);
+        CHECK(resolved.Ref.StableKey == 42);
+
+        // Verify that the submission's material binding was set up correctly
+        CHECK(scenePass.Meshes[0].Material.Ref.Origin == Wayfinder::RenderResourceOrigin::BuiltIn);
+        CHECK(scenePass.Meshes[0].Material.ShaderName == "unlit");
+        CHECK(scenePass.Meshes[0].Material.Parameters.Has("base_colour"));
+    }
 }

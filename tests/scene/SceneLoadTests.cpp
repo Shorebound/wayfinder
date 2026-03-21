@@ -1,9 +1,10 @@
+#include "TestHelpers.h"
 #include "scene/Components.h"
 #include "scene/RuntimeComponentRegistry.h"
 #include "scene/Scene.h"
 #include "scene/SceneDocument.h"
 #include "scene/entity/Entity.h"
-#include "TestHelpers.h"
+
 
 #include <doctest/doctest.h>
 
@@ -12,171 +13,174 @@
 
 #include <flecs.h>
 
-using namespace Wayfinder;
-using TestHelpers::FixturesDir;
-using TestHelpers::MakeTestRegistry;
 
-TEST_SUITE("Scene Loading")
+namespace Wayfinder::Tests
 {
-    TEST_CASE("LoadFromFile loads a valid scene")
+    using Helpers::FixturesDir;
+    using Helpers::MakeTestRegistry;
+
+    TEST_SUITE("Scene Loading")
     {
-        flecs::world world;
-        auto registry = MakeTestRegistry();
-        registry.RegisterComponents(world);
-        Scene::RegisterCoreECS(world);
-        Scene scene(world, registry, "Default");
+        TEST_CASE("LoadFromFile loads a valid scene")
+        {
+            flecs::world world;
+            auto registry = MakeTestRegistry();
+            registry.RegisterComponents(world);
+            Scene::RegisterCoreECS(world);
+            Scene scene(world, registry, "Default");
 
-        auto path = FixturesDir() / "test_scene.json";
-        bool result = scene.LoadFromFile(path.string());
+            auto path = FixturesDir() / "test_scene.json";
+            bool result = scene.LoadFromFile(path.string());
 
-        CHECK(result);
-        CHECK(scene.GetName() == "Test Scene");
-    }
+            CHECK(result);
+            CHECK(scene.GetName() == "Test Scene");
+        }
 
-    TEST_CASE("LoadFromFile creates expected entities")
-    {
-        flecs::world world;
-        auto registry = MakeTestRegistry();
-        registry.RegisterComponents(world);
-        Scene::RegisterCoreECS(world);
-        Scene scene(world, registry, "Default");
+        TEST_CASE("LoadFromFile creates expected entities")
+        {
+            flecs::world world;
+            auto registry = MakeTestRegistry();
+            registry.RegisterComponents(world);
+            Scene::RegisterCoreECS(world);
+            Scene scene(world, registry, "Default");
 
-        auto path = FixturesDir() / "test_scene.json";
-        REQUIRE(scene.LoadFromFile(path.string()));
+            auto path = FixturesDir() / "test_scene.json";
+            REQUIRE(scene.LoadFromFile(path.string()));
 
-        auto camera = scene.GetEntityByName("MainCamera");
-        CHECK(camera.IsValid());
+            auto camera = scene.GetEntityByName("MainCamera");
+            CHECK(camera.IsValid());
 
-        auto light = scene.GetEntityByName("PointLight");
-        CHECK(light.IsValid());
+            auto light = scene.GetEntityByName("PointLight");
+            CHECK(light.IsValid());
 
-        auto cube = scene.GetEntityByName("Cube");
-        CHECK(cube.IsValid());
-    }
+            auto cube = scene.GetEntityByName("Cube");
+            CHECK(cube.IsValid());
+        }
 
-    TEST_CASE("LoadFromFile applies transform components")
-    {
-        flecs::world world;
-        auto registry = MakeTestRegistry();
-        registry.RegisterComponents(world);
-        Scene::RegisterCoreECS(world);
-        Scene scene(world, registry, "Default");
+        TEST_CASE("LoadFromFile applies transform components")
+        {
+            flecs::world world;
+            auto registry = MakeTestRegistry();
+            registry.RegisterComponents(world);
+            Scene::RegisterCoreECS(world);
+            Scene scene(world, registry, "Default");
 
-        auto path = FixturesDir() / "test_scene.json";
-        REQUIRE(scene.LoadFromFile(path.string()));
+            auto path = FixturesDir() / "test_scene.json";
+            REQUIRE(scene.LoadFromFile(path.string()));
 
-        auto camera = scene.GetEntityByName("MainCamera");
-        REQUIRE(camera.IsValid());
-        REQUIRE(camera.HasComponent<TransformComponent>());
+            auto camera = scene.GetEntityByName("MainCamera");
+            REQUIRE(camera.IsValid());
+            REQUIRE(camera.HasComponent<TransformComponent>());
 
-        const auto& transform = camera.GetComponent<TransformComponent>();
-        CHECK(transform.Position.x == doctest::Approx(0.0f));
-        CHECK(transform.Position.y == doctest::Approx(5.0f));
-        CHECK(transform.Position.z == doctest::Approx(-10.0f));
-    }
+            const auto& transform = camera.GetComponent<TransformComponent>();
+            CHECK(transform.Position.x == doctest::Approx(0.0f));
+            CHECK(transform.Position.y == doctest::Approx(5.0f));
+            CHECK(transform.Position.z == doctest::Approx(-10.0f));
+        }
 
-    TEST_CASE("LoadFromFile rebuilds hierarchy relationships")
-    {
-        flecs::world world;
-        auto registry = MakeTestRegistry();
-        registry.RegisterComponents(world);
-        Scene::RegisterCoreECS(world);
-        Scene scene(world, registry, "Default");
+        TEST_CASE("LoadFromFile rebuilds hierarchy relationships")
+        {
+            flecs::world world;
+            auto registry = MakeTestRegistry();
+            registry.RegisterComponents(world);
+            Scene::RegisterCoreECS(world);
+            Scene scene(world, registry, "Default");
 
-        auto path = FixturesDir() / "hierarchy_scene.json";
-        REQUIRE(scene.LoadFromFile(path.string()));
+            auto path = FixturesDir() / "hierarchy_scene.json";
+            REQUIRE(scene.LoadFromFile(path.string()));
 
-        auto parent = scene.GetEntityByName("Parent");
-        auto child = scene.GetEntityByName("Child");
+            auto parent = scene.GetEntityByName("Parent");
+            auto child = scene.GetEntityByName("Child");
 
-        CHECK(parent.IsValid());
-        CHECK(child.IsValid());
+            CHECK(parent.IsValid());
+            CHECK(child.IsValid());
 
-        // Verify hierarchy: child should have parent as its flecs parent
-        auto childHandle = child.GetHandle();
-        auto parentHandle = parent.GetHandle();
-        CHECK(childHandle.parent() == parentHandle);
-    }
+            // Verify hierarchy: child should have parent as its flecs parent
+            auto childHandle = child.GetHandle();
+            auto parentHandle = parent.GetHandle();
+            CHECK(childHandle.parent() == parentHandle);
+        }
 
-    TEST_CASE("LoadFromFile handles invalid JSON gracefully")
-    {
-        flecs::world world;
-        auto registry = MakeTestRegistry();
-        registry.RegisterComponents(world);
-        Scene::RegisterCoreECS(world);
-        Scene scene(world, registry, "Default");
+        TEST_CASE("LoadFromFile handles invalid JSON gracefully")
+        {
+            flecs::world world;
+            auto registry = MakeTestRegistry();
+            registry.RegisterComponents(world);
+            Scene::RegisterCoreECS(world);
+            Scene scene(world, registry, "Default");
 
-        auto path = FixturesDir() / "bad_scene.json";
-        bool result = scene.LoadFromFile(path.string());
+            auto path = FixturesDir() / "bad_scene.json";
+            bool result = scene.LoadFromFile(path.string());
 
-        CHECK_FALSE(result);
-    }
+            CHECK_FALSE(result);
+        }
 
-    TEST_CASE("LoadFromFile handles non-existent file gracefully")
-    {
-        flecs::world world;
-        auto registry = MakeTestRegistry();
-        registry.RegisterComponents(world);
-        Scene::RegisterCoreECS(world);
-        Scene scene(world, registry, "Default");
+        TEST_CASE("LoadFromFile handles non-existent file gracefully")
+        {
+            flecs::world world;
+            auto registry = MakeTestRegistry();
+            registry.RegisterComponents(world);
+            Scene::RegisterCoreECS(world);
+            Scene scene(world, registry, "Default");
 
-        bool result = scene.LoadFromFile("nonexistent_scene.json");
-        CHECK_FALSE(result);
-    }
+            bool result = scene.LoadFromFile("nonexistent_scene.json");
+            CHECK_FALSE(result);
+        }
 
-    TEST_CASE("LoadFromFile clears previous entities")
-    {
-        flecs::world world;
-        auto registry = MakeTestRegistry();
-        registry.RegisterComponents(world);
-        Scene::RegisterCoreECS(world);
-        Scene scene(world, registry, "Default");
+        TEST_CASE("LoadFromFile clears previous entities")
+        {
+            flecs::world world;
+            auto registry = MakeTestRegistry();
+            registry.RegisterComponents(world);
+            Scene::RegisterCoreECS(world);
+            Scene scene(world, registry, "Default");
 
-        // Create an entity before loading
-        scene.CreateEntity("PreExisting");
+            // Create an entity before loading
+            scene.CreateEntity("PreExisting");
 
-        auto path = FixturesDir() / "minimal_scene.json";
-        REQUIRE(scene.LoadFromFile(path.string()));
+            auto path = FixturesDir() / "minimal_scene.json";
+            REQUIRE(scene.LoadFromFile(path.string()));
 
-        // The pre-existing entity should be gone
-        auto found = scene.GetEntityByName("PreExisting");
-        CHECK_FALSE(found.IsValid());
-    }
+            // The pre-existing entity should be gone
+            auto found = scene.GetEntityByName("PreExisting");
+            CHECK_FALSE(found.IsValid());
+        }
 
-    // ── SceneDocument Low-Level ─────────────────────────────
+        // ── SceneDocument Low-Level ─────────────────────────────
 
-    TEST_CASE("LoadSceneDocument returns document for valid file")
-    {
-        auto registry = MakeTestRegistry();
-        auto path = FixturesDir() / "test_scene.json";
+        TEST_CASE("LoadSceneDocument returns document for valid file")
+        {
+            auto registry = MakeTestRegistry();
+            auto path = FixturesDir() / "test_scene.json";
 
-        auto result = LoadSceneDocument(path.string(), registry);
+            auto result = LoadSceneDocument(path.string(), registry);
 
-        CHECK(result.Document.has_value());
-        CHECK(result.Errors.empty());
-        CHECK(result.Document->Name == "Test Scene");
-        CHECK(result.Document->Entities.size() == 3);
-    }
+            CHECK(result.Document.has_value());
+            CHECK(result.Errors.empty());
+            CHECK(result.Document->Name == "Test Scene");
+            CHECK(result.Document->Entities.size() == 3);
+        }
 
-    TEST_CASE("LoadSceneDocument returns errors for bad JSON")
-    {
-        auto registry = MakeTestRegistry();
-        auto path = FixturesDir() / "bad_scene.json";
+        TEST_CASE("LoadSceneDocument returns errors for bad JSON")
+        {
+            auto registry = MakeTestRegistry();
+            auto path = FixturesDir() / "bad_scene.json";
 
-        auto result = LoadSceneDocument(path.string(), registry);
+            auto result = LoadSceneDocument(path.string(), registry);
 
-        CHECK_FALSE(result.Document.has_value());
-        CHECK_FALSE(result.Errors.empty());
-    }
+            CHECK_FALSE(result.Document.has_value());
+            CHECK_FALSE(result.Errors.empty());
+        }
 
-    TEST_CASE("LoadSceneDocument preserves scene settings")
-    {
-        auto registry = MakeTestRegistry();
-        auto path = FixturesDir() / "test_scene.json";
+        TEST_CASE("LoadSceneDocument preserves scene settings")
+        {
+            auto registry = MakeTestRegistry();
+            auto path = FixturesDir() / "test_scene.json";
 
-        auto result = LoadSceneDocument(path.string(), registry);
+            auto result = LoadSceneDocument(path.string(), registry);
 
-        REQUIRE(result.Document.has_value());
-        CHECK_FALSE(result.Document->Settings.empty());
+            REQUIRE(result.Document.has_value());
+            CHECK_FALSE(result.Document->Settings.empty());
+        }
     }
 }

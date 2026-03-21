@@ -159,4 +159,4 @@ std::unique_ptr<Wayfinder::Module> Wayfinder::CreateModule()
 }
 
 // Dynamic entry point for tools loading the module as a shared library.
-WAYFINDER_IMPLEMENT_MODULE(JourneyModule)
+WAYFINDER_IMPLEMENT_MODULE(Wayfinder::Journey::JourneyModule)

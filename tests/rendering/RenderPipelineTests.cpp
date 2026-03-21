@@ -1,9 +1,9 @@
-#include "rendering/pipeline/RenderPipeline.h"
-#include "rendering/resources/RenderResources.h"
+#include "core/EngineConfig.h"
 #include "rendering/backend/RenderDevice.h"
 #include "rendering/pipeline/RenderContext.h"
+#include "rendering/pipeline/RenderPipeline.h"
 #include "rendering/pipeline/SceneRenderExtractor.h"
-#include "core/EngineConfig.h"
+#include "rendering/resources/RenderResources.h"
 #include "scene/Components.h"
 #include "scene/RuntimeComponentRegistry.h"
 #include "scene/Scene.h"
@@ -13,7 +13,7 @@
 #include <flecs.h>
 #include <string>
 
-namespace Wayfinder
+namespace Wayfinder::Tests
 {
     Wayfinder::RenderMeshSubmission MakeSolidMesh(uint8_t sortPriority, const Wayfinder::Colour& colour)
     {
@@ -29,171 +29,171 @@ namespace Wayfinder
         submission.SortPriority = sortPriority;
         return submission;
     }
-}
 
-TEST_CASE("Null backend factory creates a device")
-{
-    auto device = Wayfinder::RenderDevice::Create(Wayfinder::RenderBackend::Null);
+    TEST_CASE("Null backend factory creates a device")
+    {
+        auto device = Wayfinder::RenderDevice::Create(Wayfinder::RenderBackend::Null);
 
-    CHECK(device);
-    CHECK(device->GetDeviceInfo().BackendName == "Null");
-}
+        CHECK(device);
+        CHECK(device->GetDeviceInfo().BackendName == "Null");
+    }
 
-TEST_CASE("SDL_GPU backend factory creates a device")
-{
-    auto device = Wayfinder::RenderDevice::Create(Wayfinder::RenderBackend::SDL_GPU);
+    TEST_CASE("SDL_GPU backend factory creates a device")
+    {
+        auto device = Wayfinder::RenderDevice::Create(Wayfinder::RenderBackend::SDL_GPU);
 
-    CHECK(device);
-}
+        CHECK(device);
+    }
 
-TEST_CASE("Pipeline handles empty frame without crashing")
-{
-    Wayfinder::RenderFrame frame;
-    frame.SceneName = "Empty";
+    TEST_CASE("Pipeline handles empty frame without crashing")
+    {
+        Wayfinder::RenderFrame frame;
+        frame.SceneName = "Empty";
 
-    Wayfinder::RenderResourceCache resources;
-    auto device = Wayfinder::RenderDevice::Create(Wayfinder::RenderBackend::Null);
-    Wayfinder::RenderPipeline pipeline;
+        Wayfinder::RenderResourceCache resources;
+        auto device = Wayfinder::RenderDevice::Create(Wayfinder::RenderBackend::Null);
+        Wayfinder::RenderPipeline pipeline;
 
-    // Should not crash — Prepare returns false for empty frames
-    pipeline.Prepare(frame);
-}
+        // Should not crash — Prepare returns false for empty frames
+        pipeline.Prepare(frame);
+    }
 
-TEST_CASE("Extractor builds explicit passes and debug payload")
-{
-    flecs::world world;
-    Wayfinder::Scene::RegisterCoreECS(world);
-    Wayfinder::RuntimeComponentRegistry registry;
-    registry.AddCoreEntries();
-    registry.RegisterComponents(world);
-    Wayfinder::Scene scene(world, registry, "Extractor Test Scene");
+    TEST_CASE("Extractor builds explicit passes and debug payload")
+    {
+        flecs::world world;
+        Wayfinder::Scene::RegisterCoreECS(world);
+        Wayfinder::RuntimeComponentRegistry registry;
+        registry.AddCoreEntries();
+        registry.RegisterComponents(world);
+        Wayfinder::Scene scene(world, registry, "Extractor Test Scene");
 
-    Wayfinder::Entity camera = scene.CreateEntity("Camera");
-    camera.AddComponent<Wayfinder::TransformComponent>(Wayfinder::TransformComponent{{4.0f, 3.0f, 4.0f}});
-    Wayfinder::CameraComponent cameraComponent;
-    cameraComponent.Primary = true;
-    cameraComponent.Target = {0.0f, 0.5f, 0.0f};
-    camera.AddComponent<Wayfinder::CameraComponent>(cameraComponent);
+        Wayfinder::Entity camera = scene.CreateEntity("Camera");
+        camera.AddComponent<Wayfinder::TransformComponent>(Wayfinder::TransformComponent{{4.0f, 3.0f, 4.0f}});
+        Wayfinder::CameraComponent cameraComponent;
+        cameraComponent.Primary = true;
+        cameraComponent.Target = {0.0f, 0.5f, 0.0f};
+        camera.AddComponent<Wayfinder::CameraComponent>(cameraComponent);
 
-    Wayfinder::Entity cube = scene.CreateEntity("Cube");
-    cube.AddComponent<Wayfinder::TransformComponent>(Wayfinder::TransformComponent{{0.0f, 0.5f, 0.0f}});
-    cube.AddComponent<Wayfinder::MeshComponent>(Wayfinder::MeshComponent{});
-    Wayfinder::RenderableComponent renderable;
-    renderable.Layer = Wayfinder::RenderLayers::Main;
-    cube.AddComponent<Wayfinder::RenderableComponent>(renderable);
+        Wayfinder::Entity cube = scene.CreateEntity("Cube");
+        cube.AddComponent<Wayfinder::TransformComponent>(Wayfinder::TransformComponent{{0.0f, 0.5f, 0.0f}});
+        cube.AddComponent<Wayfinder::MeshComponent>(Wayfinder::MeshComponent{});
+        Wayfinder::RenderableComponent renderable;
+        renderable.Layer = Wayfinder::RenderLayers::Main;
+        cube.AddComponent<Wayfinder::RenderableComponent>(renderable);
 
-    Wayfinder::Entity light = scene.CreateEntity("Light");
-    light.AddComponent<Wayfinder::TransformComponent>(Wayfinder::TransformComponent{{1.0f, 2.0f, 0.0f}});
-    Wayfinder::LightComponent lightComponent;
-    lightComponent.Type = Wayfinder::LightType::Directional;
-    lightComponent.DebugDraw = true;
-    light.AddComponent<Wayfinder::LightComponent>(lightComponent);
+        Wayfinder::Entity light = scene.CreateEntity("Light");
+        light.AddComponent<Wayfinder::TransformComponent>(Wayfinder::TransformComponent{{1.0f, 2.0f, 0.0f}});
+        Wayfinder::LightComponent lightComponent;
+        lightComponent.Type = Wayfinder::LightType::Directional;
+        lightComponent.DebugDraw = true;
+        light.AddComponent<Wayfinder::LightComponent>(lightComponent);
 
-    world.progress(0.016f);
+        world.progress(0.016f);
 
-    Wayfinder::SceneRenderExtractor extractor;
-    const Wayfinder::RenderFrame frame = extractor.Extract(scene);
-    const Wayfinder::RenderPass* mainPass = frame.FindPass(Wayfinder::RenderPassIds::MainScene);
-    const Wayfinder::RenderPass* debugPass = frame.FindPass(Wayfinder::RenderPassIds::Debug);
+        Wayfinder::SceneRenderExtractor extractor;
+        const Wayfinder::RenderFrame frame = extractor.Extract(scene);
+        const Wayfinder::RenderPass* mainPass = frame.FindPass(Wayfinder::RenderPassIds::MainScene);
+        const Wayfinder::RenderPass* debugPass = frame.FindPass(Wayfinder::RenderPassIds::Debug);
 
-    scene.Shutdown();
+        scene.Shutdown();
 
-    CHECK(frame.Views.size() == 1);
-    CHECK(frame.Passes.size() == 3);
-    REQUIRE(mainPass != nullptr);
-    REQUIRE(debugPass != nullptr);
-    CHECK(mainPass->Meshes.size() == 1);
-    CHECK(debugPass->DebugDraw.has_value());
-    CHECK(debugPass->DebugDraw->Boxes.size() == 1);
-    CHECK(debugPass->DebugDraw->Lines.size() == 1);
-}
+        CHECK(frame.Views.size() == 1);
+        CHECK(frame.Passes.size() == 3);
+        REQUIRE(mainPass != nullptr);
+        REQUIRE(debugPass != nullptr);
+        CHECK(mainPass->Meshes.size() == 1);
+        CHECK(debugPass->DebugDraw.has_value());
+        CHECK(debugPass->DebugDraw->Boxes.size() == 1);
+        CHECK(debugPass->DebugDraw->Lines.size() == 1);
+    }
 
-TEST_CASE("Extractor skips mesh without renderable")
-{
-    flecs::world world;
-    Wayfinder::Scene::RegisterCoreECS(world);
-    Wayfinder::RuntimeComponentRegistry registry;
-    registry.AddCoreEntries();
-    registry.RegisterComponents(world);
-    Wayfinder::Scene scene(world, registry, "Extractor Skip Scene");
+    TEST_CASE("Extractor skips mesh without renderable")
+    {
+        flecs::world world;
+        Wayfinder::Scene::RegisterCoreECS(world);
+        Wayfinder::RuntimeComponentRegistry registry;
+        registry.AddCoreEntries();
+        registry.RegisterComponents(world);
+        Wayfinder::Scene scene(world, registry, "Extractor Skip Scene");
 
-    Wayfinder::Entity camera = scene.CreateEntity("Camera");
-    camera.AddComponent<Wayfinder::TransformComponent>(Wayfinder::TransformComponent{{2.0f, 2.0f, 2.0f}});
-    Wayfinder::CameraComponent cameraComponent;
-    cameraComponent.Primary = true;
-    camera.AddComponent<Wayfinder::CameraComponent>(cameraComponent);
+        Wayfinder::Entity camera = scene.CreateEntity("Camera");
+        camera.AddComponent<Wayfinder::TransformComponent>(Wayfinder::TransformComponent{{2.0f, 2.0f, 2.0f}});
+        Wayfinder::CameraComponent cameraComponent;
+        cameraComponent.Primary = true;
+        camera.AddComponent<Wayfinder::CameraComponent>(cameraComponent);
 
-    Wayfinder::Entity invisibleCube = scene.CreateEntity("InvisibleCube");
-    invisibleCube.AddComponent<Wayfinder::TransformComponent>(Wayfinder::TransformComponent{{0.0f, 0.5f, 0.0f}});
-    invisibleCube.AddComponent<Wayfinder::MeshComponent>(Wayfinder::MeshComponent{});
+        Wayfinder::Entity invisibleCube = scene.CreateEntity("InvisibleCube");
+        invisibleCube.AddComponent<Wayfinder::TransformComponent>(Wayfinder::TransformComponent{{0.0f, 0.5f, 0.0f}});
+        invisibleCube.AddComponent<Wayfinder::MeshComponent>(Wayfinder::MeshComponent{});
 
-    world.progress(0.016f);
+        world.progress(0.016f);
 
-    Wayfinder::SceneRenderExtractor extractor;
-    const Wayfinder::RenderFrame frame = extractor.Extract(scene);
-    const Wayfinder::RenderPass* mainPass = frame.FindPass(Wayfinder::RenderPassIds::MainScene);
+        Wayfinder::SceneRenderExtractor extractor;
+        const Wayfinder::RenderFrame frame = extractor.Extract(scene);
+        const Wayfinder::RenderPass* mainPass = frame.FindPass(Wayfinder::RenderPassIds::MainScene);
 
-    scene.Shutdown();
+        scene.Shutdown();
 
-    REQUIRE(mainPass != nullptr);
-    CHECK(mainPass->Meshes.empty());
-}
+        REQUIRE(mainPass != nullptr);
+        CHECK(mainPass->Meshes.empty());
+    }
 
-TEST_CASE("Resource cache resolves mesh")
-{
-    Wayfinder::RenderFrame frame;
-    const size_t viewIndex = frame.AddView(Wayfinder::RenderView{});
-    Wayfinder::RenderPass& scenePass =
-        frame.AddScenePass(Wayfinder::RenderPassIds::MainScene, viewIndex, Wayfinder::RenderLayers::Main);
-    scenePass.Meshes.push_back(MakeSolidMesh(100, Wayfinder::Colour::Red()));
-    scenePass.Meshes.push_back(MakeSolidMesh(10, Wayfinder::Colour::Blue()));
+    TEST_CASE("Resource cache resolves mesh")
+    {
+        Wayfinder::RenderFrame frame;
+        const size_t viewIndex = frame.AddView(Wayfinder::RenderView{});
+        Wayfinder::RenderPass& scenePass =
+            frame.AddScenePass(Wayfinder::RenderPassIds::MainScene, viewIndex, Wayfinder::RenderLayers::Main);
+        scenePass.Meshes.push_back(MakeSolidMesh(100, Wayfinder::Colour::Red()));
+        scenePass.Meshes.push_back(MakeSolidMesh(10, Wayfinder::Colour::Blue()));
 
-    Wayfinder::RenderResourceCache resources;
-    resources.PrepareFrame(frame);
+        Wayfinder::RenderResourceCache resources;
+        resources.PrepareFrame(frame);
 
-    const auto& resolved = resources.ResolveMesh(scenePass.Meshes[0]);
-    CHECK(resolved.Geometry.Type == Wayfinder::RenderGeometryType::Box);
-}
+        const auto& resolved = resources.ResolveMesh(scenePass.Meshes[0]);
+        CHECK(resolved.Geometry.Type == Wayfinder::RenderGeometryType::Box);
+    }
 
-TEST_CASE("RenderPipeline::Initialise registers built-in programs")
-{
-    auto device = Wayfinder::RenderDevice::Create(Wayfinder::RenderBackend::Null);
-    REQUIRE(device);
+    TEST_CASE("RenderPipeline::Initialise registers built-in programs")
+    {
+        auto device = Wayfinder::RenderDevice::Create(Wayfinder::RenderBackend::Null);
+        REQUIRE(device);
 
-    Wayfinder::EngineConfig config;
-    config.Window.Width = 320;
-    config.Window.Height = 240;
+        Wayfinder::EngineConfig config;
+        config.Window.Width = 320;
+        config.Window.Height = 240;
 
-    Wayfinder::RenderContext context;
-    REQUIRE(context.Initialise(*device, config));
+        Wayfinder::RenderContext context;
+        REQUIRE(context.Initialise(*device, config));
 
-    Wayfinder::RenderPipeline pipeline;
-    // Initialise must not crash — it registers programs via the context.
-    // With NullDevice, pipeline creation fails (no shader files on disk),
-    // so Find returns nullptr. The contract being tested is that Initialise
-    // calls Register for each built-in program without crashing.
-    pipeline.Initialise(context);
+        Wayfinder::RenderPipeline pipeline;
+        // Initialise must not crash — it registers programs via the context.
+        // With NullDevice, pipeline creation fails (no shader files on disk),
+        // so Find returns nullptr. The contract being tested is that Initialise
+        // calls Register for each built-in program without crashing.
+        pipeline.Initialise(context);
 
-    pipeline.Shutdown();
-    context.Shutdown();
-}
+        pipeline.Shutdown();
+        context.Shutdown();
+    }
 
-TEST_CASE("RenderPipeline::Shutdown is safe after Initialise")
-{
-    auto device = Wayfinder::RenderDevice::Create(Wayfinder::RenderBackend::Null);
-    REQUIRE(device);
+    TEST_CASE("RenderPipeline::Shutdown is safe after Initialise")
+    {
+        auto device = Wayfinder::RenderDevice::Create(Wayfinder::RenderBackend::Null);
+        REQUIRE(device);
 
-    Wayfinder::EngineConfig config;
-    config.Window.Width = 320;
-    config.Window.Height = 240;
+        Wayfinder::EngineConfig config;
+        config.Window.Width = 320;
+        config.Window.Height = 240;
 
-    Wayfinder::RenderContext context;
-    REQUIRE(context.Initialise(*device, config));
+        Wayfinder::RenderContext context;
+        REQUIRE(context.Initialise(*device, config));
 
-    Wayfinder::RenderPipeline pipeline;
-    pipeline.Initialise(context);
-    pipeline.Shutdown();
-    pipeline.Shutdown(); // Double shutdown is safe
+        Wayfinder::RenderPipeline pipeline;
+        pipeline.Initialise(context);
+        pipeline.Shutdown();
+        pipeline.Shutdown(); // Double shutdown is safe
 
-    context.Shutdown();
+        context.Shutdown();
+    }
 }

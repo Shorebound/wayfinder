@@ -5,8 +5,6 @@
 #include <string>
 #include <vector>
 
-using namespace Wayfinder;
-
 namespace Wayfinder::Tests
 {
     /// Tracks lifecycle calls for testing.
@@ -20,154 +18,172 @@ namespace Wayfinder::Tests
     class SubsystemA : public GameSubsystem
     {
     public:
-        void Initialise() override { if (s_log) s_log->Events.push_back("A.Init"); }
-        void Shutdown() override { if (s_log) s_log->Events.push_back("A.Shutdown"); }
+        void Initialise() override
+        {
+            if (s_log) s_log->Events.push_back("A.Init");
+        }
+        void Shutdown() override
+        {
+            if (s_log) s_log->Events.push_back("A.Shutdown");
+        }
     };
 
     class SubsystemB : public GameSubsystem
     {
     public:
-        void Initialise() override { if (s_log) s_log->Events.push_back("B.Init"); }
-        void Shutdown() override { if (s_log) s_log->Events.push_back("B.Shutdown"); }
+        void Initialise() override
+        {
+            if (s_log) s_log->Events.push_back("B.Init");
+        }
+        void Shutdown() override
+        {
+            if (s_log) s_log->Events.push_back("B.Shutdown");
+        }
     };
 
     class SubsystemC : public GameSubsystem
     {
     public:
         bool ShouldCreate() const override { return false; }
-        void Initialise() override { if (s_log) s_log->Events.push_back("C.Init"); }
-        void Shutdown() override { if (s_log) s_log->Events.push_back("C.Shutdown"); }
+        void Initialise() override
+        {
+            if (s_log) s_log->Events.push_back("C.Init");
+        }
+        void Shutdown() override
+        {
+            if (s_log) s_log->Events.push_back("C.Shutdown");
+        }
     };
-}
 
-TEST_SUITE("SubsystemCollection")
-{
-    TEST_CASE("Register and Initialise creates subsystems")
+    TEST_SUITE("SubsystemCollection")
     {
-        SubsystemCollection<GameSubsystem> collection;
-        collection.Register<SubsystemA>();
-        collection.Register<SubsystemB>();
+        TEST_CASE("Register and Initialise creates subsystems")
+        {
+            SubsystemCollection<GameSubsystem> collection;
+            collection.Register<SubsystemA>();
+            collection.Register<SubsystemB>();
 
-        collection.Initialise();
+            collection.Initialise();
 
-        CHECK(collection.Get<SubsystemA>() != nullptr);
-        CHECK(collection.Get<SubsystemB>() != nullptr);
+            CHECK(collection.Get<SubsystemA>() != nullptr);
+            CHECK(collection.Get<SubsystemB>() != nullptr);
 
-        collection.Shutdown();
-    }
+            collection.Shutdown();
+        }
 
-    TEST_CASE("Get returns nullptr for unregistered subsystem")
-    {
-        SubsystemCollection<GameSubsystem> collection;
-        collection.Initialise();
+        TEST_CASE("Get returns nullptr for unregistered subsystem")
+        {
+            SubsystemCollection<GameSubsystem> collection;
+            collection.Initialise();
 
-        CHECK(collection.Get<SubsystemA>() == nullptr);
+            CHECK(collection.Get<SubsystemA>() == nullptr);
 
-        collection.Shutdown();
-    }
+            collection.Shutdown();
+        }
 
-    TEST_CASE("Duplicate registration is rejected")
-    {
-        SubsystemCollection<GameSubsystem> collection;
-        CHECK(collection.Register<SubsystemA>() == true);
-        CHECK(collection.Register<SubsystemA>() == false);
+        TEST_CASE("Duplicate registration is rejected")
+        {
+            SubsystemCollection<GameSubsystem> collection;
+            CHECK(collection.Register<SubsystemA>() == true);
+            CHECK(collection.Register<SubsystemA>() == false);
 
-        collection.Shutdown();
-    }
+            collection.Shutdown();
+        }
 
-    TEST_CASE("Initialise calls Initialise on each subsystem")
-    {
-        LifecycleLog log;
-        s_log = &log;
+        TEST_CASE("Initialise calls Initialise on each subsystem")
+        {
+            LifecycleLog log;
+            s_log = &log;
 
-        SubsystemCollection<GameSubsystem> collection;
-        collection.Register<SubsystemA>();
-        collection.Register<SubsystemB>();
-        collection.Initialise();
+            SubsystemCollection<GameSubsystem> collection;
+            collection.Register<SubsystemA>();
+            collection.Register<SubsystemB>();
+            collection.Initialise();
 
-        REQUIRE(log.Events.size() == 2);
-        CHECK(log.Events[0] == "A.Init");
-        CHECK(log.Events[1] == "B.Init");
+            REQUIRE(log.Events.size() == 2);
+            CHECK(log.Events[0] == "A.Init");
+            CHECK(log.Events[1] == "B.Init");
 
-        collection.Shutdown();
-        s_log = nullptr;
-    }
+            collection.Shutdown();
+            s_log = nullptr;
+        }
 
-    TEST_CASE("Shutdown calls Shutdown in reverse order")
-    {
-        LifecycleLog log;
-        s_log = &log;
+        TEST_CASE("Shutdown calls Shutdown in reverse order")
+        {
+            LifecycleLog log;
+            s_log = &log;
 
-        SubsystemCollection<GameSubsystem> collection;
-        collection.Register<SubsystemA>();
-        collection.Register<SubsystemB>();
-        collection.Initialise();
+            SubsystemCollection<GameSubsystem> collection;
+            collection.Register<SubsystemA>();
+            collection.Register<SubsystemB>();
+            collection.Initialise();
 
-        log.Events.clear();
-        collection.Shutdown();
+            log.Events.clear();
+            collection.Shutdown();
 
-        REQUIRE(log.Events.size() == 2);
-        CHECK(log.Events[0] == "B.Shutdown");
-        CHECK(log.Events[1] == "A.Shutdown");
+            REQUIRE(log.Events.size() == 2);
+            CHECK(log.Events[0] == "B.Shutdown");
+            CHECK(log.Events[1] == "A.Shutdown");
 
-        s_log = nullptr;
-    }
+            s_log = nullptr;
+        }
 
-    TEST_CASE("ShouldCreate=false skips subsystem creation")
-    {
-        LifecycleLog log;
-        s_log = &log;
+        TEST_CASE("ShouldCreate=false skips subsystem creation")
+        {
+            LifecycleLog log;
+            s_log = &log;
 
-        SubsystemCollection<GameSubsystem> collection;
-        collection.Register<SubsystemC>(); // ShouldCreate returns false
-        collection.Initialise();
+            SubsystemCollection<GameSubsystem> collection;
+            collection.Register<SubsystemC>(); // ShouldCreate returns false
+            collection.Initialise();
 
-        CHECK(collection.Get<SubsystemC>() == nullptr);
-        CHECK(log.Events.empty()); // Init never called
+            CHECK(collection.Get<SubsystemC>() == nullptr);
+            CHECK(log.Events.empty()); // Init never called
 
-        collection.Shutdown();
-        s_log = nullptr;
-    }
+            collection.Shutdown();
+            s_log = nullptr;
+        }
 
-    TEST_CASE("Static predicate gating skips creation")
-    {
-        LifecycleLog log;
-        s_log = &log;
+        TEST_CASE("Static predicate gating skips creation")
+        {
+            LifecycleLog log;
+            s_log = &log;
 
-        SubsystemCollection<GameSubsystem> collection;
-        collection.Register<SubsystemA>([]() -> bool { return false; });
-        collection.Initialise();
+            SubsystemCollection<GameSubsystem> collection;
+            collection.Register<SubsystemA>([]() -> bool { return false; });
+            collection.Initialise();
 
-        CHECK(collection.Get<SubsystemA>() == nullptr);
-        CHECK(log.Events.empty());
+            CHECK(collection.Get<SubsystemA>() == nullptr);
+            CHECK(log.Events.empty());
 
-        collection.Shutdown();
-        s_log = nullptr;
-    }
+            collection.Shutdown();
+            s_log = nullptr;
+        }
 
-    TEST_CASE("Subsystems are gone after Shutdown")
-    {
-        SubsystemCollection<GameSubsystem> collection;
-        collection.Register<SubsystemA>();
-        collection.Initialise();
+        TEST_CASE("Subsystems are gone after Shutdown")
+        {
+            SubsystemCollection<GameSubsystem> collection;
+            collection.Register<SubsystemA>();
+            collection.Initialise();
 
-        REQUIRE(collection.Get<SubsystemA>() != nullptr);
+            REQUIRE(collection.Get<SubsystemA>() != nullptr);
 
-        collection.Shutdown();
+            collection.Shutdown();
 
-        CHECK(collection.Get<SubsystemA>() == nullptr);
-    }
+            CHECK(collection.Get<SubsystemA>() == nullptr);
+        }
 
-    TEST_CASE("Const Get returns const pointer")
-    {
-        SubsystemCollection<GameSubsystem> collection;
-        collection.Register<SubsystemA>();
-        collection.Initialise();
+        TEST_CASE("Const Get returns const pointer")
+        {
+            SubsystemCollection<GameSubsystem> collection;
+            collection.Register<SubsystemA>();
+            collection.Initialise();
 
-        const auto& constCollection = collection;
-        const SubsystemA* ptr = constCollection.Get<SubsystemA>();
-        CHECK(ptr != nullptr);
+            const auto& constCollection = collection;
+            const SubsystemA* ptr = constCollection.Get<SubsystemA>();
+            CHECK(ptr != nullptr);
 
-        collection.Shutdown();
+            collection.Shutdown();
+        }
     }
 }

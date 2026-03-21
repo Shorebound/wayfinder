@@ -2,6 +2,7 @@
 
 #include <doctest/doctest.h>
 
+#include <ostream>
 #include <string>
 #include <type_traits>
 

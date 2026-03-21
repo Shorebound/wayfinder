@@ -6,8 +6,6 @@
 #include <string>
 #include <unordered_set>
 
-using namespace Wayfinder;
-
 // ── UUID Generation ──────────────────────────────────────
 namespace Wayfinder::Tests
 {
