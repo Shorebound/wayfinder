@@ -73,7 +73,7 @@ namespace Wayfinder
     {
         Float3 Position = { 0.0f, 0.0f, 0.0f };
         Float3 Scale = { 1.0f, 1.0f, 1.0f };
-        Matrix4 LocalToWorld = glm::mat4(1.0f);
+        Matrix4 LocalToWorld = Matrix4(1.0f);
 
         WorldTransformComponent() = default;
         WorldTransformComponent(const WorldTransformComponent&) = default;

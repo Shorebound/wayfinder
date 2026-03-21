@@ -253,7 +253,7 @@ TEST_SUITE("Physics")
         // For 90° Y rotation, quaternion should have a non-trivial y component.
         CHECK(std::abs(rot.y) > 0.5f);
         // w should be approximately cos(45°) ≈ 0.707
-        CHECK(std::abs(rot.w) == doctest::Approx(std::cos(glm::radians(45.0f))).epsilon(0.01));
+        CHECK(std::abs(rot.w) == doctest::Approx(std::cos(ToRadians(45.0f))).epsilon(0.01));
 
         world.DestroyBody(id);
         world.Shutdown();
@@ -736,10 +736,10 @@ TEST_SUITE("Physics")
                 Float3 pos = sub->GetWorld().GetBodyPosition(rb.RuntimeBodyId);
                 Float4 rotQ = sub->GetWorld().GetBodyRotation(rb.RuntimeBodyId);
                 wt.Position = pos;
-                glm::quat q(rotQ.w, rotQ.x, rotQ.y, rotQ.z);
-                glm::mat4 rotMat = glm::mat4_cast(q);
-                glm::mat4 translateMat = glm::translate(glm::mat4(1.0f), pos);
-                glm::mat4 scaleMat = glm::scale(glm::mat4(1.0f), wt.Scale);
+                Quaternion q(rotQ.w, rotQ.x, rotQ.y, rotQ.z);
+                Matrix4 rotMat = Matrix4_cast(q);
+                Matrix4 translateMat = glm::translate(Matrix4(1.0f), pos);
+                Matrix4 scaleMat = glm::scale(Matrix4(1.0f), wt.Scale);
                 wt.LocalToWorld = translateMat * rotMat * scaleMat;
             });
 

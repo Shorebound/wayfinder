@@ -29,9 +29,9 @@ namespace Wayfinder
 
     using MaterialParamValue = std::variant<
         float,
-        glm::vec2,
-        glm::vec3,
-        glm::vec4,
+        Float2,
+        Float3,
+        Float4,
         LinearColour,
         int32_t>;
 
@@ -57,9 +57,9 @@ namespace Wayfinder
         std::unordered_map<std::string, MaterialParamValue> Values;
 
         void SetFloat(const std::string& name, float v) { Values[name] = v; }
-        void SetVec2(const std::string& name, const glm::vec2& v) { Values[name] = v; }
-        void SetVec3(const std::string& name, const glm::vec3& v) { Values[name] = v; }
-        void SetVec4(const std::string& name, const glm::vec4& v) { Values[name] = v; }
+        void SetVec2(const std::string& name, const Float2& v) { Values[name] = v; }
+        void SetVec3(const std::string& name, const Float3& v) { Values[name] = v; }
+        void SetVec4(const std::string& name, const Float4& v) { Values[name] = v; }
         void SetColour(const std::string& name, const LinearColour& v) { Values[name] = v; }
         void SetInt(const std::string& name, int32_t v) { Values[name] = v; }
 

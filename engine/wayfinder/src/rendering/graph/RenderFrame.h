@@ -114,7 +114,7 @@ namespace Wayfinder
     struct RenderMeshSubmission
     {
         RenderMeshRef Mesh{};
-        Matrix4 LocalToWorld = glm::mat4(1.0f);
+        Matrix4 LocalToWorld = Matrix4(1.0f);
         RenderGeometry Geometry{};
         RenderMaterialBinding Material{};
         bool Visible = true;
@@ -143,7 +143,7 @@ namespace Wayfinder
 
     struct RenderDebugBox
     {
-        Matrix4 LocalToWorld = glm::mat4(1.0f);
+        Matrix4 LocalToWorld = Matrix4(1.0f);
         Float3 Dimensions{1.0f, 1.0f, 1.0f};
         RenderMaterialBinding Material{};
     };

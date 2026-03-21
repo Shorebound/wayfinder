@@ -40,6 +40,19 @@ namespace Wayfinder
     using Matrix4x3 = glm::mat4x3;
     using Matrix4 = glm::mat4;
 
+    using Quaternion = glm::quat;
+    using Translation = Float3;
+    using Rotation = Float3; 
+    using Scale = Float3;
+
+    using Degrees = float;
+    using Radians = float;
+
+    static Radians ToRadians(Degrees degrees) { return glm::radians(degrees); }
+    static Degrees ToDegrees(Radians radians) { return glm::degrees(radians); }
+    static Radians ToRadians(float degrees) { return glm::radians(degrees); }
+    static Degrees ToDegrees(float radians) { return glm::degrees(radians); }
+
     enum class Axis
     {
         X,
@@ -103,7 +116,7 @@ namespace Wayfinder
             };
         }
 
-        glm::vec4 ToVec4() const { return {r, g, b, a}; }
+        Float4 ToFloat4() const { return {r, g, b, a}; }
         Float3 ToFloat3() const { return {r, g, b}; }
     };
 

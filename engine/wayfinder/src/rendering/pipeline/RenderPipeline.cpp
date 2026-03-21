@@ -188,8 +188,8 @@ namespace Wayfinder
 
         // ── Camera / Projection (from primary view) ──────────
         Colour clearColour = Colour::White();
-        Matrix4 view = glm::mat4(1.0f);
-        Matrix4 projection = glm::mat4(1.0f);
+        Matrix4 view = Matrix4(1.0f);
+        Matrix4 projection = Matrix4(1.0f);
         bool hasCamera = false;
 
         if (!preparedFrame.Views.empty() && swapW > 0 && swapH > 0)
@@ -201,7 +201,7 @@ namespace Wayfinder
             view = glm::lookAt(camera.Position, camera.Target, camera.Up);
             if (camera.ProjectionType == 0)
             {
-                projection = glm::perspectiveRH_ZO(glm::radians(camera.FOV), aspect, 0.1f, 1000.0f);
+                projection = glm::perspectiveRH_ZO(ToRadians(camera.FOV), aspect, 0.1f, 1000.0f);
             }
             else
             {
@@ -267,7 +267,7 @@ namespace Wayfinder
                         passView = glm::lookAt(cam.Position, cam.Target, cam.Up);
                         if (cam.ProjectionType == 0)
                         {
-                            passProj = glm::perspectiveRH_ZO(glm::radians(cam.FOV), aspect, 0.1f, 1000.0f);
+                            passProj = glm::perspectiveRH_ZO(ToRadians(cam.FOV), aspect, 0.1f, 1000.0f);
                         }
                         else
                         {
@@ -423,7 +423,7 @@ namespace Wayfinder
                     if (alloc.IsValid())
                     {
                         const Matrix4 mvp = projMat * viewMat;
-                        const DebugMaterialUBO materialUBO{glm::vec4(1.0f)};
+                        const DebugMaterialUBO materialUBO{Float4(1.0f)};
 
                         debugLinePipeline.Bind();
                         device.BindVertexBuffer(alloc.Buffer, 0, alloc.Offset);
@@ -459,7 +459,7 @@ namespace Wayfinder
                     for (const auto& box : pass.DebugDraw->Boxes)
                     {
                         const UnlitTransformUBO transformUBO{projMat * viewMat * box.LocalToWorld};
-                        const DebugMaterialUBO materialUBO{glm::vec4(1.0f)};
+                        const DebugMaterialUBO materialUBO{Float4(1.0f)};
 
                         device.PushVertexUniform(0, &transformUBO, sizeof(UnlitTransformUBO));
                         device.PushFragmentUniform(0, &materialUBO, sizeof(DebugMaterialUBO));

@@ -64,7 +64,7 @@ namespace
                     }
                     else if (node.size() == 3)
                     {
-                        glm::vec3 v{
+                        Float3 v{
                             static_cast<float>(node[0].get<double>()),
                             static_cast<float>(node[1].get<double>()),
                             static_cast<float>(node[2].get<double>())};
@@ -72,7 +72,7 @@ namespace
                     }
                     else if (node.size() == 4)
                     {
-                        glm::vec4 v{
+                        Float4 v{
                             static_cast<float>(node[0].get<double>()),
                             static_cast<float>(node[1].get<double>()),
                             static_cast<float>(node[2].get<double>()),
@@ -82,7 +82,7 @@ namespace
                 }
                 else if (node.size() == 2)
                 {
-                    glm::vec2 v{
+                    Float2 v{
                         static_cast<float>(node[0].get<double>()),
                         static_cast<float>(node[1].get<double>())};
                     block.SetVec2(name, v);

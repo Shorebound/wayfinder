@@ -78,7 +78,7 @@ namespace Wayfinder
         }
 
         // Compute view matrix for sort-key depth calculation
-        Matrix4 cameraView = glm::mat4(1.0f);
+        Matrix4 cameraView = Matrix4(1.0f);
         if (scene.GetWorld().has<ActiveCameraStateComponent>())
         {
             const ActiveCameraStateComponent& activeCamera = scene.GetWorld().get<ActiveCameraStateComponent>();
@@ -143,7 +143,7 @@ namespace Wayfinder
             submission.LocalToWorld = localToWorld;
 
             // Compute camera-space Z for depth sorting
-            const glm::vec4 worldPos = glm::vec4(glm::vec3(localToWorld[3]), 1.0f);
+            const Float4 worldPos = Float4(Float3(localToWorld[3]), 1.0f);
             const float cameraSpaceZ = (cameraView * worldPos).z;
 
             submission.SortKey = SortKeyBuilder::Build(

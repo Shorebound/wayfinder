@@ -1,5 +1,5 @@
 #include "PhysicsWorld.h"
-#include "../core/Log.h"
+#include "core/Log.h"
 
 // Jolt includes — Jolt.h must come first.
 #include <Jolt/Jolt.h>
@@ -303,9 +303,9 @@ namespace Wayfinder::Physics
         // Jolt's sEulerAngles applies rotations in X-Y-Z intrinsic order.
         // TransformComponent.Rotation stores degrees in the same convention
         // as Math3D::ComposeTransform (Z-Y-X extrinsic = X-Y-Z intrinsic).
-        float rx = glm::radians(rotationDegrees.x);
-        float ry = glm::radians(rotationDegrees.y);
-        float rz = glm::radians(rotationDegrees.z);
+        float rx = ToRadians(rotationDegrees.x);
+        float ry = ToRadians(rotationDegrees.y);
+        float rz = ToRadians(rotationDegrees.z);
         JPH::Quat rotation = JPH::Quat::sEulerAngles(JPH::Vec3(rx, ry, rz));
 
         JPH::BodyCreationSettings settings(

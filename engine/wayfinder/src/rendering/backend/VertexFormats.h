@@ -25,7 +25,7 @@ namespace Wayfinder
     {
         Float3 Position;
         Float3 Normal;
-        glm::vec2 UV;
+        Float2 UV;
     };
 
     struct VertexPosNormalColour

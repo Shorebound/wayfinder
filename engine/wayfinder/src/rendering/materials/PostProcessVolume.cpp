@@ -30,7 +30,7 @@ namespace
 
         // Box: extract rotation from local-to-world, rotate offset into local
         // orientation, then compute axis-aligned distance with scaled extents.
-        glm::mat3 rotMat(localToWorld);
+        Matrix3 rotMat(localToWorld);
         rotMat[0] = glm::normalize(rotMat[0]);
         rotMat[1] = glm::normalize(rotMat[1]);
         rotMat[2] = glm::normalize(rotMat[2]);

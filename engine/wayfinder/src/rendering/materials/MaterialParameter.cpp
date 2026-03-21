@@ -16,20 +16,20 @@ namespace Wayfinder
                     if (maxBytes >= sizeof(float))
                         std::memcpy(dst, &v, sizeof(float));
                 }
-                else if constexpr (std::is_same_v<T, glm::vec2>)
+                else if constexpr (std::is_same_v<T, Float2>)
                 {
-                    if (maxBytes >= sizeof(glm::vec2))
-                        std::memcpy(dst, &v, sizeof(glm::vec2));
+                    if (maxBytes >= sizeof(Float2))
+                        std::memcpy(dst, &v, sizeof(Float2));
                 }
-                else if constexpr (std::is_same_v<T, glm::vec3>)
+                else if constexpr (std::is_same_v<T, Float3>)
                 {
-                    if (maxBytes >= sizeof(glm::vec3))
-                        std::memcpy(dst, &v, sizeof(glm::vec3));
+                    if (maxBytes >= sizeof(Float3))
+                        std::memcpy(dst, &v, sizeof(Float3));
                 }
-                else if constexpr (std::is_same_v<T, glm::vec4>)
+                else if constexpr (std::is_same_v<T, Float4>)
                 {
-                    if (maxBytes >= sizeof(glm::vec4))
-                        std::memcpy(dst, &v, sizeof(glm::vec4));
+                    if (maxBytes >= sizeof(Float4))
+                        std::memcpy(dst, &v, sizeof(Float4));
                 }
                 else if constexpr (std::is_same_v<T, LinearColour>)
                 {

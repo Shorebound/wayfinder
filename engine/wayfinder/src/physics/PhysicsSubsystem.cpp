@@ -1,5 +1,5 @@
 #include "PhysicsSubsystem.h"
-#include "../core/Log.h"
+#include "core/Log.h"
 
 namespace Wayfinder::Physics
 {
