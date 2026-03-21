@@ -103,7 +103,7 @@ TEST_CASE("RenderOverrideComponent serialisation round-trip with wireframe=true"
     renderOverride.Wireframe = true;
     entity.AddComponent<Wayfinder::RenderOverrideComponent>(renderOverride);
 
-    // Serialize
+    // Serialise
     toml::table componentTables;
     registry.SerializeComponents(entity, componentTables);
 
@@ -140,7 +140,7 @@ TEST_CASE("RenderOverrideComponent serialisation round-trip with wireframe=false
     renderOverride.Wireframe = false;
     entity.AddComponent<Wayfinder::RenderOverrideComponent>(renderOverride);
 
-    // Serialize
+    // Serialise
     toml::table componentTables;
     registry.SerializeComponents(entity, componentTables);
 
@@ -175,7 +175,7 @@ TEST_CASE("RenderOverrideComponent serialisation skips empty component")
     entity.AddComponent<Wayfinder::TransformComponent>(Wayfinder::TransformComponent{});
     entity.AddComponent<Wayfinder::RenderOverrideComponent>(Wayfinder::RenderOverrideComponent{});
 
-    // Serialize — component with no fields set should not emit a table
+    // Serialise — component with no fields set should not emit a table
     toml::table componentTables;
     registry.SerializeComponents(entity, componentTables);
 
@@ -199,7 +199,7 @@ TEST_CASE("MaterialComponent serialisation has no wireframe field")
     Wayfinder::Entity entity = scene.CreateEntity("MaterialEntity");
     entity.AddComponent<Wayfinder::MaterialComponent>(material);
 
-    // Serialize
+    // Serialise
     toml::table componentTables;
     registry.SerializeComponents(entity, componentTables);
 
