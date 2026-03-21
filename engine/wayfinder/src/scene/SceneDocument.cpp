@@ -2,6 +2,7 @@
 
 #include "RuntimeComponentRegistry.h"
 #include "assets/AssetService.h"
+#include "core/ProjectResolver.h"
 #include "rendering/materials/Material.h"
 
 #include <algorithm>
@@ -24,22 +25,6 @@ namespace
     const std::string kMeshComponentKey = "mesh";
     const std::string kMaterialComponentKey = "material";
     const std::string kRenderableComponentKey = "renderable";
-
-    std::filesystem::path FindAssetRoot(const std::filesystem::path& filePath)
-    {
-        std::filesystem::path current = std::filesystem::weakly_canonical(filePath).parent_path();
-        while (!current.empty())
-        {
-            if (current.filename() == "assets")
-            {
-                return current;
-            }
-
-            current = current.parent_path();
-        }
-
-        return {};
-    }
 
     template <typename TId>
     std::optional<TId> ParseTypedId(
@@ -271,7 +256,7 @@ namespace Wayfinder
         try
         {
             const std::filesystem::path scenePath = std::filesystem::weakly_canonical(std::filesystem::path(filePath));
-            const std::filesystem::path assetRoot = FindAssetRoot(scenePath);
+            const std::filesystem::path assetRoot = Wayfinder::FindAssetRoot(scenePath).value_or(std::filesystem::path{});
 
             std::ifstream file(filePath);
             if (!file.is_open())

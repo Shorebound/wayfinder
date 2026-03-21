@@ -209,7 +209,7 @@ namespace Wayfinder
                     RenderDebugLine debugLine;
                     debugLine.Start = position;
                     debugLine.End = lineEnd;
-                    debugLine.Colour = light.Tint;
+                    debugLine.Tint = light.Tint;
 
                     if (RenderPass* pass = frame.FindPass(RenderPassIds::Debug))
                     {

@@ -140,19 +140,19 @@ TEST_SUITE("Component Validation")
     TEST_CASE("Material validates correctly with valid data")
     {
         auto registry = MakeTestRegistry();
-        nlohmann::json input = {{"wireframe", true}};
+        nlohmann::json input = {{"base_colour", nlohmann::json::array({255, 255, 255, 255})}};
 
         std::string error;
         CHECK(registry.ValidateComponent("material", input, error));
     }
 
-    TEST_CASE("Material rejects non-boolean wireframe")
+    TEST_CASE("Render override rejects non-boolean wireframe")
     {
         auto registry = MakeTestRegistry();
         nlohmann::json input = {{"wireframe", "yes"}};
 
         std::string error;
-        CHECK_FALSE(registry.ValidateComponent("material", input, error));
+        CHECK_FALSE(registry.ValidateComponent("render_override", input, error));
     }
 
     // ── Renderable ──────────────────────────────────────────

@@ -4,19 +4,13 @@
 
 namespace
 {
-    constexpr std::string_view kAssetIdKey = "asset_id";
-    constexpr std::string_view kAssetTypeKey = "asset_type";
-    constexpr std::string_view kNameKey = "name";
-    constexpr std::string_view kShaderKey = "shader";
-    constexpr std::string_view kBaseColourKey = "base_colour";
-    constexpr std::string_view kParametersKey = "parameters";
-    const std::string kAssetIdKey = "asset_id";
-    const std::string kAssetTypeKey = "asset_type";
-    const std::string kNameKey = "name";
-    const std::string kShaderKey = "shader";
-    const std::string kBaseColourKey = "base_colour";
-    const std::string kWireframeKey = "wireframe";
-    const std::string kParametersKey = "parameters";
+    constexpr const char* kAssetIdKey = "asset_id";
+    constexpr const char* kAssetTypeKey = "asset_type";
+    constexpr const char* kNameKey = "name";
+    constexpr const char* kShaderKey = "shader";
+    constexpr const char* kBaseColourKey = "base_colour";
+    constexpr const char* kWireframeKey = "wireframe";
+    constexpr const char* kParametersKey = "parameters";
 
     /// Parse a JSON array of 3 or 4 integers into a LinearColour.
     /// Returns false if any channel is not an integer.
@@ -48,6 +42,11 @@ namespace
     /// Supports: arrays of 3–4 numbers as Colour, single numbers as Float, integers as Int.
     void ParseParametersTable(const nlohmann::json& params, Wayfinder::MaterialParameterBlock& block)
     {
+        if (!params.is_object())
+        {
+            return;
+        }
+
         for (const auto& [key, node] : params.items())
         {
             const std::string name{key};
@@ -124,13 +123,13 @@ namespace Wayfinder
         MaterialAsset& material,
         std::string& error)
     {
-        if (!document.contains(kAssetIdKey) || !document[kAssetIdKey].is_string())
+        if (!document.contains(kAssetIdKey) || !document.at(kAssetIdKey).is_string())
         {
             error = "Material asset '" + sourceLabel + "' is missing asset_id";
             return false;
         }
 
-        const std::string assetIdText = document[kAssetIdKey].get<std::string>();
+        const std::string assetIdText = document.at(kAssetIdKey).get<std::string>();
         const std::optional<AssetId> assetId = AssetId::Parse(assetIdText);
         if (!assetId)
         {
@@ -138,13 +137,13 @@ namespace Wayfinder
             return false;
         }
 
-        if (!document.contains(kAssetTypeKey) || !document[kAssetTypeKey].is_string())
+        if (!document.contains(kAssetTypeKey) || !document.at(kAssetTypeKey).is_string())
         {
             error = "Material asset '" + sourceLabel + "' is missing asset_type";
             return false;
         }
 
-        const std::string assetType = document[kAssetTypeKey].get<std::string>();
+        const std::string assetType = document.at(kAssetTypeKey).get<std::string>();
         if (assetType != "material")
         {
             error = "Material asset '" + sourceLabel + "' must declare asset_type = 'material'";
@@ -157,9 +156,9 @@ namespace Wayfinder
         parsed.ShaderName = document.value(std::string{kShaderKey}, std::string("unlit"));
 
         // Parse "parameters" object if present
-        if (document.contains(kParametersKey) && document[kParametersKey].is_object())
+        if (document.contains(kParametersKey) && document.at(kParametersKey).is_object())
         {
-            ParseParametersTable(document[kParametersKey], parsed.Parameters);
+            ParseParametersTable(document.at(kParametersKey), parsed.Parameters);
         }
 
         // Legacy support: top-level base_colour → parameters["base_colour"]
@@ -168,7 +167,7 @@ namespace Wayfinder
         {
             LinearColour baseColour = LinearColour::White();
             std::string colourError;
-            if (!ParseLinearColour(document[kBaseColourKey], baseColour, colourError))
+            if (!ParseLinearColour(document.at(kBaseColourKey), baseColour, colourError))
             {
                 error = "Material asset '" + sourceLabel + "' field 'base_colour' " + colourError;
                 return false;
@@ -184,12 +183,11 @@ namespace Wayfinder
 
         if (document.contains(kWireframeKey))
         {
-            if (!document[kWireframeKey].is_boolean())
+            if (!document.at(kWireframeKey).is_boolean())
             {
                 error = "Material asset '" + sourceLabel + "' field 'wireframe' must be a boolean";
                 return false;
             }
-            parsed.Wireframe = document[kWireframeKey].get<bool>();
         }
 
         material = std::move(parsed);
@@ -223,54 +221,7 @@ namespace Wayfinder
     {
         nlohmann::json table = nlohmann::json::object();
         table["material_id"] = material.Id.ToString();
-        table["shader"] = material.ShaderName;
-        table["wireframe"] = material.Wireframe;
 
-        // Serialise parameters as a nested object
-        nlohmann::json paramsObj = nlohmann::json::object();
-        for (const auto& [name, value] : material.Parameters.Values)
-        {
-            std::visit([&paramsObj, &name](auto&& v)
-            {
-                using T = std::decay_t<decltype(v)>;
-                if constexpr (std::is_same_v<T, LinearColour>)
-                {
-                    paramsObj[name] = nlohmann::json::array({
-                        static_cast<int64_t>(v.r * 255.0f),
-                        static_cast<int64_t>(v.g * 255.0f),
-                        static_cast<int64_t>(v.b * 255.0f),
-                        static_cast<int64_t>(v.a * 255.0f)
-                    });
-                }
-                else if constexpr (std::is_same_v<T, float>)
-                {
-                    paramsObj[name] = v;
-                }
-                else if constexpr (std::is_same_v<T, int32_t>)
-                {
-                    paramsObj[name] = v;
-                }
-                else if constexpr (std::is_same_v<T, glm::vec2>)
-                {
-                    paramsObj[name] = nlohmann::json::array({v.x, v.y});
-                }
-                else if constexpr (std::is_same_v<T, glm::vec3>)
-                {
-                    paramsObj[name] = nlohmann::json::array({v.x, v.y, v.z});
-                }
-                else if constexpr (std::is_same_v<T, glm::vec4>)
-                {
-                    paramsObj[name] = nlohmann::json::array({v.x, v.y, v.z, v.w});
-                }
-            }, value);
-        }
-
-        if (!paramsObj.empty())
-        {
-            table["parameters"] = std::move(paramsObj);
-        }
-
-        // Also write top-level base_colour for backward compatibility
         LinearColour baseColour = material.GetBaseColour();
         table["base_colour"] = nlohmann::json::array({
             static_cast<int64_t>(baseColour.r * 255.0f),

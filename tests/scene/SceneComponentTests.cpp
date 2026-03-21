@@ -1,4 +1,4 @@
-#include "rendering/SceneRenderExtractor.h"
+#include "rendering/pipeline/SceneRenderExtractor.h"
 #include "scene/Components.h"
 #include "scene/RuntimeComponentRegistry.h"
 #include "scene/Scene.h"
@@ -6,6 +6,7 @@
 
 #include <doctest/doctest.h>
 #include <flecs.h>
+#include <nlohmann/json.hpp>
 
 /// ── MeshComponent ────────────────────────────────────────
 
@@ -25,7 +26,10 @@ TEST_CASE("MaterialComponent has no wireframe field")
     Wayfinder::MaterialComponent material;
 
     /// MaterialComponent should only have material-related fields.
-    CHECK(material.BaseColour == Wayfinder::Colourr::White());
+    CHECK(material.BaseColour.r == Wayfinder::Colour::White().r);
+    CHECK(material.BaseColour.g == Wayfinder::Colour::White().g);
+    CHECK(material.BaseColour.b == Wayfinder::Colour::White().b);
+    CHECK(material.BaseColour.a == Wayfinder::Colour::White().a);
     CHECK_FALSE(material.HasBaseColourOverride);
     CHECK_FALSE(material.MaterialAssetId.has_value());
 }
@@ -104,13 +108,13 @@ TEST_CASE("RenderOverrideComponent serialisation round-trip with wireframe=true"
     entity.AddComponent<Wayfinder::RenderOverrideComponent>(renderOverride);
 
     /// Serialise.
-    toml::table componentTables;
+    nlohmann::json componentTables = nlohmann::json::object();
     registry.SerialiseComponents(entity, componentTables);
 
     CHECK(componentTables.contains("render_override"));
-    const toml::table* overrideTable = componentTables["render_override"].as_table();
-    REQUIRE(overrideTable != nullptr);
-    CHECK(overrideTable->at("wireframe").value_or(false) == true);
+    const auto& overrideTable = componentTables["render_override"];
+    REQUIRE(overrideTable.is_object());
+    CHECK(overrideTable["wireframe"].get<bool>() == true);
 
     /// Deserialise into a new entity.
     Wayfinder::Entity entity2 = scene.CreateEntity("Deserialised");
@@ -141,14 +145,14 @@ TEST_CASE("RenderOverrideComponent serialisation round-trip with wireframe=false
     entity.AddComponent<Wayfinder::RenderOverrideComponent>(renderOverride);
 
     /// Serialise.
-    toml::table componentTables;
+    nlohmann::json componentTables = nlohmann::json::object();
     registry.SerialiseComponents(entity, componentTables);
 
     CHECK(componentTables.contains("render_override"));
-    const toml::table* overrideTable = componentTables["render_override"].as_table();
-    REQUIRE(overrideTable != nullptr);
-    CHECK(overrideTable->contains("wireframe"));
-    CHECK(overrideTable->at("wireframe").value_or(true) == false);
+    const auto& overrideTable = componentTables["render_override"];
+    REQUIRE(overrideTable.is_object());
+    CHECK(overrideTable.contains("wireframe"));
+    CHECK(overrideTable["wireframe"].get<bool>() == false);
 
     /// Deserialise into a new entity.
     Wayfinder::Entity entity2 = scene.CreateEntity("DeserialisedSolid");
@@ -176,7 +180,7 @@ TEST_CASE("RenderOverrideComponent serialisation skips empty component")
     entity.AddComponent<Wayfinder::RenderOverrideComponent>(Wayfinder::RenderOverrideComponent{});
 
     /// Serialise — component with no fields set should not emit a table.
-    toml::table componentTables;
+    nlohmann::json componentTables = nlohmann::json::object();
     registry.SerialiseComponents(entity, componentTables);
 
     CHECK_FALSE(componentTables.contains("render_override"));
@@ -200,16 +204,16 @@ TEST_CASE("MaterialComponent serialisation has no wireframe field")
     entity.AddComponent<Wayfinder::MaterialComponent>(material);
 
     /// Serialise.
-    toml::table componentTables;
+    nlohmann::json componentTables = nlohmann::json::object();
     registry.SerialiseComponents(entity, componentTables);
 
     CHECK(componentTables.contains("material"));
-    const toml::table* materialTable = componentTables["material"].as_table();
-    REQUIRE(materialTable != nullptr);
+    const auto& materialTable = componentTables["material"];
+    REQUIRE(materialTable.is_object());
 
     /// Material table should NOT contain wireframe.
-    CHECK_FALSE(materialTable->contains("wireframe"));
-    CHECK(materialTable->contains("base_colour"));
+    CHECK_FALSE(materialTable.contains("wireframe"));
+    CHECK(materialTable.contains("base_colour"));
 
     scene.Shutdown();
 }
@@ -221,8 +225,8 @@ TEST_CASE("Validation rejects non-boolean wireframe in render_override")
     Wayfinder::RuntimeComponentRegistry registry;
     registry.AddCoreEntries();
 
-    toml::table badTable;
-    badTable.insert_or_assign("wireframe", "yes");
+    nlohmann::json badTable = nlohmann::json::object();
+    badTable["wireframe"] = "yes";
 
     std::string error;
     CHECK_FALSE(registry.ValidateComponent("render_override", badTable, error));

@@ -70,7 +70,9 @@
         "scale": [1.0, 1.0, 1.0]
       },
       "material": {
-        "base_colour": [214, 78, 56, 255],
+        "base_colour": [214, 78, 56, 255]
+      },
+      "render_override": {
         "wireframe": true
       }
     },
@@ -85,7 +87,9 @@
         "scale": [1.0, 1.0, 1.0]
       },
       "material": {
-        "base_colour": [71, 133, 255, 255],
+        "base_colour": [71, 133, 255, 255]
+      },
+      "render_override": {
         "wireframe": true
       }
     },
@@ -100,7 +104,9 @@
         "scale": [1.25, 1.25, 1.25]
       },
       "material": {
-        "base_colour": [85, 168, 120, 255],
+        "base_colour": [85, 168, 120, 255]
+      },
+      "render_override": {
         "wireframe": true
       }
     }

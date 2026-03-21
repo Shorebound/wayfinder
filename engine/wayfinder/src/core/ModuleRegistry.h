@@ -45,7 +45,7 @@ namespace Wayfinder
         using SystemFactory = std::function<void(flecs::world&)>;
         using ComponentRegisterFn = void(*)(flecs::world& world);
         using ComponentApplyFn = void(*)(const nlohmann::json& componentData, Entity& entity);
-        using ComponentSerializeFn = void(*)(const Entity& entity, nlohmann::json& componentTables);
+        using ComponentSerialiseFn = void(*)(const Entity& entity, nlohmann::json& componentTables);
         using ComponentValidateFn = bool(*)(const nlohmann::json& componentData, std::string& error);
         using GlobalFactory = std::function<void(flecs::world&)>;
 

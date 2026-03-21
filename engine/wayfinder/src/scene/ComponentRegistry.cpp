@@ -448,8 +448,12 @@ namespace
     bool ValidateMaterial(const nlohmann::json& data, std::string& error)
     {
         return ValidateOptionalAssetId(data, "material_id", error)
-            && ValidateOptionalColour(data, "base_colour", error)
-            && ValidateOptionalBool(data, "wireframe", error);
+            && ValidateOptionalColour(data, "base_colour", error);
+    }
+
+    bool ValidateRenderOverride(const nlohmann::json& data, std::string& error)
+    {
+        return ValidateOptionalBool(data, "wireframe", error);
     }
 
     bool ValidateRenderable(const nlohmann::json& data, std::string& error)
@@ -631,16 +635,22 @@ namespace
         Wayfinder::MaterialComponent material;
         material.MaterialAssetId = ReadOptionalAssetId(data, "material_id");
         material.HasBaseColourOverride = data.contains("base_colour");
-        material.HasWireframeOverride = data.contains("wireframe");
         if (material.HasBaseColourOverride)
         {
             material.BaseColour = ReadColour(data, "base_colour", material.BaseColour);
         }
 
-        if (material.HasWireframeOverride)
+        entity.AddComponent<Wayfinder::MaterialComponent>(material);
+    }
+
+    void ApplyRenderOverride(const nlohmann::json& data, Wayfinder::Entity& entity)
+    {
+        Wayfinder::RenderOverrideComponent renderOverride;
+        if (data.contains("wireframe"))
         {
-            material.Wireframe = data.value("wireframe", material.Wireframe);
+            renderOverride.Wireframe = data.value("wireframe", false);
         }
+
         entity.AddComponent<Wayfinder::RenderOverrideComponent>(renderOverride);
     }
 
@@ -907,10 +917,10 @@ namespace
             componentTable["base_colour"] = WriteColour(material.BaseColour);
         }
 
-        componentTables.insert_or_assign("material", componentTable);
+        componentTables["material"] = std::move(componentTable);
     }
 
-    void SerialiseRenderOverride(const Wayfinder::Entity& entity, toml::table& componentTables)
+    void SerialiseRenderOverride(const Wayfinder::Entity& entity, nlohmann::json& componentTables)
     {
         if (!entity.HasComponent<Wayfinder::RenderOverrideComponent>())
         {
@@ -918,13 +928,16 @@ namespace
         }
 
         const Wayfinder::RenderOverrideComponent& renderOverride = entity.GetComponent<Wayfinder::RenderOverrideComponent>();
-        toml::table componentTable;
+        nlohmann::json componentTable;
         if (renderOverride.Wireframe.has_value())
         {
-            componentTable["wireframe"] = material.Wireframe;
+            componentTable["wireframe"] = *renderOverride.Wireframe;
         }
 
-        componentTables["material"] = std::move(componentTable);
+        if (!componentTable.empty())
+        {
+            componentTables["render_override"] = std::move(componentTable);
+        }
     }
 
     void SerialiseRenderable(const Wayfinder::Entity& entity, nlohmann::json& componentTables)

@@ -14,7 +14,7 @@
 namespace Wayfinder
 {
     // ── Material Parameter Types ─────────────────────────────
-    // A material carries a generic parameter bag populated from TOML
+    // A material carries a generic parameter bag populated from JSON
     // and consumed by the shader program to fill UBO bytes.
 
     enum class MaterialParamType : uint8_t
@@ -49,7 +49,7 @@ namespace Wayfinder
 
     // ── Material Parameter Block ─────────────────────────────
     // Runtime storage for material parameters, keyed by name.
-    // Authored materials populate this from TOML [parameters].
+    // Authored materials populate this from JSON parameter objects.
     // The renderer serialises it into UBO bytes using the shader program's declarations.
 
     struct WAYFINDER_API MaterialParameterBlock
