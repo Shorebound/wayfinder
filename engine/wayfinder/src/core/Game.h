@@ -11,6 +11,7 @@
 #include "GameplayTagRegistry.h"
 #include "GameState.h"
 #include "GameStateMachine.h"
+#include "Result.h"
 #include "SceneSettings.h"
 #include "Subsystem.h"
 #include "wayfinder_exports.h"
@@ -29,7 +30,7 @@ namespace Wayfinder
         Game();
         ~Game();
 
-        bool Initialise(const GameContext& ctx);
+        Result<void> Initialise(const GameContext& ctx);
         void Update(float deltaTime);
         void Shutdown();
 

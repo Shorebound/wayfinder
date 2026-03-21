@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Result.h"
 #include "wayfinder_exports.h"
 
 #include <filesystem>
@@ -47,21 +48,18 @@ namespace Wayfinder
         /// Returns empty path if no module is configured.
         std::filesystem::path ResolveModulePath() const;
 
-        /// Result of loading a project descriptor with validation information.
-        struct LoadResult;
-
         /// Load a project descriptor from a file with validation.
-        /// Returns a LoadResult containing the descriptor, validity flag, and
+        /// On success, returns a ProjectLoadOutput containing the descriptor and
         /// any warnings encountered during parsing/validation.
-        static LoadResult LoadFromFile(const std::filesystem::path& path);
+        /// On failure, returns an Error describing the problem.
+        static Result<struct ProjectLoadOutput> LoadFromFile(const std::filesystem::path& path);
     };
 
-    /// Result of loading a project descriptor with validation information.
-    /// Defined outside ProjectDescriptor so it can hold a ProjectDescriptor by value.
-    struct WAYFINDER_API ProjectDescriptor::LoadResult
+    /// Successful output of loading a project descriptor.
+    /// Contains the parsed descriptor and any non-fatal warnings.
+    struct WAYFINDER_API ProjectLoadOutput
     {
         ProjectDescriptor Descriptor;
-        bool Valid = true;
         std::vector<std::string> Warnings;
     };
 

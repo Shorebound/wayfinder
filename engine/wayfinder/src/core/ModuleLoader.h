@@ -1,11 +1,11 @@
 #pragma once
 
 #include "Module.h"
+#include "Result.h"
 #include "wayfinder_exports.h"
 
 #include <filesystem>
 #include <memory>
-#include <optional>
 
 namespace Wayfinder
 {
@@ -40,8 +40,8 @@ namespace Wayfinder
     {
     public:
         /// Load a game module shared library from the given path.
-        /// Returns nullopt on failure (logs the error).
-        static std::optional<LoadedModule> Load(const std::filesystem::path& libraryPath);
+        /// Returns an Error on failure (logs the error).
+        static Result<LoadedModule> Load(const std::filesystem::path& libraryPath);
     };
 
 } // namespace Wayfinder

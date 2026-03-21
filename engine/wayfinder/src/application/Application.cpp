@@ -42,7 +42,7 @@ namespace Wayfinder
         Shutdown();
     }
 
-    bool Application::Initialise()
+    Result<void> Application::Initialise()
     {
         Log::Init();
         WAYFINDER_INFO(LogEngine, "Initialising Wayfinder Engine");
@@ -55,24 +55,24 @@ namespace Wayfinder
                 "No project.wayfinder found in current directory or any parent. "
                 "Run the engine from within a project directory.");
             Log::Shutdown();
-            return false;
+            return MakeError("No project.wayfinder found");
         }
 
         auto loadResult = ProjectDescriptor::LoadFromFile(*projectFile);
 
-        if (!loadResult.Valid)
+        if (!loadResult)
         {
             WAYFINDER_ERROR(LogEngine, "Failed to load project descriptor");
             Log::Shutdown();
-            return false;
+            return MakeError("Failed to load project descriptor");
         }
 
-        for (const auto& warning : loadResult.Warnings)
+        for (const auto& warning : loadResult->Warnings)
         {
             WAYFINDER_WARNING(LogEngine, "Project: {}", warning);
         }
 
-        m_project = std::make_unique<ProjectDescriptor>(std::move(loadResult.Descriptor));
+        m_project = std::make_unique<ProjectDescriptor>(std::move(loadResult->Descriptor));
 
         // 2. Load engine config
         m_config = std::make_unique<EngineConfig>(
@@ -91,7 +91,7 @@ namespace Wayfinder
         {
             WAYFINDER_ERROR(LogEngine, "Failed to initialise EngineRuntime");
             Shutdown();
-            return false;
+            return MakeError("Failed to initialise EngineRuntime");
         }
 
         // Wire window events → Application::OnEvent
@@ -109,7 +109,7 @@ namespace Wayfinder
         {
             WAYFINDER_ERROR(LogEngine, "Failed to initialise Game");
             Shutdown();
-            return false;
+            return MakeError("Failed to initialise Game");
         }
 
         m_runtime->SetAssetService(m_game->GetAssetService());
@@ -122,7 +122,7 @@ namespace Wayfinder
         }
 
         m_running = true;
-        return true;
+        return {};
     }
 
     void Application::Loop()

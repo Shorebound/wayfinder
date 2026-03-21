@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Result.h"
+
 #include <memory>
 
 namespace Wayfinder
@@ -39,7 +41,7 @@ namespace Wayfinder
         ~EngineRuntime();
 
         // ── Lifecycle ────────────────────────────────────────
-        bool Initialise();
+        Result<void> Initialise();
         void Shutdown();
 
         // ── Per-frame ────────────────────────────────────────

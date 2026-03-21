@@ -1,5 +1,6 @@
 #pragma once
 
+#include "core/Result.h"
 #include "core/events/EventQueue.h"
 
 #include <memory>
@@ -38,7 +39,7 @@ namespace Wayfinder
         LayerStack& GetLayerStack();
 
     private:
-        bool Initialise();
+        Result<void> Initialise();
         void Loop();
         void Shutdown();
 

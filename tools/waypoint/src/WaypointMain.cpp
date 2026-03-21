@@ -4,6 +4,7 @@
 #include "core/ModuleRegistry.h"
 #include "core/ProjectDescriptor.h"
 #include "core/ProjectResolver.h"
+#include "core/Result.h"
 #include "assets/AssetRegistry.h"
 #include "scene/RuntimeComponentRegistry.h"
 #include "scene/Scene.h"
@@ -11,8 +12,8 @@
 #include <flecs.h>
 #include <filesystem>
 #include <iostream>
-#include <string>
 #include <optional>
+#include <string>
 
 namespace
 {
@@ -62,9 +63,10 @@ namespace
                 if (!std::filesystem::exists(modulePath) && !toolDir.empty())
                     modulePath = toolDir / modulePath.filename();
 
-                Module = Wayfinder::ModuleLoader::Load(modulePath);
-                if (Module && Module->Instance)
+                auto loadResult = Wayfinder::ModuleLoader::Load(modulePath);
+                if (loadResult && loadResult->Instance)
                 {
+                    Module = std::move(*loadResult);
                     auto defaultConfig = Wayfinder::EngineConfig::LoadDefaults();
                     ModReg = std::make_unique<Wayfinder::ModuleRegistry>(*project, defaultConfig);
                     Module->Instance->Register(*ModReg);
@@ -156,19 +158,19 @@ int main(int argc, char** argv)
 
         auto loadResult = Wayfinder::ProjectDescriptor::LoadFromFile(*projectFile);
 
-        if (!loadResult.Valid)
+        if (!loadResult)
         {
             std::cerr << "Failed to load project descriptor from: " << projectFile->string() << '\n';
             Wayfinder::Log::Shutdown();
             return 1;
         }
 
-        for (const auto& warning : loadResult.Warnings)
+        for (const auto& warning : loadResult->Warnings)
         {
             WAYFINDER_WARNING(Wayfinder::LogEngine, "Project: {}", warning);
         }
 
-        project = std::move(loadResult.Descriptor);
+        project = std::move(loadResult->Descriptor);
     }
 
     if (argIndex >= argc)
