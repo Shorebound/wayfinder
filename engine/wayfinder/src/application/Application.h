@@ -30,7 +30,7 @@ namespace Wayfinder
         };
 
         explicit Application(std::unique_ptr<Module> module,
-                             const CommandLineArgs& args = {});
+                             const CommandLineArgs& args);
         ~Application();
 
         void Run();
