@@ -19,25 +19,6 @@ target_link_libraries(${WAYFINDER_RENDER_TEST_NAME}
 add_test(NAME ${WAYFINDER_RENDER_TEST_NAME} COMMAND ${WAYFINDER_RENDER_TEST_NAME})
 set_target_properties(${WAYFINDER_RENDER_TEST_NAME} PROPERTIES FOLDER "${TESTS_DIRECTORY}")
 
-# ── Scene Tests ───────────────────────────────────────────
-
-set(WAYFINDER_SCENE_TEST_NAME wayfinder_scene_tests)
-
-add_executable(${WAYFINDER_SCENE_TEST_NAME}
-  scene/SceneComponentTests.cpp
-)
-
-wayfinder_set_output_directories(${WAYFINDER_SCENE_TEST_NAME})
-
-target_link_libraries(${WAYFINDER_SCENE_TEST_NAME}
-  PRIVATE
-    ${ENGINE_NAME}
-    doctest::doctest_with_main
-)
-
-add_test(NAME ${WAYFINDER_SCENE_TEST_NAME} COMMAND ${WAYFINDER_SCENE_TEST_NAME})
-set_target_properties(${WAYFINDER_SCENE_TEST_NAME} PROPERTIES FOLDER "${TESTS_DIRECTORY}")
-
 # ── Core Tests ────────────────────────────────────────────
 
 set(WAYFINDER_CORE_TEST_NAME wayfinder_core_tests)
@@ -76,6 +57,7 @@ set_target_properties(${WAYFINDER_CORE_TEST_NAME} PROPERTIES FOLDER "${TESTS_DIR
 set(WAYFINDER_SCENE_TEST_NAME wayfinder_scene_tests)
 
 add_executable(${WAYFINDER_SCENE_TEST_NAME}
+  scene/SceneComponentTests.cpp
   scene/ECSIntegrationTests.cpp
   scene/SceneLoadTests.cpp
   scene/SceneSaveTests.cpp
