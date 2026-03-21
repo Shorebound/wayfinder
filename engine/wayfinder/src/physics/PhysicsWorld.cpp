@@ -163,8 +163,9 @@ namespace Wayfinder
             m_impl->ObjVsBPFilter,
             m_impl->ObjPairFilter);
 
+        m_accumulator = 0.0f;
         m_initialised = true;
-        WAYFINDER_INFO(LogPhysics, "PhysicsWorld initialised (Jolt)");
+        WAYFINDER_INFO(LogPhysics, "PhysicsWorld initialised (Jolt, fixed dt={:.4f}s)", m_fixedTimestep);
     }
 
     void PhysicsWorld::Shutdown()
@@ -188,6 +189,42 @@ namespace Wayfinder
             COLLISION_STEPS,
             m_impl->TempAlloc.get(),
             m_impl->JobSys.get());
+    }
+
+    int PhysicsWorld::StepFixed(float frameDeltaTime)
+    {
+        if (!m_initialised || frameDeltaTime <= 0.0f)
+            return 0;
+
+        m_accumulator += frameDeltaTime;
+
+        /// Cap the accumulator to avoid a spiral-of-death when a frame takes
+        /// much longer than expected (e.g. debugger pause, long hitch).
+        constexpr float MAX_ACCUMULATED = 0.25f;
+        if (m_accumulator > MAX_ACCUMULATED)
+            m_accumulator = MAX_ACCUMULATED;
+
+        int steps = 0;
+        while (m_accumulator >= m_fixedTimestep)
+        {
+            Step(m_fixedTimestep);
+            m_accumulator -= m_fixedTimestep;
+            ++steps;
+        }
+
+        return steps;
+    }
+
+    void PhysicsWorld::SetFixedTimestep(float timestep)
+    {
+        if (timestep <= 0.0f)
+        {
+            WAYFINDER_WARNING(LogPhysics,
+                "SetFixedTimestep called with non-positive value {:.6f}; ignoring",
+                timestep);
+            return;
+        }
+        m_fixedTimestep = timestep;
     }
 
     uint32_t PhysicsWorld::CreateBody(const RigidBodyComponent& body,

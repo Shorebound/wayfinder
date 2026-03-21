@@ -25,6 +25,9 @@ namespace Wayfinder
      *
      * Owns the Jolt world, temp allocator, job system and layer callbacks.
      * The engine creates exactly one instance via PhysicsSubsystem.
+     *
+     * Simulation uses a fixed timestep accumulator: call StepFixed() each
+     * frame and the world advances in uniform increments of GetFixedTimestep().
      */
     class WAYFINDER_API PhysicsWorld
     {
@@ -42,8 +45,21 @@ namespace Wayfinder
         /// Tear down all bodies and free Jolt state.
         void Shutdown();
 
-        /// Step the simulation by @p deltaTime seconds.
+        /// Step the simulation by exactly @p deltaTime seconds (single step).
+        /// Prefer StepFixed() for frame-driven updates.
         void Step(float deltaTime);
+
+        /// Accumulate @p frameDeltaTime and advance the simulation in fixed
+        /// increments of GetFixedTimestep().  Returns the number of sub-steps
+        /// performed (0 if the accumulated time is still below one tick).
+        int StepFixed(float frameDeltaTime);
+
+        /// Set the fixed simulation timestep (in seconds).
+        /// Must be positive. Takes effect on the next StepFixed() call.
+        void SetFixedTimestep(float timestep);
+
+        /// @return The current fixed timestep in seconds.
+        float GetFixedTimestep() const { return m_fixedTimestep; }
 
         /// Create a Jolt body from component data and return its raw BodyID value.
         /// Returns INVALID_PHYSICS_BODY on failure.
@@ -66,6 +82,8 @@ namespace Wayfinder
     private:
         struct Impl;
         std::unique_ptr<Impl> m_impl;
+        float m_fixedTimestep = 1.0f / 60.0f;
+        float m_accumulator = 0.0f;
         bool m_initialised = false;
     };
 

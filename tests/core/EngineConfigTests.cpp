@@ -23,6 +23,7 @@ TEST_SUITE("EngineConfig")
         CHECK(config.Backends.Platform == PlatformBackend::SDL3);
         CHECK(config.Backends.Rendering == RenderBackend::SDL_GPU);
         CHECK(config.Shaders.Directory == "assets/shaders");
+        CHECK(config.Physics.FixedTimestep == doctest::Approx(1.0f / 60.0f));
     }
 
     TEST_CASE("LoadFromFile reads test config")
@@ -37,6 +38,7 @@ TEST_SUITE("EngineConfig")
         CHECK(config.Backends.Platform == PlatformBackend::SDL3);
         CHECK(config.Backends.Rendering == RenderBackend::Null);
         CHECK(config.Shaders.Directory == "test/shaders");
+        CHECK(config.Physics.FixedTimestep == doctest::Approx(0.008333333f));
     }
 
     TEST_CASE("LoadFromFile with missing file returns defaults")
@@ -50,5 +52,6 @@ TEST_SUITE("EngineConfig")
         CHECK(config.Backends.Platform == PlatformBackend::SDL3);
         CHECK(config.Backends.Rendering == RenderBackend::SDL_GPU);
         CHECK(config.Shaders.Directory == "assets/shaders");
+        CHECK(config.Physics.FixedTimestep == doctest::Approx(1.0f / 60.0f));
     }
 }

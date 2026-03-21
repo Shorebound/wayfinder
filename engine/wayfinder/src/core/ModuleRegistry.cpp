@@ -66,4 +66,6 @@ namespace Wayfinder
 
     const ProjectDescriptor& ModuleRegistry::GetProject() const { return m_project; }
 
+    const EngineConfig& ModuleRegistry::GetConfig() const { return m_config; }
+
 } // namespace Wayfinder

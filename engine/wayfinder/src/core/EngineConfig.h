@@ -21,11 +21,19 @@ namespace Wayfinder
         std::string Directory = "assets/shaders";
     };
 
+    struct PhysicsConfig
+    {
+        /// Fixed simulation timestep in seconds.  The physics world advances
+        /// in increments of this size, accumulating leftover frame time.
+        float FixedTimestep = 1.0f / 60.0f;
+    };
+
     struct WAYFINDER_API EngineConfig
     {
         WindowConfig Window;
         BackendConfig Backends;
         ShaderConfig Shaders;
+        PhysicsConfig Physics;
 
         static EngineConfig LoadFromFile(const std::filesystem::path& path);
         static EngineConfig LoadDefaults();

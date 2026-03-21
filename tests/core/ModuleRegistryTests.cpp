@@ -368,6 +368,15 @@ TEST_SUITE("ModuleRegistry")
         CHECK(registry.GetProject().Name == "ModuleRegistryTest");
     }
 
+    TEST_CASE("GetConfig returns the engine configuration")
+    {
+        auto project = MakeTestProject();
+        auto config = MakeTestConfig();
+        ModuleRegistry registry(project, config);
+
+        CHECK(registry.GetConfig().Physics.FixedTimestep == doctest::Approx(1.0f / 60.0f));
+    }
+
     // ── Plugin ──────────────────────────────────────────────
 
     TEST_CASE("AddPlugin calls Build immediately")
