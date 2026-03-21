@@ -7,7 +7,6 @@ namespace
     constexpr std::string_view kNameKey = "name";
     constexpr std::string_view kShaderKey = "shader";
     constexpr std::string_view kBaseColorKey = "base_color";
-    constexpr std::string_view kWireframeKey = "wireframe";
     constexpr std::string_view kParametersKey = "parameters";
 
     // Parse a TOML array of 3 or 4 integers into a LinearColor.
@@ -154,14 +153,6 @@ namespace Wayfinder
             parsed.Parameters.SetColor("base_color", LinearColor::White());
         }
 
-        const toml::node* wireframeNode = document.get(kWireframeKey);
-        if (wireframeNode && !wireframeNode->is_boolean())
-        {
-            error = "Material asset '" + sourceLabel + "' field 'wireframe' must be a boolean";
-            return false;
-        }
-
-        parsed.Wireframe = document[kWireframeKey].value_or(parsed.Wireframe);
         material = std::move(parsed);
         return true;
     }
@@ -188,7 +179,6 @@ namespace Wayfinder
         toml::table table;
         table.insert_or_assign("material_id", material.Id.ToString());
         table.insert_or_assign("shader", material.ShaderName);
-        table.insert_or_assign("wireframe", material.Wireframe);
 
         // Serialise parameters as a [parameters] table
         toml::table paramsTable;

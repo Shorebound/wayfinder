@@ -25,7 +25,6 @@ namespace Wayfinder
         std::string Name;
         std::string ShaderName = "unlit";
         MaterialParameterBlock Parameters;
-        bool Wireframe = true;
 
         // Convenience accessors for the most common parameter.
         LinearColor GetBaseColor() const;

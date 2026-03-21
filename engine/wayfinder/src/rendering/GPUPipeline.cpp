@@ -18,6 +18,13 @@ namespace Wayfinder
             return false;
         }
 
+        if (desc.numColourTargets == 0 || desc.numColourTargets > MAX_COLOUR_TARGETS)
+        {
+            WAYFINDER_ERROR(LogRenderer, "GPUPipeline: numColourTargets={} is out of range [1, {}]",
+                desc.numColourTargets, MAX_COLOUR_TARGETS);
+            return false;
+        }
+
         PipelineCreateDesc pipeDesc{};
         pipeDesc.vertexShader = vs;
         pipeDesc.fragmentShader = fs;
@@ -28,6 +35,11 @@ namespace Wayfinder
         pipeDesc.frontFace = desc.frontFace;
         pipeDesc.depthTestEnabled = desc.depthTestEnabled;
         pipeDesc.depthWriteEnabled = desc.depthWriteEnabled;
+        pipeDesc.numColourTargets = desc.numColourTargets;
+        for (uint32_t i = 0; i < desc.numColourTargets; ++i)
+        {
+            pipeDesc.colourTargetBlends[i] = desc.colourTargetBlends[i];
+        }
 
         if (cache)
         {
