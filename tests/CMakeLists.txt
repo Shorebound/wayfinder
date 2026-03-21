@@ -86,6 +86,7 @@ set(WAYFINDER_PHYSICS_TEST_NAME wayfinder_physics_tests)
 
 add_executable(${WAYFINDER_PHYSICS_TEST_NAME}
   physics/PhysicsTests.cpp
+  physics/PhysicsIntegrationTests.cpp
 )
 
 wayfinder_set_output_directories(${WAYFINDER_PHYSICS_TEST_NAME})
