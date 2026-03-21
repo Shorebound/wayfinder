@@ -1,11 +1,15 @@
 #pragma once
 
+#include "rendering/ArenaFunction.h"
+#include "rendering/FrameAllocator.h"
 #include "rendering/RenderTypes.h"
 
+#include <concepts>
 #include <cstdint>
-#include <functional>
 #include <optional>
 #include <string>
+#include <type_traits>
+#include <utility>
 #include <vector>
 
 namespace Wayfinder
@@ -91,7 +95,9 @@ namespace Wayfinder
 
     // ── Pass Types ───────────────────────────────────────────
 
-    using RenderGraphExecuteFn = std::function<void(RenderDevice& device, const RenderGraphResources& resources)>;
+    /// Type-erased execute callback for render graph passes.
+    /// Backed by the graph's FrameAllocator — zero heap allocations.
+    using RenderGraphExecuteFn = ArenaFunction<void(RenderDevice& device, const RenderGraphResources& resources)>;
 
     enum class RenderGraphPassType
     {
@@ -104,19 +110,20 @@ namespace Wayfinder
     // Passes declare resource dependencies, the graph resolves execution
     // order via topological sort, and allocates transient textures.
 
-    using PassSetupFn = std::function<RenderGraphExecuteFn(RenderGraphBuilder& builder)>;
-
     class RenderGraph
     {
     public:
         RenderGraph() = default;
 
-        // Add a raster pass. The setup function declares dependencies
-        // and returns the execute callback.
-        void AddPass(const std::string& name, PassSetupFn setup);
+        /// Add a raster pass. The setup callable declares dependencies via
+        /// the builder and returns an execute callback (any invocable matching
+        /// void(RenderDevice&, const RenderGraphResources&)).
+        template <typename TSetup>
+        void AddPass(const std::string& name, TSetup&& setup);
 
-        // Add a compute pass (same interface — dependencies determine ordering).
-        void AddComputePass(const std::string& name, PassSetupFn setup);
+        /// Add a compute pass (same interface — dependencies determine ordering).
+        template <typename TSetup>
+        void AddComputePass(const std::string& name, TSetup&& setup);
 
         // Import a named resource handle so passes can reference it by name.
         RenderGraphHandle ImportTexture(const std::string& name);
@@ -182,10 +189,55 @@ namespace Wayfinder
 
         RenderGraphHandle AllocateResource(const RenderGraphTextureDesc& desc, const std::string& name = "");
 
+        FrameAllocator m_allocator;
         std::vector<ResourceEntry> m_resources;
         std::vector<PassEntry> m_passes;
         std::vector<uint32_t> m_executionOrder;
         bool m_compiled = false;
     };
+
+    // ── Template Implementations ─────────────────────────────
+
+    template <typename TSetup>
+    void RenderGraph::AddPass(const std::string& name, TSetup&& setup)
+    {
+        uint32_t passIndex = static_cast<uint32_t>(m_passes.size());
+        m_passes.push_back({});
+        m_passes.back().Name = name;
+        m_passes.back().Type = RenderGraphPassType::Raster;
+
+        RenderGraphBuilder builder(*this, passIndex);
+        auto executeFn = std::forward<TSetup>(setup)(builder);
+
+        static_assert(
+            std::is_invocable_r_v<void,
+                decltype(executeFn),
+                RenderDevice&,
+                const RenderGraphResources&>,
+            "AddPass: setup must return a callable matching void(RenderDevice&, const RenderGraphResources&)");
+
+        m_passes.back().Execute = RenderGraphExecuteFn(m_allocator, std::move(executeFn));
+    }
+
+    template <typename TSetup>
+    void RenderGraph::AddComputePass(const std::string& name, TSetup&& setup)
+    {
+        uint32_t passIndex = static_cast<uint32_t>(m_passes.size());
+        m_passes.push_back({});
+        m_passes.back().Name = name;
+        m_passes.back().Type = RenderGraphPassType::Compute;
+
+        RenderGraphBuilder builder(*this, passIndex);
+        auto executeFn = std::forward<TSetup>(setup)(builder);
+
+        static_assert(
+            std::is_invocable_r_v<void,
+                decltype(executeFn),
+                RenderDevice&,
+                const RenderGraphResources&>,
+            "AddComputePass: setup must return a callable matching void(RenderDevice&, const RenderGraphResources&)");
+
+        m_passes.back().Execute = RenderGraphExecuteFn(m_allocator, std::move(executeFn));
+    }
 
 } // namespace Wayfinder

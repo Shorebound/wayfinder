@@ -14,8 +14,8 @@ namespace Wayfinder
 
         virtual void OnAttach() {}
         virtual void OnDetach() {}
-        virtual void OnUpdate(float deltaTime) {}
-        virtual void OnEvent(Event& event) {}
+        virtual void OnUpdate(float /*deltaTime*/) {}
+        virtual void OnEvent(Event& /*event*/) {}
 
         virtual const char* GetName() const { return "Layer"; }
     };

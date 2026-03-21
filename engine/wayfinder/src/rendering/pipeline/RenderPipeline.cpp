@@ -227,7 +227,7 @@ namespace Wayfinder
         depthDesc.DebugName = WellKnown::SceneDepth;
 
         // ── MainScene Pass ───────────────────────────────────
-        graph.AddPass("MainScene", [&, viewMat = view, projMat = projection, hasCamera](RenderGraphBuilder& builder) -> RenderGraphExecuteFn {
+        graph.AddPass("MainScene", [&, viewMat = view, projMat = projection, hasCamera](RenderGraphBuilder& builder) {
             auto colour = builder.CreateTransient(colourDesc);
             auto depth = builder.CreateTransient(depthDesc);
             builder.WriteColour(colour, LoadOp::Clear, ClearValue::FromColour(clearColour));
@@ -364,7 +364,7 @@ namespace Wayfinder
         });
 
         // ── Debug Pass ───────────────────────────────────────
-        graph.AddPass("Debug", [&, viewMat = view, projMat = projection, hasCamera](RenderGraphBuilder& builder) -> RenderGraphExecuteFn {
+        graph.AddPass("Debug", [&, viewMat = view, projMat = projection, hasCamera](RenderGraphBuilder& builder) {
             auto colour = graph.FindHandle(WellKnown::SceneColour);
             auto depth = graph.FindHandle(WellKnown::SceneDepth);
             builder.WriteColour(colour, LoadOp::Load);
@@ -478,7 +478,7 @@ namespace Wayfinder
         }
 
         // ── Composition Pass ─────────────────────────────────
-        graph.AddPass("Composition", [&](RenderGraphBuilder& builder) -> RenderGraphExecuteFn {
+        graph.AddPass("Composition", [&](RenderGraphBuilder& builder) {
             auto colour = graph.FindHandle(WellKnown::SceneColour);
             builder.ReadTexture(colour);
             builder.SetSwapchainOutput(LoadOp::DontCare);

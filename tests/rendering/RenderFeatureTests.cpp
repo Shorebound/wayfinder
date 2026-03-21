@@ -28,7 +28,7 @@ namespace Wayfinder::Tests
             m_log.push_back(m_name + "::AddPasses");
 
             // Inject a simple pass that reads SceneColour and writes swapchain
-            graph.AddPass(m_name, [this](Wayfinder::RenderGraphBuilder& builder) -> Wayfinder::RenderGraphExecuteFn {
+            graph.AddPass(m_name, [this](Wayfinder::RenderGraphBuilder& builder) {
                 auto colour = builder.CreateTransient({128, 128, Wayfinder::TextureFormat::RGBA8_UNORM, m_name.c_str()});
                 builder.WriteColour(colour);
                 return [](Wayfinder::RenderDevice&, const Wayfinder::RenderGraphResources&) {};
@@ -62,7 +62,7 @@ namespace Wayfinder::Tests
 
         void AddPasses(Wayfinder::RenderGraph& graph, const Wayfinder::RenderFrame&) override
         {
-            graph.AddPass("OverlayPass", [&](Wayfinder::RenderGraphBuilder& builder) -> Wayfinder::RenderGraphExecuteFn {
+            graph.AddPass("OverlayPass", [&](Wayfinder::RenderGraphBuilder& builder) {
                 auto colour = graph.FindHandle(Wayfinder::WellKnown::SceneColour);
                 if (colour.IsValid())
                 {
@@ -178,7 +178,7 @@ namespace Wayfinder::Tests
         colourDesc.Format = Wayfinder::TextureFormat::RGBA8_UNORM;
         colourDesc.DebugName = Wayfinder::WellKnown::SceneColour;
 
-        graph.AddPass("MainScene", [&](Wayfinder::RenderGraphBuilder& builder) -> Wayfinder::RenderGraphExecuteFn {
+        graph.AddPass("MainScene", [&](Wayfinder::RenderGraphBuilder& builder) {
             auto colour = builder.CreateTransient(colourDesc);
             builder.WriteColour(colour);
             return [](Wayfinder::RenderDevice&, const Wayfinder::RenderGraphResources&) {};

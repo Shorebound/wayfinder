@@ -101,28 +101,6 @@ namespace Wayfinder
         return handle;
     }
 
-    void RenderGraph::AddPass(const std::string& name, PassSetupFn setup)
-    {
-        uint32_t passIndex = static_cast<uint32_t>(m_passes.size());
-        m_passes.push_back({});
-        m_passes.back().Name = name;
-        m_passes.back().Type = RenderGraphPassType::Raster;
-
-        RenderGraphBuilder builder(*this, passIndex);
-        m_passes.back().Execute = setup(builder);
-    }
-
-    void RenderGraph::AddComputePass(const std::string& name, PassSetupFn setup)
-    {
-        uint32_t passIndex = static_cast<uint32_t>(m_passes.size());
-        m_passes.push_back({});
-        m_passes.back().Name = name;
-        m_passes.back().Type = RenderGraphPassType::Compute;
-
-        RenderGraphBuilder builder(*this, passIndex);
-        m_passes.back().Execute = setup(builder);
-    }
-
     RenderGraphHandle RenderGraph::ImportTexture(const std::string& name)
     {
         // Check if already imported
