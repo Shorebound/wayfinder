@@ -42,15 +42,25 @@ namespace Wayfinder
         virtual void SetEventCallback(const EventCallbackFn& callback) = 0;
 
         /**
-         * @brief Create a platform window.
-         * @param config   Window configuration (dimensions, title, vsync).
-         * @param backend  Platform backend to use (defaults to SDL3).
-         * @return A unique_ptr owning the new Window, or nullptr if creation
-         *         fails.
+         * @brief Create a Window with the given configuration.
+         * @param config   Window dimensions, title, and VSync settings.
+         * @param backend  Platform backend to use (defaults to PlatformBackend::SDL3).
+         * @return A std::unique_ptr<Window> owning the platform window.
          */
         static std::unique_ptr<Window> Create(
             const Window::Config& config,
             PlatformBackend backend = PlatformBackend::SDL3);
+
+        /**
+         * @brief Create a Window with default configuration.
+         *
+         * Convenience overload that delegates to Create(Config{}).
+         * @return A std::unique_ptr<Window> owning the platform window.
+         */
+        static std::unique_ptr<Window> Create()
+        {
+            return Create(Config{});
+        }
     };
 
 }

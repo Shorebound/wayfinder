@@ -3,20 +3,13 @@
 #include <cstdint>
 #include <string>
 
-#include <glm/glm.hpp>
-
 #include "../core/BackendConfig.h"
+#include "../core/Types.h"
 #include "GPUHandles.h"
 #include "wayfinder_exports.h"
 
 namespace Wayfinder
 {
-
-    // ── Engine Math Aliases ──────────────────────────────────
-
-    using Float3 = glm::vec3;
-    using Float4 = glm::vec4;
-    using Matrix4 = glm::mat4;
 
     // ── Colour ────────────────────────────────────────────────
 
@@ -55,7 +48,7 @@ namespace Wayfinder
             };
         }
 
-        glm::vec4 ToVec4() const { return {r, g, b, a}; }
+        Float4 ToVec4() const { return {r, g, b, a}; }
         Float3 ToFloat3() const { return {r, g, b}; }
     };
 

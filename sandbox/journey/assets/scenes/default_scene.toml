@@ -108,3 +108,52 @@ base_colour = [85, 168, 120, 255]
 
 [entities.render_override]
 wireframe = true
+
+# ── Physics demo entities ────────────────────────────────────
+
+[[entities]]
+id = "a1b2c3d4-e5f6-7890-abcd-000000000001"
+name = "PhysicsGround"
+parent_id = "d43f13fe-fd18-46ad-9e2a-10d9cd0f6f9c"
+prefab_id = "f4a6f64d-7233-4d0c-bf13-cfd5f6f16b8c"
+
+[entities.transform]
+position = [0.0, -0.5, 0.0]
+rotation = [0.0, 0.0, 0.0]
+scale = [20.0, 1.0, 20.0]
+
+[entities.material]
+base_colour = [180, 180, 180, 255]
+
+[entities.rigid_body]
+type = "static"
+
+[entities.collider]
+shape = "box"
+half_extents = [10.0, 0.5, 10.0]
+friction = 0.5
+restitution = 0.0
+
+[[entities]]
+id = "a1b2c3d4-e5f6-7890-abcd-000000000002"
+name = "FallingCrate"
+parent_id = "d43f13fe-fd18-46ad-9e2a-10d9cd0f6f9c"
+prefab_id = "f4a6f64d-7233-4d0c-bf13-cfd5f6f16b8c"
+
+[entities.transform]
+position = [0.0, 5.0, 0.0]
+rotation = [0.0, 0.0, 0.0]
+scale = [1.0, 1.0, 1.0]
+
+[entities.material]
+base_colour = [230, 160, 50, 255]
+
+[entities.rigid_body]
+type = "dynamic"
+mass = 2.0
+
+[entities.collider]
+shape = "box"
+half_extents = [0.5, 0.5, 0.5]
+friction = 0.3
+restitution = 0.4
