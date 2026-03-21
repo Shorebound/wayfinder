@@ -22,6 +22,7 @@ namespace Wayfinder
 
     void Entity::SetName(const std::string& name)
     {
+        const std::string previousName = GetName();
         if (m_entityHandle.has<NameComponent>())
         {
             m_entityHandle.get_mut<NameComponent>().Value = name;
@@ -29,6 +30,11 @@ namespace Wayfinder
         else
         {
             m_entityHandle.set<NameComponent>(NameComponent{name});
+        }
+
+        if (m_scene != nullptr)
+        {
+            m_scene->UpdateEntityName(m_entityHandle, previousName, name);
         }
     }
 

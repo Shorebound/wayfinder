@@ -9,10 +9,12 @@
 #include <doctest/doctest.h>
 
 #include <filesystem>
+#include <fstream>
 #include <string>
 #include <string_view>
 
 #include <flecs.h>
+#include <nlohmann/json.hpp>
 
 
 namespace Wayfinder::Tests
@@ -223,6 +225,89 @@ namespace Wayfinder::Tests
 
             REQUIRE(result.Document.has_value());
             CHECK_FALSE(result.Document->Settings.empty());
+        }
+
+        TEST_CASE("LoadSceneDocument accepts version 1")
+        {
+            auto registry = MakeTestRegistry();
+            auto path = FixturesDir() / "test_scene.json";
+
+            auto result = LoadSceneDocument(path.string(), registry);
+
+            REQUIRE(result.Document.has_value());
+            CHECK(result.Errors.empty());
+            CHECK(result.Document->Version == 1);
+        }
+
+        TEST_CASE("LoadSceneDocument rejects missing version field")
+        {
+            auto registry = MakeTestRegistry();
+            auto tempDir = FixturesDir() / "temp";
+            std::filesystem::create_directories(tempDir);
+            auto path = tempDir / "no_version_scene.json";
+
+            // Write a scene file without "version"
+            {
+                nlohmann::json sceneData;
+                sceneData["scene_name"] = "NoVersion";
+                sceneData["entities"] = nlohmann::json::array();
+                std::ofstream file(path);
+                file << sceneData.dump(2);
+            }
+
+            auto result = LoadSceneDocument(path.string(), registry);
+
+            CHECK_FALSE(result.Document.has_value());
+            REQUIRE_FALSE(result.Errors.empty());
+
+            bool foundVersionError = false;
+            for (const auto& error : result.Errors)
+            {
+                if (error.find("version") != std::string::npos)
+                {
+                    foundVersionError = true;
+                    break;
+                }
+            }
+            CHECK(foundVersionError);
+
+            std::filesystem::remove(path);
+        }
+
+        TEST_CASE("LoadSceneDocument rejects wrong version number")
+        {
+            auto registry = MakeTestRegistry();
+            auto tempDir = FixturesDir() / "temp";
+            std::filesystem::create_directories(tempDir);
+            auto path = tempDir / "wrong_version_scene.json";
+
+            // Write a scene file with version 99
+            {
+                nlohmann::json sceneData;
+                sceneData["version"] = 99;
+                sceneData["scene_name"] = "WrongVersion";
+                sceneData["entities"] = nlohmann::json::array();
+                std::ofstream file(path);
+                file << sceneData.dump(2);
+            }
+
+            auto result = LoadSceneDocument(path.string(), registry);
+
+            CHECK_FALSE(result.Document.has_value());
+            REQUIRE_FALSE(result.Errors.empty());
+
+            bool foundVersionError = false;
+            for (const auto& error : result.Errors)
+            {
+                if (error.find("Unsupported scene format version") != std::string::npos)
+                {
+                    foundVersionError = true;
+                    break;
+                }
+            }
+            CHECK(foundVersionError);
+
+            std::filesystem::remove(path);
         }
     }
 }

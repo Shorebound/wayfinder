@@ -287,5 +287,88 @@ namespace Wayfinder::Tests
 
             CHECK(&scene.GetWorld() == &world);
         }
+
+        // ── Name Index ──────────────────────────────────────────
+
+        TEST_CASE("GetEntityByName uses indexed O(1) lookup")
+        {
+            flecs::world world;
+            auto registry = MakeTestRegistry();
+            registry.RegisterComponents(world);
+            Scene::RegisterCoreECS(world);
+            Scene scene(world, registry, "TestScene");
+
+            std::vector<Entity> created;
+            created.reserve(50);
+            for (int i = 0; i < 50; ++i)
+            {
+                created.push_back(scene.CreateEntity("Ent"));
+            }
+
+            // Every entity should be findable by its unique name
+            for (const Entity& entity : created)
+            {
+                auto found = scene.GetEntityByName(entity.GetName());
+                CHECK(found.IsValid());
+                CHECK(found == entity);
+            }
+        }
+
+        TEST_CASE("GetEntityByName tracks renamed entities")
+        {
+            flecs::world world;
+            auto registry = MakeTestRegistry();
+            registry.RegisterComponents(world);
+            Scene::RegisterCoreECS(world);
+            Scene scene(world, registry, "TestScene");
+
+            auto entity = scene.CreateEntity("OldName");
+            entity.SetName("NewName");
+
+            CHECK_FALSE(scene.GetEntityByName("OldName").IsValid());
+            auto found = scene.GetEntityByName("NewName");
+            CHECK(found.IsValid());
+            CHECK(found == entity);
+        }
+
+        // ── Mutable vs Read-Only Component Access ───────────────
+
+        TEST_CASE("GetComponent returns const reference for read access")
+        {
+            flecs::world world;
+            auto registry = MakeTestRegistry();
+            registry.RegisterComponents(world);
+            Scene::RegisterCoreECS(world);
+            Scene scene(world, registry, "TestScene");
+
+            auto entity = scene.CreateEntity("Player");
+            entity.AddComponent<TransformComponent>(TransformComponent{{1.0f, 2.0f, 3.0f}});
+
+            // GetComponent on non-const Entity returns const T& (read-only)
+            const auto& transform = entity.GetComponent<TransformComponent>();
+            CHECK(transform.Position.x == doctest::Approx(1.0f));
+            CHECK(transform.Position.y == doctest::Approx(2.0f));
+            CHECK(transform.Position.z == doctest::Approx(3.0f));
+        }
+
+        TEST_CASE("GetMutableComponent returns mutable reference for write access")
+        {
+            flecs::world world;
+            auto registry = MakeTestRegistry();
+            registry.RegisterComponents(world);
+            Scene::RegisterCoreECS(world);
+            Scene scene(world, registry, "TestScene");
+
+            auto entity = scene.CreateEntity("Player");
+            entity.AddComponent<TransformComponent>(TransformComponent{{1.0f, 2.0f, 3.0f}});
+
+            // GetMutableComponent returns T& (mutable)
+            auto& transform = entity.GetMutableComponent<TransformComponent>();
+            transform.Position.x = 99.0f;
+
+            // Verify mutation persisted
+            const auto& readBack = entity.GetComponent<TransformComponent>();
+            CHECK(readBack.Position.x == doctest::Approx(99.0f));
+        }
     }
 }

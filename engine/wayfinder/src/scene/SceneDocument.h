@@ -23,8 +23,12 @@ namespace Wayfinder
         nlohmann::json ComponentData = nlohmann::json::object();
     };
 
+    /// Current scene format version.
+    inline constexpr int SCENE_FORMAT_VERSION = 1;
+
     struct SceneDocument
     {
+        int Version = SCENE_FORMAT_VERSION;
         std::string Name;
         nlohmann::json Settings = nlohmann::json::object();
         std::vector<SceneDocumentEntity> Entities;

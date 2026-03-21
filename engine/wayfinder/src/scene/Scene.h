@@ -57,11 +57,15 @@ namespace Wayfinder
         void RegisterEntityId(flecs::entity entityHandle, const SceneObjectId& id) const;
         void UnregisterEntityId(const SceneObjectId& id) const;
         void UpdateEntityId(flecs::entity entityHandle, const SceneObjectId& previousId, const SceneObjectId& newId) const;
+        void RegisterEntityName(flecs::entity entityHandle, const std::string& name) const;
+        void UnregisterEntityName(const std::string& name) const;
+        void UpdateEntityName(flecs::entity entityHandle, const std::string& previousName, const std::string& newName) const;
 
         flecs::world& m_world;
         const RuntimeComponentRegistry& m_componentRegistry;
         flecs::entity m_sceneTag;
         mutable std::unordered_map<SceneObjectId, flecs::entity_t> m_entitiesById;
+        mutable std::unordered_map<std::string, flecs::entity_t> m_entitiesByName;
         std::string m_name;
         std::filesystem::path m_sourcePath;
         std::filesystem::path m_assetRoot;

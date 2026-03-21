@@ -1,7 +1,6 @@
 #include "Scene.h"
 #include "RuntimeComponentRegistry.h"
 #include "SceneDocument.h"
-#include "SceneModuleRegistry.h"
 #include "scene/entity/Entity.h"
 #include "Components.h"
 #include "core/Log.h"
@@ -68,6 +67,38 @@ namespace Wayfinder
         RegisterEntityId(entityHandle, newId);
     }
 
+    void Scene::RegisterEntityName(flecs::entity entityHandle, const std::string& name) const
+    {
+        if (!entityHandle.is_valid() || name.empty())
+        {
+            return;
+        }
+
+        m_entitiesByName[name] = entityHandle.id();
+    }
+
+    void Scene::UnregisterEntityName(const std::string& name) const
+    {
+        if (name.empty())
+        {
+            return;
+        }
+
+        m_entitiesByName.erase(name);
+    }
+
+    void Scene::UpdateEntityName(flecs::entity entityHandle, const std::string& previousName, const std::string& newName) const
+    {
+        if (previousName == newName)
+        {
+            RegisterEntityName(entityHandle, newName);
+            return;
+        }
+
+        UnregisterEntityName(previousName);
+        RegisterEntityName(entityHandle, newName);
+    }
+
     Scene::~Scene()
     {
         Shutdown();
@@ -80,28 +111,99 @@ namespace Wayfinder
         world.component<NameComponent>();
         world.component<SceneObjectIdComponent>();
         world.component<PrefabInstanceComponent>();
-        SceneModuleRegistry::Get().RegisterModules(world);
+
+        // Transform module
+        world.component<WorldTransformComponent>();
+        world.system<>("UpdateWorldTransforms")
+            .kind(flecs::PreUpdate)
+            .run([&world](flecs::iter&)
+            {
+                world.children([&](flecs::entity child)
+                {
+                    struct Local
+                    {
+                        static void UpdateRecursive(flecs::entity entityHandle, const Matrix4& parentMatrix)
+                        {
+                            if (!entityHandle.has<TransformComponent>())
+                            {
+                                entityHandle.children([&](flecs::entity child)
+                                {
+                                    UpdateRecursive(child, parentMatrix);
+                                });
+                                return;
+                            }
+
+                            const TransformComponent& localTransform = entityHandle.get<TransformComponent>();
+                            const Matrix4 localMatrix = localTransform.GetLocalMatrix();
+                            const Matrix4 worldMatrix = Maths::Multiply(localMatrix, parentMatrix);
+
+                            WorldTransformComponent cachedWorldTransform;
+                            cachedWorldTransform.LocalToWorld = worldMatrix;
+                            cachedWorldTransform.Position = Maths::TransformPoint(worldMatrix, {0.0f, 0.0f, 0.0f});
+                            cachedWorldTransform.Scale = Maths::ExtractScale(worldMatrix);
+
+                            entityHandle.set<WorldTransformComponent>(cachedWorldTransform);
+                            entityHandle.children([&](flecs::entity child)
+                            {
+                                UpdateRecursive(child, worldMatrix);
+                            });
+                        }
+                    };
+                    Local::UpdateRecursive(child, Maths::Identity());
+                });
+            });
+
+        // Camera module
+        world.component<ActiveCameraStateComponent>();
+        world.system<>("ExtractActiveCamera")
+            .kind(flecs::OnUpdate)
+            .run([&world](flecs::iter&)
+            {
+                ActiveCameraStateComponent activeCamera;
+
+                world.each([&](flecs::entity entityHandle, const TransformComponent& transform, const CameraComponent& camera)
+                {
+                    if (activeCamera.IsValid || !camera.Primary)
+                    {
+                        return;
+                    }
+
+                    activeCamera.IsValid = true;
+                    activeCamera.FieldOfView = camera.FieldOfView;
+                    activeCamera.Projection = camera.Projection;
+
+                    if (entityHandle.has<WorldTransformComponent>())
+                    {
+                        const auto& worldTransform = entityHandle.get<WorldTransformComponent>();
+                        activeCamera.Position = worldTransform.Position;
+                        activeCamera.Target = camera.Target;
+                        activeCamera.Up = Maths::Normalize(Maths::TransformDirection(worldTransform.LocalToWorld, camera.Up));
+                    }
+                    else
+                    {
+                        activeCamera.Position = transform.Position;
+                        activeCamera.Target = camera.Target;
+                        activeCamera.Up = camera.Up;
+                    }
+                });
+
+                world.set<ActiveCameraStateComponent>(activeCamera);
+            });
     }
 
     void Scene::ClearEntities()
     {
-        std::vector<flecs::entity_t> entityIds;
-        m_world.each([&](flecs::entity entityHandle)
+        for (const auto& [id, entityId] : m_entitiesById)
         {
-            if (!entityHandle.has<SceneOwnership>(m_sceneTag))
+            flecs::entity entityHandle = m_world.entity(entityId);
+            if (entityHandle.is_valid())
             {
-                return;
+                entityHandle.destruct();
             }
-
-            entityIds.push_back(entityHandle.id());
-        });
-
-        for (const flecs::entity_t entityId : entityIds)
-        {
-            m_world.entity(entityId).destruct();
         }
 
         m_entitiesById.clear();
+        m_entitiesByName.clear();
 
         // Reset scene-scoped settings
         m_world.set<SceneSettings>({});
@@ -129,13 +231,7 @@ namespace Wayfinder
         /// same world are allowed to have identically-named entities.
         auto nameExistsInScene = [&](const std::string& candidate) -> bool
         {
-            bool found = false;
-            m_world.each([&](flecs::entity e, const NameComponent& nc)
-            {
-                if (!found && nc.Value == candidate && e.has<SceneOwnership>(m_sceneTag))
-                    found = true;
-            });
-            return found;
+            return m_entitiesByName.contains(candidate);
         };
 
         std::string uniqueName = name;
@@ -160,6 +256,7 @@ namespace Wayfinder
         handle.set<NameComponent>(NameComponent{uniqueName});
         handle.set<SceneObjectIdComponent>({sceneObjectId});
         RegisterEntityId(handle, sceneObjectId);
+        RegisterEntityName(handle, uniqueName);
         
         WAYFINDER_INFO(LogScene, "Created entity: {0} (ID: {1})", uniqueName, handle.id());
         
@@ -168,19 +265,23 @@ namespace Wayfinder
 
     Entity Scene::GetEntityByName(const std::string& name)
     {
-        Entity result;
-        m_world.each([&](flecs::entity entityHandle, const NameComponent& nameComp)
+        const auto nameIt = m_entitiesByName.find(name);
+        if (nameIt == m_entitiesByName.end())
         {
-            if (result)
-                return;
+            return {};
+        }
 
-            if (nameComp.Value == name && entityHandle.has<SceneOwnership>(m_sceneTag))
-            {
-                result = Entity{entityHandle, this};
-            }
-        });
+        const flecs::entity entityHandle = m_world.entity(nameIt->second);
+        if (!entityHandle.is_valid() ||
+            !entityHandle.has<SceneOwnership>(m_sceneTag) ||
+            !entityHandle.has<NameComponent>() ||
+            !(entityHandle.get<NameComponent>().Value == name))
+        {
+            m_entitiesByName.erase(nameIt);
+            return {};
+        }
 
-        return result;
+        return Entity{entityHandle, this};
     }
 
     Entity Scene::GetEntityById(const SceneObjectId& id)
