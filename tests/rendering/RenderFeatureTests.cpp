@@ -1,10 +1,10 @@
-#include "rendering/RenderDevice.h"
-#include "rendering/RenderFeature.h"
-#include "rendering/RenderGraph.h"
-#include "rendering/RenderResources.h"
-#include "rendering/Renderer.h"
-#include "rendering/RenderFrame.h"
-#include "rendering/TransientResourcePool.h"
+#include "rendering/backend/RenderDevice.h"
+#include "rendering/graph/RenderFeature.h"
+#include "rendering/graph/RenderGraph.h"
+#include "rendering/resources/RenderResources.h"
+#include "rendering/pipeline/Renderer.h"
+#include "rendering/graph/RenderFrame.h"
+#include "rendering/resources/TransientResourcePool.h"
 
 #include <doctest/doctest.h>
 
@@ -12,7 +12,7 @@
 #include <string>
 #include <vector>
 
-namespace
+namespace Wayfinder
 {
     // A minimal test feature that records when AddPasses is called.
     class TestFeature : public Wayfinder::RenderFeature

@@ -8,12 +8,12 @@
 #include "platform/Input.h"
 #include "platform/Time.h"
 #include "platform/Window.h"
-#include "rendering/RenderDevice.h"
-#include "rendering/Renderer.h"
+#include "rendering/backend/RenderDevice.h"
+#include "rendering/pipeline/Renderer.h"
 
 using namespace Wayfinder;
 
-namespace
+namespace Wayfinder::Tests
 {
     /// Constructs a headless-friendly EngineConfig with null backends.
     EngineConfig MakeNullConfig()

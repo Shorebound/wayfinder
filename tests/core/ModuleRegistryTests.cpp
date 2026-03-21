@@ -17,8 +17,10 @@
 
 using namespace Wayfinder;
 
-namespace
+namespace Wayfinder::Tests
 {
+    bool g_TestPluginBuildCalled = false;
+
     ProjectDescriptor MakeTestProject()
     {
         ProjectDescriptor desc{};
@@ -383,17 +385,16 @@ TEST_SUITE("ModuleRegistry")
     {
         struct TestPlugin : Plugin
         {
-            static inline bool BuildCalled = false;
-            void Build(ModuleRegistry&) override { BuildCalled = true; }
+            void Build(ModuleRegistry&) override { g_TestPluginBuildCalled = true; }
         };
 
         auto project = MakeTestProject();
         auto config = MakeTestConfig();
         ModuleRegistry registry(project, config);
 
-        TestPlugin::BuildCalled = false;
+        g_TestPluginBuildCalled = false;
         registry.AddPlugin<TestPlugin>();
 
-        CHECK(TestPlugin::BuildCalled);
+        CHECK(g_TestPluginBuildCalled);
     }
 }

@@ -1,13 +1,13 @@
-#include "rendering/RenderGraph.h"
-#include "rendering/RenderDevice.h"
-#include "rendering/TransientResourcePool.h"
+#include "rendering/graph/RenderGraph.h"
+#include "rendering/backend/RenderDevice.h"
+#include "rendering/resources/TransientResourcePool.h"
 
 #include <doctest/doctest.h>
 
 #include <string>
 #include <vector>
 
-namespace
+namespace Wayfinder
 {
     // Helper: create a NullDevice + TransientResourcePool for graph execution
     struct GraphTestFixture

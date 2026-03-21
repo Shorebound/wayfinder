@@ -1,5 +1,5 @@
 #include "SystemRegistrar.h"
-#include "../Log.h"
+#include "core/Log.h"
 
 #include <algorithm>
 #include <queue>

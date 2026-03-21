@@ -6,5 +6,5 @@ module = "journey_module"
 
 [paths]
 asset_root = "assets"
-boot_scene = "scenes/default_scene.toml"
+boot_scene = "scenes/default_scene.json"
 config_dir = "config"

@@ -3,11 +3,11 @@
 #include <optional>
 #include <string>
 
-#include "../core/Identifiers.h"
-#include "../maths/Maths.h"
-#include "../rendering/PostProcessVolume.h"
-#include "../rendering/RenderIntent.h"
-#include "../rendering/RenderTypes.h"
+#include "core/Identifiers.h"
+#include "maths/Maths.h"
+#include "rendering/materials/PostProcessVolume.h"
+#include "rendering/graph/RenderIntent.h"
+#include "core/Types.h"
 
 namespace Wayfinder
 {
@@ -65,7 +65,7 @@ namespace Wayfinder
 
         Matrix4 GetLocalMatrix() const
         {
-            return Math3D::ComposeTransform(Position, Rotation, Scale);
+            return Maths::ComposeTransform(Position, Rotation, Scale);
         }
     };
 
@@ -73,7 +73,7 @@ namespace Wayfinder
     {
         Float3 Position = { 0.0f, 0.0f, 0.0f };
         Float3 Scale = { 1.0f, 1.0f, 1.0f };
-        Matrix4 LocalToWorld = glm::mat4(1.0f);
+        Matrix4 LocalToWorld = Matrix4(1.0f);
 
         WorldTransformComponent() = default;
         WorldTransformComponent(const WorldTransformComponent&) = default;

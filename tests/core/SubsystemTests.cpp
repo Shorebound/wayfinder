@@ -7,7 +7,7 @@
 
 using namespace Wayfinder;
 
-namespace
+namespace Wayfinder::Tests
 {
     /// Tracks lifecycle calls for testing.
     struct LifecycleLog

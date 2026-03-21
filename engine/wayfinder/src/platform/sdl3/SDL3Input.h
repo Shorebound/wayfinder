@@ -1,5 +1,5 @@
 #pragma once
-#include "../Input.h"
+#include "platform/Input.h"
 
 #include <array>
 

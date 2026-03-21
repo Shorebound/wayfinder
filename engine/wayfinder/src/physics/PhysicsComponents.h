@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../core/Types.h"
+#include "core/Types.h"
 
 #include <cstdint>
 
@@ -29,7 +29,7 @@ namespace Wayfinder::Physics
      * @brief Describes the motion behaviour of a physics body.
      *
      * Authored fields (Type, Mass, GravityFactor, LinearDamping, AngularDamping,
-     * LinearVelocity, AngularVelocity) are serialised to TOML.
+     * LinearVelocity, AngularVelocity) are serialised to JSON.
      * RuntimeBodyId is set at runtime when the Jolt body is created and is
      * never serialised.
      */

@@ -1,6 +1,6 @@
 #include "core/Module.h"
 #include "core/ModuleRegistry.h"
-#include "application/EntryPoint.h"
+#include "core/EntryPoint.h"
 
 class WaystoneModule : public Wayfinder::Module
 {

@@ -25,6 +25,29 @@ This document explains how the repository is organised, what targets currently m
 - `engine/wayfinder/` contains the core engine library
 - the engine is where application bootstrap, runtime scene ownership, ECS integration, rendering wrappers, asset loading, and core utilities live
 
+Engine source lives under `engine/wayfinder/src/` and is organised by domain:
+
+| Directory | Purpose |
+|-----------|---------|
+| `core/` | Application lifecycle, engine runtime, events, logging, modules, gameplay tags, identifiers, fundamental types |
+| `assets/` | Asset registry and service layer |
+| `maths/` | 3D math utilities |
+| `platform/` | Window, input, and time abstractions (`null/` headless, `sdl3/` production) |
+| `rendering/` | Rendering subsystem (see below) |
+| `scene/` | ECS scene management, components, serialisation, entity helpers |
+
+The rendering subsystem is further organised into subdirectories:
+
+| Directory | Purpose |
+|-----------|---------|
+| `rendering/backend/` | GPU device abstraction — `RenderDevice`, GPU buffers, pipelines, vertex formats, plus backend implementations (`null/`, `sdl_gpu/`) |
+| `rendering/graph/` | Render graph framework — `RenderGraph`, features, frame data, intents, sort keys |
+| `rendering/pipeline/` | Pipeline execution — `Renderer`, `RenderPipeline`, `RenderContext`, `PipelineCache`, scene extraction |
+| `rendering/resources/` | GPU resource management — `RenderResources`, transient buffer and resource pools |
+| `rendering/materials/` | Material and shader system — `Material`, parameters, post-process volumes, shader programs and manager |
+| `rendering/mesh/` | Geometry data — `Mesh`, vertex formats |
+| `rendering/RenderTypes.h` | Rendering-specific types — camera, textures, samplers, render passes, device info |
+
 ### Sandboxes
 
 - `sandbox/journey/` is the main runtime sandbox used to validate engine changes
@@ -126,8 +149,8 @@ Examples:
 
 ```powershell
 build\bin\Debug\waypoint.exe validate-assets sandbox\journey\assets
-build\bin\Debug\waypoint.exe validate sandbox\journey\assets\scenes\default_scene.toml
-build\bin\Debug\waypoint.exe roundtrip-save sandbox\journey\assets\scenes\default_scene.toml build\bin\Debug\assets\scenes\default_scene_roundtrip.toml
+build\bin\Debug\waypoint.exe validate sandbox\journey\assets\scenes\default_scene.json
+build\bin\Debug\waypoint.exe roundtrip-save sandbox\journey\assets\scenes\default_scene.json build\bin\Debug\assets\scenes\default_scene_roundtrip.json
 ```
 
 ## Dependency Summary

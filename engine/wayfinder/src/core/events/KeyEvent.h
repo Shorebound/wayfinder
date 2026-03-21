@@ -1,7 +1,7 @@
 #pragma once
 
 #include "core/KeyCodes.h"
-#include "core/events/Event.h"
+#include "Event.h"
 #include <format>
 #include <memory>
 

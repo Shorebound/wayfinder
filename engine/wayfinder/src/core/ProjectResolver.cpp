@@ -72,4 +72,44 @@ namespace Wayfinder
         return MakeError("No project.wayfinder found");
     }
 
+    std::optional<std::filesystem::path> FindAssetRoot(const std::filesystem::path& startPath)
+    {
+        std::error_code ec;
+        std::filesystem::path searchDir = startPath;
+
+        if (std::filesystem::is_regular_file(searchDir, ec))
+        {
+            searchDir = searchDir.parent_path();
+        }
+        else if (ec)
+        {
+            return std::nullopt;
+        }
+
+        ec.clear();
+        const auto canonical = std::filesystem::weakly_canonical(searchDir, ec);
+        if (ec)
+        {
+            return std::nullopt;
+        }
+
+        searchDir = canonical;
+
+        while (true)
+        {
+            if (searchDir.filename() == "assets")
+            {
+                return searchDir;
+            }
+
+            const auto parent = searchDir.parent_path();
+            if (parent == searchDir)
+                break;
+
+            searchDir = parent;
+        }
+
+        return std::nullopt;
+    }
+
 } // namespace Wayfinder

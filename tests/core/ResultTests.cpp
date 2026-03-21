@@ -5,7 +5,7 @@
 #include <string>
 #include <type_traits>
 
-namespace
+namespace Wayfinder::Tests
 {
     using Wayfinder::Error;
     using Wayfinder::MakeError;

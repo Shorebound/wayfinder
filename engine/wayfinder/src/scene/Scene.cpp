@@ -2,32 +2,17 @@
 #include "RuntimeComponentRegistry.h"
 #include "SceneDocument.h"
 #include "SceneModuleRegistry.h"
-#include "entity/Entity.h"
+#include "scene/entity/Entity.h"
 #include "Components.h"
 #include "core/Log.h"
+#include "core/ProjectResolver.h"
 #include "core/SceneSettings.h"
 
 #include <filesystem>
 #include <unordered_map>
 
-namespace
+namespace Wayfinder
 {
-    std::filesystem::path FindAssetRootFromScenePath(const std::filesystem::path& filePath)
-    {
-        std::filesystem::path current = std::filesystem::weakly_canonical(filePath).parent_path();
-        while (!current.empty())
-        {
-            if (current.filename() == "assets")
-            {
-                return current;
-            }
-
-            current = current.parent_path();
-        }
-
-        return {};
-    }
-
     void LogDocumentErrors(const std::vector<std::string>& errors, const std::string& filePath)
     {
         Wayfinder::LogScene.GetLogger()->LogFormat(
@@ -106,21 +91,24 @@ namespace Wayfinder
 
     Entity Scene::CreateEntity(const std::string& name)
     {
-        /// Helper: check whether a flecs name is already taken by an entity
-        /// that belongs to *this* scene.  World-level lookup is still used
-        /// (flecs names are world-global), but we only consider it a
-        /// collision when the existing entity carries our SceneOwnership tag.
-        auto nameOwnedByThisScene = [&](const char* candidate) -> bool
+        /// Dedup within this scene only — different scenes sharing the
+        /// same world are allowed to have identically-named entities.
+        auto nameExistsInScene = [&](const std::string& candidate) -> bool
         {
-            flecs::entity existing = m_world.lookup(candidate);
-            return existing.is_valid() && existing.has<SceneOwnership>(m_sceneTag);
+            bool found = false;
+            m_world.each([&](flecs::entity e, const NameComponent& nc)
+            {
+                if (!found && nc.Value == candidate && e.has<SceneOwnership>(m_sceneTag))
+                    found = true;
+            });
+            return found;
         };
 
         std::string uniqueName = name;
-        if (nameOwnedByThisScene(uniqueName.c_str()))
+        if (nameExistsInScene(uniqueName))
         {
             uint32_t suffix = 1;
-            while (nameOwnedByThisScene((name + std::to_string(suffix)).c_str()))
+            while (nameExistsInScene(name + std::to_string(suffix)))
             {
                 ++suffix;
             }
@@ -128,11 +116,13 @@ namespace Wayfinder
             uniqueName = name + std::to_string(suffix);
         }
 
-        flecs::entity handle = m_world.entity(uniqueName.c_str());
+        /// Create an anonymous flecs entity.  Entity identity within a
+        /// scene is tracked via NameComponent / SceneObjectIdComponent,
+        /// not flecs' world-global naming system.
+        flecs::entity handle = m_world.entity();
         handle.add<SceneEntityComponent>();
         handle.add<SceneOwnership>(m_sceneTag);
-        handle.add<NameComponent>();
-        handle.get_mut<NameComponent>().Value = uniqueName;
+        handle.set<NameComponent>(NameComponent{uniqueName});
         handle.set<SceneObjectIdComponent>({SceneObjectId::Generate()});
         
         WAYFINDER_INFO(LogScene, "Created entity: {0} (ID: {1})", uniqueName, handle.id());
@@ -142,14 +132,19 @@ namespace Wayfinder
 
     Entity Scene::GetEntityByName(const std::string& name)
     {
-        flecs::entity handle = m_world.lookup(name.c_str());
-        if (handle.is_valid() && handle.has<SceneOwnership>(m_sceneTag))
+        Entity result;
+        m_world.each([&](flecs::entity entityHandle, const NameComponent& nameComp)
         {
-            return Entity{handle, this};
-        }
-        
-        // Return an invalid entity wrapper if not found
-        return Entity{};
+            if (result)
+                return;
+
+            if (nameComp.Value == name && entityHandle.has<SceneOwnership>(m_sceneTag))
+            {
+                result = Entity{entityHandle, this};
+            }
+        });
+
+        return result;
     }
 
     Entity Scene::GetEntityById(const SceneObjectId& id)
@@ -183,7 +178,7 @@ namespace Wayfinder
             ClearEntities();
             m_name = loadResult.Document->Name;
             m_sourcePath = std::filesystem::weakly_canonical(std::filesystem::path(filePath));
-            m_assetRoot = FindAssetRootFromScenePath(m_sourcePath);
+            m_assetRoot = FindAssetRoot(m_sourcePath).value_or(std::filesystem::path{});
 
             std::unordered_map<SceneObjectId, Entity> createdEntitiesById;
             for (const SceneDocumentEntity& definition : loadResult.Document->Entities)

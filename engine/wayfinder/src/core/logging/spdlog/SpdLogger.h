@@ -1,5 +1,5 @@
 #pragma once
-#include "../ILogger.h"
+#include "core/logging/ILogger.h"
 #include "SpdLogOutput.h"
 
 namespace Wayfinder

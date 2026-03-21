@@ -1,4 +1,4 @@
-#include "core/LayerStack.h"
+#include "LayerStack.h"
 
 #include <algorithm>
 

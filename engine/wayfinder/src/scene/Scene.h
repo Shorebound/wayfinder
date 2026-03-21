@@ -6,7 +6,7 @@
 
 #include <flecs.h>
 
-#include "../core/Identifiers.h"
+#include "core/Identifiers.h"
 #include "wayfinder_exports.h"
 
 

@@ -1,13 +1,13 @@
 #include "core/Handle.h"
 #include "core/ResourcePool.h"
-#include "rendering/GPUHandles.h"
+#include "rendering/backend/GPUHandles.h"
 
 #include <doctest/doctest.h>
 
 #include <type_traits>
 #include <unordered_set>
 
-namespace
+namespace Wayfinder::Tests
 {
     struct TestTag {};
     using TestHandle = Wayfinder::Handle<TestTag>;

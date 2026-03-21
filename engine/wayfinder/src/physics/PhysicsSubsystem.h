@@ -1,7 +1,7 @@
 #pragma once
 
 #include "PhysicsWorld.h"
-#include "../core/Subsystem.h"
+#include "core/Subsystem.h"
 
 namespace Wayfinder::Physics
 {

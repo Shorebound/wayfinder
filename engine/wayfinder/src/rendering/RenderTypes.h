@@ -3,55 +3,13 @@
 #include <cstdint>
 #include <string>
 
-#include "../core/BackendConfig.h"
-#include "../core/Types.h"
-#include "GPUHandles.h"
+#include "core/BackendConfig.h"
+#include "core/Types.h"
+#include "rendering/backend/GPUHandles.h"
 #include "wayfinder_exports.h"
 
 namespace Wayfinder
 {
-
-    // ── Colour ────────────────────────────────────────────────
-
-    struct Colour
-    {
-        uint8_t r, g, b, a;
-
-        static Colour White() { return {.r = 255, .g = 255, .b = 255, .a = 255}; }
-        static Colour Black() { return {.r = 0, .g = 0, .b = 0, .a = 255}; }
-        static Colour Red() { return {.r = 255, .g = 0, .b = 0, .a = 255}; }
-        static Colour Green() { return {.r = 0, .g = 255, .b = 0, .a = 255}; }
-        static Colour Blue() { return {.r = 0, .g = 0, .b = 255, .a = 255}; }
-        static Colour Yellow() { return {.r = 255, .g = 255, .b = 0, .a = 255}; }
-        static Colour Gray() { return {.r = 128, .g = 128, .b = 128, .a = 255}; }
-        static Colour DarkGray() { return {.r = 80, .g = 80, .b = 80, .a = 255}; }
-    };
-
-    // ── Linear Colour ─────────────────────────────────────────
-    // Float4 colour in linear space for GPU-side work.
-    // Conversions from authored sRGB Colour happen once at load/extract time.
-
-    struct LinearColour
-    {
-        float r = 1.0f, g = 1.0f, b = 1.0f, a = 1.0f;
-
-        static LinearColour White() { return {1.0f, 1.0f, 1.0f, 1.0f}; }
-        static LinearColour Black() { return {0.0f, 0.0f, 0.0f, 1.0f}; }
-
-        static LinearColour FromColour(const Colour& c)
-        {
-            return {
-                .r = static_cast<float>(c.r) / 255.0f,
-                .g = static_cast<float>(c.g) / 255.0f,
-                .b = static_cast<float>(c.b) / 255.0f,
-                .a = static_cast<float>(c.a) / 255.0f,
-            };
-        }
-
-        Float4 ToVec4() const { return {r, g, b, a}; }
-        Float3 ToFloat3() const { return {r, g, b}; }
-    };
-
     // ── Camera ───────────────────────────────────────────────
 
     struct Camera
@@ -168,10 +126,10 @@ namespace Wayfinder
         static ClearValue FromColour(const Colour& c)
         {
             return {
-                .r = c.r / 255.0f,
-                .g = c.g / 255.0f,
-                .b = c.b / 255.0f,
-                .a = c.a / 255.0f,
+                .r = static_cast<float>(c.r) / 255.0f,
+                .g = static_cast<float>(c.g) / 255.0f,
+                .b = static_cast<float>(c.b) / 255.0f,
+                .a = static_cast<float>(c.a) / 255.0f,
             };
         }
     };

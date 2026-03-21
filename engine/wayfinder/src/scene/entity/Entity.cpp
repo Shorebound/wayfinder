@@ -1,7 +1,7 @@
 #include "WayfinderPCH.h"
 #include "Entity.h"
-#include "../Components.h"
-#include "../Scene.h"
+#include "scene/Components.h"
+#include "scene/Scene.h"
 
 namespace Wayfinder
 {
@@ -17,26 +17,18 @@ namespace Wayfinder
             return m_entityHandle.get<NameComponent>().Value;
         }
 
-        if (const char* name = m_entityHandle.name())
-        {
-            return std::string{name};
-        }
-
         return "Unnamed Entity";
     }
 
     void Entity::SetName(const std::string& name)
     {
-        m_entityHandle.set_name(name.c_str());
-
         if (m_entityHandle.has<NameComponent>())
         {
             m_entityHandle.get_mut<NameComponent>().Value = name;
         }
         else
         {
-            m_entityHandle.add<NameComponent>();
-            m_entityHandle.get_mut<NameComponent>().Value = name;
+            m_entityHandle.set<NameComponent>(NameComponent{name});
         }
     }
 

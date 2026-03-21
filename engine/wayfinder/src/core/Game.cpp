@@ -9,8 +9,8 @@
 #include "ProjectDescriptor.h"
 #include "Result.h"
 #include "SceneSettings.h"
-#include "../assets/AssetService.h"
-#include "../scene/Scene.h"
+#include "assets/AssetService.h"
+#include "scene/Scene.h"
 
 #include <filesystem>
 #include <functional>

@@ -4,9 +4,9 @@
 #include <string>
 #include <vector>
 
-#include <toml++/toml.hpp>
+#include <nlohmann/json.hpp>
 
-#include "../core/Identifiers.h"
+#include "core/Identifiers.h"
 #include "wayfinder_exports.h"
 
 namespace Wayfinder
@@ -20,13 +20,13 @@ namespace Wayfinder
         std::string Name;
         std::optional<SceneObjectId> ParentId;
         std::optional<AssetId> PrefabAssetId;
-        toml::table ComponentData;
+        nlohmann::json ComponentData = nlohmann::json::object();
     };
 
     struct SceneDocument
     {
         std::string Name;
-        toml::table Settings;
+        nlohmann::json Settings = nlohmann::json::object();
         std::vector<SceneDocumentEntity> Entities;
     };
 

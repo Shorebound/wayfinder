@@ -1,4 +1,4 @@
-#include "core/Log.h"
+#include "Log.h"
 #include "core/logging/spdlog/SpdLogManager.h"
 #include "core/logging/spdlog/SpdLogOutput.h"
 #include "core/logging/spdlog/SpdLogger.h"

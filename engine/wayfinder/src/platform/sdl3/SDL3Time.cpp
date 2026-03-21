@@ -1,5 +1,5 @@
 #include "SDL3Time.h"
-#include "../null/NullTime.h"
+#include "platform/null/NullTime.h"
 
 #include <SDL3/SDL.h>
 

@@ -6,7 +6,7 @@
 #include <string_view>
 #include <unordered_map>
 
-#include "../core/Identifiers.h"
+#include "core/Identifiers.h"
 #include "wayfinder_exports.h"
 
 namespace Wayfinder

@@ -1,17 +1,17 @@
 #include "PhysicsPlugin.h"
-#include "../core/EngineConfig.h"
-#include "../core/Log.h"
-#include "../core/ModuleRegistry.h"
-#include "../core/Subsystem.h"
-#include "../scene/Components.h"
-#include "../scene/entity/Entity.h"
 #include "PhysicsComponents.h"
 #include "PhysicsSubsystem.h"
+#include "core/EngineConfig.h"
+#include "core/Log.h"
+#include "core/ModuleRegistry.h"
+#include "core/Subsystem.h"
+#include "maths/Maths.h"
+#include "scene/Components.h"
+#include "scene/entity/Entity.h"
+
 
 #include <flecs.h>
-#include <glm/gtc/matrix_transform.hpp>
-#include <glm/gtc/quaternion.hpp>
-#include <toml++/toml.hpp>
+#include <nlohmann/json.hpp>
 
 namespace Wayfinder::Physics
 {
@@ -46,15 +46,24 @@ namespace Wayfinder::Physics
 
     namespace
     {
-        /// Parse a 3-element TOML array into a Float3, falling back to @p defaultValue.
-        Float3 ParseFloat3Array(const toml::array* arr, const Float3& defaultValue)
+        /// Read a 3-element JSON array into a Float3, falling back to @p fallback.
+        Float3 ReadVector3(const nlohmann::json& data, const char* key, const Float3& fallback)
         {
-            if (!arr || arr->size() != 3)
-                return defaultValue;
+            if (!data.contains(key))
+                return fallback;
+            const auto& arr = data[key];
+            if (!arr.is_array() || arr.size() != 3)
+                return fallback;
             return {
-                arr->get(0)->value_or(defaultValue.x),
-                arr->get(1)->value_or(defaultValue.y),
-                arr->get(2)->value_or(defaultValue.z)};
+                arr[0].is_number() ? arr[0].get<float>() : fallback.x,
+                arr[1].is_number() ? arr[1].get<float>() : fallback.y,
+                arr[2].is_number() ? arr[2].get<float>() : fallback.z};
+        }
+
+        /// Write a Float3 as a 3-element JSON array.
+        nlohmann::json WriteVector3(const Float3& value)
+        {
+            return nlohmann::json::array({value.x, value.y, value.z});
         }
 
         // --- RigidBodyComponent ---
@@ -64,99 +73,99 @@ namespace Wayfinder::Physics
             world.component<RigidBodyComponent>();
         }
 
-        void ApplyRigidBody(const toml::table& table, Entity& entity)
+        void ApplyRigidBody(const nlohmann::json& data, Entity& entity)
         {
             RigidBodyComponent rb;
 
-            if (auto typeStr = table["type"].value<std::string>())
+            if (auto it = data.find("type"); it != data.end() && it->is_string())
             {
-                if (*typeStr == "static")
+                auto typeStr = it->get<std::string>();
+                if (typeStr == "static")
                     rb.Type = BodyType::Static;
-                else if (*typeStr == "kinematic")
+                else if (typeStr == "kinematic")
                     rb.Type = BodyType::Kinematic;
                 else
                     rb.Type = BodyType::Dynamic;
             }
 
-            rb.Mass = table["mass"].value_or(1.0f);
-            rb.GravityFactor = table["gravity_factor"].value_or(1.0f);
-            rb.LinearDamping = table["linear_damping"].value_or(0.05f);
-            rb.AngularDamping = table["angular_damping"].value_or(0.05f);
-            rb.LinearVelocity = ParseFloat3Array(table["linear_velocity"].as_array(), {0.0f, 0.0f, 0.0f});
-            rb.AngularVelocity = ParseFloat3Array(table["angular_velocity"].as_array(), {0.0f, 0.0f, 0.0f});
+            rb.Mass = data.value("mass", 1.0f);
+            rb.GravityFactor = data.value("gravity_factor", 1.0f);
+            rb.LinearDamping = data.value("linear_damping", 0.05f);
+            rb.AngularDamping = data.value("angular_damping", 0.05f);
+            rb.LinearVelocity = ReadVector3(data, "linear_velocity", {0.0f, 0.0f, 0.0f});
+            rb.AngularVelocity = ReadVector3(data, "angular_velocity", {0.0f, 0.0f, 0.0f});
 
             entity.AddComponent<RigidBodyComponent>(rb);
         }
 
-        void SerialiseRigidBody(const Entity& entity, toml::table& tables)
+        void SerialiseRigidBody(const Entity& entity, nlohmann::json& tables)
         {
             if (!entity.HasComponent<RigidBodyComponent>())
                 return;
 
             const auto& rb = entity.GetComponent<RigidBodyComponent>();
-            toml::table t;
+            nlohmann::json t;
 
             switch (rb.Type)
             {
             case BodyType::Static:
-                t.insert("type", "static");
+                t["type"] = "static";
                 break;
             case BodyType::Dynamic:
-                t.insert("type", "dynamic");
+                t["type"] = "dynamic";
                 break;
             case BodyType::Kinematic:
-                t.insert("type", "kinematic");
+                t["type"] = "kinematic";
                 break;
             }
 
-            t.insert("mass", rb.Mass);
-            t.insert("gravity_factor", rb.GravityFactor);
-            t.insert("linear_damping", rb.LinearDamping);
-            t.insert("angular_damping", rb.AngularDamping);
-            t.insert("linear_velocity", toml::array{rb.LinearVelocity.x, rb.LinearVelocity.y, rb.LinearVelocity.z});
-            t.insert("angular_velocity", toml::array{rb.AngularVelocity.x, rb.AngularVelocity.y, rb.AngularVelocity.z});
+            t["mass"] = rb.Mass;
+            t["gravity_factor"] = rb.GravityFactor;
+            t["linear_damping"] = rb.LinearDamping;
+            t["angular_damping"] = rb.AngularDamping;
+            t["linear_velocity"] = WriteVector3(rb.LinearVelocity);
+            t["angular_velocity"] = WriteVector3(rb.AngularVelocity);
 
-            tables.insert("rigid_body", std::move(t));
+            tables["rigid_body"] = std::move(t);
         }
 
-        bool ValidateRigidBody(const toml::table& table, std::string& error)
+        bool ValidateRigidBody(const nlohmann::json& data, std::string& error)
         {
-            if (const auto* node = table.get("type"); node)
+            if (data.contains("type"))
             {
-                if (!node->is_string())
+                const auto& node = data["type"];
+                if (!node.is_string())
                 {
                     error = "'type' must be a string (static|dynamic|kinematic)";
                     return false;
                 }
-                auto val = node->value<std::string>();
-                if (val && *val != "static" && *val != "dynamic" && *val != "kinematic")
+                auto val = node.get<std::string>();
+                if (val != "static" && val != "dynamic" && val != "kinematic")
                 {
                     error = "'type' must be one of: static, dynamic, kinematic";
                     return false;
                 }
             }
-            if (const auto* node = table.get("mass"); node)
+            if (data.contains("mass"))
             {
-                if (!node->is_floating_point() && !node->is_integer())
+                const auto& node = data["mass"];
+                if (!node.is_number())
                 {
                     error = "'mass' must be a number";
                     return false;
                 }
-                double val = node->is_floating_point()
-                    ? node->as_floating_point()->get()
-                    : static_cast<double>(node->as_integer()->get());
-                if (val <= 0.0)
+                if (node.get<double>() <= 0.0)
                 {
                     error = "'mass' must be positive";
                     return false;
                 }
             }
-            if (const auto* node = table.get("linear_damping"); node && !node->is_floating_point() && !node->is_integer())
+            if (data.contains("linear_damping") && !data["linear_damping"].is_number())
             {
                 error = "'linear_damping' must be a number";
                 return false;
             }
-            if (const auto* node = table.get("angular_damping"); node && !node->is_floating_point() && !node->is_integer())
+            if (data.contains("angular_damping") && !data["angular_damping"].is_number())
             {
                 error = "'angular_damping' must be a number";
                 return false;
@@ -171,135 +180,129 @@ namespace Wayfinder::Physics
             world.component<ColliderComponent>();
         }
 
-        void ApplyCollider(const toml::table& table, Entity& entity)
+        void ApplyCollider(const nlohmann::json& data, Entity& entity)
         {
             ColliderComponent col;
 
-            if (auto shapeStr = table["shape"].value<std::string>())
+            if (auto it = data.find("shape"); it != data.end() && it->is_string())
             {
-                if (*shapeStr == "sphere")
+                auto shapeStr = it->get<std::string>();
+                if (shapeStr == "sphere")
                     col.Shape = ColliderShape::Sphere;
-                else if (*shapeStr == "capsule")
+                else if (shapeStr == "capsule")
                     col.Shape = ColliderShape::Capsule;
                 else
                     col.Shape = ColliderShape::Box;
             }
 
-            col.HalfExtents = ParseFloat3Array(table["half_extents"].as_array(), {0.5f, 0.5f, 0.5f});
+            col.HalfExtents = ReadVector3(data, "half_extents", {0.5f, 0.5f, 0.5f});
 
-            col.Radius = table["radius"].value_or(0.5f);
-            col.Height = table["height"].value_or(1.0f);
-            col.Friction = table["friction"].value_or(0.2f);
-            col.Restitution = table["restitution"].value_or(0.0f);
+            col.Radius = data.value("radius", 0.5f);
+            col.Height = data.value("height", 1.0f);
+            col.Friction = data.value("friction", 0.2f);
+            col.Restitution = data.value("restitution", 0.0f);
 
             entity.AddComponent<ColliderComponent>(col);
         }
 
-        void SerialiseCollider(const Entity& entity, toml::table& tables)
+        void SerialiseCollider(const Entity& entity, nlohmann::json& tables)
         {
             if (!entity.HasComponent<ColliderComponent>())
                 return;
 
             const auto& col = entity.GetComponent<ColliderComponent>();
-            toml::table t;
+            nlohmann::json t;
 
             switch (col.Shape)
             {
             case ColliderShape::Box:
-                t.insert("shape", "box");
+                t["shape"] = "box";
                 break;
             case ColliderShape::Sphere:
-                t.insert("shape", "sphere");
+                t["shape"] = "sphere";
                 break;
             case ColliderShape::Capsule:
-                t.insert("shape", "capsule");
+                t["shape"] = "capsule";
                 break;
             }
 
-            t.insert("half_extents", toml::array{col.HalfExtents.x, col.HalfExtents.y, col.HalfExtents.z});
-            t.insert("radius", col.Radius);
-            t.insert("height", col.Height);
-            t.insert("friction", col.Friction);
-            t.insert("restitution", col.Restitution);
+            t["half_extents"] = WriteVector3(col.HalfExtents);
+            t["radius"] = col.Radius;
+            t["height"] = col.Height;
+            t["friction"] = col.Friction;
+            t["restitution"] = col.Restitution;
 
-            tables.insert("collider", std::move(t));
+            tables["collider"] = std::move(t);
         }
 
-        bool ValidateCollider(const toml::table& table, std::string& error)
+        bool ValidateCollider(const nlohmann::json& data, std::string& error)
         {
-            if (const auto* node = table.get("shape"); node)
+            if (data.contains("shape"))
             {
-                if (!node->is_string())
+                const auto& node = data["shape"];
+                if (!node.is_string())
                 {
                     error = "'shape' must be a string (box|sphere|capsule)";
                     return false;
                 }
-                auto val = node->value<std::string>();
-                if (val && *val != "box" && *val != "sphere" && *val != "capsule")
+                auto val = node.get<std::string>();
+                if (val != "box" && val != "sphere" && val != "capsule")
                 {
                     error = "'shape' must be one of: box, sphere, capsule";
                     return false;
                 }
             }
-            if (const auto* node = table.get("friction"); node)
+            if (data.contains("friction"))
             {
-                if (!node->is_floating_point() && !node->is_integer())
+                const auto& node = data["friction"];
+                if (!node.is_number())
                 {
                     error = "'friction' must be a number";
                     return false;
                 }
-                double val = node->is_floating_point()
-                    ? node->as_floating_point()->get()
-                    : static_cast<double>(node->as_integer()->get());
-                if (val < 0.0)
+                if (node.get<double>() < 0.0)
                 {
                     error = "'friction' must be non-negative";
                     return false;
                 }
             }
-            if (const auto* node = table.get("restitution"); node)
+            if (data.contains("restitution"))
             {
-                if (!node->is_floating_point() && !node->is_integer())
+                const auto& node = data["restitution"];
+                if (!node.is_number())
                 {
                     error = "'restitution' must be a number";
                     return false;
                 }
-                double val = node->is_floating_point()
-                    ? node->as_floating_point()->get()
-                    : static_cast<double>(node->as_integer()->get());
-                if (val < 0.0)
+                if (node.get<double>() < 0.0)
                 {
                     error = "'restitution' must be non-negative";
                     return false;
                 }
             }
-            if (const auto* node = table.get("radius"); node)
+            if (data.contains("radius"))
             {
-                if (!node->is_floating_point() && !node->is_integer())
+                const auto& node = data["radius"];
+                if (!node.is_number())
                 {
                     error = "'radius' must be a number";
                     return false;
                 }
-                double val = node->is_floating_point()
-                    ? node->as_floating_point()->get()
-                    : static_cast<double>(node->as_integer()->get());
-                if (val <= 0.0)
+                if (node.get<double>() <= 0.0)
                 {
                     error = "'radius' must be positive";
                     return false;
                 }
             }
-            if (const auto* node = table.get("height"); node)
+            if (data.contains("height"))
             {
-                if (!node->is_floating_point() && !node->is_integer())
+                const auto& node = data["height"];
+                if (!node.is_number())
                 {
                     error = "'height' must be a number";
                     return false;
                 }
-                double val = node->is_floating_point()
-                    ? node->as_floating_point()->get()
-                    : static_cast<double>(node->as_integer()->get());
-                if (val <= 0.0)
+                if (node.get<double>() <= 0.0)
                 {
                     error = "'height' must be positive";
                     return false;
@@ -412,35 +415,35 @@ namespace Wayfinder::Physics
         // PhysicsSyncTransforms: copy Jolt body position and rotation into
         // WorldTransformComponent.  Builds the full LocalToWorld matrix from
         // physics position, physics rotation, and the entity's existing scale.
-        registry.RegisterSystem("PhysicsSyncTransforms", [](flecs::world& world) {
+        registry.RegisterSystem("PhysicsSyncTransforms", [](flecs::world& world) 
+        {
             auto* physics = GameSubsystems::Find<PhysicsSubsystem>();
 
             world.system<const RigidBodyComponent, WorldTransformComponent>("PhysicsSyncTransforms")
-                .kind(flecs::OnValidate)
-                .each([physics](flecs::entity e,
-                         const RigidBodyComponent& rb,
-                         WorldTransformComponent& wt) {
-                    if (rb.RuntimeBodyId == INVALID_PHYSICS_BODY)
-                        return;
-                    if (rb.Type == BodyType::Static)
-                        return;
-                    if (!physics)
-                        return;
+            .kind(flecs::OnValidate)
+            .each([physics](flecs::entity e, const RigidBodyComponent& rb, WorldTransformComponent& wt) 
+            {
+                if (rb.RuntimeBodyId == INVALID_PHYSICS_BODY)
+                    return;
+                if (rb.Type == BodyType::Static)
+                    return;
+                if (!physics)
+                    return;
 
-                    Float3 pos = physics->GetWorld().GetBodyPosition(rb.RuntimeBodyId);
-                    Float4 rotQ = physics->GetWorld().GetBodyRotation(rb.RuntimeBodyId);
+                Float3 pos = physics->GetWorld().GetBodyPosition(rb.RuntimeBodyId);
+                Float4 rotQ = physics->GetWorld().GetBodyRotation(rb.RuntimeBodyId);
 
-                    wt.Position = pos;
+                wt.Position = pos;
 
-                    // Build LocalToWorld = translate * rotate * scale.
-                    glm::quat q(rotQ.w, rotQ.x, rotQ.y, rotQ.z);
-                    glm::mat4 rotMat = glm::mat4_cast(q);
-                    glm::mat4 translateMat = glm::translate(glm::mat4(1.0f), pos);
-                    glm::mat4 scaleMat = glm::scale(glm::mat4(1.0f), wt.Scale);
-                    wt.LocalToWorld = translateMat * rotMat * scaleMat;
-                });
+                // Build LocalToWorld = translate * rotate * scale.
+                Quaternion q(rotQ.w, rotQ.x, rotQ.y, rotQ.z);
+                Matrix4 rotMat = Maths::ToMatrix4(q);
+                Matrix4 translateMat = Maths::Translate(Matrix4(1.0f), pos);
+                Matrix4 scaleMat = Maths::ScaleMatrix(Matrix4(1.0f), wt.Scale);
+                wt.LocalToWorld = translateMat * rotMat * scaleMat;
+            });
         },
-                                {}, {"PhysicsStep"});
+        {}, {"PhysicsStep"});
 
         WAYFINDER_INFO(LogPhysics, "PhysicsPlugin registered");
     }

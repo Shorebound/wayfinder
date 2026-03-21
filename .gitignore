@@ -73,4 +73,5 @@ Thumbs.db
 
 # Test temp files
 tests/fixtures/temp/
+build-test/
 build/

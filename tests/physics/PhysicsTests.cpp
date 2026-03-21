@@ -3,20 +3,18 @@
 #include "physics/PhysicsWorld.h"
 #include "scene/Components.h"
 #include "core/Subsystem.h"
+#include "maths/Maths.h"
 
 #include <doctest/doctest.h>
 
 #include <flecs.h>
-#include <glm/glm.hpp>
-#include <glm/gtc/matrix_transform.hpp>
-#include <glm/gtc/quaternion.hpp>
 #include <cmath>
 #include <functional>
 
 using namespace Wayfinder;
 using namespace Wayfinder::Physics;
 
-namespace
+namespace Wayfinder
 {
     /// Number of simulation steps used by gravity/movement tests (≈ 1 second at 60 Hz).
     constexpr int SIMULATION_STEPS = 60;
@@ -253,7 +251,7 @@ TEST_SUITE("Physics")
         // For 90° Y rotation, quaternion should have a non-trivial y component.
         CHECK(std::abs(rot.y) > 0.5f);
         // w should be approximately cos(45°) ≈ 0.707
-        CHECK(std::abs(rot.w) == doctest::Approx(std::cos(glm::radians(45.0f))).epsilon(0.01));
+        CHECK(std::abs(rot.w) == doctest::Approx(std::cos(Maths::ToRadians(45.0f))).epsilon(0.01));
 
         world.DestroyBody(id);
         world.Shutdown();
@@ -736,10 +734,10 @@ TEST_SUITE("Physics")
                 Float3 pos = sub->GetWorld().GetBodyPosition(rb.RuntimeBodyId);
                 Float4 rotQ = sub->GetWorld().GetBodyRotation(rb.RuntimeBodyId);
                 wt.Position = pos;
-                glm::quat q(rotQ.w, rotQ.x, rotQ.y, rotQ.z);
-                glm::mat4 rotMat = glm::mat4_cast(q);
-                glm::mat4 translateMat = glm::translate(glm::mat4(1.0f), pos);
-                glm::mat4 scaleMat = glm::scale(glm::mat4(1.0f), wt.Scale);
+                Quaternion q(rotQ.w, rotQ.x, rotQ.y, rotQ.z);
+                Matrix4 rotMat = Maths::ToMatrix4(q);
+                Matrix4 translateMat = Maths::Translate(Matrix4(1.0f), pos);
+                Matrix4 scaleMat = Maths::ScaleMatrix(Matrix4(1.0f), wt.Scale);
                 wt.LocalToWorld = translateMat * rotMat * scaleMat;
             });
 

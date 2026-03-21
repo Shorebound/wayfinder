@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../core/BackendConfig.h"
+#include "core/BackendConfig.h"
 
 namespace Wayfinder
 {

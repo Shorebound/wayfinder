@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../GameState.h"
+#include "core/GameState.h"
 #include "wayfinder_exports.h"
 
 #include <functional>

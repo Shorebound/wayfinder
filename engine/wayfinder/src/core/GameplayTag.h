@@ -1,6 +1,6 @@
 #pragma once
 
-#include "core/InternedString.h"
+#include "InternedString.h"
 #include "wayfinder_exports.h"
 
 #include <optional>

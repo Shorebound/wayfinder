@@ -1,8 +1,8 @@
-#include "rendering/RenderPipeline.h"
-#include "rendering/RenderResources.h"
-#include "rendering/RenderDevice.h"
-#include "rendering/RenderContext.h"
-#include "rendering/SceneRenderExtractor.h"
+#include "rendering/pipeline/RenderPipeline.h"
+#include "rendering/resources/RenderResources.h"
+#include "rendering/backend/RenderDevice.h"
+#include "rendering/pipeline/RenderContext.h"
+#include "rendering/pipeline/SceneRenderExtractor.h"
 #include "core/EngineConfig.h"
 #include "scene/Components.h"
 #include "scene/RuntimeComponentRegistry.h"
@@ -13,7 +13,7 @@
 #include <flecs.h>
 #include <string>
 
-namespace
+namespace Wayfinder
 {
     Wayfinder::RenderMeshSubmission MakeSolidMesh(uint8_t sortPriority, const Wayfinder::Colour& colour)
     {

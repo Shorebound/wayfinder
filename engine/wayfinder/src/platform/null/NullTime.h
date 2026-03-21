@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../Time.h"
+#include "platform/Time.h"
 
 namespace Wayfinder
 {

@@ -1,7 +1,7 @@
 #pragma once
 
-#include "../core/BackendConfig.h"
-#include "../core/events/Event.h"
+#include "core/BackendConfig.h"
+#include "core/events/Event.h"
 
 #include <functional>
 

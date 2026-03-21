@@ -4,7 +4,7 @@
 #include <doctest/doctest.h>
 
 #include <string>
-#include <toml++/toml.hpp>
+#include <nlohmann/json.hpp>
 
 using namespace Wayfinder;
 using TestHelpers::MakeTestRegistry;
@@ -16,10 +16,11 @@ TEST_SUITE("Component Validation")
     TEST_CASE("Transform validates correctly with valid data")
     {
         auto registry = MakeTestRegistry();
-        toml::table input;
-        input.insert_or_assign("position", toml::array{1.0, 2.0, 3.0});
-        input.insert_or_assign("rotation", toml::array{0.0, 0.0, 0.0});
-        input.insert_or_assign("scale", toml::array{1.0, 1.0, 1.0});
+        nlohmann::json input = {
+            {"position", {1.0, 2.0, 3.0}},
+            {"rotation", {0.0, 0.0, 0.0}},
+            {"scale", {1.0, 1.0, 1.0}}
+        };
 
         std::string error;
         CHECK(registry.ValidateComponent("transform", input, error));
@@ -29,8 +30,7 @@ TEST_SUITE("Component Validation")
     TEST_CASE("Transform rejects non-array position")
     {
         auto registry = MakeTestRegistry();
-        toml::table input;
-        input.insert_or_assign("position", "not an array");
+        nlohmann::json input = {{"position", "not an array"}};
 
         std::string error;
         CHECK_FALSE(registry.ValidateComponent("transform", input, error));
@@ -40,8 +40,7 @@ TEST_SUITE("Component Validation")
     TEST_CASE("Transform rejects position with wrong element count")
     {
         auto registry = MakeTestRegistry();
-        toml::table input;
-        input.insert_or_assign("position", toml::array{1.0, 2.0}); // only 2 elements
+        nlohmann::json input = {{"position", {1.0, 2.0}}}; // only 2 elements
 
         std::string error;
         CHECK_FALSE(registry.ValidateComponent("transform", input, error));
@@ -52,9 +51,10 @@ TEST_SUITE("Component Validation")
     TEST_CASE("Mesh validates correctly with valid data")
     {
         auto registry = MakeTestRegistry();
-        toml::table input;
-        input.insert_or_assign("primitive", "cube");
-        input.insert_or_assign("dimensions", toml::array{1.0, 1.0, 1.0});
+        nlohmann::json input = {
+            {"primitive", "cube"},
+            {"dimensions", {1.0, 1.0, 1.0}}
+        };
 
         std::string error;
         CHECK(registry.ValidateComponent("mesh", input, error));
@@ -63,8 +63,7 @@ TEST_SUITE("Component Validation")
     TEST_CASE("Mesh rejects unknown primitive type")
     {
         auto registry = MakeTestRegistry();
-        toml::table input;
-        input.insert_or_assign("primitive", "sphere"); // not a valid enum value
+        nlohmann::json input = {{"primitive", "sphere"}}; // not a valid enum value
 
         std::string error;
         CHECK_FALSE(registry.ValidateComponent("mesh", input, error));
@@ -75,10 +74,11 @@ TEST_SUITE("Component Validation")
     TEST_CASE("Camera validates correctly with valid data")
     {
         auto registry = MakeTestRegistry();
-        toml::table input;
-        input.insert_or_assign("primary", true);
-        input.insert_or_assign("projection", "perspective");
-        input.insert_or_assign("fov", 45.0);
+        nlohmann::json input = {
+            {"primary", true},
+            {"projection", "perspective"},
+            {"fov", 45.0}
+        };
 
         std::string error;
         CHECK(registry.ValidateComponent("camera", input, error));
@@ -87,8 +87,7 @@ TEST_SUITE("Component Validation")
     TEST_CASE("Camera rejects non-boolean primary field")
     {
         auto registry = MakeTestRegistry();
-        toml::table input;
-        input.insert_or_assign("primary", "yes"); // should be bool
+        nlohmann::json input = {{"primary", "yes"}}; // should be bool
 
         std::string error;
         CHECK_FALSE(registry.ValidateComponent("camera", input, error));
@@ -97,8 +96,7 @@ TEST_SUITE("Component Validation")
     TEST_CASE("Camera rejects invalid projection mode")
     {
         auto registry = MakeTestRegistry();
-        toml::table input;
-        input.insert_or_assign("projection", "isometric"); // not a valid value
+        nlohmann::json input = {{"projection", "isometric"}}; // not a valid value
 
         std::string error;
         CHECK_FALSE(registry.ValidateComponent("camera", input, error));
@@ -109,10 +107,11 @@ TEST_SUITE("Component Validation")
     TEST_CASE("Light validates correctly with valid data")
     {
         auto registry = MakeTestRegistry();
-        toml::table input;
-        input.insert_or_assign("type", "point");
-        input.insert_or_assign("intensity", 1.0);
-        input.insert_or_assign("range", 10.0);
+        nlohmann::json input = {
+            {"type", "point"},
+            {"intensity", 1.0},
+            {"range", 10.0}
+        };
 
         std::string error;
         CHECK(registry.ValidateComponent("light", input, error));
@@ -121,8 +120,7 @@ TEST_SUITE("Component Validation")
     TEST_CASE("Light rejects invalid light type")
     {
         auto registry = MakeTestRegistry();
-        toml::table input;
-        input.insert_or_assign("type", "area"); // not valid
+        nlohmann::json input = {{"type", "area"}}; // not valid
 
         std::string error;
         CHECK_FALSE(registry.ValidateComponent("light", input, error));
@@ -131,8 +129,7 @@ TEST_SUITE("Component Validation")
     TEST_CASE("Light rejects non-numeric intensity")
     {
         auto registry = MakeTestRegistry();
-        toml::table input;
-        input.insert_or_assign("intensity", "bright"); // should be numeric
+        nlohmann::json input = {{"intensity", "bright"}}; // should be numeric
 
         std::string error;
         CHECK_FALSE(registry.ValidateComponent("light", input, error));
@@ -143,21 +140,19 @@ TEST_SUITE("Component Validation")
     TEST_CASE("Material validates correctly with valid data")
     {
         auto registry = MakeTestRegistry();
-        toml::table input;
-        input.insert_or_assign("wireframe", true);
+        nlohmann::json input = {{"base_colour", nlohmann::json::array({255, 255, 255, 255})}};
 
         std::string error;
         CHECK(registry.ValidateComponent("material", input, error));
     }
 
-    TEST_CASE("Material rejects non-boolean wireframe")
+    TEST_CASE("Render override rejects non-boolean wireframe")
     {
         auto registry = MakeTestRegistry();
-        toml::table input;
-        input.insert_or_assign("wireframe", "yes");
+        nlohmann::json input = {{"wireframe", "yes"}};
 
         std::string error;
-        CHECK_FALSE(registry.ValidateComponent("material", input, error));
+        CHECK_FALSE(registry.ValidateComponent("render_override", input, error));
     }
 
     // ── Renderable ──────────────────────────────────────────
@@ -165,9 +160,10 @@ TEST_SUITE("Component Validation")
     TEST_CASE("Renderable validates correctly with valid data")
     {
         auto registry = MakeTestRegistry();
-        toml::table input;
-        input.insert_or_assign("visible", true);
-        input.insert_or_assign("sort_priority", static_cast<int64_t>(128));
+        nlohmann::json input = {
+            {"visible", true},
+            {"sort_priority", 128}
+        };
 
         std::string error;
         CHECK(registry.ValidateComponent("renderable", input, error));
@@ -176,8 +172,7 @@ TEST_SUITE("Component Validation")
     TEST_CASE("Renderable rejects non-boolean visible")
     {
         auto registry = MakeTestRegistry();
-        toml::table input;
-        input.insert_or_assign("visible", "true"); // should be bool
+        nlohmann::json input = {{"visible", "true"}}; // should be bool
 
         std::string error;
         CHECK_FALSE(registry.ValidateComponent("renderable", input, error));
@@ -186,8 +181,7 @@ TEST_SUITE("Component Validation")
     TEST_CASE("Renderable rejects non-integer sort_priority")
     {
         auto registry = MakeTestRegistry();
-        toml::table input;
-        input.insert_or_assign("sort_priority", 128.5); // should be integer
+        nlohmann::json input = {{"sort_priority", 128.5}}; // should be integer
 
         std::string error;
         CHECK_FALSE(registry.ValidateComponent("renderable", input, error));
@@ -198,7 +192,7 @@ TEST_SUITE("Component Validation")
     TEST_CASE("Unknown component key is rejected")
     {
         auto registry = MakeTestRegistry();
-        toml::table input;
+        nlohmann::json input = nlohmann::json::object();
 
         std::string error;
         CHECK_FALSE(registry.ValidateComponent("unknown_component", input, error));
@@ -225,10 +219,10 @@ TEST_SUITE("Component Validation")
         CHECK_FALSE(registry.IsRegistered("nonexistent"));
     }
 
-    TEST_CASE("Empty table validates for optional-only components")
+    TEST_CASE("Empty object validates for optional-only components")
     {
         auto registry = MakeTestRegistry();
-        toml::table emptyInput;
+        nlohmann::json emptyInput = nlohmann::json::object();
 
         std::string error;
         // Transform has all optional fields, so empty should be valid

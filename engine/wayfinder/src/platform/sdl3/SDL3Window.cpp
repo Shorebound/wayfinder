@@ -1,9 +1,9 @@
 #include "SDL3Window.h"
-#include "../null/NullWindow.h"
+#include "platform/null/NullWindow.h"
 
-#include "../../core/events/ApplicationEvent.h"
-#include "../../core/events/KeyEvent.h"
-#include "../../core/events/MouseEvent.h"
+#include "core/events/ApplicationEvent.h"
+#include "core/events/KeyEvent.h"
+#include "core/events/MouseEvent.h"
 
 #include <SDL3/SDL.h>
 

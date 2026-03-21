@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../core/Plugin.h"
+#include "core/Plugin.h"
 
 namespace Wayfinder::Physics
 {

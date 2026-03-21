@@ -26,7 +26,7 @@ TEST_SUITE("Scene Loading")
         Scene::RegisterCoreECS(world);
         Scene scene(world, registry, "Default");
 
-        auto path = FixturesDir() / "test_scene.toml";
+        auto path = FixturesDir() / "test_scene.json";
         bool result = scene.LoadFromFile(path.string());
 
         CHECK(result);
@@ -41,7 +41,7 @@ TEST_SUITE("Scene Loading")
         Scene::RegisterCoreECS(world);
         Scene scene(world, registry, "Default");
 
-        auto path = FixturesDir() / "test_scene.toml";
+        auto path = FixturesDir() / "test_scene.json";
         REQUIRE(scene.LoadFromFile(path.string()));
 
         auto camera = scene.GetEntityByName("MainCamera");
@@ -62,7 +62,7 @@ TEST_SUITE("Scene Loading")
         Scene::RegisterCoreECS(world);
         Scene scene(world, registry, "Default");
 
-        auto path = FixturesDir() / "test_scene.toml";
+        auto path = FixturesDir() / "test_scene.json";
         REQUIRE(scene.LoadFromFile(path.string()));
 
         auto camera = scene.GetEntityByName("MainCamera");
@@ -83,7 +83,7 @@ TEST_SUITE("Scene Loading")
         Scene::RegisterCoreECS(world);
         Scene scene(world, registry, "Default");
 
-        auto path = FixturesDir() / "hierarchy_scene.toml";
+        auto path = FixturesDir() / "hierarchy_scene.json";
         REQUIRE(scene.LoadFromFile(path.string()));
 
         auto parent = scene.GetEntityByName("Parent");
@@ -98,7 +98,7 @@ TEST_SUITE("Scene Loading")
         CHECK(childHandle.parent() == parentHandle);
     }
 
-    TEST_CASE("LoadFromFile handles invalid TOML gracefully")
+    TEST_CASE("LoadFromFile handles invalid JSON gracefully")
     {
         flecs::world world;
         auto registry = MakeTestRegistry();
@@ -106,7 +106,7 @@ TEST_SUITE("Scene Loading")
         Scene::RegisterCoreECS(world);
         Scene scene(world, registry, "Default");
 
-        auto path = FixturesDir() / "bad_scene.toml";
+        auto path = FixturesDir() / "bad_scene.json";
         bool result = scene.LoadFromFile(path.string());
 
         CHECK_FALSE(result);
@@ -120,7 +120,7 @@ TEST_SUITE("Scene Loading")
         Scene::RegisterCoreECS(world);
         Scene scene(world, registry, "Default");
 
-        bool result = scene.LoadFromFile("nonexistent_scene.toml");
+        bool result = scene.LoadFromFile("nonexistent_scene.json");
         CHECK_FALSE(result);
     }
 
@@ -135,7 +135,7 @@ TEST_SUITE("Scene Loading")
         // Create an entity before loading
         scene.CreateEntity("PreExisting");
 
-        auto path = FixturesDir() / "minimal_scene.toml";
+        auto path = FixturesDir() / "minimal_scene.json";
         REQUIRE(scene.LoadFromFile(path.string()));
 
         // The pre-existing entity should be gone
@@ -148,7 +148,7 @@ TEST_SUITE("Scene Loading")
     TEST_CASE("LoadSceneDocument returns document for valid file")
     {
         auto registry = MakeTestRegistry();
-        auto path = FixturesDir() / "test_scene.toml";
+        auto path = FixturesDir() / "test_scene.json";
 
         auto result = LoadSceneDocument(path.string(), registry);
 
@@ -158,10 +158,10 @@ TEST_SUITE("Scene Loading")
         CHECK(result.Document->Entities.size() == 3);
     }
 
-    TEST_CASE("LoadSceneDocument returns errors for bad TOML")
+    TEST_CASE("LoadSceneDocument returns errors for bad JSON")
     {
         auto registry = MakeTestRegistry();
-        auto path = FixturesDir() / "bad_scene.toml";
+        auto path = FixturesDir() / "bad_scene.json";
 
         auto result = LoadSceneDocument(path.string(), registry);
 
@@ -172,7 +172,7 @@ TEST_SUITE("Scene Loading")
     TEST_CASE("LoadSceneDocument preserves scene settings")
     {
         auto registry = MakeTestRegistry();
-        auto path = FixturesDir() / "test_scene.toml";
+        auto path = FixturesDir() / "test_scene.json";
 
         auto result = LoadSceneDocument(path.string(), registry);
 

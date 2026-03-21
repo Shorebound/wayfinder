@@ -5,14 +5,10 @@
 #include "Subsystem.h"
 #include "wayfinder_exports.h"
 
+#include <flecs.h>
 #include <string>
 #include <string_view>
 #include <vector>
-
-namespace flecs
-{
-    struct world;
-}
 
 namespace Wayfinder
 {
