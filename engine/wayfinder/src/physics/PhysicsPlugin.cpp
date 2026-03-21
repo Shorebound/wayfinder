@@ -325,7 +325,7 @@ namespace Wayfinder::Physics
             desc.Key = "rigid_body";
             desc.RegisterFn = &RegisterRigidBody;
             desc.ApplyFn = &ApplyRigidBody;
-            desc.SerializeFn = &SerialiseRigidBody;
+            desc.SerialiseFn = &SerialiseRigidBody;
             desc.ValidateFn = &ValidateRigidBody;
             registry.RegisterComponent(std::move(desc));
         }
@@ -334,7 +334,7 @@ namespace Wayfinder::Physics
             desc.Key = "collider";
             desc.RegisterFn = &RegisterCollider;
             desc.ApplyFn = &ApplyCollider;
-            desc.SerializeFn = &SerialiseCollider;
+            desc.SerialiseFn = &SerialiseCollider;
             desc.ValidateFn = &ValidateCollider;
             registry.RegisterComponent(std::move(desc));
         }

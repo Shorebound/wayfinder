@@ -32,6 +32,9 @@ namespace Wayfinder::Physics
         ColliderShape Shape = ColliderShape::Box;
 
         // Mass & dynamics
+        /// Explicit mass override for dynamic bodies.  Any positive value
+        /// (including 1.0f) is used as-is.  A value <= 0 means "use shape-
+        /// computed mass" (Jolt default).
         float Mass = 1.0f;
         float GravityFactor = 1.0f;
         float LinearDamping = 0.05f;
@@ -67,6 +70,8 @@ namespace Wayfinder::Physics
         // Non-copyable, non-movable (owns Jolt runtime state).
         PhysicsWorld(const PhysicsWorld&) = delete;
         PhysicsWorld& operator=(const PhysicsWorld&) = delete;
+        PhysicsWorld(PhysicsWorld&&) = delete;
+        PhysicsWorld& operator=(PhysicsWorld&&) = delete;
 
         /// Initialise Jolt runtime, allocate the physics system.
         void Initialise();

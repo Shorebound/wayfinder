@@ -56,6 +56,9 @@ namespace Wayfinder::Physics
 
         JPH::BroadPhaseLayer GetBroadPhaseLayer(JPH::ObjectLayer inLayer) const override
         {
+            JPH_ASSERT(inLayer < PhysicsLayers::NUM_LAYERS);
+            if (inLayer >= PhysicsLayers::NUM_LAYERS)
+                return BroadPhaseLayers::NON_MOVING;
             return m_objectToBroadPhase[inLayer];
         }
 
@@ -115,7 +118,6 @@ namespace Wayfinder::Physics
     namespace
     {
         std::once_flag g_joltInitFlag;
-        bool g_joltInitialised = false;
 
         void InitialiseJoltGlobals()
         {
@@ -124,7 +126,15 @@ namespace Wayfinder::Physics
                 JPH::RegisterDefaultAllocator();
                 JPH::Factory::sInstance = new JPH::Factory();
                 JPH::RegisterTypes();
-                g_joltInitialised = true;
+
+                // Register a one-time teardown so Jolt globals are cleaned up
+                // when the process exits (avoids leak reports in sanitisers).
+                std::atexit([]()
+                {
+                    JPH::UnregisterTypes();
+                    delete JPH::Factory::sInstance;
+                    JPH::Factory::sInstance = nullptr;
+                });
             });
         }
     } // anonymous namespace
@@ -305,6 +315,10 @@ namespace Wayfinder::Physics
             motionType,
             objectLayer);
 
+        // Material properties apply to both dynamic and kinematic bodies.
+        settings.mFriction = desc.Friction;
+        settings.mRestitution = desc.Restitution;
+
         if (desc.Type == BodyType::Dynamic)
         {
             settings.mGravityFactor = desc.GravityFactor;
@@ -318,11 +332,10 @@ namespace Wayfinder::Physics
                 desc.AngularVelocity.x,
                 desc.AngularVelocity.y,
                 desc.AngularVelocity.z);
-            settings.mFriction = desc.Friction;
-            settings.mRestitution = desc.Restitution;
 
-            // Override mass if a custom value was provided.
-            if (desc.Mass > 0.0f && desc.Mass != 1.0f)
+            // Override mass if a positive value was provided.
+            // Mass <= 0 means "use shape-computed mass".
+            if (desc.Mass > 0.0f)
             {
                 settings.mOverrideMassProperties = JPH::EOverrideMassProperties::CalculateInertia;
                 settings.mMassPropertiesOverride.mMass = desc.Mass;

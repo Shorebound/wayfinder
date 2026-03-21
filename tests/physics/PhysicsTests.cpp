@@ -11,6 +11,7 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/quaternion.hpp>
 #include <cmath>
+#include <functional>
 
 using namespace Wayfinder;
 using namespace Wayfinder::Physics;
@@ -48,6 +49,65 @@ namespace
             return Subsystems.Get<PhysicsSubsystem>()->GetWorld();
         }
     };
+
+    /// Register the PhysicsCreateBodies observer on @p world.
+    /// The observer creates a Jolt body when an entity gains the
+    /// RigidBody + Collider + Transform archetype.  An optional
+    /// @p onCreated callback is invoked with the new body ID.
+    void RegisterCreateBodiesObserver(
+        flecs::world& world,
+        std::function<void(uint32_t)> onCreated = nullptr)
+    {
+        world.observer<RigidBodyComponent, const ColliderComponent, const TransformComponent>("PhysicsCreateBodies")
+            .event(flecs::OnSet)
+            .each([onCreated = std::move(onCreated)](flecs::entity e,
+                     RigidBodyComponent& rb,
+                     const ColliderComponent& col,
+                     const TransformComponent& transform)
+            {
+                if (rb.RuntimeBodyId != INVALID_PHYSICS_BODY)
+                    return;
+                auto* sub = GameSubsystems::Find<PhysicsSubsystem>();
+                if (!sub) return;
+                PhysicsBodyDescriptor desc;
+                desc.Type = rb.Type; desc.Mass = rb.Mass;
+                desc.GravityFactor = rb.GravityFactor;
+                desc.LinearDamping = rb.LinearDamping;
+                desc.AngularDamping = rb.AngularDamping;
+                desc.LinearVelocity = rb.LinearVelocity;
+                desc.AngularVelocity = rb.AngularVelocity;
+                desc.Shape = col.Shape;
+                desc.HalfExtents = col.HalfExtents;
+                desc.Radius = col.Radius; desc.Height = col.Height;
+                desc.Friction = col.Friction;
+                desc.Restitution = col.Restitution;
+                rb.RuntimeBodyId = sub->GetWorld().CreateBody(
+                    desc, transform.Position, transform.Rotation);
+                if (onCreated)
+                    onCreated(rb.RuntimeBodyId);
+            });
+    }
+
+    /// Register the PhysicsDestroyBodies observer on @p world.
+    /// An optional @p onDestroyed callback fires after the body is removed.
+    void RegisterDestroyBodiesObserver(
+        flecs::world& world,
+        std::function<void()> onDestroyed = nullptr)
+    {
+        world.observer<RigidBodyComponent>("PhysicsDestroyBodies")
+            .event(flecs::OnRemove)
+            .each([onDestroyed = std::move(onDestroyed)](flecs::entity e, RigidBodyComponent& rb)
+            {
+                if (rb.RuntimeBodyId == INVALID_PHYSICS_BODY)
+                    return;
+                auto* sub = GameSubsystems::Find<PhysicsSubsystem>();
+                if (!sub) return;
+                sub->GetWorld().DestroyBody(rb.RuntimeBodyId);
+                rb.RuntimeBodyId = INVALID_PHYSICS_BODY;
+                if (onDestroyed)
+                    onDestroyed();
+            });
+    }
 } // anonymous namespace
 
 // ── PhysicsWorld Lifecycle ──────────────────────────────────
@@ -547,32 +607,7 @@ TEST_SUITE("Physics")
         ecsWorld.component<WorldTransformComponent>();
 
         // Register the creation observer
-        ecsWorld.observer<RigidBodyComponent, const ColliderComponent, const TransformComponent>("PhysicsCreateBodies")
-            .event(flecs::OnSet)
-            .each([](flecs::entity e,
-                     RigidBodyComponent& rb,
-                     const ColliderComponent& col,
-                     const TransformComponent& transform)
-            {
-                if (rb.RuntimeBodyId != INVALID_PHYSICS_BODY)
-                    return;
-                auto* sub = GameSubsystems::Find<PhysicsSubsystem>();
-                if (!sub) return;
-                PhysicsBodyDescriptor desc;
-                desc.Type = rb.Type; desc.Mass = rb.Mass;
-                desc.GravityFactor = rb.GravityFactor;
-                desc.LinearDamping = rb.LinearDamping;
-                desc.AngularDamping = rb.AngularDamping;
-                desc.LinearVelocity = rb.LinearVelocity;
-                desc.AngularVelocity = rb.AngularVelocity;
-                desc.Shape = col.Shape;
-                desc.HalfExtents = col.HalfExtents;
-                desc.Radius = col.Radius; desc.Height = col.Height;
-                desc.Friction = col.Friction;
-                desc.Restitution = col.Restitution;
-                rb.RuntimeBodyId = sub->GetWorld().CreateBody(
-                    desc, transform.Position, transform.Rotation);
-            });
+        RegisterCreateBodiesObserver(ecsWorld);
 
         // Set all components — observer should fire
         auto entity = ecsWorld.entity("TestBox");
@@ -602,46 +637,13 @@ TEST_SUITE("Physics")
         uint32_t createdBodyId = INVALID_PHYSICS_BODY;
         bool bodyDestroyed = false;
 
-        ecsWorld.observer<RigidBodyComponent, const ColliderComponent, const TransformComponent>("PhysicsCreateBodies")
-            .event(flecs::OnSet)
-            .each([&createdBodyId](flecs::entity e,
-                     RigidBodyComponent& rb,
-                     const ColliderComponent& col,
-                     const TransformComponent& transform)
-            {
-                if (rb.RuntimeBodyId != INVALID_PHYSICS_BODY)
-                    return;
-                auto* sub = GameSubsystems::Find<PhysicsSubsystem>();
-                if (!sub) return;
-                PhysicsBodyDescriptor desc;
-                desc.Type = rb.Type; desc.Mass = rb.Mass;
-                desc.GravityFactor = rb.GravityFactor;
-                desc.LinearDamping = rb.LinearDamping;
-                desc.AngularDamping = rb.AngularDamping;
-                desc.LinearVelocity = rb.LinearVelocity;
-                desc.AngularVelocity = rb.AngularVelocity;
-                desc.Shape = col.Shape;
-                desc.HalfExtents = col.HalfExtents;
-                desc.Radius = col.Radius; desc.Height = col.Height;
-                desc.Friction = col.Friction;
-                desc.Restitution = col.Restitution;
-                rb.RuntimeBodyId = sub->GetWorld().CreateBody(
-                    desc, transform.Position, transform.Rotation);
-                createdBodyId = rb.RuntimeBodyId;
-            });
+        RegisterCreateBodiesObserver(ecsWorld, [&createdBodyId](uint32_t id) {
+            createdBodyId = id;
+        });
 
-        ecsWorld.observer<RigidBodyComponent>("PhysicsDestroyBodies")
-            .event(flecs::OnRemove)
-            .each([&bodyDestroyed](flecs::entity e, RigidBodyComponent& rb)
-            {
-                if (rb.RuntimeBodyId == INVALID_PHYSICS_BODY)
-                    return;
-                auto* sub = GameSubsystems::Find<PhysicsSubsystem>();
-                if (!sub) return;
-                sub->GetWorld().DestroyBody(rb.RuntimeBodyId);
-                rb.RuntimeBodyId = INVALID_PHYSICS_BODY;
-                bodyDestroyed = true;
-            });
+        RegisterDestroyBodiesObserver(ecsWorld, [&bodyDestroyed]() {
+            bodyDestroyed = true;
+        });
 
         auto entity = ecsWorld.entity("TestBox");
         entity.set<TransformComponent>({{0.0f, 5.0f, 0.0f}});
@@ -670,45 +672,11 @@ TEST_SUITE("Physics")
 
         bool bodyDestroyed = false;
 
-        ecsWorld.observer<RigidBodyComponent, const ColliderComponent, const TransformComponent>("PhysicsCreateBodies")
-            .event(flecs::OnSet)
-            .each([](flecs::entity e,
-                     RigidBodyComponent& rb,
-                     const ColliderComponent& col,
-                     const TransformComponent& transform)
-            {
-                if (rb.RuntimeBodyId != INVALID_PHYSICS_BODY)
-                    return;
-                auto* sub = GameSubsystems::Find<PhysicsSubsystem>();
-                if (!sub) return;
-                PhysicsBodyDescriptor desc;
-                desc.Type = rb.Type; desc.Mass = rb.Mass;
-                desc.GravityFactor = rb.GravityFactor;
-                desc.LinearDamping = rb.LinearDamping;
-                desc.AngularDamping = rb.AngularDamping;
-                desc.LinearVelocity = rb.LinearVelocity;
-                desc.AngularVelocity = rb.AngularVelocity;
-                desc.Shape = col.Shape;
-                desc.HalfExtents = col.HalfExtents;
-                desc.Radius = col.Radius; desc.Height = col.Height;
-                desc.Friction = col.Friction;
-                desc.Restitution = col.Restitution;
-                rb.RuntimeBodyId = sub->GetWorld().CreateBody(
-                    desc, transform.Position, transform.Rotation);
-            });
+        RegisterCreateBodiesObserver(ecsWorld);
 
-        ecsWorld.observer<RigidBodyComponent>("PhysicsDestroyBodies")
-            .event(flecs::OnRemove)
-            .each([&bodyDestroyed](flecs::entity e, RigidBodyComponent& rb)
-            {
-                if (rb.RuntimeBodyId == INVALID_PHYSICS_BODY)
-                    return;
-                auto* sub = GameSubsystems::Find<PhysicsSubsystem>();
-                if (!sub) return;
-                sub->GetWorld().DestroyBody(rb.RuntimeBodyId);
-                rb.RuntimeBodyId = INVALID_PHYSICS_BODY;
-                bodyDestroyed = true;
-            });
+        RegisterDestroyBodiesObserver(ecsWorld, [&bodyDestroyed]() {
+            bodyDestroyed = true;
+        });
 
         auto entity = ecsWorld.entity("TestBox");
         entity.set<TransformComponent>({{0.0f, 5.0f, 0.0f}});
@@ -740,45 +708,10 @@ TEST_SUITE("Physics")
         ecsWorld.component<WorldTransformComponent>();
 
         // Register creation observer
-        ecsWorld.observer<RigidBodyComponent, const ColliderComponent, const TransformComponent>("PhysicsCreateBodies")
-            .event(flecs::OnSet)
-            .each([](flecs::entity e,
-                     RigidBodyComponent& rb,
-                     const ColliderComponent& col,
-                     const TransformComponent& transform)
-            {
-                if (rb.RuntimeBodyId != INVALID_PHYSICS_BODY)
-                    return;
-                auto* sub = GameSubsystems::Find<PhysicsSubsystem>();
-                if (!sub) return;
-                PhysicsBodyDescriptor desc;
-                desc.Type = rb.Type; desc.Mass = rb.Mass;
-                desc.GravityFactor = rb.GravityFactor;
-                desc.LinearDamping = rb.LinearDamping;
-                desc.AngularDamping = rb.AngularDamping;
-                desc.LinearVelocity = rb.LinearVelocity;
-                desc.AngularVelocity = rb.AngularVelocity;
-                desc.Shape = col.Shape;
-                desc.HalfExtents = col.HalfExtents;
-                desc.Radius = col.Radius; desc.Height = col.Height;
-                desc.Friction = col.Friction;
-                desc.Restitution = col.Restitution;
-                rb.RuntimeBodyId = sub->GetWorld().CreateBody(
-                    desc, transform.Position, transform.Rotation);
-            });
+        RegisterCreateBodiesObserver(ecsWorld);
 
         // Register destruction observer
-        ecsWorld.observer<RigidBodyComponent>("PhysicsDestroyBodies")
-            .event(flecs::OnRemove)
-            .each([](flecs::entity e, RigidBodyComponent& rb)
-            {
-                if (rb.RuntimeBodyId == INVALID_PHYSICS_BODY)
-                    return;
-                auto* sub = GameSubsystems::Find<PhysicsSubsystem>();
-                if (!sub) return;
-                sub->GetWorld().DestroyBody(rb.RuntimeBodyId);
-                rb.RuntimeBodyId = INVALID_PHYSICS_BODY;
-            });
+        RegisterDestroyBodiesObserver(ecsWorld);
 
         // Register step system
         ecsWorld.system("PhysicsStep")
