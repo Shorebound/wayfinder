@@ -4,13 +4,13 @@
 
 namespace
 {
-    constexpr const char* kAssetIdKey = "asset_id";
-    constexpr const char* kAssetTypeKey = "asset_type";
-    constexpr const char* kNameKey = "name";
-    constexpr const char* kShaderKey = "shader";
-    constexpr const char* kBaseColourKey = "base_colour";
-    constexpr const char* kWireframeKey = "wireframe";
-    constexpr const char* kParametersKey = "parameters";
+    constexpr std::string_view kAssetIdKey = "asset_id";
+    constexpr std::string_view kAssetTypeKey = "asset_type";
+    constexpr std::string_view kNameKey = "name";
+    constexpr std::string_view kShaderKey = "shader";
+    constexpr std::string_view kBaseColourKey = "base_colour";
+    constexpr std::string_view kWireframeKey = "wireframe";
+    constexpr std::string_view kParametersKey = "parameters";
 
     /// Parse a JSON array of 3 or 4 integers into a LinearColour.
     /// Returns false if any channel is not an integer.
