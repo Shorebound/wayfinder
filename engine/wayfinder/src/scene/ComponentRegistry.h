@@ -4,7 +4,7 @@
 #include <string_view>
 
 #include <flecs.h>
-#include <toml++/toml.hpp>
+#include <nlohmann/json.hpp>
 
 #include "wayfinder_exports.h"
 
@@ -23,9 +23,9 @@ namespace Wayfinder
         {
             std::string_view Key;
             void (*RegisterFn)(flecs::world& world);
-            void (*ApplyFn)(const toml::table& componentTable, Entity& entity);
-            void (*SerializeFn)(const Entity& entity, toml::table& componentTables);
-            bool (*ValidateFn)(const toml::table& componentTable, std::string& error);
+            void (*ApplyFn)(const nlohmann::json& componentData, Entity& entity);
+            void (*SerializeFn)(const Entity& entity, nlohmann::json& componentTables);
+            bool (*ValidateFn)(const nlohmann::json& componentData, std::string& error);
         };
 
         static const SceneComponentRegistry& Get();
@@ -34,9 +34,9 @@ namespace Wayfinder
         static std::span<const Entry> GetEntries();
 
         void RegisterComponents(flecs::world& world) const;
-        void ApplyComponents(const toml::table& componentTables, Entity& entity) const;
-        void SerializeComponents(const Entity& entity, toml::table& componentTables) const;
-        bool ValidateComponent(std::string_view key, const toml::table& componentTable, std::string& error) const;
+        void ApplyComponents(const nlohmann::json& componentTables, Entity& entity) const;
+        void SerializeComponents(const Entity& entity, nlohmann::json& componentTables) const;
+        bool ValidateComponent(std::string_view key, const nlohmann::json& componentData, std::string& error) const;
         bool IsRegistered(std::string_view key) const;
 
     private:
