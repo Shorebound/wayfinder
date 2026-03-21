@@ -76,6 +76,7 @@ target_link_libraries(${ENGINE_NAME}
     PUBLIC
       wayfinder_common
       SDL3::SDL3
+      SDL3_image::SDL3_image-static
       glm::glm
       flecs::flecs_static
       tomlplusplus::tomlplusplus

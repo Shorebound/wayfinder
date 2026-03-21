@@ -9,6 +9,7 @@
 #include <nlohmann/json.hpp>
 
 #include "AssetRegistry.h"
+#include "TextureAsset.h"
 #include "rendering/materials/Material.h"
 #include "scene/ComponentRegistry.h"
 
@@ -70,11 +71,12 @@ namespace Wayfinder
             return nullptr;
         }
 
-        static const std::array<Entry, 2>& GetEntries()
+        static const std::array<Entry, 3>& GetEntries()
         {
-            static const std::array<Entry, 2> entries = {{
+            static const std::array<Entry, 3> entries = {{
                 {"prefab", AssetKind::Prefab, &ValidatePrefabDocument},
                 {"material", AssetKind::Material, &ValidateMaterialDocument},
+                {"texture", AssetKind::Texture, &ValidateTextureDocument},
             }};
             return entries;
         }
@@ -131,6 +133,14 @@ namespace Wayfinder
         {
             MaterialAsset material;
             return ParseMaterialAssetDocument(document, filePath.generic_string(), material, error);
+        }
+
+        static bool ValidateTextureDocument(
+            const nlohmann::json& document,
+            const std::filesystem::path& filePath,
+            std::string& error)
+        {
+            return ValidateTextureAssetDocument(document, filePath, error);
         }
     };
 } // namespace Wayfinder

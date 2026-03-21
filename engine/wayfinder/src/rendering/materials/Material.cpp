@@ -11,6 +11,7 @@ namespace Wayfinder
     constexpr std::string_view kBaseColourKey = "base_colour";
     constexpr std::string_view kWireframeKey = "wireframe";
     constexpr std::string_view kParametersKey = "parameters";
+    constexpr std::string_view kTexturesKey = "textures";
 
     /// Parse a JSON array of 3 or 4 integers into a LinearColour.
     /// Returns false if any channel is not an integer.
@@ -179,6 +180,29 @@ namespace Wayfinder
         if (!parsed.Parameters.Has("base_colour"))
         {
             parsed.Parameters.SetColour("base_colour", LinearColour::White());
+        }
+
+        // Parse "textures" object: maps slot name → texture asset ID string
+        if (document.contains(kTexturesKey) && document.at(kTexturesKey).is_object())
+        {
+            for (const auto& [slotName, idNode] : document.at(kTexturesKey).items())
+            {
+                if (!idNode.is_string())
+                {
+                    error = "Material asset '" + sourceLabel + "' textures['" + slotName + "'] must be a string (asset ID)";
+                    return false;
+                }
+
+                const std::string idText = idNode.get<std::string>();
+                const std::optional<AssetId> texAssetId = AssetId::Parse(idText);
+                if (!texAssetId)
+                {
+                    error = "Material asset '" + sourceLabel + "' textures['" + slotName + "'] has an invalid asset ID: " + idText;
+                    return false;
+                }
+
+                parsed.Textures[slotName] = *texAssetId;
+            }
         }
 
         if (document.contains(kWireframeKey))

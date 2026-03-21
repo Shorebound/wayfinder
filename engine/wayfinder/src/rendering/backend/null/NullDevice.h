@@ -49,6 +49,7 @@ namespace Wayfinder
         // ── Textures (no-ops) ──
         GPUTextureHandle  CreateTexture(const TextureCreateDesc&) override { return {}; }
         void              DestroyTexture(GPUTextureHandle) override {}
+        void              UploadToTexture(GPUTextureHandle, const void*, uint32_t, uint32_t, uint32_t) override {}
 
         // ── Samplers (no-ops) ──
         GPUSamplerHandle  CreateSampler(const SamplerCreateDesc&) override { return {}; }

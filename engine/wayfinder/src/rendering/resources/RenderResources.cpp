@@ -1,6 +1,7 @@
 #include "RenderResources.h"
 
 #include "rendering/materials/Material.h"
+#include "rendering/resources/TextureManager.h"
 
 #include <filesystem>
 
@@ -15,6 +16,16 @@ namespace Wayfinder
 
         m_assetService = assetService;
         m_materialsByKey.clear();
+    }
+
+    void RenderResourceCache::SetTextureManager(TextureManager* textureManager)
+    {
+        m_textureManager = textureManager;
+    }
+
+    void RenderResourceCache::SetProgramRegistry(const ShaderProgramRegistry* programs)
+    {
+        m_programs = programs;
     }
 
     void RenderResourceCache::PrepareFrame(RenderFrame& frame)
@@ -82,6 +93,9 @@ namespace Wayfinder
             resolved.StateOverrides.FillMode = binding.StateOverrides.FillMode;
         }
 
+        // Resolve texture bindings to GPU handles
+        ResolveTextureBindings(resolved);
+
         return resolved;
     }
 
@@ -107,6 +121,58 @@ namespace Wayfinder
         resource.Binding.ShaderName = materialAsset->ShaderName;
         resource.Binding.Parameters = materialAsset->Parameters;
         resource.Binding.HasOverrides = false;
+
+        // Populate texture bindings from the material asset
+        for (const auto& [slotName, texAssetId] : materialAsset->Textures)
+        {
+            resource.Binding.Textures.Slots[slotName] = texAssetId;
+        }
+
         return resource;
+    }
+
+    void RenderResourceCache::ResolveTextureBindings(RenderMaterialBinding& binding)
+    {
+        binding.ResolvedTextures.clear();
+
+        if (!m_textureManager || !m_programs || binding.Textures.Slots.empty()) return;
+
+        const ShaderProgram* program = m_programs->FindOrDefault(binding.ShaderName);
+        if (!program) return;
+
+        for (const auto& slotDecl : program->Desc.TextureSlots)
+        {
+            ResolvedTextureBinding resolved;
+            resolved.Slot = slotDecl.BindingSlot;
+
+            // Look up the texture asset ID for this slot
+            auto slotIt = binding.Textures.Slots.find(slotDecl.Name);
+            if (slotIt != binding.Textures.Slots.end() && m_assetService)
+            {
+                resolved.Texture = m_textureManager->GetOrLoad(slotIt->second, *m_assetService);
+            }
+            else
+            {
+                resolved.Texture = m_textureManager->GetFallback();
+            }
+
+            // Create/get a sampler for this texture asset's filter/address settings
+            std::string texError;
+            const TextureAsset* texAsset = (slotIt != binding.Textures.Slots.end() && m_assetService)
+                ? m_assetService->LoadAsset<TextureAsset>(slotIt->second, texError)
+                : nullptr;
+
+            SamplerCreateDesc samplerDesc;
+            if (texAsset)
+            {
+                samplerDesc.minFilter = texAsset->Filter;
+                samplerDesc.magFilter = texAsset->Filter;
+                samplerDesc.addressModeU = texAsset->AddressMode;
+                samplerDesc.addressModeV = texAsset->AddressMode;
+            }
+            resolved.Sampler = m_textureManager->GetOrCreateSampler(samplerDesc);
+
+            binding.ResolvedTextures.push_back(resolved);
+        }
     }
 } // namespace Wayfinder

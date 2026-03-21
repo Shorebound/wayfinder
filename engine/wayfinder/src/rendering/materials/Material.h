@@ -3,9 +3,11 @@
 #include <filesystem>
 #include <optional>
 #include <string>
+#include <unordered_map>
 
 #include <nlohmann/json.hpp>
 
+#include "assets/AssetLoader.h"
 #include "core/Identifiers.h"
 #include "MaterialParameter.h"
 #include "core/Types.h"
@@ -26,6 +28,9 @@ namespace Wayfinder
         std::string ShaderName = "unlit";
         MaterialParameterBlock Parameters;
 
+        /// Named texture slot references: slot name (e.g. "diffuse") → texture AssetId.
+        std::unordered_map<std::string, AssetId> Textures;
+
         // Convenience accessors for the most common parameter.
         LinearColour GetBaseColour() const;
         void SetBaseColour(const LinearColour& colour);
@@ -43,4 +48,25 @@ namespace Wayfinder
         std::string& error);
 
     WAYFINDER_API nlohmann::json CreateMaterialComponentTable(const MaterialAsset& material);
+
+    // ── AssetLoader specialisation ───────────────────────────
+    // Allows MaterialAsset to be loaded through the generic AssetCache<T> path.
+
+    template<>
+    struct AssetLoader<MaterialAsset>
+    {
+        static std::optional<MaterialAsset> Load(
+            const nlohmann::json& document,
+            const std::filesystem::path& filePath,
+            std::string& error)
+        {
+            MaterialAsset material;
+            if (!ParseMaterialAssetDocument(document, filePath.generic_string(), material, error))
+            {
+                return std::nullopt;
+            }
+            return material;
+        }
+    };
+
 } // namespace Wayfinder

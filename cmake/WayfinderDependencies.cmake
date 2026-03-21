@@ -16,6 +16,25 @@ CPMAddPackage(
         "SDL_TESTS OFF"
 )
 
+# --- SDL_image ---
+# Image loading via SDL_image 3 (wraps stb_image / native codecs)
+CPMAddPackage(
+    NAME SDL3_image
+    GIT_REPOSITORY https://github.com/libsdl-org/SDL_image.git
+    GIT_TAG release-3.4.0
+    OPTIONS
+        "BUILD_SHARED_LIBS OFF"
+        "SDLIMAGE_SAMPLES OFF"
+        "SDLIMAGE_TESTS OFF"
+        "SDLIMAGE_VENDORED ON"
+        "SDLIMAGE_DEPS_SHARED OFF"
+        "SDLIMAGE_AVIF OFF"
+        "SDLIMAGE_JXL OFF"
+        "SDLIMAGE_TIFF OFF"
+        "SDLIMAGE_WEBP OFF"
+        "SDLIMAGE_INSTALL OFF"
+)
+
 # --- GLM ---
 CPMAddPackage(
     NAME glm

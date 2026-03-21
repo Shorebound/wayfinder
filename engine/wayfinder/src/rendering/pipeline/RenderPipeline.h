@@ -38,6 +38,7 @@ namespace Wayfinder
         uint32_t SwapchainWidth;
         uint32_t SwapchainHeight;
         Mesh& PrimitiveMesh;
+        Mesh& TexturedPrimitiveMesh;
         GPUPipeline& DebugLinePipeline;
         std::span<const std::unique_ptr<RenderFeature>> Features;
     };

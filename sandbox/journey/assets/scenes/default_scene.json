@@ -157,6 +157,20 @@
         "friction": 0.3,
         "restitution": 0.4
       }
+    },
+    {
+      "id": "c3d4e5f6-a7b8-49c0-d1e2-f3a4b5c6d7e8",
+      "name": "TexturedCrate",
+      "parent_id": "d43f13fe-fd18-46ad-9e2a-10d9cd0f6f9c",
+      "prefab_id": "f4a6f64d-7233-4d0c-bf13-cfd5f6f16b8c",
+      "transform": {
+        "position": [-3.0, 0.5, 0.0],
+        "rotation": [0.0, 45.0, 0.0],
+        "scale": [1.5, 1.5, 1.5]
+      },
+      "material": {
+        "material_id": "b8f4c2d5-3e6a-4f9b-a0d7-2e1c4f8b6a3d"
+      }
     }
   ]
 }

@@ -279,6 +279,15 @@ namespace Wayfinder
         virtual GPUTextureHandle CreateTexture(const TextureCreateDesc& desc) = 0;
         virtual void DestroyTexture(GPUTextureHandle texture) = 0;
 
+        /// Upload pixel data to a GPU texture.
+        /// The texture must have been created with Sampler usage.
+        virtual void UploadToTexture(
+            GPUTextureHandle texture,
+            const void* pixelData,
+            uint32_t width,
+            uint32_t height,
+            uint32_t bytesPerRow) = 0;
+
         // ── Samplers ─────────────────────────────────────────────
 
         virtual GPUSamplerHandle CreateSampler(const SamplerCreateDesc& desc) = 0;

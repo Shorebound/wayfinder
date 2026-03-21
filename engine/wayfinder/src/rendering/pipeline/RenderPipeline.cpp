@@ -115,6 +115,28 @@ namespace Wayfinder
 
         {
             ShaderProgramDesc desc;
+            desc.Name = "textured_lit";
+            desc.VertexShaderName = "textured_lit";
+            desc.FragmentShaderName = "textured_lit";
+            desc.VertexResources = {.numUniformBuffers = 1};
+            desc.FragmentResources = {.numUniformBuffers = 2, .numSamplers = 1}; // material + scene globals + diffuse sampler
+            desc.VertexLayout = VertexLayouts::PosNormalUV;
+            desc.Cull = CullMode::Back;
+            desc.DepthTest = true;
+            desc.DepthWrite = true;
+            desc.MaterialParams = {
+                {"base_colour", MaterialParamType::Colour, 0, LinearColour::White()},
+            };
+            desc.MaterialUBOSize = 16; // float4
+            desc.VertexUBOSize = sizeof(TransformUBO);
+            desc.NeedsSceneGlobals = true;
+            desc.TextureSlots = {{"diffuse", 0}};
+
+            registry.Register(desc);
+        }
+
+        {
+            ShaderProgramDesc desc;
             desc.Name = "composition";
             desc.VertexShaderName = "fullscreen";
             desc.FragmentShaderName = "composition";
@@ -238,6 +260,7 @@ namespace Wayfinder
                 if (!hasCamera) return;
 
                 const auto& primitiveMesh = params.PrimitiveMesh;
+                const auto& texturedMesh = params.TexturedPrimitiveMesh;
                 auto& registry = m_context->GetPrograms();
                 auto& pipelineCache = m_context->GetPipelines();
                 auto& shaderManager = m_context->GetShaders();
@@ -329,15 +352,28 @@ namespace Wayfinder
                         // Solid draw (for Solid and SolidAndWireframe modes)
                         if (fillMode == RenderFillMode::Solid || fillMode == RenderFillMode::SolidAndWireframe)
                         {
+                            const bool isTextured = !program->Desc.TextureSlots.empty();
+                            const auto& mesh = isTextured ? texturedMesh : primitiveMesh;
+
                             if (program != lastBoundProgram)
                             {
                                 program->Pipeline->Bind();
-                                primitiveMesh.Bind(device);
+                                mesh.Bind(device);
                                 lastBoundProgram = program;
                             }
 
                             pushUniforms();
-                            primitiveMesh.Draw(device);
+
+                            // Bind resolved textures for this submission
+                            for (const auto& texBinding : submission.Material.ResolvedTextures)
+                            {
+                                if (texBinding.Texture && texBinding.Sampler)
+                                {
+                                    device.BindFragmentSampler(texBinding.Slot, texBinding.Texture, texBinding.Sampler);
+                                }
+                            }
+
+                            mesh.Draw(device);
                         }
 
                         // Wireframe draw (for Wireframe and SolidAndWireframe modes)

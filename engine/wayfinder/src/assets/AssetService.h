@@ -5,7 +5,9 @@
 #include <string>
 #include <unordered_map>
 
+#include "AssetCache.h"
 #include "AssetRegistry.h"
+#include "TextureAsset.h"
 #include "rendering/materials/Material.h"
 
 namespace Wayfinder
@@ -20,11 +22,33 @@ namespace Wayfinder
         const std::filesystem::path* ResolvePath(const AssetId& assetId) const;
         const MaterialAsset* LoadMaterialAsset(const AssetId& assetId, std::string& error);
 
+        /// Generic typed asset access — delegates to the appropriate AssetCache<T>.
+        template<typename TAsset>
+        const TAsset* LoadAsset(const AssetId& assetId, std::string& error);
+
+        const AssetRegistry& GetRegistry() const { return m_assetRegistry; }
+
     private:
         std::filesystem::path m_assetRoot;
         AssetRegistry m_assetRegistry;
         bool m_hasAssetRegistry = false;
-        std::unordered_map<AssetId, MaterialAsset> m_materialAssetsById;
-        std::unordered_map<AssetId, bool> m_missingMaterialAssets;
+
+        AssetCache<MaterialAsset> m_materialCache;
+        AssetCache<TextureAsset> m_textureCache;
     };
+
+    // ── Template implementation ──────────────────────────────
+
+    template<>
+    inline const MaterialAsset* AssetService::LoadAsset<MaterialAsset>(const AssetId& assetId, std::string& error)
+    {
+        return LoadMaterialAsset(assetId, error);
+    }
+
+    template<>
+    inline const TextureAsset* AssetService::LoadAsset<TextureAsset>(const AssetId& assetId, std::string& error)
+    {
+        return m_textureCache.LoadOrGet(assetId, m_assetRegistry, error);
+    }
+
 } // namespace Wayfinder

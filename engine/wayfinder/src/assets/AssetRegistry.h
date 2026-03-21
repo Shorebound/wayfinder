@@ -15,7 +15,8 @@ namespace Wayfinder
     {
         Unknown,
         Prefab,
-        Material
+        Material,
+        Texture,
     };
 
     struct WAYFINDER_API AssetRecord

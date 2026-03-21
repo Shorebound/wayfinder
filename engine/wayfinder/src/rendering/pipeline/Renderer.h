@@ -89,6 +89,9 @@ namespace Wayfinder
         // Single built-in mesh — all scene primitives use PosNormalColour
         Mesh m_primitiveMesh;
 
+        // UV-mapped primitive mesh — used by textured shader programs
+        Mesh m_texturedPrimitiveMesh;
+
         int m_screenWidth;
         int m_screenHeight;
 

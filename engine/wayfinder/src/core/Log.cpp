@@ -14,6 +14,7 @@ namespace Wayfinder
     LogCategory& LogRenderer = Log::CreateCategory("Renderer");
     LogCategory& LogInput = Log::CreateCategory("Input");
     LogCategory& LogAudio = Log::CreateCategory("Audio");
+    LogCategory& LogAssets = Log::CreateCategory("Assets");
     LogCategory& LogPhysics = Log::CreateCategory("Physics");
     LogCategory& LogGame = Log::CreateCategory("Game");
     LogCategory& LogScene = Log::CreateCategory("Scene");

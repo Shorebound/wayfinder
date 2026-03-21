@@ -61,6 +61,7 @@ namespace Wayfinder
 
         GPUTextureHandle CreateTexture(const TextureCreateDesc& desc) override;
         void DestroyTexture(GPUTextureHandle texture) override;
+        void UploadToTexture(GPUTextureHandle texture, const void* pixelData, uint32_t width, uint32_t height, uint32_t bytesPerRow) override;
 
         GPUSamplerHandle CreateSampler(const SamplerCreateDesc& desc) override;
         void DestroySampler(GPUSamplerHandle sampler) override;

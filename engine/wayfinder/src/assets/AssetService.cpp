@@ -12,8 +12,8 @@ namespace Wayfinder
 
         m_assetRoot = normalisedRoot;
         m_hasAssetRegistry = false;
-        m_materialAssetsById.clear();
-        m_missingMaterialAssets.clear();
+        m_materialCache.Clear();
+        m_textureCache.Clear();
 
         if (m_assetRoot.empty())
         {
@@ -41,33 +41,6 @@ namespace Wayfinder
             return nullptr;
         }
 
-        if (const auto cached = m_materialAssetsById.find(assetId); cached != m_materialAssetsById.end())
-        {
-            return &cached->second;
-        }
-
-        if (m_missingMaterialAssets.find(assetId) != m_missingMaterialAssets.end())
-        {
-            error = "Material asset '" + assetId.ToString() + "' could not be resolved from the active asset root.";
-            return nullptr;
-        }
-
-        const std::filesystem::path* materialPath = m_assetRegistry.ResolvePath(assetId);
-        if (!materialPath)
-        {
-            m_missingMaterialAssets.emplace(assetId, true);
-            error = "Material asset '" + assetId.ToString() + "' is not registered under the active asset root.";
-            return nullptr;
-        }
-
-        MaterialAsset materialAsset;
-        if (!LoadMaterialAssetFromFile(*materialPath, materialAsset, error))
-        {
-            m_missingMaterialAssets.emplace(assetId, true);
-            return nullptr;
-        }
-
-        const auto [it, inserted] = m_materialAssetsById.emplace(materialAsset.Id, std::move(materialAsset));
-        return &it->second;
+        return m_materialCache.LoadOrGet(assetId, m_assetRegistry, error);
     }
 } // namespace Wayfinder
