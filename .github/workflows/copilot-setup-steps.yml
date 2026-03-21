@@ -14,6 +14,8 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
+    # Cache the fully built environment so subsequent agent sessions skip setup.
+    snapshot: "true"
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
