@@ -23,7 +23,7 @@ namespace Wayfinder
         Vec2,
         Vec3,
         Vec4,
-        Color, // LinearColor (float4, same GPU layout as Vec4)
+        Colour, // LinearColour (float4, same GPU layout as Vec4)
         Int,
     };
 
@@ -32,7 +32,7 @@ namespace Wayfinder
         glm::vec2,
         glm::vec3,
         glm::vec4,
-        LinearColor,
+        LinearColour,
         int32_t>;
 
     // ── Material Parameter Declaration ───────────────────────
@@ -60,7 +60,7 @@ namespace Wayfinder
         void SetVec2(const std::string& name, const glm::vec2& v) { Values[name] = v; }
         void SetVec3(const std::string& name, const glm::vec3& v) { Values[name] = v; }
         void SetVec4(const std::string& name, const glm::vec4& v) { Values[name] = v; }
-        void SetColor(const std::string& name, const LinearColor& v) { Values[name] = v; }
+        void SetColour(const std::string& name, const LinearColour& v) { Values[name] = v; }
         void SetInt(const std::string& name, int32_t v) { Values[name] = v; }
 
         bool Has(const std::string& name) const { return Values.contains(name); }

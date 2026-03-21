@@ -203,7 +203,7 @@ function Add-BlockedBy {
     if (-not $ids) { return }
 
     $blockedInfo = $ids[$BlockedIssue]
-    Write-Host "Issue #$BlockedIssue ($($blockedInfo.Title))" -ForegroundColor Cyan
+    Write-Host "Issue #$BlockedIssue ($($blockedInfo.Title))" -ForegroundColour Cyan
 
     foreach ($blocker in $BlockingIssues) {
         $blockerInfo = $ids[$blocker]
@@ -211,7 +211,7 @@ function Add-BlockedBy {
         try {
             $result = Invoke-GraphQLMutation -Mutation $mutation
         } catch {
-            Write-Host "  FAIL  blocked by #$blocker ($($blockerInfo.Title)) - $($_.Exception.Message)" -ForegroundColor Red
+            Write-Host "  FAIL  blocked by #$blocker ($($blockerInfo.Title)) - $($_.Exception.Message)" -ForegroundColour Red
             Start-Sleep -Milliseconds 250
             continue
         }
@@ -219,12 +219,12 @@ function Add-BlockedBy {
         if ($result.errors) {
             $msg = $result.errors[0].message
             if ($msg -match "already been taken") {
-                Write-Host "  SKIP  blocked by #$blocker ($($blockerInfo.Title)) - already exists" -ForegroundColor DarkGray
+                Write-Host "  SKIP  blocked by #$blocker ($($blockerInfo.Title)) - already exists" -ForegroundColour DarkGray
             } else {
-                Write-Host "  FAIL  blocked by #$blocker ($($blockerInfo.Title)) - $msg" -ForegroundColor Red
+                Write-Host "  FAIL  blocked by #$blocker ($($blockerInfo.Title)) - $msg" -ForegroundColour Red
             }
         } else {
-            Write-Host "  OK    blocked by #$blocker ($($blockerInfo.Title))" -ForegroundColor Green
+            Write-Host "  OK    blocked by #$blocker ($($blockerInfo.Title))" -ForegroundColour Green
         }
         Start-Sleep -Milliseconds 250
     }
@@ -238,7 +238,7 @@ function Add-Blocking {
     if (-not $ids) { return }
 
     $blockingInfo = $ids[$BlockingIssue]
-    Write-Host "Issue #$BlockingIssue ($($blockingInfo.Title)) now blocking:" -ForegroundColor Cyan
+    Write-Host "Issue #$BlockingIssue ($($blockingInfo.Title)) now blocking:" -ForegroundColour Cyan
 
     foreach ($blocked in $BlockedIssues) {
         $blockedInfo = $ids[$blocked]
@@ -247,7 +247,7 @@ function Add-Blocking {
         try {
             $result = Invoke-GraphQLMutation -Mutation $mutation
         } catch {
-            Write-Host "  FAIL  #$blocked ($($blockedInfo.Title)) - $($_.Exception.Message)" -ForegroundColor Red
+            Write-Host "  FAIL  #$blocked ($($blockedInfo.Title)) - $($_.Exception.Message)" -ForegroundColour Red
             Start-Sleep -Milliseconds 250
             continue
         }
@@ -255,12 +255,12 @@ function Add-Blocking {
         if ($result.errors) {
             $msg = $result.errors[0].message
             if ($msg -match "already been taken") {
-                Write-Host "  SKIP  #$blocked ($($blockedInfo.Title)) - already exists" -ForegroundColor DarkGray
+                Write-Host "  SKIP  #$blocked ($($blockedInfo.Title)) - already exists" -ForegroundColour DarkGray
             } else {
-                Write-Host "  FAIL  #$blocked ($($blockedInfo.Title)) - $msg" -ForegroundColor Red
+                Write-Host "  FAIL  #$blocked ($($blockedInfo.Title)) - $msg" -ForegroundColour Red
             }
         } else {
-            Write-Host "  OK    #$blocked ($($blockedInfo.Title))" -ForegroundColor Green
+            Write-Host "  OK    #$blocked ($($blockedInfo.Title))" -ForegroundColour Green
         }
         Start-Sleep -Milliseconds 250
     }
@@ -274,7 +274,7 @@ function Add-SubIssue {
     if (-not $ids) { return }
 
     $parentInfo = $ids[$ParentIssue]
-    Write-Host "Parent #$ParentIssue ($($parentInfo.Title))" -ForegroundColor Cyan
+    Write-Host "Parent #$ParentIssue ($($parentInfo.Title))" -ForegroundColour Cyan
 
     foreach ($child in $ChildIssues) {
         $childInfo = $ids[$child]
@@ -282,7 +282,7 @@ function Add-SubIssue {
         try {
             $result = Invoke-GraphQLMutation -Mutation $mutation
         } catch {
-            Write-Host "  FAIL  sub-issue #$child ($($childInfo.Title)) - $($_.Exception.Message)" -ForegroundColor Red
+            Write-Host "  FAIL  sub-issue #$child ($($childInfo.Title)) - $($_.Exception.Message)" -ForegroundColour Red
             Start-Sleep -Milliseconds 250
             continue
         }
@@ -290,12 +290,12 @@ function Add-SubIssue {
         if ($result.errors) {
             $msg = $result.errors[0].message
             if ($msg -match "already") {
-                Write-Host "  SKIP  sub-issue #$child ($($childInfo.Title)) - already exists" -ForegroundColor DarkGray
+                Write-Host "  SKIP  sub-issue #$child ($($childInfo.Title)) - already exists" -ForegroundColour DarkGray
             } else {
-                Write-Host "  FAIL  sub-issue #$child ($($childInfo.Title)) - $msg" -ForegroundColor Red
+                Write-Host "  FAIL  sub-issue #$child ($($childInfo.Title)) - $msg" -ForegroundColour Red
             }
         } else {
-            Write-Host "  OK    sub-issue #$child ($($childInfo.Title))" -ForegroundColor Green
+            Write-Host "  OK    sub-issue #$child ($($childInfo.Title))" -ForegroundColour Green
         }
         Start-Sleep -Milliseconds 250
     }
@@ -310,7 +310,7 @@ function Remove-BlockedBy {
     if (-not $ids) { return }
 
     $blockedInfo = $ids[$BlockedIssue]
-    Write-Host "Issue #$BlockedIssue ($($blockedInfo.Title))" -ForegroundColor Cyan
+    Write-Host "Issue #$BlockedIssue ($($blockedInfo.Title))" -ForegroundColour Cyan
 
     foreach ($blocker in $BlockingIssues) {
         $blockerInfo = $ids[$blocker]
@@ -321,15 +321,15 @@ function Remove-BlockedBy {
         try {
             $result = Invoke-GraphQLMutation -Mutation $mutation
         } catch {
-            Write-Host "  FAIL  remove blocked-by #$blocker ($($blockerInfo.Title)) - $($_.Exception.Message)" -ForegroundColor Red
+            Write-Host "  FAIL  remove blocked-by #$blocker ($($blockerInfo.Title)) - $($_.Exception.Message)" -ForegroundColour Red
             Start-Sleep -Milliseconds 250
             continue
         }
 
         if ($result.errors) {
-            Write-Host "  FAIL  remove blocked-by #$blocker ($($blockerInfo.Title)) - $($result.errors[0].message)" -ForegroundColor Red
+            Write-Host "  FAIL  remove blocked-by #$blocker ($($blockerInfo.Title)) - $($result.errors[0].message)" -ForegroundColour Red
         } else {
-            Write-Host "  OK    removed blocked-by #$blocker ($($blockerInfo.Title))" -ForegroundColor Green
+            Write-Host "  OK    removed blocked-by #$blocker ($($blockerInfo.Title))" -ForegroundColour Green
         }
         Start-Sleep -Milliseconds 250
     }
@@ -344,7 +344,7 @@ function Remove-Blocking {
     if (-not $ids) { return }
 
     $blockingInfo = $ids[$BlockingIssue]
-    Write-Host "Issue #$BlockingIssue ($($blockingInfo.Title)) removing blocking:" -ForegroundColor Cyan
+    Write-Host "Issue #$BlockingIssue ($($blockingInfo.Title)) removing blocking:" -ForegroundColour Cyan
 
     foreach ($blocked in $BlockedIssues) {
         $blockedInfo = $ids[$blocked]
@@ -355,15 +355,15 @@ function Remove-Blocking {
         try {
             $result = Invoke-GraphQLMutation -Mutation $mutation
         } catch {
-            Write-Host "  FAIL  remove blocking #$blocked ($($blockedInfo.Title)) - $($_.Exception.Message)" -ForegroundColor Red
+            Write-Host "  FAIL  remove blocking #$blocked ($($blockedInfo.Title)) - $($_.Exception.Message)" -ForegroundColour Red
             Start-Sleep -Milliseconds 250
             continue
         }
 
         if ($result.errors) {
-            Write-Host "  FAIL  remove blocking #$blocked ($($blockedInfo.Title)) - $($result.errors[0].message)" -ForegroundColor Red
+            Write-Host "  FAIL  remove blocking #$blocked ($($blockedInfo.Title)) - $($result.errors[0].message)" -ForegroundColour Red
         } else {
-            Write-Host "  OK    removed blocking #$blocked ($($blockedInfo.Title))" -ForegroundColor Green
+            Write-Host "  OK    removed blocking #$blocked ($($blockedInfo.Title))" -ForegroundColour Green
         }
         Start-Sleep -Milliseconds 250
     }
@@ -378,7 +378,7 @@ function Remove-SubIssue {
     if (-not $ids) { return }
 
     $parentInfo = $ids[$ParentIssue]
-    Write-Host "Parent #$ParentIssue ($($parentInfo.Title))" -ForegroundColor Cyan
+    Write-Host "Parent #$ParentIssue ($($parentInfo.Title))" -ForegroundColour Cyan
 
     foreach ($child in $ChildIssues) {
         $childInfo = $ids[$child]
@@ -389,15 +389,15 @@ function Remove-SubIssue {
         try {
             $result = Invoke-GraphQLMutation -Mutation $mutation
         } catch {
-            Write-Host "  FAIL  remove sub-issue #$child ($($childInfo.Title)) - $($_.Exception.Message)" -ForegroundColor Red
+            Write-Host "  FAIL  remove sub-issue #$child ($($childInfo.Title)) - $($_.Exception.Message)" -ForegroundColour Red
             Start-Sleep -Milliseconds 250
             continue
         }
 
         if ($result.errors) {
-            Write-Host "  FAIL  remove sub-issue #$child ($($childInfo.Title)) - $($result.errors[0].message)" -ForegroundColor Red
+            Write-Host "  FAIL  remove sub-issue #$child ($($childInfo.Title)) - $($result.errors[0].message)" -ForegroundColour Red
         } else {
-            Write-Host "  OK    removed sub-issue #$child ($($childInfo.Title))" -ForegroundColor Green
+            Write-Host "  OK    removed sub-issue #$child ($($childInfo.Title))" -ForegroundColour Green
         }
         Start-Sleep -Milliseconds 250
     }
@@ -433,7 +433,7 @@ query {
     }
 
     if ($result.errors) {
-        Write-Host "Note: Some relationship fields may not be available on your GitHub plan." -ForegroundColor Yellow
+        Write-Host "Note: Some relationship fields may not be available on your GitHub plan." -ForegroundColour Yellow
         Write-Error $result.errors[0].message
         return
     }
@@ -443,22 +443,22 @@ query {
         Write-Error "Issue not found or inaccessible: #$IssueNumber"
         return
     }
-    $stateColor = if ($issue.state -eq "CLOSED") { "Green" } else { "White" }
+    $stateColour = if ($issue.state -eq "CLOSED") { "Green" } else { "White" }
 
     Write-Host ""
-    Write-Host "  #$IssueNumber - $($issue.title) " -NoNewline -ForegroundColor Cyan
-    Write-Host "[$($issue.state)]" -ForegroundColor $stateColor
+    Write-Host "  #$IssueNumber - $($issue.title) " -NoNewline -ForegroundColour Cyan
+    Write-Host "[$($issue.state)]" -ForegroundColour $stateColour
 
     # Labels
     if ($issue.labels.nodes.Count -gt 0) {
         $labelStr = ($issue.labels.nodes | ForEach-Object { $_.name }) -join ", "
-        Write-Host "  Labels: $labelStr" -ForegroundColor DarkGray
+        Write-Host "  Labels: $labelStr" -ForegroundColour DarkGray
     }
 
     # Assignees
     if ($issue.assignees.nodes.Count -gt 0) {
         $assigneeStr = ($issue.assignees.nodes | ForEach-Object { "@$($_.login)" }) -join ", "
-        Write-Host "  Assigned: $assigneeStr" -ForegroundColor DarkGray
+        Write-Host "  Assigned: $assigneeStr" -ForegroundColour DarkGray
     }
 
     Write-Host ""
@@ -466,8 +466,8 @@ query {
     # Parent with state
     if ($issue.parent) {
         $parentIcon = if ($issue.parent.state -eq "CLOSED") { "[x]" } else { "[ ]" }
-        $parentColor = if ($issue.parent.state -eq "CLOSED") { "DarkGray" } else { "Magenta" }
-        Write-Host "  Parent: $parentIcon #$($issue.parent.number) - $($issue.parent.title)" -ForegroundColor $parentColor
+        $parentColour = if ($issue.parent.state -eq "CLOSED") { "DarkGray" } else { "Magenta" }
+        Write-Host "  Parent: $parentIcon #$($issue.parent.number) - $($issue.parent.title)" -ForegroundColour $parentColour
     }
 
     # Blocked by with completion count
@@ -476,14 +476,14 @@ query {
         $resolvedCount = @($blockedByNodes | Where-Object { $_.state -eq "CLOSED" }).Count
         $totalCount = $blockedByNodes.Count
         if ($resolvedCount -eq $totalCount) {
-            Write-Host "  Blocked by (ALL RESOLVED):" -ForegroundColor Green
+            Write-Host "  Blocked by (ALL RESOLVED):" -ForegroundColour Green
         } else {
-            Write-Host "  Blocked by ($resolvedCount/$totalCount resolved):" -ForegroundColor Yellow
+            Write-Host "  Blocked by ($resolvedCount/$totalCount resolved):" -ForegroundColour Yellow
         }
         foreach ($b in $blockedByNodes) {
             $icon = if ($b.state -eq "CLOSED") { "[x]" } else { "[ ]" }
             $colour = if ($b.state -eq "CLOSED") { "DarkGray" } else { "White" }
-            Write-Host "    $icon #$($b.number) - $($b.title)" -ForegroundColor $colour
+            Write-Host "    $icon #$($b.number) - $($b.title)" -ForegroundColour $colour
         }
     }
 
@@ -492,11 +492,11 @@ query {
     if ($blockingNodes.Count -gt 0) {
         $doneCount = @($blockingNodes | Where-Object { $_.state -eq "CLOSED" }).Count
         $totalCount = $blockingNodes.Count
-        Write-Host "  Blocking ($doneCount/$totalCount done):" -ForegroundColor Yellow
+        Write-Host "  Blocking ($doneCount/$totalCount done):" -ForegroundColour Yellow
         foreach ($b in $blockingNodes) {
             $icon = if ($b.state -eq "CLOSED") { "[x]" } else { "[ ]" }
             $colour = if ($b.state -eq "CLOSED") { "DarkGray" } else { "White" }
-            Write-Host "    $icon #$($b.number) - $($b.title)" -ForegroundColor $colour
+            Write-Host "    $icon #$($b.number) - $($b.title)" -ForegroundColour $colour
         }
     }
 
@@ -505,34 +505,34 @@ query {
     if ($subNodes.Count -gt 0) {
         $doneCount = @($subNodes | Where-Object { $_.state -eq "CLOSED" }).Count
         $totalCount = $subNodes.Count
-        $subColor = if ($doneCount -eq $totalCount) { "Green" } else { "Yellow" }
-        Write-Host "  Sub-issues ($doneCount/$totalCount complete):" -ForegroundColor $subColor
+        $subColour = if ($doneCount -eq $totalCount) { "Green" } else { "Yellow" }
+        Write-Host "  Sub-issues ($doneCount/$totalCount complete):" -ForegroundColour $subColour
         foreach ($s in $subNodes) {
             $icon = if ($s.state -eq "CLOSED") { "[x]" } else { "[ ]" }
             $colour = if ($s.state -eq "CLOSED") { "DarkGray" } else { "White" }
-            Write-Host "    $icon #$($s.number) - $($s.title)" -ForegroundColor $colour
+            Write-Host "    $icon #$($s.number) - $($s.title)" -ForegroundColour $colour
         }
     }
 
     $hasAny = $issue.parent -or $blockedByNodes.Count -gt 0 -or $blockingNodes.Count -gt 0 -or $subNodes.Count -gt 0
     if (-not $hasAny) {
-        Write-Host "  No relationships found." -ForegroundColor DarkGray
+        Write-Host "  No relationships found." -ForegroundColour DarkGray
     }
 
     # Overall status summary
     Write-Host ""
     if ($issue.state -eq "CLOSED") {
-        Write-Host "  Status: DONE" -ForegroundColor Green
+        Write-Host "  Status: DONE" -ForegroundColour Green
     } elseif ($blockedByNodes.Count -gt 0) {
         $unresolvedCount = @($blockedByNodes | Where-Object { $_.state -ne "CLOSED" }).Count
         if ($unresolvedCount -gt 0) {
             $plural = if ($unresolvedCount -ne 1) { "s" } else { "" }
-            Write-Host "  Status: BLOCKED ($unresolvedCount unresolved blocker$plural)" -ForegroundColor Red
+            Write-Host "  Status: BLOCKED ($unresolvedCount unresolved blocker$plural)" -ForegroundColour Red
         } else {
-            Write-Host "  Status: READY (all blockers resolved)" -ForegroundColor Green
+            Write-Host "  Status: READY (all blockers resolved)" -ForegroundColour Green
         }
     } else {
-        Write-Host "  Status: READY" -ForegroundColor Green
+        Write-Host "  Status: READY" -ForegroundColour Green
     }
     Write-Host ""
 }
@@ -562,8 +562,8 @@ function Show-BatchSummary {
     }
 
     Write-Host ""
-    Write-Host "  #       State    Status     Sub-issues  Title" -ForegroundColor Cyan
-    Write-Host "  $('-' * 75)" -ForegroundColor DarkGray
+    Write-Host "  #       State    Status     Sub-issues  Title" -ForegroundColour Cyan
+    Write-Host "  $('-' * 75)" -ForegroundColour DarkGray
 
     foreach ($num in $IssueNumbers) {
         $issue = $result.data.repository."i$num"
@@ -576,13 +576,13 @@ function Show-BatchSummary {
         $unresolvedBlockers = @($blockers | Where-Object { $_.state -ne "CLOSED" }).Count
         if ($issue.state -eq "CLOSED") {
             $statusStr = "DONE"
-            $statusColor = "Green"
+            $statusColour = "Green"
         } elseif ($unresolvedBlockers -gt 0) {
             $statusStr = "BLOCKED"
-            $statusColor = "Red"
+            $statusColour = "Red"
         } else {
             $statusStr = "READY"
-            $statusColor = "Green"
+            $statusColour = "Green"
         }
 
         # Sub-issue progress
@@ -594,14 +594,14 @@ function Show-BatchSummary {
             $subStr = "-"
         }
 
-        $stateColor = if ($issue.state -eq "CLOSED") { "DarkGray" } else { "White" }
+        $stateColour = if ($issue.state -eq "CLOSED") { "DarkGray" } else { "White" }
 
         Write-Host "  " -NoNewline
-        Write-Host ("#$num").PadRight(8) -NoNewline -ForegroundColor $stateColor
-        Write-Host $stateStr.PadRight(9) -NoNewline -ForegroundColor $stateColor
-        Write-Host $statusStr.PadRight(11) -NoNewline -ForegroundColor $statusColor
-        Write-Host $subStr.PadRight(12) -NoNewline -ForegroundColor $stateColor
-        Write-Host $issue.title -ForegroundColor $stateColor
+        Write-Host ("#$num").PadRight(8) -NoNewline -ForegroundColour $stateColour
+        Write-Host $stateStr.PadRight(9) -NoNewline -ForegroundColour $stateColour
+        Write-Host $statusStr.PadRight(11) -NoNewline -ForegroundColour $statusColour
+        Write-Host $subStr.PadRight(12) -NoNewline -ForegroundColour $stateColour
+        Write-Host $issue.title -ForegroundColour $stateColour
     }
     Write-Host ""
 }
@@ -611,7 +611,7 @@ function Show-Ready {
     $issues = Invoke-GhJson -Arguments @("issue", "list", "--repo", "$OWNER/$REPO", "--state", "open", "--limit", "200", "--json", "number,title,labels,assignees") -ErrorContext "Show-Ready"
 
     if (-not $issues -or $issues.Count -eq 0) {
-        Write-Host "No open issues found." -ForegroundColor DarkGray
+        Write-Host "No open issues found." -ForegroundColour DarkGray
         return
     }
 
@@ -647,12 +647,12 @@ function Show-Ready {
 
     Write-Host ""
     if ($readyIssues.Count -eq 0) {
-        Write-Host "  No ready issues found. Everything is blocked!" -ForegroundColor Yellow
+        Write-Host "  No ready issues found. Everything is blocked!" -ForegroundColour Yellow
     } else {
-        Write-Host "  Ready to work ($($readyIssues.Count) issues):" -ForegroundColor Green
+        Write-Host "  Ready to work ($($readyIssues.Count) issues):" -ForegroundColour Green
         Write-Host ""
-        Write-Host "  #       Labels                          Assigned   Title" -ForegroundColor Cyan
-        Write-Host "  $('-' * 80)" -ForegroundColor DarkGray
+        Write-Host "  #       Labels                          Assigned   Title" -ForegroundColour Cyan
+        Write-Host "  $('-' * 80)" -ForegroundColour DarkGray
 
         foreach ($r in $readyIssues | Sort-Object { $_.number }) {
             $labels = ($r.labels.nodes | ForEach-Object { $_.name }) -join ", "
@@ -661,10 +661,10 @@ function Show-Ready {
             if (-not $assignees) { $assignees = "-" }
 
             Write-Host "  " -NoNewline
-            Write-Host ("#$($r.number)").PadRight(8) -NoNewline -ForegroundColor White
-            Write-Host $labels.PadRight(32) -NoNewline -ForegroundColor DarkGray
-            Write-Host $assignees.PadRight(11) -NoNewline -ForegroundColor DarkGray
-            Write-Host $r.title -ForegroundColor White
+            Write-Host ("#$($r.number)").PadRight(8) -NoNewline -ForegroundColour White
+            Write-Host $labels.PadRight(32) -NoNewline -ForegroundColour DarkGray
+            Write-Host $assignees.PadRight(11) -NoNewline -ForegroundColour DarkGray
+            Write-Host $r.title -ForegroundColour White
         }
     }
     Write-Host ""
@@ -676,7 +676,7 @@ function Show-MilestoneStatus {
     $issues = Invoke-GhJson -Arguments @("issue", "list", "--repo", "$OWNER/$REPO", "--milestone", "$MilestoneTitle", "--state", "all", "--limit", "200", "--json", "number,title,state,labels") -ErrorContext "Show-MilestoneStatus"
 
     if (-not $issues -or $issues.Count -eq 0) {
-        Write-Host "No issues found for milestone '$MilestoneTitle'." -ForegroundColor Yellow
+        Write-Host "No issues found for milestone '$MilestoneTitle'." -ForegroundColour Yellow
         return
     }
 
@@ -691,27 +691,27 @@ function Show-MilestoneStatus {
     $filled = [math]::Round(($doneCount / $total) * $barWidth)
     $empty = $barWidth - $filled
     $bar = ("#" * $filled) + ("." * $empty)
-    $barColor = if ($pct -eq 100) { "Green" } elseif ($pct -ge 50) { "Yellow" } else { "White" }
+    $barColour = if ($pct -eq 100) { "Green" } elseif ($pct -ge 50) { "Yellow" } else { "White" }
 
     Write-Host ""
-    Write-Host "  Milestone: $MilestoneTitle" -ForegroundColor Cyan
-    Write-Host "  $bar $pct% ($doneCount/$total)" -ForegroundColor $barColor
+    Write-Host "  Milestone: $MilestoneTitle" -ForegroundColour Cyan
+    Write-Host "  $bar $pct% ($doneCount/$total)" -ForegroundColour $barColour
     Write-Host ""
 
     # Group by label category if possible
     if ($open.Count -gt 0) {
-        Write-Host "  Open ($($open.Count)):" -ForegroundColor Yellow
+        Write-Host "  Open ($($open.Count)):" -ForegroundColour Yellow
         foreach ($i in $open | Sort-Object { $_.number }) {
             $labels = ($i.labels | ForEach-Object { $_.name }) -join ", "
             $labelSuffix = if ($labels) { " [$labels]" } else { "" }
-            Write-Host "    [ ] #$($i.number) - $($i.title)$labelSuffix" -ForegroundColor White
+            Write-Host "    [ ] #$($i.number) - $($i.title)$labelSuffix" -ForegroundColour White
         }
     }
 
     if ($closed.Count -gt 0) {
-        Write-Host "  Closed ($($closed.Count)):" -ForegroundColor Green
+        Write-Host "  Closed ($($closed.Count)):" -ForegroundColour Green
         foreach ($i in $closed | Sort-Object { $_.number }) {
-            Write-Host "    [x] #$($i.number) - $($i.title)" -ForegroundColor DarkGray
+            Write-Host "    [x] #$($i.number) - $($i.title)" -ForegroundColour DarkGray
         }
     }
     Write-Host ""
@@ -722,7 +722,7 @@ function Show-Orphans {
 
     if (-not $issues -or $issues.Count -eq 0) {
         Write-Host ""
-        Write-Host "  No open issues without a milestone." -ForegroundColor Green
+        Write-Host "  No open issues without a milestone." -ForegroundColour Green
         Write-Host ""
         return
     }
@@ -756,14 +756,14 @@ function Show-Orphans {
 
     Write-Host ""
     if ($orphans.Count -eq 0) {
-        Write-Host "  No orphaned issues found. Everything has a parent or milestone." -ForegroundColor Green
+        Write-Host "  No orphaned issues found. Everything has a parent or milestone." -ForegroundColour Green
     } else {
-        Write-Host "  Orphaned issues ($($orphans.Count) -- no parent, no milestone):" -ForegroundColor Yellow
+        Write-Host "  Orphaned issues ($($orphans.Count) -- no parent, no milestone):" -ForegroundColour Yellow
         Write-Host ""
         foreach ($o in $orphans | Sort-Object { $_.number }) {
             $labels = ($o.labels.nodes | ForEach-Object { $_.name }) -join ", "
             $labelSuffix = if ($labels) { " [$labels]" } else { "" }
-            Write-Host "    [ ] #$($o.number) - $($o.title)$labelSuffix" -ForegroundColor White
+            Write-Host "    [ ] #$($o.number) - $($o.title)$labelSuffix" -ForegroundColour White
         }
     }
     Write-Host ""
@@ -780,7 +780,7 @@ function Show-Chain {
     function Walk-Blockers([int]$Num, [int]$Depth) {
         if ($visited.ContainsKey($Num)) { return }
         if ($Depth -ge $maxWalkDepth) {
-            Write-Host "  Walk-Blockers: depth cap ($maxWalkDepth) reached at #$Num — stopping" -ForegroundColor Yellow
+            Write-Host "  Walk-Blockers: depth cap ($maxWalkDepth) reached at #$Num — stopping" -ForegroundColour Yellow
             return
         }
         $visited[$Num] = $true
@@ -827,11 +827,11 @@ query {
     Walk-Blockers -Num $IssueNumber -Depth 0
 
     Write-Host ""
-    Write-Host "  Dependency chain for #${IssueNumber}:" -ForegroundColor Cyan
+    Write-Host "  Dependency chain for #${IssueNumber}:" -ForegroundColour Cyan
     Write-Host ""
 
     if ($chain.Count -le 1) {
-        Write-Host "  No blockers in the chain. Issue is independent." -ForegroundColor Green
+        Write-Host "  No blockers in the chain. Issue is independent." -ForegroundColour Green
         Write-Host ""
         return
     }
@@ -844,7 +844,7 @@ query {
         $icon = if ($entry.State -eq "CLOSED") { "[x]" } else { "[ ]" }
         $colour = if ($entry.State -eq "CLOSED") { "DarkGray" } elseif ($entry.Depth -eq $maxDepth) { "Red" } else { "White" }
         $prefix = if ($entry.Depth -eq 0) { "" } else { "blocked by -> " }
-        Write-Host "  $indent$prefix$icon #$($entry.Number) - $($entry.Title)" -ForegroundColor $colour
+        Write-Host "  $indent$prefix$icon #$($entry.Number) - $($entry.Title)" -ForegroundColour $colour
     }
 
     # Summary
@@ -852,12 +852,12 @@ query {
     $totalUnresolved = @($chain | Where-Object { $_.State -ne "CLOSED" -and $_.Depth -gt 0 }).Count
     Write-Host ""
     if ($totalUnresolved -eq 0) {
-        Write-Host "  All blockers resolved! Issue is ready." -ForegroundColor Green
+        Write-Host "  All blockers resolved! Issue is ready." -ForegroundColour Green
     } else {
-        Write-Host "  $totalUnresolved unresolved blocker(s) in chain, depth $maxDepth" -ForegroundColor Yellow
+        Write-Host "  $totalUnresolved unresolved blocker(s) in chain, depth $maxDepth" -ForegroundColour Yellow
         if ($unresolvedLeaves.Count -gt 0) {
             $leafNums = ($unresolvedLeaves | ForEach-Object { "#$($_.Number)" }) -join ", "
-            Write-Host "  Start here: $leafNums" -ForegroundColor Red
+            Write-Host "  Start here: $leafNums" -ForegroundColour Red
         }
     }
     Write-Host ""
@@ -870,7 +870,7 @@ function Show-Tree {
     # Returns a tree node: @{ number; title; state; children = @(...) }
     function Fetch-SubIssueTree([int]$Num, [int]$Depth) {
         if ($Depth -gt $MAX_RECURSION_DEPTH) {
-            Write-Host "  Show-Tree: depth cap reached at #$Num — stopping" -ForegroundColor Yellow
+            Write-Host "  Show-Tree: depth cap reached at #$Num — stopping" -ForegroundColour Yellow
             return $null
         }
 
@@ -896,7 +896,7 @@ query {
         }
 
         if ($result.errors) {
-            Write-Host "Note: Some fields may not be available on your GitHub plan." -ForegroundColor Yellow
+            Write-Host "Note: Some fields may not be available on your GitHub plan." -ForegroundColour Yellow
             Write-Error $result.errors[0].message
             return $null
         }
@@ -955,7 +955,7 @@ query {
             $childProgress = " ($($counts.Done)/$($counts.Total))"
         }
 
-        Write-Host "  ${indent}$icon #$($node.number) - $($node.title)$childProgress" -ForegroundColor $colour
+        Write-Host "  ${indent}$icon #$($node.number) - $($node.title)$childProgress" -ForegroundColour $colour
 
         foreach ($child in $node.children) {
             Print-TreeNode $child ($Depth + 1)

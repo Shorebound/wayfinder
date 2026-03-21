@@ -83,10 +83,10 @@ namespace Wayfinder
         // ── Features ─────────────────────────────────────────
         std::vector<std::unique_ptr<RenderFeature>> m_features;
 
-        // ── Debug-only pipeline (PosColor, uses debug_unlit shaders) ──
+        // ── Debug-only pipeline (PosColour, uses debug_unlit shaders) ──
         GPUPipeline m_debugLinePipeline;
 
-        // Single built-in mesh — all scene primitives use PosNormalColor
+        // Single built-in mesh — all scene primitives use PosNormalColour
         Mesh m_primitiveMesh;
 
         int m_screenWidth;

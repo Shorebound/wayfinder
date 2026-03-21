@@ -105,7 +105,7 @@ namespace Wayfinder
         RenderLightType Type = RenderLightType::Point;
         Float3 Position{0.0f, 0.0f, 0.0f};
         Float3 Direction{0.0f, 0.0f, -1.0f};
-        Color Tint = Color::White();
+        Colour Tint = Colour::White();
         float Intensity = 1.0f;
         float Range = 1.0f;
         bool DebugDraw = false;
@@ -115,7 +115,7 @@ namespace Wayfinder
     {
         Float3 Start{0.0f, 0.0f, 0.0f};
         Float3 End{0.0f, 0.0f, 0.0f};
-        Color Color = Color::White();
+        Colour Colour = Colour::White();
     };
 
     struct RenderDebugBox
@@ -137,7 +137,7 @@ namespace Wayfinder
     struct RenderView
     {
         Camera CameraState{};
-        Color ClearColor = Color::White();
+        Colour ClearColour = Colour::White();
         bool IsPrimary = true;
         PostProcessStack PostProcess;
     };

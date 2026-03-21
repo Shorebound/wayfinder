@@ -16,7 +16,7 @@ namespace Wayfinder
     // ── Material Asset ───────────────────────────────────────
     // The authored, disk-backed material definition (loaded from TOML).
     // Carries a shader reference and a generic parameter bag.
-    // Specific parameters (base_color, roughness, etc.) are stored
+    // Specific parameters (base_colour, roughness, etc.) are stored
     // in the parameter block — the struct has no fixed fields per shader.
 
     struct WAYFINDER_API MaterialAsset
@@ -27,8 +27,8 @@ namespace Wayfinder
         MaterialParameterBlock Parameters;
 
         // Convenience accessors for the most common parameter.
-        LinearColor GetBaseColour() const;
-        void SetBaseColour(const LinearColor& colour);
+        LinearColour GetBaseColour() const;
+        void SetBaseColour(const LinearColour& colour);
     };
 
     WAYFINDER_API bool ParseMaterialAssetDocument(

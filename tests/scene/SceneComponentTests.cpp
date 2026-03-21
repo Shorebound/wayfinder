@@ -25,8 +25,8 @@ TEST_CASE("MaterialComponent has no wireframe field")
     Wayfinder::MaterialComponent material;
 
     /// MaterialComponent should only have material-related fields.
-    CHECK(material.BaseColor == Wayfinder::Color::White());
-    CHECK_FALSE(material.HasBaseColorOverride);
+    CHECK(material.BaseColour == Wayfinder::Colourr::White());
+    CHECK_FALSE(material.HasBaseColourOverride);
     CHECK_FALSE(material.MaterialAssetId.has_value());
 }
 
@@ -194,7 +194,7 @@ TEST_CASE("MaterialComponent serialisation has no wireframe field")
     Wayfinder::Scene scene(world, registry, "Serialise Material");
 
     Wayfinder::MaterialComponent material;
-    material.BaseColor = Wayfinder::Color::Red();
+    material.BaseColour = Wayfinder::Colour::Red();
 
     Wayfinder::Entity entity = scene.CreateEntity("MaterialEntity");
     entity.AddComponent<Wayfinder::MaterialComponent>(material);
@@ -209,7 +209,7 @@ TEST_CASE("MaterialComponent serialisation has no wireframe field")
 
     /// Material table should NOT contain wireframe.
     CHECK_FALSE(materialTable->contains("wireframe"));
-    CHECK(materialTable->contains("base_color"));
+    CHECK(materialTable->contains("base_colour"));
 
     scene.Shutdown();
 }

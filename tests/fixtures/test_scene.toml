@@ -2,7 +2,7 @@ scene_name = "Test Scene"
 
 [settings]
 ambient_intensity = 0.5
-sky_color = "blue"
+sky_colour = "blue"
 
 [[entities]]
 id = "550e8400-e29b-41d4-a716-446655440001"

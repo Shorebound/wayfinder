@@ -2,7 +2,7 @@ scene_name = "Journey Bootstrap"
 
 [settings]
 gravity = [0.0, -9.81, 0.0]
-ambient_color = [50, 50, 80, 255]
+ambient_colour = [50, 50, 80, 255]
 time_scale = 1.0
 
 [[entities]]
@@ -70,7 +70,7 @@ rotation = [0.0, 0.0, 0.0]
 scale = [1.0, 1.0, 1.0]
 
 [entities.material]
-base_color = [214, 78, 56, 255]
+base_colour = [214, 78, 56, 255]
 
 [entities.render_override]
 wireframe = true
@@ -87,7 +87,7 @@ rotation = [0.0, 0.0, 0.0]
 scale = [1.0, 1.0, 1.0]
 
 [entities.material]
-base_color = [71, 133, 255, 255]
+base_colour = [71, 133, 255, 255]
 
 [entities.render_override]
 wireframe = true
@@ -104,7 +104,7 @@ rotation = [0.0, 0.0, 0.0]
 scale = [1.25, 1.25, 1.25]
 
 [entities.material]
-base_color = [85, 168, 120, 255]
+base_colour = [85, 168, 120, 255]
 
 [entities.render_override]
 wireframe = true

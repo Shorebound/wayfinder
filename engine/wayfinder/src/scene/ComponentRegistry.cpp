@@ -85,7 +85,7 @@ namespace
         return result;
     }
 
-    Wayfinder::Color ReadColor(const toml::table& table, const char* key, const Wayfinder::Color& fallback)
+    Wayfinder::Colour ReadColour(const toml::table& table, const char* key, const Wayfinder::Colour& fallback)
     {
         const toml::array* values = table[key].as_array();
         if (!values || (values->size() != 3 && values->size() != 4))
@@ -93,7 +93,7 @@ namespace
             return fallback;
         }
 
-        Wayfinder::Color result = fallback;
+        Wayfinder::Colour result = fallback;
         result.r = static_cast<uint8_t>(values->get(0)->value_or(static_cast<int64_t>(result.r)));
         result.g = static_cast<uint8_t>(values->get(1)->value_or(static_cast<int64_t>(result.g)));
         result.b = static_cast<uint8_t>(values->get(2)->value_or(static_cast<int64_t>(result.b)));
@@ -101,7 +101,7 @@ namespace
         return result;
     }
 
-    toml::array WriteColor(const Wayfinder::Color& value)
+    toml::array WriteColour(const Wayfinder::Colour& value)
     {
         toml::array result;
         result.push_back(static_cast<int64_t>(value.r));
@@ -355,7 +355,7 @@ namespace
         return true;
     }
 
-    bool ValidateOptionalColor(const toml::table& componentTable, const char* key, std::string& error)
+    bool ValidateOptionalColour(const toml::table& componentTable, const char* key, std::string& error)
     {
         const toml::node* node = componentTable.get(key);
         if (!node)
@@ -444,7 +444,7 @@ namespace
     bool ValidateLight(const toml::table& componentTable, std::string& error)
     {
         return ValidateOptionalEnumValue(componentTable, "type", {"point", "directional"}, error)
-            && ValidateOptionalColor(componentTable, "colour", error)
+            && ValidateOptionalColour(componentTable, "colour", error)
             && ValidateOptionalNumber(componentTable, "intensity", error)
             && ValidateOptionalNumber(componentTable, "range", error)
             && ValidateOptionalBool(componentTable, "debug_draw", error);
@@ -453,7 +453,7 @@ namespace
     bool ValidateMaterial(const toml::table& componentTable, std::string& error)
     {
         return ValidateOptionalAssetId(componentTable, "material_id", error)
-            && ValidateOptionalColor(componentTable, "base_color", error);
+            && ValidateOptionalColour(componentTable, "base_colour", error);
     }
 
     bool ValidateRenderOverride(const toml::table& componentTable, std::string& error)
@@ -491,22 +491,22 @@ namespace
                 if (!arr->get(i)->is_integer()) { allInts = false; }
             }
 
-            // 4-element arrays are only valid as Color (all integers r,g,b,a).
+            // 4-element arrays are only valid as Colour (all integers r,g,b,a).
             // Float3 only reads 3 elements, so a 4-element float array would silently lose data.
             if (arr->size() == 4 && !allInts)
             {
                 error = std::string("effect parameter '") + std::string(key)
-                    + "' 4-element arrays must be all integers (Color r,g,b,a)";
+                    + "' 4-element arrays must be all integers (Colour r,g,b,a)";
                 return false;
             }
 
             // 3-element all-integer arrays are ambiguous: ReadEffectParam treats them
-            // as Color (r,g,b with a=255), not Float3. Require at least one float
+            // as Colour (r,g,b with a=255), not Float3. Require at least one float
             // for Float3 values (e.g. [1.0, 2.0, 3.0]).
             if (arr->size() == 3 && allInts)
             {
                 error = std::string("effect parameter '") + std::string(key)
-                    + "' 3-element all-integer arrays are interpreted as Color, not Float3; use floats for Float3 (e.g. [1.0, 2.0, 3.0])";
+                    + "' 3-element all-integer arrays are interpreted as Colour, not Float3; use floats for Float3 (e.g. [1.0, 2.0, 3.0])";
                 return false;
             }
 
@@ -613,7 +613,7 @@ namespace
     {
         Wayfinder::LightComponent light;
         light.Type = ReadLightType(componentTable, "type", light.Type);
-        light.Tint = ReadColor(componentTable, "colour", light.Tint);
+        light.Tint = ReadColour(componentTable, "colour", light.Tint);
         light.Intensity = ReadFloat(componentTable, "intensity", light.Intensity);
         light.Range = ReadFloat(componentTable, "range", light.Range);
         light.DebugDraw = componentTable["debug_draw"].value_or(light.DebugDraw);
@@ -624,10 +624,10 @@ namespace
     {
         Wayfinder::MaterialComponent material;
         material.MaterialAssetId = ReadOptionalAssetId(componentTable, "material_id");
-        material.HasBaseColorOverride = componentTable.contains("base_color");
-        if (material.HasBaseColorOverride)
+        material.HasBaseColourOverride = componentTable.contains("base_colour");
+        if (material.HasBaseColourOverride)
         {
-            material.BaseColor = ReadColor(componentTable, "base_color", material.BaseColor);
+            material.BaseColour = ReadColour(componentTable, "base_colour", material.BaseColour);
         }
 
         entity.AddComponent<Wayfinder::MaterialComponent>(material);
@@ -757,7 +757,7 @@ namespace
 
         if (const toml::array* arr = node.as_array())
         {
-            // All-integer arrays → Color; otherwise → Float3
+            // All-integer arrays → Colour; otherwise → Float3
             bool allInts = true;
             for (size_t i = 0; i < arr->size(); ++i)
             {
@@ -766,7 +766,7 @@ namespace
 
             if (allInts)
             {
-                Wayfinder::Color c;
+                Wayfinder::Colour c;
                 c.r = static_cast<uint8_t>(arr->get(0)->value_or(int64_t{0}));
                 c.g = static_cast<uint8_t>(arr->get(1)->value_or(int64_t{0}));
                 c.b = static_cast<uint8_t>(arr->get(2)->value_or(int64_t{0}));
@@ -880,7 +880,7 @@ namespace
         const Wayfinder::LightComponent& light = entity.GetComponent<Wayfinder::LightComponent>();
         toml::table componentTable;
         componentTable.insert_or_assign("type", std::string{ToString(light.Type)});
-        componentTable.insert_or_assign("colour", WriteColor(light.Tint));
+        componentTable.insert_or_assign("colour", WriteColour(light.Tint));
         componentTable.insert_or_assign("intensity", light.Intensity);
         componentTable.insert_or_assign("range", light.Range);
         componentTable.insert_or_assign("debug_draw", light.DebugDraw);
@@ -901,9 +901,9 @@ namespace
             componentTable.insert_or_assign("material_id", material.MaterialAssetId->ToString());
         }
 
-        if (!material.MaterialAssetId || material.HasBaseColorOverride)
+        if (!material.MaterialAssetId || material.HasBaseColourOverride)
         {
-            componentTable.insert_or_assign("base_color", WriteColor(material.BaseColor));
+            componentTable.insert_or_assign("base_colour", WriteColour(material.BaseColour));
         }
 
         componentTables.insert_or_assign("material", componentTable);
@@ -955,8 +955,8 @@ namespace
                 table.insert_or_assign(key, static_cast<int64_t>(v));
             else if constexpr (std::is_same_v<T, Wayfinder::Float3>)
                 table.insert_or_assign(key, WriteVector3(v));
-            else if constexpr (std::is_same_v<T, Wayfinder::Color>)
-                table.insert_or_assign(key, WriteColor(v));
+            else if constexpr (std::is_same_v<T, Wayfinder::Colour>)
+                table.insert_or_assign(key, WriteColour(v));
         }, value);
     }
 

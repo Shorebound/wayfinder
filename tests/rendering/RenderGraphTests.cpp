@@ -47,28 +47,28 @@ TEST_CASE("Single pass targeting swapchain compiles")
 
 TEST_CASE("Topological sort respects resource dependencies")
 {
-    // Pass A writes SceneColor, Pass B reads SceneColor and writes swapchain.
+    // Pass A writes SceneColour, Pass B reads SceneColour and writes swapchain.
     // B must execute after A.
     std::vector<std::string> executionOrder;
 
     Wayfinder::RenderGraph graph;
 
-    Wayfinder::RenderGraphTextureDesc colorDesc;
-    colorDesc.Width = 800;
-    colorDesc.Height = 600;
-    colorDesc.Format = Wayfinder::TextureFormat::RGBA8_UNORM;
-    colorDesc.DebugName = Wayfinder::WellKnown::SceneColor;
+    Wayfinder::RenderGraphTextureDesc colourDesc;
+    colourDesc.Width = 800;
+    colourDesc.Height = 600;
+    colourDesc.Format = Wayfinder::TextureFormat::RGBA8_UNORM;
+    colourDesc.DebugName = Wayfinder::WellKnown::SceneColour;
 
-    graph.AddPass("A_WriteColor", [&](Wayfinder::RenderGraphBuilder& builder) -> Wayfinder::RenderGraphExecuteFn {
-        auto colour = builder.CreateTransient(colorDesc);
-        builder.WriteColor(colour);
+    graph.AddPass("A_WriteColour", [&](Wayfinder::RenderGraphBuilder& builder) -> Wayfinder::RenderGraphExecuteFn {
+        auto colour = builder.CreateTransient(colourDesc);
+        builder.WriteColour(colour);
         return [&executionOrder](Wayfinder::RenderDevice&, const Wayfinder::RenderGraphResources&) {
             executionOrder.push_back("A");
         };
     });
 
     graph.AddPass("B_ReadAndPresent", [&](Wayfinder::RenderGraphBuilder& builder) -> Wayfinder::RenderGraphExecuteFn {
-        auto colour = graph.FindHandle(Wayfinder::WellKnown::SceneColor);
+        auto colour = graph.FindHandle(Wayfinder::WellKnown::SceneColour);
         builder.ReadTexture(colour);
         builder.SetSwapchainOutput();
         return [&executionOrder](Wayfinder::RenderDevice&, const Wayfinder::RenderGraphResources&) {
@@ -96,26 +96,26 @@ TEST_CASE("Three-pass chain executes in dependency order")
     desc.Width = 640;
     desc.Height = 480;
     desc.Format = Wayfinder::TextureFormat::RGBA8_UNORM;
-    desc.DebugName = "IntermediateColor";
+    desc.DebugName = "IntermediateColour";
 
     graph.AddPass("First", [&](Wayfinder::RenderGraphBuilder& builder) -> Wayfinder::RenderGraphExecuteFn {
         auto tex = builder.CreateTransient(desc);
-        builder.WriteColor(tex);
+        builder.WriteColour(tex);
         return [&executionOrder](Wayfinder::RenderDevice&, const Wayfinder::RenderGraphResources&) {
             executionOrder.push_back("First");
         };
     });
 
     graph.AddPass("Second", [&](Wayfinder::RenderGraphBuilder& builder) -> Wayfinder::RenderGraphExecuteFn {
-        auto tex = graph.FindHandle("IntermediateColor");
-        builder.WriteColor(tex, Wayfinder::LoadOp::Load);
+        auto tex = graph.FindHandle("IntermediateColour");
+        builder.WriteColour(tex, Wayfinder::LoadOp::Load);
         return [&executionOrder](Wayfinder::RenderDevice&, const Wayfinder::RenderGraphResources&) {
             executionOrder.push_back("Second");
         };
     });
 
     graph.AddPass("Present", [&](Wayfinder::RenderGraphBuilder& builder) -> Wayfinder::RenderGraphExecuteFn {
-        auto tex = graph.FindHandle("IntermediateColor");
+        auto tex = graph.FindHandle("IntermediateColour");
         builder.ReadTexture(tex);
         builder.SetSwapchainOutput();
         return [&executionOrder](Wayfinder::RenderDevice&, const Wayfinder::RenderGraphResources&) {
@@ -151,7 +151,7 @@ TEST_CASE("Orphan pass is culled")
 
     graph.AddPass("Orphan", [&](Wayfinder::RenderGraphBuilder& builder) -> Wayfinder::RenderGraphExecuteFn {
         auto tex = builder.CreateTransient(desc);
-        builder.WriteColor(tex);
+        builder.WriteColour(tex);
         return [&executionOrder](Wayfinder::RenderDevice&, const Wayfinder::RenderGraphResources&) {
             executionOrder.push_back("Orphan");
         };
@@ -188,7 +188,7 @@ TEST_CASE("Transitive dependency keeps producer alive")
 
     graph.AddPass("Producer", [&](Wayfinder::RenderGraphBuilder& builder) -> Wayfinder::RenderGraphExecuteFn {
         auto tex = builder.CreateTransient(desc);
-        builder.WriteColor(tex);
+        builder.WriteColour(tex);
         return [&executionOrder](Wayfinder::RenderDevice&, const Wayfinder::RenderGraphResources&) {
             executionOrder.push_back("Producer");
         };
@@ -234,7 +234,7 @@ TEST_CASE("Complex dependency pattern compiles without cycle")
 
     graph.AddPass("PassA", [&](Wayfinder::RenderGraphBuilder& builder) -> Wayfinder::RenderGraphExecuteFn {
         auto a = builder.CreateTransient(descA);
-        builder.WriteColor(a);
+        builder.WriteColour(a);
         auto c = graph.ImportTexture("TexC");
         builder.ReadTexture(c);
         return [](Wayfinder::RenderDevice&, const Wayfinder::RenderGraphResources&) {};
@@ -242,7 +242,7 @@ TEST_CASE("Complex dependency pattern compiles without cycle")
 
     graph.AddPass("PassB", [&](Wayfinder::RenderGraphBuilder& builder) -> Wayfinder::RenderGraphExecuteFn {
         auto b = builder.CreateTransient(descB);
-        builder.WriteColor(b);
+        builder.WriteColour(b);
         auto a = graph.FindHandle("TexA");
         builder.ReadTexture(a);
         return [](Wayfinder::RenderDevice&, const Wayfinder::RenderGraphResources&) {};
@@ -250,7 +250,7 @@ TEST_CASE("Complex dependency pattern compiles without cycle")
 
     graph.AddPass("PassC", [&](Wayfinder::RenderGraphBuilder& builder) -> Wayfinder::RenderGraphExecuteFn {
         auto c = graph.FindHandle("TexC");
-        builder.WriteColor(c, Wayfinder::LoadOp::Clear);
+        builder.WriteColour(c, Wayfinder::LoadOp::Clear);
         auto b = graph.FindHandle("TexB");
         builder.ReadTexture(b);
         builder.SetSwapchainOutput();
@@ -275,7 +275,7 @@ TEST_CASE("Compute pass integrates into the graph")
 
     graph.AddComputePass("Compute", [&](Wayfinder::RenderGraphBuilder& builder) -> Wayfinder::RenderGraphExecuteFn {
         auto tex = builder.CreateTransient(desc);
-        builder.WriteColor(tex);
+        builder.WriteColour(tex);
         return [&executionOrder](Wayfinder::RenderDevice&, const Wayfinder::RenderGraphResources&) {
             executionOrder.push_back("Compute");
         };
@@ -334,16 +334,16 @@ TEST_CASE("Well-known names resolve correctly")
 {
     Wayfinder::RenderGraph graph;
 
-    auto sceneColor = graph.ImportTexture(Wayfinder::WellKnown::SceneColor);
+    auto sceneColour = graph.ImportTexture(Wayfinder::WellKnown::SceneColour);
     auto sceneDepth = graph.ImportTexture(Wayfinder::WellKnown::SceneDepth);
 
-    CHECK(sceneColor.IsValid());
+    CHECK(sceneColour.IsValid());
     CHECK(sceneDepth.IsValid());
-    CHECK_FALSE(sceneColor == sceneDepth);
+    CHECK_FALSE(sceneColour == sceneDepth);
 
     // FindHandle returns the same handle
-    auto found = graph.FindHandle(Wayfinder::WellKnown::SceneColor);
-    CHECK(found == sceneColor);
+    auto found = graph.FindHandle(Wayfinder::WellKnown::SceneColour);
+    CHECK(found == sceneColour);
 
     // Unknown name returns invalid handle
     auto unknown = graph.FindHandle("NonExistent");
@@ -409,11 +409,11 @@ TEST_CASE("Depth target pass compiles and executes")
     std::vector<std::string> executionOrder;
     Wayfinder::RenderGraph graph;
 
-    Wayfinder::RenderGraphTextureDesc colorDesc;
-    colorDesc.Width = 800;
-    colorDesc.Height = 600;
-    colorDesc.Format = Wayfinder::TextureFormat::RGBA8_UNORM;
-    colorDesc.DebugName = "SceneColor";
+    Wayfinder::RenderGraphTextureDesc colourDesc;
+    colourDesc.Width = 800;
+    colourDesc.Height = 600;
+    colourDesc.Format = Wayfinder::TextureFormat::RGBA8_UNORM;
+    colourDesc.DebugName = "SceneColour";
 
     Wayfinder::RenderGraphTextureDesc depthDesc;
     depthDesc.Width = 800;
@@ -422,9 +422,9 @@ TEST_CASE("Depth target pass compiles and executes")
     depthDesc.DebugName = "SceneDepth";
 
     graph.AddPass("Scene", [&](Wayfinder::RenderGraphBuilder& builder) -> Wayfinder::RenderGraphExecuteFn {
-        auto colour = builder.CreateTransient(colorDesc);
+        auto colour = builder.CreateTransient(colourDesc);
         auto depth = builder.CreateTransient(depthDesc);
-        builder.WriteColor(colour);
+        builder.WriteColour(colour);
         builder.WriteDepth(depth);
         return [&executionOrder](Wayfinder::RenderDevice&, const Wayfinder::RenderGraphResources&) {
             executionOrder.push_back("Scene");
@@ -432,7 +432,7 @@ TEST_CASE("Depth target pass compiles and executes")
     });
 
     graph.AddPass("Composition", [&](Wayfinder::RenderGraphBuilder& builder) -> Wayfinder::RenderGraphExecuteFn {
-        auto colour = graph.FindHandle("SceneColor");
+        auto colour = graph.FindHandle("SceneColour");
         builder.ReadTexture(colour);
         builder.SetSwapchainOutput();
         return [&executionOrder](Wayfinder::RenderDevice&, const Wayfinder::RenderGraphResources&) {

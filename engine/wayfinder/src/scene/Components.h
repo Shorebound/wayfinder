@@ -109,8 +109,8 @@ namespace Wayfinder
     struct MaterialComponent
     {
         std::optional<AssetId> MaterialAssetId;
-        Color BaseColor = Color::White();
-        bool HasBaseColorOverride = false;
+        Colour BaseColour = Colour::White();
+        bool HasBaseColourOverride = false;
 
         MaterialComponent() = default;
         MaterialComponent(const MaterialComponent&) = default;
@@ -168,7 +168,7 @@ namespace Wayfinder
     struct LightComponent
     {
         LightType Type = LightType::Point;
-        Color Tint = Color::Yellow();
+        Colour Tint = Colour::Yellow();
         float Intensity = 1.0f;
         float Range = 8.0f;
         bool DebugDraw = true;

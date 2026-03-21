@@ -18,7 +18,7 @@ namespace Wayfinder
     enum class ShaderFeature : uint32_t
     {
         None       = 0,
-        VertexColor = 1 << 0,
+        VertexColour = 1 << 0,
         AlphaTest   = 1 << 1,
     };
 

@@ -44,14 +44,14 @@ namespace Wayfinder
         // ── Render pipeline (registers shader programs) ──────
         m_renderPipeline->Initialise(*m_context);
 
-        // ── Debug line pipeline (PosColor, uses debug_unlit shaders) ──
+        // ── Debug line pipeline (PosColourrr, uses debug_unlit shaders) ──
         {
             GPUPipelineDesc desc{};
             desc.vertexShaderName = "debug_unlit";
             desc.fragmentShaderName = "unlit"; // shares the same fragment shader
             desc.vertexResources = {.numUniformBuffers = 1};
             desc.fragmentResources = {.numUniformBuffers = 1};
-            desc.vertexLayout = VertexLayouts::PosColor;
+            desc.vertexLayout = VertexLayouts::PosColour;
             desc.primitiveType = PrimitiveType::LineList;
             desc.cullMode = CullMode::None;
             desc.depthTestEnabled = false;
