@@ -13,6 +13,7 @@ namespace
     const std::string kParametersKey = "parameters";
 
     /// Parse a JSON array of 3 or 4 integers into a LinearColor.
+    /// Returns false if any channel is not an integer.
     bool ParseLinearColor(const nlohmann::json& values, Wayfinder::LinearColor& color, std::string& error)
     {
         if (!values.is_array() || (values.size() != 3 && values.size() != 4))
@@ -21,16 +22,19 @@ namespace
             return false;
         }
 
-        auto readChannel = [&](size_t index, float fallback) -> float
+        for (size_t i = 0; i < values.size(); ++i)
         {
-            if (!values[index].is_number_integer()) return fallback;
-            return static_cast<float>(values[index].get<int64_t>()) / 255.0f;
-        };
+            if (!values[i].is_number_integer())
+            {
+                error = "must be an array of 3 or 4 integers";
+                return false;
+            }
+        }
 
-        color.r = readChannel(0, color.r);
-        color.g = readChannel(1, color.g);
-        color.b = readChannel(2, color.b);
-        color.a = values.size() == 4 ? readChannel(3, color.a) : color.a;
+        color.r = static_cast<float>(values[0].get<int64_t>()) / 255.0f;
+        color.g = static_cast<float>(values[1].get<int64_t>()) / 255.0f;
+        color.b = static_cast<float>(values[2].get<int64_t>()) / 255.0f;
+        color.a = values.size() == 4 ? static_cast<float>(values[3].get<int64_t>()) / 255.0f : color.a;
         return true;
     }
 
@@ -46,12 +50,29 @@ namespace
             {
                 if (node.size() >= 3 && node.size() <= 4)
                 {
-                    // Treat as Color (integer RGBA → LinearColor)
+                    // Try Color first (requires all-integer channels); fall through to vec3 on failure
                     Wayfinder::LinearColor color = Wayfinder::LinearColor::White();
                     std::string unused;
                     if (ParseLinearColor(node, color, unused))
                     {
                         block.SetColor(name, color);
+                    }
+                    else if (node.size() == 3)
+                    {
+                        glm::vec3 v{
+                            static_cast<float>(node[0].get<double>()),
+                            static_cast<float>(node[1].get<double>()),
+                            static_cast<float>(node[2].get<double>())};
+                        block.SetVec3(name, v);
+                    }
+                    else if (node.size() == 4)
+                    {
+                        glm::vec4 v{
+                            static_cast<float>(node[0].get<double>()),
+                            static_cast<float>(node[1].get<double>()),
+                            static_cast<float>(node[2].get<double>()),
+                            static_cast<float>(node[3].get<double>())};
+                        block.SetVec4(name, v);
                     }
                 }
                 else if (node.size() == 2)

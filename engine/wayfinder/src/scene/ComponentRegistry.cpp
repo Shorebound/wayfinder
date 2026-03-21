@@ -62,6 +62,13 @@ namespace
         return nlohmann::json::array({value.x, value.y, value.z});
     }
 
+    uint8_t ClampColorChannel(int64_t value)
+    {
+        if (value < 0) return 0;
+        if (value > 255) return 255;
+        return static_cast<uint8_t>(value);
+    }
+
     Wayfinder::Color ReadColor(const nlohmann::json& data, const char* key, const Wayfinder::Color& fallback)
     {
         if (!data.contains(key)) return fallback;
@@ -69,10 +76,10 @@ namespace
         if (!arr.is_array() || (arr.size() != 3 && arr.size() != 4)) return fallback;
 
         Wayfinder::Color result = fallback;
-        result.r = arr[0].is_number_integer() ? static_cast<uint8_t>(arr[0].get<int64_t>()) : result.r;
-        result.g = arr[1].is_number_integer() ? static_cast<uint8_t>(arr[1].get<int64_t>()) : result.g;
-        result.b = arr[2].is_number_integer() ? static_cast<uint8_t>(arr[2].get<int64_t>()) : result.b;
-        result.a = (arr.size() == 4 && arr[3].is_number_integer()) ? static_cast<uint8_t>(arr[3].get<int64_t>()) : result.a;
+        result.r = arr[0].is_number_integer() ? ClampColorChannel(arr[0].get<int64_t>()) : result.r;
+        result.g = arr[1].is_number_integer() ? ClampColorChannel(arr[1].get<int64_t>()) : result.g;
+        result.b = arr[2].is_number_integer() ? ClampColorChannel(arr[2].get<int64_t>()) : result.b;
+        result.a = (arr.size() == 4 && arr[3].is_number_integer()) ? ClampColorChannel(arr[3].get<int64_t>()) : result.a;
         return result;
     }
 
@@ -351,6 +358,15 @@ namespace
                 error = std::string{"field '"} + key + "' must be an array of 3 or 4 integers";
                 return false;
             }
+
+            const int64_t channelValue = node[index].get<int64_t>();
+            if (channelValue < 0 || channelValue > 255)
+            {
+                error = std::string{"field '"} + key + "' channel " + std::to_string(index) + " value "
+                    + std::to_string(channelValue) + " is out of range (0-255)";
+                return false;
+            }
+        }
         }
 
         return true;
@@ -370,6 +386,7 @@ namespace
         const auto& node = data[key];
         if (!node.is_string())
         {
+            error = std::string{"field '"} + key + "' must be a string";
             return false;
         }
 
@@ -473,6 +490,22 @@ namespace
                 error = std::string("effect parameter '") + std::string(key)
                     + "' 4-element arrays must be all integers (Color r,g,b,a)";
                 return false;
+            }
+
+            // Validate Color channel ranges (0-255) for all-integer arrays.
+            if (allInts)
+            {
+                for (size_t i = 0; i < node.size(); ++i)
+                {
+                    const int64_t channelValue = node[i].get<int64_t>();
+                    if (channelValue < 0 || channelValue > 255)
+                    {
+                        error = std::string("effect parameter '") + std::string(key)
+                            + "' channel " + std::to_string(i) + " value "
+                            + std::to_string(channelValue) + " is out of range (0-255)";
+                        return false;
+                    }
+                }
             }
 
             // 3-element all-integer arrays are ambiguous: ReadEffectParam treats them
@@ -736,10 +769,10 @@ namespace
             if (allInts)
             {
                 Wayfinder::Color c;
-                c.r = node[0].is_number_integer() ? static_cast<uint8_t>(node[0].get<int64_t>()) : 0;
-                c.g = node[1].is_number_integer() ? static_cast<uint8_t>(node[1].get<int64_t>()) : 0;
-                c.b = node[2].is_number_integer() ? static_cast<uint8_t>(node[2].get<int64_t>()) : 0;
-                c.a = (node.size() >= 4 && node[3].is_number_integer()) ? static_cast<uint8_t>(node[3].get<int64_t>()) : 255;
+                c.r = ClampColorChannel(node[0].get<int64_t>());
+                c.g = ClampColorChannel(node[1].get<int64_t>());
+                c.b = ClampColorChannel(node[2].get<int64_t>());
+                c.a = node.size() >= 4 ? ClampColorChannel(node[3].get<int64_t>()) : 255;
                 return c;
             }
 
