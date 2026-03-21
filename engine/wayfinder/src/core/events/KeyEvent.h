@@ -1,6 +1,6 @@
 #pragma once
 
-#include "core/KeyCodes.h"
+#include "platform/KeyCodes.h"
 #include "Event.h"
 #include <format>
 #include <memory>

@@ -10,10 +10,10 @@
  * All tests are headless: no window, no GPU, no filesystem access.
  */
 
-#include "core/EngineConfig.h"
-#include "core/ModuleRegistry.h"
-#include "core/ProjectDescriptor.h"
-#include "core/Subsystem.h"
+#include "app/EngineConfig.h"
+#include "modules/ModuleRegistry.h"
+#include "project/ProjectDescriptor.h"
+#include "app/Subsystem.h"
 #include "physics/PhysicsComponents.h"
 #include "physics/PhysicsPlugin.h"
 #include "physics/PhysicsSubsystem.h"

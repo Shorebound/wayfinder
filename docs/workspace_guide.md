@@ -29,12 +29,17 @@ Engine source lives under `engine/wayfinder/src/` and is organised by domain:
 
 | Directory | Purpose |
 |-----------|---------|
-| `core/` | Application lifecycle, engine runtime, events, logging, modules, gameplay tags, identifiers, fundamental types |
+| `core/` | Foundational primitives — types, identifiers, handles, interned strings, result type, logging, events |
+| `app/` | Application lifecycle — `Application`, `EngineRuntime`, `EngineConfig`, layers, subsystem management |
+| `gameplay/` | Game framework — `Game`, game states, state machine, gameplay tags |
+| `modules/` | Module and plugin system — module loading, registration, registrars |
+| `project/` | Project metadata — `ProjectDescriptor`, project file discovery and resolution |
 | `assets/` | Asset registry and service layer |
 | `maths/` | 3D math utilities |
-| `platform/` | Window, input, and time abstractions (`null/` headless, `sdl3/` production) |
+| `platform/` | Window, input, time, backend config, key/mouse codes (`null/` headless, `sdl3/` production) |
 | `rendering/` | Rendering subsystem (see below) |
-| `scene/` | ECS scene management, components, serialisation, entity helpers |
+| `scene/` | ECS scene management, components, serialisation, entity helpers, scene settings |
+| `physics/` | Physics subsystem — Jolt-based world, bodies, components, plugin |
 
 The rendering subsystem is further organised into subdirectories:
 

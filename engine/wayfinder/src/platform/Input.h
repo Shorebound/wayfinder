@@ -1,8 +1,8 @@
 #pragma once
 
-#include "core/BackendConfig.h"
-#include "core/KeyCodes.h"
-#include "core/MouseCodes.h"
+#include "platform/BackendConfig.h"
+#include "platform/KeyCodes.h"
+#include "platform/MouseCodes.h"
 
 #include <utility>
 #include <memory>

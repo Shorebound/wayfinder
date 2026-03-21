@@ -1,7 +1,7 @@
 #include "RuntimeComponentRegistry.h"
 #include "ComponentRegistry.h"
 #include "core/Log.h"
-#include "core/ModuleRegistry.h"
+#include "modules/ModuleRegistry.h"
 
 namespace Wayfinder
 {

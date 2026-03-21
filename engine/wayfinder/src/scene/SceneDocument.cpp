@@ -2,7 +2,7 @@
 
 #include "RuntimeComponentRegistry.h"
 #include "assets/AssetService.h"
-#include "core/ProjectResolver.h"
+#include "project/ProjectResolver.h"
 #include "rendering/materials/Material.h"
 
 #include <algorithm>

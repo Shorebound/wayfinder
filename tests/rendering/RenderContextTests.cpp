@@ -1,4 +1,4 @@
-#include "core/EngineConfig.h"
+#include "app/EngineConfig.h"
 #include "rendering/backend/RenderDevice.h"
 #include "rendering/pipeline/RenderContext.h"
 

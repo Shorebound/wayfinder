@@ -15,10 +15,6 @@ This file documents common mistakes, confusion points, and non-obvious behaviour
   ```
 - **MSVC vs Clang differences.** The primary local dev compiler is MSVC; cloud agents use Clang. Code must compile on both. Watch for MSVC-specific pragmas (guard with `#ifdef WAYFINDER_COMPILER_MSVC`) and C++23 feature availability differences between compilers.
 
-## InternedString
-
-- **TOML++ serialisation needs `.GetString()`.** `toml::table::insert_or_assign` won't accept `InternedString` directly — the implicit `operator const std::string&()` isn't enough for TOML++'s template machinery. Always call `.GetString()` when writing to TOML.
-
 ## Logging
 
 - **Engine logging uses `std::format`, not fmt.** spdlog is configured with `SPDLOG_USE_STD_FORMAT=ON`, and the engine's `ILogger::LogFormatted` calls `std::vformat` internally. This means `std::formatter<T>` specialisations are what matter — fmt formatters are irrelevant.

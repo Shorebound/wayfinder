@@ -1,6 +1,6 @@
 #pragma once
 
-#include "core/MouseCodes.h"
+#include "platform/MouseCodes.h"
 #include "Event.h"
 #include <format>
 #include <memory>

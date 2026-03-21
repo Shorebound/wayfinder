@@ -8,7 +8,7 @@
 #include "RenderPipeline.h"
 #include "rendering/resources/RenderResources.h"
 
-#include "core/EngineConfig.h"
+#include "app/EngineConfig.h"
 #include "core/Log.h"
 
 namespace Wayfinder

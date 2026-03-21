@@ -26,16 +26,16 @@ set(WAYFINDER_CORE_TEST_NAME wayfinder_core_tests)
 add_executable(${WAYFINDER_CORE_TEST_NAME}
   core/HandleTests.cpp
   core/InternedStringTests.cpp
-  core/EngineRuntimeTests.cpp
   core/EventQueueTests.cpp
   core/IdentifierTests.cpp
-  core/GameplayTagTests.cpp
-  core/GameplayTagRegistryTests.cpp
-  core/GameStateMachineTests.cpp
-  core/ModuleRegistryTests.cpp
-  core/SubsystemTests.cpp
-  core/EngineConfigTests.cpp
   core/ResultTests.cpp
+  app/EngineRuntimeTests.cpp
+  app/EngineConfigTests.cpp
+  app/SubsystemTests.cpp
+  gameplay/GameplayTagTests.cpp
+  gameplay/GameplayTagRegistryTests.cpp
+  gameplay/GameStateMachineTests.cpp
+  modules/ModuleRegistryTests.cpp
 )
 
 wayfinder_set_output_directories(${WAYFINDER_CORE_TEST_NAME})

@@ -5,8 +5,8 @@
 #include "scene/entity/Entity.h"
 #include "Components.h"
 #include "core/Log.h"
-#include "core/ProjectResolver.h"
-#include "core/SceneSettings.h"
+#include "project/ProjectResolver.h"
+#include "scene/SceneSettings.h"
 
 #include <filesystem>
 #include <unordered_map>

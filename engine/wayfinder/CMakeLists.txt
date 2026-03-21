@@ -66,7 +66,7 @@ install(FILES
 target_include_directories(${ENGINE_NAME}
   PUBLIC
     # PUBLIC: Needed by Wayfinder itself AND consumers (like waystone)
-    # Allows #include "core/Application.h", etc.
+    # Allows #include "core/Log.h", #include "app/Application.h", etc.
     ${CMAKE_CURRENT_SOURCE_DIR}/src
     # PUBLIC: Needed by consumers to find the generated Wayfinder_export.h
     $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/include>

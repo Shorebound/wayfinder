@@ -3,7 +3,7 @@
 #include <cstdint>
 #include <string>
 
-#include "core/BackendConfig.h"
+#include "platform/BackendConfig.h"
 #include "core/Types.h"
 #include "rendering/backend/GPUHandles.h"
 #include "wayfinder_exports.h"
