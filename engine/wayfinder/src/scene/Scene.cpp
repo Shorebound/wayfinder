@@ -91,7 +91,6 @@ namespace Wayfinder
     {
         if (previousName == newName)
         {
-            RegisterEntityName(entityHandle, newName);
             return;
         }
 
@@ -120,7 +119,7 @@ namespace Wayfinder
             {
                 world.children([&](flecs::entity child)
                 {
-                    struct Local
+                    struct TransformPropagation
                     {
                         static void UpdateRecursive(flecs::entity entityHandle, const Matrix4& parentMatrix)
                         {
@@ -149,7 +148,7 @@ namespace Wayfinder
                             });
                         }
                     };
-                    Local::UpdateRecursive(child, Maths::Identity());
+                    TransformPropagation::UpdateRecursive(child, Maths::Identity());
                 });
             });
 
