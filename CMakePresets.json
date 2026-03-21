@@ -70,6 +70,8 @@
             "cacheVariables": {
                 "CMAKE_C_COMPILER": "clang",
                 "CMAKE_CXX_COMPILER": "clang++",
+                "CMAKE_CXX_FLAGS": "-stdlib=libc++",
+                "CMAKE_EXE_LINKER_FLAGS": "-stdlib=libc++ -lc++abi",
                 "WAYFINDER_BUILD_SANDBOX": "ON",
                 "WAYFINDER_BUILD_TOOLS": "ON",
                 "WAYFINDER_BUILD_TESTS": "ON",
