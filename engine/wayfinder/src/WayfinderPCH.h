@@ -5,6 +5,7 @@
 #include <array>
 #include <chrono>
 #include <cstdint>
+#include <expected>
 #include <format>
 #include <functional>
 #include <iostream>

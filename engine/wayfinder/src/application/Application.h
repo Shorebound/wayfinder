@@ -1,5 +1,6 @@
 #pragma once
 
+#include "core/Result.h"
 #include "core/events/EventQueue.h"
 
 #include <memory>
@@ -29,8 +30,14 @@ namespace Wayfinder
             }
         };
 
+        /**
+         * @brief Construct an Application.
+         * @param module  Game module whose ownership is transferred to the
+         *                Application.  May be null for a bare engine run.
+         * @param args    Command-line arguments forwarded from main().
+         */
         explicit Application(std::unique_ptr<Module> module,
-                             const CommandLineArgs& args = {});
+                             const CommandLineArgs& args);
         ~Application();
 
         void Run();
@@ -38,7 +45,7 @@ namespace Wayfinder
         LayerStack& GetLayerStack();
 
     private:
-        bool Initialise();
+        Result<void> Initialise();
         void Loop();
         void Shutdown();
 
@@ -51,8 +58,10 @@ namespace Wayfinder
         std::unique_ptr<ModuleRegistry> m_moduleRegistry;
         std::unique_ptr<ProjectDescriptor> m_project;
         std::unique_ptr<EngineConfig> m_config;
+        CommandLineArgs m_args{};
         bool m_running = false;
         bool m_moduleStarted = false;
+        bool m_logInitialised = false;
 
         std::unique_ptr<EngineRuntime> m_runtime;
         std::unique_ptr<LayerStack> m_layerStack;

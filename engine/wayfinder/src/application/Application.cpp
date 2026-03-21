@@ -22,6 +22,7 @@ namespace Wayfinder
     Application::Application(std::unique_ptr<Module> module,
                              const CommandLineArgs& args)
         : m_module(std::move(module))
+        , m_args(args)
     {
     }
 
@@ -32,9 +33,11 @@ namespace Wayfinder
 
     void Application::Run()
     {
-        if (!Initialise())
+        auto result = Initialise();
+        if (!result)
         {
-            WAYFINDER_ERROR(LogEngine, "Initialisation failed — aborting");
+            WAYFINDER_ERROR(LogEngine, "Initialisation failed: {}", result.error().GetMessage());
+            Shutdown();
             return;
         }
 
@@ -42,37 +45,27 @@ namespace Wayfinder
         Shutdown();
     }
 
-    bool Application::Initialise()
+    Result<void> Application::Initialise()
     {
         Log::Init();
+        m_logInitialised = true;
         WAYFINDER_INFO(LogEngine, "Initialising Wayfinder Engine");
 
         // 1. Discover project descriptor from CWD
-        const auto projectFile = FindProjectFile();
+        auto projectFile = FindProjectFile();
         if (!projectFile)
-        {
-            WAYFINDER_ERROR(LogEngine,
-                "No project.wayfinder found in current directory or any parent. "
-                "Run the engine from within a project directory.");
-            Log::Shutdown();
-            return false;
-        }
+            return std::unexpected(projectFile.error());
 
         auto loadResult = ProjectDescriptor::LoadFromFile(*projectFile);
+        if (!loadResult)
+            return std::unexpected(loadResult.error());
 
-        if (!loadResult.Valid)
-        {
-            WAYFINDER_ERROR(LogEngine, "Failed to load project descriptor");
-            Log::Shutdown();
-            return false;
-        }
-
-        for (const auto& warning : loadResult.Warnings)
+        for (const auto& warning : loadResult->Warnings)
         {
             WAYFINDER_WARNING(LogEngine, "Project: {}", warning);
         }
 
-        m_project = std::make_unique<ProjectDescriptor>(std::move(loadResult.Descriptor));
+        m_project = std::make_unique<ProjectDescriptor>(std::move(loadResult->Descriptor));
 
         // 2. Load engine config
         m_config = std::make_unique<EngineConfig>(
@@ -87,12 +80,8 @@ namespace Wayfinder
 
         // 4. Platform + rendering services
         m_runtime = std::make_unique<EngineRuntime>(*m_config, *m_project);
-        if (!m_runtime->Initialise())
-        {
-            WAYFINDER_ERROR(LogEngine, "Failed to initialise EngineRuntime");
-            Shutdown();
-            return false;
-        }
+        if (auto runtimeResult = m_runtime->Initialise(); !runtimeResult)
+            return std::unexpected(runtimeResult.error());
 
         // Wire window events → Application::OnEvent
         m_runtime->GetWindow().SetEventCallback(
@@ -105,12 +94,8 @@ namespace Wayfinder
         GameContext gameCtx{*m_project, m_moduleRegistry.get()};
         m_game = std::make_unique<Game>();
 
-        if (!m_game->Initialise(gameCtx))
-        {
-            WAYFINDER_ERROR(LogEngine, "Failed to initialise Game");
-            Shutdown();
-            return false;
-        }
+        if (auto gameResult = m_game->Initialise(gameCtx); !gameResult)
+            return std::unexpected(gameResult.error());
 
         m_runtime->SetAssetService(m_game->GetAssetService());
 
@@ -122,7 +107,7 @@ namespace Wayfinder
         }
 
         m_running = true;
-        return true;
+        return {};
     }
 
     void Application::Loop()
@@ -224,34 +209,39 @@ namespace Wayfinder
 
     void Application::Shutdown()
     {
-        if (!m_config) return; // never initialised
-
-        WAYFINDER_INFO(LogEngine, "Shutting down Wayfinder Engine");
-
-        if (m_module && m_moduleStarted)
+        if (m_config)
         {
-            m_module->OnShutdown();
-            m_moduleStarted = false;
+            WAYFINDER_INFO(LogEngine, "Shutting down Wayfinder Engine");
+
+            if (m_module && m_moduleStarted)
+            {
+                m_module->OnShutdown();
+                m_moduleStarted = false;
+            }
+
+            m_moduleRegistry = nullptr;
+
+            if (m_game)
+            {
+                m_game->Shutdown();
+                m_game = nullptr;
+            }
+
+            if (m_runtime)
+            {
+                m_runtime->Shutdown();
+                m_runtime = nullptr;
+            }
+
+            m_layerStack = nullptr;
+            m_config = nullptr;
+            m_project = nullptr;
         }
 
-        m_moduleRegistry = nullptr;
-
-        if (m_game)
+        if (m_logInitialised)
         {
-            m_game->Shutdown();
-            m_game = nullptr;
+            Log::Shutdown();
+            m_logInitialised = false;
         }
-
-        if (m_runtime)
-        {
-            m_runtime->Shutdown();
-            m_runtime = nullptr;
-        }
-
-        m_layerStack = nullptr;
-        m_config = nullptr;
-        m_project = nullptr;
-
-        Log::Shutdown();
     }
 } // namespace Wayfinder
