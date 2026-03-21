@@ -3,7 +3,7 @@
 #include "PhysicsWorld.h"
 #include "../core/Subsystem.h"
 
-namespace Wayfinder
+namespace Wayfinder::Physics
 {
     /**
      * @brief Game-scoped subsystem that owns the Jolt physics world.
@@ -30,4 +30,4 @@ namespace Wayfinder
         PhysicsWorld m_world;
     };
 
-} // namespace Wayfinder
+} // namespace Wayfinder::Physics

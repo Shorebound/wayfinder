@@ -3,20 +3,13 @@
 #include <cstdint>
 #include <string>
 
-#include <glm/glm.hpp>
-
 #include "../core/BackendConfig.h"
+#include "../core/Types.h"
 #include "GPUHandles.h"
 #include "wayfinder_exports.h"
 
 namespace Wayfinder
 {
-
-    // ── Engine Math Aliases ──────────────────────────────────
-
-    using Float3 = glm::vec3;
-    using Float4 = glm::vec4;
-    using Matrix4 = glm::mat4;
 
     // ── Color ────────────────────────────────────────────────
 

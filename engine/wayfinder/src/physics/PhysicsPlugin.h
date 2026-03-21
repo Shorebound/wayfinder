@@ -2,7 +2,7 @@
 
 #include "../core/Plugin.h"
 
-namespace Wayfinder
+namespace Wayfinder::Physics
 {
     /**
      * @brief Registers the Jolt physics subsystem, components, and ECS systems.
@@ -29,4 +29,4 @@ namespace Wayfinder
         void Build(ModuleRegistry& registry) override;
     };
 
-} // namespace Wayfinder
+} // namespace Wayfinder::Physics

@@ -20,7 +20,7 @@
 
 #include <glm/trigonometric.hpp>
 
-namespace Wayfinder
+namespace Wayfinder::Physics
 {
     // ── Jolt layer configuration ────────────────────────────────
 
@@ -242,8 +242,7 @@ namespace Wayfinder
         m_fixedTimestep = timestep;
     }
 
-    uint32_t PhysicsWorld::CreateBody(const RigidBodyComponent& body,
-                                      const ColliderComponent& collider,
+    uint32_t PhysicsWorld::CreateBody(const PhysicsBodyDescriptor& desc,
                                       const Float3& position,
                                       const Float3& rotationDegrees)
     {
@@ -252,19 +251,19 @@ namespace Wayfinder
 
         // Build shape
         JPH::Ref<JPH::Shape> shape;
-        switch (collider.Shape)
+        switch (desc.Shape)
         {
         case ColliderShape::Box:
             shape = new JPH::BoxShape(
-                JPH::Vec3(collider.HalfExtents.x,
-                           collider.HalfExtents.y,
-                           collider.HalfExtents.z));
+                JPH::Vec3(desc.HalfExtents.x,
+                           desc.HalfExtents.y,
+                           desc.HalfExtents.z));
             break;
         case ColliderShape::Sphere:
-            shape = new JPH::SphereShape(collider.Radius);
+            shape = new JPH::SphereShape(desc.Radius);
             break;
         case ColliderShape::Capsule:
-            shape = new JPH::CapsuleShape(collider.Height * 0.5f, collider.Radius);
+            shape = new JPH::CapsuleShape(desc.Height * 0.5f, desc.Radius);
             break;
         default:
             WAYFINDER_ERROR(LogPhysics, "Unknown ColliderShape");
@@ -274,7 +273,7 @@ namespace Wayfinder
         // Map BodyType → Jolt motion type and object layer
         JPH::EMotionType motionType = JPH::EMotionType::Dynamic;
         JPH::ObjectLayer objectLayer = PhysicsLayers::MOVING;
-        switch (body.Type)
+        switch (desc.Type)
         {
         case BodyType::Static:
             motionType = JPH::EMotionType::Static;
@@ -306,21 +305,28 @@ namespace Wayfinder
             motionType,
             objectLayer);
 
-        if (body.Type == BodyType::Dynamic)
+        if (desc.Type == BodyType::Dynamic)
         {
-            settings.mGravityFactor = body.GravityFactor;
-            settings.mLinearDamping = body.LinearDamping;
-            settings.mAngularDamping = body.AngularDamping;
+            settings.mGravityFactor = desc.GravityFactor;
+            settings.mLinearDamping = desc.LinearDamping;
+            settings.mAngularDamping = desc.AngularDamping;
             settings.mLinearVelocity = JPH::Vec3(
-                body.LinearVelocity.x,
-                body.LinearVelocity.y,
-                body.LinearVelocity.z);
+                desc.LinearVelocity.x,
+                desc.LinearVelocity.y,
+                desc.LinearVelocity.z);
             settings.mAngularVelocity = JPH::Vec3(
-                body.AngularVelocity.x,
-                body.AngularVelocity.y,
-                body.AngularVelocity.z);
-            settings.mFriction = collider.Friction;
-            settings.mRestitution = collider.Restitution;
+                desc.AngularVelocity.x,
+                desc.AngularVelocity.y,
+                desc.AngularVelocity.z);
+            settings.mFriction = desc.Friction;
+            settings.mRestitution = desc.Restitution;
+
+            // Override mass if a custom value was provided.
+            if (desc.Mass > 0.0f && desc.Mass != 1.0f)
+            {
+                settings.mOverrideMassProperties = JPH::EOverrideMassProperties::CalculateInertia;
+                settings.mMassPropertiesOverride.mMass = desc.Mass;
+            }
         }
 
         JPH::BodyInterface& bodyInterface = m_impl->PhysSystem->GetBodyInterface();
@@ -329,8 +335,8 @@ namespace Wayfinder
         {
             WAYFINDER_ERROR(LogPhysics,
                 "Failed to create Jolt body (type={}, shape={}, pos=[{},{},{}])",
-                static_cast<int>(body.Type),
-                static_cast<int>(collider.Shape),
+                static_cast<int>(desc.Type),
+                static_cast<int>(desc.Shape),
                 position.x, position.y, position.z);
             return INVALID_PHYSICS_BODY;
         }
@@ -385,4 +391,4 @@ namespace Wayfinder
             JPH::EActivation::Activate);
     }
 
-} // namespace Wayfinder
+} // namespace Wayfinder::Physics

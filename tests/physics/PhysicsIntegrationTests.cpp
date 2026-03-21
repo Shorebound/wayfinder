@@ -25,6 +25,7 @@
 #include <flecs.h>
 
 using namespace Wayfinder;
+using namespace Wayfinder::Physics;
 
 namespace
 {

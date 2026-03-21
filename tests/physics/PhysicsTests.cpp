@@ -13,6 +13,7 @@
 #include <cmath>
 
 using namespace Wayfinder;
+using namespace Wayfinder::Physics;
 
 namespace
 {
@@ -114,15 +115,13 @@ TEST_SUITE("Physics")
         PhysicsWorld world;
         world.Initialise();
 
-        RigidBodyComponent rb;
-        rb.Type = BodyType::Dynamic;
-        rb.Mass = 1.0f;
+        PhysicsBodyDescriptor desc;
+        desc.Type = BodyType::Dynamic;
+        desc.Mass = 1.0f;
+        desc.Shape = ColliderShape::Box;
+        desc.HalfExtents = {0.5f, 0.5f, 0.5f};
 
-        ColliderComponent col;
-        col.Shape = ColliderShape::Box;
-        col.HalfExtents = {0.5f, 0.5f, 0.5f};
-
-        uint32_t id = world.CreateBody(rb, col, {0.0f, 10.0f, 0.0f});
+        uint32_t id = world.CreateBody(desc, {0.0f, 10.0f, 0.0f});
         CHECK(id != INVALID_PHYSICS_BODY);
 
         Float3 pos = world.GetBodyPosition(id);
@@ -139,14 +138,12 @@ TEST_SUITE("Physics")
         PhysicsWorld world;
         world.Initialise();
 
-        RigidBodyComponent rb;
-        rb.Type = BodyType::Dynamic;
+        PhysicsBodyDescriptor desc;
+        desc.Type = BodyType::Dynamic;
+        desc.Shape = ColliderShape::Sphere;
+        desc.Radius = 1.0f;
 
-        ColliderComponent col;
-        col.Shape = ColliderShape::Sphere;
-        col.Radius = 1.0f;
-
-        uint32_t id = world.CreateBody(rb, col, {5.0f, 0.0f, 0.0f});
+        uint32_t id = world.CreateBody(desc, {5.0f, 0.0f, 0.0f});
         CHECK(id != INVALID_PHYSICS_BODY);
 
         Float3 pos = world.GetBodyPosition(id);
@@ -161,15 +158,13 @@ TEST_SUITE("Physics")
         PhysicsWorld world;
         world.Initialise();
 
-        RigidBodyComponent rb;
-        rb.Type = BodyType::Dynamic;
+        PhysicsBodyDescriptor desc;
+        desc.Type = BodyType::Dynamic;
+        desc.Shape = ColliderShape::Capsule;
+        desc.Radius = 0.5f;
+        desc.Height = 2.0f;
 
-        ColliderComponent col;
-        col.Shape = ColliderShape::Capsule;
-        col.Radius = 0.5f;
-        col.Height = 2.0f;
-
-        uint32_t id = world.CreateBody(rb, col, {0.0f, 10.0f, 0.0f});
+        uint32_t id = world.CreateBody(desc, {0.0f, 10.0f, 0.0f});
         CHECK(id != INVALID_PHYSICS_BODY);
 
         Float3 pos = world.GetBodyPosition(id);
@@ -186,14 +181,12 @@ TEST_SUITE("Physics")
         PhysicsWorld world;
         world.Initialise();
 
-        RigidBodyComponent rb;
-        rb.Type = BodyType::Static;
-
-        ColliderComponent col;
-        col.Shape = ColliderShape::Box;
+        PhysicsBodyDescriptor desc;
+        desc.Type = BodyType::Static;
+        desc.Shape = ColliderShape::Box;
 
         // 90 degrees around Y axis
-        uint32_t id = world.CreateBody(rb, col, {0.0f, 0.0f, 0.0f}, {0.0f, 90.0f, 0.0f});
+        uint32_t id = world.CreateBody(desc, {0.0f, 0.0f, 0.0f}, {0.0f, 90.0f, 0.0f});
         REQUIRE(id != INVALID_PHYSICS_BODY);
 
         Float4 rot = world.GetBodyRotation(id);
@@ -213,13 +206,11 @@ TEST_SUITE("Physics")
         PhysicsWorld world;
         world.Initialise();
 
-        RigidBodyComponent rb;
-        rb.Type = BodyType::Static;
+        PhysicsBodyDescriptor desc;
+        desc.Type = BodyType::Static;
+        desc.Shape = ColliderShape::Box;
 
-        ColliderComponent col;
-        col.Shape = ColliderShape::Box;
-
-        uint32_t id = world.CreateBody(rb, col, {0.0f, 0.0f, 0.0f});
+        uint32_t id = world.CreateBody(desc, {0.0f, 0.0f, 0.0f});
         REQUIRE(id != INVALID_PHYSICS_BODY);
 
         Float4 rot = world.GetBodyRotation(id);
@@ -253,16 +244,14 @@ TEST_SUITE("Physics")
         PhysicsWorld world;
         world.Initialise();
 
-        RigidBodyComponent rb;
-        rb.Type = BodyType::Dynamic;
-        rb.GravityFactor = 1.0f;
-
-        ColliderComponent col;
-        col.Shape = ColliderShape::Box;
-        col.HalfExtents = {0.5f, 0.5f, 0.5f};
+        PhysicsBodyDescriptor desc;
+        desc.Type = BodyType::Dynamic;
+        desc.GravityFactor = 1.0f;
+        desc.Shape = ColliderShape::Box;
+        desc.HalfExtents = {0.5f, 0.5f, 0.5f};
 
         const float startY = 10.0f;
-        uint32_t id = world.CreateBody(rb, col, {0.0f, startY, 0.0f});
+        uint32_t id = world.CreateBody(desc, {0.0f, startY, 0.0f});
         REQUIRE(id != INVALID_PHYSICS_BODY);
 
         // Step several times to let gravity take effect
@@ -283,14 +272,12 @@ TEST_SUITE("Physics")
         PhysicsWorld world;
         world.Initialise();
 
-        RigidBodyComponent rb;
-        rb.Type = BodyType::Static;
+        PhysicsBodyDescriptor desc;
+        desc.Type = BodyType::Static;
+        desc.Shape = ColliderShape::Box;
+        desc.HalfExtents = {5.0f, 0.5f, 5.0f};
 
-        ColliderComponent col;
-        col.Shape = ColliderShape::Box;
-        col.HalfExtents = {5.0f, 0.5f, 5.0f};
-
-        uint32_t id = world.CreateBody(rb, col, {0.0f, 0.0f, 0.0f});
+        uint32_t id = world.CreateBody(desc, {0.0f, 0.0f, 0.0f});
         REQUIRE(id != INVALID_PHYSICS_BODY);
 
         for (int i = 0; i < SIMULATION_STEPS; ++i)
@@ -313,15 +300,14 @@ TEST_SUITE("Physics")
         physWorld.Initialise();
 
         // Create a body high up so it falls
-        RigidBodyComponent rb;
-        rb.Type = BodyType::Dynamic;
-        rb.GravityFactor = 1.0f;
-
-        ColliderComponent col;
-        col.Shape = ColliderShape::Box;
+        PhysicsBodyDescriptor desc;
+        desc.Type = BodyType::Dynamic;
+        desc.GravityFactor = 1.0f;
+        desc.Shape = ColliderShape::Box;
 
         const float startY = 20.0f;
-        rb.RuntimeBodyId = physWorld.CreateBody(rb, col, {0.0f, startY, 0.0f});
+        RigidBodyComponent rb;
+        rb.RuntimeBodyId = physWorld.CreateBody(desc, {0.0f, startY, 0.0f});
         REQUIRE(rb.RuntimeBodyId != INVALID_PHYSICS_BODY);
 
         // Simulate
@@ -351,17 +337,16 @@ TEST_SUITE("Physics")
         PhysicsWorld world;
         world.Initialise();
 
-        ColliderComponent col;
-        col.Shape = ColliderShape::Box;
+        PhysicsBodyDescriptor dynDesc;
+        dynDesc.Type = BodyType::Dynamic;
+        dynDesc.Shape = ColliderShape::Box;
 
-        RigidBodyComponent dynamic;
-        dynamic.Type = BodyType::Dynamic;
+        PhysicsBodyDescriptor statDesc;
+        statDesc.Type = BodyType::Static;
+        statDesc.Shape = ColliderShape::Box;
 
-        RigidBodyComponent staticBody;
-        staticBody.Type = BodyType::Static;
-
-        uint32_t dynId = world.CreateBody(dynamic, col, {0.0f, 10.0f, 0.0f});
-        uint32_t statId = world.CreateBody(staticBody, col, {0.0f, -1.0f, 0.0f});
+        uint32_t dynId = world.CreateBody(dynDesc, {0.0f, 10.0f, 0.0f});
+        uint32_t statId = world.CreateBody(statDesc, {0.0f, -1.0f, 0.0f});
 
         REQUIRE(dynId != INVALID_PHYSICS_BODY);
         REQUIRE(statId != INVALID_PHYSICS_BODY);
@@ -403,13 +388,11 @@ TEST_SUITE("Physics")
         PhysicsWorld world;
         world.Initialise();
 
-        RigidBodyComponent rb;
-        rb.Type = BodyType::Kinematic;
+        PhysicsBodyDescriptor desc;
+        desc.Type = BodyType::Kinematic;
+        desc.Shape = ColliderShape::Box;
 
-        ColliderComponent col;
-        col.Shape = ColliderShape::Box;
-
-        uint32_t id = world.CreateBody(rb, col, {0.0f, 0.0f, 0.0f});
+        uint32_t id = world.CreateBody(desc, {0.0f, 0.0f, 0.0f});
         REQUIRE(id != INVALID_PHYSICS_BODY);
 
         world.SetBodyPosition(id, {5.0f, 10.0f, 15.0f});
@@ -528,14 +511,12 @@ TEST_SUITE("Physics")
         world.Initialise();
         world.SetFixedTimestep(FIXED_DT);
 
-        RigidBodyComponent rb;
-        rb.Type = BodyType::Dynamic;
-
-        ColliderComponent col;
-        col.Shape = ColliderShape::Box;
+        PhysicsBodyDescriptor desc;
+        desc.Type = BodyType::Dynamic;
+        desc.Shape = ColliderShape::Box;
 
         const float startY = 10.0f;
-        uint32_t id = world.CreateBody(rb, col, {0.0f, startY, 0.0f});
+        uint32_t id = world.CreateBody(desc, {0.0f, startY, 0.0f});
         REQUIRE(id != INVALID_PHYSICS_BODY);
 
         // Simulate ~1 second via StepFixed with variable frame times
@@ -577,8 +558,20 @@ TEST_SUITE("Physics")
                     return;
                 auto* sub = GameSubsystems::Find<PhysicsSubsystem>();
                 if (!sub) return;
+                PhysicsBodyDescriptor desc;
+                desc.Type = rb.Type; desc.Mass = rb.Mass;
+                desc.GravityFactor = rb.GravityFactor;
+                desc.LinearDamping = rb.LinearDamping;
+                desc.AngularDamping = rb.AngularDamping;
+                desc.LinearVelocity = rb.LinearVelocity;
+                desc.AngularVelocity = rb.AngularVelocity;
+                desc.Shape = col.Shape;
+                desc.HalfExtents = col.HalfExtents;
+                desc.Radius = col.Radius; desc.Height = col.Height;
+                desc.Friction = col.Friction;
+                desc.Restitution = col.Restitution;
                 rb.RuntimeBodyId = sub->GetWorld().CreateBody(
-                    rb, col, transform.Position, transform.Rotation);
+                    desc, transform.Position, transform.Rotation);
             });
 
         // Set all components — observer should fire
@@ -620,8 +613,20 @@ TEST_SUITE("Physics")
                     return;
                 auto* sub = GameSubsystems::Find<PhysicsSubsystem>();
                 if (!sub) return;
+                PhysicsBodyDescriptor desc;
+                desc.Type = rb.Type; desc.Mass = rb.Mass;
+                desc.GravityFactor = rb.GravityFactor;
+                desc.LinearDamping = rb.LinearDamping;
+                desc.AngularDamping = rb.AngularDamping;
+                desc.LinearVelocity = rb.LinearVelocity;
+                desc.AngularVelocity = rb.AngularVelocity;
+                desc.Shape = col.Shape;
+                desc.HalfExtents = col.HalfExtents;
+                desc.Radius = col.Radius; desc.Height = col.Height;
+                desc.Friction = col.Friction;
+                desc.Restitution = col.Restitution;
                 rb.RuntimeBodyId = sub->GetWorld().CreateBody(
-                    rb, col, transform.Position, transform.Rotation);
+                    desc, transform.Position, transform.Rotation);
                 createdBodyId = rb.RuntimeBodyId;
             });
 
@@ -676,8 +681,20 @@ TEST_SUITE("Physics")
                     return;
                 auto* sub = GameSubsystems::Find<PhysicsSubsystem>();
                 if (!sub) return;
+                PhysicsBodyDescriptor desc;
+                desc.Type = rb.Type; desc.Mass = rb.Mass;
+                desc.GravityFactor = rb.GravityFactor;
+                desc.LinearDamping = rb.LinearDamping;
+                desc.AngularDamping = rb.AngularDamping;
+                desc.LinearVelocity = rb.LinearVelocity;
+                desc.AngularVelocity = rb.AngularVelocity;
+                desc.Shape = col.Shape;
+                desc.HalfExtents = col.HalfExtents;
+                desc.Radius = col.Radius; desc.Height = col.Height;
+                desc.Friction = col.Friction;
+                desc.Restitution = col.Restitution;
                 rb.RuntimeBodyId = sub->GetWorld().CreateBody(
-                    rb, col, transform.Position, transform.Rotation);
+                    desc, transform.Position, transform.Rotation);
             });
 
         ecsWorld.observer<RigidBodyComponent>("PhysicsDestroyBodies")
@@ -734,8 +751,20 @@ TEST_SUITE("Physics")
                     return;
                 auto* sub = GameSubsystems::Find<PhysicsSubsystem>();
                 if (!sub) return;
+                PhysicsBodyDescriptor desc;
+                desc.Type = rb.Type; desc.Mass = rb.Mass;
+                desc.GravityFactor = rb.GravityFactor;
+                desc.LinearDamping = rb.LinearDamping;
+                desc.AngularDamping = rb.AngularDamping;
+                desc.LinearVelocity = rb.LinearVelocity;
+                desc.AngularVelocity = rb.AngularVelocity;
+                desc.Shape = col.Shape;
+                desc.HalfExtents = col.HalfExtents;
+                desc.Radius = col.Radius; desc.Height = col.Height;
+                desc.Friction = col.Friction;
+                desc.Restitution = col.Restitution;
                 rb.RuntimeBodyId = sub->GetWorld().CreateBody(
-                    rb, col, transform.Position, transform.Rotation);
+                    desc, transform.Position, transform.Rotation);
             });
 
         // Register destruction observer

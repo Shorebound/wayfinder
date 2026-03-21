@@ -148,7 +148,7 @@ class JourneyModule : public Wayfinder::Module
 {
     void Register(Wayfinder::ModuleRegistry& registry) override
     {
-        registry.AddPlugin<Wayfinder::PhysicsPlugin>();
+        registry.AddPlugin<Wayfinder::Physics::PhysicsPlugin>();
         registry.AddPlugin<HealthPlugin>();
         registry.AddPlugin<GameplayPlugin>();
         registry.AddPlugin<TagDemoPlugin>();

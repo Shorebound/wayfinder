@@ -1,20 +1,47 @@
 #include "PhysicsPlugin.h"
-#include "PhysicsComponents.h"
-#include "PhysicsSubsystem.h"
 #include "../core/EngineConfig.h"
 #include "../core/Log.h"
 #include "../core/ModuleRegistry.h"
 #include "../core/Subsystem.h"
 #include "../scene/Components.h"
 #include "../scene/entity/Entity.h"
+#include "PhysicsComponents.h"
+#include "PhysicsSubsystem.h"
 
 #include <flecs.h>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/quaternion.hpp>
 #include <toml++/toml.hpp>
 
-namespace Wayfinder
+namespace Wayfinder::Physics
 {
+    // ── Helpers ─────────────────────────────────────────────────
+
+    namespace
+    {
+        /// Build a PhysicsBodyDescriptor from ECS components.
+        PhysicsBodyDescriptor MakeDescriptor(const RigidBodyComponent& rb,
+                                             const ColliderComponent& col)
+        {
+            PhysicsBodyDescriptor desc;
+            desc.Type = rb.Type;
+            desc.Mass = rb.Mass;
+            desc.GravityFactor = rb.GravityFactor;
+            desc.LinearDamping = rb.LinearDamping;
+            desc.AngularDamping = rb.AngularDamping;
+            desc.LinearVelocity = rb.LinearVelocity;
+            desc.AngularVelocity = rb.AngularVelocity;
+
+            desc.Shape = col.Shape;
+            desc.HalfExtents = col.HalfExtents;
+            desc.Radius = col.Radius;
+            desc.Height = col.Height;
+            desc.Friction = col.Friction;
+            desc.Restitution = col.Restitution;
+            return desc;
+        }
+    } // anonymous namespace
+
     // ── Component registration helpers ──────────────────────────
 
     namespace
@@ -94,15 +121,35 @@ namespace Wayfinder
 
         bool ValidateRigidBody(const toml::table& table, std::string& error)
         {
-            if (const auto* node = table.get("type"); node && !node->is_string())
+            if (const auto* node = table.get("type"); node)
             {
-                error = "'type' must be a string (static|dynamic|kinematic)";
-                return false;
+                if (!node->is_string())
+                {
+                    error = "'type' must be a string (static|dynamic|kinematic)";
+                    return false;
+                }
+                auto val = node->value<std::string>();
+                if (val && *val != "static" && *val != "dynamic" && *val != "kinematic")
+                {
+                    error = "'type' must be one of: static, dynamic, kinematic";
+                    return false;
+                }
             }
-            if (const auto* node = table.get("mass"); node && !node->is_floating_point() && !node->is_integer())
+            if (const auto* node = table.get("mass"); node)
             {
-                error = "'mass' must be a number";
-                return false;
+                if (!node->is_floating_point() && !node->is_integer())
+                {
+                    error = "'mass' must be a number";
+                    return false;
+                }
+                double val = node->is_floating_point()
+                    ? node->as_floating_point()->get()
+                    : static_cast<double>(node->as_integer()->get());
+                if (val <= 0.0)
+                {
+                    error = "'mass' must be positive";
+                    return false;
+                }
             }
             if (const auto* node = table.get("linear_damping"); node && !node->is_floating_point() && !node->is_integer())
             {
@@ -180,20 +227,83 @@ namespace Wayfinder
 
         bool ValidateCollider(const toml::table& table, std::string& error)
         {
-            if (const auto* node = table.get("shape"); node && !node->is_string())
+            if (const auto* node = table.get("shape"); node)
             {
-                error = "'shape' must be a string (box|sphere|capsule)";
-                return false;
+                if (!node->is_string())
+                {
+                    error = "'shape' must be a string (box|sphere|capsule)";
+                    return false;
+                }
+                auto val = node->value<std::string>();
+                if (val && *val != "box" && *val != "sphere" && *val != "capsule")
+                {
+                    error = "'shape' must be one of: box, sphere, capsule";
+                    return false;
+                }
             }
-            if (const auto* node = table.get("friction"); node && !node->is_floating_point() && !node->is_integer())
+            if (const auto* node = table.get("friction"); node)
             {
-                error = "'friction' must be a number";
-                return false;
+                if (!node->is_floating_point() && !node->is_integer())
+                {
+                    error = "'friction' must be a number";
+                    return false;
+                }
+                double val = node->is_floating_point()
+                    ? node->as_floating_point()->get()
+                    : static_cast<double>(node->as_integer()->get());
+                if (val < 0.0)
+                {
+                    error = "'friction' must be non-negative";
+                    return false;
+                }
             }
-            if (const auto* node = table.get("height"); node && !node->is_floating_point() && !node->is_integer())
+            if (const auto* node = table.get("restitution"); node)
             {
-                error = "'height' must be a number";
-                return false;
+                if (!node->is_floating_point() && !node->is_integer())
+                {
+                    error = "'restitution' must be a number";
+                    return false;
+                }
+                double val = node->is_floating_point()
+                    ? node->as_floating_point()->get()
+                    : static_cast<double>(node->as_integer()->get());
+                if (val < 0.0)
+                {
+                    error = "'restitution' must be non-negative";
+                    return false;
+                }
+            }
+            if (const auto* node = table.get("radius"); node)
+            {
+                if (!node->is_floating_point() && !node->is_integer())
+                {
+                    error = "'radius' must be a number";
+                    return false;
+                }
+                double val = node->is_floating_point()
+                    ? node->as_floating_point()->get()
+                    : static_cast<double>(node->as_integer()->get());
+                if (val <= 0.0)
+                {
+                    error = "'radius' must be positive";
+                    return false;
+                }
+            }
+            if (const auto* node = table.get("height"); node)
+            {
+                if (!node->is_floating_point() && !node->is_integer())
+                {
+                    error = "'height' must be a number";
+                    return false;
+                }
+                double val = node->is_floating_point()
+                    ? node->as_floating_point()->get()
+                    : static_cast<double>(node->as_integer()->get());
+                if (val <= 0.0)
+                {
+                    error = "'height' must be positive";
+                    return false;
+                }
             }
             return true;
         }
@@ -237,24 +347,23 @@ namespace Wayfinder
         // Initial body position and rotation come from TransformComponent (the
         // authored local transform). At runtime, PhysicsSyncTransforms writes
         // simulated transforms back into WorldTransformComponent.
-        registry.RegisterSystem("PhysicsCreateBodies", [](flecs::world& world)
-        {
+        registry.RegisterSystem("PhysicsCreateBodies", [](flecs::world& world) {
+            auto* physics = GameSubsystems::Find<PhysicsSubsystem>();
+
             world.observer<RigidBodyComponent, const ColliderComponent, const TransformComponent>("PhysicsCreateBodies")
                 .event(flecs::OnSet)
-                .each([](flecs::entity e,
+                .each([physics](flecs::entity e,
                          RigidBodyComponent& rb,
                          const ColliderComponent& col,
-                         const TransformComponent& transform)
-                {
+                         const TransformComponent& transform) {
                     if (rb.RuntimeBodyId != INVALID_PHYSICS_BODY)
                         return;
-
-                    auto* subsystem = GameSubsystems::Find<PhysicsSubsystem>();
-                    if (!subsystem)
+                    if (!physics)
                         return;
 
-                    rb.RuntimeBodyId = subsystem->GetWorld().CreateBody(
-                        rb, col, transform.Position, transform.Rotation);
+                    auto desc = MakeDescriptor(rb, col);
+                    rb.RuntimeBodyId = physics->GetWorld().CreateBody(
+                        desc, transform.Position, transform.Rotation);
                 });
         });
 
@@ -262,20 +371,23 @@ namespace Wayfinder
         // when RigidBodyComponent is removed from an entity (or entity deleted).
         // Fires before the component data is destroyed, so RuntimeBodyId is
         // still accessible.
-        registry.RegisterSystem("PhysicsDestroyBodies", [](flecs::world& world)
-        {
+        //
+        // NOTE: This observer deliberately does a dynamic GameSubsystems lookup
+        // rather than caching the pointer, because OnRemove fires during
+        // flecs::world destruction — which may happen after the subsystem
+        // collection has been shut down and the PhysicsSubsystem destroyed.
+        registry.RegisterSystem("PhysicsDestroyBodies", [](flecs::world& world) {
             world.observer<RigidBodyComponent>("PhysicsDestroyBodies")
                 .event(flecs::OnRemove)
-                .each([](flecs::entity e, RigidBodyComponent& rb)
-                {
+                .each([](flecs::entity e, RigidBodyComponent& rb) {
                     if (rb.RuntimeBodyId == INVALID_PHYSICS_BODY)
                         return;
 
-                    auto* subsystem = GameSubsystems::Find<PhysicsSubsystem>();
-                    if (!subsystem)
+                    auto* physics = GameSubsystems::Find<PhysicsSubsystem>();
+                    if (!physics)
                         return;
 
-                    subsystem->GetWorld().DestroyBody(rb.RuntimeBodyId);
+                    physics->GetWorld().DestroyBody(rb.RuntimeBodyId);
                     rb.RuntimeBodyId = INVALID_PHYSICS_BODY;
                 });
         });
@@ -284,44 +396,39 @@ namespace Wayfinder
         // accumulator.  The configured timestep is captured here and applied
         // to the PhysicsWorld once during system registration (which runs
         // after subsystem initialisation).
-        registry.RegisterSystem("PhysicsStep", [fixedTimestep](flecs::world& world)
-        {
-            auto* subsystem = GameSubsystems::Find<PhysicsSubsystem>();
-            if (subsystem)
-                subsystem->GetWorld().SetFixedTimestep(fixedTimestep);
+        registry.RegisterSystem("PhysicsStep", [fixedTimestep](flecs::world& world) {
+            auto* physics = GameSubsystems::Find<PhysicsSubsystem>();
+            if (physics)
+                physics->GetWorld().SetFixedTimestep(fixedTimestep);
 
             world.system("PhysicsStep")
                 .kind(flecs::OnUpdate)
-                .run([](flecs::iter& it)
-                {
-                    auto* sub = GameSubsystems::Find<PhysicsSubsystem>();
-                    if (sub)
-                        sub->GetWorld().StepFixed(it.delta_time());
+                .run([physics](flecs::iter& it) {
+                    if (physics)
+                        physics->GetWorld().StepFixed(it.delta_time());
                 });
         });
 
         // PhysicsSyncTransforms: copy Jolt body position and rotation into
         // WorldTransformComponent.  Builds the full LocalToWorld matrix from
         // physics position, physics rotation, and the entity's existing scale.
-        registry.RegisterSystem("PhysicsSyncTransforms", [](flecs::world& world)
-        {
+        registry.RegisterSystem("PhysicsSyncTransforms", [](flecs::world& world) {
+            auto* physics = GameSubsystems::Find<PhysicsSubsystem>();
+
             world.system<const RigidBodyComponent, WorldTransformComponent>("PhysicsSyncTransforms")
                 .kind(flecs::OnValidate)
-                .each([](flecs::entity e,
+                .each([physics](flecs::entity e,
                          const RigidBodyComponent& rb,
-                         WorldTransformComponent& wt)
-                {
+                         WorldTransformComponent& wt) {
                     if (rb.RuntimeBodyId == INVALID_PHYSICS_BODY)
                         return;
                     if (rb.Type == BodyType::Static)
                         return;
-
-                    auto* subsystem = GameSubsystems::Find<PhysicsSubsystem>();
-                    if (!subsystem)
+                    if (!physics)
                         return;
 
-                    Float3 pos = subsystem->GetWorld().GetBodyPosition(rb.RuntimeBodyId);
-                    Float4 rotQ = subsystem->GetWorld().GetBodyRotation(rb.RuntimeBodyId);
+                    Float3 pos = physics->GetWorld().GetBodyPosition(rb.RuntimeBodyId);
+                    Float4 rotQ = physics->GetWorld().GetBodyRotation(rb.RuntimeBodyId);
 
                     wt.Position = pos;
 
@@ -332,9 +439,10 @@ namespace Wayfinder
                     glm::mat4 scaleMat = glm::scale(glm::mat4(1.0f), wt.Scale);
                     wt.LocalToWorld = translateMat * rotMat * scaleMat;
                 });
-        }, {}, {"PhysicsStep"});
+        },
+                                {}, {"PhysicsStep"});
 
         WAYFINDER_INFO(LogPhysics, "PhysicsPlugin registered");
     }
 
-} // namespace Wayfinder
+} // namespace Wayfinder::Physics

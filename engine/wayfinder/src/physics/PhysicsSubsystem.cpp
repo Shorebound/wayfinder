@@ -1,7 +1,7 @@
 #include "PhysicsSubsystem.h"
 #include "../core/Log.h"
 
-namespace Wayfinder
+namespace Wayfinder::Physics
 {
     void PhysicsSubsystem::Initialise()
     {
@@ -15,4 +15,4 @@ namespace Wayfinder
         m_world.Shutdown();
     }
 
-} // namespace Wayfinder
+} // namespace Wayfinder::Physics

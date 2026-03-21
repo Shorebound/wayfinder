@@ -1,10 +1,10 @@
 #pragma once
 
-#include "../rendering/RenderTypes.h"
+#include "../core/Types.h"
 
 #include <cstdint>
 
-namespace Wayfinder
+namespace Wayfinder::Physics
 {
     /** @brief Motion type for a physics body. */
     enum class BodyType : uint8_t
@@ -23,7 +23,7 @@ namespace Wayfinder
     };
 
     /// Sentinel value matching Jolt's invalid BodyID.
-    static constexpr uint32_t INVALID_PHYSICS_BODY = 0xFFFFFFFF;
+    inline constexpr uint32_t INVALID_PHYSICS_BODY = 0xFFFFFFFF;
 
     /**
      * @brief Describes the motion behaviour of a physics body.
@@ -71,4 +71,4 @@ namespace Wayfinder
         ColliderComponent(const ColliderComponent&) = default;
     };
 
-} // namespace Wayfinder
+} // namespace Wayfinder::Physics

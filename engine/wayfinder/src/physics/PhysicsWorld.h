@@ -1,7 +1,6 @@
 #pragma once
 
 #include "PhysicsComponents.h"
-#include "../rendering/RenderTypes.h"
 #include "wayfinder_exports.h"
 
 #include <cstdint>
@@ -18,8 +17,38 @@ namespace JPH
     class ObjectLayerPairFilter;
 } // namespace JPH
 
-namespace Wayfinder
+namespace Wayfinder::Physics
 {
+    /**
+     * @brief Physics-native description of a body to create.
+     *
+     * Decouples PhysicsWorld from ECS component types.  The ECS observer
+     * translates RigidBodyComponent + ColliderComponent into this struct
+     * before calling CreateBody().
+     */
+    struct PhysicsBodyDescriptor
+    {
+        BodyType Type = BodyType::Dynamic;
+        ColliderShape Shape = ColliderShape::Box;
+
+        // Mass & dynamics
+        float Mass = 1.0f;
+        float GravityFactor = 1.0f;
+        float LinearDamping = 0.05f;
+        float AngularDamping = 0.05f;
+        Float3 LinearVelocity = {0.0f, 0.0f, 0.0f};
+        Float3 AngularVelocity = {0.0f, 0.0f, 0.0f};
+
+        // Shape parameters
+        Float3 HalfExtents = {0.5f, 0.5f, 0.5f};
+        float Radius = 0.5f;
+        float Height = 1.0f;
+
+        // Material
+        float Friction = 0.2f;
+        float Restitution = 0.0f;
+    };
+
     /**
      * @brief Thin wrapper around Jolt's PhysicsSystem.
      *
@@ -61,11 +90,11 @@ namespace Wayfinder
         /// @return The current fixed timestep in seconds.
         float GetFixedTimestep() const { return m_fixedTimestep; }
 
-        /// Create a Jolt body from component data and return its raw BodyID value.
+        /// Create a Jolt body from a physics-native descriptor and return its
+        /// raw BodyID value.
         /// @p rotationDegrees is applied as Euler ZYX (matching ComposeTransform).
         /// Returns INVALID_PHYSICS_BODY on failure.
-        uint32_t CreateBody(const RigidBodyComponent& body,
-                            const ColliderComponent& collider,
+        uint32_t CreateBody(const PhysicsBodyDescriptor& descriptor,
                             const Float3& position,
                             const Float3& rotationDegrees = {0.0f, 0.0f, 0.0f});
 
@@ -93,4 +122,4 @@ namespace Wayfinder
         bool m_initialised = false;
     };
 
-} // namespace Wayfinder
+} // namespace Wayfinder::Physics
