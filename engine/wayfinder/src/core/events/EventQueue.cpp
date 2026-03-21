@@ -5,27 +5,27 @@ namespace Wayfinder
 
     EventQueue::EventQueue()
     {
-        m_events.reserve(INITIAL_CAPACITY);
-    }
-
-    void EventQueue::Push(std::unique_ptr<Event> event)
-    {
-        m_events.push_back(std::move(event));
+        m_order.reserve(INITIAL_ORDER_CAPACITY);
     }
 
     void EventQueue::Clear()
     {
-        m_events.clear();
+        for (auto& [_, buf] : m_buffers)
+        {
+            buf->Clear();
+        }
+        m_order.clear();
+        m_totalSize = 0;
     }
 
     size_t EventQueue::Size() const
     {
-        return m_events.size();
+        return m_totalSize;
     }
 
     bool EventQueue::IsEmpty() const
     {
-        return m_events.empty();
+        return m_totalSize == 0;
     }
 
 } // namespace Wayfinder

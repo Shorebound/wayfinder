@@ -51,6 +51,7 @@ namespace Wayfinder
 
         void OnEvent(class Event& event);
         void PropagateToLayers(class Event& event);
+        void DeferInputEvent(class Event& event);
         bool OnWindowClose(class WindowCloseEvent& e);
         bool OnWindowResize(class WindowResizeEvent& e);
 

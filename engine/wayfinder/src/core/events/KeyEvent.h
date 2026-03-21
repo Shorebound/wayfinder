@@ -3,7 +3,6 @@
 #include "platform/KeyCodes.h"
 #include "Event.h"
 #include <format>
-#include <memory>
 
 namespace Wayfinder
 {
@@ -31,11 +30,6 @@ namespace Wayfinder
             return std::format("{}: {} (repeat = {})", GetName(), m_keyCode, m_repeating);
         }
 
-        std::unique_ptr<Event> Clone() const override
-        {
-            return std::make_unique<KeyPressedEvent>(*this);
-        }
-
     private:
         bool m_repeating;
     };
@@ -49,11 +43,6 @@ namespace Wayfinder
         {
             return std::format("{}: {}", GetName(), m_keyCode);
         }
-
-        std::unique_ptr<Event> Clone() const override
-        {
-            return std::make_unique<KeyReleasedEvent>(*this);
-        }
     };
 
     class KeyTypedEvent : public EventImpl<KeyEvent, EventType::KeyTyped, EventCategory::Keyboard | EventCategory::Input>
@@ -64,11 +53,6 @@ namespace Wayfinder
         std::string ToString() const override
         {
             return std::format("{}: {}", GetName(), m_keyCode);
-        }
-
-        std::unique_ptr<Event> Clone() const override
-        {
-            return std::make_unique<KeyTypedEvent>(*this);
         }
     };
 }

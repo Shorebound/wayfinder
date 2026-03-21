@@ -113,12 +113,6 @@ namespace Wayfinder
         virtual EventCategory GetCategoryFlags() const = 0;
         virtual std::string ToString() const { return GetName(); }
 
-        /** @brief Create a heap-allocated copy of this event for deferred dispatch. */
-        virtual std::unique_ptr<Event> Clone() const
-        {
-            return nullptr;
-        }
-
         bool IsInCategory(const EventCategory category) const
         {
             return (GetCategoryFlags() & category) != EventCategory::None;

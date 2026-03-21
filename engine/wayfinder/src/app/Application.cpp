@@ -12,6 +12,7 @@
 #include "project/ProjectDescriptor.h"
 #include "project/ProjectResolver.h"
 #include "core/events/ApplicationEvent.h"
+#include "core/events/KeyEvent.h"
 #include "core/events/MouseEvent.h"
 #include "platform/Input.h"
 #include "platform/Window.h"
@@ -165,14 +166,10 @@ namespace Wayfinder
         if (event.Handled)
             return;
 
-        // Defer input events to the queue for batched dispatch
+        // Defer input events to typed buffers for batched dispatch
         if (event.IsInCategory(EventCategory::Input))
         {
-            auto queuedEvent = event.Clone();
-            WAYFINDER_ASSERT(queuedEvent != nullptr,
-                             "Deferred event '{}' must implement Clone()",
-                             event.GetName());
-            m_eventQueue.Push(std::move(queuedEvent));
+            DeferInputEvent(event);
             return;
         }
 
@@ -187,6 +184,36 @@ namespace Wayfinder
             if (event.Handled)
                 break;
             (*it)->OnEvent(event);
+        }
+    }
+
+    void Application::DeferInputEvent(Event& event)
+    {
+        switch (event.GetEventType())
+        {
+        case EventType::KeyPressed:
+            m_eventQueue.Push(static_cast<const KeyPressedEvent&>(event));
+            break;
+        case EventType::KeyReleased:
+            m_eventQueue.Push(static_cast<const KeyReleasedEvent&>(event));
+            break;
+        case EventType::KeyTyped:
+            m_eventQueue.Push(static_cast<const KeyTypedEvent&>(event));
+            break;
+        case EventType::MouseMoved:
+            m_eventQueue.Push(static_cast<const MouseMovedEvent&>(event));
+            break;
+        case EventType::MouseButtonPressed:
+            m_eventQueue.Push(static_cast<const MouseButtonPressedEvent&>(event));
+            break;
+        case EventType::MouseButtonReleased:
+            m_eventQueue.Push(static_cast<const MouseButtonReleasedEvent&>(event));
+            break;
+        default:
+            WAYFINDER_ASSERT(false,
+                             "Unhandled input event type for deferral: {}",
+                             event.GetName());
+            break;
         }
     }
 
