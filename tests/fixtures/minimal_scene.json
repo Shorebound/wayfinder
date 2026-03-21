@@ -1,0 +1,14 @@
+{
+  "scene_name": "Empty Scene",
+  "entities": [
+    {
+      "id": "550e8400-e29b-41d4-a716-446655440020",
+      "name": "SimpleEntity",
+      "transform": {
+        "position": [0.0, 0.0, 0.0],
+        "rotation": [0.0, 0.0, 0.0],
+        "scale": [1.0, 1.0, 1.0]
+      }
+    }
+  ]
+}

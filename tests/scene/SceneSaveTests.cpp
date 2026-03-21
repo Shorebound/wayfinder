@@ -27,13 +27,13 @@ namespace
             std::filesystem::create_directories(d);
             return d;
         }();
-        return dir / "wayfinder_test_scene_save.toml";
+        return dir / "wayfinder_test_scene_save.json";
     }
 }
 
 TEST_SUITE("Scene Save")
 {
-    TEST_CASE("SaveToFile writes a valid TOML file")
+    TEST_CASE("SaveToFile writes a valid JSON file")
     {
         flecs::world world;
         auto registry = MakeTestRegistry();
@@ -104,7 +104,7 @@ TEST_SUITE("Scene Save")
             registry.RegisterComponents(world);
             Scene::RegisterCoreECS(world);
 
-            auto path = FixturesDir() / "test_scene.toml";
+            auto path = FixturesDir() / "test_scene.json";
             Scene scene(world, registry, "Default");
             REQUIRE(scene.LoadFromFile(path.string()));
             REQUIRE(scene.SaveToFile(savePath.string()));

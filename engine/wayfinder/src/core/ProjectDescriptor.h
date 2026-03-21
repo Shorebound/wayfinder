@@ -12,7 +12,7 @@ namespace Wayfinder
     struct ProjectPaths
     {
         std::string AssetRoot = "assets";
-        std::string BootScene = "scenes/default_scene.toml"; // relative to AssetRoot
+        std::string BootScene = "scenes/default_scene.json"; // relative to AssetRoot
         std::string ConfigDir = "config";
         std::string Module;  ///< Shared library name for game module (empty = none).
     };

@@ -149,8 +149,8 @@ Examples:
 
 ```powershell
 build\bin\Debug\waypoint.exe validate-assets sandbox\journey\assets
-build\bin\Debug\waypoint.exe validate sandbox\journey\assets\scenes\default_scene.toml
-build\bin\Debug\waypoint.exe roundtrip-save sandbox\journey\assets\scenes\default_scene.toml build\bin\Debug\assets\scenes\default_scene_roundtrip.toml
+build\bin\Debug\waypoint.exe validate sandbox\journey\assets\scenes\default_scene.json
+build\bin\Debug\waypoint.exe roundtrip-save sandbox\journey\assets\scenes\default_scene.json build\bin\Debug\assets\scenes\default_scene_roundtrip.json
 ```
 
 ## Dependency Summary
