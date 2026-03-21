@@ -42,8 +42,12 @@ namespace Wayfinder
         virtual void SetEventCallback(const EventCallbackFn& callback) = 0;
 
         static std::unique_ptr<Window> Create(
-            const Window::Config& config = {},
+            const Window::Config& config,
             PlatformBackend backend = PlatformBackend::SDL3);
+        static std::unique_ptr<Window> Create()
+        {
+            return Create(Config{});
+        }
     };
 
 }

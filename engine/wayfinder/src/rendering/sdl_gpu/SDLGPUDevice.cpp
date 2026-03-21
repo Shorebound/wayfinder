@@ -5,6 +5,7 @@
 #include "../../core/Log.h"
 
 #include <SDL3/SDL.h>
+#include <cstring>
 #include <vector>
 
 namespace Wayfinder

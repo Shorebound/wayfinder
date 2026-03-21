@@ -18,6 +18,8 @@
 
 #include <mutex>
 
+#include <glm/trigonometric.hpp>
+
 namespace Wayfinder
 {
     // ── Jolt layer configuration ────────────────────────────────
@@ -55,6 +57,19 @@ namespace Wayfinder
         JPH::BroadPhaseLayer GetBroadPhaseLayer(JPH::ObjectLayer inLayer) const override
         {
             return m_objectToBroadPhase[inLayer];
+        }
+
+        const char* GetBroadPhaseLayerName(JPH::BroadPhaseLayer inLayer) const override
+        {
+            switch (static_cast<JPH::BroadPhaseLayer::Type>(inLayer))
+            {
+            case static_cast<JPH::BroadPhaseLayer::Type>(BroadPhaseLayers::NON_MOVING):
+                return "NON_MOVING";
+            case static_cast<JPH::BroadPhaseLayer::Type>(BroadPhaseLayers::MOVING):
+                return "MOVING";
+            default:
+                return "UNKNOWN";
+            }
         }
 
     private:
@@ -229,7 +244,8 @@ namespace Wayfinder
 
     uint32_t PhysicsWorld::CreateBody(const RigidBodyComponent& body,
                                       const ColliderComponent& collider,
-                                      const Float3& position)
+                                      const Float3& position,
+                                      const Float3& rotationDegrees)
     {
         if (!m_initialised)
             return INVALID_PHYSICS_BODY;
@@ -274,10 +290,16 @@ namespace Wayfinder
             break;
         }
 
+        // Convert Euler ZYX degrees to Jolt quaternion (matching Math3D::ComposeTransform order).
+        float rx = glm::radians(rotationDegrees.x);
+        float ry = glm::radians(rotationDegrees.y);
+        float rz = glm::radians(rotationDegrees.z);
+        JPH::Quat rotation = JPH::Quat::sEulerAngles(JPH::Vec3(rx, ry, rz));
+
         JPH::BodyCreationSettings settings(
             shape,
             JPH::RVec3(position.x, position.y, position.z),
-            JPH::Quat::sIdentity(),
+            rotation,
             motionType,
             objectLayer);
 
@@ -336,6 +358,16 @@ namespace Wayfinder
         return {static_cast<float>(pos.GetX()),
                 static_cast<float>(pos.GetY()),
                 static_cast<float>(pos.GetZ())};
+    }
+
+    Float4 PhysicsWorld::GetBodyRotation(uint32_t bodyId) const
+    {
+        if (!m_initialised || bodyId == INVALID_PHYSICS_BODY)
+            return {0.0f, 0.0f, 0.0f, 1.0f};
+
+        const JPH::BodyInterface& bodyInterface = m_impl->PhysSystem->GetBodyInterface();
+        JPH::Quat rot = bodyInterface.GetRotation(JPH::BodyID(bodyId));
+        return {rot.GetX(), rot.GetY(), rot.GetZ(), rot.GetW()};
     }
 
     void PhysicsWorld::SetBodyPosition(uint32_t bodyId, const Float3& position)

@@ -9,6 +9,8 @@
 #include "../scene/entity/Entity.h"
 
 #include <flecs.h>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/quaternion.hpp>
 #include <toml++/toml.hpp>
 
 namespace Wayfinder
@@ -227,17 +229,18 @@ namespace Wayfinder
             registry.RegisterComponent(std::move(desc));
         }
 
-        // --- ECS Systems ---
+        // --- ECS Observers & Systems ---
 
-        // PhysicsSync: create Jolt bodies for entities that have the
-        // required components but no valid RuntimeBodyId yet.
-        // Initial body position comes from TransformComponent.Position (the
-        // authored local transform). At runtime, PhysicsWriteback writes
-        // simulated positions back into WorldTransformComponent.
-        registry.RegisterSystem("PhysicsSync", [](flecs::world& world)
+        // PhysicsCreateBodies: reactive observer that creates a Jolt body when
+        // an entity gains RigidBodyComponent + ColliderComponent + TransformComponent.
+        // Fires once per entity when the archetype match becomes true (OnSet).
+        // Initial body position and rotation come from TransformComponent (the
+        // authored local transform). At runtime, PhysicsSyncTransforms writes
+        // simulated transforms back into WorldTransformComponent.
+        registry.RegisterSystem("PhysicsCreateBodies", [](flecs::world& world)
         {
-            world.system<RigidBodyComponent, const ColliderComponent, const TransformComponent>("PhysicsSync")
-                .kind(flecs::PreUpdate)
+            world.observer<RigidBodyComponent, const ColliderComponent, const TransformComponent>("PhysicsCreateBodies")
+                .event(flecs::OnSet)
                 .each([](flecs::entity e,
                          RigidBodyComponent& rb,
                          const ColliderComponent& col,
@@ -250,7 +253,30 @@ namespace Wayfinder
                     if (!subsystem)
                         return;
 
-                    rb.RuntimeBodyId = subsystem->GetWorld().CreateBody(rb, col, transform.Position);
+                    rb.RuntimeBodyId = subsystem->GetWorld().CreateBody(
+                        rb, col, transform.Position, transform.Rotation);
+                });
+        });
+
+        // PhysicsDestroyBodies: reactive observer that destroys the Jolt body
+        // when RigidBodyComponent is removed from an entity (or entity deleted).
+        // Fires before the component data is destroyed, so RuntimeBodyId is
+        // still accessible.
+        registry.RegisterSystem("PhysicsDestroyBodies", [](flecs::world& world)
+        {
+            world.observer<RigidBodyComponent>("PhysicsDestroyBodies")
+                .event(flecs::OnRemove)
+                .each([](flecs::entity e, RigidBodyComponent& rb)
+                {
+                    if (rb.RuntimeBodyId == INVALID_PHYSICS_BODY)
+                        return;
+
+                    auto* subsystem = GameSubsystems::Find<PhysicsSubsystem>();
+                    if (!subsystem)
+                        return;
+
+                    subsystem->GetWorld().DestroyBody(rb.RuntimeBodyId);
+                    rb.RuntimeBodyId = INVALID_PHYSICS_BODY;
                 });
         });
 
@@ -266,20 +292,20 @@ namespace Wayfinder
 
             world.system("PhysicsStep")
                 .kind(flecs::OnUpdate)
-                .iter([](flecs::iter& it)
+                .run([](flecs::iter& it)
                 {
-                    auto* subsystem = GameSubsystems::Find<PhysicsSubsystem>();
-                    if (!subsystem)
-                        return;
-
-                    subsystem->GetWorld().StepFixed(it.delta_time());
+                    auto* sub = GameSubsystems::Find<PhysicsSubsystem>();
+                    if (sub)
+                        sub->GetWorld().StepFixed(it.delta_time());
                 });
-        }, {}, {"PhysicsSync"});
+        });
 
-        // PhysicsWriteback: copy Jolt body positions into WorldTransformComponent.
-        registry.RegisterSystem("PhysicsWriteback", [](flecs::world& world)
+        // PhysicsSyncTransforms: copy Jolt body position and rotation into
+        // WorldTransformComponent.  Builds the full LocalToWorld matrix from
+        // physics position, physics rotation, and the entity's existing scale.
+        registry.RegisterSystem("PhysicsSyncTransforms", [](flecs::world& world)
         {
-            world.system<const RigidBodyComponent, WorldTransformComponent>("PhysicsWriteback")
+            world.system<const RigidBodyComponent, WorldTransformComponent>("PhysicsSyncTransforms")
                 .kind(flecs::OnValidate)
                 .each([](flecs::entity e,
                          const RigidBodyComponent& rb,
@@ -295,8 +321,16 @@ namespace Wayfinder
                         return;
 
                     Float3 pos = subsystem->GetWorld().GetBodyPosition(rb.RuntimeBodyId);
+                    Float4 rotQ = subsystem->GetWorld().GetBodyRotation(rb.RuntimeBodyId);
+
                     wt.Position = pos;
-                    wt.LocalToWorld[3] = Float4(pos, 1.0f);
+
+                    // Build LocalToWorld = translate * rotate * scale.
+                    glm::quat q(rotQ.w, rotQ.x, rotQ.y, rotQ.z);
+                    glm::mat4 rotMat = glm::mat4_cast(q);
+                    glm::mat4 translateMat = glm::translate(glm::mat4(1.0f), pos);
+                    glm::mat4 scaleMat = glm::scale(glm::mat4(1.0f), wt.Scale);
+                    wt.LocalToWorld = translateMat * rotMat * scaleMat;
                 });
         }, {}, {"PhysicsStep"});
 

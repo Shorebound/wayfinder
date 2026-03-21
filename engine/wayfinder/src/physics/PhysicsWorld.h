@@ -62,16 +62,22 @@ namespace Wayfinder
         float GetFixedTimestep() const { return m_fixedTimestep; }
 
         /// Create a Jolt body from component data and return its raw BodyID value.
+        /// @p rotationDegrees is applied as Euler ZYX (matching ComposeTransform).
         /// Returns INVALID_PHYSICS_BODY on failure.
         uint32_t CreateBody(const RigidBodyComponent& body,
                             const ColliderComponent& collider,
-                            const Float3& position);
+                            const Float3& position,
+                            const Float3& rotationDegrees = {0.0f, 0.0f, 0.0f});
 
         /// Remove and destroy a previously created body.
         void DestroyBody(uint32_t bodyId);
 
         /// Query the current world-space position of a body.
         Float3 GetBodyPosition(uint32_t bodyId) const;
+
+        /// Query the current world-space rotation of a body as a quaternion
+        /// packed into Float4 (x, y, z, w).
+        Float4 GetBodyRotation(uint32_t bodyId) const;
 
         /// Set the world-space position of a kinematic body.
         void SetBodyPosition(uint32_t bodyId, const Float3& position);
