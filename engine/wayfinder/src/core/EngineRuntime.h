@@ -42,11 +42,12 @@ namespace Wayfinder
 
         // ── Lifecycle ────────────────────────────────────────
         /**
-         * @brief Create and initialise all platform, rendering, and game
-         *        services.
+         * @brief Create and initialise platform and rendering services:
+         *        Input, Time, Window, RenderDevice, Renderer, and
+         *        SceneRenderExtractor.
          * @return A successful Result on success, or an Error describing the
          *         first subsystem that failed to initialise (e.g. window
-         *         creation, device initialisation, scene loading).
+         *         creation, device or renderer initialisation).
          */
         Result<void> Initialise();
         void Shutdown();

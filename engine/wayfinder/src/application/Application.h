@@ -58,8 +58,10 @@ namespace Wayfinder
         std::unique_ptr<ModuleRegistry> m_moduleRegistry;
         std::unique_ptr<ProjectDescriptor> m_project;
         std::unique_ptr<EngineConfig> m_config;
+        CommandLineArgs m_args{};
         bool m_running = false;
         bool m_moduleStarted = false;
+        bool m_logInitialised = false;
 
         std::unique_ptr<EngineRuntime> m_runtime;
         std::unique_ptr<LayerStack> m_layerStack;

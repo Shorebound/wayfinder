@@ -22,6 +22,7 @@ namespace Wayfinder
     Application::Application(std::unique_ptr<Module> module,
                              const CommandLineArgs& args)
         : m_module(std::move(module))
+        , m_args(args)
     {
     }
 
@@ -47,6 +48,7 @@ namespace Wayfinder
     Result<void> Application::Initialise()
     {
         Log::Init();
+        m_logInitialised = true;
         WAYFINDER_INFO(LogEngine, "Initialising Wayfinder Engine");
 
         // 1. Discover project descriptor from CWD
@@ -207,34 +209,39 @@ namespace Wayfinder
 
     void Application::Shutdown()
     {
-        if (!m_config) return; // never initialised
-
-        WAYFINDER_INFO(LogEngine, "Shutting down Wayfinder Engine");
-
-        if (m_module && m_moduleStarted)
+        if (m_config)
         {
-            m_module->OnShutdown();
-            m_moduleStarted = false;
+            WAYFINDER_INFO(LogEngine, "Shutting down Wayfinder Engine");
+
+            if (m_module && m_moduleStarted)
+            {
+                m_module->OnShutdown();
+                m_moduleStarted = false;
+            }
+
+            m_moduleRegistry = nullptr;
+
+            if (m_game)
+            {
+                m_game->Shutdown();
+                m_game = nullptr;
+            }
+
+            if (m_runtime)
+            {
+                m_runtime->Shutdown();
+                m_runtime = nullptr;
+            }
+
+            m_layerStack = nullptr;
+            m_config = nullptr;
+            m_project = nullptr;
         }
 
-        m_moduleRegistry = nullptr;
-
-        if (m_game)
+        if (m_logInitialised)
         {
-            m_game->Shutdown();
-            m_game = nullptr;
+            Log::Shutdown();
+            m_logInitialised = false;
         }
-
-        if (m_runtime)
-        {
-            m_runtime->Shutdown();
-            m_runtime = nullptr;
-        }
-
-        m_layerStack = nullptr;
-        m_config = nullptr;
-        m_project = nullptr;
-
-        Log::Shutdown();
     }
 } // namespace Wayfinder
