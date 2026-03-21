@@ -51,7 +51,7 @@ namespace
 
         PhysicsIntegrationFixture()
         {
-            /// Build the ModuleRegistry with PhysicsPlugin, exactly as Game does.
+            // Build the ModuleRegistry with PhysicsPlugin, exactly as Game does.
             ProjectDescriptor project{};
             project.Name = "PhysicsIntegrationTest";
             EngineConfig config = EngineConfig::LoadDefaults();
@@ -59,20 +59,20 @@ namespace
             ModuleRegistry registry(project, config);
             registry.AddPlugin<PhysicsPlugin>();
 
-            /// Stand up the subsystem from the plugin's registration.
+            // Stand up the subsystem from the plugin's registration.
             for (const auto& entry : registry.GetSubsystemFactories())
                 Subsystems.Register(entry.Type, entry.Factory, entry.Predicate);
 
             Subsystems.Initialise();
             GameSubsystems::Bind(&Subsystems);
 
-            /// Register ECS components that the observers depend on.
+            // Register ECS components that the observers depend on.
             EcsWorld.component<RigidBodyComponent>();
             EcsWorld.component<ColliderComponent>();
             EcsWorld.component<TransformComponent>();
             EcsWorld.component<WorldTransformComponent>();
 
-            /// Apply plugin-registered observers and systems into the world.
+            // Apply plugin-registered observers and systems into the world.
             registry.ApplyToWorld(EcsWorld);
         }
 
@@ -87,7 +87,7 @@ namespace
             return Subsystems.Get<PhysicsSubsystem>()->GetWorld();
         }
 
-        /// Create a physics entity with the given body type, position, and collider.
+        // Create a physics entity with the given body type, position, and collider.
         flecs::entity CreatePhysicsEntity(const char* name,
                                           BodyType type,
                                           const Float3& position,
@@ -108,7 +108,7 @@ namespace
             return entity;
         }
 
-        /// Progress the ECS world for N ticks at the fixed timestep.
+        // Progress the ECS world for N ticks at the fixed timestep.
         void Simulate(int ticks = SIMULATION_STEPS)
         {
             for (int i = 0; i < ticks; ++i)
@@ -131,15 +131,15 @@ TEST_SUITE("Physics Integration")
 
         fixture.Simulate();
 
-        /// Observer should have assigned a valid runtime body.
+        // Observer should have assigned a valid runtime body.
         const auto& rb = entity.get<RigidBodyComponent>();
         REQUIRE(rb.RuntimeBodyId != INVALID_PHYSICS_BODY);
 
-        /// PhysicsSyncTransforms should have written back the position.
+        // PhysicsSyncTransforms should have written back the position.
         const auto& wt = entity.get<WorldTransformComponent>();
         CHECK(wt.Position.y < startY);
 
-        /// LocalToWorld translation column should agree with position.
+        // LocalToWorld translation column should agree with position.
         CHECK(wt.LocalToWorld[3].x == doctest::Approx(wt.Position.x).epsilon(0.01));
         CHECK(wt.LocalToWorld[3].y == doctest::Approx(wt.Position.y).epsilon(0.01));
         CHECK(wt.LocalToWorld[3].z == doctest::Approx(wt.Position.z).epsilon(0.01));
@@ -156,7 +156,7 @@ TEST_SUITE("Physics Integration")
         const auto& rb = entity.get<RigidBodyComponent>();
         REQUIRE(rb.RuntimeBodyId != INVALID_PHYSICS_BODY);
 
-        /// Static bodies are skipped by PhysicsSyncTransforms, so query Jolt directly.
+        // Static bodies are skipped by PhysicsSyncTransforms, so query Jolt directly.
         Float3 pos = fixture.GetPhysicsWorld().GetBodyPosition(rb.RuntimeBodyId);
         CHECK(pos.x == doctest::Approx(0.0f));
         CHECK(pos.y == doctest::Approx(0.0f));
@@ -169,17 +169,17 @@ TEST_SUITE("Physics Integration")
 
         auto entity = fixture.CreatePhysicsEntity("KinematicPlatform", BodyType::Kinematic, {0.0f, 0.0f, 0.0f});
 
-        /// Flush deferred operations so observer fires.
+        // Flush deferred operations so observer fires.
         fixture.EcsWorld.progress(0.0f);
 
         const auto& rb = entity.get<RigidBodyComponent>();
         REQUIRE(rb.RuntimeBodyId != INVALID_PHYSICS_BODY);
 
-        /// Teleport the kinematic body.
+        // Teleport the kinematic body.
         const Float3 target = {10.0f, 5.0f, -3.0f};
         fixture.GetPhysicsWorld().SetBodyPosition(rb.RuntimeBodyId, target);
 
-        /// Step so PhysicsSyncTransforms writes back.
+        // Step so PhysicsSyncTransforms writes back.
         fixture.Simulate(1);
 
         const auto& wt = entity.get<WorldTransformComponent>();
@@ -199,16 +199,16 @@ TEST_SUITE("Physics Integration")
         REQUIRE(rb.RuntimeBodyId != INVALID_PHYSICS_BODY);
         uint32_t bodyId = rb.RuntimeBodyId;
 
-        /// Remove the component — the destruction observer should fire.
+        // Remove the component — the destruction observer should fire.
         entity.remove<RigidBodyComponent>();
         fixture.EcsWorld.progress(0.0f);
 
-        /// Entity should no longer have RigidBodyComponent.
+        // Entity should no longer have RigidBodyComponent.
         CHECK_FALSE(entity.has<RigidBodyComponent>());
 
-        /// Jolt body was destroyed — querying its position now returns the
-        /// zero default because the body ID is no longer valid in Jolt.
-        /// (This verifies DestroyBody was called; the engine doesn't crash.)
+        // Jolt body was destroyed — querying its position now returns the
+        // zero default because the body ID is no longer valid in Jolt.
+        // (This verifies DestroyBody was called; the engine doesn't crash.)
         Float3 pos = fixture.GetPhysicsWorld().GetBodyPosition(bodyId);
         (void)pos; // Reaching here without crashing proves cleanup happened.
     }
@@ -224,11 +224,11 @@ TEST_SUITE("Physics Integration")
         REQUIRE(rb.RuntimeBodyId != INVALID_PHYSICS_BODY);
         uint32_t bodyId = rb.RuntimeBodyId;
 
-        /// Delete the entire entity.
+        // Delete the entire entity.
         entity.destruct();
         fixture.EcsWorld.progress(0.0f);
 
-        /// Same rationale: reaching here without crash proves cleanup.
+        // Same rationale: reaching here without crash proves cleanup.
         Float3 pos = fixture.GetPhysicsWorld().GetBodyPosition(bodyId);
         (void)pos;
     }
@@ -244,16 +244,16 @@ TEST_SUITE("Physics Integration")
 
         fixture.Simulate();
 
-        /// Dynamic body should have fallen.
+        // Dynamic body should have fallen.
         const auto& dynWt = dynamic.get<WorldTransformComponent>();
         CHECK(dynWt.Position.y < dynamicStartY);
 
-        /// Static body should not have moved.
+        // Static body should not have moved.
         const auto& floorRb = floor.get<RigidBodyComponent>();
         Float3 floorPos = fixture.GetPhysicsWorld().GetBodyPosition(floorRb.RuntimeBodyId);
         CHECK(floorPos.y == doctest::Approx(-1.0f));
 
-        /// Kinematic body stays where it was placed (no gravity).
+        // Kinematic body stays where it was placed (no gravity).
         const auto& platWt = platform.get<WorldTransformComponent>();
         CHECK(platWt.Position.x == doctest::Approx(5.0f).epsilon(0.01));
         CHECK(platWt.Position.y == doctest::Approx(0.0f).epsilon(0.01));
