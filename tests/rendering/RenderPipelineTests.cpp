@@ -25,7 +25,7 @@ namespace
         submission.Material.Handle.Origin = Wayfinder::RenderResourceOrigin::BuiltIn;
         submission.Material.Handle.StableKey = submission.Mesh.StableKey;
         submission.Material.StateOverrides.FillMode = Wayfinder::RenderFillMode::Solid;
-        submission.Material.Parameters.SetColor("base_color", Wayfinder::LinearColor::FromColor(colour));
+        submission.Material.Parameters.SetColor("base_color", Wayfinder::LinearColor::FromColour(colour));
         submission.SortPriority = sortPriority;
         return submission;
     }

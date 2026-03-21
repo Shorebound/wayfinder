@@ -73,7 +73,7 @@ namespace
 
 namespace Wayfinder
 {
-    LinearColor MaterialAsset::GetBaseColor() const
+    LinearColor MaterialAsset::GetBaseColour() const
     {
         auto it = Parameters.Values.find("base_color");
         if (it != Parameters.Values.end())
@@ -83,7 +83,7 @@ namespace Wayfinder
         return LinearColor::White();
     }
 
-    void MaterialAsset::SetBaseColor(const LinearColor& colour)
+    void MaterialAsset::SetBaseColour(const LinearColor& colour)
     {
         Parameters.SetColor("base_color", colour);
     }
@@ -137,14 +137,14 @@ namespace Wayfinder
         if (!parsed.Parameters.Has("base_color") && document.contains(kBaseColorKey))
         {
             const toml::array* values = document.get_as<toml::array>(kBaseColorKey);
-            LinearColor baseColor = LinearColor::White();
-            std::string colorError;
-            if (!ParseLinearColor(values, baseColor, colorError))
+            LinearColor baseColour = LinearColor::White();
+            std::string colourError;
+            if (!ParseLinearColor(values, baseColour, colourError))
             {
-                error = "Material asset '" + sourceLabel + "' field 'base_color' " + colorError;
+                error = "Material asset '" + sourceLabel + "' field 'base_color' " + colourError;
                 return false;
             }
-            parsed.Parameters.SetColor("base_color", baseColor);
+            parsed.Parameters.SetColor("base_color", baseColour);
         }
 
         // Default base_color to white if nothing was specified
@@ -237,13 +237,13 @@ namespace Wayfinder
         }
 
         // Also write top-level base_color for backward compatibility
-        LinearColor baseColor = material.GetBaseColor();
-        toml::array baseColorArr;
-        baseColorArr.push_back(static_cast<int64_t>(baseColor.r * 255.0f));
-        baseColorArr.push_back(static_cast<int64_t>(baseColor.g * 255.0f));
-        baseColorArr.push_back(static_cast<int64_t>(baseColor.b * 255.0f));
-        baseColorArr.push_back(static_cast<int64_t>(baseColor.a * 255.0f));
-        table.insert_or_assign("base_color", std::move(baseColorArr));
+        LinearColor baseColour = material.GetBaseColour();
+        toml::array baseColourArr;
+        baseColourArr.push_back(static_cast<int64_t>(baseColour.r * 255.0f));
+        baseColourArr.push_back(static_cast<int64_t>(baseColour.g * 255.0f));
+        baseColourArr.push_back(static_cast<int64_t>(baseColour.b * 255.0f));
+        baseColourArr.push_back(static_cast<int64_t>(baseColour.a * 255.0f));
+        table.insert_or_assign("base_color", std::move(baseColourArr));
 
         return table;
     }

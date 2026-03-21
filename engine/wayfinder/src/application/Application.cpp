@@ -45,7 +45,7 @@ namespace Wayfinder
     bool Application::Initialise()
     {
         Log::Init();
-        WAYFINDER_INFO(LogEngine, "Initializing Wayfinder Engine");
+        WAYFINDER_INFO(LogEngine, "Initialising Wayfinder Engine");
 
         // 1. Discover project descriptor from CWD
         const auto projectFile = FindProjectFile();
@@ -255,4 +255,3 @@ namespace Wayfinder
         Log::Shutdown();
     }
 } // namespace Wayfinder
-

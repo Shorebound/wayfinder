@@ -45,7 +45,7 @@ namespace Wayfinder
         static LinearColor White() { return {1.0f, 1.0f, 1.0f, 1.0f}; }
         static LinearColor Black() { return {0.0f, 0.0f, 0.0f, 1.0f}; }
 
-        static LinearColor FromColor(const Color& c)
+        static LinearColor FromColour(const Color& c)
         {
             return {
                 .r = static_cast<float>(c.r) / 255.0f,
@@ -172,7 +172,7 @@ namespace Wayfinder
         float b = 0.0f;
         float a = 1.0f;
 
-        static ClearValue FromColor(const Color& c)
+        static ClearValue FromColour(const Color& c)
         {
             return {
                 .r = c.r / 255.0f,

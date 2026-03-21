@@ -7,7 +7,7 @@
 #include <doctest/doctest.h>
 #include <flecs.h>
 
-// ── MeshComponent ────────────────────────────────────────
+/// ── MeshComponent ────────────────────────────────────────
 
 TEST_CASE("MeshComponent stores primitive and dimensions")
 {
@@ -18,19 +18,19 @@ TEST_CASE("MeshComponent stores primitive and dimensions")
     CHECK(mesh.Dimensions.z == doctest::Approx(1.0f));
 }
 
-// ── MaterialComponent has no render-state fields ─────────
+/// ── MaterialComponent has no render-state fields ─────────
 
 TEST_CASE("MaterialComponent has no wireframe field")
 {
     Wayfinder::MaterialComponent material;
 
-    // MaterialComponent should only have material-related fields
+    /// MaterialComponent should only have material-related fields.
     CHECK(material.BaseColor == Wayfinder::Color::White());
     CHECK_FALSE(material.HasBaseColorOverride);
     CHECK_FALSE(material.MaterialAssetId.has_value());
 }
 
-// ── RenderOverrideComponent ──────────────────────────────
+/// ── RenderOverrideComponent ──────────────────────────────
 
 TEST_CASE("RenderOverrideComponent defaults to no overrides")
 {
@@ -85,7 +85,7 @@ TEST_CASE("RenderOverrideComponent is an opt-in override")
     scene.Shutdown();
 }
 
-// ── Serialisation round-trip ─────────────────────────────
+/// ── Serialisation round-trip ─────────────────────────────
 
 TEST_CASE("RenderOverrideComponent serialisation round-trip with wireframe=true")
 {
@@ -103,7 +103,7 @@ TEST_CASE("RenderOverrideComponent serialisation round-trip with wireframe=true"
     renderOverride.Wireframe = true;
     entity.AddComponent<Wayfinder::RenderOverrideComponent>(renderOverride);
 
-    // Serialise
+    /// Serialise.
     toml::table componentTables;
     registry.SerialiseComponents(entity, componentTables);
 
@@ -112,7 +112,7 @@ TEST_CASE("RenderOverrideComponent serialisation round-trip with wireframe=true"
     REQUIRE(overrideTable != nullptr);
     CHECK(overrideTable->at("wireframe").value_or(false) == true);
 
-    // Deserialise into a new entity
+    /// Deserialise into a new entity.
     Wayfinder::Entity entity2 = scene.CreateEntity("Deserialised");
     registry.ApplyComponents(componentTables, entity2);
 
@@ -140,7 +140,7 @@ TEST_CASE("RenderOverrideComponent serialisation round-trip with wireframe=false
     renderOverride.Wireframe = false;
     entity.AddComponent<Wayfinder::RenderOverrideComponent>(renderOverride);
 
-    // Serialise
+    /// Serialise.
     toml::table componentTables;
     registry.SerialiseComponents(entity, componentTables);
 
@@ -150,7 +150,7 @@ TEST_CASE("RenderOverrideComponent serialisation round-trip with wireframe=false
     CHECK(overrideTable->contains("wireframe"));
     CHECK(overrideTable->at("wireframe").value_or(true) == false);
 
-    // Deserialise into a new entity
+    /// Deserialise into a new entity.
     Wayfinder::Entity entity2 = scene.CreateEntity("DeserialisedSolid");
     registry.ApplyComponents(componentTables, entity2);
 
@@ -175,7 +175,7 @@ TEST_CASE("RenderOverrideComponent serialisation skips empty component")
     entity.AddComponent<Wayfinder::TransformComponent>(Wayfinder::TransformComponent{});
     entity.AddComponent<Wayfinder::RenderOverrideComponent>(Wayfinder::RenderOverrideComponent{});
 
-    // Serialise — component with no fields set should not emit a table
+    /// Serialise — component with no fields set should not emit a table.
     toml::table componentTables;
     registry.SerialiseComponents(entity, componentTables);
 
@@ -199,7 +199,7 @@ TEST_CASE("MaterialComponent serialisation has no wireframe field")
     Wayfinder::Entity entity = scene.CreateEntity("MaterialEntity");
     entity.AddComponent<Wayfinder::MaterialComponent>(material);
 
-    // Serialise
+    /// Serialise.
     toml::table componentTables;
     registry.SerialiseComponents(entity, componentTables);
 
@@ -207,14 +207,14 @@ TEST_CASE("MaterialComponent serialisation has no wireframe field")
     const toml::table* materialTable = componentTables["material"].as_table();
     REQUIRE(materialTable != nullptr);
 
-    // Material table should NOT contain wireframe
+    /// Material table should NOT contain wireframe.
     CHECK_FALSE(materialTable->contains("wireframe"));
     CHECK(materialTable->contains("base_color"));
 
     scene.Shutdown();
 }
 
-// ── Validation rejects malformed authoring ───────────────
+/// ── Validation rejects malformed authoring ───────────────
 
 TEST_CASE("Validation rejects non-boolean wireframe in render_override")
 {
@@ -229,7 +229,7 @@ TEST_CASE("Validation rejects non-boolean wireframe in render_override")
     CHECK_FALSE(error.empty());
 }
 
-// ── Extractor reads RenderOverrideComponent ──────────────
+/// ── Extractor reads RenderOverrideComponent ──────────────
 
 TEST_CASE("Extractor uses RenderOverrideComponent for wireframe")
 {

@@ -219,19 +219,21 @@ namespace Wayfinder
     public:
         virtual ~RenderDevice() = default;
 
-        // ── Lifecycle ────────────────────────────────────────
+        /// ── Lifecycle ────────────────────────────────────────
 
         virtual bool Initialise(Window& window) = 0;
         virtual void Shutdown() = 0;
 
-        // ── Frame Lifecycle ──────────────────────────────────
-
-        // Acquires a command buffer and the swapchain texture for this frame.
-        // Returns false if the swapchain is unavailable (e.g. window minimised).
-        // When false, skip rendering and call EndFrame().
+        /// ── Frame Lifecycle ──────────────────────────────────
+        /**
+         * @brief Acquire the command buffer and swapchain texture for this frame.
+         * @return False if the swapchain is unavailable, such as when the window is minimised.
+         *
+         * When this returns false, skip rendering work for the frame and call EndFrame().
+         */
         virtual bool BeginFrame() = 0;
 
-        // Submits the command buffer and presents the swapchain.
+        /// Submit the command buffer and present the swapchain.
         virtual void EndFrame() = 0;
 
         // ── Render Pass ──────────────────────────────────────

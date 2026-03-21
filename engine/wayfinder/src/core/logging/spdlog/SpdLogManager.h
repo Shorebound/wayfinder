@@ -77,7 +77,7 @@ namespace Wayfinder
         static std::unordered_map<std::string, std::shared_ptr<ILogger>> s_loggers;
     };
 
-    // Static member initialisation
+    /// Static member initialisation.
     std::unordered_map<std::string, std::shared_ptr<ILogger>> SpdLogManager::s_loggers;
 
 } // namespace Wayfinder

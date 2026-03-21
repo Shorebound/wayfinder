@@ -495,7 +495,7 @@ query {
         Write-Host "  Blocking ($doneCount/$totalCount done):" -ForegroundColor Yellow
         foreach ($b in $blockingNodes) {
             $icon = if ($b.state -eq "CLOSED") { "[x]" } else { "[ ]" }
-            $colourrr = if ($b.state -eq "CLOSED") { "DarkGray" } else { "White" }
+            $colour = if ($b.state -eq "CLOSED") { "DarkGray" } else { "White" }
             Write-Host "    $icon #$($b.number) - $($b.title)" -ForegroundColor $colour
         }
     }

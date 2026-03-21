@@ -51,8 +51,10 @@ namespace Wayfinder
         /// Check if a gameplay tag is active at the world level.
         bool HasGameplayTag(const GameplayTag& tag) const;
 
-        /// Access the gameplay tag registry for tag lookups and validation.
-        /// @pre Initialise() must have completed; will terminate if subsystem is missing.
+        /**
+         * @brief Access the gameplay tag registry for tag lookups and validation.
+         * @pre Initialise() must have completed; will terminate if subsystem is missing.
+         */
         GameplayTagRegistry& GetTagRegistry() { return GameSubsystems::Get<GameplayTagRegistry>(); }
         /// @copydoc GetTagRegistry()
         const GameplayTagRegistry& GetTagRegistry() const { return GameSubsystems::Get<GameplayTagRegistry>(); }

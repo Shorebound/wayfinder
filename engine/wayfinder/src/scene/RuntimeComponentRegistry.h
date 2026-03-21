@@ -14,20 +14,22 @@ namespace Wayfinder
 {
     class Entity;
 
-    /// Unified registry of serialisable ECS components, merging engine-core
-    /// entries with game-registered entries from ModuleRegistry.
-    ///
-    /// Built once by Game::InitialiseWorld() and passed by const-reference
-    /// to Scene, SceneDocument, and validation tools.
-    ///
-    /// @par Lifecycle & Thread Safety
-    /// Populated during Game::InitialiseWorld() via AddCoreEntries() and
-    /// AddGameEntries() (which mutate m_entries).  After initialisation the
-    /// registry is accessed only through const methods (Find, IsRegistered,
-    /// RegisterComponents, ApplyComponents, SerialiseComponents,
-    /// ValidateComponent) and is therefore safe for concurrent read-only
-    /// access.  Callers must not invoke mutating methods after initialisation
-    /// unless external synchronisation is provided.
+    /**
+     * @brief Unified registry of serialisable ECS components, merging engine-core
+     * entries with game-registered entries from ModuleRegistry.
+     *
+     * Built once by Game::InitialiseWorld() and passed by const-reference
+     * to Scene, SceneDocument, and validation tools.
+     *
+     * @par Lifecycle & Thread Safety
+     * Populated during Game::InitialiseWorld() via AddCoreEntries() and
+     * AddGameEntries() (which mutate m_entries). After initialisation the
+     * registry is accessed only through const methods (Find, IsRegistered,
+     * RegisterComponents, ApplyComponents, SerialiseComponents,
+     * ValidateComponent) and is therefore safe for concurrent read-only
+     * access. Callers must not invoke mutating methods after initialisation
+     * unless external synchronisation is provided.
+     */
     class WAYFINDER_API RuntimeComponentRegistry
     {
     public:

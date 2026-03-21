@@ -29,7 +29,7 @@ namespace Wayfinder
 
     bool Game::Initialise(const GameContext& ctx)
     {
-        WAYFINDER_INFO(LogGame, "Initializing game");
+        WAYFINDER_INFO(LogGame, "Initialising game");
 
         m_moduleRegistry = ctx.moduleRegistry;
         m_assetService = std::make_shared<AssetService>();

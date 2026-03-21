@@ -29,14 +29,16 @@ namespace Wayfinder
     struct EngineConfig;
     struct ProjectDescriptor;
 
-    /// Collects game-specific ECS registrations during Module::Register().
-    ///
-    /// This is a descriptor store, not a live world facade. Game modules
-    /// declare their systems/components here, and the engine applies those
-    /// declarations once into the persistent flecs::world at startup.
-    ///
-    /// Internally delegates system, state, and tag storage to focused
-    /// sub-registries (SystemRegistrar, StateRegistrar, TagRegistrar).
+    /**
+     * @brief Collects game-specific ECS registrations during Module::Register().
+     *
+     * This is a descriptor store, not a live world facade. Game modules
+     * declare their systems/components here, and the engine applies those
+     * declarations once into the persistent flecs::world at startup.
+     *
+     * Internally delegates system, state, and tag storage to focused
+     * sub-registries (SystemRegistrar, StateRegistrar, TagRegistrar).
+     */
     class WAYFINDER_API ModuleRegistry
     {
     public:
@@ -52,7 +54,9 @@ namespace Wayfinder
         using StateDescriptor = StateRegistrar::Descriptor;
         using TagDescriptor = TagRegistrar::Descriptor;
 
-        /// Describes a serialisable ECS component for scene authoring.
+        /**
+         * @brief Describes a serialisable ECS component for scene authoring.
+         */
         struct ComponentDescriptor
         {
             std::string Key;
@@ -62,7 +66,9 @@ namespace Wayfinder
             ComponentValidateFn ValidateFn = nullptr;
         };
 
-        /// Describes a typed world singleton (global data).
+        /**
+         * @brief Describes a typed world singleton (global data).
+         */
         struct GlobalDescriptor
         {
             std::string Name;

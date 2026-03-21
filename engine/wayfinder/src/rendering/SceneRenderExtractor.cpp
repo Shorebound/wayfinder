@@ -121,7 +121,7 @@ namespace Wayfinder
                 if (material.HasBaseColorOverride || !material.MaterialAssetId)
                 {
                     submission.Material.HasOverrides = true;
-                    submission.Material.Overrides.SetColor("base_color", LinearColor::FromColor(material.BaseColor));
+                    submission.Material.Overrides.SetColor("base_color", LinearColor::FromColour(material.BaseColor));
                 }
             }
 
@@ -196,7 +196,7 @@ namespace Wayfinder
                 debugBox.Material.Handle.Origin = RenderResourceOrigin::BuiltIn;
                 debugBox.Material.Handle.StableKey = 100ull;
                 debugBox.Material.Domain = RenderMaterialDomain::Debug;
-                debugBox.Material.Parameters.SetColor("base_color", LinearColor::FromColor(light.Tint));
+                debugBox.Material.Parameters.SetColor("base_color", LinearColor::FromColour(light.Tint));
 
                 if (RenderPass* pass = frame.FindPass(RenderPassIds::Debug))
                 {

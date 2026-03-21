@@ -27,8 +27,8 @@ namespace Wayfinder
         MaterialParameterBlock Parameters;
 
         // Convenience accessors for the most common parameter.
-        LinearColor GetBaseColor() const;
-        void SetBaseColor(const LinearColor& colour);
+        LinearColor GetBaseColour() const;
+        void SetBaseColour(const LinearColor& colour);
     };
 
     WAYFINDER_API bool ParseMaterialAssetDocument(

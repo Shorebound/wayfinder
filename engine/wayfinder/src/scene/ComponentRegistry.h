@@ -12,10 +12,12 @@ namespace Wayfinder
 {
     class Entity;
 
-    /// Static compile-time registry of core serialisable ECS components.
-    ///
-    /// This holds the engine's built-in component entries. At runtime,
-    /// RuntimeComponentRegistry merges these with game-registered entries.
+    /**
+     * @brief Static compile-time registry of core serialisable ECS components.
+     *
+     * This holds the engine's built-in component entries. At runtime,
+     * RuntimeComponentRegistry merges these with game-registered entries.
+     */
     class WAYFINDER_API SceneComponentRegistry
     {
     public:

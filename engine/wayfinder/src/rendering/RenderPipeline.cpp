@@ -231,7 +231,7 @@ namespace Wayfinder
         graph.AddPass("MainScene", [&, viewMat = view, projMat = projection, hasCamera](RenderGraphBuilder& builder) -> RenderGraphExecuteFn {
             auto colour = builder.CreateTransient(colorDesc);
             auto depth = builder.CreateTransient(depthDesc);
-            builder.WriteColor(colour, LoadOp::Clear, ClearValue::FromColor(clearColor));
+            builder.WriteColor(colour, LoadOp::Clear, ClearValue::FromColour(clearColor));
             builder.WriteDepth(depth, LoadOp::Clear, 1.0f);
 
             return [this, &preparedFrame, &params, viewMat, projMat, sceneGlobals, hasCamera]
@@ -409,7 +409,7 @@ namespace Wayfinder
 
                     for (const auto& line : pass.DebugDraw->Lines)
                     {
-                        const Float3 lineColor = LinearColor::FromColor(line.Color).ToFloat3();
+                        const Float3 lineColor = LinearColor::FromColour(line.Color).ToFloat3();
                         lineVertices.push_back({line.Start, lineColor});
                         lineVertices.push_back({line.End, lineColor});
                     }
@@ -508,7 +508,7 @@ namespace Wayfinder
             {
                 globals.LightDirection = glm::normalize(light.Direction);
                 globals.LightIntensity = light.Intensity;
-                globals.LightColor = LinearColor::FromColor(light.Tint).ToFloat3();
+                globals.LightColor = LinearColor::FromColour(light.Tint).ToFloat3();
                 return globals;
             }
         }

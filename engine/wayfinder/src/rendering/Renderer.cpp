@@ -33,8 +33,6 @@ namespace Wayfinder
         m_device = &device;
         m_screenWidth = static_cast<int>(config.Window.Width);
         m_screenHeight = static_cast<int>(config.Window.Height);
-        m_isInitialised = true;
-
         // ── GPU infrastructure ───────────────────────────────
         m_context = std::make_unique<RenderContext>();
         if (!m_context->Initialise(device, config))
@@ -78,6 +76,7 @@ namespace Wayfinder
         WAYFINDER_INFO(LogRenderer, "Renderer initialised ({}x{}, backend: {})",
             m_screenWidth, m_screenHeight, device.GetDeviceInfo().BackendName);
 
+        m_isInitialised = true;
         return true;
     }
 

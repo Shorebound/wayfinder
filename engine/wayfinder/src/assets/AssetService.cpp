@@ -4,13 +4,13 @@ namespace Wayfinder
 {
     bool AssetService::SetAssetRoot(const std::filesystem::path& assetRoot, std::string& error)
     {
-        const std::filesystem::path normalizedRoot = assetRoot.empty() ? std::filesystem::path{} : std::filesystem::weakly_canonical(assetRoot);
-        if (normalizedRoot == m_assetRoot)
+        const std::filesystem::path normalisedRoot = assetRoot.empty() ? std::filesystem::path{} : std::filesystem::weakly_canonical(assetRoot);
+        if (normalisedRoot == m_assetRoot)
         {
             return true;
         }
 
-        m_assetRoot = normalizedRoot;
+        m_assetRoot = normalisedRoot;
         m_hasAssetRegistry = false;
         m_materialAssetsById.clear();
         m_missingMaterialAssets.clear();
