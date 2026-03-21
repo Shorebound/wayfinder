@@ -1,5 +1,9 @@
 #pragma once
 
+#include <cstdint>
+#include <string>
+#include <type_traits>
+
 namespace Wayfinder
 {
     // Log verbosity levels

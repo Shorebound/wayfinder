@@ -1,6 +1,6 @@
 #include "core/Handle.h"
 #include "core/ResourcePool.h"
-#include "rendering/GPUHandles.h"
+#include "rendering/backend/GPUHandles.h"
 
 #include <doctest/doctest.h>
 

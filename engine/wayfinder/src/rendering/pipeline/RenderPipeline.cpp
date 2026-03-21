@@ -409,7 +409,7 @@ namespace Wayfinder
 
                     for (const auto& line : pass.DebugDraw->Lines)
                     {
-                        const Float3 lineColour = LinearColour::FromColour(line.Colour).ToFloat3();
+                        const Float3 lineColour = LinearColour::FromColour(line.Tint).ToFloat3();
                         lineVertices.push_back({line.Start, lineColour});
                         lineVertices.push_back({line.End, lineColour});
                     }

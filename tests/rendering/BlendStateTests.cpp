@@ -1,5 +1,5 @@
-#include "rendering/RenderDevice.h"
-#include "rendering/PipelineCache.h"
+#include "rendering/backend/RenderDevice.h"
+#include "rendering/pipeline/PipelineCache.h"
 
 #include <doctest/doctest.h>
 

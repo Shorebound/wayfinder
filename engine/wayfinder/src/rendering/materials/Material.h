@@ -4,7 +4,7 @@
 #include <optional>
 #include <string>
 
-#include <toml++/toml.hpp>
+#include <nlohmann/json.hpp>
 
 #include "core/Identifiers.h"
 #include "MaterialParameter.h"
@@ -14,7 +14,7 @@
 namespace Wayfinder
 {
     // ── Material Asset ───────────────────────────────────────
-    // The authored, disk-backed material definition (loaded from TOML).
+    // The authored, disk-backed material definition (loaded from JSON).
     // Carries a shader reference and a generic parameter bag.
     // Specific parameters (base_colour, roughness, etc.) are stored
     // in the parameter block — the struct has no fixed fields per shader.
@@ -32,7 +32,7 @@ namespace Wayfinder
     };
 
     WAYFINDER_API bool ParseMaterialAssetDocument(
-        const toml::table& document,
+        const nlohmann::json& document,
         const std::string& sourceLabel,
         MaterialAsset& material,
         std::string& error);
@@ -42,5 +42,5 @@ namespace Wayfinder
         MaterialAsset& material,
         std::string& error);
 
-    WAYFINDER_API toml::table CreateMaterialComponentTable(const MaterialAsset& material);
+    WAYFINDER_API nlohmann::json CreateMaterialComponentTable(const MaterialAsset& material);
 } // namespace Wayfinder

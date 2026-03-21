@@ -138,7 +138,7 @@ namespace Wayfinder
     {
         Float3 Start{0.0f, 0.0f, 0.0f};
         Float3 End{0.0f, 0.0f, 0.0f};
-        Colour Colour = Colour::White();
+        Colour Tint = Colour::White();
     };
 
     struct RenderDebugBox

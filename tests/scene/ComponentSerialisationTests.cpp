@@ -7,7 +7,7 @@
 #include <doctest/doctest.h>
 
 #include <flecs.h>
-#include <toml++/toml.hpp>
+#include <nlohmann/json.hpp>
 
 using namespace Wayfinder;
 using TestHelpers::MakeTestRegistry;
@@ -15,8 +15,8 @@ using TestHelpers::MakeTestRegistry;
 namespace
 {
     /// Helper: create a scene with a single entity, apply component data, then serialise.
-    /// Returns the serialised TOML table containing component data.
-    toml::table RoundTrip(const std::string& componentKey, const toml::table& inputData)
+    /// Returns the serialised JSON object containing component data.
+    nlohmann::json RoundTrip(const std::string& componentKey, const nlohmann::json& inputData)
     {
         flecs::world world;
         auto registry = MakeTestRegistry();
@@ -27,12 +27,12 @@ namespace
         auto entity = scene.CreateEntity("TestEntity");
 
         // Apply components from the input data
-        toml::table componentTables;
-        componentTables.insert_or_assign(componentKey, inputData);
+        nlohmann::json componentTables = nlohmann::json::object();
+        componentTables[componentKey] = inputData;
         registry.ApplyComponents(componentTables, entity);
 
         // Serialise the entity's components back out
-        toml::table output;
+        nlohmann::json output = nlohmann::json::object();
         registry.SerialiseComponents(entity, output);
 
         return output;
@@ -43,122 +43,128 @@ TEST_SUITE("Component Serialisation")
 {
     TEST_CASE("Transform round-trip preserves values")
     {
-        toml::table input;
-        input.insert_or_assign("position", toml::array{1.0, 2.0, 3.0});
-        input.insert_or_assign("rotation", toml::array{10.0, 20.0, 30.0});
-        input.insert_or_assign("scale", toml::array{2.0, 2.0, 2.0});
+        nlohmann::json input = {
+            {"position", {1.0, 2.0, 3.0}},
+            {"rotation", {10.0, 20.0, 30.0}},
+            {"scale", {2.0, 2.0, 2.0}}
+        };
 
         auto output = RoundTrip("transform", input);
 
         REQUIRE(output.contains("transform"));
-        const auto* xform = output["transform"].as_table();
-        REQUIRE(xform);
+        const auto& xform = output["transform"];
+        REQUIRE(xform.is_object());
 
-        const auto* pos = (*xform)["position"].as_array();
-        REQUIRE(pos);
-        REQUIRE(pos->size() == 3);
-        CHECK(pos->get(0)->value_or(0.0) == doctest::Approx(1.0));
-        CHECK(pos->get(1)->value_or(0.0) == doctest::Approx(2.0));
-        CHECK(pos->get(2)->value_or(0.0) == doctest::Approx(3.0));
+        REQUIRE(xform.contains("position"));
+        const auto& pos = xform["position"];
+        REQUIRE(pos.is_array());
+        REQUIRE(pos.size() == 3);
+        CHECK(pos[0].get<double>() == doctest::Approx(1.0));
+        CHECK(pos[1].get<double>() == doctest::Approx(2.0));
+        CHECK(pos[2].get<double>() == doctest::Approx(3.0));
 
-        const auto* scale = (*xform)["scale"].as_array();
-        REQUIRE(scale);
-        CHECK(scale->get(0)->value_or(0.0) == doctest::Approx(2.0));
+        const auto& scale = xform["scale"];
+        REQUIRE(scale.is_array());
+        CHECK(scale[0].get<double>() == doctest::Approx(2.0));
 
-        const auto* rot = (*xform)["rotation"].as_array();
-        REQUIRE(rot);
-        REQUIRE(rot->size() == 3);
-        CHECK(rot->get(0)->value_or(0.0) == doctest::Approx(10.0));
-        CHECK(rot->get(1)->value_or(0.0) == doctest::Approx(20.0));
-        CHECK(rot->get(2)->value_or(0.0) == doctest::Approx(30.0));
+        const auto& rot = xform["rotation"];
+        REQUIRE(rot.is_array());
+        REQUIRE(rot.size() == 3);
+        CHECK(rot[0].get<double>() == doctest::Approx(10.0));
+        CHECK(rot[1].get<double>() == doctest::Approx(20.0));
+        CHECK(rot[2].get<double>() == doctest::Approx(30.0));
     }
 
     TEST_CASE("Transform default values round-trip")
     {
-        toml::table input; // No explicit values — should use defaults
+        nlohmann::json input = nlohmann::json::object(); // No explicit values — should use defaults
 
         auto output = RoundTrip("transform", input);
 
         // Even with empty input, the component should be serialised with default values
         REQUIRE(output.contains("transform"));
-        const auto* xform = output["transform"].as_table();
-        REQUIRE(xform);
+        const auto& xform = output["transform"];
+        REQUIRE(xform.is_object());
 
-        const auto* pos = (*xform)["position"].as_array();
-        REQUIRE(pos);
-        CHECK(pos->get(0)->value_or(999.0) == doctest::Approx(0.0));
-        CHECK(pos->get(1)->value_or(999.0) == doctest::Approx(0.0));
-        CHECK(pos->get(2)->value_or(999.0) == doctest::Approx(0.0));
+        const auto& pos = xform["position"];
+        REQUIRE(pos.is_array());
+        CHECK(pos[0].get<double>() == doctest::Approx(0.0));
+        CHECK(pos[1].get<double>() == doctest::Approx(0.0));
+        CHECK(pos[2].get<double>() == doctest::Approx(0.0));
     }
 
     TEST_CASE("Mesh round-trip preserves values")
     {
-        toml::table input;
-        input.insert_or_assign("primitive", "cube");
-        input.insert_or_assign("dimensions", toml::array{2.0, 3.0, 4.0});
+        nlohmann::json input = {
+            {"primitive", "cube"},
+            {"dimensions", {2.0, 3.0, 4.0}}
+        };
 
         auto output = RoundTrip("mesh", input);
 
         REQUIRE(output.contains("mesh"));
-        const auto* mesh = output["mesh"].as_table();
-        REQUIRE(mesh);
+        const auto& mesh = output["mesh"];
+        REQUIRE(mesh.is_object());
 
-        CHECK((*mesh)["primitive"].value_or("") == std::string("cube"));
+        CHECK(mesh["primitive"].get<std::string>() == "cube");
 
-        const auto* dims = (*mesh)["dimensions"].as_array();
-        REQUIRE(dims);
-        CHECK(dims->get(0)->value_or(0.0) == doctest::Approx(2.0));
+        const auto& dims = mesh["dimensions"];
+        REQUIRE(dims.is_array());
+        CHECK(dims[0].get<double>() == doctest::Approx(2.0));
     }
 
     TEST_CASE("Camera round-trip preserves values")
     {
-        toml::table input;
-        input.insert_or_assign("primary", true);
-        input.insert_or_assign("fov", 90.0);
-        input.insert_or_assign("projection", "orthographic");
-        input.insert_or_assign("target", toml::array{1.0, 2.0, 3.0});
-        input.insert_or_assign("up", toml::array{0.0, 1.0, 0.0});
+        nlohmann::json input = {
+            {"primary", true},
+            {"fov", 90.0},
+            {"projection", "orthographic"},
+            {"target", {1.0, 2.0, 3.0}},
+            {"up", {0.0, 1.0, 0.0}}
+        };
 
         auto output = RoundTrip("camera", input);
 
         REQUIRE(output.contains("camera"));
-        const auto* cam = output["camera"].as_table();
-        REQUIRE(cam);
+        const auto& cam = output["camera"];
+        REQUIRE(cam.is_object());
 
-        CHECK((*cam)["primary"].value_or(false) == true);
-        CHECK((*cam)["projection"].value_or("") == std::string("orthographic"));
+        CHECK(cam["primary"].get<bool>() == true);
+        CHECK(cam["projection"].get<std::string>() == "orthographic");
     }
 
     TEST_CASE("Light round-trip preserves values")
     {
-        toml::table input;
-        input.insert_or_assign("type", "directional");
-        input.insert_or_assign("intensity", 2.5);
-        input.insert_or_assign("range", 15.0);
+        nlohmann::json input = {
+            {"type", "directional"},
+            {"intensity", 2.5},
+            {"range", 15.0}
+        };
 
         auto output = RoundTrip("light", input);
 
         REQUIRE(output.contains("light"));
-        const auto* light = output["light"].as_table();
-        REQUIRE(light);
+        const auto& light = output["light"];
+        REQUIRE(light.is_object());
 
-        CHECK((*light)["type"].value_or("") == std::string("directional"));
-        CHECK((*light)["intensity"].value_or(0.0) == doctest::Approx(2.5));
+        CHECK(light["type"].get<std::string>() == "directional");
+        CHECK(light["intensity"].get<double>() == doctest::Approx(2.5));
     }
 
     TEST_CASE("Renderable round-trip preserves values")
     {
-        toml::table input;
-        input.insert_or_assign("visible", false);
-        input.insert_or_assign("sort_priority", static_cast<int64_t>(200));
+        nlohmann::json input = {
+            {"visible", false},
+            {"sort_priority", 200}
+        };
 
         auto output = RoundTrip("renderable", input);
 
         REQUIRE(output.contains("renderable"));
-        const auto* renderable = output["renderable"].as_table();
-        REQUIRE(renderable);
+        const auto& renderable = output["renderable"];
+        REQUIRE(renderable.is_object());
 
-        CHECK((*renderable)["visible"].value_or(true) == false);
-        CHECK((*renderable)["sort_priority"].value_or(static_cast<int64_t>(0)) == 200);
+        CHECK(renderable["visible"].get<bool>() == false);
+        CHECK(renderable["sort_priority"].get<int64_t>() == 200);
     }
 }

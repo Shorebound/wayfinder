@@ -1,0 +1,114 @@
+{
+  "scene_name": "Journey Bootstrap",
+  "settings": {
+    "gravity": [0.0, -9.81, 0.0],
+    "ambient_colour": [50, 50, 80, 255],
+    "time_scale": 1.0
+  },
+  "entities": [
+    {
+      "id": "d43f13fe-fd18-46ad-9e2a-10d9cd0f6f9c",
+      "name": "WorldRoot",
+      "transform": {
+        "position": [0.0, 0.0, 0.0],
+        "rotation": [0.0, 0.0, 0.0],
+        "scale": [1.0, 1.0, 1.0]
+      }
+    },
+    {
+      "id": "26b3540e-d357-44a1-891a-b303492adadb",
+      "name": "EditorCamera",
+      "parent_id": "d43f13fe-fd18-46ad-9e2a-10d9cd0f6f9c",
+      "transform": {
+        "position": [8.0, 7.0, 8.0],
+        "rotation": [0.0, 0.0, 0.0],
+        "scale": [1.0, 1.0, 1.0]
+      },
+      "camera": {
+        "primary": true,
+        "target": [0.0, 0.75, 0.0],
+        "up": [0.0, 1.0, 0.0],
+        "fov": 45.0,
+        "projection": "perspective"
+      }
+    },
+    {
+      "id": "ab2546c9-694d-410f-a148-b4f7b7a33f1b",
+      "name": "SunMarker",
+      "parent_id": "d43f13fe-fd18-46ad-9e2a-10d9cd0f6f9c",
+      "transform": {
+        "position": [3.5, 4.0, -1.5],
+        "rotation": [0.0, 0.0, 0.0],
+        "scale": [1.0, 1.0, 1.0]
+      },
+      "light": {
+        "type": "point",
+        "colour": [255, 227, 168, 255],
+        "intensity": 1.75,
+        "range": 12.0,
+        "debug_draw": true
+      }
+    },
+    {
+      "id": "8efcaec2-b0c3-4a97-9a20-f501eaf44f4b",
+      "name": "MarkerCluster",
+      "parent_id": "d43f13fe-fd18-46ad-9e2a-10d9cd0f6f9c",
+      "transform": {
+        "position": [0.0, 0.0, 0.0],
+        "rotation": [0.0, 0.0, 0.0],
+        "scale": [1.0, 1.0, 1.0]
+      }
+    },
+    {
+      "id": "c85fb5c8-643d-4543-aa7a-4a5d0d022427",
+      "name": "OriginCube",
+      "parent_id": "8efcaec2-b0c3-4a97-9a20-f501eaf44f4b",
+      "prefab_id": "f4a6f64d-7233-4d0c-bf13-cfd5f6f16b8c",
+      "transform": {
+        "position": [0.0, 0.5, 0.0],
+        "rotation": [0.0, 0.0, 0.0],
+        "scale": [1.0, 1.0, 1.0]
+      },
+      "material": {
+        "base_colour": [214, 78, 56, 255]
+      },
+      "render_override": {
+        "wireframe": true
+      }
+    },
+    {
+      "id": "4cbf94a1-5f1d-4974-8828-27754dcb3a4e",
+      "name": "NorthMarker",
+      "parent_id": "8efcaec2-b0c3-4a97-9a20-f501eaf44f4b",
+      "prefab_id": "f4a6f64d-7233-4d0c-bf13-cfd5f6f16b8c",
+      "transform": {
+        "position": [3.0, 0.5, -2.0],
+        "rotation": [0.0, 0.0, 0.0],
+        "scale": [1.0, 1.0, 1.0]
+      },
+      "material": {
+        "base_colour": [71, 133, 255, 255]
+      },
+      "render_override": {
+        "wireframe": true
+      }
+    },
+    {
+      "id": "b4db23c0-1d69-4ac5-9f8a-a0106ff47c1a",
+      "name": "SouthMarker",
+      "parent_id": "8efcaec2-b0c3-4a97-9a20-f501eaf44f4b",
+      "prefab_id": "f4a6f64d-7233-4d0c-bf13-cfd5f6f16b8c",
+      "transform": {
+        "position": [-2.5, 0.5, 2.0],
+        "rotation": [0.0, 0.0, 0.0],
+        "scale": [1.25, 1.25, 1.25]
+      },
+      "material": {
+        "base_colour": [85, 168, 120, 255]
+      },
+      "render_override": {
+        "wireframe": true
+      }
+    }
+  ]
+}

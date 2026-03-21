@@ -6,7 +6,7 @@
 #include <string>
 #include <string_view>
 
-#include <toml++/toml.hpp>
+#include <nlohmann/json.hpp>
 
 #include "AssetRegistry.h"
 #include "rendering/materials/Material.h"
@@ -21,7 +21,7 @@ namespace Wayfinder
         {
             std::string_view TypeName;
             std::optional<AssetKind> BuiltinKind;
-            bool (*ValidateFn)(const toml::table& document, const std::filesystem::path& filePath, std::string& error);
+            bool (*ValidateFn)(const nlohmann::json& document, const std::filesystem::path& filePath, std::string& error);
         };
 
         static bool IsRegisteredType(const std::string_view typeName)
@@ -42,7 +42,7 @@ namespace Wayfinder
 
         static bool ValidateDocument(
             const std::string_view typeName,
-            const toml::table& document,
+            const nlohmann::json& document,
             const std::filesystem::path& filePath,
             std::string& error)
         {
@@ -72,7 +72,7 @@ namespace Wayfinder
 
         static const std::array<Entry, 2>& GetEntries()
         {
-            static constexpr std::array<Entry, 2> entries = {{
+            static const std::array<Entry, 2> entries = {{
                 {"prefab", AssetKind::Prefab, &ValidatePrefabDocument},
                 {"material", AssetKind::Material, &ValidateMaterialDocument},
             }};
@@ -80,44 +80,42 @@ namespace Wayfinder
         }
 
         static bool ValidatePrefabDocument(
-            const toml::table& document,
+            const nlohmann::json& document,
             const std::filesystem::path& filePath,
             std::string& error)
         {
             const SceneComponentRegistry& registry = SceneComponentRegistry::Get();
 
-            if (const toml::node* nameNode = document.get("name"); nameNode && !nameNode->is_string())
+            if (document.contains("name") && !document["name"].is_string())
             {
                 error = "Prefab asset '" + filePath.generic_string() + "' field 'name' must be a string";
                 return false;
             }
 
-            for (const auto& [key, node] : document)
+            for (const auto& [key, node] : document.items())
             {
-                const std::string_view keyView = key.str();
-                if (keyView == "asset_id" || keyView == "asset_type" || keyView == "name")
+                if (key == "asset_id" || key == "asset_type" || key == "name")
                 {
                     continue;
                 }
 
-                const toml::table* componentTable = node.as_table();
-                if (!componentTable)
+                if (!node.is_object())
                 {
-                    error = "Prefab asset '" + filePath.generic_string() + "' field '" + std::string{keyView}
-                        + "' must be a TOML table. Prefab payload is defined by component tables.";
+                    error = "Prefab asset '" + filePath.generic_string() + "' field '" + key
+                        + "' must be a JSON object. Prefab payload is defined by component objects.";
                     return false;
                 }
 
-                if (!registry.IsRegistered(keyView))
+                if (!registry.IsRegistered(key))
                 {
-                    error = "Prefab asset '" + filePath.generic_string() + "' has unknown component table '" + std::string{keyView} + "'";
+                    error = "Prefab asset '" + filePath.generic_string() + "' has unknown component table '" + key + "'";
                     return false;
                 }
 
                 std::string validationError;
-                if (!registry.ValidateComponent(keyView, *componentTable, validationError))
+                if (!registry.ValidateComponent(key, node, validationError))
                 {
-                    error = "Prefab asset '" + filePath.generic_string() + "' component '" + std::string{keyView}
+                    error = "Prefab asset '" + filePath.generic_string() + "' component '" + key
                         + "' is invalid: " + validationError;
                     return false;
                 }
@@ -127,7 +125,7 @@ namespace Wayfinder
         }
 
         static bool ValidateMaterialDocument(
-            const toml::table& document,
+            const nlohmann::json& document,
             const std::filesystem::path& filePath,
             std::string& error)
         {

@@ -1,6 +1,7 @@
 #pragma once
 #include "core/logging/ILogger.h"
 #include "core/logging/LogTypes.h"
+#include "wayfinder_exports.h"
 
 #include <memory>
 #include <string>

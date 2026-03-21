@@ -19,4 +19,12 @@ namespace Wayfinder
     WAYFINDER_API std::optional<std::filesystem::path> FindProjectFile(
         const std::filesystem::path& startPath = std::filesystem::current_path());
 
+    /// Walks the directory tree upward from `startPath` looking for a
+    /// directory named `assets`. Returns the path to that directory if found,
+    /// or nullopt if the filesystem root is reached without finding one.
+    ///
+    /// If `startPath` is a file, the search begins from its parent directory.
+    WAYFINDER_API std::optional<std::filesystem::path> FindAssetRoot(
+        const std::filesystem::path& startPath);
+
 } // namespace Wayfinder

@@ -16,7 +16,7 @@
 #include <utility>
 #include <vector>
 
-#include <toml++/toml.hpp>
+#include <nlohmann/json.hpp>
 
 namespace flecs
 {
@@ -44,9 +44,9 @@ namespace Wayfinder
     public:
         using SystemFactory = std::function<void(flecs::world&)>;
         using ComponentRegisterFn = void(*)(flecs::world& world);
-        using ComponentApplyFn = void(*)(const toml::table& componentTable, Entity& entity);
-        using ComponentSerialiseFn = void(*)(const Entity& entity, toml::table& componentTables);
-        using ComponentValidateFn = bool(*)(const toml::table& componentTable, std::string& error);
+        using ComponentApplyFn = void(*)(const nlohmann::json& componentData, Entity& entity);
+        using ComponentSerialiseFn = void(*)(const Entity& entity, nlohmann::json& componentTables);
+        using ComponentValidateFn = bool(*)(const nlohmann::json& componentData, std::string& error);
         using GlobalFactory = std::function<void(flecs::world&)>;
 
         /// Type aliases that keep external consumers working unchanged.

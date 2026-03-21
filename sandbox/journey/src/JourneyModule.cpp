@@ -8,7 +8,6 @@
 #include "core/EntryPoint.h"
 
 #include <flecs.h>
-#include <toml++/toml.hpp>
 
 namespace
 {
@@ -33,35 +32,35 @@ public:
             world.component<HealthComponent>();
         };
 
-        desc.ApplyFn = [](const toml::table& table, Wayfinder::Entity& entity)
+        desc.ApplyFn = [](const nlohmann::json& table, Wayfinder::Entity& entity)
         {
             HealthComponent health;
-            health.MaxHealth = table["max_health"].value_or(100.0f);
-            health.CurrentHealth = table["current_health"].value_or(health.MaxHealth);
+            health.MaxHealth = table.value("max_health", 100.0f);
+            health.CurrentHealth = table.value("current_health", health.MaxHealth);
             entity.AddComponent<HealthComponent>(health);
         };
 
-        desc.SerialiseFn = [](const Wayfinder::Entity& entity, toml::table& tables)
+        desc.SerialiseFn = [](const Wayfinder::Entity& entity, nlohmann::json& tables)
         {
             if (!entity.HasComponent<HealthComponent>())
                 return;
 
             const auto& health = entity.GetComponent<HealthComponent>();
-            toml::table t;
-            t.insert("max_health", health.MaxHealth);
-            t.insert("current_health", health.CurrentHealth);
-            tables.insert("health", std::move(t));
+            nlohmann::json t;
+            t["max_health"] = health.MaxHealth;
+            t["current_health"] = health.CurrentHealth;
+            tables["health"] = std::move(t);
         };
 
-        desc.ValidateFn = [](const toml::table& table, std::string& error) -> bool
+        desc.ValidateFn = [](const nlohmann::json& table, std::string& error) -> bool
         {
-            if (const auto* node = table.get("max_health"); node && !node->is_floating_point() && !node->is_integer())
+            if (table.contains("max_health") && !table["max_health"].is_number())
             {
                 error = "'max_health' must be a number";
                 return false;
             }
 
-            if (const auto* node = table.get("current_health"); node && !node->is_floating_point() && !node->is_integer())
+            if (table.contains("current_health") && !table["current_health"].is_number())
             {
                 error = "'current_health' must be a number";
                 return false;

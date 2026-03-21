@@ -1,0 +1,20 @@
+{
+  "asset_id": "f4a6f64d-7233-4d0c-bf13-cfd5f6f16b8c",
+  "asset_type": "prefab",
+  "name": "MarkerCube",
+  "transform": {
+    "position": [0.0, 0.5, 0.0],
+    "rotation": [0.0, 0.0, 0.0],
+    "scale": [1.0, 1.0, 1.0]
+  },
+  "mesh": {
+    "primitive": "cube",
+    "dimensions": [1.0, 1.0, 1.0]
+  },
+  "renderable": {
+    "layer": "main"
+  },
+  "material": {
+    "material_id": "0c6ad84a-9a5f-4c44-ac34-b0f1387d99b4"
+  }
+}
