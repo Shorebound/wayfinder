@@ -25,6 +25,10 @@ namespace Wayfinder
     public:
         static constexpr size_t DEFAULT_PAGE_SIZE = 64 * 1024; // 64 KB
 
+        /**
+         * @brief Construct a FrameAllocator with the given page size.
+         * @param pageSize  Size in bytes of each arena page. Defaults to DEFAULT_PAGE_SIZE.
+         */
         explicit FrameAllocator(size_t pageSize = DEFAULT_PAGE_SIZE);
         ~FrameAllocator();
 
@@ -35,6 +39,9 @@ namespace Wayfinder
 
         /**
          * @brief Allocate raw bytes with the given alignment.
+         * @param bytes      Number of bytes to allocate. Must be > 0.
+         * @param alignment  Alignment constraint (must be a non-zero power of two).
+         *                   Defaults to alignof(std::max_align_t).
          * @return Aligned pointer into arena memory. Never null (asserts on failure).
          */
         void* Allocate(size_t bytes, size_t alignment = alignof(std::max_align_t));
@@ -45,6 +52,9 @@ namespace Wayfinder
          * If T is non-trivially destructible, its destructor is registered and
          * will be called during Reset() in LIFO order.
          *
+         * @tparam T      Type to construct. If non-trivially destructible, its
+         *                destructor is registered for invocation during Reset().
+         * @param  args   Arguments forwarded to T's constructor.
          * @return Pointer to the constructed object. The arena owns the memory.
          */
         template <typename T, typename... TArgs>
@@ -70,6 +80,7 @@ namespace Wayfinder
         {
             DestroyFn Destroy;
             void* Object;
+            DestructorEntry* Next;
         };
 
         struct Page
@@ -85,7 +96,7 @@ namespace Wayfinder
         size_t m_pageSize;
         size_t m_currentPage = 0;
         size_t m_currentOffset = 0;
-        std::vector<DestructorEntry> m_destructors;
+        DestructorEntry* m_destructorHead = nullptr;
     };
 
     // ── Template Implementation ──────────────────────────────
@@ -98,10 +109,12 @@ namespace Wayfinder
 
         if constexpr (!std::is_trivially_destructible_v<T>)
         {
-            m_destructors.push_back({
+            void* entryStorage = Allocate(sizeof(DestructorEntry), alignof(DestructorEntry));
+            m_destructorHead = ::new (entryStorage) DestructorEntry{
                 [](void* ptr) { static_cast<T*>(ptr)->~T(); },
-                object
-            });
+                object,
+                m_destructorHead
+            };
         }
 
         return object;

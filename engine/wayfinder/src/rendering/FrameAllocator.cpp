@@ -59,12 +59,14 @@ namespace Wayfinder
 
     void FrameAllocator::Reset()
     {
-        // Destroy in LIFO order
-        for (auto it = m_destructors.rbegin(); it != m_destructors.rend(); ++it)
+        // Destroy in LIFO order (head is most recently registered)
+        DestructorEntry* current = m_destructorHead;
+        while (current)
         {
-            it->Destroy(it->Object);
+            current->Destroy(current->Object);
+            current = current->Next;
         }
-        m_destructors.clear();
+        m_destructorHead = nullptr;
 
         m_currentPage = 0;
         m_currentOffset = 0;
@@ -101,6 +103,9 @@ namespace Wayfinder
 
     size_t FrameAllocator::AlignUp(size_t value, size_t alignment)
     {
+        WAYFINDER_ASSERT(
+            alignment != 0 && (alignment & (alignment - 1)) == 0,
+            "AlignUp: alignment must be a non-zero power of two (got {})", alignment);
         return (value + alignment - 1) & ~(alignment - 1);
     }
 

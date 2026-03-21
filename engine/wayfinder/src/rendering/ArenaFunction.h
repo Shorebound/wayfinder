@@ -1,5 +1,6 @@
 #pragma once
 
+#include "core/Assert.h"
 #include "rendering/FrameAllocator.h"
 
 #include <type_traits>
@@ -77,6 +78,7 @@ namespace Wayfinder
 
         TReturn operator()(TArgs... args) const
         {
+            WAYFINDER_ASSERT(m_invoke != nullptr, "ArenaFunction::operator(): called on empty function");
             return m_invoke(m_data, std::forward<TArgs>(args)...);
         }
 
