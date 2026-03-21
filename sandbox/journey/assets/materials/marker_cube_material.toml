@@ -1,5 +1,4 @@
 asset_id = "0c6ad84a-9a5f-4c44-ac34-b0f1387d99b4"
 asset_type = "material"
 name = "MarkerCubeMaterial"
-base_color = [184, 184, 184, 255]
-wireframe = true
+base_colour = [184, 184, 184, 255]

@@ -95,11 +95,10 @@ namespace Wayfinder
             submission.Mesh.StableKey = kBuiltInBoxMeshKey;
             submission.Geometry.Type = RenderGeometryType::Box;
             submission.Geometry.Dimensions = mesh.Dimensions;
-            submission.Material.Handle.Origin = RenderResourceOrigin::BuiltIn;
-            submission.Material.Handle.StableKey = kBuiltInSurfaceMaterialKey;
+            submission.Material.Ref.Origin = RenderResourceOrigin::BuiltIn;
+            submission.Material.Ref.StableKey = kBuiltInSurfaceMaterialKey;
             submission.Material.Domain = RenderMaterialDomain::Surface;
-            submission.Material.Parameters.SetColor("base_color", LinearColor::White());
-            submission.Material.StateOverrides.FillMode = RenderFillMode::SolidAndWireframe;
+            submission.Material.Parameters.SetColour("base_colour", LinearColour::White());
 
             Matrix4 localToWorld = transform.GetLocalMatrix();
 
@@ -114,20 +113,24 @@ namespace Wayfinder
                 const auto& material = entityHandle.get<MaterialComponent>();
                 if (material.MaterialAssetId)
                 {
-                    submission.Material.Handle.Origin = RenderResourceOrigin::Asset;
-                    submission.Material.Handle.AssetId = material.MaterialAssetId;
-                    submission.Material.Handle.StableKey = MakeStableKey(*material.MaterialAssetId);
+                    submission.Material.Ref.Origin = RenderResourceOrigin::Asset;
+                    submission.Material.Ref.AssetId = material.MaterialAssetId;
+                    submission.Material.Ref.StableKey = MakeStableKey(*material.MaterialAssetId);
                 }
 
-                if (material.HasBaseColorOverride || !material.MaterialAssetId)
+                if (material.HasBaseColourOverride || !material.MaterialAssetId)
                 {
                     submission.Material.HasOverrides = true;
-                    submission.Material.Overrides.SetColor("base_color", LinearColor::FromColor(material.BaseColor));
+                    submission.Material.Overrides.SetColour("base_colour", LinearColour::FromColour(material.BaseColour));
                 }
+            }
 
-                if (material.HasWireframeOverride || !material.MaterialAssetId)
+            if (entityHandle.has<RenderOverrideComponent>())
+            {
+                const auto& renderOverride = entityHandle.get<RenderOverrideComponent>();
+                if (renderOverride.Wireframe.has_value())
                 {
-                    submission.Material.StateOverrides.FillMode = material.Wireframe
+                    submission.Material.StateOverrides.FillMode = *renderOverride.Wireframe
                         ? RenderFillMode::SolidAndWireframe
                         : RenderFillMode::Solid;
                 }
@@ -145,7 +148,7 @@ namespace Wayfinder
 
             submission.SortKey = SortKeyBuilder::Build(
                 MapLayer(submission.Layer),
-                MaterialIdBits(submission.Material.Handle.AssetId),
+                MaterialIdBits(submission.Material.Ref.AssetId),
                 cameraSpaceZ,
                 static_cast<uint16_t>(submission.SortPriority));
 
@@ -190,10 +193,10 @@ namespace Wayfinder
                 RenderDebugBox debugBox;
                 debugBox.LocalToWorld = debugTransform;
                 debugBox.Dimensions = {1.0f, 1.0f, 1.0f};
-                debugBox.Material.Handle.Origin = RenderResourceOrigin::BuiltIn;
-                debugBox.Material.Handle.StableKey = 100ull;
+                debugBox.Material.Ref.Origin = RenderResourceOrigin::BuiltIn;
+                debugBox.Material.Ref.StableKey = 100ull;
                 debugBox.Material.Domain = RenderMaterialDomain::Debug;
-                debugBox.Material.Parameters.SetColor("base_color", LinearColor::FromColor(light.Tint));
+                debugBox.Material.Parameters.SetColour("base_colour", LinearColour::FromColour(light.Tint));
 
                 if (RenderPass* pass = frame.FindPass(RenderPassIds::Debug))
                 {
@@ -206,7 +209,7 @@ namespace Wayfinder
                     RenderDebugLine debugLine;
                     debugLine.Start = position;
                     debugLine.End = lineEnd;
-                    debugLine.Color = light.Tint;
+                    debugLine.Colour = light.Tint;
 
                     if (RenderPass* pass = frame.FindPass(RenderPassIds::Debug))
                     {

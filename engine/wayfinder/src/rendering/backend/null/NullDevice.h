@@ -11,7 +11,7 @@ namespace Wayfinder
         explicit NullDevice(const std::string& backendName) { m_info.BackendName = backendName; }
         ~NullDevice() override = default;
 
-        bool Initialize(Window&) override { return true; }
+        bool Initialise(Window&) override { return true; }
         void Shutdown() override {}
 
         bool BeginFrame() override { return true; }

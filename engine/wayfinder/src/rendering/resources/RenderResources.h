@@ -14,13 +14,13 @@ namespace Wayfinder
 {
     struct RenderMeshResource
     {
-        RenderMeshHandle Handle{};
+        RenderMeshRef Ref{};
         RenderGeometry Geometry{};
     };
 
     struct RenderMaterialResource
     {
-        RenderMaterialHandle Handle{};
+        RenderMaterialRef Ref{};
         RenderMaterialBinding Binding{};
         bool IsLoadedFromAsset = false;
     };

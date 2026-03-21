@@ -561,9 +561,9 @@ static void ShowRelationships(int issueNumber)
 
     auto state      = issue["state"].get<std::string>();
     auto title      = issue["title"].get<std::string>();
-    auto stateColor = (state == "CLOSED") ? Colour::Green : Colour::White;
+    auto stateColour = (state == "CLOSED") ? Colour::Green : Colour::White;
 
-    std::cout << std::format("\n{}  #{} - {} {}[{}]{}\n", Colour::Cyan, issueNumber, title, stateColor, state,
+    std::cout << std::format("\n{}  #{} - {} {}[{}]{}\n", Colour::Cyan, issueNumber, title, stateColour, state,
                              Colour::Reset);
 
     // Labels

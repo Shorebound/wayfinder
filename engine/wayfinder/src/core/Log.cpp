@@ -62,11 +62,11 @@ namespace Wayfinder
 
     void Log::Init()
     {
-        // Initialize the spdlog manager
-        SpdLogManager::Initialize();
+        /// Initialise the spdlog manager.
+        SpdLogManager::Initialise();
 
-        // Initialize all predefined categories
-        // They're already created as static globals, but we might want to do additional setup
+        /// Initialise all predefined categories.
+        /// They're already created as static globals, but we might want to do additional setup.
         SetGlobalVerbosity(LogVerbosity::Info);
     }
 

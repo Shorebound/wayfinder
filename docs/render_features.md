@@ -31,8 +31,8 @@ namespace Wayfinder
             graph.AddPass("BloomDownsample", [&](RenderGraphBuilder& builder)
             {
                 // Read the engine's main colour output.
-                auto sceneColor = graph.Import(WellKnown::SceneColor, /* ... */);
-                builder.ReadTexture(sceneColor);
+                auto sceneColour = graph.Import(WellKnown::SceneColour, /* ... */);
+                builder.ReadTexture(sceneColour);
 
                 // Create a transient half-res target for the downsample.
                 auto halfRes = builder.CreateTransient({
@@ -41,7 +41,7 @@ namespace Wayfinder
                     .Format = TextureFormat::RGBA16_FLOAT,
                     .DebugName = "BloomHalfRes",
                 });
-                builder.WriteColor(halfRes);
+                builder.WriteColour(halfRes);
             },
             [](const RenderGraphResources& resources, RenderDevice& device)
             {
@@ -64,7 +64,7 @@ namespace Wayfinder
 
 ## Registering a Feature
 
-Register features with the `Renderer` after initialization:
+Register features with the `Renderer` after initialisation:
 
 ```cpp
 renderer.AddFeature(std::make_unique<BloomFeature>());
@@ -103,10 +103,10 @@ The engine publishes named resources that features can reference:
 
 | Name | Description |
 |------|-------------|
-| `WellKnown::SceneColor` | Main scene colour target (written by MainScene pass) |
+| `WellKnown::SceneColour` | Main scene colour target (written by MainScene pass) |
 | `WellKnown::SceneDepth` | Main scene depth target (written by MainScene pass) |
 
-Import these by name via `graph.Import(WellKnown::SceneColor, ...)` to read or write engine-owned targets.
+Import these by name via `graph.Import(WellKnown::SceneColour, ...)` to read or write engine-owned targets.
 
 ### Transient Resources
 

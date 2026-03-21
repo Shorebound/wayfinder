@@ -23,8 +23,8 @@ namespace Wayfinder
 
     // GPU-backed mesh: owns vertex and index buffers on the device.
     // Distinct from the authored MeshComponent — this is the GPU-side representation.
-    // All primitives use VertexPosNormalColor format (the engine's standard authored vertex).
-    // Debug-only geometry (lines, grid) uses VertexPosColor via the transient allocator.
+    // All primitives use VertexPosNormalColour format (the engine's standard authored vertex).
+    // Debug-only geometry (lines, grid) uses VertexPosColour via the transient allocator.
     class WAYFINDER_API Mesh
     {
     public:
@@ -52,7 +52,7 @@ namespace Wayfinder
         uint32_t GetVertexCount() const { return m_vertexCount; }
 
         // ── Built-in Primitive Factory ────────────────────────
-        // All primitives produce VertexPosNormalColor geometry.
+        // All primitives produce VertexPosNormalColour geometry.
 
         static Mesh CreatePrimitive(RenderDevice& device, const PrimitiveDesc& desc = {});
 

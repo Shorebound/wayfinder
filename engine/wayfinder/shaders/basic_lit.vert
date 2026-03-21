@@ -13,14 +13,14 @@ struct VSInput
 {
     float3 Position : TEXCOORD0;
     float3 Normal   : TEXCOORD1;
-    float3 Color    : TEXCOORD2;
+    float3 Colour    : TEXCOORD2;
 };
 
 struct VSOutput
 {
     float4 Position  : SV_Position;
     float3 Normal    : TEXCOORD0;
-    float3 Color     : TEXCOORD1;
+    float3 Colour     : TEXCOORD1;
 };
 
 VSOutput VSMain(VSInput input)
@@ -28,6 +28,6 @@ VSOutput VSMain(VSInput input)
     VSOutput output;
     output.Position = mul(mvp, float4(input.Position, 1.0));
     output.Normal = normalize(mul((float3x3)model, input.Normal));
-    output.Color = input.Color;
+    output.Colour = input.Colour;
     return output;
 }

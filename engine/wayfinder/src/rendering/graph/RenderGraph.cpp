@@ -35,11 +35,11 @@ namespace Wayfinder
         res.LastReadByPass = (res.LastReadByPass == UINT32_MAX) ? m_passIndex : std::max(res.LastReadByPass, m_passIndex);
     }
 
-    void RenderGraphBuilder::WriteColor(RenderGraphHandle handle, LoadOp load, ClearValue clear)
+    void RenderGraphBuilder::WriteColour(RenderGraphHandle handle, LoadOp load, ClearValue clear)
     {
         if (!handle.IsValid() || handle.Index >= m_graph.m_resources.size()) return;
         auto& pass = m_graph.m_passes[m_passIndex];
-        pass.ColorWrite = RenderGraph::ColorWriteInfo{handle, load, clear};
+        pass.ColourWrite = RenderGraph::ColourWriteInfo{handle, load, clear};
 
         auto& res = m_graph.m_resources[handle.Index];
         // LoadOp::Load implies reading previous content
@@ -159,7 +159,7 @@ namespace Wayfinder
         if (passCount == 0) return false;
 
         // ── Build dependency graph ───────────────────────────
-        // Dependencies are recorded during setup (ReadTexture, WriteColor+Load, WriteDepth+Load).
+        // Dependencies are recorded during setup (ReadTexture, WriteColour+Load, WriteDepth+Load).
         // Deduplicate edges to avoid inflated in-degrees.
         std::vector<std::vector<uint32_t>> adjacency(passCount);
         std::vector<uint32_t> inDegree(passCount, 0);
@@ -311,17 +311,17 @@ namespace Wayfinder
                 if (pass.SwapchainWrite)
                 {
                     rpDesc.targetSwapchain = true;
-                    rpDesc.colorAttachment.loadOp = pass.SwapchainWrite->Load;
-                    rpDesc.colorAttachment.clearValue = pass.SwapchainWrite->Clear;
-                    rpDesc.colorAttachment.storeOp = StoreOp::Store;
+                    rpDesc.colourAttachment.loadOp = pass.SwapchainWrite->Load;
+                    rpDesc.colourAttachment.clearValue = pass.SwapchainWrite->Clear;
+                    rpDesc.colourAttachment.storeOp = StoreOp::Store;
                 }
-                else if (pass.ColorWrite)
+                else if (pass.ColourWrite)
                 {
                     rpDesc.targetSwapchain = false;
-                    rpDesc.colorTarget = resources.GetTexture(pass.ColorWrite->Handle);
-                    rpDesc.colorAttachment.loadOp = pass.ColorWrite->Load;
-                    rpDesc.colorAttachment.clearValue = pass.ColorWrite->Clear;
-                    rpDesc.colorAttachment.storeOp = StoreOp::Store;
+                    rpDesc.colourTarget = resources.GetTexture(pass.ColourWrite->Handle);
+                    rpDesc.colourAttachment.loadOp = pass.ColourWrite->Load;
+                    rpDesc.colourAttachment.clearValue = pass.ColourWrite->Clear;
+                    rpDesc.colourAttachment.storeOp = StoreOp::Store;
                 }
 
                 if (pass.DepthWrite)

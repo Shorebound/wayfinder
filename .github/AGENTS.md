@@ -7,6 +7,13 @@ This file documents common mistakes, confusion points, and non-obvious behaviour
 ## Build System
 
 - **Test executables are opt-in.** `WAYFINDER_BUILD_TESTS` defaults to `OFF`. Use the `dev` preset or pass `-DWAYFINDER_BUILD_TESTS=ON` explicitly.
+- **Cloud agents run on Linux.** GitHub Copilot coding agents and Codespaces use the `.devcontainer/devcontainer.json` environment (Ubuntu + Clang + Ninja). Use the `ci-linux` configure preset and `ci-linux-debug` build preset — not the `dev` preset, which targets Visual Studio on Windows. Build and test with:
+  ```
+  cmake --preset ci-linux
+  cmake --build --preset ci-linux-debug
+  ctest --preset ci-linux-test
+  ```
+- **MSVC vs Clang differences.** The primary local dev compiler is MSVC; cloud agents use Clang. Code must compile on both. Watch for MSVC-specific pragmas (guard with `#ifdef WAYFINDER_COMPILER_MSVC`) and C++23 feature availability differences between compilers.
 
 ## InternedString
 

@@ -3,7 +3,7 @@
 
 namespace Wayfinder
 {
-    bool TransientBufferAllocator::Initialize(RenderDevice& device, uint32_t vertexCapacity, uint32_t indexCapacity)
+    bool TransientBufferAllocator::Initialise(RenderDevice& device, uint32_t vertexCapacity, uint32_t indexCapacity)
     {
         m_device = &device;
         m_vertexCapacity = vertexCapacity;
@@ -33,7 +33,7 @@ namespace Wayfinder
             return false;
         }
 
-        WAYFINDER_INFO(LogRenderer, "TransientBufferAllocator initialized (vertex: {} KB, index: {} KB)",
+        WAYFINDER_INFO(LogRenderer, "TransientBufferAllocator initialised (vertex: {} KB, index: {} KB)",
             vertexCapacity / 1024, indexCapacity / 1024);
 
         return true;

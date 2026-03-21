@@ -29,7 +29,7 @@ namespace Wayfinder
         Game();
         ~Game();
 
-        bool Initialize(const GameContext& ctx);
+        bool Initialise(const GameContext& ctx);
         void Update(float deltaTime);
         void Shutdown();
 
@@ -51,8 +51,10 @@ namespace Wayfinder
         /// Check if a gameplay tag is active at the world level.
         bool HasGameplayTag(const GameplayTag& tag) const;
 
-        /// Access the gameplay tag registry for tag lookups and validation.
-        /// @pre Initialize() must have completed; will terminate if subsystem is missing.
+        /**
+         * @brief Access the gameplay tag registry for tag lookups and validation.
+         * @pre Initialise() must have completed; will terminate if subsystem is missing.
+         */
         GameplayTagRegistry& GetTagRegistry() { return GameSubsystems::Get<GameplayTagRegistry>(); }
         /// @copydoc GetTagRegistry()
         const GameplayTagRegistry& GetTagRegistry() const { return GameSubsystems::Get<GameplayTagRegistry>(); }
@@ -68,9 +70,9 @@ namespace Wayfinder
         bool IsRunning() const { return m_running; }
 
     private:
-        void InitializeWorld();
-        void InitializeSubsystems();
-        void InitializeTagRegistry();
+        void InitialiseWorld();
+        void InitialiseSubsystems();
+        void InitialiseTagRegistry();
 
         flecs::world m_world;
         SubsystemCollection<GameSubsystem> m_subsystems;
@@ -80,7 +82,7 @@ namespace Wayfinder
         const ModuleRegistry* m_moduleRegistry = nullptr;
         GameStateMachine* m_stateMachine = nullptr; ///< Non-owning; owned by m_subsystems.
         bool m_running = false;
-        bool m_initialized = false;
+        bool m_initialised = false;
     };
 
 } // namespace Wayfinder

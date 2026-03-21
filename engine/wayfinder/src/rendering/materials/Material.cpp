@@ -6,12 +6,11 @@ namespace
     constexpr std::string_view kAssetTypeKey = "asset_type";
     constexpr std::string_view kNameKey = "name";
     constexpr std::string_view kShaderKey = "shader";
-    constexpr std::string_view kBaseColorKey = "base_color";
-    constexpr std::string_view kWireframeKey = "wireframe";
+    constexpr std::string_view kBaseColourKey = "base_colour";
     constexpr std::string_view kParametersKey = "parameters";
 
-    // Parse a TOML array of 3 or 4 integers into a LinearColor.
-    bool ParseLinearColor(const toml::array* values, Wayfinder::LinearColor& color, std::string& error)
+    // Parse a TOML array of 3 or 4 integers into a LinearColour.
+    bool ParseLinearColour(const toml::array* values, Wayfinder::LinearColour& colour, std::string& error)
     {
         if (!values || (values->size() != 3 && values->size() != 4))
         {
@@ -24,15 +23,15 @@ namespace
             return static_cast<float>(values->get(index)->value_or(static_cast<int64_t>(static_cast<uint8_t>(fallback * 255.0f)))) / 255.0f;
         };
 
-        color.r = readChannel(0, color.r);
-        color.g = readChannel(1, color.g);
-        color.b = readChannel(2, color.b);
-        color.a = values->size() == 4 ? readChannel(3, color.a) : color.a;
+        colour.r = readChannel(0,colour.r);
+        colour.g = readChannel(1, colour.g);
+        colour.b = readChannel(2, colour.b);
+        colour.a = values->size() == 4 ? readChannel(3, colour.a) : colour.a;
         return true;
     }
 
     // Parse a TOML [parameters] table into a MaterialParameterBlock.
-    // Supports: arrays of 3–4 numbers as Color, single numbers as Float, integers as Int.
+    // Supports: arrays of 3–4 numbers as Colour, single numbers as Float, integers as Int.
     void ParseParametersTable(const toml::table& params, Wayfinder::MaterialParameterBlock& block)
     {
         for (const auto& [key, node] : params)
@@ -44,12 +43,12 @@ namespace
                 const auto* arr = node.as_array();
                 if (arr->size() >= 3 && arr->size() <= 4)
                 {
-                    // Treat as Color (integer RGBA → LinearColor)
-                    Wayfinder::LinearColor color = Wayfinder::LinearColor::White();
+                    // Treat as Colour (integer RGBA → LinearColour)
+                    Wayfinder::LinearColour colour = Wayfinder::LinearColour::White();
                     std::string unused;
-                    if (ParseLinearColor(arr, color, unused))
+                    if (ParseLinearColour(arr, colour, unused))
                     {
-                        block.SetColor(name, color);
+                        block.SetColour(name, colour);
                     }
                 }
                 else if (arr->size() == 2)
@@ -74,19 +73,19 @@ namespace
 
 namespace Wayfinder
 {
-    LinearColor MaterialAsset::GetBaseColor() const
+    LinearColour MaterialAsset::GetBaseColour() const
     {
-        auto it = Parameters.Values.find("base_color");
+        auto it = Parameters.Values.find("base_colour");
         if (it != Parameters.Values.end())
         {
-            if (const auto* c = std::get_if<LinearColor>(&it->second)) return *c;
+            if (const auto* c = std::get_if<LinearColour>(&it->second)) return *c;
         }
-        return LinearColor::White();
+        return LinearColour::White();
     }
 
-    void MaterialAsset::SetBaseColor(const LinearColor& color)
+    void MaterialAsset::SetBaseColour(const LinearColour& colour)
     {
-        Parameters.SetColor("base_color", color);
+        Parameters.SetColour("base_colour", colour);
     }
 
     bool ParseMaterialAssetDocument(
@@ -133,35 +132,27 @@ namespace Wayfinder
             ParseParametersTable(*paramsTable, parsed.Parameters);
         }
 
-        // Legacy support: top-level base_color → parameters["base_color"]
+        // Legacy support: top-level base_colour → parameters["base_colour"]
         // Only applied if [parameters] didn't already set it.
-        if (!parsed.Parameters.Has("base_color") && document.contains(kBaseColorKey))
+        if (!parsed.Parameters.Has("base_colour") && document.contains(kBaseColourKey))
         {
-            const toml::array* values = document.get_as<toml::array>(kBaseColorKey);
-            LinearColor baseColor = LinearColor::White();
-            std::string colorError;
-            if (!ParseLinearColor(values, baseColor, colorError))
+            const toml::array* values = document.get_as<toml::array>(kBaseColourKey);
+            LinearColour baseColour = LinearColour::White();
+            std::string colourError;
+            if (!ParseLinearColour(values, baseColour, colourError))
             {
-                error = "Material asset '" + sourceLabel + "' field 'base_color' " + colorError;
+                error = "Material asset '" + sourceLabel + "' field 'base_colour' " + colourError;
                 return false;
             }
-            parsed.Parameters.SetColor("base_color", baseColor);
+            parsed.Parameters.SetColour("base_colour", baseColour);
         }
 
-        // Default base_color to white if nothing was specified
-        if (!parsed.Parameters.Has("base_color"))
+        // Default base_colour to white if nothing was specified
+        if (!parsed.Parameters.Has("base_colour"))
         {
-            parsed.Parameters.SetColor("base_color", LinearColor::White());
+            parsed.Parameters.SetColour("base_colour", LinearColour::White());
         }
 
-        const toml::node* wireframeNode = document.get(kWireframeKey);
-        if (wireframeNode && !wireframeNode->is_boolean())
-        {
-            error = "Material asset '" + sourceLabel + "' field 'wireframe' must be a boolean";
-            return false;
-        }
-
-        parsed.Wireframe = document[kWireframeKey].value_or(parsed.Wireframe);
         material = std::move(parsed);
         return true;
     }
@@ -188,16 +179,15 @@ namespace Wayfinder
         toml::table table;
         table.insert_or_assign("material_id", material.Id.ToString());
         table.insert_or_assign("shader", material.ShaderName);
-        table.insert_or_assign("wireframe", material.Wireframe);
 
-        // Serialize parameters as a [parameters] table
+        // Serialise parameters as a [parameters] table
         toml::table paramsTable;
         for (const auto& [name, value] : material.Parameters.Values)
         {
             std::visit([&paramsTable, &name](auto&& v)
             {
                 using T = std::decay_t<decltype(v)>;
-                if constexpr (std::is_same_v<T, LinearColor>)
+                if constexpr (std::is_same_v<T, LinearColour>)
                 {
                     toml::array arr;
                     arr.push_back(static_cast<int64_t>(v.r * 255.0f));
@@ -246,14 +236,14 @@ namespace Wayfinder
             table.insert_or_assign("parameters", std::move(paramsTable));
         }
 
-        // Also write top-level base_color for backward compatibility
-        LinearColor baseColor = material.GetBaseColor();
-        toml::array baseColorArr;
-        baseColorArr.push_back(static_cast<int64_t>(baseColor.r * 255.0f));
-        baseColorArr.push_back(static_cast<int64_t>(baseColor.g * 255.0f));
-        baseColorArr.push_back(static_cast<int64_t>(baseColor.b * 255.0f));
-        baseColorArr.push_back(static_cast<int64_t>(baseColor.a * 255.0f));
-        table.insert_or_assign("base_color", std::move(baseColorArr));
+        // Also write top-level base_colour for backward compatibility
+        LinearColour baseColour = material.GetBaseColour();
+        toml::array baseColourArr;
+        baseColourArr.push_back(static_cast<int64_t>(baseColour.r * 255.0f));
+        baseColourArr.push_back(static_cast<int64_t>(baseColour.g * 255.0f));
+        baseColourArr.push_back(static_cast<int64_t>(baseColour.b * 255.0f));
+        baseColourArr.push_back(static_cast<int64_t>(baseColour.a * 255.0f));
+        table.insert_or_assign("base_colour", std::move(baseColourArr));
 
         return table;
     }

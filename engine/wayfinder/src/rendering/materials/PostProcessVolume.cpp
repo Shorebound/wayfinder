@@ -55,7 +55,7 @@ namespace
             0.0f, 255.0f));
     }
 
-    Wayfinder::Color LerpColor(const Wayfinder::Color& a, const Wayfinder::Color& b, float t)
+    Wayfinder::Colour LerpColour(const Wayfinder::Colour& a, const Wayfinder::Colour& b, float t)
     {
         return {
             .r = LerpByte(a.r, b.r, t),
@@ -84,8 +84,8 @@ namespace
                 return static_cast<int32_t>(std::round(glm::mix(static_cast<float>(a), static_cast<float>(b), weight)));
             else if constexpr (std::is_same_v<T, Wayfinder::Float3>)
                 return glm::mix(a, b, weight);
-            else if constexpr (std::is_same_v<T, Wayfinder::Color>)
-                return LerpColor(a, b, weight);
+            else if constexpr (std::is_same_v<T, Wayfinder::Colour>)
+                return LerpColour(a, b, weight);
             else
                 return b;
         }, current);
@@ -99,7 +99,7 @@ namespace
             if constexpr (std::is_same_v<T, float>) return 0.0f;
             else if constexpr (std::is_same_v<T, int32_t>) return int32_t{0};
             else if constexpr (std::is_same_v<T, Wayfinder::Float3>) return Wayfinder::Float3{0.0f, 0.0f, 0.0f};
-            else if constexpr (std::is_same_v<T, Wayfinder::Color>) return Wayfinder::Color{0, 0, 0, 0};
+            else if constexpr (std::is_same_v<T, Wayfinder::Colour>) return Wayfinder::Colour{0, 0, 0, 0};
             else return val;
         }, v);
     }
@@ -154,11 +154,11 @@ namespace Wayfinder
         return fallback;
     }
 
-    Color PostProcessEffect::GetColor(const std::string& name, const Color& fallback) const
+    Colour PostProcessEffect::GetColour(const std::string& name, const Colour& fallback) const
     {
         auto it = Parameters.find(name);
         if (it == Parameters.end()) return fallback;
-        if (const auto* v = std::get_if<Color>(&it->second)) return *v;
+        if (const auto* v = std::get_if<Colour>(&it->second)) return *v;
         return fallback;
     }
 

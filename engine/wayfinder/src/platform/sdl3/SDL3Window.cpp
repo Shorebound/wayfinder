@@ -32,13 +32,13 @@ namespace Wayfinder
 
     SDL3Window::~SDL3Window()
     {
-        if (m_initialized)
+        if (m_initialised)
         {
             Shutdown();
         }
     }
 
-    bool SDL3Window::Initialize()
+    bool SDL3Window::Initialise()
     {
         if (!SDL_Init(SDL_INIT_VIDEO | SDL_INIT_EVENTS))
         {
@@ -57,7 +57,7 @@ namespace Wayfinder
             return false;
         }
 
-        m_initialized = true;
+        m_initialised = true;
         return true;
     }
 
@@ -70,7 +70,7 @@ namespace Wayfinder
         }
 
         SDL_Quit();
-        m_initialized = false;
+        m_initialised = false;
     }
 
     void SDL3Window::Update()

@@ -18,15 +18,17 @@ namespace Wayfinder
         PipelineCache(const PipelineCache&) = delete;
         PipelineCache& operator=(const PipelineCache&) = delete;
 
-        void Initialize(RenderDevice& device);
+        void Initialise(RenderDevice& device);
         void Shutdown();
 
         // Returns an existing pipeline for this configuration, or creates and caches a new one.
         // The cache owns the returned handle — callers must not destroy it.
         GPUPipelineHandle GetOrCreate(const PipelineCreateDesc& desc);
 
-    private:
+        /// Computes a deterministic hash over all PipelineCreateDesc fields.
         static size_t HashDesc(const PipelineCreateDesc& desc);
+
+    private:
 
         RenderDevice* m_device = nullptr;
         std::unordered_map<size_t, GPUPipelineHandle> m_cache;
