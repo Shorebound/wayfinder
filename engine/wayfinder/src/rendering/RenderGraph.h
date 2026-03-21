@@ -59,7 +59,7 @@ namespace Wayfinder
         // Declare this pass reads a texture (for sampling in a shader).
         void ReadTexture(RenderGraphHandle handle);
 
-        // Declare this pass writes to a color render target.
+        // Declare this pass writes to a colour render target.
         void WriteColor(RenderGraphHandle handle, LoadOp load = LoadOp::Clear, ClearValue clear = {});
 
         // Declare this pass writes to a depth render target.

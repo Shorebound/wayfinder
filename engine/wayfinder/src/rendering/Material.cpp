@@ -11,7 +11,7 @@ namespace
     constexpr std::string_view kParametersKey = "parameters";
 
     // Parse a TOML array of 3 or 4 integers into a LinearColor.
-    bool ParseLinearColor(const toml::array* values, Wayfinder::LinearColor& color, std::string& error)
+    bool ParseLinearColor(const toml::array* values, Wayfinder::LinearColor& colour, std::string& error)
     {
         if (!values || (values->size() != 3 && values->size() != 4))
         {
@@ -24,10 +24,10 @@ namespace
             return static_cast<float>(values->get(index)->value_or(static_cast<int64_t>(static_cast<uint8_t>(fallback * 255.0f)))) / 255.0f;
         };
 
-        color.r = readChannel(0, color.r);
-        color.g = readChannel(1, color.g);
-        color.b = readChannel(2, color.b);
-        color.a = values->size() == 4 ? readChannel(3, color.a) : color.a;
+        colourr.r = readChannel(0,colourr.r);
+        colour.g = readChannel(1, colour.g);
+        colour.b = readChannel(2, colour.b);
+        colour.a = values->size() == 4 ? readChannel(3, colour.a) : colour.a;
         return true;
     }
 
@@ -45,11 +45,11 @@ namespace
                 if (arr->size() >= 3 && arr->size() <= 4)
                 {
                     // Treat as Color (integer RGBA → LinearColor)
-                    Wayfinder::LinearColor color = Wayfinder::LinearColor::White();
+                    Wayfinder::LinearColor colour = Wayfinder::LinearColor::White();
                     std::string unused;
-                    if (ParseLinearColor(arr, color, unused))
+                    if (ParseLinearColor(arr, colour, unused))
                     {
-                        block.SetColor(name, color);
+                        block.SetColor(name, colour);
                     }
                 }
                 else if (arr->size() == 2)
@@ -84,9 +84,9 @@ namespace Wayfinder
         return LinearColor::White();
     }
 
-    void MaterialAsset::SetBaseColor(const LinearColor& color)
+    void MaterialAsset::SetBaseColor(const LinearColor& colour)
     {
-        Parameters.SetColor("base_color", color);
+        Parameters.SetColor("base_color", colour);
     }
 
     bool ParseMaterialAssetDocument(

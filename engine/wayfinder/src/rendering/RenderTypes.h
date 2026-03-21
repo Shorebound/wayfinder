@@ -35,7 +35,7 @@ namespace Wayfinder
     };
 
     // ── Linear Color ─────────────────────────────────────────
-    // Float4 color in linear space for GPU-side work.
+    // Float4 colour in linear space for GPU-side work.
     // Conversions from authored sRGB Color happen once at load/extract time.
 
     struct LinearColor

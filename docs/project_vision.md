@@ -13,7 +13,7 @@ This project is not trying to simulate hardware constraints from that era. It is
 Wayfinder should feel at home with:
 
 - bold silhouettes
-- stylized materials
+- stylised materials
 - readable lighting
 - simple but expressive geometry
 - dramatic atmosphere
@@ -30,7 +30,7 @@ If something can be computed robustly at runtime, that should be the default bia
 
 ### Expressive Over Realistic
 
-Physical correctness is useful when it supports the look. It is not the goal by itself. The project should prioritize clarity, mood, stylization, and readability before realism.
+Physical correctness is useful when it supports the look. It is not the goal by itself. The project should prioritize clarity, mood, stylisation, and readability before realism.
 
 ### Simple Over Ornate
 
@@ -56,7 +56,7 @@ Wayfinder should eventually support systems such as:
 - runtime-friendly materials
 - expressive post-processing that reinforces the visual thesis rather than chasing realism
 
-Those systems should serve stylized worlds first. They do not need to mimic modern blockbuster rendering stacks to be valuable.
+Those systems should serve stylised worlds first. They do not need to mimic modern blockbuster rendering stacks to be valuable.
 
 ## Non-Goals
 

@@ -482,8 +482,8 @@ query {
         }
         foreach ($b in $blockedByNodes) {
             $icon = if ($b.state -eq "CLOSED") { "[x]" } else { "[ ]" }
-            $color = if ($b.state -eq "CLOSED") { "DarkGray" } else { "White" }
-            Write-Host "    $icon #$($b.number) - $($b.title)" -ForegroundColor $color
+            $colour = if ($b.state -eq "CLOSED") { "DarkGray" } else { "White" }
+            Write-Host "    $icon #$($b.number) - $($b.title)" -ForegroundColor $colourr
         }
     }
 
@@ -495,8 +495,8 @@ query {
         Write-Host "  Blocking ($doneCount/$totalCount done):" -ForegroundColor Yellow
         foreach ($b in $blockingNodes) {
             $icon = if ($b.state -eq "CLOSED") { "[x]" } else { "[ ]" }
-            $color = if ($b.state -eq "CLOSED") { "DarkGray" } else { "White" }
-            Write-Host "    $icon #$($b.number) - $($b.title)" -ForegroundColor $color
+            $colourrr = if ($b.state -eq "CLOSED") { "DarkGray" } else { "White" }
+            Write-Host "    $icon #$($b.number) - $($b.title)" -ForegroundColor $colour
         }
     }
 
@@ -509,8 +509,8 @@ query {
         Write-Host "  Sub-issues ($doneCount/$totalCount complete):" -ForegroundColor $subColor
         foreach ($s in $subNodes) {
             $icon = if ($s.state -eq "CLOSED") { "[x]" } else { "[ ]" }
-            $color = if ($s.state -eq "CLOSED") { "DarkGray" } else { "White" }
-            Write-Host "    $icon #$($s.number) - $($s.title)" -ForegroundColor $color
+            $colour = if ($s.state -eq "CLOSED") { "DarkGray" } else { "White" }
+            Write-Host "    $icon #$($s.number) - $($s.title)" -ForegroundColor $colour
         }
     }
 
@@ -842,9 +842,9 @@ query {
     foreach ($entry in $chain) {
         $indent = "    " * $entry.Depth
         $icon = if ($entry.State -eq "CLOSED") { "[x]" } else { "[ ]" }
-        $color = if ($entry.State -eq "CLOSED") { "DarkGray" } elseif ($entry.Depth -eq $maxDepth) { "Red" } else { "White" }
+        $colour = if ($entry.State -eq "CLOSED") { "DarkGray" } elseif ($entry.Depth -eq $maxDepth) { "Red" } else { "White" }
         $prefix = if ($entry.Depth -eq 0) { "" } else { "blocked by -> " }
-        Write-Host "  $indent$prefix$icon #$($entry.Number) - $($entry.Title)" -ForegroundColor $color
+        Write-Host "  $indent$prefix$icon #$($entry.Number) - $($entry.Title)" -ForegroundColor $colour
     }
 
     # Summary
@@ -943,7 +943,7 @@ query {
     function Print-TreeNode($node, [int]$Depth) {
         $indent = "    " * $Depth
         $icon = if ($node.state -eq "CLOSED") { "[x]" } else { "[ ]" }
-        $color = if ($Depth -eq 0) {
+        $colour = if ($Depth -eq 0) {
             if ($node.state -eq "CLOSED") { "Green" } else { "Cyan" }
         } else {
             if ($node.state -eq "CLOSED") { "DarkGray" } else { "White" }
@@ -955,7 +955,7 @@ query {
             $childProgress = " ($($counts.Done)/$($counts.Total))"
         }
 
-        Write-Host "  ${indent}$icon #$($node.number) - $($node.title)$childProgress" -ForegroundColor $color
+        Write-Host "  ${indent}$icon #$($node.number) - $($node.title)$childProgress" -ForegroundColor $colour
 
         foreach ($child in $node.children) {
             Print-TreeNode $child ($Depth + 1)

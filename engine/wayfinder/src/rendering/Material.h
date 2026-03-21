@@ -29,7 +29,7 @@ namespace Wayfinder
 
         // Convenience accessors for the most common parameter.
         LinearColor GetBaseColor() const;
-        void SetBaseColor(const LinearColor& color);
+        void SetBaseColor(const LinearColor& colour);
     };
 
     WAYFINDER_API bool ParseMaterialAssetDocument(

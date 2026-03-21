@@ -33,7 +33,7 @@ scale = [1.0, 1.0, 1.0]
 type = "point"
 intensity = 1.5
 range = 10.0
-color = [255, 230, 204, 255]
+colour = [255, 230, 204, 255]
 
 [[entities]]
 id = "550e8400-e29b-41d4-a716-446655440003"

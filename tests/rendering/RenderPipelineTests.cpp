@@ -15,7 +15,7 @@
 
 namespace
 {
-    Wayfinder::RenderMeshSubmission MakeSolidMesh(uint8_t sortPriority, const Wayfinder::Color& color)
+    Wayfinder::RenderMeshSubmission MakeSolidMesh(uint8_t sortPriority, const Wayfinder::Color& colour)
     {
         Wayfinder::RenderMeshSubmission submission;
         submission.Mesh.Origin = Wayfinder::RenderResourceOrigin::BuiltIn;
@@ -25,7 +25,7 @@ namespace
         submission.Material.Handle.Origin = Wayfinder::RenderResourceOrigin::BuiltIn;
         submission.Material.Handle.StableKey = submission.Mesh.StableKey;
         submission.Material.StateOverrides.FillMode = Wayfinder::RenderFillMode::Solid;
-        submission.Material.Parameters.SetColor("base_color", Wayfinder::LinearColor::FromColor(color));
+        submission.Material.Parameters.SetColor("base_color", Wayfinder::LinearColor::FromColor(colour));
         submission.SortPriority = sortPriority;
         return submission;
     }

@@ -206,9 +206,9 @@ namespace Wayfinder
 
         // ── MainScene Pass ───────────────────────────────────
         graph.AddPass("MainScene", [&, viewMat = view, projMat = projection, hasCamera](RenderGraphBuilder& builder) -> RenderGraphExecuteFn {
-            auto color = builder.CreateTransient(colorDesc);
+            auto colour = builder.CreateTransient(colorDesc);
             auto depth = builder.CreateTransient(depthDesc);
-            builder.WriteColor(color, LoadOp::Clear, ClearValue::FromColor(clearColor));
+            builder.WriteColor(colour, LoadOp::Clear, ClearValue::FromColor(clearColor));
             builder.WriteDepth(depth, LoadOp::Clear, 1.0f);
 
             return [this, &preparedFrame, &params, viewMat, projMat, sceneGlobals, hasCamera]
@@ -309,9 +309,9 @@ namespace Wayfinder
 
         // ── Debug Pass ───────────────────────────────────────
         graph.AddPass("Debug", [&, viewMat = view, projMat = projection, hasCamera](RenderGraphBuilder& builder) -> RenderGraphExecuteFn {
-            auto color = graph.FindHandle(WellKnown::SceneColor);
+            auto colour = graph.FindHandle(WellKnown::SceneColor);
             auto depth = graph.FindHandle(WellKnown::SceneDepth);
-            builder.WriteColor(color, LoadOp::Load);
+            builder.WriteColor(colour, LoadOp::Load);
             builder.WriteDepth(depth, LoadOp::Load);
 
             return [this, &preparedFrame, &params, viewMat, projMat, hasCamera]
@@ -423,12 +423,12 @@ namespace Wayfinder
 
         // ── Composition Pass ─────────────────────────────────
         graph.AddPass("Composition", [&](RenderGraphBuilder& builder) -> RenderGraphExecuteFn {
-            auto color = graph.FindHandle(WellKnown::SceneColor);
-            builder.ReadTexture(color);
+            auto colour = graph.FindHandle(WellKnown::SceneColor);
+            builder.ReadTexture(colour);
             builder.SetSwapchainOutput(LoadOp::DontCare);
 
-            return [this, color](RenderDevice& device, const RenderGraphResources& resources) {
-                auto sceneColorTex = resources.GetTexture(color);
+            return [this, colour](RenderDevice& device, const RenderGraphResources& resources) {
+                auto sceneColorTex = resources.GetTexture(colour);
 
                 const ShaderProgram* compProgram = m_context->GetPrograms().Find("composition");
                 const auto nearestSampler = m_context->GetNearestSampler();

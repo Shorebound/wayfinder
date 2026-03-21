@@ -60,16 +60,16 @@ TEST_CASE("Topological sort respects resource dependencies")
     colorDesc.DebugName = Wayfinder::WellKnown::SceneColor;
 
     graph.AddPass("A_WriteColor", [&](Wayfinder::RenderGraphBuilder& builder) -> Wayfinder::RenderGraphExecuteFn {
-        auto color = builder.CreateTransient(colorDesc);
-        builder.WriteColor(color);
+        auto colourr = builder.CreateTransient(colorDesc);
+        builder.WriteColor(colour);
         return [&executionOrder](Wayfinder::RenderDevice&, const Wayfinder::RenderGraphResources&) {
             executionOrder.push_back("A");
         };
     });
 
     graph.AddPass("B_ReadAndPresent", [&](Wayfinder::RenderGraphBuilder& builder) -> Wayfinder::RenderGraphExecuteFn {
-        auto color = graph.FindHandle(Wayfinder::WellKnown::SceneColor);
-        builder.ReadTexture(color);
+        auto colour = graph.FindHandle(Wayfinder::WellKnown::SceneColor);
+        builder.ReadTexture(colour);
         builder.SetSwapchainOutput();
         return [&executionOrder](Wayfinder::RenderDevice&, const Wayfinder::RenderGraphResources&) {
             executionOrder.push_back("B");
@@ -88,7 +88,7 @@ TEST_CASE("Topological sort respects resource dependencies")
 
 TEST_CASE("Three-pass chain executes in dependency order")
 {
-    // A writes color -> B reads color, writes to color (load) -> C reads color, writes swapchain
+    // A writes colour -> B reads colour, writes to colour (load) -> C reads colour, writes swapchain
     std::vector<std::string> executionOrder;
     Wayfinder::RenderGraph graph;
 
@@ -422,9 +422,9 @@ TEST_CASE("Depth target pass compiles and executes")
     depthDesc.DebugName = "SceneDepth";
 
     graph.AddPass("Scene", [&](Wayfinder::RenderGraphBuilder& builder) -> Wayfinder::RenderGraphExecuteFn {
-        auto color = builder.CreateTransient(colorDesc);
+        auto colour = builder.CreateTransient(colorDesc);
         auto depth = builder.CreateTransient(depthDesc);
-        builder.WriteColor(color);
+        builder.WriteColor(colour);
         builder.WriteDepth(depth);
         return [&executionOrder](Wayfinder::RenderDevice&, const Wayfinder::RenderGraphResources&) {
             executionOrder.push_back("Scene");
@@ -432,8 +432,8 @@ TEST_CASE("Depth target pass compiles and executes")
     });
 
     graph.AddPass("Composition", [&](Wayfinder::RenderGraphBuilder& builder) -> Wayfinder::RenderGraphExecuteFn {
-        auto color = graph.FindHandle("SceneColor");
-        builder.ReadTexture(color);
+        auto colour = graph.FindHandle("SceneColor");
+        builder.ReadTexture(colour);
         builder.SetSwapchainOutput();
         return [&executionOrder](Wayfinder::RenderDevice&, const Wayfinder::RenderGraphResources&) {
             executionOrder.push_back("Composition");

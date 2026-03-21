@@ -444,7 +444,7 @@ namespace
     bool ValidateLight(const toml::table& componentTable, std::string& error)
     {
         return ValidateOptionalEnumValue(componentTable, "type", {"point", "directional"}, error)
-            && ValidateOptionalColor(componentTable, "color", error)
+            && ValidateOptionalColor(componentTable, "colour", error)
             && ValidateOptionalNumber(componentTable, "intensity", error)
             && ValidateOptionalNumber(componentTable, "range", error)
             && ValidateOptionalBool(componentTable, "debug_draw", error);
@@ -609,7 +609,7 @@ namespace
     {
         Wayfinder::LightComponent light;
         light.Type = ReadLightType(componentTable, "type", light.Type);
-        light.Tint = ReadColor(componentTable, "color", light.Tint);
+        light.Tint = ReadColor(componentTable, "colourr", light.Tint);
         light.Intensity = ReadFloat(componentTable, "intensity", light.Intensity);
         light.Range = ReadFloat(componentTable, "range", light.Range);
         light.DebugDraw = componentTable["debug_draw"].value_or(light.DebugDraw);
@@ -872,7 +872,7 @@ namespace
         const Wayfinder::LightComponent& light = entity.GetComponent<Wayfinder::LightComponent>();
         toml::table componentTable;
         componentTable.insert_or_assign("type", std::string{ToString(light.Type)});
-        componentTable.insert_or_assign("color", WriteColor(light.Tint));
+        componentTable.insert_or_assign("colour", WriteColor(light.Tint));
         componentTable.insert_or_assign("intensity", light.Intensity);
         componentTable.insert_or_assign("range", light.Range);
         componentTable.insert_or_assign("debug_draw", light.DebugDraw);
