@@ -16,6 +16,17 @@ namespace Wayfinder
 
     namespace
     {
+        /// Parse a 3-element TOML array into a Float3, falling back to @p defaultValue.
+        Float3 ParseFloat3Array(const toml::array* arr, const Float3& defaultValue)
+        {
+            if (!arr || arr->size() != 3)
+                return defaultValue;
+            return {
+                arr->get(0)->value_or(defaultValue.x),
+                arr->get(1)->value_or(defaultValue.y),
+                arr->get(2)->value_or(defaultValue.z)};
+        }
+
         // --- RigidBodyComponent ---
 
         void RegisterRigidBody(flecs::world& world)
@@ -39,22 +50,8 @@ namespace Wayfinder
 
             rb.Mass = table["mass"].value_or(1.0f);
             rb.GravityFactor = table["gravity_factor"].value_or(1.0f);
-
-            if (auto vel = table["linear_velocity"].as_array(); vel && vel->size() == 3)
-            {
-                rb.LinearVelocity = {
-                    vel->get(0)->value_or(0.0f),
-                    vel->get(1)->value_or(0.0f),
-                    vel->get(2)->value_or(0.0f)};
-            }
-
-            if (auto vel = table["angular_velocity"].as_array(); vel && vel->size() == 3)
-            {
-                rb.AngularVelocity = {
-                    vel->get(0)->value_or(0.0f),
-                    vel->get(1)->value_or(0.0f),
-                    vel->get(2)->value_or(0.0f)};
-            }
+            rb.LinearVelocity = ParseFloat3Array(table["linear_velocity"].as_array(), {0.0f, 0.0f, 0.0f});
+            rb.AngularVelocity = ParseFloat3Array(table["angular_velocity"].as_array(), {0.0f, 0.0f, 0.0f});
 
             entity.AddComponent<RigidBodyComponent>(rb);
         }
@@ -122,13 +119,7 @@ namespace Wayfinder
                     col.Shape = ColliderShape::Box;
             }
 
-            if (auto ext = table["half_extents"].as_array(); ext && ext->size() == 3)
-            {
-                col.HalfExtents = {
-                    ext->get(0)->value_or(0.5f),
-                    ext->get(1)->value_or(0.5f),
-                    ext->get(2)->value_or(0.5f)};
-            }
+            col.HalfExtents = ParseFloat3Array(table["half_extents"].as_array(), {0.5f, 0.5f, 0.5f});
 
             col.Radius = table["radius"].value_or(0.5f);
             col.Friction = table["friction"].value_or(0.2f);
@@ -201,6 +192,9 @@ namespace Wayfinder
 
         // PhysicsSync: create Jolt bodies for entities that have the
         // required components but no valid RuntimeBodyId yet.
+        // Initial body position comes from TransformComponent.Position (the
+        // authored local transform). At runtime, PhysicsWriteback writes
+        // simulated positions back into WorldTransformComponent.
         registry.RegisterSystem("PhysicsSync", [](flecs::world& world)
         {
             world.system<RigidBodyComponent, const ColliderComponent, const TransformComponent>("PhysicsSync")

@@ -215,8 +215,8 @@ namespace Wayfinder
         }
 
         // Map BodyType → Jolt motion type and object layer
-        JPH::EMotionType motionType;
-        JPH::ObjectLayer objectLayer;
+        JPH::EMotionType motionType = JPH::EMotionType::Dynamic;
+        JPH::ObjectLayer objectLayer = PhysicsLayers::MOVING;
         switch (body.Type)
         {
         case BodyType::Static:
@@ -229,10 +229,6 @@ namespace Wayfinder
             break;
         case BodyType::Kinematic:
             motionType = JPH::EMotionType::Kinematic;
-            objectLayer = PhysicsLayers::MOVING;
-            break;
-        default:
-            motionType = JPH::EMotionType::Dynamic;
             objectLayer = PhysicsLayers::MOVING;
             break;
         }
@@ -263,7 +259,11 @@ namespace Wayfinder
         JPH::Body* joltBody = bodyInterface.CreateBody(settings);
         if (!joltBody)
         {
-            WAYFINDER_ERROR(LogPhysics, "Failed to create Jolt body");
+            WAYFINDER_ERROR(LogPhysics,
+                "Failed to create Jolt body (type={}, shape={}, pos=[{},{},{}])",
+                static_cast<int>(body.Type),
+                static_cast<int>(collider.Shape),
+                position.x, position.y, position.z);
             return INVALID_PHYSICS_BODY;
         }
 

@@ -11,6 +11,13 @@
 
 using namespace Wayfinder;
 
+namespace
+{
+    /// Number of simulation steps used by gravity/movement tests (≈ 1 second at 60 Hz).
+    constexpr int SIMULATION_STEPS = 60;
+    constexpr float FIXED_DT = 1.0f / 60.0f;
+} // anonymous namespace
+
 // ── PhysicsWorld Lifecycle ──────────────────────────────────
 
 TEST_SUITE("Physics")
@@ -38,7 +45,9 @@ TEST_SUITE("Physics")
         CHECK(subsystem->GetWorld().IsInitialised());
 
         collection.Shutdown();
-        CHECK_FALSE(subsystem->GetWorld().IsInitialised());
+
+        // After shutdown, Get returns nullptr (subsystem is destroyed).
+        CHECK(collection.Get<PhysicsSubsystem>() == nullptr);
     }
 
     // ── Component Defaults ──────────────────────────────────────
@@ -133,8 +142,8 @@ TEST_SUITE("Physics")
         REQUIRE(id != INVALID_PHYSICS_BODY);
 
         // Step several times to let gravity take effect
-        for (int i = 0; i < 60; ++i)
-            world.Step(1.0f / 60.0f);
+        for (int i = 0; i < SIMULATION_STEPS; ++i)
+            world.Step(FIXED_DT);
 
         Float3 pos = world.GetBodyPosition(id);
         CHECK(pos.y < startY);
@@ -160,8 +169,8 @@ TEST_SUITE("Physics")
         uint32_t id = world.CreateBody(rb, col, {0.0f, 0.0f, 0.0f});
         REQUIRE(id != INVALID_PHYSICS_BODY);
 
-        for (int i = 0; i < 60; ++i)
-            world.Step(1.0f / 60.0f);
+        for (int i = 0; i < SIMULATION_STEPS; ++i)
+            world.Step(FIXED_DT);
 
         Float3 pos = world.GetBodyPosition(id);
         CHECK(pos.x == doctest::Approx(0.0f));
@@ -192,8 +201,8 @@ TEST_SUITE("Physics")
         REQUIRE(rb.RuntimeBodyId != INVALID_PHYSICS_BODY);
 
         // Simulate
-        for (int i = 0; i < 60; ++i)
-            physWorld.Step(1.0f / 60.0f);
+        for (int i = 0; i < SIMULATION_STEPS; ++i)
+            physWorld.Step(FIXED_DT);
 
         // Verify via position query
         Float3 pos = physWorld.GetBodyPosition(rb.RuntimeBodyId);
@@ -234,8 +243,8 @@ TEST_SUITE("Physics")
         REQUIRE(statId != INVALID_PHYSICS_BODY);
         CHECK(dynId != statId);
 
-        for (int i = 0; i < 60; ++i)
-            world.Step(1.0f / 60.0f);
+        for (int i = 0; i < SIMULATION_STEPS; ++i)
+            world.Step(FIXED_DT);
 
         // Dynamic body fell
         Float3 dynPos = world.GetBodyPosition(dynId);
@@ -288,5 +297,87 @@ TEST_SUITE("Physics")
 
         world.DestroyBody(id);
         world.Shutdown();
+    }
+
+    // ── Full ECS integration via flecs world ────────────────────
+
+    TEST_CASE("ECS systems create bodies and write back positions")
+    {
+        // Stand up a PhysicsSubsystem so GameSubsystems::Find works.
+        SubsystemCollection<GameSubsystem> subsystems;
+        subsystems.Register<PhysicsSubsystem>();
+        subsystems.Initialise();
+        GameSubsystems::Bind(&subsystems);
+
+        flecs::world ecsWorld;
+
+        // Register components
+        ecsWorld.component<RigidBodyComponent>();
+        ecsWorld.component<ColliderComponent>();
+        ecsWorld.component<TransformComponent>();
+        ecsWorld.component<WorldTransformComponent>();
+
+        // Register the PhysicsSync system (creates Jolt bodies)
+        ecsWorld.system<RigidBodyComponent, const ColliderComponent, const TransformComponent>("PhysicsSync")
+            .kind(flecs::PreUpdate)
+            .each([](flecs::entity e,
+                     RigidBodyComponent& rb,
+                     const ColliderComponent& col,
+                     const TransformComponent& transform)
+            {
+                if (rb.RuntimeBodyId != INVALID_PHYSICS_BODY)
+                    return;
+                auto* sub = GameSubsystems::Find<PhysicsSubsystem>();
+                if (!sub) return;
+                rb.RuntimeBodyId = sub->GetWorld().CreateBody(rb, col, transform.Position);
+            });
+
+        // Register the PhysicsStep system (steps the world)
+        ecsWorld.system("PhysicsStep")
+            .kind(flecs::OnUpdate)
+            .iter([](flecs::iter& it)
+            {
+                auto* sub = GameSubsystems::Find<PhysicsSubsystem>();
+                if (sub) sub->GetWorld().Step(it.delta_time());
+            });
+
+        // Register the PhysicsWriteback system
+        ecsWorld.system<const RigidBodyComponent, WorldTransformComponent>("PhysicsWriteback")
+            .kind(flecs::OnValidate)
+            .each([](flecs::entity e,
+                     const RigidBodyComponent& rb,
+                     WorldTransformComponent& wt)
+            {
+                if (rb.RuntimeBodyId == INVALID_PHYSICS_BODY) return;
+                if (rb.Type == BodyType::Static) return;
+                auto* sub = GameSubsystems::Find<PhysicsSubsystem>();
+                if (!sub) return;
+                wt.Position = sub->GetWorld().GetBodyPosition(rb.RuntimeBodyId);
+            });
+
+        // Create a dynamic entity at height 20
+        const float startY = 20.0f;
+        auto entity = ecsWorld.entity("FallingBox");
+        entity.set<TransformComponent>({{0.0f, startY, 0.0f}});
+        entity.set<WorldTransformComponent>({});
+        entity.set<RigidBodyComponent>({});
+        entity.set<ColliderComponent>({});
+
+        // Step the ECS world (which runs PhysicsSync → PhysicsStep → PhysicsWriteback)
+        for (int i = 0; i < SIMULATION_STEPS; ++i)
+            ecsWorld.progress(FIXED_DT);
+
+        // Verify: the WorldTransformComponent was updated by the writeback system
+        const auto* wt = entity.get<WorldTransformComponent>();
+        REQUIRE(wt != nullptr);
+        CHECK(wt->Position.y < startY);
+
+        // Verify: the RigidBodyComponent got a valid runtime body ID
+        const auto* rb = entity.get<RigidBodyComponent>();
+        REQUIRE(rb != nullptr);
+        CHECK(rb->RuntimeBodyId != INVALID_PHYSICS_BODY);
+
+        GameSubsystems::Unbind();
+        subsystems.Shutdown();
     }
 }
