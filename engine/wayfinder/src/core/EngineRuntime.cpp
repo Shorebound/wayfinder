@@ -4,6 +4,7 @@
 #include "EngineContext.h"
 #include "Log.h"
 #include "ProjectDescriptor.h"
+#include "Result.h"
 #include "platform/Input.h"
 #include "platform/Time.h"
 #include "platform/Window.h"
@@ -30,7 +31,7 @@ namespace Wayfinder
 
     // ── Lifecycle ────────────────────────────────────────────
 
-    bool EngineRuntime::Initialise()
+    Result<void> EngineRuntime::Initialise()
     {
         WAYFINDER_INFO(LogEngine, "Initialising EngineRuntime");
 
@@ -39,7 +40,7 @@ namespace Wayfinder
         if (!m_input)
         {
             WAYFINDER_ERROR(LogEngine, "EngineRuntime: Failed to create Input");
-            return false;
+            return MakeError("Failed to create Input");
         }
 
         m_time = Time::Create(m_config.Backends.Platform);
@@ -47,7 +48,7 @@ namespace Wayfinder
         {
             WAYFINDER_ERROR(LogEngine, "EngineRuntime: Failed to create Time");
             m_input = nullptr;
-            return false;
+            return MakeError("Failed to create Time");
         }
 
         // Window — must exist before RenderDevice (swapchain needs a surface)
@@ -63,7 +64,7 @@ namespace Wayfinder
             WAYFINDER_ERROR(LogEngine, "EngineRuntime: Failed to create Window");
             m_time = nullptr;
             m_input = nullptr;
-            return false;
+            return MakeError("Failed to create Window");
         }
 
         if (!m_window->Initialise())
@@ -72,7 +73,7 @@ namespace Wayfinder
             m_window = nullptr;
             m_time = nullptr;
             m_input = nullptr;
-            return false;
+            return MakeError("Failed to initialise Window");
         }
 
         // GPU device — needs window handle for swapchain
@@ -86,7 +87,7 @@ namespace Wayfinder
             m_window = nullptr;
             m_time = nullptr;
             m_input = nullptr;
-            return false;
+            return MakeError("Failed to initialise RenderDevice");
         }
 
         // Rendering
@@ -104,11 +105,11 @@ namespace Wayfinder
             m_window = nullptr;
             m_time = nullptr;
             m_input = nullptr;
-            return false;
+            return MakeError("Failed to initialise Renderer");
         }
 
         WAYFINDER_INFO(LogEngine, "EngineRuntime initialised");
-        return true;
+        return {};
     }
 
     void EngineRuntime::Shutdown()

@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Result.h"
+
 #include <memory>
 
 namespace Wayfinder
@@ -39,7 +41,15 @@ namespace Wayfinder
         ~EngineRuntime();
 
         // ── Lifecycle ────────────────────────────────────────
-        bool Initialise();
+        /**
+         * @brief Create and initialise platform and rendering services:
+         *        Input, Time, Window, RenderDevice, Renderer, and
+         *        SceneRenderExtractor.
+         * @return A successful Result on success, or an Error describing the
+         *         first subsystem that failed to initialise (e.g. window
+         *         creation, device or renderer initialisation).
+         */
+        Result<void> Initialise();
         void Shutdown();
 
         // ── Per-frame ────────────────────────────────────────

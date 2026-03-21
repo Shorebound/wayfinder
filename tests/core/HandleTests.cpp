@@ -56,8 +56,8 @@ TEST_CASE("Handle::Invalid() returns an invalid handle")
 {
     auto h = TestHandle::Invalid();
     CHECK_FALSE(h.IsValid());
-    CHECK(h.Index == 0);
-    CHECK(h.Generation == 0);
+    CHECK(+h.Index == 0);
+    CHECK(+h.Generation == 0);
 }
 
 TEST_CASE("Handle with non-zero generation is valid")
@@ -160,8 +160,8 @@ TEST_CASE("Stale handle is rejected after release and re-acquire")
     auto second = pool.Acquire(200);
 
     // Same slot index, but different generation
-    CHECK(first.Index == second.Index);
-    CHECK(first.Generation != second.Generation);
+    CHECK(+first.Index == +second.Index);
+    CHECK(+first.Generation != +second.Generation);
 
     // Old handle no longer valid
     CHECK_FALSE(pool.IsValid(first));
@@ -189,8 +189,8 @@ TEST_CASE("Multiple release-reacquire cycles bump generation")
     auto gen3 = h3.Generation;
 
     // All should use the same index (slot reuse via free list)
-    CHECK(h1.Index == h2.Index);
-    CHECK(h2.Index == h3.Index);
+    CHECK(+h1.Index == +h2.Index);
+    CHECK(+h2.Index == +h3.Index);
 
     // Generations should all differ
     CHECK(gen1 != gen2);
@@ -234,11 +234,11 @@ TEST_CASE("Released slots are reused before growing")
     pool.Release(h1); // Free slot 1
 
     auto h3 = pool.Acquire(3);
-    CHECK(h3.Index == h1.Index); // Reuses slot 1
+    CHECK(+h3.Index == +h1.Index); // Reuses slot 1
 
     pool.Release(h0);
     auto h4 = pool.Acquire(4);
-    CHECK(h4.Index == h0.Index); // Reuses slot 0
+    CHECK(+h4.Index == +h0.Index); // Reuses slot 0
 }
 
 // ── Pool Clear ───────────────────────────────────────────

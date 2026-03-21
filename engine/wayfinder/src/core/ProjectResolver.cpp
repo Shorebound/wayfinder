@@ -1,10 +1,23 @@
 #include "ProjectResolver.h"
 #include "Log.h"
+#include "Result.h"
 
 namespace Wayfinder
 {
 
-    std::optional<std::filesystem::path> FindProjectFile(const std::filesystem::path& startPath)
+    Result<std::filesystem::path> FindProjectFile()
+    {
+        std::error_code ec;
+        const auto cwd = std::filesystem::current_path(ec);
+        if (ec)
+        {
+            WAYFINDER_WARNING(LogEngine, "Failed to resolve current working directory: {}", ec.message());
+            return MakeError("Failed to resolve current working directory");
+        }
+        return FindProjectFile(cwd);
+    }
+
+    Result<std::filesystem::path> FindProjectFile(const std::filesystem::path& startPath)
     {
         std::error_code ec;
         std::filesystem::path searchDir = startPath;
@@ -17,7 +30,7 @@ namespace Wayfinder
         else if (ec)
         {
             WAYFINDER_WARNING(LogEngine, "Failed to stat start path '{}': {}", startPath.string(), ec.message());
-            return std::nullopt;
+            return MakeError("Failed to stat start path");
         }
 
         // Canonicalise so the walk-up terminates predictably.
@@ -26,7 +39,7 @@ namespace Wayfinder
         if (ec)
         {
             WAYFINDER_WARNING(LogEngine, "Failed to canonicalise start path '{}': {}", searchDir.string(), ec.message());
-            return std::nullopt;
+            return MakeError("Failed to canonicalise start path");
         }
 
         searchDir = canonical;
@@ -40,7 +53,7 @@ namespace Wayfinder
             if (ec)
             {
                 WAYFINDER_WARNING(LogEngine, "Failed to query existence of project file candidate '{}': {}", candidate.string(), ec.message());
-                return std::nullopt;
+                return MakeError("Failed to query project file candidate");
             }
 
             if (exists)
@@ -56,7 +69,7 @@ namespace Wayfinder
             searchDir = parent;
         }
 
-        return std::nullopt;
+        return MakeError("No project.wayfinder found");
     }
 
     std::optional<std::filesystem::path> FindAssetRoot(const std::filesystem::path& startPath)

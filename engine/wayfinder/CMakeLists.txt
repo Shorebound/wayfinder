@@ -78,8 +78,9 @@ target_link_libraries(${ENGINE_NAME}
       SDL3::SDL3
       glm::glm
       flecs::flecs_static
-  tomlplusplus::tomlplusplus
+      tomlplusplus::tomlplusplus
   nlohmann_json::nlohmann_json
+      Jolt
 )
 
 if(WAYFINDER_ENABLE_LOGGING)

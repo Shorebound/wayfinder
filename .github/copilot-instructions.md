@@ -137,6 +137,6 @@ All engine code lives in `Wayfinder`. Subdirectories under `engine/wayfinder/src
 
 ### Data Files
 
-- **JSON** for assets and structured data: scenes, prefabs, materials, and any data that is primarily editor-generated or benefits from nesting and schema validation.
-- **TOML** for human-authored configuration: engine config, gameplay tags, input mappings, project descriptors — flat files that people read and edit by hand.
+- **TOML** for hand-authored content: configuration, input mappings, etc. It's more readable and forgiving for humans, and supports comments.
+- **JSON** for interchange formats, generated data, and anything benefiting from schema validation such as assets, scene descriptions, render graph definitions, etc. The strictness and tooling support help catch errors early.
 - Validate data files at load time with clear error messages for authors.

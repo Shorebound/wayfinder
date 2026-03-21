@@ -1,15 +1,6 @@
 #pragma once
 
-/**
- * @brief Fundamental engine types — math aliases and colour primitives.
- *
- * This header is dependency-free within the engine (no rendering, scene, or
- * platform includes) so that any module can use these types without pulling
- * in heavier subsystems.
- */
-
 #include <cstdint>
-
 #include <glm/glm.hpp>
 
 namespace Wayfinder
@@ -17,9 +8,60 @@ namespace Wayfinder
 
     // ── Engine Math Aliases ──────────────────────────────────
 
+    using Float2 = glm::vec2;
     using Float3 = glm::vec3;
     using Float4 = glm::vec4;
+
+    using Int2 = glm::ivec2;
+    using Int3 = glm::ivec3;
+    using Int4 = glm::ivec4;
+
+    using UInt2 = glm::uvec2;
+    using UInt3 = glm::uvec3;
+    using UInt4 = glm::uvec4;
+
+    using Double2 = glm::dvec2;
+    using Double3 = glm::dvec3;
+    using Double4 = glm::dvec4;
+
+    using Bool2 = glm::bvec2;
+    using Bool3 = glm::bvec3;
+    using Bool4 = glm::bvec4;
+
+    using Matrix2 = glm::mat2;
+    using Matrix2x3 = glm::mat2x3;
+    using Matrix2x4 = glm::mat2x4;
+
+    using Matrix3x2 = glm::mat3x2;
+    using Matrix3 = glm::mat3;
+    using Matrix3x4 = glm::mat3x4;
+    
+    using Matrix4x2 = glm::mat4x2;
+    using Matrix4x3 = glm::mat4x3;
     using Matrix4 = glm::mat4;
+
+    enum class Axis
+    {
+        X,
+        Y,
+        Z
+    };
+
+    enum class RotationOrder
+    {
+        XYZ,
+        XZY,
+        YXZ,
+        YZX,
+        ZXY,
+        ZYX
+    };
+
+    enum class Handedness
+    {
+        Left,
+        Right
+    };
 
     // ── Colour ────────────────────────────────────────────────
 

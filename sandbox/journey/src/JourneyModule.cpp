@@ -4,6 +4,7 @@
 #include "core/GameplayTag.h"
 #include "core/GameState.h"
 #include "core/Plugin.h"
+#include "physics/PhysicsPlugin.h"
 #include "scene/entity/Entity.h"
 #include "core/EntryPoint.h"
 
@@ -146,6 +147,7 @@ class JourneyModule : public Wayfinder::Module
 {
     void Register(Wayfinder::ModuleRegistry& registry) override
     {
+        registry.AddPlugin<Wayfinder::Physics::PhysicsPlugin>();
         registry.AddPlugin<HealthPlugin>();
         registry.AddPlugin<GameplayPlugin>();
         registry.AddPlugin<TagDemoPlugin>();
