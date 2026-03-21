@@ -48,6 +48,7 @@ namespace Wayfinder::Physics
 
         RigidBodyComponent() = default;
         RigidBodyComponent(const RigidBodyComponent&) = default;
+        RigidBodyComponent& operator=(const RigidBodyComponent&) = default;
     };
 
     /**
@@ -69,6 +70,7 @@ namespace Wayfinder::Physics
 
         ColliderComponent() = default;
         ColliderComponent(const ColliderComponent&) = default;
+        ColliderComponent& operator=(const ColliderComponent&) = default;
     };
 
 } // namespace Wayfinder::Physics
