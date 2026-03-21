@@ -10,6 +10,7 @@
 
 #include <filesystem>
 #include <string>
+#include <string_view>
 
 #include <flecs.h>
 
@@ -115,7 +116,7 @@ namespace Wayfinder::Tests
             CHECK_FALSE(result);
         }
 
-        TEST_CASE("LoadFromFile rejects duplicate scene object ids")
+        TEST_CASE("Rejects scene files with duplicate object IDs")
         {
             flecs::world world;
             auto registry = MakeTestRegistry();
@@ -186,10 +187,12 @@ namespace Wayfinder::Tests
             CHECK_FALSE(result.Errors.empty());
         }
 
-        TEST_CASE("LoadSceneDocument returns duplicate id validation errors")
+        TEST_CASE("Reports duplicate object ID validation errors with entity context")
         {
             auto registry = MakeTestRegistry();
             auto path = FixturesDir() / "duplicate_scene_object_ids.json";
+            constexpr std::string_view expectedEntityId = "550e8400-e29b-41d4-a716-446655440099";
+            constexpr std::string_view expectedEntityName = "Second";
 
             auto result = LoadSceneDocument(path.string(), registry);
 
@@ -199,7 +202,9 @@ namespace Wayfinder::Tests
             bool foundDuplicateIdError = false;
             for (const std::string& error : result.Errors)
             {
-                if (error.find("duplicate entity id") != std::string::npos)
+                if (error.find("duplicate entity id") != std::string::npos &&
+                    error.find(expectedEntityId) != std::string::npos &&
+                    error.find(expectedEntityName) != std::string::npos)
                 {
                     foundDuplicateIdError = true;
                     break;
