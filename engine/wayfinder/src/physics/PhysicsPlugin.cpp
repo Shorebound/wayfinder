@@ -3,14 +3,13 @@
 #include "core/Log.h"
 #include "core/ModuleRegistry.h"
 #include "core/Subsystem.h"
+#include "maths/Maths.h"
 #include "scene/Components.h"
 #include "scene/entity/Entity.h"
 #include "PhysicsComponents.h"
 #include "PhysicsSubsystem.h"
 
 #include <flecs.h>
-#include <glm/gtc/matrix_transform.hpp>
-#include <glm/gtc/quaternion.hpp>
 #include <nlohmann/json.hpp>
 
 namespace Wayfinder::Physics
@@ -437,9 +436,9 @@ namespace Wayfinder::Physics
 
                     // Build LocalToWorld = translate * rotate * scale.
                     Quaternion q(rotQ.w, rotQ.x, rotQ.y, rotQ.z);
-                    Matrix4 rotMat = Matrix4_cast(q);
-                    Matrix4 translateMat = glm::translate(Matrix4(1.0f), pos);
-                    Matrix4 scaleMat = glm::scale(Matrix4(1.0f), wt.Scale);
+                    Matrix4 rotMat = Maths::ToMatrix4(q);
+                    Matrix4 translateMat = Maths::Translate(Matrix4(1.0f), pos);
+                    Matrix4 scaleMat = Maths::ScaleMatrix(Matrix4(1.0f), wt.Scale);
                     wt.LocalToWorld = translateMat * rotMat * scaleMat;
                 });
         },

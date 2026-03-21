@@ -128,7 +128,7 @@ Formatting is enforced by `.clang-format` (Allman braces, 4-space indent, no col
 
 All engine code lives in `Wayfinder`. Subdirectories under `engine/wayfinder/src/` should use sub-namespaces matching their domain:
 
-- `Wayfinder::Rendering`, `Wayfinder::Audio`, `Wayfinder::Physics`, `Wayfinder::UI`, `Wayfinder::Math3D`, etc.
+- `Wayfinder::Rendering`, `Wayfinder::Audio`, `Wayfinder::Physics`, `Wayfinder::UI`, `Wayfinder::Maths`, etc.
 
 ### Comments
 

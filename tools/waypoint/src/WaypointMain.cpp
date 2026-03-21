@@ -15,7 +15,7 @@
 #include <optional>
 #include <string>
 
-namespace
+namespace Wayfinder
 {
     void PrintUsage()
     {

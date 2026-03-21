@@ -7,7 +7,7 @@
 #include <type_traits>
 #include <unordered_set>
 
-namespace
+namespace Wayfinder::Tests
 {
     struct TestTag {};
     using TestHandle = Wayfinder::Handle<TestTag>;

@@ -11,7 +11,7 @@
 #include <filesystem>
 #include <unordered_map>
 
-namespace
+namespace Wayfinder
 {
     void LogDocumentErrors(const std::vector<std::string>& errors, const std::string& filePath)
     {

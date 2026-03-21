@@ -12,7 +12,7 @@
 using namespace Wayfinder;
 using TestHelpers::MakeTestRegistry;
 
-namespace
+namespace Wayfinder
 {
     /// Helper: create a scene with a single entity, apply component data, then serialise.
     /// Returns the serialised JSON object containing component data.

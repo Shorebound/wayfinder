@@ -13,7 +13,7 @@
 
 using namespace Wayfinder;
 
-namespace
+namespace Wayfinder::Tests
 {
     /// Constructs a headless-friendly EngineConfig with null backends.
     EngineConfig MakeNullConfig()

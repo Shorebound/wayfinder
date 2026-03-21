@@ -16,7 +16,7 @@ using namespace Wayfinder;
 using TestHelpers::FixturesDir;
 using TestHelpers::MakeTestRegistry;
 
-namespace
+namespace Wayfinder
 {
     /// Temporary file path under the fixtures directory for save tests.
     std::filesystem::path TempScenePath()

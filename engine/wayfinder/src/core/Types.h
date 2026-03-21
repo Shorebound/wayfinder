@@ -2,6 +2,7 @@
 
 #include <cstdint>
 #include <glm/glm.hpp>
+#include <glm/gtc/quaternion.hpp>
 
 namespace Wayfinder
 {
@@ -35,23 +36,20 @@ namespace Wayfinder
     using Matrix3x2 = glm::mat3x2;
     using Matrix3 = glm::mat3;
     using Matrix3x4 = glm::mat3x4;
-    
+
     using Matrix4x2 = glm::mat4x2;
     using Matrix4x3 = glm::mat4x3;
     using Matrix4 = glm::mat4;
 
     using Quaternion = glm::quat;
     using Translation = Float3;
-    using Rotation = Float3; 
+    using Rotation = Float3;
     using Scale = Float3;
 
     using Degrees = float;
     using Radians = float;
 
-    static Radians ToRadians(Degrees degrees) { return glm::radians(degrees); }
-    static Degrees ToDegrees(Radians radians) { return glm::degrees(radians); }
-    static Radians ToRadians(float degrees) { return glm::radians(degrees); }
-    static Degrees ToDegrees(float radians) { return glm::degrees(radians); }
+    // ── Coordinate-system / convention enums ─────────────────
 
     enum class Axis
     {

@@ -3,17 +3,16 @@
 #include "rendering/graph/SortKey.h"
 
 #include "core/Log.h"
+#include "maths/Maths.h"
 #include "scene/Components.h"
 #include "scene/Scene.h"
-
-#include <glm/gtc/matrix_transform.hpp>
 
 #include <array>
 #include <cstddef>
 #include <cstdint>
 #include <vector>
 
-namespace
+namespace Wayfinder
 {
     constexpr uint64_t kBuiltInBoxMeshKey = 1;
     constexpr uint64_t kBuiltInSurfaceMaterialKey = 1;
@@ -84,7 +83,7 @@ namespace Wayfinder
             const ActiveCameraStateComponent& activeCamera = scene.GetWorld().get<ActiveCameraStateComponent>();
             if (activeCamera.IsValid)
             {
-                cameraView = glm::lookAt(activeCamera.Position, activeCamera.Target, activeCamera.Up);
+                cameraView = Maths::LookAt(activeCamera.Position, activeCamera.Target, activeCamera.Up);
             }
         }
 
@@ -173,7 +172,7 @@ namespace Wayfinder
                 position = worldTransform.Position;
             }
 
-            const Float3 direction = Math3D::Normalize(Math3D::TransformDirection(localToWorld, {0.0f, 0.0f, -1.0f}));
+            const Float3 direction = Maths::Normalize(Maths::TransformDirection(localToWorld, {0.0f, 0.0f, -1.0f}));
 
             RenderLightSubmission submission;
             submission.Type = light.Type == LightType::Directional ? RenderLightType::Directional : RenderLightType::Point;
@@ -188,7 +187,7 @@ namespace Wayfinder
             if (light.DebugDraw)
             {
                 const float debugSize = light.Type == LightType::Directional ? 0.6f : 0.3f;
-                const Matrix4 debugTransform = Math3D::ComposeTransform(position, {0.0f, 0.0f, 0.0f}, {debugSize, debugSize, debugSize});
+                const Matrix4 debugTransform = Maths::ComposeTransform(position, {0.0f, 0.0f, 0.0f}, {debugSize, debugSize, debugSize});
 
                 RenderDebugBox debugBox;
                 debugBox.LocalToWorld = debugTransform;
@@ -205,7 +204,7 @@ namespace Wayfinder
 
                 if (light.Type == LightType::Directional)
                 {
-                    const Float3 lineEnd = Math3D::Add(position, Math3D::Scale(direction, 1.5f));
+                    const Float3 lineEnd = Maths::Add(position, Maths::Scale(direction, 1.5f));
                     RenderDebugLine debugLine;
                     debugLine.Start = position;
                     debugLine.End = lineEnd;

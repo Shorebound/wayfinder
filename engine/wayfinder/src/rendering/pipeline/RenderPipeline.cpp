@@ -13,11 +13,10 @@
 #include "rendering/backend/VertexFormats.h"
 
 #include "core/Log.h"
+#include "maths/Maths.h"
 
 #include <algorithm>
 #include <vector>
-#include <glm/glm.hpp>
-#include <glm/gtc/matrix_transform.hpp>
 
 namespace Wayfinder
 {
@@ -198,16 +197,16 @@ namespace Wayfinder
             const auto& camera = preparedFrame.Views.front().CameraState;
             const float aspect = static_cast<float>(swapW) / static_cast<float>(swapH);
 
-            view = glm::lookAt(camera.Position, camera.Target, camera.Up);
+            view = Maths::LookAt(camera.Position, camera.Target, camera.Up);
             if (camera.ProjectionType == 0)
             {
-                projection = glm::perspectiveRH_ZO(ToRadians(camera.FOV), aspect, 0.1f, 1000.0f);
+                projection = Maths::PerspectiveRH_ZO(Maths::ToRadians(camera.FOV), aspect, 0.1f, 1000.0f);
             }
             else
             {
                 const float halfH = camera.FOV * 0.5f;
                 const float halfW = halfH * aspect;
-                projection = glm::orthoRH_ZO(-halfW, halfW, -halfH, halfH, 0.1f, 1000.0f);
+                projection = Maths::OrthoRH_ZO(-halfW, halfW, -halfH, halfH, 0.1f, 1000.0f);
             }
             hasCamera = true;
         }
@@ -264,16 +263,16 @@ namespace Wayfinder
                             ? static_cast<float>(params.SwapchainWidth) / static_cast<float>(params.SwapchainHeight)
                             : 1.0f;
 
-                        passView = glm::lookAt(cam.Position, cam.Target, cam.Up);
+                        passView = Maths::LookAt(cam.Position, cam.Target, cam.Up);
                         if (cam.ProjectionType == 0)
                         {
-                            passProj = glm::perspectiveRH_ZO(ToRadians(cam.FOV), aspect, 0.1f, 1000.0f);
+                            passProj = Maths::PerspectiveRH_ZO(Maths::ToRadians(cam.FOV), aspect, 0.1f, 1000.0f);
                         }
                         else
                         {
                             const float halfH = cam.FOV * 0.5f;
                             const float halfW = halfH * aspect;
-                            passProj = glm::orthoRH_ZO(-halfW, halfW, -halfH, halfH, 0.1f, 1000.0f);
+                            passProj = Maths::OrthoRH_ZO(-halfW, halfW, -halfH, halfH, 0.1f, 1000.0f);
                         }
                     }
 
@@ -506,7 +505,7 @@ namespace Wayfinder
         {
             if (light.Type == RenderLightType::Directional)
             {
-                globals.LightDirection = glm::normalize(light.Direction);
+                globals.LightDirection = Maths::Normalize(light.Direction);
                 globals.LightIntensity = light.Intensity;
                 globals.LightColour = LinearColour::FromColour(light.Tint).ToFloat3();
                 return globals;
@@ -514,7 +513,7 @@ namespace Wayfinder
         }
 
         // Default: sun-like light from upper-right
-        globals.LightDirection = glm::normalize(Float3{-0.4f, -0.7f, -0.5f});
+        globals.LightDirection = Maths::Normalize(Float3{-0.4f, -0.7f, -0.5f});
         return globals;
     }
 

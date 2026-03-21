@@ -17,7 +17,7 @@
 
 using namespace Wayfinder;
 
-namespace
+namespace Wayfinder::Tests
 {
     bool g_TestPluginBuildCalled = false;
 

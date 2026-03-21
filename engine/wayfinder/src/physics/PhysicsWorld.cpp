@@ -1,5 +1,6 @@
 #include "PhysicsWorld.h"
 #include "core/Log.h"
+#include "maths/Maths.h"
 
 // Jolt includes — Jolt.h must come first.
 #include <Jolt/Jolt.h>
@@ -17,8 +18,6 @@
 #include <Jolt/RegisterTypes.h>
 
 #include <mutex>
-
-#include <glm/trigonometric.hpp>
 
 namespace Wayfinder::Physics
 {
@@ -302,10 +301,10 @@ namespace Wayfinder::Physics
         // Convert Euler ZYX degrees to Jolt quaternion.
         // Jolt's sEulerAngles applies rotations in X-Y-Z intrinsic order.
         // TransformComponent.Rotation stores degrees in the same convention
-        // as Math3D::ComposeTransform (Z-Y-X extrinsic = X-Y-Z intrinsic).
-        float rx = ToRadians(rotationDegrees.x);
-        float ry = ToRadians(rotationDegrees.y);
-        float rz = ToRadians(rotationDegrees.z);
+        // as Maths::ComposeTransform (Z-Y-X extrinsic = X-Y-Z intrinsic).
+        float rx = Maths::ToRadians(rotationDegrees.x);
+        float ry = Maths::ToRadians(rotationDegrees.y);
+        float rz = Maths::ToRadians(rotationDegrees.z);
         JPH::Quat rotation = JPH::Quat::sEulerAngles(JPH::Vec3(rx, ry, rz));
 
         JPH::BodyCreationSettings settings(

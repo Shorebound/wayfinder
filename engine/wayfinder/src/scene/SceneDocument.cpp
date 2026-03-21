@@ -11,7 +11,7 @@
 #include <unordered_map>
 #include <unordered_set>
 
-namespace
+namespace Wayfinder
 {
     const std::string kSceneNameKey = "scene_name";
     const std::string kSettingsKey = "settings";

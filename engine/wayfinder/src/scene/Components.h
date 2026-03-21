@@ -65,7 +65,7 @@ namespace Wayfinder
 
         Matrix4 GetLocalMatrix() const
         {
-            return Math3D::ComposeTransform(Position, Rotation, Scale);
+            return Maths::ComposeTransform(Position, Rotation, Scale);
         }
     };
 

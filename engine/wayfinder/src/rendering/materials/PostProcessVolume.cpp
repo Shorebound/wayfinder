@@ -1,12 +1,12 @@
 #include "PostProcessVolume.h"
 
+#include "maths/Maths.h"
+
 #include <algorithm>
 #include <cmath>
 #include <vector>
 
-#include <glm/glm.hpp>
-
-namespace
+namespace Wayfinder
 {
     float ComputeDistanceToVolume(
         const Wayfinder::PostProcessVolumeComponent& volume,
@@ -23,34 +23,34 @@ namespace
 
         if (volume.Shape == PostProcessVolumeShape::Sphere)
         {
-            const Float3 absScale = glm::abs(worldScale);
-            const float scaledRadius = volume.Radius * glm::max(absScale.x, glm::max(absScale.y, absScale.z));
-            return glm::max(glm::length(offset) - scaledRadius, 0.0f);
+            const Float3 absScale = Maths::Abs(worldScale);
+            const float scaledRadius = volume.Radius * Maths::Max(absScale.x, Maths::Max(absScale.y, absScale.z));
+            return Maths::Max(Maths::Length(offset) - scaledRadius, 0.0f);
         }
 
         // Box: extract rotation from local-to-world, rotate offset into local
         // orientation, then compute axis-aligned distance with scaled extents.
         Matrix3 rotMat(localToWorld);
-        rotMat[0] = glm::normalize(rotMat[0]);
-        rotMat[1] = glm::normalize(rotMat[1]);
-        rotMat[2] = glm::normalize(rotMat[2]);
-        const Float3 localOffset = glm::transpose(rotMat) * offset;
+        rotMat[0] = Maths::Normalize(rotMat[0]);
+        rotMat[1] = Maths::Normalize(rotMat[1]);
+        rotMat[2] = Maths::Normalize(rotMat[2]);
+        const Float3 localOffset = Maths::Transpose(rotMat) * offset;
 
-        const Float3 halfExtents = (volume.Dimensions * 0.5f) * glm::abs(worldScale);
-        const Float3 absLocal = glm::abs(localOffset);
-        const Float3 outside = glm::max(absLocal - halfExtents, Float3(0.0f));
-        return glm::length(outside);
+        const Float3 halfExtents = (volume.Dimensions * 0.5f) * Maths::Abs(worldScale);
+        const Float3 absLocal = Maths::Abs(localOffset);
+        const Float3 outside = Maths::Max(absLocal - halfExtents, Float3(0.0f));
+        return Maths::Length(outside);
     }
 
     float ComputeBlendWeight(float distance, float blendDistance)
     {
         if (blendDistance <= 0.0f) { return distance <= 0.0f ? 1.0f : 0.0f; }
-        return glm::clamp(1.0f - (distance / blendDistance), 0.0f, 1.0f);
+        return Maths::Clamp(1.0f - (distance / blendDistance), 0.0f, 1.0f);
     }
 
     uint8_t LerpByte(uint8_t a, uint8_t b, float t)
     {
-        return static_cast<uint8_t>(glm::clamp(
+        return static_cast<uint8_t>(Maths::Clamp(
             static_cast<float>(a) + (static_cast<float>(b) - static_cast<float>(a)) * t,
             0.0f, 255.0f));
     }
@@ -79,11 +79,11 @@ namespace
             const auto& b = std::get<T>(target);
 
             if constexpr (std::is_same_v<T, float>)
-                return glm::mix(a, b, weight);
+                return Maths::Mix(a, b, weight);
             else if constexpr (std::is_same_v<T, int32_t>)
-                return static_cast<int32_t>(std::round(glm::mix(static_cast<float>(a), static_cast<float>(b), weight)));
+                return static_cast<int32_t>(std::round(Maths::Mix(static_cast<float>(a), static_cast<float>(b), weight)));
             else if constexpr (std::is_same_v<T, Wayfinder::Float3>)
-                return glm::mix(a, b, weight);
+                return Maths::Mix(a, b, weight);
             else if constexpr (std::is_same_v<T, Wayfinder::Colour>)
                 return LerpColour(a, b, weight);
             else

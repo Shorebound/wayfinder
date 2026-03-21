@@ -7,7 +7,7 @@
 #include <string>
 #include <vector>
 
-namespace
+namespace Wayfinder
 {
     // Helper: create a NullDevice + TransientResourcePool for graph execution
     struct GraphTestFixture

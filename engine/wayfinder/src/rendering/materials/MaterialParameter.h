@@ -9,8 +9,6 @@
 #include <variant>
 #include <vector>
 
-#include <glm/glm.hpp>
-
 namespace Wayfinder
 {
     // ── Material Parameter Types ─────────────────────────────

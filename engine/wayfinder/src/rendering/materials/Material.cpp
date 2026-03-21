@@ -1,8 +1,8 @@
 #include "Material.h"
-
+#include "core/Types.h"
 #include <fstream>
 
-namespace
+namespace Wayfinder
 {
     constexpr std::string_view kAssetIdKey = "asset_id";
     constexpr std::string_view kAssetTypeKey = "asset_type";
@@ -64,7 +64,7 @@ namespace
                     }
                     else if (node.size() == 3)
                     {
-                        Float3 v{
+                        Wayfinder::Float3 v{
                             static_cast<float>(node[0].get<double>()),
                             static_cast<float>(node[1].get<double>()),
                             static_cast<float>(node[2].get<double>())};
@@ -72,7 +72,7 @@ namespace
                     }
                     else if (node.size() == 4)
                     {
-                        Float4 v{
+                        Wayfinder::Float4 v{
                             static_cast<float>(node[0].get<double>()),
                             static_cast<float>(node[1].get<double>()),
                             static_cast<float>(node[2].get<double>()),
@@ -82,7 +82,7 @@ namespace
                 }
                 else if (node.size() == 2)
                 {
-                    Float2 v{
+                    Wayfinder::Float2 v{
                         static_cast<float>(node[0].get<double>()),
                         static_cast<float>(node[1].get<double>())};
                     block.SetVec2(name, v);

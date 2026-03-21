@@ -13,7 +13,7 @@
 #include <flecs.h>
 #include <string>
 
-namespace
+namespace Wayfinder
 {
     Wayfinder::RenderMeshSubmission MakeSolidMesh(uint8_t sortPriority, const Wayfinder::Colour& colour)
     {

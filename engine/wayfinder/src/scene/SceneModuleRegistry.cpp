@@ -4,7 +4,7 @@
 
 #include <array>
 
-namespace
+namespace Wayfinder
 {
     template <typename T>
     void RegisterRuntimeComponent(flecs::world& world)
@@ -25,12 +25,12 @@ namespace
 
         const Wayfinder::TransformComponent& localTransform = entityHandle.get<Wayfinder::TransformComponent>();
         const Wayfinder::Matrix4 localMatrix = localTransform.GetLocalMatrix();
-        const Wayfinder::Matrix4 worldMatrix = Wayfinder::Math3D::Multiply(localMatrix, parentMatrix);
+        const Wayfinder::Matrix4 worldMatrix = Wayfinder::Maths::Multiply(localMatrix, parentMatrix);
 
         Wayfinder::WorldTransformComponent cachedWorldTransform;
         cachedWorldTransform.LocalToWorld = worldMatrix;
-        cachedWorldTransform.Position = Wayfinder::Math3D::TransformPoint(worldMatrix, {0.0f, 0.0f, 0.0f});
-        cachedWorldTransform.Scale = Wayfinder::Math3D::ExtractScale(worldMatrix);
+        cachedWorldTransform.Position = Wayfinder::Maths::TransformPoint(worldMatrix, {0.0f, 0.0f, 0.0f});
+        cachedWorldTransform.Scale = Wayfinder::Maths::ExtractScale(worldMatrix);
 
         entityHandle.set<Wayfinder::WorldTransformComponent>(cachedWorldTransform);
         entityHandle.children([&](flecs::entity child)
@@ -49,7 +49,7 @@ namespace
             {
                 world.children([&](flecs::entity child)
                 {
-                    UpdateWorldTransformRecursive(child, Wayfinder::Math3D::Identity());
+                    UpdateWorldTransformRecursive(child, Wayfinder::Maths::Identity());
                 });
             });
     }
@@ -80,7 +80,7 @@ namespace
                         const auto& worldTransform = entityHandle.get<Wayfinder::WorldTransformComponent>();
                         activeCamera.Position = worldTransform.Position;
                         activeCamera.Target = camera.Target;
-                        activeCamera.Up = Wayfinder::Math3D::Normalize(Wayfinder::Math3D::TransformDirection(worldTransform.LocalToWorld, camera.Up));
+                        activeCamera.Up = Wayfinder::Maths::Normalize(Wayfinder::Maths::TransformDirection(worldTransform.LocalToWorld, camera.Up));
                     }
                     else
                     {

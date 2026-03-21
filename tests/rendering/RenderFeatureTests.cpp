@@ -12,7 +12,7 @@
 #include <string>
 #include <vector>
 
-namespace
+namespace Wayfinder
 {
     // A minimal test feature that records when AddPasses is called.
     class TestFeature : public Wayfinder::RenderFeature

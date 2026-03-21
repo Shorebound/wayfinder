@@ -4,7 +4,7 @@
 
 #include <doctest/doctest.h>
 
-namespace
+namespace Wayfinder
 {
     Wayfinder::EngineConfig MakeTestConfig()
     {

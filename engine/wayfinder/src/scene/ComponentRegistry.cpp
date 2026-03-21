@@ -10,7 +10,7 @@
 #include <array>
 #include <sstream>
 
-namespace
+namespace Wayfinder
 {
     std::optional<Wayfinder::AssetId> ReadOptionalAssetId(const nlohmann::json& data, const char* key)
     {
