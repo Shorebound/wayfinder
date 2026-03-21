@@ -58,6 +58,8 @@ TEST_SUITE("Physics")
         CHECK(rb.Type == BodyType::Dynamic);
         CHECK(rb.Mass == doctest::Approx(1.0f));
         CHECK(rb.GravityFactor == doctest::Approx(1.0f));
+        CHECK(rb.LinearDamping == doctest::Approx(0.05f));
+        CHECK(rb.AngularDamping == doctest::Approx(0.05f));
         CHECK(rb.RuntimeBodyId == INVALID_PHYSICS_BODY);
     }
 
@@ -69,6 +71,7 @@ TEST_SUITE("Physics")
         CHECK(col.HalfExtents.y == doctest::Approx(0.5f));
         CHECK(col.HalfExtents.z == doctest::Approx(0.5f));
         CHECK(col.Radius == doctest::Approx(0.5f));
+        CHECK(col.Height == doctest::Approx(1.0f));
         CHECK(col.Friction == doctest::Approx(0.2f));
         CHECK(col.Restitution == doctest::Approx(0.0f));
     }
@@ -117,6 +120,31 @@ TEST_SUITE("Physics")
 
         Float3 pos = world.GetBodyPosition(id);
         CHECK(pos.x == doctest::Approx(5.0f));
+
+        world.DestroyBody(id);
+        world.Shutdown();
+    }
+
+    TEST_CASE("CreateBody works with capsule collider")
+    {
+        PhysicsWorld world;
+        world.Initialise();
+
+        RigidBodyComponent rb;
+        rb.Type = BodyType::Dynamic;
+
+        ColliderComponent col;
+        col.Shape = ColliderShape::Capsule;
+        col.Radius = 0.5f;
+        col.Height = 2.0f;
+
+        uint32_t id = world.CreateBody(rb, col, {0.0f, 10.0f, 0.0f});
+        CHECK(id != INVALID_PHYSICS_BODY);
+
+        Float3 pos = world.GetBodyPosition(id);
+        CHECK(pos.x == doctest::Approx(0.0f));
+        CHECK(pos.y == doctest::Approx(10.0f));
+        CHECK(pos.z == doctest::Approx(0.0f));
 
         world.DestroyBody(id);
         world.Shutdown();

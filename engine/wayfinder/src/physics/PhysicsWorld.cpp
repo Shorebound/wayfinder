@@ -10,6 +10,7 @@
 #include <Jolt/Physics/Body/BodyCreationSettings.h>
 #include <Jolt/Physics/Body/BodyInterface.h>
 #include <Jolt/Physics/Collision/Shape/BoxShape.h>
+#include <Jolt/Physics/Collision/Shape/CapsuleShape.h>
 #include <Jolt/Physics/Collision/Shape/SphereShape.h>
 #include <Jolt/Physics/PhysicsSettings.h>
 #include <Jolt/Physics/PhysicsSystem.h>
@@ -209,6 +210,9 @@ namespace Wayfinder
         case ColliderShape::Sphere:
             shape = new JPH::SphereShape(collider.Radius);
             break;
+        case ColliderShape::Capsule:
+            shape = new JPH::CapsuleShape(collider.Height * 0.5f, collider.Radius);
+            break;
         default:
             WAYFINDER_ERROR(LogPhysics, "Unknown ColliderShape");
             return INVALID_PHYSICS_BODY;
@@ -243,6 +247,8 @@ namespace Wayfinder
         if (body.Type == BodyType::Dynamic)
         {
             settings.mGravityFactor = body.GravityFactor;
+            settings.mLinearDamping = body.LinearDamping;
+            settings.mAngularDamping = body.AngularDamping;
             settings.mLinearVelocity = JPH::Vec3(
                 body.LinearVelocity.x,
                 body.LinearVelocity.y,
