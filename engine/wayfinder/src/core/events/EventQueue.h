@@ -51,24 +51,24 @@ namespace Wayfinder
         template <typename THandler>
         void Drain(THandler&& handler)
         {
-            /// Swap out all active buffers into drain storage.
+            // Swap out all active buffers into drain storage.
             for (auto& [_, buf] : m_buffers)
             {
                 buf->PrepareForDrain();
             }
 
-            /// Swap out the insertion-order list.
+            // Swap out the insertion-order list.
             std::vector<OrderEntry> batch;
             batch.swap(m_order);
             m_totalSize = 0;
 
-            /// Dispatch each event in its original insertion order.
+            // Dispatch each event in its original insertion order.
             for (auto& entry : batch)
             {
                 handler(entry.Buffer->At(entry.Index));
             }
 
-            /// Clean up drain storage and preserve capacity.
+            // Clean up drain storage and preserve capacity.
             for (auto& [_, buf] : m_buffers)
             {
                 buf->FinishDrain();
@@ -125,7 +125,7 @@ namespace Wayfinder
             {
                 return static_cast<TypedEventBuffer<TEvent>&>(*it->second);
             }
-            auto [inserted, _] = m_buffers.emplace(
+            auto [inserted, success] = m_buffers.emplace(
                 key, std::make_unique<TypedEventBuffer<TEvent>>());
             return static_cast<TypedEventBuffer<TEvent>&>(*inserted->second);
         }
