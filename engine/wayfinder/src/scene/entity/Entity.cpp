@@ -49,7 +49,13 @@ namespace Wayfinder
 
     void Entity::SetSceneObjectId(const SceneObjectId& id)
     {
+        const SceneObjectId previousId = GetSceneObjectId();
         m_entityHandle.set<SceneObjectIdComponent>({id});
+
+        if (m_scene != nullptr)
+        {
+            m_scene->UpdateEntityId(m_entityHandle, previousId, id);
+        }
     }
 
     bool Entity::HasPrefabAssetId() const

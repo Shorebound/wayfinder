@@ -10,6 +10,7 @@
 
 #include <filesystem>
 #include <string>
+#include <string_view>
 
 #include <flecs.h>
 
@@ -115,6 +116,20 @@ namespace Wayfinder::Tests
             CHECK_FALSE(result);
         }
 
+        TEST_CASE("Rejects scene files with duplicate object IDs")
+        {
+            flecs::world world;
+            auto registry = MakeTestRegistry();
+            registry.RegisterComponents(world);
+            Scene::RegisterCoreECS(world);
+            Scene scene(world, registry, "Default");
+
+            auto path = FixturesDir() / "duplicate_scene_object_ids.json";
+            CHECK_FALSE(scene.LoadFromFile(path.string()));
+            CHECK_FALSE(scene.GetEntityByName("First").IsValid());
+            CHECK_FALSE(scene.GetEntityByName("Second").IsValid());
+        }
+
         TEST_CASE("LoadFromFile handles non-existent file gracefully")
         {
             flecs::world world;
@@ -170,6 +185,33 @@ namespace Wayfinder::Tests
 
             CHECK_FALSE(result.Document.has_value());
             CHECK_FALSE(result.Errors.empty());
+        }
+
+        TEST_CASE("Reports duplicate object ID validation errors with entity context")
+        {
+            auto registry = MakeTestRegistry();
+            auto path = FixturesDir() / "duplicate_scene_object_ids.json";
+            constexpr std::string_view expectedEntityId = "550e8400-e29b-41d4-a716-446655440099";
+            constexpr std::string_view expectedEntityName = "Second";
+
+            auto result = LoadSceneDocument(path.string(), registry);
+
+            CHECK_FALSE(result.Document.has_value());
+            REQUIRE_FALSE(result.Errors.empty());
+
+            bool foundDuplicateIdError = false;
+            for (const std::string& error : result.Errors)
+            {
+                if (error.find("duplicate entity id") != std::string::npos &&
+                    error.find(expectedEntityId) != std::string::npos &&
+                    error.find(expectedEntityName) != std::string::npos)
+                {
+                    foundDuplicateIdError = true;
+                    break;
+                }
+            }
+
+            CHECK(foundDuplicateIdError);
         }
 
         TEST_CASE("LoadSceneDocument preserves scene settings")

@@ -7,6 +7,8 @@
 #include <doctest/doctest.h>
 #include <flecs.h>
 
+#include <vector>
+
 namespace Wayfinder::Tests
 {
     using Helpers::MakeTestRegistry;
@@ -151,6 +153,51 @@ namespace Wayfinder::Tests
             auto found = scene.GetEntityById(id);
             CHECK(found.IsValid());
             CHECK(found == created);
+        }
+
+        TEST_CASE("GetEntityById resolves indexed lookups across many entities")
+        {
+            flecs::world world;
+            auto registry = MakeTestRegistry();
+            registry.RegisterComponents(world);
+            Scene::RegisterCoreECS(world);
+            Scene scene(world, registry, "TestScene");
+
+            std::vector<Entity> createdEntities;
+            createdEntities.reserve(100);
+
+            for (int i = 0; i < 100; ++i)
+            {
+                createdEntities.push_back(scene.CreateEntity("Entity"));
+            }
+
+            for (const Entity& created : createdEntities)
+            {
+                const auto found = scene.GetEntityById(created.GetSceneObjectId());
+                CHECK(found.IsValid());
+                CHECK(found == created);
+            }
+        }
+
+        TEST_CASE("GetEntityById tracks reassigned SceneObjectIds")
+        {
+            flecs::world world;
+            auto registry = MakeTestRegistry();
+            registry.RegisterComponents(world);
+            Scene::RegisterCoreECS(world);
+            Scene scene(world, registry, "TestScene");
+
+            auto entity = scene.CreateEntity("Player");
+            const SceneObjectId originalId = entity.GetSceneObjectId();
+            const SceneObjectId reassignedId = SceneObjectId::Generate();
+
+            entity.SetSceneObjectId(reassignedId);
+
+            CHECK_FALSE(scene.GetEntityById(originalId).IsValid());
+
+            const auto found = scene.GetEntityById(reassignedId);
+            CHECK(found.IsValid());
+            CHECK(found == entity);
         }
 
         TEST_CASE("GetEntityById returns invalid for unknown ID")
