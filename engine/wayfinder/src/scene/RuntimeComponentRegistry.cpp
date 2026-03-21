@@ -58,23 +58,22 @@ namespace Wayfinder
         }
     }
 
-    void RuntimeComponentRegistry::ApplyComponents(const toml::table& componentTables, Entity& entity) const
+    void RuntimeComponentRegistry::ApplyComponents(const nlohmann::json& componentTables, Entity& entity) const
     {
-        for (const auto& [key, node] : componentTables)
+        for (const auto& [key, node] : componentTables.items())
         {
-            const Entry* entry = Find(key.str());
+            const Entry* entry = Find(key);
             if (!entry || !entry->ApplyFn)
                 continue;
 
-            const toml::table* componentTable = node.as_table();
-            if (!componentTable)
+            if (!node.is_object())
                 continue;
 
-            entry->ApplyFn(*componentTable, entity);
+            entry->ApplyFn(node, entity);
         }
     }
 
-    void RuntimeComponentRegistry::SerializeComponents(const Entity& entity, toml::table& componentTables) const
+    void RuntimeComponentRegistry::SerializeComponents(const Entity& entity, nlohmann::json& componentTables) const
     {
         for (const Entry& entry : m_entries)
         {
@@ -83,7 +82,7 @@ namespace Wayfinder
         }
     }
 
-    bool RuntimeComponentRegistry::ValidateComponent(std::string_view key, const toml::table& componentTable, std::string& error) const
+    bool RuntimeComponentRegistry::ValidateComponent(std::string_view key, const nlohmann::json& componentData, std::string& error) const
     {
         const Entry* entry = Find(key);
         if (!entry || !entry->ValidateFn)
@@ -92,7 +91,7 @@ namespace Wayfinder
             return false;
         }
 
-        return entry->ValidateFn(componentTable, error);
+        return entry->ValidateFn(componentData, error);
     }
 
     bool RuntimeComponentRegistry::IsRegistered(std::string_view key) const

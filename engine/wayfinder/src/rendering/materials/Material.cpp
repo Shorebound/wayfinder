@@ -1,5 +1,7 @@
 #include "Material.h"
 
+#include <fstream>
+
 namespace
 {
     constexpr std::string_view kAssetIdKey = "asset_id";
@@ -10,63 +12,63 @@ namespace
     constexpr std::string_view kWireframeKey = "wireframe";
     constexpr std::string_view kParametersKey = "parameters";
 
-    // Parse a TOML array of 3 or 4 integers into a LinearColor.
-    bool ParseLinearColor(const toml::array* values, Wayfinder::LinearColor& color, std::string& error)
+    /// Parse a JSON array of 3 or 4 integers into a LinearColor.
+    bool ParseLinearColor(const nlohmann::json& values, Wayfinder::LinearColor& color, std::string& error)
     {
-        if (!values || (values->size() != 3 && values->size() != 4))
+        if (!values.is_array() || (values.size() != 3 && values.size() != 4))
         {
             error = "must be an array of 3 or 4 integers";
             return false;
         }
 
-        const auto readChannel = [&](size_t index, float fallback) -> float
+        auto readChannel = [&](size_t index, float fallback) -> float
         {
-            return static_cast<float>(values->get(index)->value_or(static_cast<int64_t>(static_cast<uint8_t>(fallback * 255.0f)))) / 255.0f;
+            if (!values[index].is_number_integer()) return fallback;
+            return static_cast<float>(values[index].get<int64_t>()) / 255.0f;
         };
 
         color.r = readChannel(0, color.r);
         color.g = readChannel(1, color.g);
         color.b = readChannel(2, color.b);
-        color.a = values->size() == 4 ? readChannel(3, color.a) : color.a;
+        color.a = values.size() == 4 ? readChannel(3, color.a) : color.a;
         return true;
     }
 
-    // Parse a TOML [parameters] table into a MaterialParameterBlock.
-    // Supports: arrays of 3–4 numbers as Color, single numbers as Float, integers as Int.
-    void ParseParametersTable(const toml::table& params, Wayfinder::MaterialParameterBlock& block)
+    /// Parse a JSON "parameters" object into a MaterialParameterBlock.
+    /// Supports: arrays of 3–4 numbers as Color, single numbers as Float, integers as Int.
+    void ParseParametersTable(const nlohmann::json& params, Wayfinder::MaterialParameterBlock& block)
     {
-        for (const auto& [key, node] : params)
+        for (const auto& [key, node] : params.items())
         {
-            const std::string name{key.str()};
+            const std::string name{key};
 
             if (node.is_array())
             {
-                const auto* arr = node.as_array();
-                if (arr->size() >= 3 && arr->size() <= 4)
+                if (node.size() >= 3 && node.size() <= 4)
                 {
                     // Treat as Color (integer RGBA → LinearColor)
                     Wayfinder::LinearColor color = Wayfinder::LinearColor::White();
                     std::string unused;
-                    if (ParseLinearColor(arr, color, unused))
+                    if (ParseLinearColor(node, color, unused))
                     {
                         block.SetColor(name, color);
                     }
                 }
-                else if (arr->size() == 2)
+                else if (node.size() == 2)
                 {
                     glm::vec2 v{
-                        static_cast<float>(arr->get(0)->value_or(0.0)),
-                        static_cast<float>(arr->get(1)->value_or(0.0))};
+                        static_cast<float>(node[0].get<double>()),
+                        static_cast<float>(node[1].get<double>())};
                     block.SetVec2(name, v);
                 }
             }
-            else if (node.is_floating_point())
+            else if (node.is_number_float())
             {
-                block.SetFloat(name, static_cast<float>(node.value_or(0.0)));
+                block.SetFloat(name, static_cast<float>(node.get<double>()));
             }
-            else if (node.is_integer())
+            else if (node.is_number_integer())
             {
-                block.SetInt(name, static_cast<int32_t>(node.value_or(static_cast<int64_t>(0))));
+                block.SetInt(name, static_cast<int32_t>(node.get<int64_t>()));
             }
         }
     }
@@ -90,33 +92,33 @@ namespace Wayfinder
     }
 
     bool ParseMaterialAssetDocument(
-        const toml::table& document,
+        const nlohmann::json& document,
         const std::string& sourceLabel,
         MaterialAsset& material,
         std::string& error)
     {
-        const auto assetIdText = document[kAssetIdKey].value<std::string>();
-        if (!assetIdText)
+        if (!document.contains(kAssetIdKey) || !document[kAssetIdKey].is_string())
         {
             error = "Material asset '" + sourceLabel + "' is missing asset_id";
             return false;
         }
 
-        const std::optional<AssetId> assetId = AssetId::Parse(*assetIdText);
+        const std::string assetIdText = document[kAssetIdKey].get<std::string>();
+        const std::optional<AssetId> assetId = AssetId::Parse(assetIdText);
         if (!assetId)
         {
             error = "Material asset '" + sourceLabel + "' has an invalid asset_id";
             return false;
         }
 
-        const auto assetType = document[kAssetTypeKey].value<std::string>();
-        if (!assetType)
+        if (!document.contains(kAssetTypeKey) || !document[kAssetTypeKey].is_string())
         {
             error = "Material asset '" + sourceLabel + "' is missing asset_type";
             return false;
         }
 
-        if (*assetType != "material")
+        const std::string assetType = document[kAssetTypeKey].get<std::string>();
+        if (assetType != "material")
         {
             error = "Material asset '" + sourceLabel + "' must declare asset_type = 'material'";
             return false;
@@ -124,23 +126,22 @@ namespace Wayfinder
 
         MaterialAsset parsed;
         parsed.Id = *assetId;
-        parsed.Name = document[kNameKey].value_or(std::filesystem::path(sourceLabel).stem().string());
-        parsed.ShaderName = document[kShaderKey].value_or(std::string("unlit"));
+        parsed.Name = document.value(std::string{kNameKey}, std::filesystem::path(sourceLabel).stem().string());
+        parsed.ShaderName = document.value(std::string{kShaderKey}, std::string("unlit"));
 
-        // Parse [parameters] table if present (new format)
-        if (const auto* paramsTable = document.get_as<toml::table>(kParametersKey))
+        // Parse "parameters" object if present
+        if (document.contains(kParametersKey) && document[kParametersKey].is_object())
         {
-            ParseParametersTable(*paramsTable, parsed.Parameters);
+            ParseParametersTable(document[kParametersKey], parsed.Parameters);
         }
 
         // Legacy support: top-level base_color → parameters["base_color"]
-        // Only applied if [parameters] didn't already set it.
+        // Only applied if parameters didn't already set it.
         if (!parsed.Parameters.Has("base_color") && document.contains(kBaseColorKey))
         {
-            const toml::array* values = document.get_as<toml::array>(kBaseColorKey);
             LinearColor baseColor = LinearColor::White();
             std::string colorError;
-            if (!ParseLinearColor(values, baseColor, colorError))
+            if (!ParseLinearColor(document[kBaseColorKey], baseColor, colorError))
             {
                 error = "Material asset '" + sourceLabel + "' field 'base_color' " + colorError;
                 return false;
@@ -154,14 +155,16 @@ namespace Wayfinder
             parsed.Parameters.SetColor("base_color", LinearColor::White());
         }
 
-        const toml::node* wireframeNode = document.get(kWireframeKey);
-        if (wireframeNode && !wireframeNode->is_boolean())
+        if (document.contains(kWireframeKey))
         {
-            error = "Material asset '" + sourceLabel + "' field 'wireframe' must be a boolean";
-            return false;
+            if (!document[kWireframeKey].is_boolean())
+            {
+                error = "Material asset '" + sourceLabel + "' field 'wireframe' must be a boolean";
+                return false;
+            }
+            parsed.Wireframe = document[kWireframeKey].get<bool>();
         }
 
-        parsed.Wireframe = document[kWireframeKey].value_or(parsed.Wireframe);
         material = std::move(parsed);
         return true;
     }
@@ -173,87 +176,81 @@ namespace Wayfinder
     {
         try
         {
-            const toml::table document = toml::parse_file(filePath.string());
+            std::ifstream file(filePath.string());
+            if (!file.is_open())
+            {
+                error = "Failed to open material asset '" + filePath.generic_string() + "'";
+                return false;
+            }
+            const nlohmann::json document = nlohmann::json::parse(file);
             return ParseMaterialAssetDocument(document, filePath.generic_string(), material, error);
         }
-        catch (const toml::parse_error& parseError)
+        catch (const nlohmann::json::exception& parseError)
         {
-            error = "Failed to parse material asset '" + filePath.generic_string() + "': " + std::string{parseError.description()};
+            error = "Failed to parse material asset '" + filePath.generic_string() + "': " + parseError.what();
             return false;
         }
     }
 
-    toml::table CreateMaterialComponentTable(const MaterialAsset& material)
+    nlohmann::json CreateMaterialComponentTable(const MaterialAsset& material)
     {
-        toml::table table;
-        table.insert_or_assign("material_id", material.Id.ToString());
-        table.insert_or_assign("shader", material.ShaderName);
-        table.insert_or_assign("wireframe", material.Wireframe);
+        nlohmann::json table = nlohmann::json::object();
+        table["material_id"] = material.Id.ToString();
+        table["shader"] = material.ShaderName;
+        table["wireframe"] = material.Wireframe;
 
-        // Serialize parameters as a [parameters] table
-        toml::table paramsTable;
+        // Serialize parameters as a nested object
+        nlohmann::json paramsObj = nlohmann::json::object();
         for (const auto& [name, value] : material.Parameters.Values)
         {
-            std::visit([&paramsTable, &name](auto&& v)
+            std::visit([&paramsObj, &name](auto&& v)
             {
                 using T = std::decay_t<decltype(v)>;
                 if constexpr (std::is_same_v<T, LinearColor>)
                 {
-                    toml::array arr;
-                    arr.push_back(static_cast<int64_t>(v.r * 255.0f));
-                    arr.push_back(static_cast<int64_t>(v.g * 255.0f));
-                    arr.push_back(static_cast<int64_t>(v.b * 255.0f));
-                    arr.push_back(static_cast<int64_t>(v.a * 255.0f));
-                    paramsTable.insert_or_assign(name, std::move(arr));
+                    paramsObj[name] = nlohmann::json::array({
+                        static_cast<int64_t>(v.r * 255.0f),
+                        static_cast<int64_t>(v.g * 255.0f),
+                        static_cast<int64_t>(v.b * 255.0f),
+                        static_cast<int64_t>(v.a * 255.0f)
+                    });
                 }
                 else if constexpr (std::is_same_v<T, float>)
                 {
-                    paramsTable.insert_or_assign(name, static_cast<double>(v));
+                    paramsObj[name] = v;
                 }
                 else if constexpr (std::is_same_v<T, int32_t>)
                 {
-                    paramsTable.insert_or_assign(name, static_cast<int64_t>(v));
+                    paramsObj[name] = v;
                 }
                 else if constexpr (std::is_same_v<T, glm::vec2>)
                 {
-                    toml::array arr;
-                    arr.push_back(static_cast<double>(v.x));
-                    arr.push_back(static_cast<double>(v.y));
-                    paramsTable.insert_or_assign(name, std::move(arr));
+                    paramsObj[name] = nlohmann::json::array({v.x, v.y});
                 }
                 else if constexpr (std::is_same_v<T, glm::vec3>)
                 {
-                    toml::array arr;
-                    arr.push_back(static_cast<double>(v.x));
-                    arr.push_back(static_cast<double>(v.y));
-                    arr.push_back(static_cast<double>(v.z));
-                    paramsTable.insert_or_assign(name, std::move(arr));
+                    paramsObj[name] = nlohmann::json::array({v.x, v.y, v.z});
                 }
                 else if constexpr (std::is_same_v<T, glm::vec4>)
                 {
-                    toml::array arr;
-                    arr.push_back(static_cast<double>(v.x));
-                    arr.push_back(static_cast<double>(v.y));
-                    arr.push_back(static_cast<double>(v.z));
-                    arr.push_back(static_cast<double>(v.w));
-                    paramsTable.insert_or_assign(name, std::move(arr));
+                    paramsObj[name] = nlohmann::json::array({v.x, v.y, v.z, v.w});
                 }
             }, value);
         }
 
-        if (!paramsTable.empty())
+        if (!paramsObj.empty())
         {
-            table.insert_or_assign("parameters", std::move(paramsTable));
+            table["parameters"] = std::move(paramsObj);
         }
 
         // Also write top-level base_color for backward compatibility
         LinearColor baseColor = material.GetBaseColor();
-        toml::array baseColorArr;
-        baseColorArr.push_back(static_cast<int64_t>(baseColor.r * 255.0f));
-        baseColorArr.push_back(static_cast<int64_t>(baseColor.g * 255.0f));
-        baseColorArr.push_back(static_cast<int64_t>(baseColor.b * 255.0f));
-        baseColorArr.push_back(static_cast<int64_t>(baseColor.a * 255.0f));
-        table.insert_or_assign("base_color", std::move(baseColorArr));
+        table["base_color"] = nlohmann::json::array({
+            static_cast<int64_t>(baseColor.r * 255.0f),
+            static_cast<int64_t>(baseColor.g * 255.0f),
+            static_cast<int64_t>(baseColor.b * 255.0f),
+            static_cast<int64_t>(baseColor.a * 255.0f)
+        });
 
         return table;
     }

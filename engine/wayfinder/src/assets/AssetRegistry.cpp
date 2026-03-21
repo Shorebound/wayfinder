@@ -2,7 +2,8 @@
 
 #include "AssetSchemaRegistry.h"
 
-#include <toml++/toml.hpp>
+#include <nlohmann/json.hpp>
+#include <fstream>
 
 namespace Wayfinder
 {
@@ -24,40 +25,47 @@ namespace Wayfinder
 
         for (const auto& entry : std::filesystem::recursive_directory_iterator(rootDirectory))
         {
-            if (!entry.is_regular_file() || entry.path().extension() != ".toml")
+            if (!entry.is_regular_file() || entry.path().extension() != ".json")
             {
                 continue;
             }
 
             try
             {
-                toml::table document = toml::parse_file(entry.path().string());
-                const auto assetIdText = document[kAssetIdKey].value<std::string>();
-                if (!assetIdText)
+                std::ifstream file(entry.path().string());
+                if (!file.is_open())
+                {
+                    continue;
+                }
+                nlohmann::json document = nlohmann::json::parse(file);
+
+                if (!document.contains(kAssetIdKey) || !document[kAssetIdKey].is_string())
                 {
                     continue;
                 }
 
-                const std::optional<AssetId> assetId = AssetId::Parse(*assetIdText);
+                const std::string assetIdText = document[kAssetIdKey].get<std::string>();
+                const std::optional<AssetId> assetId = AssetId::Parse(assetIdText);
                 if (!assetId)
                 {
-                    error = "Invalid asset_id '" + *assetIdText + "' found while scanning '" + rootDirectory.generic_string() + "'";
+                    error = "Invalid asset_id '" + assetIdText + "' found while scanning '" + rootDirectory.generic_string() + "'";
                     return false;
                 }
 
-                const auto assetTypeText = document[kAssetTypeKey].value<std::string>();
-                if (!assetTypeText)
+                if (!document.contains(kAssetTypeKey) || !document[kAssetTypeKey].is_string())
                 {
                     error = "Asset '" + entry.path().generic_string() + "' is missing required field 'asset_type'.";
                     return false;
                 }
 
-                if (!AssetSchemaRegistry::ValidateDocument(*assetTypeText, document, entry.path(), error))
+                const std::string assetTypeText = document[kAssetTypeKey].get<std::string>();
+
+                if (!AssetSchemaRegistry::ValidateDocument(assetTypeText, document, entry.path(), error))
                 {
                     return false;
                 }
 
-                const std::optional<AssetKind> parsedAssetKind = AssetSchemaRegistry::ResolveBuiltinKind(*assetTypeText);
+                const std::optional<AssetKind> parsedAssetKind = AssetSchemaRegistry::ResolveBuiltinKind(assetTypeText);
 
                 const std::filesystem::path canonicalPath = std::filesystem::weakly_canonical(entry.path());
                 if (m_assetRecordsById.find(*assetId) != m_assetRecordsById.end())
@@ -68,13 +76,13 @@ namespace Wayfinder
 
                 AssetRecord record;
                 record.Id = *assetId;
-                record.TypeName = *assetTypeText;
+                record.TypeName = assetTypeText;
                 record.Kind = parsedAssetKind.value_or(AssetKind::Unknown);
                 record.Path = canonicalPath;
-                record.Name = document[kNameKey].value_or(entry.path().stem().string());
+                record.Name = document.value(std::string{kNameKey}, entry.path().stem().string());
                 m_assetRecordsById.emplace(*assetId, std::move(record));
             }
-            catch (const toml::parse_error&)
+            catch (const nlohmann::json::exception&)
             {
                 continue;
             }
