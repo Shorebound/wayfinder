@@ -50,6 +50,7 @@ CPMAddPackage(
     NAME JoltPhysics
     GITHUB_REPOSITORY jrouwe/JoltPhysics
     VERSION 5.5.0
+    SOURCE_SUBDIR "Build"
     OPTIONS
         "BUILD_SHARED_LIBS OFF"
         "DOUBLE_PRECISION OFF"

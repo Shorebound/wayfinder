@@ -230,10 +230,14 @@ namespace Wayfinder
 
     private:
         friend class Game;
-        static void Bind(SubsystemCollection<GameSubsystem>* collection) { s_collection = collection; }
-        static void Unbind() { s_collection = nullptr; }
 
         static inline SubsystemCollection<GameSubsystem>* s_collection = nullptr;
+
+    public:
+        /// Bind the active SubsystemCollection.  Called by Game during init;
+        /// also available for integration tests that stand up subsystems
+        /// outside of the full Game lifecycle.
+        static void Bind(SubsystemCollection<GameSubsystem>* collection) { s_collection = collection; }
     };
 
 } // namespace Wayfinder

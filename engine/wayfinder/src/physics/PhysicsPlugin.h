@@ -15,9 +15,13 @@ namespace Wayfinder
      * Registered artefacts:
      * - **PhysicsSubsystem** — GameSubsystem owning the Jolt world.
      * - **RigidBodyComponent** / **ColliderComponent** — serialisable ECS components.
-     * - **PhysicsSync** (PreUpdate) — creates Jolt bodies for new entities and syncs kinematic positions.
+     * - **PhysicsCreateBodies** (OnSet observer) — creates Jolt bodies reactively when
+     *   an entity gains RigidBodyComponent + ColliderComponent + TransformComponent.
+     * - **PhysicsDestroyBodies** (OnRemove observer) — destroys Jolt bodies automatically
+     *   when RigidBodyComponent is removed or the entity is deleted.
      * - **PhysicsStep** (OnUpdate) — advances the Jolt simulation.
-     * - **PhysicsWriteback** (OnValidate) — copies Jolt positions back to WorldTransformComponent.
+     * - **PhysicsSyncTransforms** (OnValidate) — copies Jolt position and rotation
+     *   back into WorldTransformComponent with full LocalToWorld matrix rebuild.
      */
     class WAYFINDER_API PhysicsPlugin : public Plugin
     {

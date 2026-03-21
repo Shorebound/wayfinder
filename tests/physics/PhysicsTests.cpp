@@ -7,6 +7,9 @@
 #include <doctest/doctest.h>
 
 #include <flecs.h>
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/quaternion.hpp>
 #include <cmath>
 
 using namespace Wayfinder;
@@ -16,6 +19,34 @@ namespace
     /// Number of simulation steps used by gravity/movement tests (≈ 1 second at 60 Hz).
     constexpr int SIMULATION_STEPS = 60;
     constexpr float FIXED_DT = 1.0f / 60.0f;
+
+    /// RAII helper that binds a SubsystemCollection with PhysicsSubsystem to
+    /// GameSubsystems for the lifetime of the guard.  Tests that need
+    /// GameSubsystems::Find<PhysicsSubsystem>() should create one of these.
+    struct PhysicsSubsystemGuard
+    {
+        SubsystemCollection<GameSubsystem> Subsystems;
+
+        PhysicsSubsystemGuard()
+        {
+            Subsystems.Register<PhysicsSubsystem>();
+            Subsystems.Initialise();
+            GameSubsystems::Bind(&Subsystems);
+        }
+
+        ~PhysicsSubsystemGuard()
+        {
+            // Unbind before shutdown so observers that fire during
+            // world teardown see a null subsystem (safe no-op).
+            GameSubsystems::Bind(nullptr);
+            Subsystems.Shutdown();
+        }
+
+        PhysicsWorld& GetWorld()
+        {
+            return Subsystems.Get<PhysicsSubsystem>()->GetWorld();
+        }
+    };
 } // anonymous namespace
 
 // ── PhysicsWorld Lifecycle ──────────────────────────────────
@@ -150,6 +181,71 @@ TEST_SUITE("Physics")
         world.Shutdown();
     }
 
+    TEST_CASE("CreateBody applies initial rotation")
+    {
+        PhysicsWorld world;
+        world.Initialise();
+
+        RigidBodyComponent rb;
+        rb.Type = BodyType::Static;
+
+        ColliderComponent col;
+        col.Shape = ColliderShape::Box;
+
+        // 90 degrees around Y axis
+        uint32_t id = world.CreateBody(rb, col, {0.0f, 0.0f, 0.0f}, {0.0f, 90.0f, 0.0f});
+        REQUIRE(id != INVALID_PHYSICS_BODY);
+
+        Float4 rot = world.GetBodyRotation(id);
+        // For 90° Y rotation, quaternion should have a non-trivial y component.
+        CHECK(std::abs(rot.y) > 0.5f);
+        // w should be approximately cos(45°) ≈ 0.707
+        CHECK(std::abs(rot.w) == doctest::Approx(std::cos(glm::radians(45.0f))).epsilon(0.01));
+
+        world.DestroyBody(id);
+        world.Shutdown();
+    }
+
+    // ── GetBodyRotation ─────────────────────────────────────────
+
+    TEST_CASE("GetBodyRotation returns identity for unrotated body")
+    {
+        PhysicsWorld world;
+        world.Initialise();
+
+        RigidBodyComponent rb;
+        rb.Type = BodyType::Static;
+
+        ColliderComponent col;
+        col.Shape = ColliderShape::Box;
+
+        uint32_t id = world.CreateBody(rb, col, {0.0f, 0.0f, 0.0f});
+        REQUIRE(id != INVALID_PHYSICS_BODY);
+
+        Float4 rot = world.GetBodyRotation(id);
+        CHECK(rot.x == doctest::Approx(0.0f).epsilon(0.001));
+        CHECK(rot.y == doctest::Approx(0.0f).epsilon(0.001));
+        CHECK(rot.z == doctest::Approx(0.0f).epsilon(0.001));
+        CHECK(rot.w == doctest::Approx(1.0f).epsilon(0.001));
+
+        world.DestroyBody(id);
+        world.Shutdown();
+    }
+
+    TEST_CASE("GetBodyRotation returns default for invalid body ID")
+    {
+        PhysicsWorld world;
+        world.Initialise();
+
+        Float4 rot = world.GetBodyRotation(INVALID_PHYSICS_BODY);
+        CHECK(rot.x == doctest::Approx(0.0f));
+        CHECK(rot.y == doctest::Approx(0.0f));
+        CHECK(rot.z == doctest::Approx(0.0f));
+        CHECK(rot.w == doctest::Approx(1.0f));
+
+        world.Shutdown();
+    }
+
     // ── Dynamic Body Falls Under Gravity ────────────────────────
 
     TEST_CASE("Dynamic body falls under gravity after stepping")
@@ -236,7 +332,7 @@ TEST_SUITE("Physics")
         Float3 pos = physWorld.GetBodyPosition(rb.RuntimeBodyId);
         CHECK(pos.y < startY);
 
-        // Emulate what PhysicsWriteback system does
+        // Emulate what PhysicsSyncTransforms system does
         WorldTransformComponent wt;
         wt.Position = pos;
         wt.LocalToWorld[3] = Float4(pos, 1.0f);
@@ -402,7 +498,10 @@ TEST_SUITE("Physics")
         world.SetFixedTimestep(1.0f / 60.0f);
 
         // Three ticks in one frame should produce three steps.
-        int steps = world.StepFixed(3.0f / 60.0f);
+        // Add a small epsilon because 3.0f/60.0f can be slightly less than
+        // 3 * (1.0f/60.0f) due to IEEE 754 rounding, causing the accumulator
+        // to fall just short of the third tick threshold.
+        int steps = world.StepFixed(3.0f / 60.0f + 0.0001f);
         CHECK(steps == 3);
 
         world.Shutdown();
@@ -454,27 +553,21 @@ TEST_SUITE("Physics")
         world.Shutdown();
     }
 
-    // ── Full ECS integration via flecs world ────────────────────
+    // ── Observer-based Body Creation via ECS ────────────────────
 
-    TEST_CASE("ECS systems create bodies and write back positions")
+    TEST_CASE("Observer creates body when physics components are set on entity")
     {
-        // Stand up a PhysicsSubsystem so GameSubsystems::Find works.
-        SubsystemCollection<GameSubsystem> subsystems;
-        subsystems.Register<PhysicsSubsystem>();
-        subsystems.Initialise();
-        GameSubsystems::Bind(&subsystems);
+        PhysicsSubsystemGuard guard;
 
         flecs::world ecsWorld;
-
-        // Register components
         ecsWorld.component<RigidBodyComponent>();
         ecsWorld.component<ColliderComponent>();
         ecsWorld.component<TransformComponent>();
         ecsWorld.component<WorldTransformComponent>();
 
-        // Register the PhysicsSync system (creates Jolt bodies)
-        ecsWorld.system<RigidBodyComponent, const ColliderComponent, const TransformComponent>("PhysicsSync")
-            .kind(flecs::PreUpdate)
+        // Register the creation observer
+        ecsWorld.observer<RigidBodyComponent, const ColliderComponent, const TransformComponent>("PhysicsCreateBodies")
+            .event(flecs::OnSet)
             .each([](flecs::entity e,
                      RigidBodyComponent& rb,
                      const ColliderComponent& col,
@@ -484,20 +577,191 @@ TEST_SUITE("Physics")
                     return;
                 auto* sub = GameSubsystems::Find<PhysicsSubsystem>();
                 if (!sub) return;
-                rb.RuntimeBodyId = sub->GetWorld().CreateBody(rb, col, transform.Position);
+                rb.RuntimeBodyId = sub->GetWorld().CreateBody(
+                    rb, col, transform.Position, transform.Rotation);
             });
 
-        // Register the PhysicsStep system (steps the world via fixed timestep)
+        // Set all components — observer should fire
+        auto entity = ecsWorld.entity("TestBox");
+        entity.set<TransformComponent>({{0.0f, 5.0f, 0.0f}});
+        entity.set<ColliderComponent>({});
+        entity.set<RigidBodyComponent>({});
+
+        // Progress once so deferred operations are flushed
+        ecsWorld.progress(0.0f);
+
+        const auto& rb = entity.get<RigidBodyComponent>();
+        CHECK(rb.RuntimeBodyId != INVALID_PHYSICS_BODY);
+    }
+
+    // ── Observer-based Body Destruction ──────────────────────────
+
+    TEST_CASE("Observer destroys body when RigidBodyComponent is removed")
+    {
+        PhysicsSubsystemGuard guard;
+
+        flecs::world ecsWorld;
+        ecsWorld.component<RigidBodyComponent>();
+        ecsWorld.component<ColliderComponent>();
+        ecsWorld.component<TransformComponent>();
+
+        // Track body IDs created and destroyed
+        uint32_t createdBodyId = INVALID_PHYSICS_BODY;
+        bool bodyDestroyed = false;
+
+        ecsWorld.observer<RigidBodyComponent, const ColliderComponent, const TransformComponent>("PhysicsCreateBodies")
+            .event(flecs::OnSet)
+            .each([&createdBodyId](flecs::entity e,
+                     RigidBodyComponent& rb,
+                     const ColliderComponent& col,
+                     const TransformComponent& transform)
+            {
+                if (rb.RuntimeBodyId != INVALID_PHYSICS_BODY)
+                    return;
+                auto* sub = GameSubsystems::Find<PhysicsSubsystem>();
+                if (!sub) return;
+                rb.RuntimeBodyId = sub->GetWorld().CreateBody(
+                    rb, col, transform.Position, transform.Rotation);
+                createdBodyId = rb.RuntimeBodyId;
+            });
+
+        ecsWorld.observer<RigidBodyComponent>("PhysicsDestroyBodies")
+            .event(flecs::OnRemove)
+            .each([&bodyDestroyed](flecs::entity e, RigidBodyComponent& rb)
+            {
+                if (rb.RuntimeBodyId == INVALID_PHYSICS_BODY)
+                    return;
+                auto* sub = GameSubsystems::Find<PhysicsSubsystem>();
+                if (!sub) return;
+                sub->GetWorld().DestroyBody(rb.RuntimeBodyId);
+                rb.RuntimeBodyId = INVALID_PHYSICS_BODY;
+                bodyDestroyed = true;
+            });
+
+        auto entity = ecsWorld.entity("TestBox");
+        entity.set<TransformComponent>({{0.0f, 5.0f, 0.0f}});
+        entity.set<ColliderComponent>({});
+        entity.set<RigidBodyComponent>({});
+        ecsWorld.progress(0.0f);
+
+        REQUIRE(createdBodyId != INVALID_PHYSICS_BODY);
+        CHECK_FALSE(bodyDestroyed);
+
+        // Remove RigidBodyComponent — should trigger destruction
+        entity.remove<RigidBodyComponent>();
+        ecsWorld.progress(0.0f);
+
+        CHECK(bodyDestroyed);
+    }
+
+    TEST_CASE("Observer destroys body when entity is deleted")
+    {
+        PhysicsSubsystemGuard guard;
+
+        flecs::world ecsWorld;
+        ecsWorld.component<RigidBodyComponent>();
+        ecsWorld.component<ColliderComponent>();
+        ecsWorld.component<TransformComponent>();
+
+        bool bodyDestroyed = false;
+
+        ecsWorld.observer<RigidBodyComponent, const ColliderComponent, const TransformComponent>("PhysicsCreateBodies")
+            .event(flecs::OnSet)
+            .each([](flecs::entity e,
+                     RigidBodyComponent& rb,
+                     const ColliderComponent& col,
+                     const TransformComponent& transform)
+            {
+                if (rb.RuntimeBodyId != INVALID_PHYSICS_BODY)
+                    return;
+                auto* sub = GameSubsystems::Find<PhysicsSubsystem>();
+                if (!sub) return;
+                rb.RuntimeBodyId = sub->GetWorld().CreateBody(
+                    rb, col, transform.Position, transform.Rotation);
+            });
+
+        ecsWorld.observer<RigidBodyComponent>("PhysicsDestroyBodies")
+            .event(flecs::OnRemove)
+            .each([&bodyDestroyed](flecs::entity e, RigidBodyComponent& rb)
+            {
+                if (rb.RuntimeBodyId == INVALID_PHYSICS_BODY)
+                    return;
+                auto* sub = GameSubsystems::Find<PhysicsSubsystem>();
+                if (!sub) return;
+                sub->GetWorld().DestroyBody(rb.RuntimeBodyId);
+                rb.RuntimeBodyId = INVALID_PHYSICS_BODY;
+                bodyDestroyed = true;
+            });
+
+        auto entity = ecsWorld.entity("TestBox");
+        entity.set<TransformComponent>({{0.0f, 5.0f, 0.0f}});
+        entity.set<ColliderComponent>({});
+        entity.set<RigidBodyComponent>({});
+        ecsWorld.progress(0.0f);
+
+        CHECK_FALSE(bodyDestroyed);
+
+        // Delete the entire entity — should trigger destruction observer
+        entity.destruct();
+        ecsWorld.progress(0.0f);
+
+        CHECK(bodyDestroyed);
+    }
+
+    // ── Full ECS Integration ────────────────────────────────────
+
+    TEST_CASE("Full ECS pipeline: observer creates bodies, step simulates, sync writes back transforms")
+    {
+        PhysicsSubsystemGuard guard;
+
+        flecs::world ecsWorld;
+
+        // Register components
+        ecsWorld.component<RigidBodyComponent>();
+        ecsWorld.component<ColliderComponent>();
+        ecsWorld.component<TransformComponent>();
+        ecsWorld.component<WorldTransformComponent>();
+
+        // Register creation observer
+        ecsWorld.observer<RigidBodyComponent, const ColliderComponent, const TransformComponent>("PhysicsCreateBodies")
+            .event(flecs::OnSet)
+            .each([](flecs::entity e,
+                     RigidBodyComponent& rb,
+                     const ColliderComponent& col,
+                     const TransformComponent& transform)
+            {
+                if (rb.RuntimeBodyId != INVALID_PHYSICS_BODY)
+                    return;
+                auto* sub = GameSubsystems::Find<PhysicsSubsystem>();
+                if (!sub) return;
+                rb.RuntimeBodyId = sub->GetWorld().CreateBody(
+                    rb, col, transform.Position, transform.Rotation);
+            });
+
+        // Register destruction observer
+        ecsWorld.observer<RigidBodyComponent>("PhysicsDestroyBodies")
+            .event(flecs::OnRemove)
+            .each([](flecs::entity e, RigidBodyComponent& rb)
+            {
+                if (rb.RuntimeBodyId == INVALID_PHYSICS_BODY)
+                    return;
+                auto* sub = GameSubsystems::Find<PhysicsSubsystem>();
+                if (!sub) return;
+                sub->GetWorld().DestroyBody(rb.RuntimeBodyId);
+                rb.RuntimeBodyId = INVALID_PHYSICS_BODY;
+            });
+
+        // Register step system
         ecsWorld.system("PhysicsStep")
             .kind(flecs::OnUpdate)
-            .iter([](flecs::iter& it)
+            .run([](flecs::iter& it)
             {
                 auto* sub = GameSubsystems::Find<PhysicsSubsystem>();
                 if (sub) sub->GetWorld().StepFixed(it.delta_time());
             });
 
-        // Register the PhysicsWriteback system
-        ecsWorld.system<const RigidBodyComponent, WorldTransformComponent>("PhysicsWriteback")
+        // Register sync system
+        ecsWorld.system<const RigidBodyComponent, WorldTransformComponent>("PhysicsSyncTransforms")
             .kind(flecs::OnValidate)
             .each([](flecs::entity e,
                      const RigidBodyComponent& rb,
@@ -507,7 +771,14 @@ TEST_SUITE("Physics")
                 if (rb.Type == BodyType::Static) return;
                 auto* sub = GameSubsystems::Find<PhysicsSubsystem>();
                 if (!sub) return;
-                wt.Position = sub->GetWorld().GetBodyPosition(rb.RuntimeBodyId);
+                Float3 pos = sub->GetWorld().GetBodyPosition(rb.RuntimeBodyId);
+                Float4 rotQ = sub->GetWorld().GetBodyRotation(rb.RuntimeBodyId);
+                wt.Position = pos;
+                glm::quat q(rotQ.w, rotQ.x, rotQ.y, rotQ.z);
+                glm::mat4 rotMat = glm::mat4_cast(q);
+                glm::mat4 translateMat = glm::translate(glm::mat4(1.0f), pos);
+                glm::mat4 scaleMat = glm::scale(glm::mat4(1.0f), wt.Scale);
+                wt.LocalToWorld = translateMat * rotMat * scaleMat;
             });
 
         // Create a dynamic entity at height 20
@@ -518,21 +789,21 @@ TEST_SUITE("Physics")
         entity.set<RigidBodyComponent>({});
         entity.set<ColliderComponent>({});
 
-        // Step the ECS world (which runs PhysicsSync → PhysicsStep → PhysicsWriteback)
+        // Step the ECS world
         for (int i = 0; i < SIMULATION_STEPS; ++i)
             ecsWorld.progress(FIXED_DT);
 
-        // Verify: the WorldTransformComponent was updated by the writeback system
-        const auto* wt = entity.get<WorldTransformComponent>();
-        REQUIRE(wt != nullptr);
-        CHECK(wt->Position.y < startY);
+        // Verify: WorldTransformComponent was updated by the sync system
+        const auto& wt = entity.get<WorldTransformComponent>();
+        CHECK(wt.Position.y < startY);
 
-        // Verify: the RigidBodyComponent got a valid runtime body ID
-        const auto* rb = entity.get<RigidBodyComponent>();
-        REQUIRE(rb != nullptr);
-        CHECK(rb->RuntimeBodyId != INVALID_PHYSICS_BODY);
+        // Verify: LocalToWorld translation matches position
+        CHECK(wt.LocalToWorld[3].x == doctest::Approx(wt.Position.x).epsilon(0.001));
+        CHECK(wt.LocalToWorld[3].y == doctest::Approx(wt.Position.y).epsilon(0.001));
+        CHECK(wt.LocalToWorld[3].z == doctest::Approx(wt.Position.z).epsilon(0.001));
 
-        GameSubsystems::Unbind();
-        subsystems.Shutdown();
+        // Verify: RigidBodyComponent got a valid runtime body ID
+        const auto& rb = entity.get<RigidBodyComponent>();
+        CHECK(rb.RuntimeBodyId != INVALID_PHYSICS_BODY);
     }
 }
