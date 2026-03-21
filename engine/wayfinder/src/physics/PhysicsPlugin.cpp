@@ -353,7 +353,7 @@ namespace Wayfinder::Physics
         registry.RegisterSystem("PhysicsCreateBodies", [](flecs::world& world) {
             world.observer<RigidBodyComponent, const ColliderComponent, const TransformComponent>("PhysicsCreateBodies")
                 .event(flecs::OnSet)
-                .each([](flecs::entity e,
+                .each([](flecs::entity,
                          RigidBodyComponent& rb,
                          const ColliderComponent& col,
                          const TransformComponent& transform) {
@@ -382,7 +382,7 @@ namespace Wayfinder::Physics
         registry.RegisterSystem("PhysicsDestroyBodies", [](flecs::world& world) {
             world.observer<RigidBodyComponent>("PhysicsDestroyBodies")
                 .event(flecs::OnRemove)
-                .each([](flecs::entity e, RigidBodyComponent& rb) {
+                .each([](flecs::entity, RigidBodyComponent& rb) {
                     if (rb.RuntimeBodyId == INVALID_PHYSICS_BODY)
                         return;
 
@@ -421,7 +421,7 @@ namespace Wayfinder::Physics
 
             world.system<const RigidBodyComponent, WorldTransformComponent>("PhysicsSyncTransforms")
             .kind(flecs::OnValidate)
-            .each([physics](flecs::entity e, const RigidBodyComponent& rb, WorldTransformComponent& wt) 
+            .each([physics](flecs::entity, const RigidBodyComponent& rb, WorldTransformComponent& wt) 
             {
                 if (rb.RuntimeBodyId == INVALID_PHYSICS_BODY)
                     return;
