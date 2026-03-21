@@ -9,9 +9,9 @@ namespace Wayfinder
 {
     namespace
     {
-        constexpr std::string_view kAssetIdKey = "asset_id";
-        constexpr std::string_view kAssetTypeKey = "asset_type";
-        constexpr std::string_view kNameKey = "name";
+        const std::string kAssetIdKey = "asset_id";
+        const std::string kAssetTypeKey = "asset_type";
+        const std::string kNameKey = "name";
     }
 
     bool AssetRegistry::BuildFromDirectory(const std::filesystem::path& rootDirectory, std::string& error)

@@ -4,13 +4,13 @@
 
 namespace
 {
-    constexpr std::string_view kAssetIdKey = "asset_id";
-    constexpr std::string_view kAssetTypeKey = "asset_type";
-    constexpr std::string_view kNameKey = "name";
-    constexpr std::string_view kShaderKey = "shader";
-    constexpr std::string_view kBaseColorKey = "base_color";
-    constexpr std::string_view kWireframeKey = "wireframe";
-    constexpr std::string_view kParametersKey = "parameters";
+    const std::string kAssetIdKey = "asset_id";
+    const std::string kAssetTypeKey = "asset_type";
+    const std::string kNameKey = "name";
+    const std::string kShaderKey = "shader";
+    const std::string kBaseColorKey = "base_color";
+    const std::string kWireframeKey = "wireframe";
+    const std::string kParametersKey = "parameters";
 
     /// Parse a JSON array of 3 or 4 integers into a LinearColor.
     bool ParseLinearColor(const nlohmann::json& values, Wayfinder::LinearColor& color, std::string& error)

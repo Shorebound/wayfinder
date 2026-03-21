@@ -12,18 +12,18 @@
 
 namespace
 {
-    constexpr std::string_view kSceneNameKey = "scene_name";
-    constexpr std::string_view kSettingsKey = "settings";
-    constexpr std::string_view kEntitiesKey = "entities";
-    constexpr std::string_view kIdKey = "id";
-    constexpr std::string_view kNameKey = "name";
-    constexpr std::string_view kParentIdKey = "parent_id";
-    constexpr std::string_view kPrefabIdKey = "prefab_id";
-    constexpr std::string_view kAssetIdKey = "asset_id";
-    constexpr std::string_view kAssetTypeKey = "asset_type";
-    constexpr std::string_view kMeshComponentKey = "mesh";
-    constexpr std::string_view kMaterialComponentKey = "material";
-    constexpr std::string_view kRenderableComponentKey = "renderable";
+    const std::string kSceneNameKey = "scene_name";
+    const std::string kSettingsKey = "settings";
+    const std::string kEntitiesKey = "entities";
+    const std::string kIdKey = "id";
+    const std::string kNameKey = "name";
+    const std::string kParentIdKey = "parent_id";
+    const std::string kPrefabIdKey = "prefab_id";
+    const std::string kAssetIdKey = "asset_id";
+    const std::string kAssetTypeKey = "asset_type";
+    const std::string kMeshComponentKey = "mesh";
+    const std::string kMaterialComponentKey = "material";
+    const std::string kRenderableComponentKey = "renderable";
 
     std::filesystem::path FindAssetRoot(const std::filesystem::path& filePath)
     {
