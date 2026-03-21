@@ -31,11 +31,11 @@ namespace Wayfinder
                     if (maxBytes >= sizeof(glm::vec4))
                         std::memcpy(dst, &v, sizeof(glm::vec4));
                 }
-                else if constexpr (std::is_same_v<T, LinearColor>)
+                else if constexpr (std::is_same_v<T, LinearColour>)
                 {
-                    // LinearColor has the same layout as float4
-                    if (maxBytes >= sizeof(LinearColor))
-                        std::memcpy(dst, &v, sizeof(LinearColor));
+                    // LinearColour has the same layout as float4
+                    if (maxBytes >= sizeof(LinearColour))
+                        std::memcpy(dst, &v, sizeof(LinearColour));
                 }
                 else if constexpr (std::is_same_v<T, int32_t>)
                 {
@@ -46,7 +46,7 @@ namespace Wayfinder
         }
     }
 
-    void MaterialParameterBlock::SerializeToUBO(const std::vector<MaterialParamDecl>& decls,
+    void MaterialParameterBlock::SerialiseToUBO(const std::vector<MaterialParamDecl>& decls,
                                                 void* outBuffer, uint32_t bufferSize) const
     {
         auto* bytes = static_cast<uint8_t*>(outBuffer);

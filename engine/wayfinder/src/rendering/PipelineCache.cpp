@@ -5,7 +5,7 @@
 
 namespace Wayfinder
 {
-    void PipelineCache::Initialize(RenderDevice& device)
+    void PipelineCache::Initialise(RenderDevice& device)
     {
         m_device = &device;
     }

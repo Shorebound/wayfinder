@@ -39,7 +39,7 @@ namespace Wayfinder
         // Fragment material UBO for the debug pipeline (16 bytes)
         struct DebugMaterialUBO
         {
-            Float4 baseColor;
+            Float4 baseColour;
         };
 
         /// Builds a PipelineCreateDesc for the wireframe variant of a shader program.
@@ -79,12 +79,12 @@ namespace Wayfinder
             desc.FragmentShaderName = "unlit";
             desc.VertexResources = {.numUniformBuffers = 1};
             desc.FragmentResources = {.numUniformBuffers = 1};
-            desc.VertexLayout = VertexLayouts::PosNormalColor;
+            desc.VertexLayout = VertexLayouts::PosNormalColour;
             desc.Cull = CullMode::Back;
             desc.DepthTest = true;
             desc.DepthWrite = true;
             desc.MaterialParams = {
-                {"base_color", MaterialParamType::Color, 0, LinearColor::White()},
+                {"base_colour", MaterialParamType::Colour, 0, LinearColour::White()},
             };
             desc.MaterialUBOSize = 16; // float4
             desc.VertexUBOSize = sizeof(UnlitTransformUBO);
@@ -100,12 +100,12 @@ namespace Wayfinder
             desc.FragmentShaderName = "basic_lit";
             desc.VertexResources = {.numUniformBuffers = 1};
             desc.FragmentResources = {.numUniformBuffers = 2}; // material + scene globals
-            desc.VertexLayout = VertexLayouts::PosNormalColor;
+            desc.VertexLayout = VertexLayouts::PosNormalColour;
             desc.Cull = CullMode::Back;
             desc.DepthTest = true;
             desc.DepthWrite = true;
             desc.MaterialParams = {
-                {"base_color", MaterialParamType::Color, 0, LinearColor::White()},
+                {"base_colour", MaterialParamType::Colour, 0, LinearColour::White()},
             };
             desc.MaterialUBOSize = 16; // float4
             desc.VertexUBOSize = sizeof(TransformUBO);
@@ -187,14 +187,14 @@ namespace Wayfinder
         const uint32_t swapH = params.SwapchainHeight;
 
         // ── Camera / Projection (from primary view) ──────────
-        Color clearColor = Color::White();
+        Colour clearColour = Colour::White();
         Matrix4 view = glm::mat4(1.0f);
         Matrix4 projection = glm::mat4(1.0f);
         bool hasCamera = false;
 
         if (!preparedFrame.Views.empty() && swapW > 0 && swapH > 0)
         {
-            clearColor = preparedFrame.Views.front().ClearColor;
+            clearColour = preparedFrame.Views.front().ClearColour;
             const auto& camera = preparedFrame.Views.front().CameraState;
             const float aspect = static_cast<float>(swapW) / static_cast<float>(swapH);
 
@@ -215,11 +215,11 @@ namespace Wayfinder
         const SceneGlobalsUBO sceneGlobals = BuildSceneGlobals(preparedFrame);
 
         // Transient texture descriptions for well-known targets
-        RenderGraphTextureDesc colorDesc;
-        colorDesc.Width = swapW;
-        colorDesc.Height = swapH;
-        colorDesc.Format = TextureFormat::RGBA8_UNORM;
-        colorDesc.DebugName = WellKnown::SceneColor;
+        RenderGraphTextureDesc colourDesc;
+        colourDesc.Width = swapW;
+        colourDesc.Height = swapH;
+        colourDesc.Format = TextureFormat::RGBA8_UNORM;
+        colourDesc.DebugName = WellKnown::SceneColour;
 
         RenderGraphTextureDesc depthDesc;
         depthDesc.Width = swapW;
@@ -229,9 +229,9 @@ namespace Wayfinder
 
         // ── MainScene Pass ───────────────────────────────────
         graph.AddPass("MainScene", [&, viewMat = view, projMat = projection, hasCamera](RenderGraphBuilder& builder) -> RenderGraphExecuteFn {
-            auto color = builder.CreateTransient(colorDesc);
+            auto colour = builder.CreateTransient(colourDesc);
             auto depth = builder.CreateTransient(depthDesc);
-            builder.WriteColor(color, LoadOp::Clear, ClearValue::FromColor(clearColor));
+            builder.WriteColour(colour, LoadOp::Clear, ClearValue::FromColour(clearColour));
             builder.WriteDepth(depth, LoadOp::Clear, 1.0f);
 
             return [this, &preparedFrame, &params, viewMat, projMat, sceneGlobals, hasCamera]
@@ -315,9 +315,9 @@ namespace Wayfinder
                                 }
                             }
 
-                            mergedParams.SerializeToUBO(program->Desc.MaterialParams,
-                                                         materialUBOData.data(),
-                                                         static_cast<uint32_t>(materialUBOData.size()));
+                            mergedParams.SerialiseToUBO(program->Desc.MaterialParams,
+                                                          materialUBOData.data(),
+                                                          static_cast<uint32_t>(materialUBOData.size()));
                             device.PushFragmentUniform(0, materialUBOData.data(),
                                                          static_cast<uint32_t>(materialUBOData.size()));
 
@@ -366,9 +366,9 @@ namespace Wayfinder
 
         // ── Debug Pass ───────────────────────────────────────
         graph.AddPass("Debug", [&, viewMat = view, projMat = projection, hasCamera](RenderGraphBuilder& builder) -> RenderGraphExecuteFn {
-            auto color = graph.FindHandle(WellKnown::SceneColor);
+            auto colour = graph.FindHandle(WellKnown::SceneColour);
             auto depth = graph.FindHandle(WellKnown::SceneDepth);
-            builder.WriteColor(color, LoadOp::Load);
+            builder.WriteColour(colour, LoadOp::Load);
             builder.WriteDepth(depth, LoadOp::Load);
 
             return [this, &preparedFrame, &params, viewMat, projMat, hasCamera]
@@ -381,7 +381,7 @@ namespace Wayfinder
                 auto& registry = m_context->GetPrograms();
 
                 // ── Debug lines ──────────────────────────────
-                std::vector<VertexPosColor> lineVertices;
+                std::vector<VertexPosColour> lineVertices;
 
                 for (const auto& pass : preparedFrame.Passes)
                 {
@@ -392,32 +392,32 @@ namespace Wayfinder
                         const int slices = std::max(1, pass.DebugDraw->WorldGridSlices);
                         const float spacing = pass.DebugDraw->WorldGridSpacing;
                         const float extent = static_cast<float>(slices) * spacing;
-                        const Float3 majorColor{0.45f, 0.45f, 0.45f};
-                        const Float3 minorColor{0.25f, 0.25f, 0.25f};
+                        const Float3 majorColour{0.45f, 0.45f, 0.45f};
+                        const Float3 minorColour{0.25f, 0.25f, 0.25f};
 
                         for (int i = -slices; i <= slices; ++i)
                         {
                             const float coord = static_cast<float>(i) * spacing;
-                            const Float3& gridColor = (i == 0) ? majorColor : minorColor;
+                            const Float3& gridColour = (i == 0) ? majorColour : minorColour;
 
-                            lineVertices.push_back({Float3{-extent, 0.0f, coord}, gridColor});
-                            lineVertices.push_back({Float3{ extent, 0.0f, coord}, gridColor});
-                            lineVertices.push_back({Float3{coord, 0.0f, -extent}, gridColor});
-                            lineVertices.push_back({Float3{coord, 0.0f,  extent}, gridColor});
+                            lineVertices.push_back({Float3{-extent, 0.0f, coord}, gridColour});
+                            lineVertices.push_back({Float3{ extent, 0.0f, coord}, gridColour});
+                            lineVertices.push_back({Float3{coord, 0.0f, -extent}, gridColour});
+                            lineVertices.push_back({Float3{coord, 0.0f,  extent}, gridColour});
                         }
                     }
 
                     for (const auto& line : pass.DebugDraw->Lines)
                     {
-                        const Float3 lineColor = LinearColor::FromColor(line.Color).ToFloat3();
-                        lineVertices.push_back({line.Start, lineColor});
-                        lineVertices.push_back({line.End, lineColor});
+                        const Float3 lineColour = LinearColour::FromColour(line.Colour).ToFloat3();
+                        lineVertices.push_back({line.Start, lineColour});
+                        lineVertices.push_back({line.End, lineColour});
                     }
                 }
 
                 if (!lineVertices.empty() && debugLinePipeline.IsValid())
                 {
-                    const uint32_t dataSize = static_cast<uint32_t>(lineVertices.size() * sizeof(VertexPosColor));
+                    const uint32_t dataSize = static_cast<uint32_t>(lineVertices.size() * sizeof(VertexPosColour));
                     const TransientAllocation alloc = transientAllocator.AllocateVertices(lineVertices.data(), dataSize);
 
                     if (alloc.IsValid())
@@ -480,19 +480,19 @@ namespace Wayfinder
 
         // ── Composition Pass ─────────────────────────────────
         graph.AddPass("Composition", [&](RenderGraphBuilder& builder) -> RenderGraphExecuteFn {
-            auto color = graph.FindHandle(WellKnown::SceneColor);
-            builder.ReadTexture(color);
+            auto colour = graph.FindHandle(WellKnown::SceneColour);
+            builder.ReadTexture(colour);
             builder.SetSwapchainOutput(LoadOp::DontCare);
 
-            return [this, color](RenderDevice& device, const RenderGraphResources& resources) {
-                auto sceneColorTex = resources.GetTexture(color);
+            return [this, colour](RenderDevice& device, const RenderGraphResources& resources) {
+                auto sceneColourTex = resources.GetTexture(colour);
 
                 const ShaderProgram* compProgram = m_context->GetPrograms().Find("composition");
                 const auto nearestSampler = m_context->GetNearestSampler();
-                if (!compProgram || !compProgram->Pipeline || !sceneColorTex || !nearestSampler) return;
+                if (!compProgram || !compProgram->Pipeline || !sceneColourTex || !nearestSampler) return;
 
                 compProgram->Pipeline->Bind();
-                device.BindFragmentSampler(0, sceneColorTex, nearestSampler);
+                device.BindFragmentSampler(0, sceneColourTex, nearestSampler);
                 device.DrawPrimitives(3);
             };
         });
@@ -508,7 +508,7 @@ namespace Wayfinder
             {
                 globals.LightDirection = glm::normalize(light.Direction);
                 globals.LightIntensity = light.Intensity;
-                globals.LightColor = LinearColor::FromColor(light.Tint).ToFloat3();
+                globals.LightColour = LinearColour::FromColour(light.Tint).ToFloat3();
                 return globals;
             }
         }

@@ -79,7 +79,7 @@ add_executable(${WAYFINDER_SCENE_TEST_NAME}
   scene/ECSIntegrationTests.cpp
   scene/SceneLoadTests.cpp
   scene/SceneSaveTests.cpp
-  scene/ComponentSerializationTests.cpp
+  scene/ComponentSerialisationTests.cpp
   scene/ComponentValidationTests.cpp
 )
 

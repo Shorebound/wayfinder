@@ -15,7 +15,7 @@
 
 namespace
 {
-    Wayfinder::RenderMeshSubmission MakeSolidMesh(uint8_t sortPriority, const Wayfinder::Color& color)
+    Wayfinder::RenderMeshSubmission MakeSolidMesh(uint8_t sortPriority, const Wayfinder::Colour& colour)
     {
         Wayfinder::RenderMeshSubmission submission;
         submission.Mesh.Origin = Wayfinder::RenderResourceOrigin::BuiltIn;
@@ -25,7 +25,7 @@ namespace
         submission.Material.Ref.Origin = Wayfinder::RenderResourceOrigin::BuiltIn;
         submission.Material.Ref.StableKey = submission.Mesh.StableKey;
         submission.Material.StateOverrides.FillMode = Wayfinder::RenderFillMode::Solid;
-        submission.Material.Parameters.SetColor("base_color", Wayfinder::LinearColor::FromColor(color));
+        submission.Material.Parameters.SetColour("base_colour", Wayfinder::LinearColour::FromColour(colour));
         submission.SortPriority = sortPriority;
         return submission;
     }
@@ -145,8 +145,8 @@ TEST_CASE("Resource cache resolves mesh")
     const size_t viewIndex = frame.AddView(Wayfinder::RenderView{});
     Wayfinder::RenderPass& scenePass =
         frame.AddScenePass(Wayfinder::RenderPassIds::MainScene, viewIndex, Wayfinder::RenderLayers::Main);
-    scenePass.Meshes.push_back(MakeSolidMesh(100, Wayfinder::Color::Red()));
-    scenePass.Meshes.push_back(MakeSolidMesh(10, Wayfinder::Color::Blue()));
+    scenePass.Meshes.push_back(MakeSolidMesh(100, Wayfinder::Colour::Red()));
+    scenePass.Meshes.push_back(MakeSolidMesh(10, Wayfinder::Colour::Blue()));
 
     Wayfinder::RenderResourceCache resources;
     resources.PrepareFrame(frame);
@@ -165,7 +165,7 @@ TEST_CASE("RenderPipeline::Initialise registers built-in programs")
     config.Window.Height = 240;
 
     Wayfinder::RenderContext context;
-    REQUIRE(context.Initialize(*device, config));
+    REQUIRE(context.Initialise(*device, config));
 
     Wayfinder::RenderPipeline pipeline;
     // Initialise must not crash — it registers programs via the context.
@@ -188,7 +188,7 @@ TEST_CASE("RenderPipeline::Shutdown is safe after Initialise")
     config.Window.Height = 240;
 
     Wayfinder::RenderContext context;
-    REQUIRE(context.Initialize(*device, config));
+    REQUIRE(context.Initialise(*device, config));
 
     Wayfinder::RenderPipeline pipeline;
     pipeline.Initialise(context);

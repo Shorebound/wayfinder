@@ -17,7 +17,7 @@ namespace Wayfinder
         {
         }
 
-        bool Initialize() override { return true; }
+        bool Initialise() override { return true; }
         void Shutdown() override {}
         void Update() override {}
 

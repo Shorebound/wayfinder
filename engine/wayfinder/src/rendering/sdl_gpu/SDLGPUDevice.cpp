@@ -31,7 +31,7 @@ namespace Wayfinder
         Shutdown();
     }
 
-    bool SDLGPUDevice::Initialize(Window& window)
+    bool SDLGPUDevice::Initialise(Window& window)
     {
         m_window = static_cast<SDL_Window*>(window.GetNativeHandle());
         if (!m_window)
@@ -68,7 +68,7 @@ namespace Wayfinder
         const char* driver = SDL_GetGPUDeviceDriver(m_device);
         m_info.DriverInfo = driver ? driver : "unknown";
 
-        WAYFINDER_INFO(LogRenderer, "SDLGPUDevice: Initialized (driver: {})", m_info.DriverInfo);
+        WAYFINDER_INFO(LogRenderer, "SDLGPUDevice: Initialised (driver: {})", m_info.DriverInfo);
         return true;
     }
 
@@ -133,7 +133,7 @@ namespace Wayfinder
 
         if (!m_swapchainTexture)
         {
-            // Window is minimized or occluded — submit empty command buffer and skip rendering
+            // Window is minimised or occluded — submit empty command buffer and skip rendering
             SDL_SubmitGPUCommandBuffer(m_commandBuffer);
             m_commandBuffer = nullptr;
             return false;
@@ -197,39 +197,39 @@ namespace Wayfinder
             return;
         }
 
-        // Determine color target texture
-        SDL_GPUTexture* colorTexture = nullptr;
+        // Determine colour target texture
+        SDL_GPUTexture* colourTexture = nullptr;
         if (descriptor.targetSwapchain)
         {
             if (!m_swapchainTexture) return;
-            colorTexture = m_swapchainTexture;
+            colourTexture = m_swapchainTexture;
         }
-        else if (descriptor.colorTarget.IsValid())
+        else if (descriptor.colourTarget.IsValid())
         {
-            auto* pTex = m_texturePool.Get(descriptor.colorTarget);
-            colorTexture = pTex ? *pTex : nullptr;
-        }
-
-        if (!colorTexture) return;
-
-        SDL_GPUColorTargetInfo colorTarget{};
-        colorTarget.texture = colorTexture;
-        colorTarget.clear_color.r = descriptor.colorAttachment.clearValue.r;
-        colorTarget.clear_color.g = descriptor.colorAttachment.clearValue.g;
-        colorTarget.clear_color.b = descriptor.colorAttachment.clearValue.b;
-        colorTarget.clear_color.a = descriptor.colorAttachment.clearValue.a;
-
-        switch (descriptor.colorAttachment.loadOp)
-        {
-        case LoadOp::Clear:    colorTarget.load_op = SDL_GPU_LOADOP_CLEAR; break;
-        case LoadOp::Load:     colorTarget.load_op = SDL_GPU_LOADOP_LOAD; break;
-        case LoadOp::DontCare: colorTarget.load_op = SDL_GPU_LOADOP_DONT_CARE; break;
+            auto* pTex = m_texturePool.Get(descriptor.colourTarget);
+            colourTexture = pTex ? *pTex : nullptr;
         }
 
-        switch (descriptor.colorAttachment.storeOp)
+        if (!colourTexture) return;
+
+        SDL_GPUColorTargetInfo colourTarget{};
+        colourTarget.texture = colourTexture;
+        colourTarget.clear_color.r = descriptor.colourAttachment.clearValue.r;
+        colourTarget.clear_color.g = descriptor.colourAttachment.clearValue.g;
+        colourTarget.clear_color.b = descriptor.colourAttachment.clearValue.b;
+        colourTarget.clear_color.a = descriptor.colourAttachment.clearValue.a;
+
+        switch (descriptor.colourAttachment.loadOp)
         {
-        case StoreOp::Store:    colorTarget.store_op = SDL_GPU_STOREOP_STORE; break;
-        case StoreOp::DontCare: colorTarget.store_op = SDL_GPU_STOREOP_DONT_CARE; break;
+        case LoadOp::Clear:    colourTarget.load_op = SDL_GPU_LOADOP_CLEAR; break;
+        case LoadOp::Load:     colourTarget.load_op = SDL_GPU_LOADOP_LOAD; break;
+        case LoadOp::DontCare: colourTarget.load_op = SDL_GPU_LOADOP_DONT_CARE; break;
+        }
+
+        switch (descriptor.colourAttachment.storeOp)
+        {
+        case StoreOp::Store:    colourTarget.store_op = SDL_GPU_STOREOP_STORE; break;
+        case StoreOp::DontCare: colourTarget.store_op = SDL_GPU_STOREOP_DONT_CARE; break;
         }
 
         if (descriptor.depthAttachment.enabled)
@@ -267,18 +267,18 @@ namespace Wayfinder
                 depthTarget.stencil_load_op = SDL_GPU_LOADOP_DONT_CARE;
                 depthTarget.stencil_store_op = SDL_GPU_STOREOP_DONT_CARE;
 
-                m_renderPass = SDL_BeginGPURenderPass(m_commandBuffer, &colorTarget, 1, &depthTarget);
+                m_renderPass = SDL_BeginGPURenderPass(m_commandBuffer, &colourTarget, 1, &depthTarget);
             }
             else
             {
                 WAYFINDER_WARNING(LogRenderer, "Depth attachment enabled but no depth texture available (depthTarget={}, m_depthTexture={})",
                     descriptor.depthTarget.IsValid(), m_depthTexture != nullptr);
-                m_renderPass = SDL_BeginGPURenderPass(m_commandBuffer, &colorTarget, 1, nullptr);
+                m_renderPass = SDL_BeginGPURenderPass(m_commandBuffer, &colourTarget, 1, nullptr);
             }
         }
         else
         {
-            m_renderPass = SDL_BeginGPURenderPass(m_commandBuffer, &colorTarget, 1, nullptr);
+            m_renderPass = SDL_BeginGPURenderPass(m_commandBuffer, &colourTarget, 1, nullptr);
         }
     }
 
@@ -479,28 +479,28 @@ namespace Wayfinder
         // Non-swapchain render targets (e.g. G-buffer, shadow maps) will require
         // per-target format fields in PipelineCreateDesc once framebuffer abstraction lands.
         const SDL_GPUTextureFormat swapchainFormat = SDL_GetGPUSwapchainTextureFormat(m_device, m_window);
-        SDL_GPUColorTargetDescription colorTargetDescs[MAX_COLOUR_TARGETS]{};
+        SDL_GPUColorTargetDescription colourTargetDescs[MAX_COLOUR_TARGETS]{};
         for (uint32_t i = 0; i < desc.numColourTargets; ++i)
         {
-            colorTargetDescs[i].format = swapchainFormat;
+            colourTargetDescs[i].format = swapchainFormat;
 
             const auto& blend = desc.colourTargetBlends[i];
             if (blend.Enabled)
             {
-                colorTargetDescs[i].blend_state.enable_blend = true;
-                colorTargetDescs[i].blend_state.color_write_mask = blend.ColourWriteMask;
+                colourTargetDescs[i].blend_state.enable_blend = true;
+                colourTargetDescs[i].blend_state.color_write_mask = blend.ColourWriteMask;
 
-                colorTargetDescs[i].blend_state.src_color_blendfactor = ToSDLBlendFactor(blend.SrcColourFactor);
-                colorTargetDescs[i].blend_state.dst_color_blendfactor = ToSDLBlendFactor(blend.DstColourFactor);
-                colorTargetDescs[i].blend_state.color_blend_op = ToSDLBlendOp(blend.ColourOp);
-                colorTargetDescs[i].blend_state.src_alpha_blendfactor = ToSDLBlendFactor(blend.SrcAlphaFactor);
-                colorTargetDescs[i].blend_state.dst_alpha_blendfactor = ToSDLBlendFactor(blend.DstAlphaFactor);
-                colorTargetDescs[i].blend_state.alpha_blend_op = ToSDLBlendOp(blend.AlphaOp);
+                colourTargetDescs[i].blend_state.src_color_blendfactor = ToSDLBlendFactor(blend.SrcColourFactor);
+                colourTargetDescs[i].blend_state.dst_color_blendfactor = ToSDLBlendFactor(blend.DstColourFactor);
+                colourTargetDescs[i].blend_state.color_blend_op = ToSDLBlendOp(blend.ColourOp);
+                colourTargetDescs[i].blend_state.src_alpha_blendfactor = ToSDLBlendFactor(blend.SrcAlphaFactor);
+                colourTargetDescs[i].blend_state.dst_alpha_blendfactor = ToSDLBlendFactor(blend.DstAlphaFactor);
+                colourTargetDescs[i].blend_state.alpha_blend_op = ToSDLBlendOp(blend.AlphaOp);
             }
         }
 
         SDL_GPUGraphicsPipelineTargetInfo targetInfo{};
-        targetInfo.color_target_descriptions = colorTargetDescs;
+        targetInfo.color_target_descriptions = colourTargetDescs;
         targetInfo.num_color_targets = desc.numColourTargets;
         targetInfo.has_depth_stencil_target = desc.depthTestEnabled || desc.depthWriteEnabled;
         if (targetInfo.has_depth_stencil_target)
