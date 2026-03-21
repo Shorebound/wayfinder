@@ -1,6 +1,7 @@
 #include "PhysicsPlugin.h"
 #include "PhysicsComponents.h"
 #include "PhysicsSubsystem.h"
+#include "../core/EngineConfig.h"
 #include "../core/Log.h"
 #include "../core/ModuleRegistry.h"
 #include "../core/Subsystem.h"
@@ -203,6 +204,9 @@ namespace Wayfinder
         // --- Subsystem ---
         registry.RegisterSubsystem<PhysicsSubsystem>();
 
+        // Read the configured fixed timestep so the system factory can apply it.
+        const float fixedTimestep = registry.GetConfig().Physics.FixedTimestep;
+
         // --- Components ---
         {
             ModuleRegistry::ComponentDescriptor desc;
@@ -250,9 +254,16 @@ namespace Wayfinder
                 });
         });
 
-        // PhysicsStep: advance the Jolt simulation once per frame.
-        registry.RegisterSystem("PhysicsStep", [](flecs::world& world)
+        // PhysicsStep: advance the Jolt simulation using a fixed timestep
+        // accumulator.  The configured timestep is captured here and applied
+        // to the PhysicsWorld once during system registration (which runs
+        // after subsystem initialisation).
+        registry.RegisterSystem("PhysicsStep", [fixedTimestep](flecs::world& world)
         {
+            auto* subsystem = GameSubsystems::Find<PhysicsSubsystem>();
+            if (subsystem)
+                subsystem->GetWorld().SetFixedTimestep(fixedTimestep);
+
             world.system("PhysicsStep")
                 .kind(flecs::OnUpdate)
                 .iter([](flecs::iter& it)
@@ -261,7 +272,7 @@ namespace Wayfinder
                     if (!subsystem)
                         return;
 
-                    subsystem->GetWorld().Step(it.delta_time());
+                    subsystem->GetWorld().StepFixed(it.delta_time());
                 });
         }, {}, {"PhysicsSync"});
 

@@ -64,6 +64,12 @@ namespace Wayfinder
                 if (auto v = (*shaders)["directory"].value<std::string>()) config.Shaders.Directory = *v;
             }
 
+            if (const auto* physics = tbl["physics"].as_table())
+            {
+                if (auto v = (*physics)["fixed_timestep"].value<double>())
+                    config.Physics.FixedTimestep = static_cast<float>(*v);
+            }
+
             WAYFINDER_INFO(LogEngine, "Loaded config from: {}", path.string());
         }
         catch (const toml::parse_error& err)

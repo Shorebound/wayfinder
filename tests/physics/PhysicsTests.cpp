@@ -327,6 +327,133 @@ TEST_SUITE("Physics")
         world.Shutdown();
     }
 
+    // ── Fixed Timestep ──────────────────────────────────────────
+
+    TEST_CASE("Default fixed timestep is 1/60")
+    {
+        PhysicsWorld world;
+        CHECK(world.GetFixedTimestep() == doctest::Approx(1.0f / 60.0f));
+    }
+
+    TEST_CASE("SetFixedTimestep changes the timestep")
+    {
+        PhysicsWorld world;
+        world.SetFixedTimestep(1.0f / 120.0f);
+        CHECK(world.GetFixedTimestep() == doctest::Approx(1.0f / 120.0f));
+    }
+
+    TEST_CASE("SetFixedTimestep rejects non-positive values")
+    {
+        PhysicsWorld world;
+        float original = world.GetFixedTimestep();
+
+        world.SetFixedTimestep(0.0f);
+        CHECK(world.GetFixedTimestep() == doctest::Approx(original));
+
+        world.SetFixedTimestep(-1.0f);
+        CHECK(world.GetFixedTimestep() == doctest::Approx(original));
+    }
+
+    TEST_CASE("StepFixed performs no steps when frame time is below fixed timestep")
+    {
+        PhysicsWorld world;
+        world.Initialise();
+        world.SetFixedTimestep(1.0f / 60.0f);
+
+        // A very short frame (half of one tick) should not step yet.
+        int steps = world.StepFixed(0.5f / 60.0f);
+        CHECK(steps == 0);
+
+        world.Shutdown();
+    }
+
+    TEST_CASE("StepFixed performs exactly one step for one tick of frame time")
+    {
+        PhysicsWorld world;
+        world.Initialise();
+        world.SetFixedTimestep(1.0f / 60.0f);
+
+        int steps = world.StepFixed(1.0f / 60.0f);
+        CHECK(steps == 1);
+
+        world.Shutdown();
+    }
+
+    TEST_CASE("StepFixed accumulates across multiple calls")
+    {
+        PhysicsWorld world;
+        world.Initialise();
+        world.SetFixedTimestep(1.0f / 60.0f);
+
+        // Two half-tick frames should produce one step total.
+        int steps1 = world.StepFixed(0.5f / 60.0f);
+        CHECK(steps1 == 0);
+
+        int steps2 = world.StepFixed(0.5f / 60.0f);
+        CHECK(steps2 == 1);
+
+        world.Shutdown();
+    }
+
+    TEST_CASE("StepFixed performs multiple steps for large frame times")
+    {
+        PhysicsWorld world;
+        world.Initialise();
+        world.SetFixedTimestep(1.0f / 60.0f);
+
+        // Three ticks in one frame should produce three steps.
+        int steps = world.StepFixed(3.0f / 60.0f);
+        CHECK(steps == 3);
+
+        world.Shutdown();
+    }
+
+    TEST_CASE("StepFixed caps accumulated time to prevent spiral of death")
+    {
+        PhysicsWorld world;
+        world.Initialise();
+        world.SetFixedTimestep(1.0f / 60.0f);
+
+        // A huge frame time (e.g. debugger pause) should be capped.
+        // The cap is 0.25s, so at 1/60 ≈ 15 steps max.
+        int steps = world.StepFixed(10.0f);
+        CHECK(steps <= 15);
+        CHECK(steps > 0);
+
+        world.Shutdown();
+    }
+
+    TEST_CASE("StepFixed advances simulation with fixed timestep")
+    {
+        PhysicsWorld world;
+        world.Initialise();
+        world.SetFixedTimestep(FIXED_DT);
+
+        RigidBodyComponent rb;
+        rb.Type = BodyType::Dynamic;
+
+        ColliderComponent col;
+        col.Shape = ColliderShape::Box;
+
+        const float startY = 10.0f;
+        uint32_t id = world.CreateBody(rb, col, {0.0f, startY, 0.0f});
+        REQUIRE(id != INVALID_PHYSICS_BODY);
+
+        // Simulate ~1 second via StepFixed with variable frame times
+        float totalTime = 0.0f;
+        while (totalTime < 1.0f)
+        {
+            world.StepFixed(1.0f / 30.0f); // 30 fps frames
+            totalTime += 1.0f / 30.0f;
+        }
+
+        Float3 pos = world.GetBodyPosition(id);
+        CHECK(pos.y < startY);
+
+        world.DestroyBody(id);
+        world.Shutdown();
+    }
+
     // ── Full ECS integration via flecs world ────────────────────
 
     TEST_CASE("ECS systems create bodies and write back positions")
@@ -360,13 +487,13 @@ TEST_SUITE("Physics")
                 rb.RuntimeBodyId = sub->GetWorld().CreateBody(rb, col, transform.Position);
             });
 
-        // Register the PhysicsStep system (steps the world)
+        // Register the PhysicsStep system (steps the world via fixed timestep)
         ecsWorld.system("PhysicsStep")
             .kind(flecs::OnUpdate)
             .iter([](flecs::iter& it)
             {
                 auto* sub = GameSubsystems::Find<PhysicsSubsystem>();
-                if (sub) sub->GetWorld().Step(it.delta_time());
+                if (sub) sub->GetWorld().StepFixed(it.delta_time());
             });
 
         // Register the PhysicsWriteback system
