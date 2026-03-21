@@ -104,7 +104,7 @@ See `CMakePresets.json` at the repo root for available presets:
 
 ### Runtime Iteration
 
-Use `journey` when changing engine runtime behavior, scene loading, renderer behavior, or general gameplay-facing systems.
+Use `journey` when changing engine runtime behaviour, scene loading, renderer behaviour, or general gameplay-facing systems.
 
 ```powershell
 build\bin\Debug\journey.exe

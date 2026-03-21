@@ -38,7 +38,7 @@ Wayfinder should prefer clear data models, understandable systems, and cheap ite
 
 ### Stable Runtime Semantics
 
-Runtime behavior should come from explicit data and systems rather than from hidden engine shortcuts. Scenes, prefabs, simulation, and rendering all benefit from predictable rules.
+Runtime behaviour should come from explicit data and systems rather than from hidden engine shortcuts. Scenes, prefabs, simulation, and rendering all benefit from predictable rules.
 
 ### Modern Workflow, Retro Taste
 
