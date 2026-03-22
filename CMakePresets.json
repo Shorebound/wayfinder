@@ -33,6 +33,29 @@
             }
         },
         {
+            "name": "dev-clang",
+            "displayName": "Development (Clang on Windows)",
+            "description": "Local Clang builds — catches warnings that MSVC misses",
+            "generator": "Ninja Multi-Config",
+            "binaryDir": "${sourceDir}/build-clang",
+            "condition": {
+                "type": "equals",
+                "lhs": "${hostSystemName}",
+                "rhs": "Windows"
+            },
+            "cacheVariables": {
+                "CMAKE_C_COMPILER": "clang",
+                "CMAKE_CXX_COMPILER": "clang++",
+                "WAYFINDER_BUILD_SANDBOX": "ON",
+                "WAYFINDER_BUILD_TOOLS": "ON",
+                "WAYFINDER_BUILD_TESTS": "ON",
+                "WAYFINDER_BUILD_EDITOR": "OFF",
+                "WAYFINDER_BUILD_RUNTIME": "OFF",
+                "WAYFINDER_BUILD_SAMPLES": "OFF",
+                "WAYFINDER_WARNINGS_AS_ERRORS": "ON"
+            }
+        },
+        {
             "name": "ci",
             "displayName": "CI",
             "description": "Continuous integration preset with warnings-as-errors",
@@ -105,6 +128,12 @@
             "name": "ci-linux-debug",
             "displayName": "CI Linux (Debug)",
             "configurePreset": "ci-linux",
+            "configuration": "Debug"
+        },
+        {
+            "name": "clang-debug",
+            "displayName": "Clang (Debug)",
+            "configurePreset": "dev-clang",
             "configuration": "Debug"
         }
     ],

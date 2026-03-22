@@ -76,8 +76,8 @@ namespace Wayfinder
             desc.Name = "unlit";
             desc.VertexShaderName = "unlit";
             desc.FragmentShaderName = "unlit";
-            desc.VertexResources = {.numUniformBuffers = 1, .numSamplers = 0, .numStorageTextures = 0, .numStorageBuffers = 0};
-            desc.FragmentResources = {.numUniformBuffers = 1, .numSamplers = 0, .numStorageTextures = 0, .numStorageBuffers = 0};
+            desc.VertexResources = {.numUniformBuffers = 1};
+            desc.FragmentResources = {.numUniformBuffers = 1};
             desc.VertexLayout = VertexLayouts::PosNormalColour;
             desc.Cull = CullMode::Back;
             desc.DepthTest = true;
@@ -97,8 +97,8 @@ namespace Wayfinder
             desc.Name = "basic_lit";
             desc.VertexShaderName = "basic_lit";
             desc.FragmentShaderName = "basic_lit";
-            desc.VertexResources = {.numUniformBuffers = 1, .numSamplers = 0, .numStorageTextures = 0, .numStorageBuffers = 0};
-            desc.FragmentResources = {.numUniformBuffers = 2, .numSamplers = 0, .numStorageTextures = 0, .numStorageBuffers = 0}; // material + scene globals
+            desc.VertexResources = {.numUniformBuffers = 1};
+            desc.FragmentResources = {.numUniformBuffers = 2}; // material + scene globals
             desc.VertexLayout = VertexLayouts::PosNormalColour;
             desc.Cull = CullMode::Back;
             desc.DepthTest = true;
@@ -119,7 +119,7 @@ namespace Wayfinder
             desc.VertexShaderName = "fullscreen";
             desc.FragmentShaderName = "composition";
             desc.VertexResources = {};
-            desc.FragmentResources = {.numUniformBuffers = 0, .numSamplers = 1, .numStorageTextures = 0, .numStorageBuffers = 0};
+            desc.FragmentResources = {.numUniformBuffers = 0, .numSamplers = 1};
             desc.VertexLayout = VertexLayouts::Empty;
             desc.Cull = CullMode::None;
             desc.DepthTest = false;

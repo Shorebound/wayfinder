@@ -45,7 +45,12 @@ target_compile_definitions(wayfinder_common INTERFACE
 target_compile_options(wayfinder_common INTERFACE
     # Common flags for GCC/Clang
     $<$<CXX_COMPILER_ID:GNU,Clang,AppleClang>:-Wall;-Wextra;-Wpedantic>
-    # Consider adding more specific warnings here if desired project-wide
+
+    # Suppress false positives that conflict with modern C++ idioms:
+    #  -Wmissing-field-initializers: Fires on designated initialisers when
+    #   remaining fields have default member initialisers — exactly the case
+    #   where you *want* to omit them.
+    $<$<CXX_COMPILER_ID:GNU,Clang,AppleClang>:-Wno-missing-field-initializers>
 
     # Common flags for MSVC
     $<$<CXX_COMPILER_ID:MSVC>:/W4>

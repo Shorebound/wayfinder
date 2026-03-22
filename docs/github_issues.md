@@ -1,7 +1,6 @@
 # GitHub Issue Management
 
 How Wayfinder tracks work via GitHub Issues: labels, milestones, issue relationships, and the CLI tool for managing them.
-
 Repository: `Shorebound/wayfinder`. Requires `gh` CLI authenticated with repo scope.
 
 ## Labels
@@ -126,76 +125,13 @@ gh api graphql -F query=@temp.graphql
 Remove-Item temp.graphql
 ```
 
-## Issue Body Template
-
-Issue bodies should be concise. Labels carry priority, difficulty, and domain. Sub-issues carry the task breakdown. The body provides the context that neither of these can.
-
-### Structure
-
-```markdown
-## Summary
-
-2-3 sentences: what the issue addresses and why it matters.
-No metadata — labels handle priority, difficulty, and domain.
-
-## Implementation Notes
-
-Shared guidance that applies across sub-issues or that someone picking
-this up needs to know. Technical constraints, design decisions, links
-to relevant code or docs. Optional — skip if the summary says it all.
-
-## Definition of Done
-
-- Overarching acceptance criteria.
-- For parent issues: "All sub-issues closed" plus any cross-cutting
-  verification (e.g. "CI green", "no regressions in existing tests").
-- For leaf issues: specific, testable conditions.
-
-**Plan reference:** `docs/plans/<relevant_plan>.md`, section name.
-```
-
-### What goes where
-
-| Information | Where it lives | Not in the body |
-|---|---|---|
-| Priority, difficulty, domain | Labels | ~~Metadata blocks~~ |
-| Phase / scheduling | Milestone | ~~"Phase 2" headers~~ |
-| Task breakdown | Sub-issues | ~~Checklists, tables of sub-tasks~~ |
-| Dependencies | Blocked-by relationships | ~~"Depends on #X" prose~~ |
-| Context and intent | **Issue body** | — |
-
-### Variants
-
-**Sub-issues** use a lighter structure (no plan reference — the parent carries it):
-
-```markdown
-## Summary         — one sentence: what this sub-issue delivers
-## Scope           — what to build, what to test, key constraints
-## Definition of Done
-```
-
-**Closed issues** that predate the template use a retrospective format:
-
-```markdown
-## Summary         — what the problem was
-## What Was Done   — what was built or changed
-**Status:** Done.
-```
-
-### Tips
-
-- If an issue has sub-issues, the body is a **parent overview** — don't duplicate what the children already describe.
-- Link to plan docs rather than copying content from them.
-- Keep formatting flat. One or two heading levels is enough.
-
 ## Workflow
 
-When **starting a task**: use `show` to check for unresolved blockers. If blocked, use `chain` to find what needs doing first.
-
-When **picking what to work on**: use `ready 0` to see all unblocked issues, or `status 0 -Milestone "..."` for milestone-scoped priorities.
-
-When **completing a task**: close the issue and check if any issues it was blocking are now unblocked.
-
-When **breaking down a large issue**: create new issues for the sub-tasks, then use `sub-issue` to link them to the parent. Use `tree` to verify the hierarchy.
-
-When **triaging**: use `orphans 0` to find issues that slipped through without a parent or milestone.
+- Before starting: check `gh-issues show <N>` for unresolved blockers.
+- On completion: close the issue, check if anything it was blocking
+  is now unblocked.
+- Use `Closes #N` in the PR body to auto-close issues on merge.
+- Metadata (priority, difficulty, domain) goes on labels, not in
+  issue bodies.
+- Task breakdowns go in sub-issues, not checklists.
+- Dependencies go in blocked-by relationships, not prose.

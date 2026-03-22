@@ -1,19 +1,20 @@
-# Build directories
+# Build output directories
 build/
+build-clang/
 out/
 cmake-build-*/
-CMakeFiles/
+
+# In-source CMake safety net (presets prevent this, but just in case)
 CMakeCache.txt
+CMakeFiles/
 CMakeScripts/
-Testing/
-Makefile
 cmake_install.cmake
 install_manifest.txt
 compile_commands.json
 CTestTestfile.cmake
-_deps/
+Makefile
 
-# IDE files
+# IDE and editor files
 .vs/
 .vscode/
 .idea/
@@ -21,57 +22,46 @@ _deps/
 *.swo
 *~
 
-# Prerequisites
-*.d
+# Visual Studio user-specific files
+*.vcxproj.user
+*.sln.user
 
-# Compiled Object files
-*.slo
-*.lo
+# Compiled objects
 *.o
 *.obj
+*.lo
+*.slo
 
-# Precompiled Headers
+# Precompiled headers
 *.gch
 *.pch
 
-# Compiled Dynamic libraries
+# Libraries
+*.a
+*.lib
+*.la
+*.lai
 *.so
 *.dylib
 *.dll
-
-# Fortran module files
-*.mod
-*.smod
-
-# Compiled Static libraries
-*.lai
-*.la
-*.a
-*.lib
 
 # Executables
 *.exe
 *.out
 *.app
-*.wasm
-*.html
-*.js
-*.data
 
-# Debug files
+# Debug symbols
 *.dSYM/
-*.su
-*.idb
 *.pdb
+*.idb
+*.su
 
-# OS specific files
+# Dependency files
+*.d
+
+# OS clutter
 .DS_Store
 Thumbs.db
 
-# Generated files
-*.generated.*
-
-# Test temp files
+# Test artefacts
 tests/fixtures/temp/
-build-test/
-build/

@@ -1,0 +1,42 @@
+name: Issue
+description: Standard issue for tracked work.
+body:
+  - type: textarea
+    id: summary
+    attributes:
+      label: Summary
+      description: >
+        2-3 sentences: what the issue addresses and why it matters.
+        No metadata — labels handle priority, difficulty, and domain.
+    validations:
+      required: true
+
+  - type: textarea
+    id: implementation-notes
+    attributes:
+      label: Implementation Notes
+      description: >
+        Technical context, constraints, design decisions, links to
+        relevant code or docs. Skip if the summary covers it.
+    validations:
+      required: false
+
+  - type: textarea
+    id: definition-of-done
+    attributes:
+      label: Definition of Done
+      description: >
+        Specific, testable acceptance criteria. For parent issues
+        include "All sub-issues closed" plus cross-cutting verification.
+      value: "- "
+    validations:
+      required: true
+
+  - type: input
+    id: plan-reference
+    attributes:
+      label: Plan Reference
+      description: "Path to relevant plan doc and section, if applicable."
+      placeholder: "docs/plans/rendering.md, section: Texture Pipeline"
+    validations:
+      required: false

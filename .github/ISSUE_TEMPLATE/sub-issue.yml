@@ -1,0 +1,27 @@
+name: Sub-Issue
+description: Lighter template for child issues under a parent.
+body:
+  - type: textarea
+    id: summary
+    attributes:
+      label: Summary
+      description: "One sentence: what this sub-issue delivers."
+    validations:
+      required: true
+
+  - type: textarea
+    id: scope
+    attributes:
+      label: Scope
+      description: "What to build, what to test, key constraints."
+    validations:
+      required: true
+
+  - type: textarea
+    id: definition-of-done
+    attributes:
+      label: Definition of Done
+      description: "Specific, testable conditions."
+      value: "- "
+    validations:
+      required: true
