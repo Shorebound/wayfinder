@@ -20,6 +20,7 @@ namespace Wayfinder
         if (!m_whiteTexture || !m_blackTexture || !m_flatNormalTexture || !m_fallbackTexture)
         {
             WAYFINDER_ERROR(LogRenderer, "TextureManager: Failed to create one or more built-in textures");
+            Shutdown();
             return false;
         }
 
@@ -31,10 +32,17 @@ namespace Wayfinder
     {
         if (!m_device) return;
 
-        // Destroy cached asset textures
+        // Destroy cached asset textures (skip built-ins — they are destroyed below)
         for (auto& [id, handle] : m_textureCache)
         {
-            if (handle) m_device->DestroyTexture(handle);
+            if (handle
+                && handle != m_fallbackTexture
+                && handle != m_whiteTexture
+                && handle != m_blackTexture
+                && handle != m_flatNormalTexture)
+            {
+                m_device->DestroyTexture(handle);
+            }
         }
         m_textureCache.clear();
 
@@ -71,6 +79,20 @@ namespace Wayfinder
                 assetId.ToString(), error);
             m_textureCache[assetId] = m_fallbackTexture;
             return m_fallbackTexture;
+        }
+
+        // If pixel data was previously released (e.g. after device reinit), invalidate and reload from disk
+        if (asset->PixelData.empty())
+        {
+            assetService.InvalidateTextureAsset(assetId);
+            asset = assetService.LoadAsset<TextureAsset>(assetId, error);
+            if (!asset || asset->PixelData.empty())
+            {
+                WAYFINDER_WARNING(LogRenderer, "TextureManager: Failed to reload pixel data for texture '{}': {}",
+                    assetId.ToString(), error);
+                m_textureCache[assetId] = m_fallbackTexture;
+                return m_fallbackTexture;
+            }
         }
 
         // Upload to GPU

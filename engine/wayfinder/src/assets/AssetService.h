@@ -22,7 +22,13 @@ namespace Wayfinder
         const std::filesystem::path* ResolvePath(const AssetId& assetId) const;
         const MaterialAsset* LoadMaterialAsset(const AssetId& assetId, std::string& error);
 
-        /// Generic typed asset access — delegates to the appropriate AssetCache<T>.
+        /**
+         * @brief Generic typed asset access — delegates to the appropriate AssetCache<T>.
+         *
+         * @param assetId  The asset identifier to load.
+         * @param error    Populated with a description on failure.
+         * @return Pointer to the cached asset, or nullptr on failure.
+         */
         template<typename TAsset>
         const TAsset* LoadAsset(const AssetId& assetId, std::string& error);
 
@@ -37,6 +43,17 @@ namespace Wayfinder
          */
         void ReleaseTexturePixelData(const AssetId& assetId);
 
+        /**
+         * @brief Invalidate a cached texture asset, forcing a reload on next access.
+         *
+         * Use when the cached texture has stale data (e.g. pixel data was released)
+         * and needs to be re-read from disk.
+         *
+         * @param assetId  The asset ID of the texture to evict from cache.
+         */
+        void InvalidateTextureAsset(const AssetId& assetId);
+
+        /** @brief Return the active asset registry. */
         const AssetRegistry& GetRegistry() const { return m_assetRegistry; }
 
     private:

@@ -20,11 +20,6 @@ namespace Wayfinder
 
     void RenderResourceCache::SetTextureManager(TextureManager* textureManager)
     {
-        if (m_textureManager == textureManager)
-        {
-            return;
-        }
-
         m_textureManager = textureManager;
         m_materialsByKey.clear();
     }

@@ -118,6 +118,13 @@ namespace Wayfinder
             m_misses.clear();
         }
 
+        /// Remove a specific asset from the cache, allowing it to be reloaded from disk.
+        void Invalidate(const AssetId& assetId)
+        {
+            m_assets.erase(assetId);
+            m_misses.erase(assetId);
+        }
+
         /// Number of successfully cached assets.
         size_t Size() const { return m_assets.size(); }
 

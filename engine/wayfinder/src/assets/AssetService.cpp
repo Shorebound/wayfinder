@@ -51,4 +51,9 @@ namespace Wayfinder
             texture->ReleasePixelData();
         }
     }
+
+    void AssetService::InvalidateTextureAsset(const AssetId& assetId)
+    {
+        m_textureCache.Invalidate(assetId);
+    }
 } // namespace Wayfinder
