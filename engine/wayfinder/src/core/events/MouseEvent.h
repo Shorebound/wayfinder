@@ -3,7 +3,6 @@
 #include "platform/MouseCodes.h"
 #include "Event.h"
 #include <format>
-#include <memory>
 
 namespace Wayfinder
 {
@@ -19,11 +18,6 @@ namespace Wayfinder
         std::string ToString() const override
         {
             return std::format("{}: {}, {}", GetName(), m_mouseX, m_mouseY);
-        }
-
-        std::unique_ptr<Event> Clone() const override
-        {
-            return std::make_unique<MouseMovedEvent>(*this);
         }
 
     private:
@@ -69,11 +63,6 @@ namespace Wayfinder
         {
             return std::format("{}: {}", GetName(), m_button);
         }
-
-        std::unique_ptr<Event> Clone() const override
-        {
-            return std::make_unique<MouseButtonPressedEvent>(*this);
-        }
     };
 
     class MouseButtonReleasedEvent : public EventImpl<MouseButtonEvent, EventType::MouseButtonReleased, EventCategory::MouseButton | EventCategory::Input>
@@ -84,11 +73,6 @@ namespace Wayfinder
         std::string ToString() const override
         {
             return std::format("{}: {}", GetName(), m_button);
-        }
-
-        std::unique_ptr<Event> Clone() const override
-        {
-            return std::make_unique<MouseButtonReleasedEvent>(*this);
         }
     };
 
