@@ -80,13 +80,14 @@ target_include_directories(${ENGINE_NAME}
 target_link_libraries(${ENGINE_NAME}
     PUBLIC
       wayfinder_common
+    PUBLIC SYSTEM
       SDL3::SDL3
       glm::glm
       flecs::flecs_static
       tomlplusplus::tomlplusplus
       nlohmann_json::nlohmann_json
       Jolt
-    PRIVATE
+    PRIVATE SYSTEM
       SDL3_image::SDL3_image-static
 )
 
