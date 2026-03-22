@@ -41,6 +41,7 @@ namespace Wayfinder
 
         NameComponent() = default;
         NameComponent(const NameComponent&) = default;
+        NameComponent& operator=(const NameComponent&) = default;
         explicit NameComponent(std::string value) : Value(std::move(value)) {}
     };
 
@@ -50,6 +51,7 @@ namespace Wayfinder
 
         SceneObjectIdComponent() = default;
         SceneObjectIdComponent(const SceneObjectIdComponent&) = default;
+        SceneObjectIdComponent& operator=(const SceneObjectIdComponent&) = default;
         SceneObjectIdComponent(const SceneObjectId& value) : Value(value) {}
     };
 
@@ -61,6 +63,7 @@ namespace Wayfinder
 
         TransformComponent() = default;
         TransformComponent(const TransformComponent&) = default;
+        TransformComponent& operator=(const TransformComponent&) = default;
         TransformComponent(const Float3& position) : Position(position) {}
 
         Matrix4 GetLocalMatrix() const
@@ -77,6 +80,7 @@ namespace Wayfinder
 
         WorldTransformComponent() = default;
         WorldTransformComponent(const WorldTransformComponent&) = default;
+        WorldTransformComponent& operator=(const WorldTransformComponent&) = default;
     };
 
     struct ActiveCameraStateComponent
@@ -90,6 +94,7 @@ namespace Wayfinder
 
         ActiveCameraStateComponent() = default;
         ActiveCameraStateComponent(const ActiveCameraStateComponent&) = default;
+        ActiveCameraStateComponent& operator=(const ActiveCameraStateComponent&) = default;
     };
 
     enum class MeshPrimitive
@@ -104,6 +109,7 @@ namespace Wayfinder
 
         MeshComponent() = default;
         MeshComponent(const MeshComponent&) = default;
+        MeshComponent& operator=(const MeshComponent&) = default;
     };
 
     struct MaterialComponent
@@ -114,6 +120,7 @@ namespace Wayfinder
 
         MaterialComponent() = default;
         MaterialComponent(const MaterialComponent&) = default;
+        MaterialComponent& operator=(const MaterialComponent&) = default;
     };
 
     /**
@@ -132,6 +139,7 @@ namespace Wayfinder
 
         RenderOverrideComponent() = default;
         RenderOverrideComponent(const RenderOverrideComponent&) = default;
+        RenderOverrideComponent& operator=(const RenderOverrideComponent&) = default;
     };
 
     struct RenderableComponent
@@ -142,6 +150,7 @@ namespace Wayfinder
 
         RenderableComponent() = default;
         RenderableComponent(const RenderableComponent&) = default;
+        RenderableComponent& operator=(const RenderableComponent&) = default;
     };
 
     struct PrefabInstanceComponent
@@ -150,6 +159,7 @@ namespace Wayfinder
 
         PrefabInstanceComponent() = default;
         PrefabInstanceComponent(const PrefabInstanceComponent&) = default;
+        PrefabInstanceComponent& operator=(const PrefabInstanceComponent&) = default;
         PrefabInstanceComponent(const AssetId& assetId) : SourceAssetId(assetId) {}
     };
 
@@ -163,6 +173,7 @@ namespace Wayfinder
 
         CameraComponent() = default;
         CameraComponent(const CameraComponent&) = default;
+        CameraComponent& operator=(const CameraComponent&) = default;
     };
 
     struct LightComponent
@@ -175,5 +186,6 @@ namespace Wayfinder
 
         LightComponent() = default;
         LightComponent(const LightComponent&) = default;
+        LightComponent& operator=(const LightComponent&) = default;
     };
 }

@@ -71,6 +71,7 @@ namespace Wayfinder
 
         PostProcessVolumeComponent() = default;
         PostProcessVolumeComponent(const PostProcessVolumeComponent&) = default;
+        PostProcessVolumeComponent& operator=(const PostProcessVolumeComponent&) = default;
     };
 
     /**

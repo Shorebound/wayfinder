@@ -22,13 +22,34 @@ namespace Wayfinder
 
     void Entity::SetName(const std::string& name)
     {
+        const bool hadPreviousName = m_entityHandle.has<NameComponent>();
+        const std::string previousName = hadPreviousName
+            ? m_entityHandle.get<NameComponent>().Value
+            : std::string{};
+
+        std::string finalName = (m_scene != nullptr)
+            ? m_scene->GenerateUniqueName(name, m_entityHandle.id())
+            : name;
+
         if (m_entityHandle.has<NameComponent>())
         {
-            m_entityHandle.get_mut<NameComponent>().Value = name;
+            m_entityHandle.get_mut<NameComponent>().Value = finalName;
         }
         else
         {
-            m_entityHandle.set<NameComponent>(NameComponent{name});
+            m_entityHandle.set<NameComponent>(NameComponent{finalName});
+        }
+
+        if (m_scene != nullptr)
+        {
+            if (hadPreviousName)
+            {
+                m_scene->UpdateEntityName(m_entityHandle, previousName, finalName);
+            }
+            else
+            {
+                m_scene->RegisterEntityName(m_entityHandle, finalName);
+            }
         }
     }
 

@@ -37,6 +37,15 @@ namespace Wayfinder
         Entity CreateEntity(const std::string& name = "Entity");
         Entity GetEntityByName(const std::string& name);
         Entity GetEntityById(const SceneObjectId& id);
+
+        /// Returns true if @p name is already taken by an entity in this scene
+        /// other than @p excludeEntity.
+        bool IsNameTaken(const std::string& name, flecs::entity_t excludeEntity = 0) const;
+
+        /// Returns a scene-unique variant of @p base, appending a numeric suffix
+        /// if necessary.  The entity identified by @p excludeEntity (if any)
+        /// is ignored during the collision check.
+        std::string GenerateUniqueName(const std::string& base, flecs::entity_t excludeEntity = 0) const;
         bool LoadFromFile(const std::string& filePath);
         bool SaveToFile(const std::string& filePath) const;
         void SetAssetService(const std::shared_ptr<AssetService>& assetService) { m_assetService = assetService; }
@@ -57,11 +66,15 @@ namespace Wayfinder
         void RegisterEntityId(flecs::entity entityHandle, const SceneObjectId& id) const;
         void UnregisterEntityId(const SceneObjectId& id) const;
         void UpdateEntityId(flecs::entity entityHandle, const SceneObjectId& previousId, const SceneObjectId& newId) const;
+        void RegisterEntityName(flecs::entity entityHandle, const std::string& name) const;
+        void UnregisterEntityName(const std::string& name) const;
+        void UpdateEntityName(flecs::entity entityHandle, const std::string& previousName, const std::string& newName) const;
 
         flecs::world& m_world;
         const RuntimeComponentRegistry& m_componentRegistry;
         flecs::entity m_sceneTag;
         mutable std::unordered_map<SceneObjectId, flecs::entity_t> m_entitiesById;
+        mutable std::unordered_map<std::string, flecs::entity_t> m_entitiesByName;
         std::string m_name;
         std::filesystem::path m_sourcePath;
         std::filesystem::path m_assetRoot;

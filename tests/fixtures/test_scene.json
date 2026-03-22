@@ -1,4 +1,5 @@
 {
+  "version": 1,
   "scene_name": "Test Scene",
   "settings": {
     "ambient_intensity": 0.5,

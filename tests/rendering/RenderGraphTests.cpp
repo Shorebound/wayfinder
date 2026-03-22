@@ -360,6 +360,34 @@ namespace Wayfinder::Tests
         CHECK(first == second);
     }
 
+    TEST_CASE("Render graph names remain valid when provided by temporary strings")
+    {
+        Wayfinder::RenderGraph graph;
+
+        graph.AddPass(std::string{"TemporaryProducer"}, [&](Wayfinder::RenderGraphBuilder& builder) {
+            Wayfinder::RenderGraphTextureDesc desc;
+            desc.Width = 64;
+            desc.Height = 64;
+            desc.Format = Wayfinder::TextureFormat::RGBA8_UNORM;
+            desc.DebugName = "TemporaryTexture";
+
+            auto texture = builder.CreateTransient(desc);
+            builder.WriteColour(texture);
+            return [](Wayfinder::RenderDevice&, const Wayfinder::RenderGraphResources&) {};
+        });
+
+        graph.AddPass(std::string{"TemporaryConsumer"}, [&](Wayfinder::RenderGraphBuilder& builder) {
+            auto texture = graph.FindHandle(std::string{"TemporaryTexture"});
+            builder.ReadTexture(texture);
+            builder.SetSwapchainOutput();
+            return [](Wayfinder::RenderDevice&, const Wayfinder::RenderGraphResources&) {};
+        });
+
+        CHECK(graph.ImportTexture(std::string{"ImportedTexture"}).IsValid());
+        CHECK(graph.FindHandle(std::string{"ImportedTexture"}).IsValid());
+        CHECK(graph.Compile());
+    }
+
     // ── Device Factory ───────────────────────────────────────
 
     TEST_CASE("NullDevice supports all render graph operations")
@@ -387,10 +415,12 @@ namespace Wayfinder::Tests
         auto shader = fixture.m_Device->CreateShader({});
         fixture.m_Device->DestroyShader(shader);
 
-        auto pipeline = fixture.m_Device->CreatePipeline({});
+        Wayfinder::PipelineCreateDesc pipelineDesc;
+        auto pipeline = fixture.m_Device->CreatePipeline(pipelineDesc);
         fixture.m_Device->DestroyPipeline(pipeline);
 
-        auto computePipeline = fixture.m_Device->CreateComputePipeline({});
+        Wayfinder::ComputePipelineCreateDesc computePipelineDesc;
+        auto computePipeline = fixture.m_Device->CreateComputePipeline(computePipelineDesc);
         fixture.m_Device->DestroyComputePipeline(computePipeline);
 
         auto sampler = fixture.m_Device->CreateSampler({});
