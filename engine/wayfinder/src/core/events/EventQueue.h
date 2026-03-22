@@ -2,6 +2,7 @@
 
 #include "TypedEventBuffer.h"
 
+#include <cassert>
 #include <memory>
 #include <span>
 #include <typeindex>
@@ -38,7 +39,7 @@ namespace Wayfinder
         {
             auto& buffer = GetOrCreateBuffer<TEvent>();
             buffer.Push(std::move(event));
-            m_order.push_back({&buffer, buffer.Size() - 1});
+            m_order.push_back({.m_buffer = &buffer, .m_index = buffer.Size() - 1});
             ++m_totalSize;
         }
 
@@ -47,10 +48,17 @@ namespace Wayfinder
          *
          * Events queued by the handler during the drain are appended to the
          * next batch and are not dispatched re-entrantly in the current cycle.
+         *
+         * Re-entrant calls to Drain are not permitted and will assert.
+         * If Clear is called during a drain (e.g. from a handler), the clear
+         * is deferred and applied automatically once the drain completes.
          */
         template <typename THandler>
         void Drain(THandler&& handler)
         {
+            assert(!m_isDraining && "EventQueue::Drain cannot be called re-entrantly");
+            m_isDraining = true;
+
             // Swap out all active buffers into drain storage.
             for (auto& [_, buf] : m_buffers)
             {
@@ -65,7 +73,7 @@ namespace Wayfinder
             // Dispatch each event in its original insertion order.
             for (auto& entry : batch)
             {
-                handler(entry.Buffer->At(entry.Index));
+                handler(entry.m_buffer->At(entry.m_index));
             }
 
             // Clean up drain storage and preserve capacity.
@@ -78,13 +86,26 @@ namespace Wayfinder
             {
                 m_order.reserve(batch.capacity());
             }
+
+            m_isDraining = false;
+
+            // If Clear was deferred during the drain, apply it now.
+            if (m_pendingClear)
+            {
+                m_pendingClear = false;
+                Clear();
+            }
         }
 
         /**
          * @brief Read all pending events of a specific type.
          *
-         * Returns a span of events currently in the buffer (pre-drain).
-         * After Drain, the buffer is empty and the span will be empty.
+         * Returns a span over events currently in the active buffer.
+         * During a Drain cycle, new events pushed by handlers (including
+         * via the deferred-push path) accumulate in the active buffer.
+         * After Drain completes, this span reflects those newly enqueued
+         * events — it is only empty if no TEvent instances were pushed
+         * during the drain.
          */
         template <typename TEvent>
         [[nodiscard]] std::span<const TEvent> Read() const
@@ -112,8 +133,8 @@ namespace Wayfinder
 
         struct OrderEntry
         {
-            IEventBuffer* Buffer;
-            size_t Index;
+            IEventBuffer* m_buffer;
+            size_t m_index;
         };
 
         template <typename TEvent>
@@ -133,6 +154,8 @@ namespace Wayfinder
         std::unordered_map<std::type_index, std::unique_ptr<IEventBuffer>> m_buffers;
         std::vector<OrderEntry> m_order;
         size_t m_totalSize = 0;
+        bool m_isDraining = false;
+        bool m_pendingClear = false;
     };
 
 } // namespace Wayfinder

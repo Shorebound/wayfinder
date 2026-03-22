@@ -10,6 +10,12 @@ namespace Wayfinder
 
     void EventQueue::Clear()
     {
+        if (m_isDraining)
+        {
+            m_pendingClear = true;
+            return;
+        }
+
         for (auto& [_, buf] : m_buffers)
         {
             buf->Clear();
