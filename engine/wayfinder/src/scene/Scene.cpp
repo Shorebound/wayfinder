@@ -241,26 +241,31 @@ namespace Wayfinder
         m_active = false;
     }
 
+    bool Scene::IsNameTaken(const std::string& name, flecs::entity_t excludeEntity) const
+    {
+        const auto it = m_entitiesByName.find(name);
+        return it != m_entitiesByName.end() && it->second != excludeEntity;
+    }
+
+    std::string Scene::GenerateUniqueName(const std::string& base, flecs::entity_t excludeEntity) const
+    {
+        if (!IsNameTaken(base, excludeEntity))
+        {
+            return base;
+        }
+
+        uint32_t suffix = 1;
+        while (IsNameTaken(base + std::to_string(suffix), excludeEntity))
+        {
+            ++suffix;
+        }
+
+        return base + std::to_string(suffix);
+    }
+
     Entity Scene::CreateEntity(const std::string& name)
     {
-        /// Dedup within this scene only — different scenes sharing the
-        /// same world are allowed to have identically-named entities.
-        auto nameExistsInScene = [&](const std::string& candidate) -> bool
-        {
-            return m_entitiesByName.contains(candidate);
-        };
-
-        std::string uniqueName = name;
-        if (nameExistsInScene(uniqueName))
-        {
-            uint32_t suffix = 1;
-            while (nameExistsInScene(name + std::to_string(suffix)))
-            {
-                ++suffix;
-            }
-
-            uniqueName = name + std::to_string(suffix);
-        }
+        std::string uniqueName = GenerateUniqueName(name);
 
         /// Create an anonymous flecs entity.  Entity identity within a
         /// scene is tracked via NameComponent / SceneObjectIdComponent,
@@ -341,7 +346,6 @@ namespace Wayfinder
             for (const SceneDocumentEntity& definition : loadResult.Document->Entities)
             {
                 Entity entity = CreateEntity(definition.Name);
-                entity.SetName(definition.Name);
                 entity.SetSceneObjectId(definition.Id);
 
                 m_componentRegistry.ApplyComponents(definition.ComponentData, entity);

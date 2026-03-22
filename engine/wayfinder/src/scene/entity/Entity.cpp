@@ -27,24 +27,9 @@ namespace Wayfinder
             ? m_entityHandle.get<NameComponent>().Value
             : std::string{};
 
-        /// Deduplicate against the scene's name index, skipping the
-        /// current entity so that re-setting the same name is a no-op.
-        std::string finalName = name;
-        if (m_scene != nullptr)
-        {
-            auto it = m_scene->m_entitiesByName.find(finalName);
-            if (it != m_scene->m_entitiesByName.end() && it->second != m_entityHandle.id())
-            {
-                uint32_t suffix = 1;
-                do
-                {
-                    finalName = name + std::to_string(suffix);
-                    it = m_scene->m_entitiesByName.find(finalName);
-                    ++suffix;
-                }
-                while (it != m_scene->m_entitiesByName.end() && it->second != m_entityHandle.id());
-            }
-        }
+        std::string finalName = (m_scene != nullptr)
+            ? m_scene->GenerateUniqueName(name, m_entityHandle.id())
+            : name;
 
         if (m_entityHandle.has<NameComponent>())
         {

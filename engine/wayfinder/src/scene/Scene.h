@@ -37,6 +37,15 @@ namespace Wayfinder
         Entity CreateEntity(const std::string& name = "Entity");
         Entity GetEntityByName(const std::string& name);
         Entity GetEntityById(const SceneObjectId& id);
+
+        /// Returns true if @p name is already taken by an entity in this scene
+        /// other than @p excludeEntity.
+        bool IsNameTaken(const std::string& name, flecs::entity_t excludeEntity = 0) const;
+
+        /// Returns a scene-unique variant of @p base, appending a numeric suffix
+        /// if necessary.  The entity identified by @p excludeEntity (if any)
+        /// is ignored during the collision check.
+        std::string GenerateUniqueName(const std::string& base, flecs::entity_t excludeEntity = 0) const;
         bool LoadFromFile(const std::string& filePath);
         bool SaveToFile(const std::string& filePath) const;
         void SetAssetService(const std::shared_ptr<AssetService>& assetService) { m_assetService = assetService; }

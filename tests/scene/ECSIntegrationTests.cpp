@@ -332,6 +332,64 @@ namespace Wayfinder::Tests
             CHECK(found == entity);
         }
 
+        TEST_CASE("SetName re-setting own name is a no-op")
+        {
+            flecs::world world;
+            auto registry = MakeTestRegistry();
+            registry.RegisterComponents(world);
+            Scene::RegisterCoreECS(world);
+            Scene scene(world, registry, "TestScene");
+
+            auto entity = scene.CreateEntity("Player");
+            entity.SetName("Player");
+
+            CHECK(entity.GetName() == "Player");
+            CHECK(scene.GetEntityByName("Player").IsValid());
+            CHECK(scene.GetEntityByName("Player") == entity);
+        }
+
+        TEST_CASE("SetName deduplicates against existing entity names")
+        {
+            flecs::world world;
+            auto registry = MakeTestRegistry();
+            registry.RegisterComponents(world);
+            Scene::RegisterCoreECS(world);
+            Scene scene(world, registry, "TestScene");
+
+            auto first = scene.CreateEntity("Hero");
+            auto second = scene.CreateEntity("Sidekick");
+
+            // Rename second to collide with first
+            second.SetName("Hero");
+
+            // Should have been deduped
+            CHECK(second.GetName() != "Hero");
+            CHECK(second.GetName() == "Hero1");
+
+            // Both entities remain findable
+            CHECK(scene.GetEntityByName("Hero") == first);
+            CHECK(scene.GetEntityByName("Hero1") == second);
+        }
+
+        TEST_CASE("SetName on entity without prior NameComponent registers name")
+        {
+            flecs::world world;
+            auto registry = MakeTestRegistry();
+            registry.RegisterComponents(world);
+            Scene::RegisterCoreECS(world);
+            Scene scene(world, registry, "TestScene");
+
+            // Create normally, then strip the NameComponent to simulate the
+            // no-prior-name path in SetName.
+            auto entity = scene.CreateEntity("Temporary");
+            entity.RemoveComponent<NameComponent>();
+
+            entity.SetName("Newcomer");
+
+            CHECK(entity.GetName() == "Newcomer");
+            CHECK(scene.GetEntityByName("Newcomer").IsValid());
+        }
+
         // ── Mutable vs Read-Only Component Access ───────────────
 
         TEST_CASE("GetComponent returns const reference for read access")
