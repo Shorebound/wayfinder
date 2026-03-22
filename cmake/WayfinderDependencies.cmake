@@ -171,9 +171,12 @@ if(WAYFINDER_BUILD_TESTS)
 
         # doctest macros (TEST_CASE etc.) expand __COUNTER__, which Clang ≥ 19
         # flags as a C2y extension under -Wpedantic.  Suppress for consumers.
-        target_compile_options(doctest_headers INTERFACE
-            $<$<CXX_COMPILER_ID:Clang,AppleClang>:-Wno-c2y-extensions>
-        )
+        # Only add if the compiler actually supports it (Clang < 19 doesn't).
+        include(CheckCompilerFlag)
+        check_compiler_flag(CXX "-Wno-c2y-extensions" WAYFINDER_HAS_WNO_C2Y_EXTENSIONS)
+        if(WAYFINDER_HAS_WNO_C2Y_EXTENSIONS)
+            target_compile_options(doctest_headers INTERFACE -Wno-c2y-extensions)
+        endif()
 
         add_library(doctest::doctest ALIAS doctest_headers)
 

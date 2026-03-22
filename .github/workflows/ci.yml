@@ -21,9 +21,13 @@ jobs:
 
       - name: Install clang-format
         run: |
+          wget -qO- https://apt.llvm.org/llvm-snapshot.gpg.key | sudo tee /etc/apt/trusted.gpg.d/llvm.asc
+          . /etc/lsb-release
+          echo "deb http://apt.llvm.org/${DISTRIB_CODENAME}/ llvm-toolchain-${DISTRIB_CODENAME}-20 main" \
+            | sudo tee /etc/apt/sources.list.d/llvm-20.list
           sudo apt-get update
-          sudo apt-get install -y clang-format-18
-          sudo update-alternatives --install /usr/bin/clang-format clang-format /usr/bin/clang-format-18 100
+          sudo apt-get install -y clang-format-20
+          sudo update-alternatives --install /usr/bin/clang-format clang-format /usr/bin/clang-format-20 100
 
       - name: Run clang-format (dry run)
         run: |
@@ -45,7 +49,7 @@ jobs:
 
   # ── Build & Test (Linux / Clang) ───────────────────────────────
   build-test-linux:
-    name: Build & Test (Linux)
+    name: Linux (Clang)
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -72,7 +76,7 @@ jobs:
 
   # ── Build & Test (Windows / MSVC) ──────────────────────────────
   build-test-windows:
-    name: Build & Test (Windows)
+    name: Windows (MSVC)
     runs-on: windows-latest
     timeout-minutes: 20
     steps:

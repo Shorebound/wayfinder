@@ -344,15 +344,13 @@ namespace Wayfinder::Physics
 
         // --- ECS Observers & Systems ---
 
-        // PhysicsCreateBodies: reactive observer that creates a Jolt body when
-        // an entity gains RigidBodyComponent + ColliderComponent + TransformComponent.
-        // Fires once per entity when the archetype match becomes true (OnSet).
-        // Initial body position and rotation come from TransformComponent (the
-        // authored local transform). At runtime, PhysicsSyncTransforms writes
-        // simulated transforms back into WorldTransformComponent.
+        // PhysicsCreateBodies: system that creates a Jolt body for every entity
+        // that has a complete physics description (RigidBody + Collider + Transform)
+        // but no runtime body yet.  Runs in PreUpdate so bodies exist before
+        // PhysicsStep simulates them.
         registry.RegisterSystem("PhysicsCreateBodies", [](flecs::world& world) {
-            world.observer<RigidBodyComponent, const ColliderComponent, const TransformComponent>("PhysicsCreateBodies")
-                .event(flecs::OnSet)
+            world.system<RigidBodyComponent, const ColliderComponent, const TransformComponent>("PhysicsCreateBodies")
+                .kind(flecs::PreUpdate)
                 .each([](flecs::entity,
                          RigidBodyComponent& rb,
                          const ColliderComponent& col,

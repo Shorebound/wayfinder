@@ -249,6 +249,7 @@ namespace Wayfinder::Tests
 
             // Static body should not have moved.
             const auto& floorRb = floor.get<RigidBodyComponent>();
+            REQUIRE(floorRb.RuntimeBodyId != INVALID_PHYSICS_BODY);
             Float3 floorPos = fixture.GetPhysicsWorld().GetBodyPosition(floorRb.RuntimeBodyId);
             CHECK(floorPos.y == doctest::Approx(-1.0f));
 

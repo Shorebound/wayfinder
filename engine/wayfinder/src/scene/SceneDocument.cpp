@@ -391,7 +391,7 @@ namespace Wayfinder
 
                 if (!entityIds.insert(definition.Id).second)
                 {
-                    result.Errors.push_back(entityLabel + " resolves to duplicate entity id '" + definition.Id.ToString() + "'");
+                    result.Errors.push_back(entityLabel + " '" + definition.Name + "' resolves to duplicate entity id '" + definition.Id.ToString() + "'");
                 }
 
                 document.Entities.push_back(std::move(definition));

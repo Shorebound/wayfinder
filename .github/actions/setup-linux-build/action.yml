@@ -9,22 +9,30 @@ runs:
       with:
         cmakeVersion: '4.0.1'
 
+    - name: Add LLVM 20 repository
+      shell: bash
+      run: |
+        wget -qO- https://apt.llvm.org/llvm-snapshot.gpg.key | sudo tee /etc/apt/trusted.gpg.d/llvm.asc
+        . /etc/lsb-release
+        echo "deb http://apt.llvm.org/${DISTRIB_CODENAME}/ llvm-toolchain-${DISTRIB_CODENAME}-20 main" \
+          | sudo tee /etc/apt/sources.list.d/llvm-20.list
+
     - name: Install system dependencies
       shell: bash
       run: |
         sudo apt-get update
         sudo apt-get install -y --no-install-recommends \
           ninja-build \
-          clang-18 lld-18 libc++-18-dev libc++abi-18-dev \
-          clang-tidy-18 clang-format-18 \
+          clang-20 lld-20 libc++-20-dev libc++abi-20-dev \
+          clang-tidy-20 clang-format-20 \
           libx11-dev libxext-dev libxrandr-dev libxcursor-dev libxfixes-dev \
           libxi-dev libxss-dev libxtst-dev libxkbcommon-dev \
           libasound2-dev libpulse-dev libpipewire-0.3-dev \
           libdbus-1-dev libudev-dev \
           libdrm-dev libgbm-dev libgl1-mesa-dev libegl1-mesa-dev \
           libdecor-0-dev libwayland-dev
-        sudo update-alternatives --install /usr/bin/clang clang /usr/bin/clang-18 100
-        sudo update-alternatives --install /usr/bin/clang++ clang++ /usr/bin/clang++-18 100
-        sudo update-alternatives --install /usr/bin/clang-tidy clang-tidy /usr/bin/clang-tidy-18 100
-        sudo update-alternatives --install /usr/bin/clang-format clang-format /usr/bin/clang-format-18 100
-        sudo update-alternatives --install /usr/bin/lld lld /usr/bin/lld-18 100
+        sudo update-alternatives --install /usr/bin/clang clang /usr/bin/clang-20 100
+        sudo update-alternatives --install /usr/bin/clang++ clang++ /usr/bin/clang++-20 100
+        sudo update-alternatives --install /usr/bin/clang-tidy clang-tidy /usr/bin/clang-tidy-20 100
+        sudo update-alternatives --install /usr/bin/clang-format clang-format /usr/bin/clang-format-20 100
+        sudo update-alternatives --install /usr/bin/lld lld /usr/bin/lld-20 100
