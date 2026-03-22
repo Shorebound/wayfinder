@@ -1,0 +1,13 @@
+# Pre-commit hooks for Wayfinder.
+# Install: pip install pre-commit && pre-commit install
+# Alternative: python tools/install-hooks.py
+
+repos:
+  - repo: local
+    hooks:
+      - id: wayfinder-lint
+        name: Format & fixup
+        entry: python tools/lint.py --fix --staged
+        language: system
+        types_or: [c, c++]
+        pass_filenames: false
