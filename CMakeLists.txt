@@ -110,7 +110,9 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 include(WayfinderCommon)
 
 # --- Output Directories ---
-set(OUTPUT_DIR_BASE "${CMAKE_BINARY_DIR}/bin")
+# Binaries go to a root-level bin/ folder (outside the build tree) for easy access.
+# Build intermediates stay in build/msvc/ or build/clang/.
+set(OUTPUT_DIR_BASE "${CMAKE_SOURCE_DIR}/bin")
 
 function(wayfinder_set_output_directories target_name)
   set_target_properties(${target_name} PROPERTIES

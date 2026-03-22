@@ -113,10 +113,6 @@ Typical local setup for runtime and asset work:
 # Using presets (recommended)
 cmake --preset dev          # configures sandbox + tools + tests
 cmake --build --preset debug
-
-# Or manually
-cmake -S . -B build -DWAYFINDER_BUILD_SANDBOX=ON -DWAYFINDER_BUILD_TOOLS=ON
-cmake --build build --config Debug --target journey waypoint
 ```
 
 See `CMakePresets.json` at the repo root for available presets:
@@ -135,7 +131,7 @@ See `CMakePresets.json` at the repo root for available presets:
 Use `journey` when changing engine runtime behaviour, scene loading, renderer behaviour, or general gameplay-facing systems.
 
 ```powershell
-build\bin\Debug\journey.exe
+bin\Debug\journey.exe
 ```
 
 The sandbox copies its checked-in asset directory into the output folder after build so it can boot with local assets.
@@ -153,9 +149,9 @@ Supported commands today:
 Examples:
 
 ```powershell
-build\bin\Debug\waypoint.exe validate-assets sandbox\journey\assets
-build\bin\Debug\waypoint.exe validate sandbox\journey\assets\scenes\default_scene.json
-build\bin\Debug\waypoint.exe roundtrip-save sandbox\journey\assets\scenes\default_scene.json build\bin\Debug\assets\scenes\default_scene_roundtrip.json
+bin\Debug\waypoint.exe validate-assets sandbox\journey\assets
+bin\Debug\waypoint.exe validate sandbox\journey\assets\scenes\default_scene.json
+bin\Debug\waypoint.exe roundtrip-save sandbox\journey\assets\scenes\default_scene.json bin\Debug\assets\scenes\default_scene_roundtrip.json
 ```
 
 ## Dependency Summary
@@ -183,7 +179,7 @@ Tests are built when `WAYFINDER_BUILD_TESTS=ON` (included in the `dev` preset). 
 ctest --preset test
 
 # Or directly
-build\bin\Debug\wayfinder_render_tests.exe
+bin\Debug\wayfinder_render_tests.exe
 ```
 
 ## Recommended Reading Order

@@ -47,7 +47,7 @@ GitHub also supports **sub-issues** (parent/child hierarchy) for breaking large 
 
 ## CLI Tool: `gh-issues`
 
-Compiled C++ tool (source: `tools/gh-issues/src/Main.cpp`). Built via CMake when `WAYFINDER_BUILD_TOOLS=ON`, output to `build/bin/<config>/gh-issues.exe`. Manages issue relationships via the GitHub GraphQL API. Handles node ID lookups automatically — just pass issue numbers. Targets accept comma-separated lists (e.g. `7,8,9`).
+Compiled C++ tool (source: `tools/gh-issues/src/Main.cpp`). Built via CMake when `WAYFINDER_BUILD_TOOLS=ON`, output to `bin/<config>/gh-issues.exe`. Manages issue relationships via the GitHub GraphQL API. Handles node ID lookups automatically — just pass issue numbers. Targets accept comma-separated lists (e.g. `7,8,9`).
 
 ```powershell
 # Add relationships

@@ -8,7 +8,7 @@ This file documents common mistakes, confusion points, and non-obvious behaviour
 
 - **Test executables are opt-in.** `WAYFINDER_BUILD_TESTS` defaults to `OFF`. Use the `dev` preset or pass `-DWAYFINDER_BUILD_TESTS=ON` explicitly.
 - **MSVC vs Clang differences.** The primary local dev compiler is MSVC; cloud agents use Clang with libc++. Code must compile on both. Watch for MSVC-specific pragmas (guard with `#ifdef WAYFINDER_COMPILER_MSVC`) and C++23 feature availability differences between compilers.
-- **Local Clang builds.** Use `cmake --preset dev-clang` + `cmake --build --preset clang-debug` to build with Clang on Windows. This catches Clang-specific issues before CI. The build tree goes into `build-clang/`.
+- **Local Clang builds.** Use `cmake --preset dev-clang` + `cmake --build --preset clang-debug` to build with Clang on Windows. This catches Clang-specific issues before CI. The build tree goes into `build/clang/`.
 - **`-Wmissing-field-initializers` is suppressed.** Designated initialisers that rely on default member initialisers for remaining fields are idiomatic C++20 — don't pad with `= {}`/`= 0`.
 
 ## Logging
@@ -32,5 +32,5 @@ This file documents common mistakes, confusion points, and non-obvious behaviour
 
 ## gh-issues
 
-- **gh-issues is a compiled C++ tool** (source: `tools/gh-issues/src/Main.cpp`). It is built via CMake when `WAYFINDER_BUILD_TOOLS=ON` and output to `build/bin/<config>/gh-issues.exe`.
+- **gh-issues is a compiled C++ tool** (source: `tools/gh-issues/src/Main.cpp`). It is built via CMake when `WAYFINDER_BUILD_TOOLS=ON` and output to `bin/<config>/gh-issues.exe`.
 - **`ready`, `status`, and `orphans` take no issue number.** Just run `gh-issues ready`, `gh-issues orphans`, or `gh-issues status --milestone "..."` directly.

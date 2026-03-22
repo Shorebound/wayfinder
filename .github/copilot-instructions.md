@@ -117,7 +117,7 @@ PR titles and commits: `<type>(<scope>): <description>`
 ### Relationships
 
 Dependencies use GitHub's native **blocked-by/blocking** and **sub-issues**. 
-Use `gh-issues` (built to `build/bin/<config>/gh-issues.exe`) to manage relationships:
+Use `gh-issues` (built to `bin/<config>/gh-issues.exe`) to manage relationships:
 
 ```powershell
 gh-issues blocked-by 12 7      # #12 is blocked by #7

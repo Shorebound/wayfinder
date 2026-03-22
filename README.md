@@ -40,27 +40,27 @@ Present but not yet full products:
 Configure the project:
 
 ```powershell
-cmake -S . -B build -DWAYFINDER_BUILD_SANDBOX=ON -DWAYFINDER_BUILD_TOOLS=ON
+cmake --preset dev
 ```
 
 Build the sandbox and the current tool:
 
 ```powershell
-cmake --build build --config Debug --target journey waypoint
+cmake --build --preset debug
 ```
 
 Run the sandbox:
 
 ```powershell
-build\bin\Debug\journey.exe
+bin\Debug\journey.exe
 ```
 
 Validate the checked-in sandbox assets:
 
 ```powershell
-build\bin\Debug\waypoint.exe validate-assets sandbox\journey\assets
-build\bin\Debug\waypoint.exe validate sandbox\journey\assets\scenes\default_scene.json
-build\bin\Debug\waypoint.exe roundtrip-save sandbox\journey\assets\scenes\default_scene.json build\bin\Debug\assets\scenes\default_scene_roundtrip.json
+bin\Debug\waypoint.exe validate-assets sandbox\journey\assets
+bin\Debug\waypoint.exe validate sandbox\journey\assets\scenes\default_scene.json
+bin\Debug\waypoint.exe roundtrip-save sandbox\journey\assets\scenes\default_scene.json bin\Debug\assets\scenes\default_scene_roundtrip.json
 ```
 
 By default, the top-level build enables the sandbox and leaves standalone tools disabled unless `WAYFINDER_BUILD_TOOLS=ON` is supplied.

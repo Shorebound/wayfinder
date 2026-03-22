@@ -11,8 +11,9 @@
             "displayName": "Development (Sandbox + Tools + Tests)",
             "description": "Daily-driver preset: builds sandbox, tools, and tests",
             "generator": "Visual Studio 17 2022",
-            "binaryDir": "${sourceDir}/build",
+            "binaryDir": "${sourceDir}/build/msvc",
             "cacheVariables": {
+                "CPM_SOURCE_CACHE": "${sourceDir}/thirdparty",
                 "WAYFINDER_BUILD_SANDBOX": "ON",
                 "WAYFINDER_BUILD_TOOLS": "ON",
                 "WAYFINDER_BUILD_TESTS": "ON",
@@ -35,15 +36,16 @@
         {
             "name": "dev-clang",
             "displayName": "Development (Clang on Windows)",
-            "description": "Local Clang builds — catches warnings that MSVC misses",
+            "description": "Local Clang builds — catches warnings that MSVC misses, provides compile_commands.json",
             "generator": "Ninja Multi-Config",
-            "binaryDir": "${sourceDir}/build-clang",
+            "binaryDir": "${sourceDir}/build/clang",
             "condition": {
                 "type": "equals",
                 "lhs": "${hostSystemName}",
                 "rhs": "Windows"
             },
             "cacheVariables": {
+                "CPM_SOURCE_CACHE": "${sourceDir}/thirdparty",
                 "CMAKE_C_COMPILER": "clang",
                 "CMAKE_CXX_COMPILER": "clang++",
                 "WAYFINDER_BUILD_SANDBOX": "ON",
@@ -69,8 +71,9 @@
             "displayName": "Shipping",
             "description": "Sandbox only, no dev tooling",
             "generator": "Visual Studio 17 2022",
-            "binaryDir": "${sourceDir}/build",
+            "binaryDir": "${sourceDir}/build/msvc",
             "cacheVariables": {
+                "CPM_SOURCE_CACHE": "${sourceDir}/thirdparty",
                 "WAYFINDER_BUILD_SANDBOX": "ON",
                 "WAYFINDER_BUILD_TOOLS": "OFF",
                 "WAYFINDER_BUILD_TESTS": "OFF",
@@ -91,6 +94,7 @@
                 "rhs": "Linux"
             },
             "cacheVariables": {
+                "CPM_SOURCE_CACHE": "${sourceDir}/thirdparty",
                 "CMAKE_C_COMPILER": "clang",
                 "CMAKE_CXX_COMPILER": "clang++",
                 "CMAKE_CXX_FLAGS": "-stdlib=libc++",

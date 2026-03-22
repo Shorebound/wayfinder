@@ -124,7 +124,7 @@ int main(int argc, char** argv)
 
     if (argc < 2)
     {
-        PrintUsage();
+        Wayfinder::PrintUsage();
         Wayfinder::Log::Shutdown();
         return 1;
     }
@@ -177,7 +177,7 @@ int main(int argc, char** argv)
 
     if (argIndex >= argc)
     {
-        PrintUsage();
+        Wayfinder::PrintUsage();
         Wayfinder::Log::Shutdown();
         return 1;
     }
@@ -190,7 +190,7 @@ int main(int argc, char** argv)
     {
         if (argIndex >= argc && !project)
         {
-            PrintUsage();
+            Wayfinder::PrintUsage();
             Wayfinder::Log::Shutdown();
             return 1;
         }
@@ -199,7 +199,7 @@ int main(int argc, char** argv)
             ? std::filesystem::path(argv[argIndex])
             : project->ResolveBootScene();
 
-        exitCode = RunValidate(scenePath, project ? &*project : nullptr, toolDir);
+        exitCode = Wayfinder::RunValidate(scenePath, project ? &*project : nullptr, toolDir);
     }
     else if (command == "validate-assets")
     {
@@ -210,29 +210,29 @@ int main(int argc, char** argv)
             assetRoot = std::filesystem::path(argv[argIndex]);
         else
         {
-            PrintUsage();
+            Wayfinder::PrintUsage();
             Wayfinder::Log::Shutdown();
             return 1;
         }
 
-        exitCode = RunValidateAssets(assetRoot);
+        exitCode = Wayfinder::RunValidateAssets(assetRoot);
     }
     else if (command == "roundtrip-save")
     {
         if (argIndex + 1 >= argc)
         {
-            PrintUsage();
+            Wayfinder::PrintUsage();
             Wayfinder::Log::Shutdown();
             return 1;
         }
 
-        exitCode = RunRoundtripSave(std::filesystem::path(argv[argIndex]),
+        exitCode = Wayfinder::RunRoundtripSave(std::filesystem::path(argv[argIndex]),
                                     std::filesystem::path(argv[argIndex + 1]),
                                     project ? &*project : nullptr, toolDir);
     }
     else
     {
-        PrintUsage();
+        Wayfinder::PrintUsage();
     }
 
     Wayfinder::Log::Shutdown();
