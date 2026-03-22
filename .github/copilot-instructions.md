@@ -38,8 +38,7 @@ ctest --preset test             # run all tests
 Configurations are `Debug`, `Development`, and `Shipping`.
 Key targets: `wayfinder` (engine lib), `journey` (sandbox), `waypoint` (asset CLI), `wayfinder_render_tests`, `wayfinder_core_tests`.
 
-New source files requires a CMake reconfigure (`CMAKE_SUPPRESS_REGENERATION` is on). 
-`GLOB_RECURSE` picks them up automatically.
+Source files are listed explicitly in CMakeLists.txt. When adding a new `.cpp` or `.h`, add it to the relevant CMakeLists.txt.
 
 ### Testing
 
