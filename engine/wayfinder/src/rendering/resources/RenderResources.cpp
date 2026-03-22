@@ -4,6 +4,7 @@
 #include "rendering/resources/TextureManager.h"
 
 #include <filesystem>
+#include <unordered_set>
 
 namespace Wayfinder
 {
@@ -144,6 +145,9 @@ namespace Wayfinder
         const ShaderProgram* program = m_programs->FindOrDefault(binding.ShaderName);
         if (!program) return;
 
+        // Track which authored texture keys are consumed by the shader
+        std::unordered_set<std::string> consumedSlots;
+
         for (const auto& slotDecl : program->Desc.TextureSlots)
         {
             ResolvedTextureBinding resolved;
@@ -153,6 +157,7 @@ namespace Wayfinder
             auto slotIt = binding.Textures.Slots.find(slotDecl.Name);
             if (slotIt != binding.Textures.Slots.end() && m_assetService)
             {
+                consumedSlots.insert(slotDecl.Name);
                 resolved.Texture = m_textureManager->GetOrLoad(slotIt->second, *m_assetService);
             }
             else
@@ -177,6 +182,19 @@ namespace Wayfinder
             resolved.Sampler = m_textureManager->GetOrCreateSampler(samplerDesc);
 
             binding.ResolvedTextures.push_back(resolved);
+        }
+
+        // Warn about authored texture keys that don't match any shader slot
+        for (const auto& [slotName, assetId] : binding.Textures.Slots)
+        {
+            if (!consumedSlots.contains(slotName))
+            {
+                WAYFINDER_WARNING(LogRenderer,
+                    "RenderResourceCache: Material '{}' shader '{}' has no slot '{}' — texture ignored",
+                    binding.Ref.AssetId ? binding.Ref.AssetId->ToString() : "<unknown>",
+                    binding.ShaderName,
+                    slotName);
+            }
         }
     }
 } // namespace Wayfinder

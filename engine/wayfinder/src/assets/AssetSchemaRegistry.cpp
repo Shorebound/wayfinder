@@ -6,12 +6,12 @@
 
 namespace Wayfinder
 {
-    bool AssetSchemaRegistry::IsRegisteredType(const std::string_view typeName)
+    bool AssetSchemaRegistry::IsRegisteredType(std::string_view typeName)
     {
         return Find(typeName) != nullptr;
     }
 
-    std::optional<AssetKind> AssetSchemaRegistry::ResolveBuiltinKind(const std::string_view typeName)
+    std::optional<AssetKind> AssetSchemaRegistry::ResolveBuiltinKind(std::string_view typeName)
     {
         const Entry* entry = Find(typeName);
         if (!entry)
@@ -23,7 +23,7 @@ namespace Wayfinder
     }
 
     bool AssetSchemaRegistry::ValidateDocument(
-        const std::string_view typeName,
+        std::string_view typeName,
         const nlohmann::json& document,
         const std::filesystem::path& filePath,
         std::string& error)
@@ -38,7 +38,7 @@ namespace Wayfinder
         return entry->ValidateFn(document, filePath, error);
     }
 
-    const AssetSchemaRegistry::Entry* AssetSchemaRegistry::Find(const std::string_view typeName)
+    const AssetSchemaRegistry::Entry* AssetSchemaRegistry::Find(std::string_view typeName)
     {
         for (const Entry& entry : GetEntries())
         {

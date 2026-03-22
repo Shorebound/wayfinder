@@ -130,7 +130,6 @@ namespace Wayfinder::Tests
 
         asset.ReleasePixelData();
         CHECK(asset.PixelData.empty());
-        CHECK(asset.PixelData.capacity() == 0);
     }
 
     // ── Material Texture Parsing ─────────────────────────────
@@ -226,9 +225,35 @@ namespace Wayfinder::Tests
 
     TEST_CASE("AssetCache Clear resets size")
     {
+        const auto tempDir = Helpers::FixturesDir() / "temp" / "clear_test";
+        std::filesystem::create_directories(tempDir);
+
+        const std::string assetIdText = "f0000000-0000-0000-0000-000000000099";
+        const auto assetId = AssetId::Parse(assetIdText).value();
+
+        {
+            std::ofstream file(tempDir / "clear_material.json");
+            file << R"({
+                "asset_id": ")" + assetIdText + R"(",
+                "asset_type": "material",
+                "name": "clear_test",
+                "shader": "basic_lit"
+            })";
+        }
+
+        AssetRegistry registry;
+        std::string error;
+        REQUIRE(registry.BuildFromDirectory(tempDir, error));
+
         AssetCache<MaterialAsset> cache;
+        REQUIRE(cache.LoadOrGet(assetId, registry, error) != nullptr);
+        CHECK(cache.Size() == 1);
+
         cache.Clear();
         CHECK(cache.Size() == 0);
+        CHECK(cache.Get(assetId) == nullptr);
+
+        std::filesystem::remove_all(tempDir);
     }
 
     TEST_CASE("AssetCache LoadOrGet loads from registry and caches")

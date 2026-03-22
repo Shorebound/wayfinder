@@ -30,10 +30,12 @@ namespace Wayfinder
         TextureManager(TextureManager&&) = delete;
         TextureManager& operator=(TextureManager&&) = delete;
 
-        /// Initialise with a render device — creates fallback textures.
+        /** @brief Initialise with a render device — creates fallback textures.
+         *  @param device The render device used to create GPU resources.
+         *  @return True if all built-in textures were created successfully. */
         bool Initialise(RenderDevice& device);
 
-        /// Destroy all owned GPU textures and samplers.
+        /** @brief Destroy all owned GPU textures and samplers. */
         void Shutdown();
 
         // ── Texture Loading ──────────────────────────────────
@@ -49,21 +51,23 @@ namespace Wayfinder
 
         // ── Built-in Textures ────────────────────────────────
 
-        /// 8x8 pink-black checkerboard for missing textures.
+        /** @brief 8x8 pink-black checkerboard for missing textures. */
         GPUTextureHandle GetFallback() const { return m_fallbackTexture; }
 
-        /// 1x1 white (RGBA 255,255,255,255).
+        /** @brief 1x1 white (RGBA 255,255,255,255). */
         GPUTextureHandle GetWhite() const { return m_whiteTexture; }
 
-        /// 1x1 black (RGBA 0,0,0,255).
+        /** @brief 1x1 black (RGBA 0,0,0,255). */
         GPUTextureHandle GetBlack() const { return m_blackTexture; }
 
-        /// 1x1 flat normal (RGBA 128,128,255,255 — tangent-space up).
+        /** @brief 1x1 flat normal (RGBA 128,128,255,255 — tangent-space up). */
         GPUTextureHandle GetFlatNormal() const { return m_flatNormalTexture; }
 
         // ── Sampler Cache ────────────────────────────────────
 
-        /// Return an existing sampler matching these params, or create and cache a new one.
+        /** @brief Return an existing sampler matching these params, or create and cache a new one.
+         *  @param desc Sampler filter/address configuration to look up or create.
+         *  @return Cached or newly created GPU sampler handle. */
         GPUSamplerHandle GetOrCreateSampler(const SamplerCreateDesc& desc);
 
     private:

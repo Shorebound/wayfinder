@@ -64,6 +64,12 @@ namespace Wayfinder
 
     GPUTextureHandle TextureManager::GetOrLoad(const AssetId& assetId, AssetService& assetService)
     {
+        if (!m_device)
+        {
+            WAYFINDER_WARNING(LogRenderer, "TextureManager::GetOrLoad called without a valid device");
+            return m_fallbackTexture;
+        }
+
         // Cache hit
         if (const auto it = m_textureCache.find(assetId); it != m_textureCache.end())
         {
@@ -117,6 +123,12 @@ namespace Wayfinder
 
     GPUSamplerHandle TextureManager::GetOrCreateSampler(const SamplerCreateDesc& desc)
     {
+        if (!m_device)
+        {
+            WAYFINDER_WARNING(LogRenderer, "TextureManager::GetOrCreateSampler called without a valid device");
+            return {};
+        }
+
         const uint64_t hash = HashSamplerDesc(desc);
 
         if (const auto it = m_samplerCache.find(hash); it != m_samplerCache.end())
