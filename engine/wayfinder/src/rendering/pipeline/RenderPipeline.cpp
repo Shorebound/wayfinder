@@ -249,6 +249,10 @@ namespace Wayfinder
         depthDesc.DebugName = WellKnown::SceneDepth;
 
         // ── MainScene Pass ───────────────────────────────────
+#ifdef WAYFINDER_COMPILER_MSVC
+    #pragma warning(push)
+    #pragma warning(disable : 4324) // lambda closure padded due to captured alignas(16) matrices
+#endif
         graph.AddPass("MainScene", [&, viewMat = view, projMat = projection, hasCamera](RenderGraphBuilder& builder) {
             auto colour = builder.CreateTransient(colourDesc);
             auto depth = builder.CreateTransient(depthDesc);
@@ -524,6 +528,9 @@ namespace Wayfinder
                 }
             };
         });
+#ifdef WAYFINDER_COMPILER_MSVC
+    #pragma warning(pop)
+#endif
 
         // ── Feature passes ───────────────────────────────────
         for (const auto& feature : params.Features)

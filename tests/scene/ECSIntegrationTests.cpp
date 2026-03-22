@@ -249,6 +249,8 @@ namespace Wayfinder::Tests
 
             auto entityA = sceneA.CreateEntity("Player");
             auto entityB = sceneB.CreateEntity("Player");
+            (void)entityA; // Entities must exist — looked up by name below
+            (void)entityB;
 
             // Each scene should find only its own entity
             auto foundA = sceneA.GetEntityByName("Player");

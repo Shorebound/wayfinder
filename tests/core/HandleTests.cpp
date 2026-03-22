@@ -229,6 +229,7 @@ namespace Wayfinder::Tests
         auto h0 = pool.Acquire(0);
         auto h1 = pool.Acquire(1);
         auto h2 = pool.Acquire(2);
+        (void)h2; // Keeps slot occupied — not accessed directly
 
         pool.Release(h1); // Free slot 1
 

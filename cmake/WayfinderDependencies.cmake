@@ -168,6 +168,13 @@ if(WAYFINDER_BUILD_TESTS)
         # Header-only interface (no implementation — use in all test TUs)
         add_library(doctest_headers INTERFACE)
         target_include_directories(doctest_headers SYSTEM INTERFACE "${doctest_SOURCE_DIR}")
+
+        # doctest macros (TEST_CASE etc.) expand __COUNTER__, which Clang ≥ 19
+        # flags as a C2y extension under -Wpedantic.  Suppress for consumers.
+        target_compile_options(doctest_headers INTERFACE
+            $<$<CXX_COMPILER_ID:Clang,AppleClang>:-Wno-c2y-extensions>
+        )
+
         add_library(doctest::doctest ALIAS doctest_headers)
 
         # Single-TU implementation with main() — link to one test executable
