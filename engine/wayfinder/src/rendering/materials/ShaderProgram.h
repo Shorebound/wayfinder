@@ -60,6 +60,15 @@ namespace Wayfinder
         // Whether this shader needs per-frame scene globals (lights, camera, time).
         // If true, the renderer pushes the SceneGlobalsUBO to fragment slot 1.
         bool NeedsSceneGlobals = false;
+
+        // Texture slot declarations — which named texture bindings this shader expects.
+        // Each slot maps to a fragment sampler binding index.
+        struct TextureSlotDecl
+        {
+            std::string Name;       // e.g. "diffuse", "normal"
+            uint32_t BindingSlot;   // Fragment sampler binding index
+        };
+        std::vector<TextureSlotDecl> TextureSlots;
     };
 
     // Runtime representation of a registered shader program.

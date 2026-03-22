@@ -7,6 +7,7 @@ add_executable(${WAYFINDER_RENDER_TEST_NAME}
   rendering/RenderContextTests.cpp
   rendering/BlendStateTests.cpp
   rendering/FrameAllocatorTests.cpp
+  rendering/TextureManagerTests.cpp
 )
 
 wayfinder_set_output_directories(${WAYFINDER_RENDER_TEST_NAME})
@@ -30,6 +31,7 @@ add_executable(${WAYFINDER_CORE_TEST_NAME}
   core/EventQueueTests.cpp
   core/IdentifierTests.cpp
   core/ResultTests.cpp
+  core/AssetPipelineTests.cpp
   app/EngineRuntimeTests.cpp
   app/EngineConfigTests.cpp
   app/SubsystemTests.cpp

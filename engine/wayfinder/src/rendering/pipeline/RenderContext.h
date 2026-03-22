@@ -3,6 +3,7 @@
 #include "PipelineCache.h"
 #include "rendering/materials/ShaderManager.h"
 #include "rendering/materials/ShaderProgram.h"
+#include "rendering/resources/TextureManager.h"
 #include "rendering/resources/TransientBufferAllocator.h"
 #include "rendering/resources/TransientResourcePool.h"
 
@@ -49,6 +50,9 @@ namespace Wayfinder
         TransientResourcePool& GetTransientPool() { return m_transientPool; }
         const TransientResourcePool& GetTransientPool() const { return m_transientPool; }
 
+        TextureManager& GetTextures() { return m_textureManager; }
+        const TextureManager& GetTextures() const { return m_textureManager; }
+
         GPUSamplerHandle GetNearestSampler() const { return m_nearestSampler; }
 
     private:
@@ -59,6 +63,7 @@ namespace Wayfinder
         ShaderProgramRegistry m_programRegistry;
         TransientBufferAllocator m_transientAllocator;
         TransientResourcePool m_transientPool;
+        TextureManager m_textureManager;
         GPUSamplerHandle m_nearestSampler{};
     };
 

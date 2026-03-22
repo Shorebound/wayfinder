@@ -1,0 +1,12 @@
+{
+    "asset_id": "a0000000-0000-0000-0000-000000000001",
+    "asset_type": "material",
+    "name": "textured_material",
+    "shader": "textured_lit",
+    "textures": {
+        "diffuse": "b0000000-0000-0000-0000-000000000001"
+    },
+    "parameters": {
+        "base_colour": [255, 255, 255, 255]
+    }
+}

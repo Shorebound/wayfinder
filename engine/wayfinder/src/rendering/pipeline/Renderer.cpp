@@ -10,6 +10,7 @@
 
 #include "app/EngineConfig.h"
 #include "core/Log.h"
+#include "rendering/backend/VertexFormats.h"
 
 namespace Wayfinder
 {
@@ -44,7 +45,11 @@ namespace Wayfinder
         // ── Render pipeline (registers shader programs) ──────
         m_renderPipeline->Initialise(*m_context);
 
-        // ── Debug line pipeline (PosColourrr, uses debug_unlit shaders) ──
+        // Wire texture manager and program registry into resource cache
+        m_renderResources->SetTextureManager(&m_context->GetTextures());
+        m_renderResources->SetProgramRegistry(&m_context->GetPrograms());
+
+        // ── Debug line pipeline (PosColour, uses debug_unlit shaders) ──
         {
             GPUPipelineDesc desc{};
             desc.vertexShaderName = "debug_unlit";
@@ -65,6 +70,9 @@ namespace Wayfinder
 
         // Single built-in mesh for all scene primitives
         m_primitiveMesh = Mesh::CreatePrimitive(device);
+
+        // UV-mapped mesh for textured rendering
+        m_texturedPrimitiveMesh = Mesh::CreateTexturedPrimitive(device);
 
         // Attach any features that were added before Initialise().
         for (auto& feature : m_features)
@@ -91,6 +99,7 @@ namespace Wayfinder
         m_features.clear();
 
         m_primitiveMesh.Destroy();
+        m_texturedPrimitiveMesh.Destroy();
         m_debugLinePipeline.Destroy();
 
         m_renderPipeline->Shutdown();
@@ -171,11 +180,17 @@ namespace Wayfinder
 
         // ── Build and execute render graph ───────────────────
         RenderGraph graph;
+
+        std::unordered_map<uint32_t, Mesh*> meshesByStride = {
+            {VertexLayouts::PosNormalColour.stride, &m_primitiveMesh},
+            {VertexLayouts::PosNormalUV.stride, &m_texturedPrimitiveMesh},
+        };
+
         RenderPipelineFrameParams params{
             .Frame = preparedFrame,
             .SwapchainWidth = swapW,
             .SwapchainHeight = swapH,
-            .PrimitiveMesh = m_primitiveMesh,
+            .MeshesByStride = meshesByStride,
             .DebugLinePipeline = m_debugLinePipeline,
             .Features = m_features,
         };

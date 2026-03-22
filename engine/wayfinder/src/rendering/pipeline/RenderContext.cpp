@@ -23,6 +23,11 @@ namespace Wayfinder
 
         m_transientPool.Initialise(device);
 
+        if (!m_textureManager.Initialise(device))
+        {
+            WAYFINDER_WARNING(LogRenderer, "RenderContext: Failed to initialise TextureManager");
+        }
+
         // Nearest-point sampler for composition blit
         {
             SamplerCreateDesc samplerDesc;
@@ -45,6 +50,7 @@ namespace Wayfinder
         }
 
         m_transientPool.Shutdown();
+        m_textureManager.Shutdown();
         m_transientAllocator.Shutdown();
         m_programRegistry.Shutdown();
         m_pipelineCache.Shutdown();

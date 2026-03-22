@@ -5,10 +5,12 @@
 #include <optional>
 #include <string>
 #include <string_view>
+#include <unordered_map>
 #include <vector>
 
 #include "core/Identifiers.h"
 #include "core/Types.h"
+#include "rendering/backend/GPUHandles.h"
 #include "rendering/materials/MaterialParameter.h"
 #include "rendering/materials/PostProcessVolume.h"
 #include "RenderIntent.h"
@@ -95,6 +97,23 @@ namespace Wayfinder
         // Future: blend mode, double-sided, stencil ref, etc.
     };
 
+    /// Maps named texture slots (e.g. "diffuse") to texture asset IDs.
+    /// Resolved to GPU handles at render time by the TextureManager.
+    struct TextureBindingSet
+    {
+        std::unordered_map<std::string, AssetId> Slots;
+
+        bool HasSlot(const std::string& name) const { return Slots.contains(name); }
+    };
+
+    /// Resolved GPU handles for texture bindings (filled by RenderResourceCache).
+    struct ResolvedTextureBinding
+    {
+        GPUTextureHandle Texture{};
+        GPUSamplerHandle Sampler{};
+        uint32_t Slot = 0;
+    };
+
     struct RenderMaterialBinding
     {
         RenderMaterialRef Ref{};
@@ -109,6 +128,12 @@ namespace Wayfinder
         bool HasOverrides = false;
 
         RenderStateOverrides StateOverrides;
+
+        // Texture bindings — maps slot names to asset IDs (authored in material JSON).
+        TextureBindingSet Textures;
+
+        // Resolved GPU handles for texture bindings (populated at render time).
+        std::vector<ResolvedTextureBinding> ResolvedTextures;
     };
 
     struct RenderMeshSubmission

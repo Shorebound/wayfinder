@@ -115,6 +115,28 @@ namespace Wayfinder
 
         {
             ShaderProgramDesc desc;
+            desc.Name = "textured_lit";
+            desc.VertexShaderName = "textured_lit";
+            desc.FragmentShaderName = "textured_lit";
+            desc.VertexResources = {.numUniformBuffers = 1};
+            desc.FragmentResources = {.numUniformBuffers = 2, .numSamplers = 1}; // material + scene globals + diffuse sampler
+            desc.VertexLayout = VertexLayouts::PosNormalUV;
+            desc.Cull = CullMode::Back;
+            desc.DepthTest = true;
+            desc.DepthWrite = true;
+            desc.MaterialParams = {
+                {"base_colour", MaterialParamType::Colour, 0, LinearColour::White()},
+            };
+            desc.MaterialUBOSize = 16; // float4
+            desc.VertexUBOSize = sizeof(TransformUBO);
+            desc.NeedsSceneGlobals = true;
+            desc.TextureSlots = {{"diffuse", 0}};
+
+            registry.Register(desc);
+        }
+
+        {
+            ShaderProgramDesc desc;
             desc.Name = "composition";
             desc.VertexShaderName = "fullscreen";
             desc.FragmentShaderName = "composition";
@@ -237,7 +259,6 @@ namespace Wayfinder
                    (RenderDevice& device, const RenderGraphResources& /*resources*/) {
                 if (!hasCamera) return;
 
-                const auto& primitiveMesh = params.PrimitiveMesh;
                 auto& registry = m_context->GetPrograms();
                 auto& pipelineCache = m_context->GetPipelines();
                 auto& shaderManager = m_context->GetShaders();
@@ -329,15 +350,33 @@ namespace Wayfinder
                         // Solid draw (for Solid and SolidAndWireframe modes)
                         if (fillMode == RenderFillMode::Solid || fillMode == RenderFillMode::SolidAndWireframe)
                         {
+                            // Look up the mesh for this program's vertex layout
+                            const auto meshIt = params.MeshesByStride.find(program->Desc.VertexLayout.stride);
+                            if (meshIt == params.MeshesByStride.end() || !meshIt->second)
+                            {
+                                continue;
+                            }
+                            const auto& mesh = *meshIt->second;
+
                             if (program != lastBoundProgram)
                             {
                                 program->Pipeline->Bind();
-                                primitiveMesh.Bind(device);
+                                mesh.Bind(device);
                                 lastBoundProgram = program;
                             }
 
                             pushUniforms();
-                            primitiveMesh.Draw(device);
+
+                            // Bind resolved textures for this submission
+                            for (const auto& texBinding : submission.Material.ResolvedTextures)
+                            {
+                                if (texBinding.Texture && texBinding.Sampler)
+                                {
+                                    device.BindFragmentSampler(texBinding.Slot, texBinding.Texture, texBinding.Sampler);
+                                }
+                            }
+
+                            mesh.Draw(device);
                         }
 
                         // Wireframe draw (for Wireframe and SolidAndWireframe modes)
@@ -349,12 +388,27 @@ namespace Wayfinder
                                 GPUPipelineHandle wireframePipeline = pipelineCache.GetOrCreate(*wireframeDesc);
                                 if (wireframePipeline.IsValid())
                                 {
-                                    device.BindPipeline(wireframePipeline);
-                                    primitiveMesh.Bind(device);
-                                    lastBoundProgram = nullptr; // Force re-bind on next solid draw
+                                    // Select the mesh matching the program's vertex layout
+                                    const auto wireframeMeshIt = params.MeshesByStride.find(program->Desc.VertexLayout.stride);
+                                    if (wireframeMeshIt != params.MeshesByStride.end() && wireframeMeshIt->second)
+                                    {
+                                        auto& wireframeMesh = *wireframeMeshIt->second;
+                                        device.BindPipeline(wireframePipeline);
+                                        wireframeMesh.Bind(device);
+                                        lastBoundProgram = nullptr; // Force re-bind on next solid draw
 
-                                    pushUniforms();
-                                    primitiveMesh.Draw(device);
+                                        // Bind textures so textured wireframe shaders have valid samplers
+                                        for (const auto& texBinding : submission.Material.ResolvedTextures)
+                                        {
+                                            if (texBinding.Texture && texBinding.Sampler)
+                                            {
+                                                device.BindFragmentSampler(texBinding.Slot, texBinding.Texture, texBinding.Sampler);
+                                            }
+                                        }
+
+                                        pushUniforms();
+                                        wireframeMesh.Draw(device);
+                                    }
                                 }
                             }
                         }
@@ -375,9 +429,12 @@ namespace Wayfinder
                 if (!hasCamera) return;
 
                 auto& debugLinePipeline = params.DebugLinePipeline;
-                const auto& primitiveMesh = params.PrimitiveMesh;
                 auto& transientAllocator = m_context->GetTransientBuffers();
                 auto& registry = m_context->GetPrograms();
+
+                // Resolve PosNormalColour mesh for debug boxes
+                const auto debugMeshIt = params.MeshesByStride.find(VertexLayouts::PosNormalColour.stride);
+                Mesh* primitiveMeshPtr = (debugMeshIt != params.MeshesByStride.end()) ? debugMeshIt->second : nullptr;
 
                 // ── Debug lines ──────────────────────────────
                 std::vector<VertexPosColour> lineVertices;
@@ -434,7 +491,7 @@ namespace Wayfinder
 
                 // ── Debug boxes ──────────────────────────────
                 const ShaderProgram* unlitProgram = registry.Find("unlit");
-                if (!unlitProgram || !unlitProgram->Pipeline || !primitiveMesh.IsValid()) return;
+                if (!unlitProgram || !unlitProgram->Pipeline || !primitiveMeshPtr || !primitiveMeshPtr->IsValid()) return;
 
                 bool hasPendingBoxes = false;
                 for (const auto& pass : preparedFrame.Passes)
@@ -449,7 +506,7 @@ namespace Wayfinder
                 if (!hasPendingBoxes) return;
 
                 unlitProgram->Pipeline->Bind();
-                primitiveMesh.Bind(device);
+                primitiveMeshPtr->Bind(device);
 
                 for (const auto& pass : preparedFrame.Passes)
                 {
@@ -462,7 +519,7 @@ namespace Wayfinder
 
                         device.PushVertexUniform(0, &transformUBO, sizeof(UnlitTransformUBO));
                         device.PushFragmentUniform(0, &materialUBO, sizeof(DebugMaterialUBO));
-                        primitiveMesh.Draw(device);
+                        primitiveMeshPtr->Draw(device);
                     }
                 }
             };

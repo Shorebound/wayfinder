@@ -47,8 +47,35 @@ namespace Wayfinder::Physics
         uint32_t RuntimeBodyId = INVALID_PHYSICS_BODY;
 
         RigidBodyComponent() = default;
-        RigidBodyComponent(const RigidBodyComponent&) = default;
-        RigidBodyComponent& operator=(const RigidBodyComponent&) = default;
+
+        /// Copy logical state but reset the runtime handle to avoid duplicate live bodies.
+        RigidBodyComponent(const RigidBodyComponent& other)
+            : Type(other.Type)
+            , Mass(other.Mass)
+            , GravityFactor(other.GravityFactor)
+            , LinearDamping(other.LinearDamping)
+            , AngularDamping(other.AngularDamping)
+            , LinearVelocity(other.LinearVelocity)
+            , AngularVelocity(other.AngularVelocity)
+            , RuntimeBodyId(INVALID_PHYSICS_BODY)
+        {
+        }
+
+        RigidBodyComponent& operator=(const RigidBodyComponent& other)
+        {
+            if (this != &other)
+            {
+                Type = other.Type;
+                Mass = other.Mass;
+                GravityFactor = other.GravityFactor;
+                LinearDamping = other.LinearDamping;
+                AngularDamping = other.AngularDamping;
+                LinearVelocity = other.LinearVelocity;
+                AngularVelocity = other.AngularVelocity;
+                RuntimeBodyId = INVALID_PHYSICS_BODY;
+            }
+            return *this;
+        }
     };
 
     /**

@@ -1,0 +1,8 @@
+{
+  "asset_id": "a7e3b1c4-2d5f-4e8a-b9c6-1f0d3e7a5b2c",
+  "asset_type": "texture",
+  "name": "TestChecker",
+  "source": "test_checker.png",
+  "filter": "nearest",
+  "address_mode": "repeat"
+}

@@ -126,6 +126,8 @@ namespace Wayfinder
             return "prefab";
         case AssetKind::Material:
             return "material";
+        case AssetKind::Texture:
+            return "texture";
         case AssetKind::Unknown:
             return "unknown";
         }

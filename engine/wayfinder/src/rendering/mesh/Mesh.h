@@ -56,6 +56,9 @@ namespace Wayfinder
 
         static Mesh CreatePrimitive(RenderDevice& device, const PrimitiveDesc& desc = {});
 
+        /// UV-mapped primitive (VertexPosNormalUV) for textured rendering.
+        static Mesh CreateTexturedPrimitive(RenderDevice& device, const PrimitiveDesc& desc = {});
+
     private:
         GPUBuffer m_vertexBuffer;
         GPUBuffer m_indexBuffer;

@@ -886,6 +886,70 @@ namespace Wayfinder
         }
     }
 
+    void SDLGPUDevice::UploadToTexture(GPUTextureHandle texture, const void* pixelData, uint32_t width, uint32_t height, uint32_t bytesPerRow)
+    {
+        auto* pTexture = m_texturePool.Get(texture);
+        if (!m_device || !pTexture || !pixelData || width == 0 || height == 0)
+        {
+            return;
+        }
+
+        const uint32_t totalBytes = bytesPerRow * height;
+
+        // Create a staging transfer buffer
+        SDL_GPUTransferBufferCreateInfo transferInfo{};
+        transferInfo.usage = SDL_GPU_TRANSFERBUFFERUSAGE_UPLOAD;
+        transferInfo.size = totalBytes;
+
+        SDL_GPUTransferBuffer* transferBuffer = SDL_CreateGPUTransferBuffer(m_device, &transferInfo);
+        if (!transferBuffer)
+        {
+            WAYFINDER_ERROR(LogRenderer, "SDLGPUDevice::UploadToTexture: Failed to create transfer buffer — {}", SDL_GetError());
+            return;
+        }
+
+        // Map, copy, unmap
+        void* mapped = SDL_MapGPUTransferBuffer(m_device, transferBuffer, false);
+        if (!mapped)
+        {
+            WAYFINDER_ERROR(LogRenderer, "SDLGPUDevice::UploadToTexture: Failed to map transfer buffer — {}", SDL_GetError());
+            SDL_ReleaseGPUTransferBuffer(m_device, transferBuffer);
+            return;
+        }
+
+        std::memcpy(mapped, pixelData, totalBytes);
+        SDL_UnmapGPUTransferBuffer(m_device, transferBuffer);
+
+        // Upload via a dedicated command buffer + copy pass
+        SDL_GPUCommandBuffer* cmdBuf = SDL_AcquireGPUCommandBuffer(m_device);
+        if (!cmdBuf)
+        {
+            WAYFINDER_ERROR(LogRenderer, "SDLGPUDevice::UploadToTexture: Failed to acquire command buffer — {}", SDL_GetError());
+            SDL_ReleaseGPUTransferBuffer(m_device, transferBuffer);
+            return;
+        }
+
+        SDL_GPUCopyPass* copyPass = SDL_BeginGPUCopyPass(cmdBuf);
+
+        SDL_GPUTextureTransferInfo src{};
+        src.transfer_buffer = transferBuffer;
+        src.offset = 0;
+        src.pixels_per_row = width;
+        src.rows_per_layer = height;
+
+        SDL_GPUTextureRegion dst{};
+        dst.texture = *pTexture;
+        dst.w = width;
+        dst.h = height;
+        dst.d = 1;
+
+        SDL_UploadToGPUTexture(copyPass, &src, &dst, false);
+        SDL_EndGPUCopyPass(copyPass);
+
+        SDL_SubmitGPUCommandBuffer(cmdBuf);
+        SDL_ReleaseGPUTransferBuffer(m_device, transferBuffer);
+    }
+
     // ── Samplers ─────────────────────────────────────────────
 
     GPUSamplerHandle SDLGPUDevice::CreateSampler(const SamplerCreateDesc& desc)

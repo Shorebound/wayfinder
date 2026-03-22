@@ -122,4 +122,67 @@ namespace Wayfinder
         }
     }
 
+    static Mesh CreateTexturedCube(RenderDevice& device, float size)
+    {
+        const float H = size * 0.5f;
+
+        constexpr Float3 nFront  = { 0.0f,  0.0f,  1.0f};
+        constexpr Float3 nBack   = { 0.0f,  0.0f, -1.0f};
+        constexpr Float3 nTop    = { 0.0f,  1.0f,  0.0f};
+        constexpr Float3 nBottom = { 0.0f, -1.0f,  0.0f};
+        constexpr Float3 nRight  = { 1.0f,  0.0f,  0.0f};
+        constexpr Float3 nLeft   = {-1.0f,  0.0f,  0.0f};
+
+        constexpr Float2 uv00 = {0.0f, 1.0f};
+        constexpr Float2 uv10 = {1.0f, 1.0f};
+        constexpr Float2 uv11 = {1.0f, 0.0f};
+        constexpr Float2 uv01 = {0.0f, 0.0f};
+
+        std::array<VertexPosNormalUV, 24> vertices = {{
+            // Front (+Z)
+            {{-H, -H,  H}, nFront, uv00}, {{ H, -H,  H}, nFront, uv10}, {{ H,  H,  H}, nFront, uv11}, {{-H,  H,  H}, nFront, uv01},
+            // Back (-Z)
+            {{ H, -H, -H}, nBack, uv00}, {{-H, -H, -H}, nBack, uv10}, {{-H,  H, -H}, nBack, uv11}, {{ H,  H, -H}, nBack, uv01},
+            // Top (+Y)
+            {{-H,  H,  H}, nTop, uv00}, {{ H,  H,  H}, nTop, uv10}, {{ H,  H, -H}, nTop, uv11}, {{-H,  H, -H}, nTop, uv01},
+            // Bottom (-Y)
+            {{-H, -H, -H}, nBottom, uv00}, {{ H, -H, -H}, nBottom, uv10}, {{ H, -H,  H}, nBottom, uv11}, {{-H, -H,  H}, nBottom, uv01},
+            // Right (+X)
+            {{ H, -H,  H}, nRight, uv00}, {{ H, -H, -H}, nRight, uv10}, {{ H,  H, -H}, nRight, uv11}, {{ H,  H,  H}, nRight, uv01},
+            // Left (-X)
+            {{-H, -H, -H}, nLeft, uv00}, {{-H, -H,  H}, nLeft, uv10}, {{-H,  H,  H}, nLeft, uv11}, {{-H,  H, -H}, nLeft, uv01},
+        }};
+
+        std::array<uint16_t, 36> indices = {{
+            0,  1,  2,  0,  2,  3,
+            4,  5,  6,  4,  6,  7,
+            8,  9,  10, 8,  10, 11,
+            12, 13, 14, 12, 14, 15,
+            16, 17, 18, 16, 18, 19,
+            20, 21, 22, 20, 22, 23,
+        }};
+
+        Mesh mesh;
+        if (!mesh.Create(device,
+                          vertices.data(), static_cast<uint32_t>(vertices.size() * sizeof(VertexPosNormalUV)), static_cast<uint32_t>(vertices.size()),
+                          indices.data(), static_cast<uint32_t>(indices.size() * sizeof(uint16_t)), static_cast<uint32_t>(indices.size()),
+                          IndexElementSize::Uint16))
+        {
+            WAYFINDER_ERROR(LogRenderer, "Mesh: Failed to create textured primitive cube");
+        }
+
+        return mesh;
+    }
+
+    Mesh Mesh::CreateTexturedPrimitive(RenderDevice& device, const PrimitiveDesc& desc)
+    {
+        switch (desc.Shape)
+        {
+        case PrimitiveShape::Cube: return CreateTexturedCube(device, desc.Size);
+        default:
+            WAYFINDER_ERROR(LogRenderer, "Mesh: Unknown primitive shape {}", static_cast<int>(desc.Shape));
+            return {};
+        }
+    }
+
 } // namespace Wayfinder
