@@ -76,7 +76,7 @@ struct std::hash<Wayfinder::InternedString>
 template <>
 struct std::formatter<Wayfinder::InternedString> : std::formatter<std::string>
 {
-    auto format(const Wayfinder::InternedString& s, std::format_context& ctx) const
+    auto format(const Wayfinder::InternedString& s, auto& ctx) const
     {
         return std::formatter<std::string>::format(s.GetString(), ctx);
     }
