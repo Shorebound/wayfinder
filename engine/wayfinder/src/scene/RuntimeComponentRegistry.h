@@ -5,7 +5,7 @@
 #include <unordered_map>
 #include <vector>
 
-#include <flecs.h>
+#include "ecs/Flecs.h"
 #include <nlohmann/json.hpp>
 
 #include "wayfinder_exports.h"

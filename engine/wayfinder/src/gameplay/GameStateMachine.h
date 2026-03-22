@@ -5,7 +5,7 @@
 #include "app/Subsystem.h"
 #include "wayfinder_exports.h"
 
-#include <flecs.h>
+#include "ecs/Flecs.h"
 #include <string>
 #include <string_view>
 #include <vector>

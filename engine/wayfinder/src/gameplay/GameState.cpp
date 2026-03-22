@@ -2,7 +2,7 @@
 #include "GameplayTag.h"
 #include "core/InternedString.h"
 
-#include <flecs.h>
+#include "ecs/Flecs.h"
 
 namespace Wayfinder
 {

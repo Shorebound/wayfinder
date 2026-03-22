@@ -23,7 +23,7 @@
 
 #include <doctest/doctest.h>
 
-#include <flecs.h>
+#include "ecs/Flecs.h"
 
 namespace Wayfinder::Tests
 {

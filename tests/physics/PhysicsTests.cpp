@@ -9,7 +9,7 @@
 #include <doctest/doctest.h>
 
 #include <cmath>
-#include <flecs.h>
+#include "ecs/Flecs.h"
 #include <functional>
 
 namespace Wayfinder::Tests

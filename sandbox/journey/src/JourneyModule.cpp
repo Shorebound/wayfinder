@@ -9,7 +9,7 @@
 #include "scene/entity/Entity.h"
 
 
-#include <flecs.h>
+#include "ecs/Flecs.h"
 
 namespace Wayfinder::Journey
 {

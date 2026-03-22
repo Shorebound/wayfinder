@@ -10,7 +10,7 @@
 #include "scene/entity/Entity.h"
 
 
-#include <flecs.h>
+#include "ecs/Flecs.h"
 #include <nlohmann/json.hpp>
 
 namespace Wayfinder::Physics

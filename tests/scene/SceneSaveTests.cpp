@@ -7,7 +7,7 @@
 #include <doctest/doctest.h>
 #include <filesystem>
 #include <string>
-#include <flecs.h>
+#include "ecs/Flecs.h"
 
 namespace Wayfinder::Tests
 {

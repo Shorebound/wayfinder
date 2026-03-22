@@ -20,6 +20,7 @@ Exit codes:
 
 import argparse
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -29,6 +30,16 @@ from pathlib import Path
 SOURCE_DIRS = ['engine', 'sandbox', 'tests', 'tools']
 SOURCE_EXTENSIONS = {'.cpp', '.h'}
 EXCLUDE_DIRS = {'thirdparty', '_deps', 'build'}
+
+# Direct includes of these headers are banned — use the wrapper instead.
+# Each entry: (regex matching the banned include, allowed wrapper file, replacement include).
+BANNED_INCLUDES: list[tuple[re.Pattern[str], Path, str]] = [
+    (
+        re.compile(r'^\s*#\s*include\s*<flecs\.h>'),
+        Path('engine/wayfinder/src/ecs/Flecs.h'),
+        '"ecs/Flecs.h"',
+    ),
+]
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 FIXUP_SCRIPT = REPO_ROOT / 'tools' / 'format-fixup.py'
@@ -208,6 +219,37 @@ def _run_clang_tidy(files: list[Path], *, build_dir: Path, tool: str) -> bool:
     return False
 
 
+def _check_banned_includes(files: list[Path]) -> bool:
+    """Check for banned direct includes. Returns True if violations found."""
+    if not files or not BANNED_INCLUDES:
+        return False
+
+    print(_bold(f'\n-- banned includes ({len(files)} files) --'))
+
+    violations: list[str] = []
+    for path in files:
+        rel = path.relative_to(REPO_ROOT)
+        for pattern, allowed_file, replacement in BANNED_INCLUDES:
+            if rel == allowed_file:
+                continue
+            try:
+                for line_no, line in enumerate(path.read_text(encoding='utf-8').splitlines(), 1):
+                    if pattern.search(line):
+                        violations.append(
+                            f'  {rel}:{line_no}: use #include {replacement} instead'
+                        )
+            except OSError:
+                pass
+
+    if violations:
+        for v in violations:
+            print(_red(v))
+        return True
+
+    print(_green('  Clean.'))
+    return False
+
+
 def _restage_files(files: list[Path]) -> None:
     """Re-stage files that were modified by --fix."""
     cmd = ['git', 'add']
@@ -265,6 +307,7 @@ def main() -> int:
     print(_bold(f'Checking {len(files)} file(s)...'))
 
     issues = False
+    issues |= _check_banned_includes(files)
     issues |= _run_clang_format(files, fix=args.fix, tool=clang_format)
     issues |= _run_format_fixup(files, fix=args.fix)
 

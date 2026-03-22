@@ -7,7 +7,7 @@
 
 #include <doctest/doctest.h>
 
-#include <flecs.h>
+#include "ecs/Flecs.h"
 
 #include <string>
 #include <vector>

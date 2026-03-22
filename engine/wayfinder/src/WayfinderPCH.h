@@ -34,6 +34,3 @@
 
 // generated
 #include "wayfinder_exports.h"
-
-// flecs
-#include <flecs.h>

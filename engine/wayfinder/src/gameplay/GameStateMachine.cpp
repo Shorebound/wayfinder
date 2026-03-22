@@ -4,7 +4,7 @@
 #include "core/Log.h"
 #include "modules/ModuleRegistry.h"
 
-#include <flecs.h>
+#include "ecs/Flecs.h"
 
 namespace Wayfinder
 {
