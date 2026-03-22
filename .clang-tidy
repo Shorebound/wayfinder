@@ -29,7 +29,7 @@ Checks: >
   readability-make-member-function-const,
   readability-qualified-auto,
   readability-redundant-*,
-  readability-simplify-*,
+  readability-simplify-*
 
 # Only analyse project headers, not third-party or system.
 HeaderFilterRegex: 'engine/wayfinder/src/.*'

@@ -10,6 +10,11 @@ add_library(${ENGINE_NAME} ${ENGINE_LIB_TYPE})
 wayfinder_set_output_directories(${ENGINE_NAME})
 message(STATUS "Engine: Configuring target ${ENGINE_NAME} (${ENGINE_LIB_TYPE})")
 
+# Apply clang-tidy to engine sources only (not third-party).
+if(WAYFINDER_CLANG_TIDY_COMMAND)
+    set_target_properties(${ENGINE_NAME} PROPERTIES CXX_CLANG_TIDY "${WAYFINDER_CLANG_TIDY_COMMAND}")
+endif()
+
 target_compile_definitions(${ENGINE_NAME}
   PRIVATE # Only needed when building the engine itself
     # Platform-specific DLL export control (only if building DLL)
