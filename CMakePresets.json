@@ -111,7 +111,9 @@
         {
             "name": "ci-windows",
             "displayName": "CI (Windows / MSVC)",
-            "description": "Windows CI preset with warnings-as-errors",
+            "description": "Windows CI — Ninja for speed, MSVC for compatibility",
+            "generator": "Ninja Multi-Config",
+            "binaryDir": "${sourceDir}/build",
             "inherits": "ci"
         }
     ],
