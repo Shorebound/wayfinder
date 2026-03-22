@@ -64,7 +64,7 @@ namespace Wayfinder
             }
 
             // Known miss — avoid re-attempting
-            if (m_misses.count(assetId))
+            if (m_misses.contains(assetId))
             {
                 error = "Asset '" + assetId.ToString() + "' was previously unresolvable.";
                 return nullptr;
@@ -107,7 +107,7 @@ namespace Wayfinder
                 return nullptr;
             }
 
-            const auto [it, inserted] = m_assets.emplace(assetId, std::move(*loaded));
+            const auto it = m_assets.emplace(assetId, std::move(*loaded)).first;
             return &it->second;
         }
 

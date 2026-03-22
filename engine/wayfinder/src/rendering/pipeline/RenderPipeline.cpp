@@ -388,14 +388,23 @@ namespace Wayfinder
                                 GPUPipelineHandle wireframePipeline = pipelineCache.GetOrCreate(*wireframeDesc);
                                 if (wireframePipeline.IsValid())
                                 {
-                                    // Wireframe uses PosNormalColour mesh regardless of the shader's vertex layout
-                                    const auto wireframeMeshIt = params.MeshesByStride.find(VertexLayouts::PosNormalColour.stride);
+                                    // Select the mesh matching the program's vertex layout
+                                    const auto wireframeMeshIt = params.MeshesByStride.find(program->Desc.VertexLayout.stride);
                                     if (wireframeMeshIt != params.MeshesByStride.end() && wireframeMeshIt->second)
                                     {
                                         auto& wireframeMesh = *wireframeMeshIt->second;
                                         device.BindPipeline(wireframePipeline);
                                         wireframeMesh.Bind(device);
                                         lastBoundProgram = nullptr; // Force re-bind on next solid draw
+
+                                        // Bind textures so textured wireframe shaders have valid samplers
+                                        for (const auto& texBinding : submission.Material.ResolvedTextures)
+                                        {
+                                            if (texBinding.Texture && texBinding.Sampler)
+                                            {
+                                                device.BindFragmentSampler(texBinding.Slot, texBinding.Texture, texBinding.Sampler);
+                                            }
+                                        }
 
                                         pushUniforms();
                                         wireframeMesh.Draw(device);

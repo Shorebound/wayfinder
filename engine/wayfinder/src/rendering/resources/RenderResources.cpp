@@ -20,12 +20,24 @@ namespace Wayfinder
 
     void RenderResourceCache::SetTextureManager(TextureManager* textureManager)
     {
+        if (m_textureManager == textureManager)
+        {
+            return;
+        }
+
         m_textureManager = textureManager;
+        m_materialsByKey.clear();
     }
 
     void RenderResourceCache::SetProgramRegistry(const ShaderProgramRegistry* programs)
     {
+        if (m_programs == programs)
+        {
+            return;
+        }
+
         m_programs = programs;
+        m_materialsByKey.clear();
     }
 
     void RenderResourceCache::PrepareFrame(RenderFrame& frame)
@@ -135,7 +147,7 @@ namespace Wayfinder
     {
         binding.ResolvedTextures.clear();
 
-        if (!m_textureManager || !m_programs || binding.Textures.Slots.empty()) return;
+        if (!m_textureManager || !m_programs) return;
 
         const ShaderProgram* program = m_programs->FindOrDefault(binding.ShaderName);
         if (!program) return;

@@ -279,8 +279,18 @@ namespace Wayfinder
         virtual GPUTextureHandle CreateTexture(const TextureCreateDesc& desc) = 0;
         virtual void DestroyTexture(GPUTextureHandle texture) = 0;
 
-        /// Upload pixel data to a GPU texture.
-        /// The texture must have been created with Sampler usage.
+        /**
+         * @brief Upload pixel data to a GPU texture.
+         *
+         * The texture must have been created with Sampler usage.
+         * Pixel data must be tightly packed (bytesPerRow == width * bytesPerPixel).
+         *
+         * @param texture  GPU texture handle to upload to.
+         * @param pixelData  Pointer to the source pixel data.
+         * @param width  Width of the image in pixels.
+         * @param height  Height of the image in pixels.
+         * @param bytesPerRow  Bytes per row (must equal width * bytesPerPixel for tightly packed data).
+         */
         virtual void UploadToTexture(
             GPUTextureHandle texture,
             const void* pixelData,

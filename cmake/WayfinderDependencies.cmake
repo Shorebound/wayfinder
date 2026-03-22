@@ -34,6 +34,7 @@ CPMAddPackage(
         "SDLIMAGE_WEBP OFF"
         "SDLIMAGE_INSTALL OFF"
 )
+unset(BUILD_SHARED_LIBS CACHE)
 
 # --- GLM ---
 CPMAddPackage(

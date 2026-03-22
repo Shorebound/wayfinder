@@ -116,11 +116,6 @@ namespace Wayfinder
         {
             m_renderResources->SetAssetService(m_assetService);
         }
-        if (m_context)
-        {
-            m_renderResources->SetTextureManager(&m_context->GetTextures());
-            m_renderResources->SetProgramRegistry(&m_context->GetPrograms());
-        }
         m_device = nullptr;
         m_isInitialised = false;
     }

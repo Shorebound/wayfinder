@@ -183,6 +183,12 @@ namespace Wayfinder
         }
 
         // Parse "textures" object: maps slot name → texture asset ID string
+        if (document.contains(kTexturesKey) && !document.at(kTexturesKey).is_object())
+        {
+            error = "Material asset '" + sourceLabel + "' has invalid 'textures' block: must be an object";
+            return false;
+        }
+
         if (document.contains(kTexturesKey) && document.at(kTexturesKey).is_object())
         {
             for (const auto& [slotName, idNode] : document.at(kTexturesKey).items())

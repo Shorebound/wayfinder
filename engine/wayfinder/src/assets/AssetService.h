@@ -52,6 +52,12 @@ namespace Wayfinder
     template<>
     inline const TextureAsset* AssetService::LoadAsset<TextureAsset>(const AssetId& assetId, std::string& error)
     {
+        if (!m_hasAssetRegistry)
+        {
+            error = "Asset registry is not initialised for the current asset root.";
+            return nullptr;
+        }
+
         return m_textureCache.LoadOrGet(assetId, m_assetRegistry, error);
     }
 
