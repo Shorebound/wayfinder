@@ -274,6 +274,37 @@ namespace Wayfinder::Tests
             std::filesystem::remove(path);
         }
 
+        TEST_CASE("SaveSceneDocument emits version 1 that round-trips correctly")
+        {
+            auto registry = MakeTestRegistry();
+            auto tempDir = FixturesDir() / "temp";
+            std::filesystem::create_directories(tempDir);
+            auto path = tempDir / "save_version_scene.json";
+
+            SceneDocument document;
+            document.Name = "VersionRoundTrip";
+            document.Version = 1;
+
+            std::string error;
+            REQUIRE(SaveSceneDocument(document, path.string(), error));
+
+            // Reload and verify the version field persists
+            auto result = LoadSceneDocument(path.string(), registry);
+            REQUIRE(result.Document.has_value());
+            CHECK(result.Errors.empty());
+            CHECK(result.Document->Version == 1);
+
+            // Also verify the raw JSON contains the version key
+            {
+                std::ifstream file(path);
+                nlohmann::json saved = nlohmann::json::parse(file);
+                REQUIRE(saved.contains("version"));
+                CHECK(saved["version"].get<int>() == 1);
+            }
+
+            std::filesystem::remove(path);
+        }
+
         TEST_CASE("LoadSceneDocument rejects wrong version number")
         {
             auto registry = MakeTestRegistry();

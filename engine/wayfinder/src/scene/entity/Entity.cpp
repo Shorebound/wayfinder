@@ -22,19 +22,49 @@ namespace Wayfinder
 
     void Entity::SetName(const std::string& name)
     {
-        const std::string previousName = GetName();
+        const bool hadPreviousName = m_entityHandle.has<NameComponent>();
+        const std::string previousName = hadPreviousName
+            ? m_entityHandle.get<NameComponent>().Value
+            : std::string{};
+
+        /// Deduplicate against the scene's name index, skipping the
+        /// current entity so that re-setting the same name is a no-op.
+        std::string finalName = name;
+        if (m_scene != nullptr)
+        {
+            auto it = m_scene->m_entitiesByName.find(finalName);
+            if (it != m_scene->m_entitiesByName.end() && it->second != m_entityHandle.id())
+            {
+                uint32_t suffix = 1;
+                do
+                {
+                    finalName = name + std::to_string(suffix);
+                    it = m_scene->m_entitiesByName.find(finalName);
+                    ++suffix;
+                }
+                while (it != m_scene->m_entitiesByName.end() && it->second != m_entityHandle.id());
+            }
+        }
+
         if (m_entityHandle.has<NameComponent>())
         {
-            m_entityHandle.get_mut<NameComponent>().Value = name;
+            m_entityHandle.get_mut<NameComponent>().Value = finalName;
         }
         else
         {
-            m_entityHandle.set<NameComponent>(NameComponent{name});
+            m_entityHandle.set<NameComponent>(NameComponent{finalName});
         }
 
         if (m_scene != nullptr)
         {
-            m_scene->UpdateEntityName(m_entityHandle, previousName, name);
+            if (hadPreviousName)
+            {
+                m_scene->UpdateEntityName(m_entityHandle, previousName, finalName);
+            }
+            else
+            {
+                m_scene->RegisterEntityName(m_entityHandle, finalName);
+            }
         }
     }
 

@@ -9,6 +9,7 @@
 
 #include <filesystem>
 #include <unordered_map>
+#include <vector>
 
 namespace Wayfinder
 {
@@ -199,6 +200,22 @@ namespace Wayfinder
             {
                 entityHandle.destruct();
             }
+        }
+
+        /// Fallback sweep: catch any scene-owned entities that lost their
+        /// map entry (e.g. after SetSceneObjectId({}) removed them from
+        /// m_entitiesById but left the flecs entity alive).
+        std::vector<flecs::entity> orphans;
+        m_world.each([&](flecs::entity entityHandle)
+        {
+            if (entityHandle.is_valid() && entityHandle.has<SceneOwnership>(m_sceneTag))
+            {
+                orphans.push_back(entityHandle);
+            }
+        });
+        for (auto& entityHandle : orphans)
+        {
+            entityHandle.destruct();
         }
 
         m_entitiesById.clear();
