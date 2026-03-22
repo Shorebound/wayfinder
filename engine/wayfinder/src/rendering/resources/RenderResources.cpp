@@ -93,9 +93,6 @@ namespace Wayfinder
             resolved.StateOverrides.FillMode = binding.StateOverrides.FillMode;
         }
 
-        // Resolve texture bindings to GPU handles
-        ResolveTextureBindings(resolved);
-
         return resolved;
     }
 
@@ -127,6 +124,9 @@ namespace Wayfinder
         {
             resource.Binding.Textures.Slots[slotName] = texAssetId;
         }
+
+        // Resolve texture bindings to GPU handles once at cache time
+        ResolveTextureBindings(resource.Binding);
 
         return resource;
     }

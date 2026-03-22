@@ -1,0 +1,8 @@
+{
+    "asset_id": "a0000000-0000-0000-0000-000000000001",
+    "asset_type": "texture",
+    "name": "test_texture",
+    "source": "test_1x1.png",
+    "filter": "nearest",
+    "address_mode": "clamp"
+}

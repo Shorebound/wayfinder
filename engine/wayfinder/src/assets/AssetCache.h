@@ -5,6 +5,7 @@
 #include <optional>
 #include <string>
 #include <unordered_map>
+#include <unordered_set>
 
 #include <nlohmann/json.hpp>
 
@@ -37,6 +38,16 @@ namespace Wayfinder
             return nullptr;
         }
 
+        /// Retrieve a mutable reference to a cached asset (e.g. to release pixel data post-upload).
+        TAsset* GetMutable(const AssetId& assetId)
+        {
+            if (auto it = m_assets.find(assetId); it != m_assets.end())
+            {
+                return &it->second;
+            }
+            return nullptr;
+        }
+
         /**
          * @brief Load an asset from the registry or return it from cache.
          *
@@ -53,7 +64,7 @@ namespace Wayfinder
             }
 
             // Known miss — avoid re-attempting
-            if (m_misses.contains(assetId))
+            if (m_misses.count(assetId))
             {
                 error = "Asset '" + assetId.ToString() + "' was previously unresolvable.";
                 return nullptr;
@@ -63,7 +74,7 @@ namespace Wayfinder
             const std::filesystem::path* path = registry.ResolvePath(assetId);
             if (!path)
             {
-                m_misses.emplace(assetId, true);
+                m_misses.insert(assetId);
                 error = "Asset '" + assetId.ToString() + "' is not registered under the active asset root.";
                 return nullptr;
             }
@@ -75,7 +86,7 @@ namespace Wayfinder
                 std::ifstream file(path->string());
                 if (!file.is_open())
                 {
-                    m_misses.emplace(assetId, true);
+                    m_misses.insert(assetId);
                     error = "Failed to open asset file '" + path->generic_string() + "'";
                     return nullptr;
                 }
@@ -83,7 +94,7 @@ namespace Wayfinder
             }
             catch (const nlohmann::json::exception& parseError)
             {
-                m_misses.emplace(assetId, true);
+                m_misses.insert(assetId);
                 error = "Failed to parse asset '" + path->generic_string() + "': " + parseError.what();
                 return nullptr;
             }
@@ -92,7 +103,7 @@ namespace Wayfinder
             std::optional<TAsset> loaded = AssetLoader<TAsset>::Load(document, *path, error);
             if (!loaded)
             {
-                m_misses.emplace(assetId, true);
+                m_misses.insert(assetId);
                 return nullptr;
             }
 
@@ -112,7 +123,7 @@ namespace Wayfinder
 
     private:
         std::unordered_map<AssetId, TAsset> m_assets;
-        std::unordered_map<AssetId, bool> m_misses;
+        std::unordered_set<AssetId> m_misses;
     };
 
 } // namespace Wayfinder

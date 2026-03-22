@@ -7,6 +7,7 @@
 #include <memory>
 #include <span>
 #include <type_traits>
+#include <unordered_map>
 
 namespace Wayfinder
 {
@@ -37,8 +38,11 @@ namespace Wayfinder
         const RenderFrame& Frame;
         uint32_t SwapchainWidth;
         uint32_t SwapchainHeight;
-        Mesh& PrimitiveMesh;
-        Mesh& TexturedPrimitiveMesh;
+
+        /// Mesh lookup by vertex layout stride. The draw loop selects
+        /// the correct mesh for each shader program's declared vertex format.
+        const std::unordered_map<uint32_t, Mesh*>& MeshesByStride;
+
         GPUPipeline& DebugLinePipeline;
         std::span<const std::unique_ptr<RenderFeature>> Features;
     };

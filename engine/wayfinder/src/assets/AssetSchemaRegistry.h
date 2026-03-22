@@ -9,9 +9,6 @@
 #include <nlohmann/json.hpp>
 
 #include "AssetRegistry.h"
-#include "TextureAsset.h"
-#include "rendering/materials/Material.h"
-#include "scene/ComponentRegistry.h"
 
 namespace Wayfinder
 {
@@ -25,122 +22,32 @@ namespace Wayfinder
             bool (*ValidateFn)(const nlohmann::json& document, const std::filesystem::path& filePath, std::string& error);
         };
 
-        static bool IsRegisteredType(const std::string_view typeName)
-        {
-            return Find(typeName) != nullptr;
-        }
-
-        static std::optional<AssetKind> ResolveBuiltinKind(const std::string_view typeName)
-        {
-            const Entry* entry = Find(typeName);
-            if (!entry)
-            {
-                return std::nullopt;
-            }
-
-            return entry->BuiltinKind;
-        }
+        static bool IsRegisteredType(std::string_view typeName);
+        static std::optional<AssetKind> ResolveBuiltinKind(std::string_view typeName);
 
         static bool ValidateDocument(
-            const std::string_view typeName,
+            std::string_view typeName,
             const nlohmann::json& document,
             const std::filesystem::path& filePath,
-            std::string& error)
-        {
-            const Entry* entry = Find(typeName);
-            if (!entry)
-            {
-                error = "Asset '" + filePath.generic_string() + "' has unsupported asset_type '" + std::string{typeName} + "'.";
-                return false;
-            }
-
-            return entry->ValidateFn(document, filePath, error);
-        }
+            std::string& error);
 
     private:
-        static const Entry* Find(const std::string_view typeName)
-        {
-            for (const Entry& entry : GetEntries())
-            {
-                if (entry.TypeName == typeName)
-                {
-                    return &entry;
-                }
-            }
-
-            return nullptr;
-        }
-
-        static const std::array<Entry, 3>& GetEntries()
-        {
-            static const std::array<Entry, 3> entries = {{
-                {"prefab", AssetKind::Prefab, &ValidatePrefabDocument},
-                {"material", AssetKind::Material, &ValidateMaterialDocument},
-                {"texture", AssetKind::Texture, &ValidateTextureDocument},
-            }};
-            return entries;
-        }
+        static const Entry* Find(std::string_view typeName);
+        static const std::array<Entry, 3>& GetEntries();
 
         static bool ValidatePrefabDocument(
             const nlohmann::json& document,
             const std::filesystem::path& filePath,
-            std::string& error)
-        {
-            const SceneComponentRegistry& registry = SceneComponentRegistry::Get();
-
-            if (document.contains("name") && !document["name"].is_string())
-            {
-                error = "Prefab asset '" + filePath.generic_string() + "' field 'name' must be a string";
-                return false;
-            }
-
-            for (const auto& [key, node] : document.items())
-            {
-                if (key == "asset_id" || key == "asset_type" || key == "name")
-                {
-                    continue;
-                }
-
-                if (!node.is_object())
-                {
-                    error = "Prefab asset '" + filePath.generic_string() + "' field '" + key
-                        + "' must be a JSON object. Prefab payload is defined by component objects.";
-                    return false;
-                }
-
-                if (!registry.IsRegistered(key))
-                {
-                    error = "Prefab asset '" + filePath.generic_string() + "' has unknown component table '" + key + "'";
-                    return false;
-                }
-
-                std::string validationError;
-                if (!registry.ValidateComponent(key, node, validationError))
-                {
-                    error = "Prefab asset '" + filePath.generic_string() + "' component '" + key
-                        + "' is invalid: " + validationError;
-                    return false;
-                }
-            }
-
-            return true;
-        }
+            std::string& error);
 
         static bool ValidateMaterialDocument(
             const nlohmann::json& document,
             const std::filesystem::path& filePath,
-            std::string& error)
-        {
-            MaterialAsset material;
-            return ParseMaterialAssetDocument(document, filePath.generic_string(), material, error);
-        }
+            std::string& error);
 
         static bool ValidateTextureDocument(
             const nlohmann::json& document,
             const std::filesystem::path& filePath,
-            std::string& error)
-        {
-            return ValidateTextureAssetDocument(document, filePath, error);
-        }
+            std::string& error);
     };
 } // namespace Wayfinder

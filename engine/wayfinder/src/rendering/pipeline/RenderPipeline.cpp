@@ -259,8 +259,6 @@ namespace Wayfinder
                    (RenderDevice& device, const RenderGraphResources& /*resources*/) {
                 if (!hasCamera) return;
 
-                const auto& primitiveMesh = params.PrimitiveMesh;
-                const auto& texturedMesh = params.TexturedPrimitiveMesh;
                 auto& registry = m_context->GetPrograms();
                 auto& pipelineCache = m_context->GetPipelines();
                 auto& shaderManager = m_context->GetShaders();
@@ -352,8 +350,13 @@ namespace Wayfinder
                         // Solid draw (for Solid and SolidAndWireframe modes)
                         if (fillMode == RenderFillMode::Solid || fillMode == RenderFillMode::SolidAndWireframe)
                         {
-                            const bool isTextured = !program->Desc.TextureSlots.empty();
-                            const auto& mesh = isTextured ? texturedMesh : primitiveMesh;
+                            // Look up the mesh for this program's vertex layout
+                            const auto meshIt = params.MeshesByStride.find(program->Desc.VertexLayout.stride);
+                            if (meshIt == params.MeshesByStride.end() || !meshIt->second)
+                            {
+                                continue;
+                            }
+                            const auto& mesh = *meshIt->second;
 
                             if (program != lastBoundProgram)
                             {
@@ -385,12 +388,18 @@ namespace Wayfinder
                                 GPUPipelineHandle wireframePipeline = pipelineCache.GetOrCreate(*wireframeDesc);
                                 if (wireframePipeline.IsValid())
                                 {
-                                    device.BindPipeline(wireframePipeline);
-                                    primitiveMesh.Bind(device);
-                                    lastBoundProgram = nullptr; // Force re-bind on next solid draw
+                                    // Wireframe uses PosNormalColour mesh regardless of the shader's vertex layout
+                                    const auto wireframeMeshIt = params.MeshesByStride.find(VertexLayouts::PosNormalColour.stride);
+                                    if (wireframeMeshIt != params.MeshesByStride.end() && wireframeMeshIt->second)
+                                    {
+                                        auto& wireframeMesh = *wireframeMeshIt->second;
+                                        device.BindPipeline(wireframePipeline);
+                                        wireframeMesh.Bind(device);
+                                        lastBoundProgram = nullptr; // Force re-bind on next solid draw
 
-                                    pushUniforms();
-                                    primitiveMesh.Draw(device);
+                                        pushUniforms();
+                                        wireframeMesh.Draw(device);
+                                    }
                                 }
                             }
                         }
@@ -411,9 +420,12 @@ namespace Wayfinder
                 if (!hasCamera) return;
 
                 auto& debugLinePipeline = params.DebugLinePipeline;
-                const auto& primitiveMesh = params.PrimitiveMesh;
                 auto& transientAllocator = m_context->GetTransientBuffers();
                 auto& registry = m_context->GetPrograms();
+
+                // Resolve PosNormalColour mesh for debug boxes
+                const auto debugMeshIt = params.MeshesByStride.find(VertexLayouts::PosNormalColour.stride);
+                Mesh* primitiveMeshPtr = (debugMeshIt != params.MeshesByStride.end()) ? debugMeshIt->second : nullptr;
 
                 // ── Debug lines ──────────────────────────────
                 std::vector<VertexPosColour> lineVertices;
@@ -470,7 +482,7 @@ namespace Wayfinder
 
                 // ── Debug boxes ──────────────────────────────
                 const ShaderProgram* unlitProgram = registry.Find("unlit");
-                if (!unlitProgram || !unlitProgram->Pipeline || !primitiveMesh.IsValid()) return;
+                if (!unlitProgram || !unlitProgram->Pipeline || !primitiveMeshPtr || !primitiveMeshPtr->IsValid()) return;
 
                 bool hasPendingBoxes = false;
                 for (const auto& pass : preparedFrame.Passes)
@@ -485,7 +497,7 @@ namespace Wayfinder
                 if (!hasPendingBoxes) return;
 
                 unlitProgram->Pipeline->Bind();
-                primitiveMesh.Bind(device);
+                primitiveMeshPtr->Bind(device);
 
                 for (const auto& pass : preparedFrame.Passes)
                 {
@@ -498,7 +510,7 @@ namespace Wayfinder
 
                         device.PushVertexUniform(0, &transformUBO, sizeof(UnlitTransformUBO));
                         device.PushFragmentUniform(0, &materialUBO, sizeof(DebugMaterialUBO));
-                        primitiveMesh.Draw(device);
+                        primitiveMeshPtr->Draw(device);
                     }
                 }
             };

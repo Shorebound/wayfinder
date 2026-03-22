@@ -39,6 +39,9 @@ namespace Wayfinder
         uint32_t Height = 0;
         uint32_t Channels = 4; // Always forced to RGBA.
         std::vector<uint8_t> PixelData;
+
+        /// Release CPU-side pixel data after GPU upload to reclaim memory.
+        void ReleasePixelData() { PixelData.clear(); PixelData.shrink_to_fit(); }
     };
 
     /// Parse and validate a texture asset JSON document (schema check only, no image load).

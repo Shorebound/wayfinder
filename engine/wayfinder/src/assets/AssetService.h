@@ -26,6 +26,10 @@ namespace Wayfinder
         template<typename TAsset>
         const TAsset* LoadAsset(const AssetId& assetId, std::string& error);
 
+        /// Mutable access to a cached asset (e.g. to release pixel data after GPU upload).
+        template<typename TAsset>
+        TAsset* GetMutableAsset(const AssetId& assetId);
+
         const AssetRegistry& GetRegistry() const { return m_assetRegistry; }
 
     private:
@@ -49,6 +53,12 @@ namespace Wayfinder
     inline const TextureAsset* AssetService::LoadAsset<TextureAsset>(const AssetId& assetId, std::string& error)
     {
         return m_textureCache.LoadOrGet(assetId, m_assetRegistry, error);
+    }
+
+    template<>
+    inline TextureAsset* AssetService::GetMutableAsset<TextureAsset>(const AssetId& assetId)
+    {
+        return m_textureCache.GetMutable(assetId);
     }
 
 } // namespace Wayfinder

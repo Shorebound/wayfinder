@@ -10,6 +10,7 @@
 
 #include "app/EngineConfig.h"
 #include "core/Log.h"
+#include "rendering/backend/VertexFormats.h"
 
 namespace Wayfinder
 {
@@ -184,12 +185,17 @@ namespace Wayfinder
 
         // ── Build and execute render graph ───────────────────
         RenderGraph graph;
+
+        std::unordered_map<uint32_t, Mesh*> meshesByStride = {
+            {VertexLayouts::PosNormalColour.stride, &m_primitiveMesh},
+            {VertexLayouts::PosNormalUV.stride, &m_texturedPrimitiveMesh},
+        };
+
         RenderPipelineFrameParams params{
             .Frame = preparedFrame,
             .SwapchainWidth = swapW,
             .SwapchainHeight = swapH,
-            .PrimitiveMesh = m_primitiveMesh,
-            .TexturedPrimitiveMesh = m_texturedPrimitiveMesh,
+            .MeshesByStride = meshesByStride,
             .DebugLinePipeline = m_debugLinePipeline,
             .Features = m_features,
         };

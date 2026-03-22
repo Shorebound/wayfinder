@@ -86,6 +86,13 @@ namespace Wayfinder
         m_textureCache[assetId] = gpuTexture;
         WAYFINDER_INFO(LogRenderer, "TextureManager: Loaded '{}' ({}x{}) to GPU",
             asset->Name, asset->Width, asset->Height);
+
+        // Release CPU-side pixel data now that it's on the GPU
+        if (TextureAsset* mutableAsset = assetService.GetMutableAsset<TextureAsset>(assetId))
+        {
+            mutableAsset->ReleasePixelData();
+        }
+
         return gpuTexture;
     }
 
@@ -184,11 +191,23 @@ namespace Wayfinder
 
     uint64_t TextureManager::HashSamplerDesc(const SamplerCreateDesc& desc)
     {
-        uint64_t hash = 0;
-        hash |= static_cast<uint64_t>(desc.minFilter) << 0;
-        hash |= static_cast<uint64_t>(desc.magFilter) << 8;
-        hash |= static_cast<uint64_t>(desc.addressModeU) << 16;
-        hash |= static_cast<uint64_t>(desc.addressModeV) << 24;
+        static_assert(sizeof(SamplerFilter) == 1, "SamplerFilter must be 1 byte for hash packing");
+        static_assert(sizeof(SamplerAddressMode) == 1, "SamplerAddressMode must be 1 byte for hash packing");
+
+        // Pack 4 enum bytes into a 32-bit value, then hash via FNV-1a.
+        const uint32_t packed =
+            (static_cast<uint32_t>(desc.minFilter) << 0)  |
+            (static_cast<uint32_t>(desc.magFilter) << 8)  |
+            (static_cast<uint32_t>(desc.addressModeU) << 16) |
+            (static_cast<uint32_t>(desc.addressModeV) << 24);
+
+        // FNV-1a 64-bit
+        uint64_t hash = 14695981039346656037ull;
+        for (int i = 0; i < 4; ++i)
+        {
+            hash ^= static_cast<uint64_t>((packed >> (i * 8)) & 0xFF);
+            hash *= 1099511628211ull;
+        }
         return hash;
     }
 

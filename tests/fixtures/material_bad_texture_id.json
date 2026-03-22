@@ -1,0 +1,9 @@
+{
+    "asset_id": "a0000000-0000-0000-0000-000000000001",
+    "asset_type": "material",
+    "name": "bad_textures",
+    "shader": "textured_lit",
+    "textures": {
+        "diffuse": "not-a-valid-uuid"
+    }
+}
