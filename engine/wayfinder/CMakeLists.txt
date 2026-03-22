@@ -32,28 +32,231 @@ generate_export_header(${ENGINE_NAME}
     EXPORT_FILE_NAME ${CMAKE_CURRENT_BINARY_DIR}/include/wayfinder_exports.h
 )
 
-# --- Sources ---
-file(GLOB_RECURSE ENGINE_ALL_SOURCES CONFIGURE_DEPENDS
-  "src/*.h"
-  "src/*.cpp"
+# --- Sources (explicit list — no GLOB_RECURSE) ---
+set(ENGINE_ALL_SOURCES
+  # Root
+  src/WayfinderPCH.cpp
+  src/WayfinderPCH.h
+
+  # App
+  src/app/Application.cpp
+  src/app/Application.h
+  src/app/EngineConfig.cpp
+  src/app/EngineConfig.h
+  src/app/EngineContext.h
+  src/app/EngineRuntime.cpp
+  src/app/EngineRuntime.h
+  src/app/EntryPoint.h
+  src/app/Layer.h
+  src/app/LayerStack.cpp
+  src/app/LayerStack.h
+  src/app/Subsystem.h
+
+  # Assets
+  src/assets/AssetCache.h
+  src/assets/AssetLoader.h
+  src/assets/AssetRegistry.cpp
+  src/assets/AssetRegistry.h
+  src/assets/AssetSchemaRegistry.cpp
+  src/assets/AssetSchemaRegistry.h
+  src/assets/AssetService.cpp
+  src/assets/AssetService.h
+  src/assets/TextureAsset.cpp
+  src/assets/TextureAsset.h
+
+  # Core
+  src/core/Assert.h
+  src/core/Core.h
+  src/core/Handle.h
+  src/core/Identifiers.cpp
+  src/core/Identifiers.h
+  src/core/InternedString.cpp
+  src/core/InternedString.h
+  src/core/Log.cpp
+  src/core/Log.h
+  src/core/ResourcePool.h
+  src/core/Result.h
+  src/core/Types.h
+
+  # Core — Events
+  src/core/events/ApplicationEvent.h
+  src/core/events/Event.h
+  src/core/events/EventQueue.cpp
+  src/core/events/EventQueue.h
+  src/core/events/KeyEvent.h
+  src/core/events/MouseEvent.h
+  src/core/events/TypedEventBuffer.h
+
+  # Core — Logging
+  src/core/logging/ILogOutput.h
+  src/core/logging/ILogger.h
+  src/core/logging/LogTypes.h
+  src/core/logging/spdlog/SpdLogManager.h
+  src/core/logging/spdlog/SpdLogOutput.cpp
+  src/core/logging/spdlog/SpdLogOutput.h
+  src/core/logging/spdlog/SpdLogger.h
+
+  # Gameplay
+  src/gameplay/Game.cpp
+  src/gameplay/Game.h
+  src/gameplay/GameContext.h
+  src/gameplay/GameState.cpp
+  src/gameplay/GameState.h
+  src/gameplay/GameStateMachine.cpp
+  src/gameplay/GameStateMachine.h
+  src/gameplay/GameplayTag.cpp
+  src/gameplay/GameplayTag.h
+  src/gameplay/GameplayTagRegistry.cpp
+  src/gameplay/GameplayTagRegistry.h
+
+  # Maths
+  src/maths/Maths.cpp
+  src/maths/Maths.h
+
+  # Modules
+  src/modules/Module.h
+  src/modules/ModuleExport.h
+  src/modules/ModuleLoader.cpp
+  src/modules/ModuleLoader.h
+  src/modules/ModuleRegistry.cpp
+  src/modules/ModuleRegistry.h
+  src/modules/Plugin.h
+  src/modules/registrars/StateRegistrar.cpp
+  src/modules/registrars/StateRegistrar.h
+  src/modules/registrars/SystemRegistrar.cpp
+  src/modules/registrars/SystemRegistrar.h
+  src/modules/registrars/TagRegistrar.cpp
+  src/modules/registrars/TagRegistrar.h
+
+  # Physics
+  src/physics/PhysicsComponents.h
+  src/physics/PhysicsPlugin.cpp
+  src/physics/PhysicsPlugin.h
+  src/physics/PhysicsSubsystem.cpp
+  src/physics/PhysicsSubsystem.h
+  src/physics/PhysicsWorld.cpp
+  src/physics/PhysicsWorld.h
+
+  # Platform
+  src/platform/BackendConfig.h
+  src/platform/Input.h
+  src/platform/KeyCodes.h
+  src/platform/MouseCodes.h
+  src/platform/Time.h
+  src/platform/Window.h
+  src/platform/null/NullInput.h
+  src/platform/null/NullTime.h
+  src/platform/null/NullWindow.h
+  src/platform/sdl3/SDL3Input.cpp
+  src/platform/sdl3/SDL3Input.h
+  src/platform/sdl3/SDL3Time.cpp
+  src/platform/sdl3/SDL3Time.h
+  src/platform/sdl3/SDL3Window.cpp
+  src/platform/sdl3/SDL3Window.h
+
+  # Project
+  src/project/ProjectDescriptor.cpp
+  src/project/ProjectDescriptor.h
+  src/project/ProjectResolver.cpp
+  src/project/ProjectResolver.h
+
+  # Rendering
+  src/rendering/ArenaFunction.h
+  src/rendering/FrameAllocator.cpp
+  src/rendering/FrameAllocator.h
+  src/rendering/RenderTypes.h
+
+  # Rendering — Backend
+  src/rendering/backend/GPUBuffer.cpp
+  src/rendering/backend/GPUBuffer.h
+  src/rendering/backend/GPUHandles.h
+  src/rendering/backend/GPUPipeline.cpp
+  src/rendering/backend/GPUPipeline.h
+  src/rendering/backend/RenderDevice.h
+  src/rendering/backend/VertexFormats.h
+  src/rendering/backend/null/NullDevice.cpp
+  src/rendering/backend/null/NullDevice.h
+  src/rendering/backend/sdl_gpu/SDLGPUDevice.cpp
+  src/rendering/backend/sdl_gpu/SDLGPUDevice.h
+
+  # Rendering — Graph
+  src/rendering/graph/RenderFeature.h
+  src/rendering/graph/RenderFrame.h
+  src/rendering/graph/RenderGraph.cpp
+  src/rendering/graph/RenderGraph.h
+  src/rendering/graph/RenderIntent.h
+  src/rendering/graph/SortKey.h
+
+  # Rendering — Materials
+  src/rendering/materials/Material.cpp
+  src/rendering/materials/Material.h
+  src/rendering/materials/MaterialParameter.cpp
+  src/rendering/materials/MaterialParameter.h
+  src/rendering/materials/PostProcessVolume.cpp
+  src/rendering/materials/PostProcessVolume.h
+  src/rendering/materials/ShaderManager.cpp
+  src/rendering/materials/ShaderManager.h
+  src/rendering/materials/ShaderProgram.cpp
+  src/rendering/materials/ShaderProgram.h
+
+  # Rendering — Mesh
+  src/rendering/mesh/Mesh.cpp
+  src/rendering/mesh/Mesh.h
+
+  # Rendering — Pipeline
+  src/rendering/pipeline/PipelineCache.cpp
+  src/rendering/pipeline/PipelineCache.h
+  src/rendering/pipeline/RenderContext.cpp
+  src/rendering/pipeline/RenderContext.h
+  src/rendering/pipeline/RenderPipeline.cpp
+  src/rendering/pipeline/RenderPipeline.h
+  src/rendering/pipeline/Renderer.cpp
+  src/rendering/pipeline/Renderer.h
+  src/rendering/pipeline/SceneRenderExtractor.cpp
+  src/rendering/pipeline/SceneRenderExtractor.h
+
+  # Rendering — Resources
+  src/rendering/resources/RenderResources.cpp
+  src/rendering/resources/RenderResources.h
+  src/rendering/resources/TextureManager.cpp
+  src/rendering/resources/TextureManager.h
+  src/rendering/resources/TransientBufferAllocator.cpp
+  src/rendering/resources/TransientBufferAllocator.h
+  src/rendering/resources/TransientResourcePool.cpp
+  src/rendering/resources/TransientResourcePool.h
+
+  # Scene
+  src/scene/ComponentRegistry.cpp
+  src/scene/ComponentRegistry.h
+  src/scene/Components.h
+  src/scene/RuntimeComponentRegistry.cpp
+  src/scene/RuntimeComponentRegistry.h
+  src/scene/Scene.cpp
+  src/scene/Scene.h
+  src/scene/SceneDocument.cpp
+  src/scene/SceneDocument.h
+  src/scene/SceneSettings.h
+  src/scene/entity/Entity.cpp
+  src/scene/entity/Entity.h
 )
 
-# glob for now
 target_sources(${ENGINE_NAME} PRIVATE ${ENGINE_ALL_SOURCES})
 
 foreach(FILEPATH ${ENGINE_ALL_SOURCES})
+    # Resolve to absolute so source_group and RELATIVE_PATH work correctly
+    cmake_path(ABSOLUTE_PATH FILEPATH BASE_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}" OUTPUT_VARIABLE ABS_PATH)
     # Get the path relative to src/
-    file(RELATIVE_PATH REL_PATH "${CMAKE_CURRENT_SOURCE_DIR}/src" "${FILEPATH}")
+    file(RELATIVE_PATH REL_PATH "${CMAKE_CURRENT_SOURCE_DIR}/src" "${ABS_PATH}")
     # Get the directory part
     get_filename_component(PARENT_DIR "${REL_PATH}" DIRECTORY)
     # Replace / with \\ for Visual Studio filters
     string(REPLACE "/" "\\" GROUP_PATH "${PARENT_DIR}")
     # Create the group (CMake handles duplicates)
     if(GROUP_PATH)
-      source_group("${GROUP_PATH}" FILES "${FILEPATH}")
+      source_group("${GROUP_PATH}" FILES "${ABS_PATH}")
     else()
       # Files directly under src/
-      source_group("Root" FILES "${FILEPATH}")
+      source_group("Root" FILES "${ABS_PATH}")
     endif()
 endforeach()
 

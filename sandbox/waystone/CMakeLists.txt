@@ -10,10 +10,6 @@ message(STATUS "Sandbox: Configuring target ${SANDBOX_NAME}")
 #)
 
 # --- Sources ---
-file(GLOB_RECURSE SANDBOX_SOURCES CONFIGURE_DEPENDS
-  "src/*.h"
-  "src/*.cpp"
-)
 target_sources(${SANDBOX_NAME} 
     PRIVATE
         src/WaystoneApplication.cpp 
