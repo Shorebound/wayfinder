@@ -27,6 +27,8 @@ namespace Wayfinder
 
         TextureManager(const TextureManager&) = delete;
         TextureManager& operator=(const TextureManager&) = delete;
+        TextureManager(TextureManager&&) = delete;
+        TextureManager& operator=(TextureManager&&) = delete;
 
         /// Initialise with a render device — creates fallback textures.
         bool Initialise(RenderDevice& device);

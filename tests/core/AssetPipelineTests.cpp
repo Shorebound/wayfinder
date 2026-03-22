@@ -1,9 +1,13 @@
 #include "assets/TextureAsset.h"
 #include "assets/AssetCache.h"
+#include "assets/AssetRegistry.h"
 #include "rendering/materials/Material.h"
 
 #include <doctest/doctest.h>
 #include <nlohmann/json.hpp>
+
+#include <filesystem>
+#include <fstream>
 
 #include "TestHelpers.h"
 
@@ -225,6 +229,47 @@ namespace Wayfinder::Tests
         AssetCache<MaterialAsset> cache;
         cache.Clear();
         CHECK(cache.Size() == 0);
+    }
+
+    TEST_CASE("AssetCache LoadOrGet loads from registry and caches")
+    {
+        /// Set up a temp directory with a single material asset JSON.
+        const auto tempDir = Helpers::FixturesDir() / "temp" / "load_or_get_test";
+        std::filesystem::create_directories(tempDir);
+
+        const std::string assetIdText = "f0000000-0000-0000-0000-000000000001";
+        const auto assetId = AssetId::Parse(assetIdText).value();
+
+        {
+            std::ofstream file(tempDir / "test_material.json");
+            file << R"({
+                "asset_id": ")" + assetIdText + R"(",
+                "asset_type": "material",
+                "name": "load_or_get_test",
+                "shader": "basic_lit"
+            })";
+        }
+
+        AssetRegistry registry;
+        std::string error;
+        REQUIRE(registry.BuildFromDirectory(tempDir, error));
+
+        AssetCache<MaterialAsset> cache;
+        CHECK(cache.Size() == 0);
+
+        // First call — cache miss, loads from disk
+        const MaterialAsset* first = cache.LoadOrGet(assetId, registry, error);
+        REQUIRE(first != nullptr);
+        CHECK(cache.Size() == 1);
+        CHECK(cache.Get(assetId) != nullptr);
+
+        // Second call — cache hit, returns same pointer
+        const MaterialAsset* second = cache.LoadOrGet(assetId, registry, error);
+        CHECK(second == first);
+        CHECK(cache.Size() == 1);
+
+        // Clean up temp files
+        std::filesystem::remove_all(tempDir);
     }
 
 } // namespace Wayfinder::Tests

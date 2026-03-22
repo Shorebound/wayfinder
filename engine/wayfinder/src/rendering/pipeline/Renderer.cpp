@@ -49,7 +49,7 @@ namespace Wayfinder
         m_renderResources->SetTextureManager(&m_context->GetTextures());
         m_renderResources->SetProgramRegistry(&m_context->GetPrograms());
 
-        // ── Debug line pipeline (PosColourrr, uses debug_unlit shaders) ──
+        // ── Debug line pipeline (PosColour, uses debug_unlit shaders) ──
         {
             GPUPipelineDesc desc{};
             desc.vertexShaderName = "debug_unlit";

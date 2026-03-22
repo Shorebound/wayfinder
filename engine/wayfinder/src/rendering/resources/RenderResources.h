@@ -31,7 +31,15 @@ namespace Wayfinder
     {
     public:
         void SetAssetService(const std::shared_ptr<AssetService>& assetService);
+
+        /** @brief Set the texture manager used for GPU texture lookups.
+         *  @param textureManager Non-owning pointer; the caller must ensure the
+         *         TextureManager outlives this cache. */
         void SetTextureManager(TextureManager* textureManager);
+
+        /** @brief Set the shader program registry used for material resolution.
+         *  @param programs Non-owning pointer; the caller must ensure the
+         *         ShaderProgramRegistry outlives this cache. */
         void SetProgramRegistry(const ShaderProgramRegistry* programs);
         void PrepareFrame(RenderFrame& frame);
 
