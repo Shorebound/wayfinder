@@ -5,7 +5,7 @@ runs:
   using: composite
   steps:
     - name: Install CMake 4.0.1
-      uses: lukka/get-cmake@v3.31.5
+      uses: lukka/get-cmake@v4.3.0
       with:
         cmakeVersion: '4.0.1'
 
