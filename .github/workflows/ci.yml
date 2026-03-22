@@ -1,0 +1,133 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # ── Format Check ────────────────────────────────────────────────
+  format-check:
+    name: Format Check
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install clang-format
+        run: sudo apt-get update && sudo apt-get install -y clang-format
+
+      - name: Run clang-format (dry run)
+        run: |
+          find engine/ sandbox/ tests/ tools/ \
+            \( -name '*.cpp' -o -name '*.h' \) \
+            -not -path '*/thirdparty/*' \
+            -not -path '*/_deps/*' \
+            | xargs clang-format --dry-run --Werror
+
+      - name: Run format-fixup check
+        run: |
+          files=$(find engine/ sandbox/ tests/ tools/ \
+            \( -name '*.cpp' -o -name '*.h' \) \
+            -not -path '*/thirdparty/*' \
+            -not -path '*/_deps/*')
+          if [ -n "$files" ]; then
+            echo "$files" | xargs python3 tools/format-fixup.py --check
+          fi
+
+  # ── Build & Test (Linux / Clang) ───────────────────────────────
+  build-test-linux:
+    name: Build & Test (Linux)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup build environment
+        uses: ./.github/actions/setup-linux-build
+
+      - name: Configure
+        run: cmake --preset ci-linux
+
+      - name: Build
+        run: cmake --build --preset ci-linux-debug
+
+      - name: Test
+        run: ctest --preset ci-linux-test --output-on-failure
+
+  # ── Build & Test (Windows / MSVC) ──────────────────────────────
+  build-test-windows:
+    name: Build & Test (Windows)
+    runs-on: windows-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure
+        run: cmake --preset ci-windows
+
+      - name: Build
+        run: cmake --build --preset ci-windows-debug
+
+      - name: Test
+        run: ctest --preset ci-windows-test --output-on-failure
+
+  # ── Static Analysis (clang-tidy) ───────────────────────────────
+  static-analysis:
+    name: Static Analysis
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup build environment
+        uses: ./.github/actions/setup-linux-build
+
+      - name: Configure (for compile_commands.json)
+        run: cmake --preset ci-linux
+
+      # Phase A: Only analyse files changed in this PR / push.
+      # Switch to full-source scan once baseline is clean.
+      - name: Get changed C++ files
+        id: changed
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            base="${{ github.event.pull_request.base.sha }}"
+          else
+            base="${{ github.event.before }}"
+          fi
+
+          files=$(git diff --name-only "$base"..HEAD -- '*.cpp' '*.h' \
+            | grep -E '^(engine|sandbox|tests|tools)/' \
+            | grep -v 'thirdparty/' \
+            || true)
+
+          if [ -z "$files" ]; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            echo "No C++ files changed — skipping clang-tidy."
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+            echo "$files" > /tmp/changed_files.txt
+            echo "Changed files:"
+            cat /tmp/changed_files.txt
+          fi
+
+      - name: Run clang-tidy on changed files
+        if: steps.changed.outputs.skip != 'true'
+        run: |
+          cat /tmp/changed_files.txt \
+            | xargs clang-tidy -p build --warnings-as-errors='' 2>&1 \
+            | tee /tmp/clang-tidy-output.txt
+
+          # For now, report but don't fail. Uncomment to enforce:
+          # if grep -q 'warning:' /tmp/clang-tidy-output.txt; then
+          #   echo "::error::clang-tidy reported warnings on changed files"
+          #   exit 1
+          # fi

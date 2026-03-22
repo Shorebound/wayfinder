@@ -105,8 +105,15 @@
                 "WAYFINDER_BUILD_EDITOR": "OFF",
                 "WAYFINDER_BUILD_RUNTIME": "OFF",
                 "WAYFINDER_BUILD_SAMPLES": "OFF",
-                "WAYFINDER_WARNINGS_AS_ERRORS": "ON"
+                "WAYFINDER_WARNINGS_AS_ERRORS": "ON",
+                "WAYFINDER_ENABLE_CLANG_TIDY": "ON"
             }
+        },
+        {
+            "name": "ci-windows",
+            "displayName": "CI (Windows / MSVC)",
+            "description": "Windows CI preset with warnings-as-errors",
+            "inherits": "ci"
         }
     ],
     "buildPresets": [
@@ -139,6 +146,12 @@
             "displayName": "Clang (Debug)",
             "configurePreset": "dev-clang",
             "configuration": "Debug"
+        },
+        {
+            "name": "ci-windows-debug",
+            "displayName": "CI Windows (Debug)",
+            "configurePreset": "ci-windows",
+            "configuration": "Debug"
         }
     ],
     "testPresets": [
@@ -152,6 +165,12 @@
             "name": "ci-linux-test",
             "displayName": "Run Tests (CI Linux)",
             "configurePreset": "ci-linux",
+            "configuration": "Debug"
+        },
+        {
+            "name": "ci-windows-test",
+            "displayName": "Run Tests (CI Windows)",
+            "configurePreset": "ci-windows",
             "configuration": "Debug"
         }
     ]

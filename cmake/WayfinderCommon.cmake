@@ -67,6 +67,21 @@ if(WAYFINDER_WARNINGS_AS_ERRORS)
     message(STATUS "Common: Treating compiler warnings as errors")
 endif()
 
+# clang-tidy (standalone pass via compile_commands.json — Clang builds only)
+if(WAYFINDER_ENABLE_CLANG_TIDY)
+    find_program(CLANG_TIDY_EXE NAMES clang-tidy)
+    if(CLANG_TIDY_EXE)
+        message(STATUS "Common: clang-tidy enabled (${CLANG_TIDY_EXE})")
+        set(CMAKE_CXX_CLANG_TIDY
+            "${CLANG_TIDY_EXE}"
+            "--config-file=${CMAKE_SOURCE_DIR}/.clang-tidy"
+            CACHE STRING "clang-tidy command" FORCE
+        )
+    else()
+        message(WARNING "WAYFINDER_ENABLE_CLANG_TIDY is ON but clang-tidy was not found")
+    endif()
+endif()
+
 # RTTI Control
 if(NOT WAYFINDER_ENABLE_RTTI)
     message(STATUS "Common: Disabling RTTI")
