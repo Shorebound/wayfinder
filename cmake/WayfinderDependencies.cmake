@@ -4,11 +4,10 @@ include(GetCPM)
 message(STATUS "Configuring dependencies...")
 
 # --- SDL3 ---
-# Uses GIT_REPOSITORY because SDL3 uses branch-style release tags
 CPMAddPackage(
     NAME SDL3
-    GIT_REPOSITORY https://github.com/libsdl-org/SDL.git
-    GIT_TAG release-3.4.2
+    GITHUB_REPOSITORY Shorebound/sdl
+    GIT_TAG main
     OPTIONS
         "SDL_SHARED OFF"
         "SDL_STATIC ON"
@@ -16,12 +15,11 @@ CPMAddPackage(
         "SDL_TESTS OFF"
 )
 
-# --- SDL_image ---
-# Image loading via SDL_image 3 (wraps stb_image / native codecs)
+# --- SDL3_image ---
 CPMAddPackage(
     NAME SDL3_image
-    GIT_REPOSITORY https://github.com/libsdl-org/SDL_image.git
-    GIT_TAG release-3.4.0
+    GITHUB_REPOSITORY Shorebound/sdl-image
+    GIT_TAG main
     OPTIONS
         "BUILD_SHARED_LIBS OFF"
         "SDLIMAGE_SAMPLES OFF"
@@ -30,7 +28,7 @@ CPMAddPackage(
         "SDLIMAGE_DEPS_SHARED OFF"
         "SDLIMAGE_AVIF OFF"
         "SDLIMAGE_JXL OFF"
-        "SDLIMAGE_TIFF OFF"
+        "SDLIMAGE_TIF OFF"
         "SDLIMAGE_WEBP OFF"
         "SDLIMAGE_INSTALL OFF"
 )
@@ -68,8 +66,8 @@ CPMAddPackage(
 # --- Jolt Physics ---
 CPMAddPackage(
     NAME JoltPhysics
-    GITHUB_REPOSITORY jrouwe/JoltPhysics
-    VERSION 5.5.0
+    GITHUB_REPOSITORY Shorebound/jolt
+    GIT_TAG master
     SOURCE_SUBDIR "Build"
     OPTIONS
         "BUILD_SHARED_LIBS OFF"
@@ -84,8 +82,8 @@ CPMAddPackage(
 # --- Flecs ---
 CPMAddPackage(
     NAME flecs
-    GITHUB_REPOSITORY SanderMertens/flecs
-    VERSION 4.1.5
+    GITHUB_REPOSITORY Shorebound/flecs
+    GIT_TAG master
     OPTIONS
         "FLECS_SHARED OFF"
         "FLECS_STATIC ON"
