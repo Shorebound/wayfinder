@@ -44,38 +44,12 @@ namespace Wayfinder::Physics
         Float3 AngularVelocity = {0.0f, 0.0f, 0.0f};
 
         /// Opaque Jolt BodyID — set at runtime, never serialised.
+        /// Deliberately preserved across copies: Flecs copies components
+        /// between tables on archetype changes, and resetting the handle
+        /// here would silently orphan the Jolt body.  Duplicate-creation
+        /// is prevented by the PhysicsCreateBodies observer guard, and
+        /// cleanup is handled by PhysicsDestroyBodies on remove/destruct.
         uint32_t RuntimeBodyId = INVALID_PHYSICS_BODY;
-
-        RigidBodyComponent() = default;
-
-        /// Copy logical state but reset the runtime handle to avoid duplicate live bodies.
-        RigidBodyComponent(const RigidBodyComponent& other)
-            : Type(other.Type)
-            , Mass(other.Mass)
-            , GravityFactor(other.GravityFactor)
-            , LinearDamping(other.LinearDamping)
-            , AngularDamping(other.AngularDamping)
-            , LinearVelocity(other.LinearVelocity)
-            , AngularVelocity(other.AngularVelocity)
-            , RuntimeBodyId(INVALID_PHYSICS_BODY)
-        {
-        }
-
-        RigidBodyComponent& operator=(const RigidBodyComponent& other)
-        {
-            if (this != &other)
-            {
-                Type = other.Type;
-                Mass = other.Mass;
-                GravityFactor = other.GravityFactor;
-                LinearDamping = other.LinearDamping;
-                AngularDamping = other.AngularDamping;
-                LinearVelocity = other.LinearVelocity;
-                AngularVelocity = other.AngularVelocity;
-                RuntimeBodyId = INVALID_PHYSICS_BODY;
-            }
-            return *this;
-        }
     };
 
     /**

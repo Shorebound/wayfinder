@@ -101,10 +101,17 @@ namespace Wayfinder::Tests
             col.Shape = shape;
 
             auto entity = EcsWorld.entity(name);
+
+            EcsWorld.defer_begin();
             entity.set<TransformComponent>({position});
             entity.set<WorldTransformComponent>({});
             entity.set<ColliderComponent>(col);
             entity.set<RigidBodyComponent>(rb);
+            EcsWorld.defer_end();
+            
+            auto rigidbody = entity.get<RigidBodyComponent>();
+            auto result = rigidbody.RuntimeBodyId;
+            (void)result; // Avoid unused variable warning; observer will fill this in asynchronously.
 
             return entity;
         }

@@ -344,29 +344,29 @@ namespace Wayfinder::Physics
 
         // --- ECS Observers & Systems ---
 
-        // PhysicsCreateBodies: system that creates a Jolt body for every entity
-        // that has a complete physics description (RigidBody + Collider + Transform)
-        // but no runtime body yet.  Runs in PreUpdate so bodies exist before
-        // PhysicsStep simulates them.
-        registry.RegisterSystem("PhysicsCreateBodies", [](flecs::world& world) {
-            world.system<RigidBodyComponent, const ColliderComponent, const TransformComponent>("PhysicsCreateBodies")
-                .kind(flecs::PreUpdate)
-                .each([](flecs::entity,
-                         RigidBodyComponent& rb,
-                         const ColliderComponent& col,
-                         const TransformComponent& transform) {
-                    if (rb.RuntimeBodyId != INVALID_PHYSICS_BODY)
-                        return;
+        // PhysicsCreateBodies: reactive observer that creates a Jolt body when
+        // an entity gains the full physics archetype (RigidBody + Collider +
+        // Transform).  OnAdd fires once all three matched components are
+        // present.  The RuntimeBodyId guard prevents double-creation if the
+        // observer re-fires for the same entity.
+        registry.RegisterSystem("PhysicsCreateBodies", [](flecs::world& world)
+        {
+            world.observer<RigidBodyComponent, const ColliderComponent, const TransformComponent>("PhysicsCreateBodies")
+            .event(flecs::OnAdd)
+            .each([](flecs::entity, RigidBodyComponent& rb, const ColliderComponent& col, const TransformComponent& transform)
+            {
+                if (rb.RuntimeBodyId != INVALID_PHYSICS_BODY)
+                    return;
 
-                    auto* physics = GameSubsystems::Find<PhysicsSubsystem>();
-                    if (!physics)
-                        return;
+                auto* physics = GameSubsystems::Find<PhysicsSubsystem>();
+                if (!physics)
+                    return;
 
-                    auto desc = MakeDescriptor(rb, col);
-                    rb.RuntimeBodyId = physics->GetWorld().CreateBody(
-                        desc, transform.Position, transform.Rotation);
-                });
+                auto desc = MakeDescriptor(rb, col);
+                rb.RuntimeBodyId = physics->GetWorld().CreateBody(desc, transform.Position, transform.Rotation);
+            });
         });
+        
 
         // PhysicsDestroyBodies: reactive observer that destroys the Jolt body
         // when RigidBodyComponent is removed from an entity (or entity deleted).
@@ -377,20 +377,23 @@ namespace Wayfinder::Physics
         // rather than caching the pointer, because OnRemove fires during
         // flecs::world destruction — which may happen after the subsystem
         // collection has been shut down and the PhysicsSubsystem destroyed.
-        registry.RegisterSystem("PhysicsDestroyBodies", [](flecs::world& world) {
+        registry.RegisterSystem("PhysicsDestroyBodies", [](flecs::world& world) 
+        {
             world.observer<RigidBodyComponent>("PhysicsDestroyBodies")
-                .event(flecs::OnRemove)
-                .each([](flecs::entity, RigidBodyComponent& rb) {
-                    if (rb.RuntimeBodyId == INVALID_PHYSICS_BODY)
-                        return;
+            .event(flecs::OnRemove)
+            .each([](RigidBodyComponent& rb) 
+            {
+                if (rb.RuntimeBodyId == INVALID_PHYSICS_BODY)
+                    return;
 
-                    auto* physics = GameSubsystems::Find<PhysicsSubsystem>();
-                    if (!physics)
-                        return;
+                auto* physics = GameSubsystems::Find<PhysicsSubsystem>();
+                if (!physics)
+                    return;
 
-                    physics->GetWorld().DestroyBody(rb.RuntimeBodyId);
-                    rb.RuntimeBodyId = INVALID_PHYSICS_BODY;
-                });
+                physics->GetWorld().DestroyBody(rb.RuntimeBodyId);
+                rb.RuntimeBodyId = INVALID_PHYSICS_BODY;
+                
+            });
         });
 
         // PhysicsStep: advance the Jolt simulation using a fixed timestep
