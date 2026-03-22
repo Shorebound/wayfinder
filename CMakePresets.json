@@ -105,8 +105,7 @@
                 "WAYFINDER_BUILD_EDITOR": "OFF",
                 "WAYFINDER_BUILD_RUNTIME": "OFF",
                 "WAYFINDER_BUILD_SAMPLES": "OFF",
-                "WAYFINDER_WARNINGS_AS_ERRORS": "ON",
-                "WAYFINDER_ENABLE_CLANG_TIDY": "ON"
+                "WAYFINDER_WARNINGS_AS_ERRORS": "ON"
             }
         },
         {
