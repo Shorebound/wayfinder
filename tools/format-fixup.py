@@ -24,7 +24,8 @@ import re
 import sys
 from pathlib import Path
 
-# Matches a type/function declaration followed by a newline then empty braces.
+# Matches a type declaration (struct/class/enum/union) followed by a newline
+# then an empty '{}' body.
 EMPTY_BODY = re.compile(
     r'^([^\S\n]*(?:struct|class|enum|union)\b[^\n{]*)\n(\s*\{\})', re.MULTILINE
 )
@@ -60,15 +61,23 @@ def fixup(text: str) -> str:
 
 def process_file(path: Path, *, check: bool) -> bool:
     """Process a single file. Returns True if changes were made/needed."""
-    original = path.read_text(encoding='utf-8')
+    try:
+        original = path.read_text(encoding='utf-8')
+    except (UnicodeDecodeError, OSError) as exc:
+        print(f'{path}: skipped ({exc})', file=sys.stderr)
+        return False
     fixed = fixup(original)
     if original == fixed:
         return False
     if check:
-        print(f'{path}: would fix empty body formatting')
+        print(f'{path}: would fix formatting (empty bodies / initialiser braces)')
     else:
-        path.write_text(fixed, encoding='utf-8')
-        print(f'{path}: fixed empty body formatting')
+        try:
+            path.write_text(fixed, encoding='utf-8')
+        except OSError as exc:
+            print(f'{path}: write failed ({exc})', file=sys.stderr)
+            return False
+        print(f'{path}: fixed formatting (empty bodies / initialiser braces)')
     return True
 
 

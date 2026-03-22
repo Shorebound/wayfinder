@@ -36,13 +36,12 @@ jobs:
 
       - name: Run format-fixup check
         run: |
-          files=$(find engine/ sandbox/ tests/ tools/ \
+          find engine/ sandbox/ tests/ tools/ \
             \( -name '*.cpp' -o -name '*.h' \) \
             -not -path '*/thirdparty/*' \
-            -not -path '*/_deps/*')
-          if [ -n "$files" ]; then
-            echo "$files" | xargs python3 tools/format-fixup.py --check
-          fi
+            -not -path '*/_deps/*' \
+            -print0 \
+            | xargs -0 python3 tools/format-fixup.py --check
 
   # ── Build & Test (Linux / Clang) ───────────────────────────────
   build-test-linux:
@@ -78,6 +77,11 @@ jobs:
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
+
+      - name: Install CMake 4.0.1
+        uses: lukka/get-cmake@v3.31.5
+        with:
+          cmakeVersion: '4.0.1'
 
       - name: Cache CPM dependencies
         uses: actions/cache@v4
@@ -150,7 +154,9 @@ jobs:
 
       - name: Run clang-tidy on changed files
         if: steps.changed.outputs.skip != 'true'
+        shell: bash
         run: |
+          set -o pipefail
           cat /tmp/changed_files.txt \
             | xargs clang-tidy -p build --warnings-as-errors='' 2>&1 \
             | tee /tmp/clang-tidy-output.txt
