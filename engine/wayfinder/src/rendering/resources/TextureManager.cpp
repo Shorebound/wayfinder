@@ -88,10 +88,7 @@ namespace Wayfinder
             asset->Name, asset->Width, asset->Height);
 
         // Release CPU-side pixel data now that it's on the GPU
-        if (TextureAsset* mutableAsset = assetService.GetMutableAsset<TextureAsset>(assetId))
-        {
-            mutableAsset->ReleasePixelData();
-        }
+        assetService.ReleaseTexturePixelData(assetId);
 
         return gpuTexture;
     }

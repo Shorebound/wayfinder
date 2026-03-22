@@ -131,11 +131,8 @@ namespace Wayfinder
         resource.Binding.Parameters = materialAsset->Parameters;
         resource.Binding.HasOverrides = false;
 
-        // Populate texture bindings from the material asset
-        for (const auto& [slotName, texAssetId] : materialAsset->Textures)
-        {
-            resource.Binding.Textures.Slots[slotName] = texAssetId;
-        }
+        // Replace texture bindings with the material asset's authored textures
+        resource.Binding.Textures.Slots = materialAsset->Textures;
 
         // Resolve texture bindings to GPU handles once at cache time
         ResolveTextureBindings(resource.Binding);

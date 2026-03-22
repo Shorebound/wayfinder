@@ -43,4 +43,12 @@ namespace Wayfinder
 
         return m_materialCache.LoadOrGet(assetId, m_assetRegistry, error);
     }
+
+    void AssetService::ReleaseTexturePixelData(const AssetId& assetId)
+    {
+        if (TextureAsset* texture = GetMutableAsset<TextureAsset>(assetId))
+        {
+            texture->ReleasePixelData();
+        }
+    }
 } // namespace Wayfinder

@@ -26,13 +26,24 @@ namespace Wayfinder
         template<typename TAsset>
         const TAsset* LoadAsset(const AssetId& assetId, std::string& error);
 
-        /// Mutable access to a cached asset (e.g. to release pixel data after GPU upload).
-        template<typename TAsset>
-        TAsset* GetMutableAsset(const AssetId& assetId);
+        /**
+         * @brief Release CPU-side pixel data for a cached texture asset.
+         *
+         * Call after the texture has been uploaded to the GPU to free the
+         * in-memory pixel buffer.  The asset remains in the cache (metadata
+         * intact) but its pixel data will be empty afterwards.
+         *
+         * @param assetId  The asset ID of the texture whose pixel data should be released.
+         */
+        void ReleaseTexturePixelData(const AssetId& assetId);
 
         const AssetRegistry& GetRegistry() const { return m_assetRegistry; }
 
     private:
+        /// Mutable access to a cached asset — restricted to internal use.
+        template<typename TAsset>
+        TAsset* GetMutableAsset(const AssetId& assetId);
+
         std::filesystem::path m_assetRoot;
         AssetRegistry m_assetRegistry;
         bool m_hasAssetRegistry = false;
