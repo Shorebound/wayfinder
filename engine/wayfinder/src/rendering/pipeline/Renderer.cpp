@@ -49,8 +49,8 @@ namespace Wayfinder
             GPUPipelineDesc desc{};
             desc.vertexShaderName = "debug_unlit";
             desc.fragmentShaderName = "unlit"; // shares the same fragment shader
-            desc.vertexResources = {.numUniformBuffers = 1};
-            desc.fragmentResources = {.numUniformBuffers = 1};
+            desc.vertexResources = {.numUniformBuffers = 1, .numSamplers = 0, .numStorageTextures = 0, .numStorageBuffers = 0};
+            desc.fragmentResources = {.numUniformBuffers = 1, .numSamplers = 0, .numStorageTextures = 0, .numStorageBuffers = 0};
             desc.vertexLayout = VertexLayouts::PosColour;
             desc.primitiveType = PrimitiveType::LineList;
             desc.cullMode = CullMode::None;

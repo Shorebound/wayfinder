@@ -37,8 +37,8 @@ namespace Wayfinder
         std::string FragmentShaderName;
 
         // Resource binding counts
-        ShaderResourceCounts VertexResources{.numUniformBuffers = 1};
-        ShaderResourceCounts FragmentResources{.numUniformBuffers = 1};
+        ShaderResourceCounts VertexResources{.numUniformBuffers = 1, .numSamplers = 0, .numStorageTextures = 0, .numStorageBuffers = 0};
+        ShaderResourceCounts FragmentResources{.numUniformBuffers = 1, .numSamplers = 0, .numStorageTextures = 0, .numStorageBuffers = 0};
 
         // Vertex format this shader consumes
         VertexLayout VertexLayout{};

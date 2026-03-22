@@ -15,7 +15,7 @@ jobs:
     permissions:
       contents: read
     # Publish a reusable runner snapshot after setup succeeds.
-    snapshot: "wayfinder-copilot-linux"
+    # snapshot: "wayfinder-copilot-linux"
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4

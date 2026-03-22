@@ -60,7 +60,7 @@ namespace Wayfinder
         const RenderDeviceInfo& GetDeviceInfo() const override { return m_info; }
 
     private:
-        RenderDeviceInfo m_info{.BackendName = "Null"};
+        RenderDeviceInfo m_info{.BackendName = "Null", .DeviceName = {}, .DriverInfo = {}};
     };
 
 } // namespace Wayfinder
