@@ -1,5 +1,6 @@
 #pragma once
 
+#include "core/InternedString.h"
 #include "rendering/ArenaFunction.h"
 #include "rendering/FrameAllocator.h"
 #include "rendering/RenderTypes.h"
@@ -7,7 +8,7 @@
 #include <concepts>
 #include <cstdint>
 #include <optional>
-#include <string>
+#include <string_view>
 #include <type_traits>
 #include <utility>
 #include <vector>
@@ -119,17 +120,17 @@ namespace Wayfinder
         /// the builder and returns an execute callback (any invocable matching
         /// void(RenderDevice&, const RenderGraphResources&)).
         template <typename TSetup>
-        void AddPass(const std::string& name, TSetup&& setup);
+        void AddPass(std::string_view name, TSetup&& setup);
 
         /// Add a compute pass (same interface — dependencies determine ordering).
         template <typename TSetup>
-        void AddComputePass(const std::string& name, TSetup&& setup);
+        void AddComputePass(std::string_view name, TSetup&& setup);
 
         // Import a named resource handle so passes can reference it by name.
-        RenderGraphHandle ImportTexture(const std::string& name);
+        RenderGraphHandle ImportTexture(std::string_view name);
 
         // Look up a previously imported or created named resource.
-        RenderGraphHandle FindHandle(const std::string& name) const;
+        RenderGraphHandle FindHandle(std::string_view name) const;
 
         // Compile: topological sort on dependencies + dead pass culling.
         bool Compile();
@@ -143,7 +144,7 @@ namespace Wayfinder
         struct ResourceEntry
         {
             RenderGraphTextureDesc Desc;
-            std::string Name;
+            InternedString Name;
             bool IsTransient = true;
             bool IsReadAsSampler = false;
             uint32_t WrittenByPass = UINT32_MAX;  // Last pass that writes this
@@ -172,7 +173,7 @@ namespace Wayfinder
 
         struct PassEntry
         {
-            std::string Name;
+            InternedString Name;
             RenderGraphPassType Type = RenderGraphPassType::Raster;
             RenderGraphExecuteFn Execute;
 
@@ -187,7 +188,7 @@ namespace Wayfinder
             uint32_t SortOrder = UINT32_MAX;
         };
 
-        RenderGraphHandle AllocateResource(const RenderGraphTextureDesc& desc, const std::string& name = "");
+        RenderGraphHandle AllocateResource(const RenderGraphTextureDesc& desc, InternedString name = {});
 
         FrameAllocator m_allocator;
         std::vector<ResourceEntry> m_resources;
@@ -199,11 +200,11 @@ namespace Wayfinder
     // ── Template Implementations ─────────────────────────────
 
     template <typename TSetup>
-    void RenderGraph::AddPass(const std::string& name, TSetup&& setup)
+    void RenderGraph::AddPass(std::string_view name, TSetup&& setup)
     {
         uint32_t passIndex = static_cast<uint32_t>(m_passes.size());
         m_passes.push_back({});
-        m_passes.back().Name = name;
+        m_passes.back().Name = InternedString::Intern(name);
         m_passes.back().Type = RenderGraphPassType::Raster;
 
         RenderGraphBuilder builder(*this, passIndex);
@@ -220,11 +221,11 @@ namespace Wayfinder
     }
 
     template <typename TSetup>
-    void RenderGraph::AddComputePass(const std::string& name, TSetup&& setup)
+    void RenderGraph::AddComputePass(std::string_view name, TSetup&& setup)
     {
         uint32_t passIndex = static_cast<uint32_t>(m_passes.size());
         m_passes.push_back({});
-        m_passes.back().Name = name;
+        m_passes.back().Name = InternedString::Intern(name);
         m_passes.back().Type = RenderGraphPassType::Compute;
 
         RenderGraphBuilder builder(*this, passIndex);

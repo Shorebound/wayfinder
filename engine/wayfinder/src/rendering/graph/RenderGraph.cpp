@@ -16,7 +16,7 @@ namespace Wayfinder
 
     RenderGraphHandle RenderGraphBuilder::CreateTransient(const RenderGraphTextureDesc& desc)
     {
-        return m_graph.AllocateResource(desc, desc.DebugName);
+        return m_graph.AllocateResource(desc, InternedString::Intern(desc.DebugName));
     }
 
     void RenderGraphBuilder::ReadTexture(RenderGraphHandle handle)
@@ -88,7 +88,7 @@ namespace Wayfinder
 
     // ── RenderGraph ──────────────────────────────────────────
 
-    RenderGraphHandle RenderGraph::AllocateResource(const RenderGraphTextureDesc& desc, const std::string& name)
+    RenderGraphHandle RenderGraph::AllocateResource(const RenderGraphTextureDesc& desc, InternedString name)
     {
         RenderGraphHandle handle;
         handle.Index = static_cast<uint32_t>(m_resources.size());
@@ -101,12 +101,14 @@ namespace Wayfinder
         return handle;
     }
 
-    RenderGraphHandle RenderGraph::ImportTexture(const std::string& name)
+    RenderGraphHandle RenderGraph::ImportTexture(std::string_view name)
     {
+        const auto internedName = InternedString::Intern(name);
+
         // Check if already imported
         for (uint32_t i = 0; i < m_resources.size(); ++i)
         {
-            if (m_resources[i].Name == name)
+            if (m_resources[i].Name == internedName)
             {
                 return {i};
             }
@@ -116,14 +118,16 @@ namespace Wayfinder
         // (width/height == 0) so the transient allocation step skips them —
         // their GPU handles are supplied externally before Execute().
         RenderGraphTextureDesc desc;
-        return AllocateResource(desc, name);
+        return AllocateResource(desc, internedName);
     }
 
-    RenderGraphHandle RenderGraph::FindHandle(const std::string& name) const
+    RenderGraphHandle RenderGraph::FindHandle(std::string_view name) const
     {
+        const auto internedName = InternedString::Intern(name);
+
         for (uint32_t i = 0; i < m_resources.size(); ++i)
         {
-            if (m_resources[i].Name == name)
+            if (m_resources[i].Name == internedName)
             {
                 return {i};
             }
@@ -284,7 +288,7 @@ namespace Wayfinder
             {
                 // Build the render pass descriptor
                 RenderPassDescriptor rpDesc;
-                rpDesc.debugName = pass.Name;
+                rpDesc.debugName = pass.Name.GetString();
 
                 if (pass.SwapchainWrite)
                 {

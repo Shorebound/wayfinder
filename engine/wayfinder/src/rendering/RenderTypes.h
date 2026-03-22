@@ -2,6 +2,7 @@
 
 #include <cstdint>
 #include <string>
+#include <string_view>
 
 #include "platform/BackendConfig.h"
 #include "core/Types.h"
@@ -153,7 +154,7 @@ namespace Wayfinder
 
     struct RenderPassDescriptor
     {
-        std::string debugName;
+        std::string_view debugName;
         ColourAttachmentDescriptor colourAttachment{};
         DepthAttachmentDescriptor depthAttachment{};
         bool targetSwapchain = true;
