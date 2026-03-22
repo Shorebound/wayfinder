@@ -1,4 +1,5 @@
 {
+  "version": 1,
   "scene_name": "Journey Bootstrap",
   "settings": {
     "gravity": [0.0, -9.81, 0.0],

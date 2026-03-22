@@ -14,6 +14,7 @@
 namespace Wayfinder
 {
     const std::string kSceneNameKey = "scene_name";
+    const std::string kVersionKey = "version";
     const std::string kSettingsKey = "settings";
     const std::string kEntitiesKey = "entities";
     const std::string kIdKey = "id";
@@ -266,6 +267,28 @@ namespace Wayfinder
             }
 
             nlohmann::json sceneData = nlohmann::json::parse(file);
+
+            if (!sceneData.contains(kVersionKey))
+            {
+                result.Errors.push_back("Scene file is missing required '" + kVersionKey + "' field");
+                return result;
+            }
+
+            if (!sceneData[kVersionKey].is_number_integer())
+            {
+                result.Errors.push_back("Scene '" + kVersionKey + "' must be an integer");
+                return result;
+            }
+
+            const int version = sceneData[kVersionKey].get<int>();
+            if (version != SCENE_FORMAT_VERSION)
+            {
+                result.Errors.push_back(
+                    "Unsupported scene format version " + std::to_string(version)
+                    + " (expected " + std::to_string(SCENE_FORMAT_VERSION) + ")");
+                return result;
+            }
+
             AssetService localAssetService;
             AssetService& activeAssetService = assetService ? *assetService : localAssetService;
             std::string assetRegistryError;
@@ -405,6 +428,7 @@ namespace Wayfinder
             nlohmann::json sceneData = nlohmann::json::object();
             nlohmann::json entitiesArray = nlohmann::json::array();
 
+            sceneData[kVersionKey] = document.Version;
             sceneData[kSceneNameKey] = document.Name;
 
             if (!document.Settings.empty())

@@ -33,7 +33,7 @@ namespace Wayfinder
         }
 
         template <typename T>
-        T& GetComponent()
+        T& GetMutableComponent()
         {
             return m_entityHandle.get_mut<T>();
         }
