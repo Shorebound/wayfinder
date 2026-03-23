@@ -45,15 +45,17 @@ namespace Wayfinder
                 mesh.Material = PrepareMaterialBinding(mesh.Material);
             }
 
-            if (!pass.DebugDraw)
+            if (!pass.DebugDraw.has_value())
             {
                 continue;
             }
 
-            for (RenderDebugBox& debugBox : pass.DebugDraw->Boxes)
+            RenderDebugDrawList debugDraw = pass.DebugDraw.value_or(RenderDebugDrawList{});
+            for (RenderDebugBox& debugBox : debugDraw.Boxes)
             {
                 debugBox.Material = PrepareMaterialBinding(debugBox.Material);
             }
+            pass.DebugDraw = std::move(debugDraw);
         }
     }
 

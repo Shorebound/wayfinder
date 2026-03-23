@@ -3,8 +3,10 @@
 #include "core/Log.h"
 #include "rendering/backend/RenderDevice.h"
 
+#include <algorithm>
 #include <array>
 #include <cstdint>
+#include <span>
 
 namespace Wayfinder
 {
@@ -206,18 +208,25 @@ namespace Wayfinder
     {
         constexpr uint32_t K_SIZE = 8;
         constexpr uint32_t K_CHANNELS = 4;
-        std::array<uint8_t, K_SIZE * K_SIZE * K_CHANNELS> pixels{};
+        constexpr size_t K_PIXEL_COUNT = static_cast<size_t>(K_SIZE) * static_cast<size_t>(K_SIZE);
+        constexpr size_t K_BUFFER_SIZE = K_PIXEL_COUNT * static_cast<size_t>(K_CHANNELS);
+        std::array<uint8_t, K_BUFFER_SIZE> pixels{};
+        const std::span<uint8_t, K_BUFFER_SIZE> pixelSpan{pixels};
 
         for (uint32_t y = 0; y < K_SIZE; ++y)
         {
             for (uint32_t x = 0; x < K_SIZE; ++x)
             {
                 const bool isLight = ((x + y) % 2) == 0;
-                const size_t offset = (y * K_SIZE + x) * K_CHANNELS;
-                pixels[offset + 0] = isLight ? 255 : 0; // R: pink or black
-                pixels[offset + 1] = isLight ? 0 : 0;   // G
-                pixels[offset + 2] = isLight ? 200 : 0; // B
-                pixels[offset + 3] = 255;               // A
+                const size_t offset = ((static_cast<size_t>(y) * static_cast<size_t>(K_SIZE)) + static_cast<size_t>(x)) * static_cast<size_t>(K_CHANNELS);
+                auto texel = pixelSpan.subspan(offset, K_CHANNELS);
+                const std::array<uint8_t, 4> texelValues = {
+                    isLight ? static_cast<uint8_t>(255) : static_cast<uint8_t>(0),
+                    0,
+                    isLight ? static_cast<uint8_t>(200) : static_cast<uint8_t>(0),
+                    255,
+                };
+                std::ranges::copy(texelValues, texel.begin());
             }
         }
 
