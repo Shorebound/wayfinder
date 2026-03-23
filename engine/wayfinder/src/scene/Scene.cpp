@@ -2,15 +2,10 @@
 #include "Components.h"
 #include "RuntimeComponentRegistry.h"
 #include "SceneDocument.h"
-#include "app/EngineConfig.h"
 #include "core/Log.h"
-#include "plugins/PluginRegistry.h"
-#include "project/ProjectDescriptor.h"
 #include "project/ProjectResolver.h"
 #include "scene/SceneSettings.h"
 #include "scene/entity/Entity.h"
-#include "scene/plugins/CameraPlugin.h"
-#include "scene/plugins/TransformPlugin.h"
 
 #include <filesystem>
 #include <format>
@@ -115,18 +110,6 @@ namespace Wayfinder
         world.component<NameComponent>();
         world.component<SceneObjectIdComponent>();
         world.component<PrefabInstanceComponent>();
-    }
-
-    void Scene::RegisterCoreSceneSystems(flecs::world& world)
-    {
-        ProjectDescriptor project{};
-        project.Name = "HeadlessTest";
-        EngineConfig config = EngineConfig::LoadDefaults();
-        PluginRegistry registry(project, config);
-        registry.AddPlugin<TransformPlugin>();
-        registry.AddPlugin<CameraPlugin>();
-        registry.ApplyComponentRegisterFns(world);
-        registry.ApplyToWorld(world);
     }
 
     void Scene::ClearEntities()

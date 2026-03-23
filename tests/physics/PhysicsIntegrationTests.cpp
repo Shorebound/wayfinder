@@ -32,102 +32,110 @@ namespace Wayfinder::Tests
     constexpr int SIMULATION_STEPS = 60;
     constexpr float FIXED_DT = 1.0f / 60.0f;
 
-    /**
-     * @brief RAII fixture that boots the full physics pipeline via
-     *        PhysicsPlugin — the same path the engine uses at runtime.
-     *
-     * Sets up:
-     * - SubsystemCollection with PhysicsSubsystem
-     * - GameSubsystems binding
-     * - A flecs::world with all components, observers, and systems
-     *   registered through PhysicsPlugin::Build() + ApplyToWorld().
-     *
-     * Tears down cleanly in reverse order.
-     */
-    struct PhysicsIntegrationFixture
+    // GLM vec members are stored in a union; fixed matrix column indexing is intentional.
+    // NOLINTBEGIN(cppcoreguidelines-pro-type-union-access, cppcoreguidelines-pro-bounds-avoid-unchecked-container-access)
+
+    namespace
     {
-        SubsystemCollection<GameSubsystem> Subsystems;
-        flecs::world EcsWorld;
-
-        PhysicsIntegrationFixture()
+        /**
+         * @brief RAII fixture that boots the full physics pipeline via
+         *        PhysicsPlugin — the same path the engine uses at runtime.
+         *
+         * Sets up:
+         * - SubsystemCollection with PhysicsSubsystem
+         * - GameSubsystems binding
+         * - A flecs::world with all components, observers, and systems
+         *   registered through PhysicsPlugin::Build() + ApplyToWorld().
+         *
+         * Tears down cleanly in reverse order.
+         */
+        struct PhysicsIntegrationFixture
         {
-            // Build the PluginRegistry with PhysicsPlugin, exactly as Game does.
-            ProjectDescriptor project{};
-            project.Name = "PhysicsIntegrationTest";
-            EngineConfig config = EngineConfig::LoadDefaults();
+            ProjectDescriptor Project{.Name = "PhysicsIntegrationTest"};
+            EngineConfig Config = EngineConfig::LoadDefaults();
+            PluginRegistry Registry;
+            SubsystemCollection<GameSubsystem> Subsystems;
+            mutable flecs::world EcsWorld;
 
-            PluginRegistry registry(project, config);
-            registry.AddPlugin<PhysicsPlugin>();
-
-            // Stand up the subsystem from the plugin's registration.
-            for (const auto& entry : registry.GetSubsystemFactories())
+            PhysicsIntegrationFixture() : Registry(Project, Config)
             {
-                Subsystems.Register(entry.Type, entry.Factory, entry.Predicate);
+                Registry.AddPlugin<PhysicsPlugin>();
+
+                // Stand up the subsystem from the plugin's registration.
+                for (const auto& entry : Registry.GetSubsystemFactories())
+                {
+                    Subsystems.Register(entry.Type, entry.Factory, entry.Predicate);
+                }
+
+                Subsystems.Initialise();
+                GameSubsystems::Bind(&Subsystems);
+
+                // Register ECS components that the observers depend on.
+                EcsWorld.component<RigidBodyComponent>();
+                EcsWorld.component<ColliderComponent>();
+                EcsWorld.component<TransformComponent>();
+                EcsWorld.component<WorldTransformComponent>();
+
+                // Apply plugin-registered observers and systems into the world.
+                Registry.ApplyToWorld(EcsWorld);
+                Registry.NotifyStartup();
             }
 
-            Subsystems.Initialise();
-            GameSubsystems::Bind(&Subsystems);
-
-            // Register ECS components that the observers depend on.
-            EcsWorld.component<RigidBodyComponent>();
-            EcsWorld.component<ColliderComponent>();
-            EcsWorld.component<TransformComponent>();
-            EcsWorld.component<WorldTransformComponent>();
-
-            // Apply plugin-registered observers and systems into the world.
-            registry.ApplyToWorld(EcsWorld);
-        }
-
-        ~PhysicsIntegrationFixture()
-        {
-            GameSubsystems::Unbind();
-            Subsystems.Shutdown();
-        }
-
-        PhysicsWorld& GetPhysicsWorld()
-        {
-            return Subsystems.Get<PhysicsSubsystem>()->GetWorld();
-        }
-
-        // Create a physics entity with the given body type, position, and collider.
-        flecs::entity CreatePhysicsEntity(const char* name, BodyType type, const Float3& position, ColliderShape shape = ColliderShape::Box)
-        {
-            RigidBodyComponent rb;
-            rb.Type = type;
-
-            ColliderComponent col;
-            col.Shape = shape;
-
-            auto entity = EcsWorld.entity(name);
-
-            EcsWorld.defer_begin();
-            entity.set<TransformComponent>(position);
-            entity.set<WorldTransformComponent>({});
-            entity.set<ColliderComponent>(col);
-            entity.set<RigidBodyComponent>(rb);
-            EcsWorld.defer_end();
-
-            auto rigidbody = entity.get<RigidBodyComponent>();
-            auto result = rigidbody.RuntimeBodyId;
-            (void)result; // Avoid unused variable warning; observer will fill this in asynchronously.
-
-            return entity;
-        }
-
-        // Progress the ECS world for N ticks at the fixed timestep.
-        void Simulate(int ticks = SIMULATION_STEPS)
-        {
-            for (int i = 0; i < ticks; ++i)
+            ~PhysicsIntegrationFixture()
             {
-                EcsWorld.progress(FIXED_DT);
+                Registry.NotifyShutdown();
+                GameSubsystems::Unbind();
+                Subsystems.Shutdown();
             }
-        }
-    };
+
+            PhysicsWorld& GetPhysicsWorld()
+            {
+                return Subsystems.Get<PhysicsSubsystem>()->GetWorld();
+            }
+
+            // Create a physics entity with the given body type, position, and collider.
+            flecs::entity CreatePhysicsEntity(const char* name, BodyType type, const Float3& position, ColliderShape shape = ColliderShape::Box) const
+            {
+                RigidBodyComponent rb;
+                rb.Type = type;
+
+                ColliderComponent col;
+                col.Shape = shape;
+
+                auto entity = EcsWorld.entity(name);
+
+                EcsWorld.defer_begin();
+                entity.set<TransformComponent>(position);
+                entity.set<WorldTransformComponent>({});
+                entity.set<ColliderComponent>(col);
+                entity.set<RigidBodyComponent>(rb);
+                EcsWorld.defer_end();
+
+                auto rigidbody = entity.get<RigidBodyComponent>();
+                auto result = rigidbody.RuntimeBodyId;
+                (void)result; // Avoid unused variable warning; observer will fill this in asynchronously.
+
+                return entity;
+            }
+
+            // Progress the ECS world for N ticks at the fixed timestep.
+            void Simulate(int ticks = SIMULATION_STEPS) const
+            {
+                for (int i = 0; i < ticks; ++i)
+                {
+                    EcsWorld.progress(FIXED_DT);
+                }
+            }
+        };
+    } // namespace
 
     // ── Integration Tests ──────────────────────────────────────────
 
     TEST_SUITE("Physics Integration")
     {
+        // Fixture mutates ECS / physics; not logically const despite mostly const methods.
+        // NOLINTBEGIN(misc-const-correctness)
+
         TEST_CASE("Dynamic body falls under gravity through the full plugin pipeline")
         {
             PhysicsIntegrationFixture fixture;
@@ -163,7 +171,7 @@ namespace Wayfinder::Tests
             REQUIRE(rb.RuntimeBodyId != INVALID_PHYSICS_BODY);
 
             // Static bodies are skipped by PhysicsSyncTransforms, so query Jolt directly.
-            Float3 pos = fixture.GetPhysicsWorld().GetBodyPosition(rb.RuntimeBodyId);
+            const Float3 pos = fixture.GetPhysicsWorld().GetBodyPosition(rb.RuntimeBodyId);
             CHECK(pos.x == doctest::Approx(0.0f));
             CHECK(pos.y == doctest::Approx(0.0f));
             CHECK(pos.z == doctest::Approx(0.0f));
@@ -203,7 +211,7 @@ namespace Wayfinder::Tests
 
             const auto& rb = entity.get<RigidBodyComponent>();
             REQUIRE(rb.RuntimeBodyId != INVALID_PHYSICS_BODY);
-            uint32_t bodyId = rb.RuntimeBodyId;
+            const uint32_t bodyId = rb.RuntimeBodyId;
 
             // Remove the component — the destruction observer should fire.
             entity.remove<RigidBodyComponent>();
@@ -215,7 +223,7 @@ namespace Wayfinder::Tests
             // Jolt body was destroyed — querying its position now returns the
             // zero default because the body ID is no longer valid in Jolt.
             // (This verifies DestroyBody was called; the engine doesn't crash.)
-            Float3 pos = fixture.GetPhysicsWorld().GetBodyPosition(bodyId);
+            const Float3 pos = fixture.GetPhysicsWorld().GetBodyPosition(bodyId);
             (void)pos; // Reaching here without crashing proves cleanup happened.
         }
 
@@ -228,14 +236,14 @@ namespace Wayfinder::Tests
 
             const auto& rb = entity.get<RigidBodyComponent>();
             REQUIRE(rb.RuntimeBodyId != INVALID_PHYSICS_BODY);
-            uint32_t bodyId = rb.RuntimeBodyId;
+            const uint32_t bodyId = rb.RuntimeBodyId;
 
             // Delete the entire entity.
             entity.destruct();
             fixture.EcsWorld.progress(0.0f);
 
             // Same rationale: reaching here without crash proves cleanup.
-            Float3 pos = fixture.GetPhysicsWorld().GetBodyPosition(bodyId);
+            const Float3 pos = fixture.GetPhysicsWorld().GetBodyPosition(bodyId);
             (void)pos;
         }
 
@@ -257,7 +265,7 @@ namespace Wayfinder::Tests
             // Static body should not have moved.
             const auto& floorRb = floor.get<RigidBodyComponent>();
             REQUIRE(floorRb.RuntimeBodyId != INVALID_PHYSICS_BODY);
-            Float3 floorPos = fixture.GetPhysicsWorld().GetBodyPosition(floorRb.RuntimeBodyId);
+            const Float3 floorPos = fixture.GetPhysicsWorld().GetBodyPosition(floorRb.RuntimeBodyId);
             CHECK(floorPos.y == doctest::Approx(-1.0f));
 
             // Kinematic body stays where it was placed (no gravity).
@@ -281,5 +289,9 @@ namespace Wayfinder::Tests
             const auto& wt = entity.get<WorldTransformComponent>();
             CHECK(wt.Position.y < startY);
         }
+
+        // NOLINTEND(misc-const-correctness)
     }
+
+    // NOLINTEND(cppcoreguidelines-pro-type-union-access, cppcoreguidelines-pro-bounds-avoid-unchecked-container-access)
 }

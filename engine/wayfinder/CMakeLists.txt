@@ -237,6 +237,8 @@ set(ENGINE_ALL_SOURCES
   src/scene/RuntimeComponentRegistry.h
   src/scene/Scene.cpp
   src/scene/Scene.h
+  src/scene/SceneWorldBootstrap.cpp
+  src/scene/SceneWorldBootstrap.h
   src/scene/plugins/CameraPlugin.cpp
   src/scene/plugins/CameraPlugin.h
   src/scene/plugins/TransformPlugin.cpp

@@ -8,6 +8,7 @@
 #include "project/ProjectResolver.h"
 #include "scene/RuntimeComponentRegistry.h"
 #include "scene/Scene.h"
+#include "scene/SceneWorldBootstrap.h"
 
 #include "ecs/Flecs.h"
 #include <filesystem>
@@ -15,7 +16,7 @@
 #include <optional>
 #include <string>
 
-namespace Wayfinder
+namespace
 {
     void PrintUsage()
     {
@@ -80,6 +81,19 @@ namespace Wayfinder
             }
 
             Registry.RegisterComponents(World);
+
+            /// Mirror Game::InitialiseWorld: apply the game module's systems and globals after
+            /// component registration. Without a loaded game plugin, register the same core
+            /// scene plugins (transform/camera) used by headless tests — do not combine both paths
+            /// or systems would be registered twice.
+            if (PluginReg)
+            {
+                PluginReg->ApplyToWorld(World);
+            }
+            else
+            {
+                Wayfinder::SceneWorldBootstrap::RegisterDefaultScenePlugins(World);
+            }
         }
     };
 
@@ -108,8 +122,9 @@ namespace Wayfinder
         scene.Shutdown();
         return saveResult ? 0 : 1;
     }
-}
+} // namespace
 
+// NOLINTNEXTLINE(bugprone-exception-escape) — iostream may throw; acceptable for CLI entry.
 int main(int argc, char** argv)
 {
     Wayfinder::Log::Init();
@@ -118,7 +133,7 @@ int main(int argc, char** argv)
 
     if (argc < 2)
     {
-        Wayfinder::PrintUsage();
+        PrintUsage();
         Wayfinder::Log::Shutdown();
         return 1;
     }
@@ -166,7 +181,7 @@ int main(int argc, char** argv)
 
     if (argIndex >= argc)
     {
-        Wayfinder::PrintUsage();
+        PrintUsage();
         Wayfinder::Log::Shutdown();
         return 1;
     }
@@ -179,14 +194,14 @@ int main(int argc, char** argv)
     {
         if (argIndex >= argc && !project)
         {
-            Wayfinder::PrintUsage();
+            PrintUsage();
             Wayfinder::Log::Shutdown();
             return 1;
         }
 
-        const std::filesystem::path scenePath = (argIndex < argc) ? std::filesystem::path(argv[argIndex]) : project->ResolveBootScene();
+        const std::filesystem::path scenePath = (argIndex < argc) ? std::filesystem::path(argv[argIndex]) : project.value().ResolveBootScene();
 
-        exitCode = Wayfinder::RunValidate(scenePath, project ? &*project : nullptr, toolDir);
+        exitCode = RunValidate(scenePath, project ? &*project : nullptr, toolDir);
     }
     else if (command == "validate-assets")
     {
@@ -201,27 +216,27 @@ int main(int argc, char** argv)
         }
         else
         {
-            Wayfinder::PrintUsage();
+            PrintUsage();
             Wayfinder::Log::Shutdown();
             return 1;
         }
 
-        exitCode = Wayfinder::RunValidateAssets(assetRoot);
+        exitCode = RunValidateAssets(assetRoot);
     }
     else if (command == "roundtrip-save")
     {
         if (argIndex + 1 >= argc)
         {
-            Wayfinder::PrintUsage();
+            PrintUsage();
             Wayfinder::Log::Shutdown();
             return 1;
         }
 
-        exitCode = Wayfinder::RunRoundtripSave(std::filesystem::path(argv[argIndex]), std::filesystem::path(argv[argIndex + 1]), project ? &*project : nullptr, toolDir);
+        exitCode = RunRoundtripSave(std::filesystem::path(argv[argIndex]), std::filesystem::path(argv[argIndex + 1]), project ? &*project : nullptr, toolDir);
     }
     else
     {
-        Wayfinder::PrintUsage();
+        PrintUsage();
     }
 
     Wayfinder::Log::Shutdown();

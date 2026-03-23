@@ -32,6 +32,12 @@ namespace Wayfinder
     {
         WAYFINDER_INFO(LogGame, "Initialising game");
 
+        if (&ctx.pluginRegistry != &m_pluginRegistry)
+        {
+            WAYFINDER_ERROR(LogGame, "GameContext::pluginRegistry must refer to the same PluginRegistry instance passed to Game's constructor");
+            return MakeError("GameContext plugin registry does not match Game constructor");
+        }
+
         m_assetService = std::make_shared<AssetService>();
 
         InitialiseSubsystems();

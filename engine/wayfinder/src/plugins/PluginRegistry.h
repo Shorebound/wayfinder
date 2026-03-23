@@ -84,9 +84,7 @@ namespace Wayfinder
         template<typename T>
         void AddPlugin()
         {
-            auto plugin = std::make_unique<T>();
-            plugin->Build(*this);
-            m_plugins.push_back(std::move(plugin));
+            AddPlugin(std::make_unique<T>());
         }
 
         /// Add an externally-created plugin (e.g. the game's root plugin from CreateGamePlugin()).

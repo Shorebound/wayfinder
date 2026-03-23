@@ -6,6 +6,8 @@
 
 #include "ecs/Flecs.h"
 
+#include <vector>
+
 namespace Wayfinder
 {
     namespace
@@ -28,36 +30,48 @@ namespace Wayfinder
             {
                 world.children([&](flecs::entity child)
                 {
-                    struct TransformPropagation
+                    std::vector<std::pair<flecs::entity, Matrix4>> stack;
+                    stack.emplace_back(child, Maths::Identity());
+                    while (!stack.empty())
                     {
-                        static void UpdateRecursive(flecs::entity entityHandle, const Matrix4& parentMatrix)
+                        auto [entityHandle, parentMatrix] = stack.back();
+                        stack.pop_back();
+
+                        if (!entityHandle.has<TransformComponent>())
                         {
-                            if (!entityHandle.has<TransformComponent>())
-                            {
-                                entityHandle.children([&](flecs::entity childEntity)
-                                {
-                                    UpdateRecursive(childEntity, parentMatrix);
-                                });
-                                return;
-                            }
-
-                            const auto& localTransform = entityHandle.get<TransformComponent>();
-                            const Matrix4 localMatrix = localTransform.GetLocalMatrix();
-                            const Matrix4 worldMatrix = Maths::Multiply(localMatrix, parentMatrix);
-
-                            WorldTransformComponent cachedWorldTransform;
-                            cachedWorldTransform.LocalToWorld = worldMatrix;
-                            cachedWorldTransform.Position = Maths::TransformPoint(worldMatrix, {0.0f, 0.0f, 0.0f});
-                            cachedWorldTransform.Scale = Maths::ExtractScale(worldMatrix);
-
-                            entityHandle.set<WorldTransformComponent>(cachedWorldTransform);
+                            std::vector<flecs::entity> childList;
                             entityHandle.children([&](flecs::entity childEntity)
                             {
-                                UpdateRecursive(childEntity, worldMatrix);
+                                childList.push_back(childEntity);
                             });
+                            for (auto it = childList.rbegin(); it != childList.rend(); ++it)
+                            {
+                                stack.emplace_back(*it, parentMatrix);
+                            }
+                            continue;
                         }
-                    };
-                    TransformPropagation::UpdateRecursive(child, Maths::Identity());
+
+                        const auto& localTransform = entityHandle.get<TransformComponent>();
+                        const Matrix4 localMatrix = localTransform.GetLocalMatrix();
+                        const Matrix4 worldMatrix = Maths::Multiply(localMatrix, parentMatrix);
+
+                        WorldTransformComponent cachedWorldTransform;
+                        cachedWorldTransform.LocalToWorld = worldMatrix;
+                        cachedWorldTransform.Position = Maths::TransformPoint(worldMatrix, {0.0f, 0.0f, 0.0f});
+                        cachedWorldTransform.Scale = Maths::ExtractScale(worldMatrix);
+
+                        entityHandle.set<WorldTransformComponent>(cachedWorldTransform);
+
+                        std::vector<flecs::entity> childList;
+                        entityHandle.children([&](flecs::entity childEntity)
+                        {
+                            childList.push_back(childEntity);
+                        });
+                        for (auto it = childList.rbegin(); it != childList.rend(); ++it)
+                        {
+                            stack.emplace_back(*it, worldMatrix);
+                        }
+                    }
                 });
             });
         });

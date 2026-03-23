@@ -1,5 +1,6 @@
 #include "app/EngineConfig.h"
 #include "rendering/backend/RenderDevice.h"
+#include "rendering/graph/RenderFrame.h"
 #include "rendering/pipeline/RenderContext.h"
 #include "rendering/pipeline/RenderPipeline.h"
 #include "rendering/pipeline/SceneRenderExtractor.h"
@@ -7,6 +8,7 @@
 #include "scene/Components.h"
 #include "scene/RuntimeComponentRegistry.h"
 #include "scene/Scene.h"
+#include "scene/SceneWorldBootstrap.h"
 #include "scene/entity/Entity.h"
 
 #include "ecs/Flecs.h"
@@ -15,20 +17,23 @@
 
 namespace Wayfinder::Tests
 {
-    Wayfinder::RenderMeshSubmission MakeSolidMesh(uint8_t sortPriority, const Wayfinder::Colour& colour)
+    namespace
     {
-        Wayfinder::RenderMeshSubmission submission;
-        submission.Mesh.Origin = Wayfinder::RenderResourceOrigin::BuiltIn;
-        submission.Mesh.StableKey = static_cast<uint64_t>(sortPriority) + 1ull;
-        submission.Geometry.Type = Wayfinder::RenderGeometryType::Box;
-        submission.Geometry.Dimensions = {1.0f, 1.0f, 1.0f};
-        submission.Material.Ref.Origin = Wayfinder::RenderResourceOrigin::BuiltIn;
-        submission.Material.Ref.StableKey = submission.Mesh.StableKey;
-        submission.Material.StateOverrides.FillMode = Wayfinder::RenderFillMode::Solid;
-        submission.Material.Parameters.SetColour("base_colour", Wayfinder::LinearColour::FromColour(colour));
-        submission.SortPriority = sortPriority;
-        return submission;
-    }
+        Wayfinder::RenderMeshSubmission MakeSolidMesh(uint8_t sortPriority, const Wayfinder::Colour& colour)
+        {
+            Wayfinder::RenderMeshSubmission submission;
+            submission.Mesh.Origin = Wayfinder::RenderResourceOrigin::BuiltIn;
+            submission.Mesh.StableKey = static_cast<uint64_t>(sortPriority) + 1ull;
+            submission.Geometry.Type = Wayfinder::RenderGeometryType::Box;
+            submission.Geometry.Dimensions = {1.0f, 1.0f, 1.0f};
+            submission.Material.Ref.Origin = Wayfinder::RenderResourceOrigin::BuiltIn;
+            submission.Material.Ref.StableKey = submission.Mesh.StableKey;
+            submission.Material.StateOverrides.FillMode = Wayfinder::RenderFillMode::Solid;
+            submission.Material.Parameters.SetColour("base_colour", Wayfinder::LinearColour::FromColour(colour));
+            submission.SortPriority = sortPriority;
+            return submission;
+        }
+    } // namespace
 
     TEST_CASE("Null backend factory creates a device")
     {
@@ -50,9 +55,11 @@ namespace Wayfinder::Tests
         Wayfinder::RenderFrame frame;
         frame.SceneName = "Empty";
 
+        // PrepareFrame mutates the cache; not logically const.
+        // NOLINTNEXTLINE(misc-const-correctness)
         Wayfinder::RenderResourceCache resources;
         auto device = Wayfinder::RenderDevice::Create(Wayfinder::RenderBackend::Null);
-        Wayfinder::RenderPipeline pipeline;
+        const Wayfinder::RenderPipeline pipeline;
 
         // Should not crash — Prepare returns false for empty frames
         pipeline.Prepare(frame);
@@ -65,7 +72,7 @@ namespace Wayfinder::Tests
         Wayfinder::RuntimeComponentRegistry registry;
         registry.AddCoreEntries();
         registry.RegisterComponents(world);
-        Wayfinder::Scene::RegisterCoreSceneSystems(world);
+        Wayfinder::SceneWorldBootstrap::RegisterDefaultScenePlugins(world);
         Wayfinder::Scene scene(world, registry, "Extractor Test Scene");
 
         Wayfinder::Entity camera = scene.CreateEntity("Camera");
@@ -91,7 +98,7 @@ namespace Wayfinder::Tests
 
         world.progress(0.016f);
 
-        Wayfinder::SceneRenderExtractor extractor;
+        const Wayfinder::SceneRenderExtractor extractor;
         const Wayfinder::RenderFrame frame = extractor.Extract(scene);
         const Wayfinder::RenderPass* mainPass = frame.FindPass(Wayfinder::RenderPassIds::MainScene);
         const Wayfinder::RenderPass* debugPass = frame.FindPass(Wayfinder::RenderPassIds::Debug);
@@ -103,9 +110,10 @@ namespace Wayfinder::Tests
         REQUIRE(mainPass != nullptr);
         REQUIRE(debugPass != nullptr);
         CHECK(mainPass->Meshes.size() == 1);
-        CHECK(debugPass->DebugDraw.has_value());
-        CHECK(debugPass->DebugDraw->Boxes.size() == 1);
-        CHECK(debugPass->DebugDraw->Lines.size() == 1);
+        REQUIRE(debugPass->DebugDraw.has_value());
+        const Wayfinder::RenderDebugDrawList& debugDraw = debugPass->DebugDraw.value();
+        CHECK(debugDraw.Boxes.size() == 1);
+        CHECK(debugDraw.Lines.size() == 1);
     }
 
     TEST_CASE("Extractor skips mesh without renderable")
@@ -115,7 +123,7 @@ namespace Wayfinder::Tests
         Wayfinder::RuntimeComponentRegistry registry;
         registry.AddCoreEntries();
         registry.RegisterComponents(world);
-        Wayfinder::Scene::RegisterCoreSceneSystems(world);
+        Wayfinder::SceneWorldBootstrap::RegisterDefaultScenePlugins(world);
         Wayfinder::Scene scene(world, registry, "Extractor Skip Scene");
 
         Wayfinder::Entity camera = scene.CreateEntity("Camera");
@@ -130,7 +138,7 @@ namespace Wayfinder::Tests
 
         world.progress(0.016f);
 
-        Wayfinder::SceneRenderExtractor extractor;
+        const Wayfinder::SceneRenderExtractor extractor;
         const Wayfinder::RenderFrame frame = extractor.Extract(scene);
         const Wayfinder::RenderPass* mainPass = frame.FindPass(Wayfinder::RenderPassIds::MainScene);
 
@@ -151,7 +159,8 @@ namespace Wayfinder::Tests
         Wayfinder::RenderResourceCache resources;
         resources.PrepareFrame(frame);
 
-        const auto& resolved = resources.ResolveMesh(scenePass.Meshes[0]);
+        REQUIRE(!scenePass.Meshes.empty());
+        const auto& resolved = resources.ResolveMesh(scenePass.Meshes.at(0));
         CHECK(resolved.Geometry.Type == Wayfinder::RenderGeometryType::Box);
     }
 

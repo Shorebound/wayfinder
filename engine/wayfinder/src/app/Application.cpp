@@ -256,13 +256,15 @@ namespace Wayfinder
                 m_pluginsStarted = false;
             }
 
-            m_pluginRegistry = nullptr;
-
+            /// Tear down Game while PluginRegistry still exists: Game holds a reference to the
+            /// registry and must not run after the unique_ptr has released the object.
             if (m_game)
             {
                 m_game->Shutdown();
                 m_game = nullptr;
             }
+
+            m_pluginRegistry = nullptr;
 
             if (m_runtime)
             {
