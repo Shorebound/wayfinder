@@ -21,6 +21,17 @@ namespace Wayfinder
         float Size = 1.0f;
     };
 
+    struct MeshCreateDesc
+    {
+        const void* VertexData = nullptr;
+        uint32_t VertexDataSize = 0;
+        uint32_t VertexCount = 0;
+        const void* IndexData = nullptr;
+        uint32_t IndexDataSize = 0;
+        uint32_t IndexCount = 0;
+        IndexElementSize IndexElementType = IndexElementSize::Uint16;
+    };
+
     // GPU-backed mesh: owns vertex and index buffers on the device.
     // Distinct from the authored MeshComponent — this is the GPU-side representation.
     // All primitives use VertexPosNormalColour format (the engine's standard authored vertex).
@@ -37,8 +48,7 @@ namespace Wayfinder
         Mesh(Mesh&&) noexcept = default;
         Mesh& operator=(Mesh&&) noexcept = default;
 
-        bool Create(RenderDevice& device, const void* vertexData, uint32_t vertexDataSize, uint32_t vertexCount, const void* indexData, uint32_t indexDataSize, uint32_t indexCount,
-        IndexElementSize indexElementSize = IndexElementSize::Uint16);
+        bool Create(RenderDevice& device, const MeshCreateDesc& desc);
 
         void Destroy();
 

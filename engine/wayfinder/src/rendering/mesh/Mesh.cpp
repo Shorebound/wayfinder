@@ -5,29 +5,177 @@
 
 namespace Wayfinder
 {
-    bool Mesh::Create(RenderDevice& device, const void* vertexData, uint32_t vertexDataSize, uint32_t vertexCount, const void* indexData, uint32_t indexDataSize, uint32_t indexCount, IndexElementSize indexElementSize)
+    namespace
     {
-        if (!m_vertexBuffer.Create(device, BufferUsage::Vertex, vertexDataSize))
+        Mesh CreateCube(RenderDevice& device, float size)
+        {
+            const float h = size * 0.5f;
+
+            constexpr Float3 N_FRONT = {0.0f, 0.0f, 1.0f};
+            constexpr Float3 N_BACK = {0.0f, 0.0f, -1.0f};
+            constexpr Float3 N_TOP = {0.0f, 1.0f, 0.0f};
+            constexpr Float3 N_BOTTOM = {0.0f, -1.0f, 0.0f};
+            constexpr Float3 N_RIGHT = {1.0f, 0.0f, 0.0f};
+            constexpr Float3 N_LEFT = {-1.0f, 0.0f, 0.0f};
+
+            constexpr Float3 C_FRONT = {0.9f, 0.2f, 0.2f};
+            constexpr Float3 C_BACK = {0.2f, 0.8f, 0.2f};
+            constexpr Float3 C_TOP = {0.2f, 0.4f, 0.9f};
+            constexpr Float3 C_BOTTOM = {0.9f, 0.9f, 0.2f};
+            constexpr Float3 C_RIGHT = {0.9f, 0.2f, 0.9f};
+            constexpr Float3 C_LEFT = {0.2f, 0.9f, 0.9f};
+
+            const std::array<VertexPosNormalColour, 24> vertices = {{
+                {.Position = {-h, -h, h}, .Normal = N_FRONT, .Colour = C_FRONT},
+                {.Position = {h, -h, h}, .Normal = N_FRONT, .Colour = C_FRONT},
+                {.Position = {h, h, h}, .Normal = N_FRONT, .Colour = C_FRONT},
+                {.Position = {-h, h, h}, .Normal = N_FRONT, .Colour = C_FRONT},
+                {.Position = {h, -h, -h}, .Normal = N_BACK, .Colour = C_BACK},
+                {.Position = {-h, -h, -h}, .Normal = N_BACK, .Colour = C_BACK},
+                {.Position = {-h, h, -h}, .Normal = N_BACK, .Colour = C_BACK},
+                {.Position = {h, h, -h}, .Normal = N_BACK, .Colour = C_BACK},
+                {.Position = {-h, h, h}, .Normal = N_TOP, .Colour = C_TOP},
+                {.Position = {h, h, h}, .Normal = N_TOP, .Colour = C_TOP},
+                {.Position = {h, h, -h}, .Normal = N_TOP, .Colour = C_TOP},
+                {.Position = {-h, h, -h}, .Normal = N_TOP, .Colour = C_TOP},
+                {.Position = {-h, -h, -h}, .Normal = N_BOTTOM, .Colour = C_BOTTOM},
+                {.Position = {h, -h, -h}, .Normal = N_BOTTOM, .Colour = C_BOTTOM},
+                {.Position = {h, -h, h}, .Normal = N_BOTTOM, .Colour = C_BOTTOM},
+                {.Position = {-h, -h, h}, .Normal = N_BOTTOM, .Colour = C_BOTTOM},
+                {.Position = {h, -h, h}, .Normal = N_RIGHT, .Colour = C_RIGHT},
+                {.Position = {h, -h, -h}, .Normal = N_RIGHT, .Colour = C_RIGHT},
+                {.Position = {h, h, -h}, .Normal = N_RIGHT, .Colour = C_RIGHT},
+                {.Position = {h, h, h}, .Normal = N_RIGHT, .Colour = C_RIGHT},
+                {.Position = {-h, -h, -h}, .Normal = N_LEFT, .Colour = C_LEFT},
+                {.Position = {-h, -h, h}, .Normal = N_LEFT, .Colour = C_LEFT},
+                {.Position = {-h, h, h}, .Normal = N_LEFT, .Colour = C_LEFT},
+                {.Position = {-h, h, -h}, .Normal = N_LEFT, .Colour = C_LEFT},
+            }};
+
+            const std::array<uint16_t, 36> indices = {{
+                0, 1, 2, 0, 2, 3,
+                4, 5, 6, 4, 6, 7,
+                8, 9, 10, 8, 10, 11,
+                12, 13, 14, 12, 14, 15,
+                16, 17, 18, 16, 18, 19,
+                20, 21, 22, 20, 22, 23,
+            }};
+
+            Mesh mesh;
+            if (!mesh.Create(device,
+                    {
+                        .VertexData = vertices.data(),
+                        .VertexDataSize = static_cast<uint32_t>(vertices.size() * sizeof(VertexPosNormalColour)),
+                        .VertexCount = static_cast<uint32_t>(vertices.size()),
+                        .IndexData = indices.data(),
+                        .IndexDataSize = static_cast<uint32_t>(indices.size() * sizeof(uint16_t)),
+                        .IndexCount = static_cast<uint32_t>(indices.size()),
+                        .IndexElementType = IndexElementSize::Uint16,
+                    }))
+            {
+                WAYFINDER_ERROR(LogRenderer, "Mesh: Failed to create primitive cube");
+                return {};
+            }
+
+            return mesh;
+        }
+
+        Mesh CreateTexturedCube(RenderDevice& device, float size)
+        {
+            const float h = size * 0.5f;
+
+            constexpr Float3 N_FRONT = {0.0f, 0.0f, 1.0f};
+            constexpr Float3 N_BACK = {0.0f, 0.0f, -1.0f};
+            constexpr Float3 N_TOP = {0.0f, 1.0f, 0.0f};
+            constexpr Float3 N_BOTTOM = {0.0f, -1.0f, 0.0f};
+            constexpr Float3 N_RIGHT = {1.0f, 0.0f, 0.0f};
+            constexpr Float3 N_LEFT = {-1.0f, 0.0f, 0.0f};
+
+            constexpr Float2 UV00 = {0.0f, 1.0f};
+            constexpr Float2 UV10 = {1.0f, 1.0f};
+            constexpr Float2 UV11 = {1.0f, 0.0f};
+            constexpr Float2 UV01 = {0.0f, 0.0f};
+
+            const std::array<VertexPosNormalUV, 24> vertices = {{
+                {.Position = {-h, -h, h}, .Normal = N_FRONT, .UV = UV00},
+                {.Position = {h, -h, h}, .Normal = N_FRONT, .UV = UV10},
+                {.Position = {h, h, h}, .Normal = N_FRONT, .UV = UV11},
+                {.Position = {-h, h, h}, .Normal = N_FRONT, .UV = UV01},
+                {.Position = {h, -h, -h}, .Normal = N_BACK, .UV = UV00},
+                {.Position = {-h, -h, -h}, .Normal = N_BACK, .UV = UV10},
+                {.Position = {-h, h, -h}, .Normal = N_BACK, .UV = UV11},
+                {.Position = {h, h, -h}, .Normal = N_BACK, .UV = UV01},
+                {.Position = {-h, h, h}, .Normal = N_TOP, .UV = UV00},
+                {.Position = {h, h, h}, .Normal = N_TOP, .UV = UV10},
+                {.Position = {h, h, -h}, .Normal = N_TOP, .UV = UV11},
+                {.Position = {-h, h, -h}, .Normal = N_TOP, .UV = UV01},
+                {.Position = {-h, -h, -h}, .Normal = N_BOTTOM, .UV = UV00},
+                {.Position = {h, -h, -h}, .Normal = N_BOTTOM, .UV = UV10},
+                {.Position = {h, -h, h}, .Normal = N_BOTTOM, .UV = UV11},
+                {.Position = {-h, -h, h}, .Normal = N_BOTTOM, .UV = UV01},
+                {.Position = {h, -h, h}, .Normal = N_RIGHT, .UV = UV00},
+                {.Position = {h, -h, -h}, .Normal = N_RIGHT, .UV = UV10},
+                {.Position = {h, h, -h}, .Normal = N_RIGHT, .UV = UV11},
+                {.Position = {h, h, h}, .Normal = N_RIGHT, .UV = UV01},
+                {.Position = {-h, -h, -h}, .Normal = N_LEFT, .UV = UV00},
+                {.Position = {-h, -h, h}, .Normal = N_LEFT, .UV = UV10},
+                {.Position = {-h, h, h}, .Normal = N_LEFT, .UV = UV11},
+                {.Position = {-h, h, -h}, .Normal = N_LEFT, .UV = UV01},
+            }};
+
+            const std::array<uint16_t, 36> indices = {{
+                0, 1, 2, 0, 2, 3,
+                4, 5, 6, 4, 6, 7,
+                8, 9, 10, 8, 10, 11,
+                12, 13, 14, 12, 14, 15,
+                16, 17, 18, 16, 18, 19,
+                20, 21, 22, 20, 22, 23,
+            }};
+
+            Mesh mesh;
+            if (!mesh.Create(device,
+                    {
+                        .VertexData = vertices.data(),
+                        .VertexDataSize = static_cast<uint32_t>(vertices.size() * sizeof(VertexPosNormalUV)),
+                        .VertexCount = static_cast<uint32_t>(vertices.size()),
+                        .IndexData = indices.data(),
+                        .IndexDataSize = static_cast<uint32_t>(indices.size() * sizeof(uint16_t)),
+                        .IndexCount = static_cast<uint32_t>(indices.size()),
+                        .IndexElementType = IndexElementSize::Uint16,
+                    }))
+            {
+                WAYFINDER_ERROR(LogRenderer, "Mesh: Failed to create textured primitive cube");
+                return {};
+            }
+
+            return mesh;
+        }
+
+    } // namespace
+
+    bool Mesh::Create(RenderDevice& device, const MeshCreateDesc& desc)
+    {
+        if (!m_vertexBuffer.Create(device, BufferUsage::Vertex, desc.VertexDataSize))
         {
             WAYFINDER_ERROR(LogRenderer, "Mesh: Failed to create vertex buffer");
             return false;
         }
 
-        if (!m_indexBuffer.Create(device, BufferUsage::Index, indexDataSize))
+        if (!m_indexBuffer.Create(device, BufferUsage::Index, desc.IndexDataSize))
         {
             WAYFINDER_ERROR(LogRenderer, "Mesh: Failed to create index buffer");
             m_vertexBuffer.Destroy();
             return false;
         }
 
-        m_vertexBuffer.Upload(vertexData, vertexDataSize);
-        m_indexBuffer.Upload(indexData, indexDataSize);
+        m_vertexBuffer.Upload(desc.VertexData, desc.VertexDataSize);
+        m_indexBuffer.Upload(desc.IndexData, desc.IndexDataSize);
 
-        m_vertexCount = vertexCount;
-        m_indexCount = indexCount;
-        m_indexElementSize = indexElementSize;
+        m_vertexCount = desc.VertexCount;
+        m_indexCount = desc.IndexCount;
+        m_indexElementSize = desc.IndexElementType;
 
-        WAYFINDER_INFO(LogRenderer, "Mesh: Created ({} verts, {} indices)", vertexCount, indexCount);
+        WAYFINDER_INFO(LogRenderer, "Mesh: Created ({} verts, {} indices)", desc.VertexCount, desc.IndexCount);
         return true;
     }
 
@@ -50,110 +198,6 @@ namespace Wayfinder
         device.DrawIndexed(m_indexCount, instanceCount);
     }
 
-    // ── Built-in Primitives ──────────────────────────────────
-
-    static Mesh CreateCube(RenderDevice& device, float size)
-    {
-        const float h = size * 0.5f;
-
-        // Face normals
-        constexpr Float3 N_FRONT = {0.0f, 0.0f, 1.0f};
-        constexpr Float3 N_BACK = {0.0f, 0.0f, -1.0f};
-        constexpr Float3 N_TOP = {0.0f, 1.0f, 0.0f};
-        constexpr Float3 N_BOTTOM = {0.0f, -1.0f, 0.0f};
-        constexpr Float3 N_RIGHT = {1.0f, 0.0f, 0.0f};
-        constexpr Float3 N_LEFT = {-1.0f, 0.0f, 0.0f};
-
-        // Per-face vertex colours
-        constexpr Float3 C_FRONT = {0.9f, 0.2f, 0.2f};
-        constexpr Float3 C_BACK = {0.2f, 0.8f, 0.2f};
-        constexpr Float3 C_TOP = {0.2f, 0.4f, 0.9f};
-        constexpr Float3 C_BOTTOM = {0.9f, 0.9f, 0.2f};
-        constexpr Float3 C_RIGHT = {0.9f, 0.2f, 0.9f};
-        constexpr Float3 C_LEFT = {0.2f, 0.9f, 0.9f};
-
-        std::array<VertexPosNormalColour, 24> vertices = {{
-            // Front (+Z)
-            {.Position = {-h, -h, h}, .Normal = N_FRONT, .Colour = C_FRONT},
-            {.Position = {h, -h, h}, .Normal = N_FRONT, .Colour = C_FRONT},
-            {.Position = {h, h, h}, .Normal = N_FRONT, .Colour = C_FRONT},
-            {.Position = {-h, h, h}, .Normal = N_FRONT, .Colour = C_FRONT},
-            // Back (-Z)
-            {.Position = {h, -h, -h}, .Normal = N_BACK, .Colour = C_BACK},
-            {.Position = {-h, -h, -h}, .Normal = N_BACK, .Colour = C_BACK},
-            {.Position = {-h, h, -h}, .Normal = N_BACK, .Colour = C_BACK},
-            {.Position = {h, h, -h}, .Normal = N_BACK, .Colour = C_BACK},
-            // Top (+Y)
-            {.Position = {-h, h, h}, .Normal = N_TOP, .Colour = C_TOP},
-            {.Position = {h, h, h}, .Normal = N_TOP, .Colour = C_TOP},
-            {.Position = {h, h, -h}, .Normal = N_TOP, .Colour = C_TOP},
-            {.Position = {-h, h, -h}, .Normal = N_TOP, .Colour = C_TOP},
-            // Bottom (-Y)
-            {.Position = {-h, -h, -h}, .Normal = N_BOTTOM, .Colour = C_BOTTOM},
-            {.Position = {h, -h, -h}, .Normal = N_BOTTOM, .Colour = C_BOTTOM},
-            {.Position = {h, -h, h}, .Normal = N_BOTTOM, .Colour = C_BOTTOM},
-            {.Position = {-h, -h, h}, .Normal = N_BOTTOM, .Colour = C_BOTTOM},
-            // Right (+X)
-            {.Position = {h, -h, h}, .Normal = N_RIGHT, .Colour = C_RIGHT},
-            {.Position = {h, -h, -h}, .Normal = N_RIGHT, .Colour = C_RIGHT},
-            {.Position = {h, h, -h}, .Normal = N_RIGHT, .Colour = C_RIGHT},
-            {.Position = {h, h, h}, .Normal = N_RIGHT, .Colour = C_RIGHT},
-            // Left (-X)
-            {.Position = {-h, -h, -h}, .Normal = N_LEFT, .Colour = C_LEFT},
-            {.Position = {-h, -h, h}, .Normal = N_LEFT, .Colour = C_LEFT},
-            {.Position = {-h, h, h}, .Normal = N_LEFT, .Colour = C_LEFT},
-            {.Position = {-h, h, -h}, .Normal = N_LEFT, .Colour = C_LEFT},
-        }};
-
-        std::array<uint16_t, 36> indices = {{
-        0,
-        1,
-        2,
-        0,
-        2,
-        3,
-        4,
-        5,
-        6,
-        4,
-        6,
-        7,
-        8,
-        9,
-        10,
-        8,
-        10,
-        11,
-        12,
-        13,
-        14,
-        12,
-        14,
-        15,
-        16,
-        17,
-        18,
-        16,
-        18,
-        19,
-        20,
-        21,
-        22,
-        20,
-        22,
-        23,
-        }};
-
-        Mesh mesh;
-        if (!mesh.Create(device, vertices.data(), static_cast<uint32_t>(vertices.size() * sizeof(VertexPosNormalColour)), static_cast<uint32_t>(vertices.size()), indices.data(),
-            static_cast<uint32_t>(indices.size() * sizeof(uint16_t)), static_cast<uint32_t>(indices.size()), IndexElementSize::Uint16))
-        {
-            WAYFINDER_ERROR(LogRenderer, "Mesh: Failed to create primitive cube");
-        }
-
-        return mesh;
-    }
-
     Mesh Mesh::CreatePrimitive(RenderDevice& device, const PrimitiveDesc& desc)
     {
         switch (desc.Shape)
@@ -164,104 +208,6 @@ namespace Wayfinder
             WAYFINDER_ERROR(LogRenderer, "Mesh: Unknown primitive shape {}", static_cast<int>(desc.Shape));
             return {};
         }
-    }
-
-    static Mesh CreateTexturedCube(RenderDevice& device, float size)
-    {
-        const float h = size * 0.5f;
-
-        constexpr Float3 N_FRONT = {0.0f, 0.0f, 1.0f};
-        constexpr Float3 N_BACK = {0.0f, 0.0f, -1.0f};
-        constexpr Float3 N_TOP = {0.0f, 1.0f, 0.0f};
-        constexpr Float3 N_BOTTOM = {0.0f, -1.0f, 0.0f};
-        constexpr Float3 N_RIGHT = {1.0f, 0.0f, 0.0f};
-        constexpr Float3 N_LEFT = {-1.0f, 0.0f, 0.0f};
-
-        constexpr Float2 UV00 = {0.0f, 1.0f};
-        constexpr Float2 UV10 = {1.0f, 1.0f};
-        constexpr Float2 UV11 = {1.0f, 0.0f};
-        constexpr Float2 UV01 = {0.0f, 0.0f};
-
-        std::array<VertexPosNormalUV, 24> vertices = {{
-            // Front (+Z)
-            {.Position = {-h, -h, h}, .Normal = N_FRONT, .UV = UV00},
-            {.Position = {h, -h, h}, .Normal = N_FRONT, .UV = UV10},
-            {.Position = {h, h, h}, .Normal = N_FRONT, .UV = UV11},
-            {.Position = {-h, h, h}, .Normal = N_FRONT, .UV = UV01},
-            // Back (-Z)
-            {.Position = {h, -h, -h}, .Normal = N_BACK, .UV = UV00},
-            {.Position = {-h, -h, -h}, .Normal = N_BACK, .UV = UV10},
-            {.Position = {-h, h, -h}, .Normal = N_BACK, .UV = UV11},
-            {.Position = {h, h, -h}, .Normal = N_BACK, .UV = UV01},
-            // Top (+Y)
-            {.Position = {-h, h, h}, .Normal = N_TOP, .UV = UV00},
-            {.Position = {h, h, h}, .Normal = N_TOP, .UV = UV10},
-            {.Position = {h, h, -h}, .Normal = N_TOP, .UV = UV11},
-            {.Position = {-h, h, -h}, .Normal = N_TOP, .UV = UV01},
-            // Bottom (-Y)
-            {.Position = {-h, -h, -h}, .Normal = N_BOTTOM, .UV = UV00},
-            {.Position = {h, -h, -h}, .Normal = N_BOTTOM, .UV = UV10},
-            {.Position = {h, -h, h}, .Normal = N_BOTTOM, .UV = UV11},
-            {.Position = {-h, -h, h}, .Normal = N_BOTTOM, .UV = UV01},
-            // Right (+X)
-            {.Position = {h, -h, h}, .Normal = N_RIGHT, .UV = UV00},
-            {.Position = {h, -h, -h}, .Normal = N_RIGHT, .UV = UV10},
-            {.Position = {h, h, -h}, .Normal = N_RIGHT, .UV = UV11},
-            {.Position = {h, h, h}, .Normal = N_RIGHT, .UV = UV01},
-            // Left (-X)
-            {.Position = {-h, -h, -h}, .Normal = N_LEFT, .UV = UV00},
-            {.Position = {-h, -h, h}, .Normal = N_LEFT, .UV = UV10},
-            {.Position = {-h, h, h}, .Normal = N_LEFT, .UV = UV11},
-            {.Position = {-h, h, -h}, .Normal = N_LEFT, .UV = UV01},
-        }};
-
-        std::array<uint16_t, 36> indices = {{
-        0,
-        1,
-        2,
-        0,
-        2,
-        3,
-        4,
-        5,
-        6,
-        4,
-        6,
-        7,
-        8,
-        9,
-        10,
-        8,
-        10,
-        11,
-        12,
-        13,
-        14,
-        12,
-        14,
-        15,
-        16,
-        17,
-        18,
-        16,
-        18,
-        19,
-        20,
-        21,
-        22,
-        20,
-        22,
-        23,
-        }};
-
-        Mesh mesh;
-        if (!mesh.Create(device, vertices.data(), static_cast<uint32_t>(vertices.size() * sizeof(VertexPosNormalUV)), static_cast<uint32_t>(vertices.size()), indices.data(),
-            static_cast<uint32_t>(indices.size() * sizeof(uint16_t)), static_cast<uint32_t>(indices.size()), IndexElementSize::Uint16))
-        {
-            WAYFINDER_ERROR(LogRenderer, "Mesh: Failed to create textured primitive cube");
-        }
-
-        return mesh;
     }
 
     Mesh Mesh::CreateTexturedPrimitive(RenderDevice& device, const PrimitiveDesc& desc)
