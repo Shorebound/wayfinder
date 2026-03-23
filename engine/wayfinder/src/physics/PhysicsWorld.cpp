@@ -128,8 +128,7 @@ namespace Wayfinder::Physics
 
                     // Register a one-time teardown so Jolt globals are cleaned up
                     // when the process exits (avoids leak reports in sanitisers).
-                    std::atexit(
-                        []()
+                    std::atexit([]()
                         {
                             JPH::UnregisterTypes();
                             delete JPH::Factory::sInstance;

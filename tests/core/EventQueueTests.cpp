@@ -65,8 +65,7 @@ namespace Wayfinder::Tests
         queue.Push(Wayfinder::KeyPressedEvent{Wayfinder::Key::A});
 
         std::vector<Wayfinder::KeyCode> received;
-        queue.Drain(
-            [&](Wayfinder::Event& e)
+        queue.Drain([&](Wayfinder::Event& e)
             {
                 auto& typed = static_cast<Wayfinder::KeyPressedEvent&>(e);
                 received.push_back(typed.GetKeyCode());
@@ -81,8 +80,7 @@ namespace Wayfinder::Tests
         CHECK(received[0] == Wayfinder::Key::A);
         CHECK(queue.Size() == 1);
 
-        queue.Drain(
-            [&](Wayfinder::Event& e)
+        queue.Drain([&](Wayfinder::Event& e)
             {
                 auto& typed = static_cast<Wayfinder::KeyPressedEvent&>(e);
                 received.push_back(typed.GetKeyCode());
@@ -126,8 +124,7 @@ namespace Wayfinder::Tests
         queue.Push(Wayfinder::KeyPressedEvent{Wayfinder::Key::A});
 
         bool wasHandled = false;
-        queue.Drain(
-            [&](Wayfinder::Event& e)
+        queue.Drain([&](Wayfinder::Event& e)
             {
                 e.Handled = true;
                 wasHandled = e.Handled;

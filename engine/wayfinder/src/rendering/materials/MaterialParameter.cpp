@@ -8,8 +8,7 @@ namespace Wayfinder
     {
         void WriteValue(const MaterialParamValue& value, void* dst, uint32_t maxBytes)
         {
-            std::visit(
-                [dst, maxBytes](auto&& v)
+            std::visit([dst, maxBytes](auto&& v)
                 {
                     using T = std::decay_t<decltype(v)>;
                     if constexpr (std::is_same_v<T, float>)

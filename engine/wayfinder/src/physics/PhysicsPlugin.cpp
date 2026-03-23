@@ -345,8 +345,7 @@ namespace Wayfinder::Physics
             {
                 world.observer<RigidBodyComponent, const ColliderComponent, const TransformComponent>("PhysicsCreateBodies")
                     .event(flecs::OnAdd)
-                    .each(
-                        [](flecs::entity, RigidBodyComponent& rb, const ColliderComponent& col, const TransformComponent& transform)
+                    .each([](flecs::entity, RigidBodyComponent& rb, const ColliderComponent& col, const TransformComponent& transform)
                         {
                             if (rb.RuntimeBodyId != INVALID_PHYSICS_BODY) return;
 
@@ -372,8 +371,7 @@ namespace Wayfinder::Physics
             {
                 world.observer<RigidBodyComponent>("PhysicsDestroyBodies")
                     .event(flecs::OnRemove)
-                    .each(
-                        [](RigidBodyComponent& rb)
+                    .each([](RigidBodyComponent& rb)
                         {
                             if (rb.RuntimeBodyId == INVALID_PHYSICS_BODY) return;
 
@@ -397,8 +395,7 @@ namespace Wayfinder::Physics
 
                 world.system("PhysicsStep")
                     .kind(flecs::OnUpdate)
-                    .run(
-                        [physics](flecs::iter& it)
+                    .run([physics](flecs::iter& it)
                         {
                             if (physics) physics->GetWorld().StepFixed(it.delta_time());
                         });
@@ -414,8 +411,7 @@ namespace Wayfinder::Physics
 
                 world.system<const RigidBodyComponent, WorldTransformComponent>("PhysicsSyncTransforms")
                     .kind(flecs::OnValidate)
-                    .each(
-                        [physics](flecs::entity, const RigidBodyComponent& rb, WorldTransformComponent& wt)
+                    .each([physics](flecs::entity, const RigidBodyComponent& rb, WorldTransformComponent& wt)
                         {
                             if (rb.RuntimeBodyId == INVALID_PHYSICS_BODY) return;
                             if (rb.Type == BodyType::Static) return;

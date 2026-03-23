@@ -111,11 +111,9 @@ namespace Wayfinder
         world.component<WorldTransformComponent>();
         world.system<>("UpdateWorldTransforms")
             .kind(flecs::PreUpdate)
-            .run(
-                [&world](flecs::iter&)
+            .run([&world](flecs::iter&)
                 {
-                    world.children(
-                        [&](flecs::entity child)
+                    world.children([&](flecs::entity child)
                         {
                             struct TransformPropagation
                             {
@@ -148,13 +146,11 @@ namespace Wayfinder
         world.component<ActiveCameraStateComponent>();
         world.system<>("ExtractActiveCamera")
             .kind(flecs::OnUpdate)
-            .run(
-                [&world](flecs::iter&)
+            .run([&world](flecs::iter&)
                 {
                     ActiveCameraStateComponent activeCamera;
 
-                    world.each(
-                        [&](flecs::entity entityHandle, const TransformComponent& transform, const CameraComponent& camera)
+                    world.each([&](flecs::entity entityHandle, const TransformComponent& transform, const CameraComponent& camera)
                         {
                             if (activeCamera.IsValid || !camera.Primary)
                             {
@@ -199,8 +195,7 @@ namespace Wayfinder
         /// map entry (e.g. after SetSceneObjectId({}) removed them from
         /// m_entitiesById but left the flecs entity alive).
         std::vector<flecs::entity> orphans;
-        m_world.each(
-            [&](flecs::entity entityHandle)
+        m_world.each([&](flecs::entity entityHandle)
             {
                 if (entityHandle.is_valid() && entityHandle.has<SceneOwnership>(m_sceneTag))
                 {
@@ -395,8 +390,7 @@ namespace Wayfinder
             // Persist scene settings from the world singleton into the document
             if (m_world.has<SceneSettings>()) document.Settings = m_world.get<SceneSettings>().GetData();
 
-            m_world.each(
-                [&](flecs::entity entityHandle)
+            m_world.each([&](flecs::entity entityHandle)
                 {
                     if (!entityHandle.has<SceneOwnership>(m_sceneTag))
                     {

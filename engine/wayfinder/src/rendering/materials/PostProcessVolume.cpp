@@ -69,8 +69,7 @@ namespace Wayfinder
             return target;
         }
 
-        return std::visit(
-            [&](const auto& a) -> Wayfinder::PostProcessParamValue
+        return std::visit([&](const auto& a) -> Wayfinder::PostProcessParamValue
             {
                 using T = std::decay_t<decltype(a)>;
                 const auto& b = std::get<T>(target);
@@ -91,8 +90,7 @@ namespace Wayfinder
 
     Wayfinder::PostProcessParamValue ZeroValue(const Wayfinder::PostProcessParamValue& v)
     {
-        return std::visit(
-            [](const auto& val) -> Wayfinder::PostProcessParamValue
+        return std::visit([](const auto& val) -> Wayfinder::PostProcessParamValue
             {
                 using T = std::decay_t<decltype(val)>;
                 if constexpr (std::is_same_v<T, float>)

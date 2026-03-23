@@ -87,8 +87,7 @@ namespace Wayfinder
             }
         }
 
-        scene.GetWorld().each(
-            [&frame, &cameraView](flecs::entity entityHandle, const TransformComponent& transform, const MeshComponent& mesh, const RenderableComponent& renderable)
+        scene.GetWorld().each([&frame, &cameraView](flecs::entity entityHandle, const TransformComponent& transform, const MeshComponent& mesh, const RenderableComponent& renderable)
             {
                 RenderMeshSubmission submission;
                 submission.Mesh.Origin = RenderResourceOrigin::BuiltIn;
@@ -156,8 +155,7 @@ namespace Wayfinder
                 owningPass->Meshes.push_back(std::move(submission));
             });
 
-        scene.GetWorld().each(
-            [&frame](flecs::entity entityHandle, const TransformComponent& transform, const LightComponent& light)
+        scene.GetWorld().each([&frame](flecs::entity entityHandle, const TransformComponent& transform, const LightComponent& light)
             {
                 Matrix4 localToWorld = transform.GetLocalMatrix();
                 Float3 position = transform.Position;
@@ -216,8 +214,7 @@ namespace Wayfinder
 
         // Extract post-process volumes (global volumes may have no transform)
         std::vector<PostProcessVolumeInstance> volumeInstances;
-        scene.GetWorld().each(
-            [&volumeInstances](flecs::entity entityHandle, const PostProcessVolumeComponent& volume)
+        scene.GetWorld().each([&volumeInstances](flecs::entity entityHandle, const PostProcessVolumeComponent& volume)
             {
                 Float3 position{0.0f, 0.0f, 0.0f};
                 Float3 scale{1.0f, 1.0f, 1.0f};

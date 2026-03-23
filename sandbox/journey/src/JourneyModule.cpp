@@ -88,8 +88,7 @@ namespace Wayfinder::Journey
                 {
                     world.system<HealthComponent>("HealthRegen")
                         .kind(flecs::OnUpdate)
-                        .each(
-                            [](HealthComponent& health)
+                        .each([](HealthComponent& health)
                             {
                                 if (health.CurrentHealth < health.MaxHealth)
                                 {
@@ -129,8 +128,7 @@ namespace Wayfinder::Journey
                 {
                     world.system<HealthComponent>("BurnDamage")
                         .kind(flecs::OnUpdate)
-                        .each(
-                            [](HealthComponent& health)
+                        .each([](HealthComponent& health)
                             {
                                 if (health.CurrentHealth > 0.0f)
                                 {

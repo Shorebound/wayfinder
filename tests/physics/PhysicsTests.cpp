@@ -55,8 +55,7 @@ namespace Wayfinder::Tests
     {
         world.observer<RigidBodyComponent, const ColliderComponent, const TransformComponent>("PhysicsCreateBodies")
             .event(flecs::OnAdd)
-            .each(
-                [onCreated = std::move(onCreated)](RigidBodyComponent& rb, const ColliderComponent& col, const TransformComponent& transform)
+            .each([onCreated = std::move(onCreated)](RigidBodyComponent& rb, const ColliderComponent& col, const TransformComponent& transform)
                 {
                     if (rb.RuntimeBodyId != INVALID_PHYSICS_BODY) return;
                     auto* sub = GameSubsystems::Find<PhysicsSubsystem>();
@@ -710,8 +709,7 @@ namespace Wayfinder::Tests
             // Register step system
             ecsWorld.system("PhysicsStep")
                 .kind(flecs::OnUpdate)
-                .run(
-                    [](flecs::iter& it)
+                .run([](flecs::iter& it)
                     {
                         auto* sub = GameSubsystems::Find<PhysicsSubsystem>();
                         if (sub) sub->GetWorld().StepFixed(it.delta_time());
@@ -720,8 +718,7 @@ namespace Wayfinder::Tests
             // Register sync system
             ecsWorld.system<const RigidBodyComponent, WorldTransformComponent>("PhysicsSyncTransforms")
                 .kind(flecs::OnValidate)
-                .each(
-                    [](flecs::entity, const RigidBodyComponent& rb, WorldTransformComponent& wt)
+                .each([](flecs::entity, const RigidBodyComponent& rb, WorldTransformComponent& wt)
                     {
                         if (rb.RuntimeBodyId == INVALID_PHYSICS_BODY) return;
                         if (rb.Type == BodyType::Static) return;

@@ -18,7 +18,7 @@ namespace Wayfinder::Tests
         {
             auto registry = MakeTestRegistry();
             nlohmann::json input = {{"position", {1.0, 2.0, 3.0}}, {"rotation", {0.0, 0.0, 0.0}}, {"scale", {1.0, 1.0, 1.0}}};
-            
+
             std::string error;
             CHECK(registry.ValidateComponent("transform", input, error));
             CHECK(error.empty());

@@ -13,6 +13,14 @@ Handles formatting patterns that clang-format cannot enforce:
        };                        1, 2,
                               };
 
+3. Split lambda arguments — rejoins a lambda that clang-format split onto the
+   next line from its enclosing call:
+       .each(                .each([](int x)
+           [](int x)     →   {
+       {                         body
+           body               });
+       });
+
 Usage:
     python format-fixup.py [--check] <file>...
 
@@ -28,6 +36,17 @@ from pathlib import Path
 # then an empty '{}' body.  Handles both \n and \r\n line endings.
 EMPTY_BODY = re.compile(
     r'^([^\S\r\n]*(?:struct|class|enum|union)\b[^\r\n{]*)\r?\n(\s*\{\})', re.MULTILINE
+)
+
+# Matches a lambda that has been split onto the next line from its enclosing
+# call, such as:
+#     .each(
+#         [capture](params)
+# which should become:
+#     .each([capture](params)
+LAMBDA_ARG_SPLIT = re.compile(
+    r'^([^\S\r\n]*)(.*\w\()[ \t]*\r?\n[^\S\r\n]+(\[)',
+    re.MULTILINE,
 )
 
 # Matches "= {" on the same line where the body continues on subsequent lines
@@ -59,6 +78,7 @@ def _fix_init_brace(match: re.Match) -> str:
 def fixup(text: str) -> str:
     """Apply all formatting fixups."""
     text = EMPTY_BODY.sub(r'\1 {}', text)
+    text = LAMBDA_ARG_SPLIT.sub(r'\1\2\3', text)
     text = INIT_BRACE_SAME_LINE.sub(_fix_init_brace, text)
     return text
 
@@ -74,14 +94,14 @@ def process_file(path: Path, *, check: bool) -> bool:
     if original == fixed:
         return False
     if check:
-        print(f'{path}: would fix formatting (empty bodies / initialiser braces)')
+        print(f'{path}: would fix formatting (empty bodies / initialiser braces / lambda call wrapping)')
     else:
         try:
             path.write_text(fixed, encoding='utf-8')
         except OSError as exc:
             print(f'{path}: write failed ({exc})', file=sys.stderr)
             return False
-        print(f'{path}: fixed formatting (empty bodies / initialiser braces)')
+        print(f'{path}: fixed formatting (empty bodies / initialiser braces / lambda call wrapping)')
     return True
 
 

@@ -78,8 +78,7 @@ namespace Wayfinder
 
         static auto Generate() -> Uuid
         {
-            thread_local std::mt19937_64 sRng(
-                []
+            thread_local std::mt19937_64 sRng([]
                 {
                     std::random_device rd;
                     return rd();

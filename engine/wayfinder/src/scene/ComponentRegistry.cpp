@@ -941,8 +941,7 @@ namespace Wayfinder
 
     void WriteEffectParam(nlohmann::json& obj, const std::string& key, const Wayfinder::PostProcessParamValue& value)
     {
-        std::visit(
-            [&](const auto& v)
+        std::visit([&](const auto& v)
             {
                 using T = std::decay_t<decltype(v)>;
                 if constexpr (std::is_same_v<T, float>)
