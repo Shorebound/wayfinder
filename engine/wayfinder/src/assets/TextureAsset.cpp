@@ -6,33 +6,36 @@
 
 namespace Wayfinder
 {
-    constexpr std::string_view TEXTURE_ASSET_ID_KEY = "asset_id";
-    constexpr std::string_view TEXTURE_ASSET_TYPE_KEY = "asset_type";
-    constexpr std::string_view TEXTURE_NAME_KEY = "name";
-    constexpr std::string_view TEXTURE_SOURCE_KEY = "source";
-    constexpr std::string_view TEXTURE_FILTER_KEY = "filter";
-    constexpr std::string_view TEXTURE_ADDRESS_MODE_KEY = "address_mode";
-
-    static SamplerFilter ParseFilter(const std::string& text)
+    namespace
     {
-        if (text == "nearest")
-        {
-            return SamplerFilter::Nearest;
-        }
-        return SamplerFilter::Linear; // default
-    }
+        constexpr std::string_view TEXTURE_ASSET_ID_KEY = "asset_id";
+        constexpr std::string_view TEXTURE_ASSET_TYPE_KEY = "asset_type";
+        constexpr std::string_view TEXTURE_NAME_KEY = "name";
+        constexpr std::string_view TEXTURE_SOURCE_KEY = "source";
+        constexpr std::string_view TEXTURE_FILTER_KEY = "filter";
+        constexpr std::string_view TEXTURE_ADDRESS_MODE_KEY = "address_mode";
 
-    static SamplerAddressMode ParseAddressMode(const std::string& text)
-    {
-        if (text == "clamp" || text == "clamp_to_edge")
+        SamplerFilter ParseFilter(const std::string& text)
         {
-            return SamplerAddressMode::ClampToEdge;
+            if (text == "nearest")
+            {
+                return SamplerFilter::Nearest;
+            }
+            return SamplerFilter::Linear; // default
         }
-        if (text == "mirrored_repeat")
+
+        SamplerAddressMode ParseAddressMode(const std::string& text)
         {
-            return SamplerAddressMode::MirroredRepeat;
+            if (text == "clamp" || text == "clamp_to_edge")
+            {
+                return SamplerAddressMode::ClampToEdge;
+            }
+            if (text == "mirrored_repeat")
+            {
+                return SamplerAddressMode::MirroredRepeat;
+            }
+            return SamplerAddressMode::Repeat; // default
         }
-        return SamplerAddressMode::Repeat; // default
     }
 
     bool ValidateTextureAssetDocument(const nlohmann::json& document, const std::filesystem::path& filePath, std::string& error)
@@ -144,7 +147,9 @@ namespace Wayfinder
         const uint32_t dstPitch = texture.Width * texture.Channels;
         for (uint32_t row = 0; row < texture.Height; ++row)
         {
-            std::memcpy(texture.PixelData.data() + row * dstPitch, src + row * rgbaSurface->pitch, dstPitch);
+            const size_t dstOffset = static_cast<size_t>(row) * static_cast<size_t>(dstPitch);
+            const size_t srcOffset = static_cast<size_t>(row) * static_cast<size_t>(rgbaSurface->pitch);
+            std::memcpy(texture.PixelData.data() + dstOffset, src + srcOffset, dstPitch);
         }
 
         SDL_DestroySurface(rgbaSurface);

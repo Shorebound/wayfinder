@@ -6,6 +6,13 @@
 
 namespace Wayfinder
 {
+    namespace
+    {
+        constexpr std::string_view NAME_KEY = "name";
+        constexpr std::string_view ASSET_ID_KEY = "asset_id";
+        constexpr std::string_view ASSET_TYPE_KEY = "asset_type";
+    }
+
     bool AssetSchemaRegistry::IsRegisteredType(std::string_view typeName)
     {
         return Find(typeName) != nullptr;
@@ -62,7 +69,7 @@ namespace Wayfinder
     {
         const SceneComponentRegistry& registry = SceneComponentRegistry::Get();
 
-        if (document.contains("name") && !document["name"].is_string())
+        if (const auto nameIt = document.find(NAME_KEY); nameIt != document.end() && !nameIt->is_string())
         {
             error = "Prefab asset '" + filePath.generic_string() + "' field 'name' must be a string";
             return false;
@@ -70,7 +77,7 @@ namespace Wayfinder
 
         for (const auto& [key, node] : document.items())
         {
-            if (key == "asset_id" || key == "asset_type" || key == "name")
+            if (key == ASSET_ID_KEY || key == ASSET_TYPE_KEY || key == NAME_KEY)
             {
                 continue;
             }
@@ -90,7 +97,12 @@ namespace Wayfinder
             std::string validationError;
             if (!registry.ValidateComponent(key, node, validationError))
             {
-                error = "Prefab asset '" + filePath.generic_string() + "' component '" + key + "' is invalid: " + validationError;
+                error = "Prefab asset '";
+                error.append(filePath.generic_string());
+                error.append("' component '");
+                error.append(key);
+                error.append("' is invalid: ");
+                error.append(validationError);
                 return false;
             }
         }

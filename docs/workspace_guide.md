@@ -111,8 +111,11 @@ Typical local setup for runtime and asset work:
 
 ```powershell
 # Using presets (recommended)
-cmake --preset dev          # configures sandbox + tools + tests
-cmake --build --preset debug
+`cmake --preset dev`          # configures sandbox + tools + tests
+`cmake --build --preset debug`
+
+`cmake --preset dev-clang` 
+`cmake --build --preset clang-debug`
 ```
 
 See `CMakePresets.json` at the repo root for available presets:
