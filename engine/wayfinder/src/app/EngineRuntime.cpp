@@ -47,7 +47,7 @@ namespace Wayfinder
         }
 
         // Window — must exist before RenderDevice (swapchain needs a surface)
-        const auto windowConfig = Window::Config{m_config.Window.Width, m_config.Window.Height, m_config.Window.Title, m_config.Window.VSync};
+        const auto windowConfig = Window::Config{.Width = m_config.Window.Width, .Height = m_config.Window.Height, .Title = m_config.Window.Title, .VSync = m_config.Window.VSync};
 
         m_window = Window::Create(windowConfig, m_config.Backends.Platform);
         if (!m_window)
@@ -212,7 +212,7 @@ namespace Wayfinder
 
     EngineContext EngineRuntime::BuildContext() const
     {
-        return EngineContext{*m_window, *m_input, *m_time, m_config, m_project};
+        return EngineContext{.window = *m_window, .input = *m_input, .time = *m_time, .config = m_config, .project = m_project};
     }
 
 } // namespace Wayfinder

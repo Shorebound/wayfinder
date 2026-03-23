@@ -19,13 +19,11 @@ Exit codes:
 """
 
 import argparse
-import json
 import os
 import re
 import shutil
 import subprocess
 import sys
-import tempfile
 from pathlib import Path
 
 # Directories to scan for source files.
@@ -241,70 +239,12 @@ def _apply_fixup(text: str) -> str:
     return _fixup_fn(text)
 
 
-def _filter_compile_db(compile_commands: Path, *, config: str = 'Debug') -> str:
-    """Filter a Ninja Multi-Config compile_commands.json to a single config.
-
-    Returns the path to a temp directory containing the filtered DB.
-    """
-    with open(compile_commands, 'r', encoding='utf-8') as f:
-        entries = json.load(f)
-
-    marker = f'CMAKE_INTDIR=\\\\\\\"{config}\\\\\\\"'
-    filtered = [e for e in entries if marker in e.get('command', '')]
-
-    if not filtered:
-        # Fallback: deduplicate by source file (keep first occurrence).
-        seen: set[str] = set()
-        for entry in entries:
-            src = entry.get('file', '')
-            if src not in seen:
-                seen.add(src)
-                filtered.append(entry)
-
-    tmp_dir = tempfile.mkdtemp(prefix='wayfinder-lint-tidy-')
-    out_path = Path(tmp_dir) / 'compile_commands.json'
-    with open(out_path, 'w', encoding='utf-8') as f:
-        json.dump(filtered, f, indent=2)
-
-    return tmp_dir
-
-
 def _run_clang_tidy(files: list[Path], *, build_dir: Path, tool: str) -> bool:
-    """Run clang-tidy. Returns True if issues were found."""
-    if not files:
-        return False
+    """Run clang-tidy via the shared tidy module. Returns True if issues were found."""
+    from tidy import run_tidy
 
-    compile_commands = build_dir / 'compile_commands.json'
-    if not compile_commands.exists():
-        print(_red(f'\n  compile_commands.json not found at {compile_commands}'), file=sys.stderr)
-        print(_yellow('  Generate it with: cmake --preset dev-clang'), file=sys.stderr)
-        sys.exit(2)
-
-    # Filter to .cpp files only — headers are analysed via includes.
-    cpp_files = [f for f in files if f.suffix == '.cpp']
-    if not cpp_files:
-        print(_bold('\n-- clang-tidy --'))
-        print(_yellow('  No .cpp files to analyse.'))
-        return False
-
-    print(_bold(f'\n-- clang-tidy ({len(cpp_files)} files) --'))
-
-    # Ninja Multi-Config puts entries for every config in compile_commands.json.
-    # Filter to Debug-only so each file is analysed once.
-    tidy_dir = _filter_compile_db(compile_commands)
-
-    cmd = [tool, '-p', tidy_dir]
-    # Suppress stale-PCH errors — the Clang build tree may be outdated.
-    cmd.extend(['--extra-arg=-Xclang', '--extra-arg=-fno-validate-pch'])
-    cmd.extend(str(f) for f in cpp_files)
-
-    result = subprocess.run(cmd, cwd=REPO_ROOT)
-    if result.returncode != 0:
-        print(_red('  clang-tidy reported issues.'))
-        return True
-
-    print(_green('  Clean.'))
-    return False
+    print(_bold(f'\n-- clang-tidy --'))
+    return run_tidy(files, build_dir=build_dir, tool=tool)
 
 
 def _check_banned_includes(files: list[Path]) -> bool:

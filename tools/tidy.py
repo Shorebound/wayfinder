@@ -24,6 +24,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 
 SOURCE_DIRS = ['engine', 'sandbox', 'tests', 'tools']
@@ -138,6 +139,108 @@ def _filter_compile_db(compile_commands: Path, *, config: str) -> Path:
     return tmp_dir
 
 
+def _run_one(cmd_base: list[str], filepath: str, cwd: str) -> tuple[str, int, str]:
+    """Run clang-tidy on a single file.  Returns (filepath, returncode, stderr)."""
+    cmd = cmd_base + [filepath]
+    result = subprocess.run(cmd, cwd=cwd, capture_output=True, text=True)
+    # clang-tidy prints diagnostics to stdout.
+    output = result.stdout + result.stderr
+    return filepath, result.returncode, output
+
+
+def run_tidy(
+    files: list[Path],
+    *,
+    build_dir: Path = DEFAULT_BUILD_DIR,
+    tool: str | None = None,
+    fix: bool = False,
+    jobs: int = 0,
+) -> bool:
+    """Run clang-tidy on *files*.  Returns True if issues were found.
+
+    This is the shared core used by both ``tidy.py`` (CLI) and ``lint.py``
+    (``--tidy`` flag).  Handles compile-DB filtering, PCH workarounds, and
+    ``--quiet`` automatically.
+
+    *jobs* controls parallelism: 0 = auto (cpu_count), 1 = sequential.
+    When *fix* is True, jobs is forced to 1 to avoid concurrent writes.
+    """
+    # Resolve tool.
+    if tool is None:
+        tool = _find_tidy()
+    if not tool:
+        print(_red('clang-tidy not found. Install clang-tidy-22 or add it to PATH.'), file=sys.stderr)
+        return False  # caller decides severity
+
+    # Validate compile_commands.json.
+    compile_commands = build_dir / 'compile_commands.json'
+    if not compile_commands.exists():
+        print(_red(f'compile_commands.json not found at {compile_commands}'), file=sys.stderr)
+        print(_yellow('Generate it with: cmake --preset dev-clang'), file=sys.stderr)
+        return False
+
+    # Filter to .cpp — headers are analysed via includes.
+    cpp_files = [f for f in files if f.suffix == '.cpp']
+    if not cpp_files:
+        print(_yellow('No .cpp files to analyse.'))
+        return False
+
+    # Ninja Multi-Config generates entries for every configuration (Debug,
+    # Development, Shipping).  Without filtering, clang-tidy processes each
+    # file 3x.  Write a filtered DB with only Debug entries to a temp dir.
+    filtered_dir = _filter_compile_db(compile_commands, config='Debug')
+
+    # When applying fixes, run sequentially to avoid concurrent file writes.
+    if fix:
+        jobs = 1
+    elif jobs <= 0:
+        jobs = os.cpu_count() or 4
+
+    print(_bold(f'Running clang-tidy on {len(cpp_files)} file(s) ({jobs} parallel)...'))
+
+    cmd_base = [tool, '-p', str(filtered_dir), '--quiet']
+    # Suppress stale-PCH errors when running standalone (PCH might be from
+    # a previous build and the source has since been modified).
+    cmd_base.extend(['--extra-arg=-Xclang', '--extra-arg=-fno-validate-pch'])
+    if fix:
+        cmd_base.append('--fix')
+
+    found_issues = False
+    cwd = str(REPO_ROOT)
+
+    if jobs == 1:
+        # Sequential — simpler output, needed for --fix.
+        for i, f in enumerate(cpp_files, 1):
+            filepath, rc, output = _run_one(cmd_base, str(f), cwd)
+            if output.strip():
+                print(output, end='' if output.endswith('\n') else '\n')
+            if rc != 0:
+                found_issues = True
+    else:
+        # Parallel — fan out across cores.
+        with ThreadPoolExecutor(max_workers=jobs) as pool:
+            futures = {
+                pool.submit(_run_one, cmd_base, str(f), cwd): f
+                for f in cpp_files
+            }
+            done = 0
+            for future in as_completed(futures):
+                done += 1
+                filepath, rc, output = future.result()
+                if output.strip():
+                    print(output, end='' if output.endswith('\n') else '\n')
+                if rc != 0:
+                    found_issues = True
+
+    print()
+    if found_issues:
+        print(_red(f'clang-tidy reported issues ({len(cpp_files)} files analysed).'))
+    else:
+        print(_green(f'Clean ({len(cpp_files)} files analysed).'))
+
+    return found_issues
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(
         description='Run clang-tidy on Wayfinder source files.',
@@ -150,27 +253,11 @@ def main() -> int:
                         help='Only analyse .cpp files changed vs origin/main.')
     parser.add_argument('--fix', action='store_true',
                         help='Apply clang-tidy auto-fixes in-place.')
+    parser.add_argument('-j', '--jobs', type=int, default=0,
+                        help='Number of parallel jobs (0 = auto, 1 = sequential). Forced to 1 with --fix.')
     parser.add_argument('--build-dir', type=Path, default=DEFAULT_BUILD_DIR,
                         help='Path to build directory with compile_commands.json.')
     args = parser.parse_args()
-
-    # Find clang-tidy.
-    tidy = _find_tidy()
-    if not tidy:
-        print(_red('clang-tidy not found. Install clang-tidy-22 or add it to PATH.'), file=sys.stderr)
-        return 2
-
-    # Validate compile_commands.json.
-    compile_commands = args.build_dir / 'compile_commands.json'
-    if not compile_commands.exists():
-        print(_red(f'compile_commands.json not found at {compile_commands}'), file=sys.stderr)
-        print(_yellow('Generate it with: cmake --preset dev-clang'), file=sys.stderr)
-        return 2
-
-    # Ninja Multi-Config generates entries for every configuration (Debug,
-    # Development, Shipping).  Without filtering, clang-tidy processes each
-    # file 3x.  Write a filtered DB with only Debug entries to a temp dir.
-    filtered_dir = _filter_compile_db(compile_commands, config='Debug')
 
     # Discover files.
     if args.files:
@@ -184,25 +271,8 @@ def main() -> int:
         print(_yellow('No .cpp files to analyse.'))
         return 0
 
-    print(_bold(f'Running clang-tidy on {len(files)} file(s)...'))
-
-    cmd = [tidy, '-p', str(filtered_dir)]
-    # Suppress stale-PCH errors when running standalone (PCH might be from
-    # a previous build and the source has since been modified).
-    cmd.extend(['--extra-arg=-Xclang', '--extra-arg=-fno-validate-pch'])
-    if args.fix:
-        cmd.append('--fix')
-    cmd.extend(str(f) for f in files)
-
-    result = subprocess.run(cmd, cwd=REPO_ROOT)
-    print()
-
-    if result.returncode != 0:
-        print(_red(f'clang-tidy reported issues ({len(files)} files analysed).'))
-        return 1
-
-    print(_green(f'Clean ({len(files)} files analysed).'))
-    return 0
+    found_issues = run_tidy(files, build_dir=args.build_dir, fix=args.fix, jobs=args.jobs)
+    return 1 if found_issues else 0
 
 
 if __name__ == '__main__':
