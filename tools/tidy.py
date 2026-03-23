@@ -189,7 +189,7 @@ def main() -> int:
     cmd = [tidy, '-p', str(filtered_dir)]
     # Suppress stale-PCH errors when running standalone (PCH might be from
     # a previous build and the source has since been modified).
-    cmd.extend(['--extra-arg=-Xclang', '--extra-arg=-fno-pch-timestamp'])
+    cmd.extend(['--extra-arg=-Xclang', '--extra-arg=-fno-validate-pch'])
     if args.fix:
         cmd.append('--fix')
     cmd.extend(str(f) for f in files)

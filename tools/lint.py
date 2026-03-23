@@ -294,6 +294,8 @@ def _run_clang_tidy(files: list[Path], *, build_dir: Path, tool: str) -> bool:
     tidy_dir = _filter_compile_db(compile_commands)
 
     cmd = [tool, '-p', tidy_dir]
+    # Suppress stale-PCH errors — the Clang build tree may be outdated.
+    cmd.extend(['--extra-arg=-Xclang', '--extra-arg=-fno-validate-pch'])
     cmd.extend(str(f) for f in cpp_files)
 
     result = subprocess.run(cmd, cwd=REPO_ROOT)

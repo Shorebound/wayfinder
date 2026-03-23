@@ -94,7 +94,7 @@ namespace Wayfinder
         m_layerStack = std::make_unique<LayerStack>();
 
         // 6. Game
-        GameContext gameCtx{*m_project, m_moduleRegistry.get()};
+        const GameContext gameCtx{.project = *m_project, .moduleRegistry = m_moduleRegistry.get()};
         m_game = std::make_unique<Game>();
 
         if (auto gameResult = m_game->Initialise(gameCtx); !gameResult)
