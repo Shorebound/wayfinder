@@ -182,6 +182,15 @@
             "output": {
                 "outputJUnitFile": "test-results.xml"
             }
+        },
+        {
+            "name": "clang-test",
+            "displayName": "Run Tests (Clang)",
+            "configurePreset": "dev-clang",
+            "configuration": "Debug",
+            "output": {
+                "outputJUnitFile": "test-results.xml"
+            }
         }
     ]
 }

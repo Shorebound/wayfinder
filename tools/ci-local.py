@@ -26,7 +26,7 @@ LINT_SCRIPT = ROOT / 'tools' / 'lint.py'
 # On Linux/macOS, "dev" would also work — but dev-clang catches more warnings.
 CONFIGURE_PRESET = 'dev-clang'
 BUILD_PRESET = 'clang-debug'
-TEST_PRESET = 'test'
+TEST_PRESET = 'clang-test'
 
 
 def _banner(msg: str) -> None:
