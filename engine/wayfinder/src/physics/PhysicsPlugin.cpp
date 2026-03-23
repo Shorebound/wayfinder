@@ -10,6 +10,9 @@
 #include "scene/entity/Entity.h"
 
 #include "ecs/Flecs.h"
+
+#include <array>
+#include <bit>
 #include <nlohmann/json.hpp>
 
 namespace Wayfinder::Physics
@@ -18,6 +21,35 @@ namespace Wayfinder::Physics
 
     namespace
     {
+        [[nodiscard]] nlohmann::json::const_iterator FindJsonMember(const nlohmann::json& data, const char* key)
+        {
+            return data.find(key);
+        }
+
+        [[nodiscard]] std::array<float, 3> GetFloat3Components(const Float3& value)
+        {
+            static_assert(sizeof(Float3) == sizeof(std::array<float, 3>));
+            return std::bit_cast<std::array<float, 3>>(value);
+        }
+
+        [[nodiscard]] std::array<float, 4> GetFloat4Components(const Float4& value)
+        {
+            static_assert(sizeof(Float4) == sizeof(std::array<float, 4>));
+            return std::bit_cast<std::array<float, 4>>(value);
+        }
+
+        void AssignJsonMember(nlohmann::json& object, const char* key, nlohmann::json value)
+        {
+            object.erase(key);
+            object.emplace(key, std::move(value));
+        }
+
+        [[nodiscard]] Quaternion ToQuaternion(const Float4& rotation)
+        {
+            const auto components = GetFloat4Components(rotation);
+            return {components.at(3), components.at(0), components.at(1), components.at(2)};
+        }
+
         /// Build a PhysicsBodyDescriptor from ECS components.
         PhysicsBodyDescriptor MakeDescriptor(const RigidBodyComponent& rb, const ColliderComponent& col)
         {
@@ -47,22 +79,34 @@ namespace Wayfinder::Physics
         /// Read a 3-element JSON array into a Float3, falling back to @p fallback.
         Float3 ReadVector3(const nlohmann::json& data, const char* key, const Float3& fallback)
         {
-            if (!data.contains(key))
+            const auto it = FindJsonMember(data, key);
+            if (it == data.end())
             {
                 return fallback;
             }
-            const auto& arr = data[key];
+            const auto& arr = *it;
             if (!arr.is_array() || arr.size() != 3)
             {
                 return fallback;
             }
-            return {arr[0].is_number() ? arr[0].get<float>() : fallback.x, arr[1].is_number() ? arr[1].get<float>() : fallback.y, arr[2].is_number() ? arr[2].get<float>() : fallback.z};
+
+            const auto& xNode = arr.at(0);
+            const auto& yNode = arr.at(1);
+            const auto& zNode = arr.at(2);
+            const auto fallbackComponents = GetFloat3Components(fallback);
+
+            return {
+                xNode.is_number() ? xNode.get<float>() : fallbackComponents.at(0),
+                yNode.is_number() ? yNode.get<float>() : fallbackComponents.at(1),
+                zNode.is_number() ? zNode.get<float>() : fallbackComponents.at(2)
+            };
         }
 
         /// Write a Float3 as a 3-element JSON array.
         nlohmann::json WriteVector3(const Float3& value)
         {
-            return nlohmann::json::array({value.x, value.y, value.z});
+            const auto components = GetFloat3Components(value);
+            return nlohmann::json::array({components.at(0), components.at(1), components.at(2)});
         }
 
         // --- RigidBodyComponent ---
@@ -116,31 +160,31 @@ namespace Wayfinder::Physics
             switch (rb.Type)
             {
             case BodyType::Static:
-                t["type"] = "static";
+                AssignJsonMember(t, "type", "static");
                 break;
             case BodyType::Dynamic:
-                t["type"] = "dynamic";
+                AssignJsonMember(t, "type", "dynamic");
                 break;
             case BodyType::Kinematic:
-                t["type"] = "kinematic";
+                AssignJsonMember(t, "type", "kinematic");
                 break;
             }
 
-            t["mass"] = rb.Mass;
-            t["gravity_factor"] = rb.GravityFactor;
-            t["linear_damping"] = rb.LinearDamping;
-            t["angular_damping"] = rb.AngularDamping;
-            t["linear_velocity"] = WriteVector3(rb.LinearVelocity);
-            t["angular_velocity"] = WriteVector3(rb.AngularVelocity);
+            AssignJsonMember(t, "mass", rb.Mass);
+            AssignJsonMember(t, "gravity_factor", rb.GravityFactor);
+            AssignJsonMember(t, "linear_damping", rb.LinearDamping);
+            AssignJsonMember(t, "angular_damping", rb.AngularDamping);
+            AssignJsonMember(t, "linear_velocity", WriteVector3(rb.LinearVelocity));
+            AssignJsonMember(t, "angular_velocity", WriteVector3(rb.AngularVelocity));
 
-            tables["rigid_body"] = std::move(t);
+            AssignJsonMember(tables, "rigid_body", std::move(t));
         }
 
         bool ValidateRigidBody(const nlohmann::json& data, std::string& error)
         {
-            if (data.contains("type"))
+            if (const auto it = FindJsonMember(data, "type"); it != data.end())
             {
-                const auto& node = data["type"];
+                const auto& node = *it;
                 if (!node.is_string())
                 {
                     error = "'type' must be a string (static|dynamic|kinematic)";
@@ -153,9 +197,9 @@ namespace Wayfinder::Physics
                     return false;
                 }
             }
-            if (data.contains("mass"))
+            if (const auto it = FindJsonMember(data, "mass"); it != data.end())
             {
-                const auto& node = data["mass"];
+                const auto& node = *it;
                 if (!node.is_number())
                 {
                     error = "'mass' must be a number";
@@ -167,12 +211,12 @@ namespace Wayfinder::Physics
                     return false;
                 }
             }
-            if (data.contains("linear_damping") && !data["linear_damping"].is_number())
+            if (const auto it = FindJsonMember(data, "linear_damping"); it != data.end() && !it->is_number())
             {
                 error = "'linear_damping' must be a number";
                 return false;
             }
-            if (data.contains("angular_damping") && !data["angular_damping"].is_number())
+            if (const auto it = FindJsonMember(data, "angular_damping"); it != data.end() && !it->is_number())
             {
                 error = "'angular_damping' must be a number";
                 return false;
@@ -231,30 +275,30 @@ namespace Wayfinder::Physics
             switch (col.Shape)
             {
             case ColliderShape::Box:
-                t["shape"] = "box";
+                AssignJsonMember(t, "shape", "box");
                 break;
             case ColliderShape::Sphere:
-                t["shape"] = "sphere";
+                AssignJsonMember(t, "shape", "sphere");
                 break;
             case ColliderShape::Capsule:
-                t["shape"] = "capsule";
+                AssignJsonMember(t, "shape", "capsule");
                 break;
             }
 
-            t["half_extents"] = WriteVector3(col.HalfExtents);
-            t["radius"] = col.Radius;
-            t["height"] = col.Height;
-            t["friction"] = col.Friction;
-            t["restitution"] = col.Restitution;
+            AssignJsonMember(t, "half_extents", WriteVector3(col.HalfExtents));
+            AssignJsonMember(t, "radius", col.Radius);
+            AssignJsonMember(t, "height", col.Height);
+            AssignJsonMember(t, "friction", col.Friction);
+            AssignJsonMember(t, "restitution", col.Restitution);
 
-            tables["collider"] = std::move(t);
+            AssignJsonMember(tables, "collider", std::move(t));
         }
 
         bool ValidateCollider(const nlohmann::json& data, std::string& error)
         {
-            if (data.contains("shape"))
+            if (const auto it = FindJsonMember(data, "shape"); it != data.end())
             {
-                const auto& node = data["shape"];
+                const auto& node = *it;
                 if (!node.is_string())
                 {
                     error = "'shape' must be a string (box|sphere|capsule)";
@@ -267,9 +311,9 @@ namespace Wayfinder::Physics
                     return false;
                 }
             }
-            if (data.contains("friction"))
+            if (const auto it = FindJsonMember(data, "friction"); it != data.end())
             {
-                const auto& node = data["friction"];
+                const auto& node = *it;
                 if (!node.is_number())
                 {
                     error = "'friction' must be a number";
@@ -281,9 +325,9 @@ namespace Wayfinder::Physics
                     return false;
                 }
             }
-            if (data.contains("restitution"))
+            if (const auto it = FindJsonMember(data, "restitution"); it != data.end())
             {
-                const auto& node = data["restitution"];
+                const auto& node = *it;
                 if (!node.is_number())
                 {
                     error = "'restitution' must be a number";
@@ -295,9 +339,9 @@ namespace Wayfinder::Physics
                     return false;
                 }
             }
-            if (data.contains("radius"))
+            if (const auto it = FindJsonMember(data, "radius"); it != data.end())
             {
-                const auto& node = data["radius"];
+                const auto& node = *it;
                 if (!node.is_number())
                 {
                     error = "'radius' must be a number";
@@ -309,9 +353,9 @@ namespace Wayfinder::Physics
                     return false;
                 }
             }
-            if (data.contains("height"))
+            if (const auto it = FindJsonMember(data, "height"); it != data.end())
             {
-                const auto& node = data["height"];
+                const auto& node = *it;
                 if (!node.is_number())
                 {
                     error = "'height' must be a number";
@@ -382,7 +426,12 @@ namespace Wayfinder::Physics
                 }
 
                 auto desc = MakeDescriptor(rb, col);
-                rb.RuntimeBodyId = physics->GetWorld().CreateBody(desc, transform.Local.Position, transform.Local.RotationDegrees);
+                const PhysicsBodyPose pose {
+                    .Position = transform.Local.Position,
+                    .RotationDegrees = transform.Local.RotationDegrees,
+                };
+
+                rb.RuntimeBodyId = physics->GetWorld().CreateBody(desc, pose);
             });
         });
 
@@ -447,34 +496,41 @@ namespace Wayfinder::Physics
         {
             auto* physics = GameSubsystems::Find<PhysicsSubsystem>();
 
-            world.system<const RigidBodyComponent, WorldTransformComponent>("PhysicsSyncTransforms")
+            // Flecs' system builder triggers a known false positive in clang's
+            // stack-escape analyzer through third-party template internals.
+            // NOLINTNEXTLINE(clang-analyzer-core.StackAddressEscape)
+            world.system<>("PhysicsSyncTransforms")
             .kind(flecs::OnValidate)
-            .each([physics](flecs::entity, const RigidBodyComponent& rb, WorldTransformComponent& wt)
+            .run([physics, &world](flecs::iter&)
             {
-                if (rb.RuntimeBodyId == INVALID_PHYSICS_BODY)
-                {
-                    return;
-                }
-                if (rb.Type == BodyType::Static)
-                {
-                    return;
-                }
                 if (!physics)
                 {
                     return;
                 }
 
-                const Float3 pos = physics->GetWorld().GetBodyPosition(rb.RuntimeBodyId);
-                const Float4 rotQ = physics->GetWorld().GetBodyRotation(rb.RuntimeBodyId);
+                world.each([physics](flecs::entity, const RigidBodyComponent& rb, WorldTransformComponent& wt)
+                {
+                    if (rb.RuntimeBodyId == INVALID_PHYSICS_BODY)
+                    {
+                        return;
+                    }
+                    if (rb.Type == BodyType::Static)
+                    {
+                        return;
+                    }
 
-                wt.Position = pos;
+                    const Float3 pos = physics->GetWorld().GetBodyPosition(rb.RuntimeBodyId);
+                    const Float4 rotQ = physics->GetWorld().GetBodyRotation(rb.RuntimeBodyId);
 
-                // Build LocalToWorld = translate * rotate * scale.
-                const Quaternion q(rotQ.w, rotQ.x, rotQ.y, rotQ.z);
-                const Matrix4 rotMat = Maths::ToMatrix4(q);
-                const Matrix4 translateMat = Maths::Translate(Matrix4(1.0f), pos);
-                const Matrix4 scaleMat = Maths::ScaleMatrix(Matrix4(1.0f), wt.Scale);
-                wt.LocalToWorld = translateMat * rotMat * scaleMat;
+                    wt.Position = pos;
+
+                    // Build LocalToWorld = translate * rotate * scale.
+                    const Quaternion q = ToQuaternion(rotQ);
+                    const Matrix4 rotMat = Maths::ToMatrix4(q);
+                    const Matrix4 translateMat = Maths::Translate(Matrix4(1.0f), pos);
+                    const Matrix4 scaleMat = Maths::ScaleMatrix(Matrix4(1.0f), wt.Scale);
+                    wt.LocalToWorld = translateMat * rotMat * scaleMat;
+                });
             });
         }, {}, {"PhysicsStep"});
 

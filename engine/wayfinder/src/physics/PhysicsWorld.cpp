@@ -17,6 +17,8 @@
 #include <Jolt/Physics/PhysicsSystem.h>
 #include <Jolt/RegisterTypes.h>
 
+#include <array>
+#include <bit>
 #include <mutex>
 
 namespace Wayfinder::Physics
@@ -37,87 +39,115 @@ namespace Wayfinder::Physics
         static constexpr uint32_t NUM_LAYERS = 2;
     } // namespace BroadPhaseLayers
 
-    // ── Jolt callback implementations ───────────────────────────
-
-    class BPLayerInterfaceImpl final : public JPH::BroadPhaseLayerInterface
-    {
-    public:
-        BPLayerInterfaceImpl()
-        {
-            m_objectToBroadPhase[PhysicsLayers::NON_MOVING] = BroadPhaseLayers::NON_MOVING;
-            m_objectToBroadPhase[PhysicsLayers::MOVING] = BroadPhaseLayers::MOVING;
-        }
-
-        [[nodiscard]] JPH::uint GetNumBroadPhaseLayers() const override
-        {
-            return BroadPhaseLayers::NUM_LAYERS;
-        }
-
-        [[nodiscard]] JPH::BroadPhaseLayer GetBroadPhaseLayer(JPH::ObjectLayer inLayer) const override
-        {
-            JPH_ASSERT(inLayer < PhysicsLayers::NUM_LAYERS);
-            if (inLayer >= PhysicsLayers::NUM_LAYERS)
-            {
-                return BroadPhaseLayers::NON_MOVING;
-            }
-            return m_objectToBroadPhase[inLayer];
-        }
-
-        [[nodiscard]] const char* GetBroadPhaseLayerName(JPH::BroadPhaseLayer inLayer) const override
-        {
-            switch (static_cast<JPH::BroadPhaseLayer::Type>(inLayer))
-            {
-            case static_cast<JPH::BroadPhaseLayer::Type>(BroadPhaseLayers::NON_MOVING):
-                return "NON_MOVING";
-            case static_cast<JPH::BroadPhaseLayer::Type>(BroadPhaseLayers::MOVING):
-                return "MOVING";
-            default:
-                return "UNKNOWN";
-            }
-        }
-
-    private:
-        JPH::BroadPhaseLayer m_objectToBroadPhase[PhysicsLayers::NUM_LAYERS]{};
-    };
-
-    class ObjectVsBroadPhaseLayerFilterImpl final : public JPH::ObjectVsBroadPhaseLayerFilter
-    {
-    public:
-        [[nodiscard]] bool ShouldCollide(JPH::ObjectLayer inLayer1, JPH::BroadPhaseLayer inLayer2) const override
-        {
-            switch (inLayer1)
-            {
-            case PhysicsLayers::NON_MOVING:
-                return inLayer2 == BroadPhaseLayers::MOVING;
-            case PhysicsLayers::MOVING:
-                return true;
-            default:
-                return false;
-            }
-        }
-    };
-
-    class ObjectLayerPairFilterImpl final : public JPH::ObjectLayerPairFilter
-    {
-    public:
-        [[nodiscard]] bool ShouldCollide(JPH::ObjectLayer inLayer1, JPH::ObjectLayer inLayer2) const override
-        {
-            switch (inLayer1)
-            {
-            case PhysicsLayers::NON_MOVING:
-                return inLayer2 == PhysicsLayers::MOVING;
-            case PhysicsLayers::MOVING:
-                return true;
-            default:
-                return false;
-            }
-        }
-    };
-
-    // ── Jolt global initialisation guard ────────────────────────
-
     namespace
     {
+        [[nodiscard]] std::array<float, 3> GetFloat3Components(const Float3& value)
+        {
+            static_assert(sizeof(Float3) == sizeof(std::array<float, 3>));
+            return std::bit_cast<std::array<float, 3>>(value);
+        }
+
+        [[nodiscard]] constexpr std::size_t ToLayerIndex(JPH::ObjectLayer layer)
+        {
+            return static_cast<std::size_t>(layer);
+        }
+
+        [[nodiscard]] JPH::Vec3 ToJoltVec3(const Float3& value)
+        {
+            const auto components = GetFloat3Components(value);
+            return {components.at(0), components.at(1), components.at(2)};
+        }
+
+        [[nodiscard]] JPH::RVec3 ToJoltRVec3(const Float3& value)
+        {
+            const auto components = GetFloat3Components(value);
+            return {components.at(0), components.at(1), components.at(2)};
+        }
+
+        [[nodiscard]] JPH::Quat ToJoltEulerRotation(const Float3& rotationDegrees)
+        {
+            const auto components = GetFloat3Components(rotationDegrees);
+            const float rx = Maths::ToRadians(components.at(0));
+            const float ry = Maths::ToRadians(components.at(1));
+            const float rz = Maths::ToRadians(components.at(2));
+            return JPH::Quat::sEulerAngles(JPH::Vec3(rx, ry, rz));
+        }
+
+        class BPLayerInterfaceImpl final : public JPH::BroadPhaseLayerInterface
+        {
+        public:
+            BPLayerInterfaceImpl()
+            {
+                m_objectToBroadPhase.at(ToLayerIndex(PhysicsLayers::NON_MOVING)) = BroadPhaseLayers::NON_MOVING;
+                m_objectToBroadPhase.at(ToLayerIndex(PhysicsLayers::MOVING)) = BroadPhaseLayers::MOVING;
+            }
+
+            [[nodiscard]] JPH::uint GetNumBroadPhaseLayers() const override
+            {
+                return BroadPhaseLayers::NUM_LAYERS;
+            }
+
+            [[nodiscard]] JPH::BroadPhaseLayer GetBroadPhaseLayer(JPH::ObjectLayer inLayer) const override
+            {
+                JPH_ASSERT(inLayer < PhysicsLayers::NUM_LAYERS);
+                if (inLayer >= PhysicsLayers::NUM_LAYERS)
+                {
+                    return BroadPhaseLayers::NON_MOVING;
+                }
+                return m_objectToBroadPhase.at(ToLayerIndex(inLayer));
+            }
+
+            [[nodiscard]] const char* GetBroadPhaseLayerName(JPH::BroadPhaseLayer inLayer) const override
+            {
+                switch (static_cast<JPH::BroadPhaseLayer::Type>(inLayer))
+                {
+                case static_cast<JPH::BroadPhaseLayer::Type>(BroadPhaseLayers::NON_MOVING):
+                    return "NON_MOVING";
+                case static_cast<JPH::BroadPhaseLayer::Type>(BroadPhaseLayers::MOVING):
+                    return "MOVING";
+                default:
+                    return "UNKNOWN";
+                }
+            }
+
+        private:
+            std::array<JPH::BroadPhaseLayer, PhysicsLayers::NUM_LAYERS> m_objectToBroadPhase{};
+        };
+
+        class ObjectVsBroadPhaseLayerFilterImpl final : public JPH::ObjectVsBroadPhaseLayerFilter
+        {
+        public:
+            [[nodiscard]] bool ShouldCollide(JPH::ObjectLayer inLayer1, JPH::BroadPhaseLayer inLayer2) const override
+            {
+                switch (inLayer1)
+                {
+                case PhysicsLayers::NON_MOVING:
+                    return inLayer2 == BroadPhaseLayers::MOVING;
+                case PhysicsLayers::MOVING:
+                    return true;
+                default:
+                    return false;
+                }
+            }
+        };
+
+        class ObjectLayerPairFilterImpl final : public JPH::ObjectLayerPairFilter
+        {
+        public:
+            [[nodiscard]] bool ShouldCollide(JPH::ObjectLayer inLayer1, JPH::ObjectLayer inLayer2) const override
+            {
+                switch (inLayer1)
+                {
+                case PhysicsLayers::NON_MOVING:
+                    return inLayer2 == PhysicsLayers::MOVING;
+                case PhysicsLayers::MOVING:
+                    return true;
+                default:
+                    return false;
+                }
+            }
+        };
+
         std::once_flag g_joltInitFlag;
 
         void InitialiseJoltGlobals()
@@ -252,7 +282,7 @@ namespace Wayfinder::Physics
         m_fixedTimestep = timestep;
     }
 
-    uint32_t PhysicsWorld::CreateBody(const PhysicsBodyDescriptor& desc, const Float3& position, const Float3& rotationDegrees)
+    uint32_t PhysicsWorld::CreateBody(const PhysicsBodyDescriptor& desc, const PhysicsBodyPose& pose)
     {
         if (!m_initialised)
         {
@@ -264,7 +294,7 @@ namespace Wayfinder::Physics
         switch (desc.Shape)
         {
         case ColliderShape::Box:
-            shape = new JPH::BoxShape(JPH::Vec3(desc.HalfExtents.x, desc.HalfExtents.y, desc.HalfExtents.z));
+            shape = new JPH::BoxShape(ToJoltVec3(desc.HalfExtents));
             break;
         case ColliderShape::Sphere:
             shape = new JPH::SphereShape(desc.Radius);
@@ -300,12 +330,9 @@ namespace Wayfinder::Physics
         // Jolt's sEulerAngles applies rotations in X-Y-Z intrinsic order.
         // TransformComponent.Local.RotationDegrees stores degrees in the same convention
         // as Maths::ComposeTransform (Z-Y-X extrinsic = X-Y-Z intrinsic).
-        const float rx = Maths::ToRadians(rotationDegrees.x);
-        const float ry = Maths::ToRadians(rotationDegrees.y);
-        const float rz = Maths::ToRadians(rotationDegrees.z);
-        const JPH::Quat rotation = JPH::Quat::sEulerAngles(JPH::Vec3(rx, ry, rz));
+        const JPH::Quat rotation = ToJoltEulerRotation(pose.RotationDegrees);
 
-        JPH::BodyCreationSettings settings(shape, JPH::RVec3(position.x, position.y, position.z), rotation, motionType, objectLayer);
+        JPH::BodyCreationSettings settings(shape, ToJoltRVec3(pose.Position), rotation, motionType, objectLayer);
 
         // Material properties apply to both dynamic and kinematic bodies.
         settings.mFriction = desc.Friction;
@@ -316,8 +343,8 @@ namespace Wayfinder::Physics
             settings.mGravityFactor = desc.GravityFactor;
             settings.mLinearDamping = desc.LinearDamping;
             settings.mAngularDamping = desc.AngularDamping;
-            settings.mLinearVelocity = JPH::Vec3(desc.LinearVelocity.x, desc.LinearVelocity.y, desc.LinearVelocity.z);
-            settings.mAngularVelocity = JPH::Vec3(desc.AngularVelocity.x, desc.AngularVelocity.y, desc.AngularVelocity.z);
+            settings.mLinearVelocity = ToJoltVec3(desc.LinearVelocity);
+            settings.mAngularVelocity = ToJoltVec3(desc.AngularVelocity);
 
             // Override mass if a positive value was provided.
             // Mass <= 0 means "use shape-computed mass".
@@ -332,7 +359,8 @@ namespace Wayfinder::Physics
         const JPH::Body* joltBody = bodyInterface.CreateBody(settings);
         if (!joltBody)
         {
-            WAYFINDER_ERROR(LogPhysics, "Failed to create Jolt body (type={}, shape={}, pos=[{},{},{}])", static_cast<int>(desc.Type), static_cast<int>(desc.Shape), position.x, position.y, position.z);
+            const auto positionComponents = GetFloat3Components(pose.Position);
+            WAYFINDER_ERROR(LogPhysics, "Failed to create Jolt body (type={}, shape={}, pos=[{},{},{}])", static_cast<int>(desc.Type), static_cast<int>(desc.Shape), positionComponents.at(0), positionComponents.at(1), positionComponents.at(2));
             return INVALID_PHYSICS_BODY;
         }
 
@@ -386,7 +414,7 @@ namespace Wayfinder::Physics
         }
 
         JPH::BodyInterface& bodyInterface = m_impl->PhysSystem->GetBodyInterface();
-        bodyInterface.SetPosition(JPH::BodyID(bodyId), JPH::RVec3(position.x, position.y, position.z), JPH::EActivation::Activate);
+        bodyInterface.SetPosition(JPH::BodyID(bodyId), ToJoltRVec3(position), JPH::EActivation::Activate);
     }
 
 } // namespace Wayfinder::Physics

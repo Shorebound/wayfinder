@@ -101,7 +101,7 @@ namespace Wayfinder::Tests
             auto entity = EcsWorld.entity(name);
 
             EcsWorld.defer_begin();
-            entity.set<TransformComponent>({position});
+            entity.set<TransformComponent>(position);
             entity.set<WorldTransformComponent>({});
             entity.set<ColliderComponent>(col);
             entity.set<RigidBodyComponent>(rb);

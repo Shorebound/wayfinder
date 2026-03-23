@@ -52,6 +52,12 @@ namespace Wayfinder::Physics
         float Restitution = 0.0f;
     };
 
+    struct PhysicsBodyPose
+    {
+        Float3 Position = {0.0f, 0.0f, 0.0f};
+        Float3 RotationDegrees = {0.0f, 0.0f, 0.0f};
+    };
+
     /**
      * @brief Thin wrapper around Jolt's PhysicsSystem.
      *
@@ -100,9 +106,9 @@ namespace Wayfinder::Physics
 
         /// Create a Jolt body from a physics-native descriptor and return its
         /// raw BodyID value.
-        /// @p rotationDegrees is applied as Euler ZYX (matching ComposeTransform).
+        /// @p pose.RotationDegrees is applied as Euler ZYX (matching ComposeTransform).
         /// Returns INVALID_PHYSICS_BODY on failure.
-        uint32_t CreateBody(const PhysicsBodyDescriptor& descriptor, const Float3& position, const Float3& rotationDegrees = {0.0f, 0.0f, 0.0f});
+        uint32_t CreateBody(const PhysicsBodyDescriptor& descriptor, const PhysicsBodyPose& pose = {});
 
         /// Remove and destroy a previously created body.
         void DestroyBody(uint32_t bodyId);

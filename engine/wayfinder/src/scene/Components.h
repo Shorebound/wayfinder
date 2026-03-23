@@ -58,8 +58,8 @@ namespace Wayfinder
         TransformComponent() = default;
         TransformComponent(const TransformComponent&) = default;
         TransformComponent& operator=(const TransformComponent&) = default;
-        explicit TransformComponent(const Float3& position) : Local({.Position = position}) {}
-        explicit TransformComponent(const Transform& transform) : Local(transform) {}
+        TransformComponent(const Float3& position) : Local({.Position = position}) {}
+        TransformComponent(const Transform& transform) : Local(transform) {}
 
         Matrix4 GetLocalMatrix() const
         {
