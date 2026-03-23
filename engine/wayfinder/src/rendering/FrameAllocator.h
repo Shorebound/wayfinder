@@ -85,12 +85,11 @@ namespace Wayfinder
 
         struct Page
         {
-            std::unique_ptr<std::byte[]> Memory;
+            std::vector<std::byte> Memory;
             size_t Capacity;
         };
 
         void AddPage(size_t minCapacity);
-        static size_t AlignUp(size_t value, size_t alignment);
 
         std::vector<Page> m_pages;
         size_t m_pageSize;
