@@ -21,7 +21,7 @@ namespace Wayfinder
     void ModuleRegistry::RegisterGlobal(std::string name, GlobalFactory factory)
     {
         WAYFINDER_INFO(LogEngine, "ModuleRegistry: registered global '{}'", name);
-        m_globals.push_back({std::move(name), std::move(factory)});
+        m_globals.push_back({.Name = std::move(name), .Factory = std::move(factory)});
     }
 
     void ModuleRegistry::RegisterState(StateDescriptor descriptor)
@@ -37,7 +37,7 @@ namespace Wayfinder
     GameplayTag ModuleRegistry::RegisterTag(std::string tagName, std::string comment)
     {
         GameplayTag tag = GameplayTag::FromName(tagName);
-        m_tags.Register({std::move(tagName), std::move(comment)});
+        m_tags.Register({.Name = std::move(tagName), .Comment = std::move(comment)});
         return tag;
     }
 
