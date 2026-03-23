@@ -4,18 +4,18 @@
 
 namespace Wayfinder
 {
-    constexpr std::string_view kAssetIdKey = "asset_id";
-    constexpr std::string_view kAssetTypeKey = "asset_type";
-    constexpr std::string_view kNameKey = "name";
-    constexpr std::string_view kShaderKey = "shader";
-    constexpr std::string_view kBaseColourKey = "base_colour";
-    constexpr std::string_view kWireframeKey = "wireframe";
-    constexpr std::string_view kParametersKey = "parameters";
-    constexpr std::string_view kTexturesKey = "textures";
+    constexpr std::string_view K_ASSET_ID_KEY = "asset_id";
+    constexpr std::string_view K_ASSET_TYPE_KEY = "asset_type";
+    constexpr std::string_view K_NAME_KEY = "name";
+    constexpr std::string_view K_SHADER_KEY = "shader";
+    constexpr std::string_view K_BASE_COLOUR_KEY = "base_colour";
+    constexpr std::string_view K_WIREFRAME_KEY = "wireframe";
+    constexpr std::string_view K_PARAMETERS_KEY = "parameters";
+    constexpr std::string_view K_TEXTURES_KEY = "textures";
 
     /// Parse a JSON array of 3 or 4 integers into a LinearColour.
     /// Returns false if any channel is not an integer.
-    bool ParseLinearColour(const nlohmann::json& values, Wayfinder::LinearColour& colour, std::string& error)
+    static bool ParseLinearColour(const nlohmann::json& values, Wayfinder::LinearColour& colour, std::string& error)
     {
         if (!values.is_array() || (values.size() != 3 && values.size() != 4))
         {
@@ -23,9 +23,9 @@ namespace Wayfinder
             return false;
         }
 
-        for (size_t i = 0; i < values.size(); ++i)
+        for (const auto& value : values)
         {
-            if (!values[i].is_number_integer())
+            if (!value.is_number_integer())
             {
                 error = "must be an array of 3 or 4 integers";
                 return false;
@@ -41,7 +41,7 @@ namespace Wayfinder
 
     /// Parse a JSON "parameters" object into a MaterialParameterBlock.
     /// Supports: arrays of 3–4 numbers as Colour, single numbers as Float, integers as Int.
-    void ParseParametersTable(const nlohmann::json& params, Wayfinder::MaterialParameterBlock& block)
+    static void ParseParametersTable(const nlohmann::json& params, Wayfinder::MaterialParameterBlock& block)
     {
         if (!params.is_object())
         {
@@ -65,18 +65,19 @@ namespace Wayfinder
                     }
                     else if (node.size() == 3)
                     {
-                        Wayfinder::Float3 v{static_cast<float>(node[0].get<double>()), static_cast<float>(node[1].get<double>()), static_cast<float>(node[2].get<double>())};
+                        const Wayfinder::Float3 v{static_cast<float>(node[0].get<double>()), static_cast<float>(node[1].get<double>()), static_cast<float>(node[2].get<double>())};
                         block.SetVec3(name, v);
                     }
                     else if (node.size() == 4)
                     {
-                        Wayfinder::Float4 v{static_cast<float>(node[0].get<double>()), static_cast<float>(node[1].get<double>()), static_cast<float>(node[2].get<double>()), static_cast<float>(node[3].get<double>())};
+                        const Wayfinder::Float4 v{
+                            static_cast<float>(node[0].get<double>()), static_cast<float>(node[1].get<double>()), static_cast<float>(node[2].get<double>()), static_cast<float>(node[3].get<double>())};
                         block.SetVec4(name, v);
                     }
                 }
                 else if (node.size() == 2)
                 {
-                    Wayfinder::Float2 v{static_cast<float>(node[0].get<double>()), static_cast<float>(node[1].get<double>())};
+                    const Wayfinder::Float2 v{static_cast<float>(node[0].get<double>()), static_cast<float>(node[1].get<double>())};
                     block.SetVec2(name, v);
                 }
             }
@@ -114,13 +115,13 @@ namespace Wayfinder
 
     bool ParseMaterialAssetDocument(const nlohmann::json& document, const std::string& sourceLabel, MaterialAsset& material, std::string& error)
     {
-        if (!document.contains(kAssetIdKey) || !document.at(kAssetIdKey).is_string())
+        if (!document.contains(K_ASSET_ID_KEY) || !document.at(K_ASSET_ID_KEY).is_string())
         {
             error = "Material asset '" + sourceLabel + "' is missing asset_id";
             return false;
         }
 
-        const std::string assetIdText = document.at(kAssetIdKey).get<std::string>();
+        const std::string assetIdText = document.at(K_ASSET_ID_KEY).get<std::string>();
         const std::optional<AssetId> assetId = AssetId::Parse(assetIdText);
         if (!assetId)
         {
@@ -128,13 +129,13 @@ namespace Wayfinder
             return false;
         }
 
-        if (!document.contains(kAssetTypeKey) || !document.at(kAssetTypeKey).is_string())
+        if (!document.contains(K_ASSET_TYPE_KEY) || !document.at(K_ASSET_TYPE_KEY).is_string())
         {
             error = "Material asset '" + sourceLabel + "' is missing asset_type";
             return false;
         }
 
-        const std::string assetType = document.at(kAssetTypeKey).get<std::string>();
+        const std::string assetType = document.at(K_ASSET_TYPE_KEY).get<std::string>();
         if (assetType != "material")
         {
             error = "Material asset '" + sourceLabel + "' must declare asset_type = 'material'";
@@ -143,22 +144,22 @@ namespace Wayfinder
 
         MaterialAsset parsed;
         parsed.Id = *assetId;
-        parsed.Name = document.value(std::string{kNameKey}, std::filesystem::path(sourceLabel).stem().string());
-        parsed.ShaderName = document.value(std::string{kShaderKey}, std::string("unlit"));
+        parsed.Name = document.value(std::string{K_NAME_KEY}, std::filesystem::path(sourceLabel).stem().string());
+        parsed.ShaderName = document.value(std::string{K_SHADER_KEY}, std::string("unlit"));
 
         // Parse "parameters" object if present
-        if (document.contains(kParametersKey) && document.at(kParametersKey).is_object())
+        if (document.contains(K_PARAMETERS_KEY) && document.at(K_PARAMETERS_KEY).is_object())
         {
-            ParseParametersTable(document.at(kParametersKey), parsed.Parameters);
+            ParseParametersTable(document.at(K_PARAMETERS_KEY), parsed.Parameters);
         }
 
         // Legacy support: top-level base_colour → parameters["base_colour"]
         // Only applied if parameters didn't already set it.
-        if (!parsed.Parameters.Has("base_colour") && document.contains(kBaseColourKey))
+        if (!parsed.Parameters.Has("base_colour") && document.contains(K_BASE_COLOUR_KEY))
         {
             LinearColour baseColour = LinearColour::White();
             std::string colourError;
-            if (!ParseLinearColour(document.at(kBaseColourKey), baseColour, colourError))
+            if (!ParseLinearColour(document.at(K_BASE_COLOUR_KEY), baseColour, colourError))
             {
                 error = "Material asset '" + sourceLabel + "' field 'base_colour' " + colourError;
                 return false;
@@ -173,15 +174,15 @@ namespace Wayfinder
         }
 
         // Parse "textures" object: maps slot name → texture asset ID string
-        if (document.contains(kTexturesKey) && !document.at(kTexturesKey).is_object())
+        if (document.contains(K_TEXTURES_KEY) && !document.at(K_TEXTURES_KEY).is_object())
         {
             error = "Material asset '" + sourceLabel + "' has invalid 'textures' block: must be an object";
             return false;
         }
 
-        if (document.contains(kTexturesKey) && document.at(kTexturesKey).is_object())
+        if (document.contains(K_TEXTURES_KEY) && document.at(K_TEXTURES_KEY).is_object())
         {
-            for (const auto& [slotName, idNode] : document.at(kTexturesKey).items())
+            for (const auto& [slotName, idNode] : document.at(K_TEXTURES_KEY).items())
             {
                 if (!idNode.is_string())
                 {
@@ -201,9 +202,9 @@ namespace Wayfinder
             }
         }
 
-        if (document.contains(kWireframeKey))
+        if (document.contains(K_WIREFRAME_KEY))
         {
-            if (!document.at(kWireframeKey).is_boolean())
+            if (!document.at(K_WIREFRAME_KEY).is_boolean())
             {
                 error = "Material asset '" + sourceLabel + "' field 'wireframe' must be a boolean";
                 return false;
@@ -239,7 +240,7 @@ namespace Wayfinder
         nlohmann::json table = nlohmann::json::object();
         table["material_id"] = material.Id.ToString();
 
-        LinearColour baseColour = material.GetBaseColour();
+        const LinearColour baseColour = material.GetBaseColour();
         table["base_colour"] =
         nlohmann::json::array({static_cast<int64_t>(baseColour.r * 255.0f), static_cast<int64_t>(baseColour.g * 255.0f), static_cast<int64_t>(baseColour.b * 255.0f), static_cast<int64_t>(baseColour.a * 255.0f)});
 

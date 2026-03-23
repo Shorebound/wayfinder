@@ -14,10 +14,10 @@
 
 namespace Wayfinder
 {
-    constexpr uint64_t kBuiltInBoxMeshKey = 1;
-    constexpr uint64_t kBuiltInSurfaceMaterialKey = 1;
+    constexpr uint64_t K_BUILT_IN_BOX_MESH_KEY = 1;
+    constexpr uint64_t K_BUILT_IN_SURFACE_MATERIAL_KEY = 1;
 
-    uint64_t MakeStableKey(const Wayfinder::AssetId& assetId)
+    static uint64_t MakeStableKey(const Wayfinder::AssetId& assetId)
     {
         const std::array<std::uint8_t, 16>& bytes = assetId.Value.GetBytes();
         uint64_t result = 0;
@@ -29,7 +29,7 @@ namespace Wayfinder
         return result;
     }
 
-    Wayfinder::SortLayer MapLayer(const Wayfinder::RenderLayerId& layer)
+    static Wayfinder::SortLayer MapLayer(const Wayfinder::RenderLayerId& layer)
     {
         if (layer == Wayfinder::RenderLayers::Overlay)
         {
@@ -38,7 +38,7 @@ namespace Wayfinder
         return Wayfinder::SortLayer::Opaque;
     }
 
-    uint16_t MaterialIdBits(const std::optional<Wayfinder::AssetId>& assetId)
+    static uint16_t MaterialIdBits(const std::optional<Wayfinder::AssetId>& assetId)
     {
         if (!assetId)
         {
@@ -65,7 +65,7 @@ namespace Wayfinder
 
         if (scene.GetWorld().has<ActiveCameraStateComponent>())
         {
-            const ActiveCameraStateComponent& activeCamera = scene.GetWorld().get<ActiveCameraStateComponent>();
+            const auto& activeCamera = scene.GetWorld().get<ActiveCameraStateComponent>();
             if (activeCamera.IsValid)
             {
                 RenderView view;
@@ -83,10 +83,10 @@ namespace Wayfinder
         }
 
         // Compute view matrix for sort-key depth calculation
-        Matrix4 cameraView = Matrix4(1.0f);
+        auto cameraView = Matrix4(1.0f);
         if (scene.GetWorld().has<ActiveCameraStateComponent>())
         {
-            const ActiveCameraStateComponent& activeCamera = scene.GetWorld().get<ActiveCameraStateComponent>();
+            const auto& activeCamera = scene.GetWorld().get<ActiveCameraStateComponent>();
             if (activeCamera.IsValid)
             {
                 cameraView = Maths::LookAt(activeCamera.Position, activeCamera.Target, activeCamera.Up);
@@ -97,11 +97,11 @@ namespace Wayfinder
         {
             RenderMeshSubmission submission;
             submission.Mesh.Origin = RenderResourceOrigin::BuiltIn;
-            submission.Mesh.StableKey = kBuiltInBoxMeshKey;
+            submission.Mesh.StableKey = K_BUILT_IN_BOX_MESH_KEY;
             submission.Geometry.Type = RenderGeometryType::Box;
             submission.Geometry.Dimensions = mesh.Dimensions;
             submission.Material.Ref.Origin = RenderResourceOrigin::BuiltIn;
-            submission.Material.Ref.StableKey = kBuiltInSurfaceMaterialKey;
+            submission.Material.Ref.StableKey = K_BUILT_IN_SURFACE_MATERIAL_KEY;
             submission.Material.Domain = RenderMaterialDomain::Surface;
             submission.Material.Parameters.SetColour("base_colour", LinearColour::White());
 
@@ -224,7 +224,7 @@ namespace Wayfinder
         {
             Float3 position{0.0f, 0.0f, 0.0f};
             Float3 scale{1.0f, 1.0f, 1.0f};
-            Matrix4 localToWorld = Matrix4(1.0f);
+            auto localToWorld = Matrix4(1.0f);
 
             if (entityHandle.has<WorldTransformComponent>())
             {

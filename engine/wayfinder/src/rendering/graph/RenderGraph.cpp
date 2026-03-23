@@ -44,7 +44,7 @@ namespace Wayfinder
             return;
         }
         auto& pass = m_graph.m_passes[m_passIndex];
-        pass.ColourWrite = RenderGraph::ColourWriteInfo{handle, load, clear};
+        pass.ColourWrite = RenderGraph::ColourWriteInfo{.Handle = handle, .Load = load, .Clear = clear};
 
         auto& res = m_graph.m_resources[handle.Index];
         // LoadOp::Load implies reading previous content
@@ -63,7 +63,7 @@ namespace Wayfinder
             return;
         }
         auto& pass = m_graph.m_passes[m_passIndex];
-        pass.DepthWrite = RenderGraph::DepthWriteInfo{handle, load, clearDepth};
+        pass.DepthWrite = RenderGraph::DepthWriteInfo{.Handle = handle, .Load = load, .ClearDepth = clearDepth};
 
         auto& res = m_graph.m_resources[handle.Index];
         // LoadOp::Load implies reading previous content
@@ -78,7 +78,7 @@ namespace Wayfinder
     void RenderGraphBuilder::SetSwapchainOutput(LoadOp load, ClearValue clear)
     {
         auto& pass = m_graph.m_passes[m_passIndex];
-        pass.SwapchainWrite = RenderGraph::SwapchainWriteInfo{load, clear};
+        pass.SwapchainWrite = RenderGraph::SwapchainWriteInfo{.Load = load, .Clear = clear};
     }
 
     // ── Resources ────────────────────────────────────────────
@@ -124,7 +124,7 @@ namespace Wayfinder
         // Imported/externally-provided textures use a default-constructed desc
         // (width/height == 0) so the transient allocation step skips them —
         // their GPU handles are supplied externally before Execute().
-        RenderGraphTextureDesc desc;
+        const RenderGraphTextureDesc desc;
         return AllocateResource(desc, internedName);
     }
 
@@ -144,7 +144,7 @@ namespace Wayfinder
 
     bool RenderGraph::Compile()
     {
-        const uint32_t passCount = static_cast<uint32_t>(m_passes.size());
+        const auto passCount = static_cast<uint32_t>(m_passes.size());
         if (passCount == 0)
         {
             return false;
@@ -159,10 +159,10 @@ namespace Wayfinder
         for (uint32_t b = 0; b < passCount; ++b)
         {
             auto& deps = m_passes[b].DependsOn;
-            std::sort(deps.begin(), deps.end());
-            deps.erase(std::unique(deps.begin(), deps.end()), deps.end());
+            std::ranges::sort(deps);
+            deps.erase(std::ranges::unique(deps), deps.end());
 
-            for (uint32_t a : deps)
+            for (const uint32_t a : deps)
             {
                 if (a < passCount && a != b)
                 {
@@ -187,11 +187,11 @@ namespace Wayfinder
 
         while (!ready.empty())
         {
-            uint32_t current = ready.front();
+            const uint32_t current = ready.front();
             ready.pop();
             m_executionOrder.push_back(current);
 
-            for (uint32_t next : adjacency[current])
+            for (const uint32_t next : adjacency[current])
             {
                 if (--inDegree[next] == 0)
                 {
@@ -231,7 +231,7 @@ namespace Wayfinder
                 {
                     continue;
                 }
-                for (uint32_t dep : m_passes[i].DependsOn)
+                for (const uint32_t dep : m_passes[i].DependsOn)
                 {
                     if (dep < passCount && !alive[dep])
                     {
@@ -249,7 +249,7 @@ namespace Wayfinder
 
         // Assign sort order
         uint32_t order = 0;
-        for (uint32_t idx : m_executionOrder)
+        for (const uint32_t idx : m_executionOrder)
         {
             m_passes[idx].SortOrder = order++;
         }
@@ -305,7 +305,7 @@ namespace Wayfinder
         }
 
         // ── Execute passes in sorted order ───────────────────
-        for (uint32_t passIdx : m_executionOrder)
+        for (const uint32_t passIdx : m_executionOrder)
         {
             auto& pass = m_passes[passIdx];
             if (pass.Culled || !pass.Execute)

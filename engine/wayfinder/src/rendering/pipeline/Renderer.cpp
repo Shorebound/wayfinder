@@ -187,19 +187,18 @@ namespace Wayfinder
         // ── Build and execute render graph ───────────────────
         RenderGraph graph;
 
-        std::unordered_map<uint32_t, Mesh*> meshesByStride =
-        {
-        {VertexLayouts::PosNormalColour.stride, &m_primitiveMesh},
-        {VertexLayouts::PosNormalUV.stride, &m_texturedPrimitiveMesh},
+        const std::unordered_map<uint32_t, Mesh*> meshesByStride = {
+            {VertexLayouts::PosNormalColour.stride, &m_primitiveMesh},
+            {VertexLayouts::PosNormalUV.stride, &m_texturedPrimitiveMesh},
         };
 
-        RenderPipelineFrameParams params{
-        .Frame = preparedFrame,
-        .SwapchainWidth = swapW,
-        .SwapchainHeight = swapH,
-        .MeshesByStride = meshesByStride,
-        .DebugLinePipeline = m_debugLinePipeline,
-        .Features = m_features,
+        const RenderPipelineFrameParams params{
+            .Frame = preparedFrame,
+            .SwapchainWidth = swapW,
+            .SwapchainHeight = swapH,
+            .MeshesByStride = meshesByStride,
+            .DebugLinePipeline = m_debugLinePipeline,
+            .Features = m_features,
         };
         m_renderPipeline->BuildGraph(graph, params);
 

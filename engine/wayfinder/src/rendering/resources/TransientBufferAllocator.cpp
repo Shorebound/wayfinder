@@ -85,8 +85,8 @@ namespace Wayfinder
         }
 
         // Align cursor to GPU minimum buffer offset alignment (256 bytes for Vulkan)
-        static constexpr uint32_t kMinAlignment = 256;
-        const uint32_t alignedCursor = (cursor + kMinAlignment - 1) & ~(kMinAlignment - 1);
+        static constexpr uint32_t K_MIN_ALIGNMENT = 256;
+        const uint32_t alignedCursor = (cursor + K_MIN_ALIGNMENT - 1) & ~(K_MIN_ALIGNMENT - 1);
 
         if (alignedCursor + sizeInBytes > capacity)
         {
@@ -98,7 +98,7 @@ namespace Wayfinder
         m_device->UploadToBuffer(ring, data, sizeInBytes, offset);
         cursor = alignedCursor + sizeInBytes;
 
-        return {ring, offset, sizeInBytes};
+        return {.Buffer = ring, .Offset = offset, .Size = sizeInBytes};
     }
 
 } // namespace Wayfinder

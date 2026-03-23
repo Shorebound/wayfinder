@@ -25,28 +25,28 @@ namespace Wayfinder
         // Vertex UBO shared by all scene shaders: MVP + Model (128 bytes)
         struct TransformUBO
         {
-            Matrix4 mvp;
-            Matrix4 model;
+            Matrix4 Mvp;
+            Matrix4 Model;
         };
 
         // Unlit shaders only need MVP (64 bytes)
         struct UnlitTransformUBO
         {
-            Matrix4 mvp;
+            Matrix4 Mvp;
         };
 
         // Fragment material UBO for the debug pipeline (16 bytes)
         struct DebugMaterialUBO
         {
-            Float4 baseColour;
+            Float4 BaseColour;
         };
 
         /// Builds a PipelineCreateDesc for the wireframe variant of a shader program.
         /// Returns std::nullopt if the shader handles cannot be resolved.
         std::optional<PipelineCreateDesc> MakeWireframeVariant(const ShaderProgramDesc& desc, ShaderManager& shaders)
         {
-            GPUShaderHandle vs = shaders.GetShader(desc.VertexShaderName, ShaderStage::Vertex, desc.VertexResources);
-            GPUShaderHandle fs = shaders.GetShader(desc.FragmentShaderName, ShaderStage::Fragment, desc.FragmentResources);
+            const GPUShaderHandle vs = shaders.GetShader(desc.VertexShaderName, ShaderStage::Vertex, desc.VertexResources);
+            const GPUShaderHandle fs = shaders.GetShader(desc.FragmentShaderName, ShaderStage::Fragment, desc.FragmentResources);
             if (!vs || !fs)
             {
                 return std::nullopt;
@@ -84,9 +84,8 @@ namespace Wayfinder
             desc.Cull = CullMode::Back;
             desc.DepthTest = true;
             desc.DepthWrite = true;
-            desc.MaterialParams =
-            {
-            {"base_colour", MaterialParamType::Colour, 0, LinearColour::White()},
+            desc.MaterialParams = {
+                {.Name = "base_colour", .Type = MaterialParamType::Colour, .Offset = 0, .Default = LinearColour::White()},
             };
             desc.MaterialUBOSize = 16; // float4
             desc.VertexUBOSize = sizeof(UnlitTransformUBO);
@@ -106,9 +105,8 @@ namespace Wayfinder
             desc.Cull = CullMode::Back;
             desc.DepthTest = true;
             desc.DepthWrite = true;
-            desc.MaterialParams =
-            {
-            {"base_colour", MaterialParamType::Colour, 0, LinearColour::White()},
+            desc.MaterialParams = {
+                {.Name = "base_colour", .Type = MaterialParamType::Colour, .Offset = 0, .Default = LinearColour::White()},
             };
             desc.MaterialUBOSize = 16; // float4
             desc.VertexUBOSize = sizeof(TransformUBO);
@@ -128,14 +126,13 @@ namespace Wayfinder
             desc.Cull = CullMode::Back;
             desc.DepthTest = true;
             desc.DepthWrite = true;
-            desc.MaterialParams =
-            {
-            {"base_colour", MaterialParamType::Colour, 0, LinearColour::White()},
+            desc.MaterialParams = {
+                {.Name = "base_colour", .Type = MaterialParamType::Colour, .Offset = 0, .Default = LinearColour::White()},
             };
             desc.MaterialUBOSize = 16; // float4
             desc.VertexUBOSize = sizeof(TransformUBO);
             desc.NeedsSceneGlobals = true;
-            desc.TextureSlots = {{"diffuse", 0}};
+            desc.TextureSlots = {{.Name = "diffuse", .BindingSlot = 0}};
 
             registry.Register(desc);
         }
@@ -195,7 +192,7 @@ namespace Wayfinder
             // Sort scene pass submissions by sort key (front-to-back for opaque)
             if (pass.Kind == RenderPassKind::Scene)
             {
-                std::sort(pass.Meshes.begin(), pass.Meshes.end(), [](const RenderMeshSubmission& a, const RenderMeshSubmission& b)
+                std::ranges::sort(pass.Meshes, [](const RenderMeshSubmission& a, const RenderMeshSubmission& b)
                 {
                     return a.SortKey < b.SortKey;
                 });
@@ -213,8 +210,8 @@ namespace Wayfinder
 
         // ── Camera / Projection (from primary view) ──────────
         Colour clearColour = Colour::White();
-        Matrix4 view = Matrix4(1.0f);
-        Matrix4 projection = Matrix4(1.0f);
+        auto view = Matrix4(1.0f);
+        auto projection = Matrix4(1.0f);
         bool hasCamera = false;
 
         if (!preparedFrame.Views.empty() && swapW > 0 && swapH > 0)
@@ -331,9 +328,9 @@ namespace Wayfinder
                         {
                             if (program->Desc.NeedsSceneGlobals)
                             {
-                                TransformUBO transformUBO;
-                                transformUBO.mvp = passProj * passView * submission.LocalToWorld;
-                                transformUBO.model = submission.LocalToWorld;
+                                TransformUBO transformUBO{};
+                                transformUBO.Mvp = passProj * passView * submission.LocalToWorld;
+                                transformUBO.Model = submission.LocalToWorld;
                                 device.PushVertexUniform(0, &transformUBO, sizeof(TransformUBO));
                             }
                             else
@@ -400,7 +397,7 @@ namespace Wayfinder
                             const auto wireframeDesc = MakeWireframeVariant(program->Desc, shaderManager);
                             if (wireframeDesc)
                             {
-                                GPUPipelineHandle wireframePipeline = pipelineCache.GetOrCreate(*wireframeDesc);
+                                const GPUPipelineHandle wireframePipeline = pipelineCache.GetOrCreate(*wireframeDesc);
                                 if (wireframePipeline.IsValid())
                                 {
                                     // Select the mesh matching the program's vertex layout
@@ -453,7 +450,7 @@ namespace Wayfinder
 
                 // Resolve PosNormalColour mesh for debug boxes
                 const auto debugMeshIt = params.MeshesByStride.find(VertexLayouts::PosNormalColour.stride);
-                Mesh* primitiveMeshPtr = (debugMeshIt != params.MeshesByStride.end()) ? debugMeshIt->second : nullptr;
+                const Mesh* primitiveMeshPtr = (debugMeshIt != params.MeshesByStride.end()) ? debugMeshIt->second : nullptr;
 
                 // ── Debug lines ──────────────────────────────
                 std::vector<VertexPosColour> lineVertices;
@@ -478,24 +475,24 @@ namespace Wayfinder
                             const float coord = static_cast<float>(i) * spacing;
                             const Float3& gridColour = (i == 0) ? majorColour : minorColour;
 
-                            lineVertices.push_back({Float3{-extent, 0.0f, coord}, gridColour});
-                            lineVertices.push_back({Float3{extent, 0.0f, coord}, gridColour});
-                            lineVertices.push_back({Float3{coord, 0.0f, -extent}, gridColour});
-                            lineVertices.push_back({Float3{coord, 0.0f, extent}, gridColour});
+                            lineVertices.push_back({.Position = Float3{-extent, 0.0f, coord}, .Colour = gridColour});
+                            lineVertices.push_back({.Position = Float3{extent, 0.0f, coord}, .Colour = gridColour});
+                            lineVertices.push_back({.Position = Float3{coord, 0.0f, -extent}, .Colour = gridColour});
+                            lineVertices.push_back({.Position = Float3{coord, 0.0f, extent}, .Colour = gridColour});
                         }
                     }
 
                     for (const auto& line : pass.DebugDraw->Lines)
                     {
                         const Float3 lineColour = LinearColour::FromColour(line.Tint).ToFloat3();
-                        lineVertices.push_back({line.Start, lineColour});
-                        lineVertices.push_back({line.End, lineColour});
+                        lineVertices.push_back({.Position = line.Start, .Colour = lineColour});
+                        lineVertices.push_back({.Position = line.End, .Colour = lineColour});
                     }
                 }
 
                 if (!lineVertices.empty() && debugLinePipeline.IsValid())
                 {
-                    const uint32_t dataSize = static_cast<uint32_t>(lineVertices.size() * sizeof(VertexPosColour));
+                    const auto dataSize = static_cast<uint32_t>(lineVertices.size() * sizeof(VertexPosColour));
                     const TransientAllocation alloc = transientAllocator.AllocateVertices(lineVertices.data(), dataSize);
 
                     if (alloc.IsValid())

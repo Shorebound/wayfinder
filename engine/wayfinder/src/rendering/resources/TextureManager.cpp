@@ -204,16 +204,16 @@ namespace Wayfinder
 
     GPUTextureHandle TextureManager::CreateCheckerboard()
     {
-        constexpr uint32_t kSize = 8;
-        constexpr uint32_t kChannels = 4;
-        std::array<uint8_t, kSize * kSize * kChannels> pixels{};
+        constexpr uint32_t K_SIZE = 8;
+        constexpr uint32_t K_CHANNELS = 4;
+        std::array<uint8_t, K_SIZE * K_SIZE * K_CHANNELS> pixels{};
 
-        for (uint32_t y = 0; y < kSize; ++y)
+        for (uint32_t y = 0; y < K_SIZE; ++y)
         {
-            for (uint32_t x = 0; x < kSize; ++x)
+            for (uint32_t x = 0; x < K_SIZE; ++x)
             {
                 const bool isLight = ((x + y) % 2) == 0;
-                const size_t offset = (y * kSize + x) * kChannels;
+                const size_t offset = (y * K_SIZE + x) * K_CHANNELS;
                 pixels[offset + 0] = isLight ? 255 : 0; // R: pink or black
                 pixels[offset + 1] = isLight ? 0 : 0;   // G
                 pixels[offset + 2] = isLight ? 200 : 0; // B
@@ -222,8 +222,8 @@ namespace Wayfinder
         }
 
         TextureCreateDesc desc;
-        desc.width = kSize;
-        desc.height = kSize;
+        desc.width = K_SIZE;
+        desc.height = K_SIZE;
         desc.format = TextureFormat::RGBA8_UNORM;
         desc.usage = TextureUsage::Sampler;
 
@@ -233,7 +233,7 @@ namespace Wayfinder
             return GPUTextureHandle::Invalid();
         }
 
-        m_device->UploadToTexture(texture, pixels.data(), kSize, kSize, kSize * kChannels);
+        m_device->UploadToTexture(texture, pixels.data(), K_SIZE, K_SIZE, K_SIZE * K_CHANNELS);
 
         return texture;
     }

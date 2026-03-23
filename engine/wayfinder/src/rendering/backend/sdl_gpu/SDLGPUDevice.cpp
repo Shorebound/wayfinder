@@ -790,7 +790,7 @@ namespace Wayfinder
         binding.buffer = *pBuffer;
         binding.offset = offsetInBytes;
 
-        SDL_GPUIndexElementSize sdlIndexSize = (indexSize == IndexElementSize::Uint16) ? SDL_GPU_INDEXELEMENTSIZE_16BIT : SDL_GPU_INDEXELEMENTSIZE_32BIT;
+        const SDL_GPUIndexElementSize sdlIndexSize = (indexSize == IndexElementSize::Uint16) ? SDL_GPU_INDEXELEMENTSIZE_16BIT : SDL_GPU_INDEXELEMENTSIZE_32BIT;
 
         SDL_BindGPUIndexBuffer(m_renderPass, &binding, sdlIndexSize);
     }

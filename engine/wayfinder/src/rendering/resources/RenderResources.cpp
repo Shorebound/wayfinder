@@ -68,7 +68,7 @@ namespace Wayfinder
         RenderMeshResource resource;
         resource.Ref = submission.Mesh;
         resource.Geometry = submission.Geometry;
-        const auto [it, inserted] = m_meshesByKey.emplace(submission.Mesh.StableKey, std::move(resource));
+        const auto [it, inserted] = m_meshesByKey.emplace(submission.Mesh.StableKey, resource);
         return it->second;
     }
 

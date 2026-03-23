@@ -54,55 +54,55 @@ namespace Wayfinder
 
     static Mesh CreateCube(RenderDevice& device, float size)
     {
-        const float H = size * 0.5f;
+        const float h = size * 0.5f;
 
         // Face normals
-        constexpr Float3 nFront = {0.0f, 0.0f, 1.0f};
-        constexpr Float3 nBack = {0.0f, 0.0f, -1.0f};
-        constexpr Float3 nTop = {0.0f, 1.0f, 0.0f};
-        constexpr Float3 nBottom = {0.0f, -1.0f, 0.0f};
-        constexpr Float3 nRight = {1.0f, 0.0f, 0.0f};
-        constexpr Float3 nLeft = {-1.0f, 0.0f, 0.0f};
+        constexpr Float3 N_FRONT = {0.0f, 0.0f, 1.0f};
+        constexpr Float3 N_BACK = {0.0f, 0.0f, -1.0f};
+        constexpr Float3 N_TOP = {0.0f, 1.0f, 0.0f};
+        constexpr Float3 N_BOTTOM = {0.0f, -1.0f, 0.0f};
+        constexpr Float3 N_RIGHT = {1.0f, 0.0f, 0.0f};
+        constexpr Float3 N_LEFT = {-1.0f, 0.0f, 0.0f};
 
         // Per-face vertex colours
-        constexpr Float3 cFront = {0.9f, 0.2f, 0.2f};
-        constexpr Float3 cBack = {0.2f, 0.8f, 0.2f};
-        constexpr Float3 cTop = {0.2f, 0.4f, 0.9f};
-        constexpr Float3 cBottom = {0.9f, 0.9f, 0.2f};
-        constexpr Float3 cRight = {0.9f, 0.2f, 0.9f};
-        constexpr Float3 cLeft = {0.2f, 0.9f, 0.9f};
+        constexpr Float3 C_FRONT = {0.9f, 0.2f, 0.2f};
+        constexpr Float3 C_BACK = {0.2f, 0.8f, 0.2f};
+        constexpr Float3 C_TOP = {0.2f, 0.4f, 0.9f};
+        constexpr Float3 C_BOTTOM = {0.9f, 0.9f, 0.2f};
+        constexpr Float3 C_RIGHT = {0.9f, 0.2f, 0.9f};
+        constexpr Float3 C_LEFT = {0.2f, 0.9f, 0.9f};
 
         std::array<VertexPosNormalColour, 24> vertices = {{
-        // Front (+Z)
-        {{-H, -H, H}, nFront, cFront},
-        {{H, -H, H}, nFront, cFront},
-        {{H, H, H}, nFront, cFront},
-        {{-H, H, H}, nFront, cFront},
-        // Back (-Z)
-        {{H, -H, -H}, nBack, cBack},
-        {{-H, -H, -H}, nBack, cBack},
-        {{-H, H, -H}, nBack, cBack},
-        {{H, H, -H}, nBack, cBack},
-        // Top (+Y)
-        {{-H, H, H}, nTop, cTop},
-        {{H, H, H}, nTop, cTop},
-        {{H, H, -H}, nTop, cTop},
-        {{-H, H, -H}, nTop, cTop},
-        // Bottom (-Y)
-        {{-H, -H, -H}, nBottom, cBottom},
-        {{H, -H, -H}, nBottom, cBottom},
-        {{H, -H, H}, nBottom, cBottom},
-        {{-H, -H, H}, nBottom, cBottom},
-        // Right (+X)
-        {{H, -H, H}, nRight, cRight},
-        {{H, -H, -H}, nRight, cRight},
-        {{H, H, -H}, nRight, cRight},
-        {{H, H, H}, nRight, cRight},
-        // Left (-X)
-        {{-H, -H, -H}, nLeft, cLeft},
-        {{-H, -H, H}, nLeft, cLeft},
-        {{-H, H, H}, nLeft, cLeft},
-        {{-H, H, -H}, nLeft, cLeft},
+            // Front (+Z)
+            {.Position = {-h, -h, h}, .Normal = N_FRONT, .Colour = C_FRONT},
+            {.Position = {h, -h, h}, .Normal = N_FRONT, .Colour = C_FRONT},
+            {.Position = {h, h, h}, .Normal = N_FRONT, .Colour = C_FRONT},
+            {.Position = {-h, h, h}, .Normal = N_FRONT, .Colour = C_FRONT},
+            // Back (-Z)
+            {.Position = {h, -h, -h}, .Normal = N_BACK, .Colour = C_BACK},
+            {.Position = {-h, -h, -h}, .Normal = N_BACK, .Colour = C_BACK},
+            {.Position = {-h, h, -h}, .Normal = N_BACK, .Colour = C_BACK},
+            {.Position = {h, h, -h}, .Normal = N_BACK, .Colour = C_BACK},
+            // Top (+Y)
+            {.Position = {-h, h, h}, .Normal = N_TOP, .Colour = C_TOP},
+            {.Position = {h, h, h}, .Normal = N_TOP, .Colour = C_TOP},
+            {.Position = {h, h, -h}, .Normal = N_TOP, .Colour = C_TOP},
+            {.Position = {-h, h, -h}, .Normal = N_TOP, .Colour = C_TOP},
+            // Bottom (-Y)
+            {.Position = {-h, -h, -h}, .Normal = N_BOTTOM, .Colour = C_BOTTOM},
+            {.Position = {h, -h, -h}, .Normal = N_BOTTOM, .Colour = C_BOTTOM},
+            {.Position = {h, -h, h}, .Normal = N_BOTTOM, .Colour = C_BOTTOM},
+            {.Position = {-h, -h, h}, .Normal = N_BOTTOM, .Colour = C_BOTTOM},
+            // Right (+X)
+            {.Position = {h, -h, h}, .Normal = N_RIGHT, .Colour = C_RIGHT},
+            {.Position = {h, -h, -h}, .Normal = N_RIGHT, .Colour = C_RIGHT},
+            {.Position = {h, h, -h}, .Normal = N_RIGHT, .Colour = C_RIGHT},
+            {.Position = {h, h, h}, .Normal = N_RIGHT, .Colour = C_RIGHT},
+            // Left (-X)
+            {.Position = {-h, -h, -h}, .Normal = N_LEFT, .Colour = C_LEFT},
+            {.Position = {-h, -h, h}, .Normal = N_LEFT, .Colour = C_LEFT},
+            {.Position = {-h, h, h}, .Normal = N_LEFT, .Colour = C_LEFT},
+            {.Position = {-h, h, -h}, .Normal = N_LEFT, .Colour = C_LEFT},
         }};
 
         std::array<uint16_t, 36> indices = {{
@@ -168,51 +168,51 @@ namespace Wayfinder
 
     static Mesh CreateTexturedCube(RenderDevice& device, float size)
     {
-        const float H = size * 0.5f;
+        const float h = size * 0.5f;
 
-        constexpr Float3 nFront = {0.0f, 0.0f, 1.0f};
-        constexpr Float3 nBack = {0.0f, 0.0f, -1.0f};
-        constexpr Float3 nTop = {0.0f, 1.0f, 0.0f};
-        constexpr Float3 nBottom = {0.0f, -1.0f, 0.0f};
-        constexpr Float3 nRight = {1.0f, 0.0f, 0.0f};
-        constexpr Float3 nLeft = {-1.0f, 0.0f, 0.0f};
+        constexpr Float3 N_FRONT = {0.0f, 0.0f, 1.0f};
+        constexpr Float3 N_BACK = {0.0f, 0.0f, -1.0f};
+        constexpr Float3 N_TOP = {0.0f, 1.0f, 0.0f};
+        constexpr Float3 N_BOTTOM = {0.0f, -1.0f, 0.0f};
+        constexpr Float3 N_RIGHT = {1.0f, 0.0f, 0.0f};
+        constexpr Float3 N_LEFT = {-1.0f, 0.0f, 0.0f};
 
-        constexpr Float2 uv00 = {0.0f, 1.0f};
-        constexpr Float2 uv10 = {1.0f, 1.0f};
-        constexpr Float2 uv11 = {1.0f, 0.0f};
-        constexpr Float2 uv01 = {0.0f, 0.0f};
+        constexpr Float2 UV00 = {0.0f, 1.0f};
+        constexpr Float2 UV10 = {1.0f, 1.0f};
+        constexpr Float2 UV11 = {1.0f, 0.0f};
+        constexpr Float2 UV01 = {0.0f, 0.0f};
 
         std::array<VertexPosNormalUV, 24> vertices = {{
-        // Front (+Z)
-        {{-H, -H, H}, nFront, uv00},
-        {{H, -H, H}, nFront, uv10},
-        {{H, H, H}, nFront, uv11},
-        {{-H, H, H}, nFront, uv01},
-        // Back (-Z)
-        {{H, -H, -H}, nBack, uv00},
-        {{-H, -H, -H}, nBack, uv10},
-        {{-H, H, -H}, nBack, uv11},
-        {{H, H, -H}, nBack, uv01},
-        // Top (+Y)
-        {{-H, H, H}, nTop, uv00},
-        {{H, H, H}, nTop, uv10},
-        {{H, H, -H}, nTop, uv11},
-        {{-H, H, -H}, nTop, uv01},
-        // Bottom (-Y)
-        {{-H, -H, -H}, nBottom, uv00},
-        {{H, -H, -H}, nBottom, uv10},
-        {{H, -H, H}, nBottom, uv11},
-        {{-H, -H, H}, nBottom, uv01},
-        // Right (+X)
-        {{H, -H, H}, nRight, uv00},
-        {{H, -H, -H}, nRight, uv10},
-        {{H, H, -H}, nRight, uv11},
-        {{H, H, H}, nRight, uv01},
-        // Left (-X)
-        {{-H, -H, -H}, nLeft, uv00},
-        {{-H, -H, H}, nLeft, uv10},
-        {{-H, H, H}, nLeft, uv11},
-        {{-H, H, -H}, nLeft, uv01},
+            // Front (+Z)
+            {.Position = {-h, -h, h}, .Normal = N_FRONT, .UV = UV00},
+            {.Position = {h, -h, h}, .Normal = N_FRONT, .UV = UV10},
+            {.Position = {h, h, h}, .Normal = N_FRONT, .UV = UV11},
+            {.Position = {-h, h, h}, .Normal = N_FRONT, .UV = UV01},
+            // Back (-Z)
+            {.Position = {h, -h, -h}, .Normal = N_BACK, .UV = UV00},
+            {.Position = {-h, -h, -h}, .Normal = N_BACK, .UV = UV10},
+            {.Position = {-h, h, -h}, .Normal = N_BACK, .UV = UV11},
+            {.Position = {h, h, -h}, .Normal = N_BACK, .UV = UV01},
+            // Top (+Y)
+            {.Position = {-h, h, h}, .Normal = N_TOP, .UV = UV00},
+            {.Position = {h, h, h}, .Normal = N_TOP, .UV = UV10},
+            {.Position = {h, h, -h}, .Normal = N_TOP, .UV = UV11},
+            {.Position = {-h, h, -h}, .Normal = N_TOP, .UV = UV01},
+            // Bottom (-Y)
+            {.Position = {-h, -h, -h}, .Normal = N_BOTTOM, .UV = UV00},
+            {.Position = {h, -h, -h}, .Normal = N_BOTTOM, .UV = UV10},
+            {.Position = {h, -h, h}, .Normal = N_BOTTOM, .UV = UV11},
+            {.Position = {-h, -h, h}, .Normal = N_BOTTOM, .UV = UV01},
+            // Right (+X)
+            {.Position = {h, -h, h}, .Normal = N_RIGHT, .UV = UV00},
+            {.Position = {h, -h, -h}, .Normal = N_RIGHT, .UV = UV10},
+            {.Position = {h, h, -h}, .Normal = N_RIGHT, .UV = UV11},
+            {.Position = {h, h, h}, .Normal = N_RIGHT, .UV = UV01},
+            // Left (-X)
+            {.Position = {-h, -h, -h}, .Normal = N_LEFT, .UV = UV00},
+            {.Position = {-h, -h, h}, .Normal = N_LEFT, .UV = UV10},
+            {.Position = {-h, h, h}, .Normal = N_LEFT, .UV = UV11},
+            {.Position = {-h, h, -h}, .Normal = N_LEFT, .UV = UV01},
         }};
 
         std::array<uint16_t, 36> indices = {{

@@ -8,8 +8,8 @@
 
 namespace Wayfinder
 {
-    float ComputeDistanceToVolume(
-    const Wayfinder::PostProcessVolumeComponent& volume, const Wayfinder::Float3& worldPosition, const Wayfinder::Float3& worldScale, const Wayfinder::Matrix4& localToWorld, const Wayfinder::Float3& cameraPosition)
+    static float ComputeDistanceToVolume(
+        const Wayfinder::PostProcessVolumeComponent& volume, const Wayfinder::Float3& worldPosition, const Wayfinder::Float3& worldScale, const Wayfinder::Matrix4& localToWorld, const Wayfinder::Float3& cameraPosition)
     {
         using namespace Wayfinder;
 
@@ -41,7 +41,7 @@ namespace Wayfinder
         return Maths::Length(outside);
     }
 
-    float ComputeBlendWeight(float distance, float blendDistance)
+    static float ComputeBlendWeight(float distance, float blendDistance)
     {
         if (blendDistance <= 0.0f)
         {
@@ -50,18 +50,18 @@ namespace Wayfinder
         return Maths::Clamp(1.0f - (distance / blendDistance), 0.0f, 1.0f);
     }
 
-    uint8_t LerpByte(uint8_t a, uint8_t b, float t)
+    static uint8_t LerpByte(uint8_t a, uint8_t b, float t)
     {
         return static_cast<uint8_t>(Maths::Clamp(static_cast<float>(a) + (static_cast<float>(b) - static_cast<float>(a)) * t, 0.0f, 255.0f));
     }
 
-    Wayfinder::Colour LerpColour(const Wayfinder::Colour& a, const Wayfinder::Colour& b, float t)
+    static Wayfinder::Colour LerpColour(const Wayfinder::Colour& a, const Wayfinder::Colour& b, float t)
     {
         return {.r = LerpByte(a.r, b.r, t), .g = LerpByte(a.g, b.g, t), .b = LerpByte(a.b, b.b, t), .a = LerpByte(a.a, b.a, t)};
     }
 
     // Blend a single parameter value toward a target by weight.
-    Wayfinder::PostProcessParamValue LerpParam(const Wayfinder::PostProcessParamValue& current, const Wayfinder::PostProcessParamValue& target, float weight)
+    static Wayfinder::PostProcessParamValue LerpParam(const Wayfinder::PostProcessParamValue& current, const Wayfinder::PostProcessParamValue& target, float weight)
     {
         // Both sides must hold the same type; if mismatched, take the target.
         if (current.index() != target.index())
@@ -97,7 +97,7 @@ namespace Wayfinder
         }, current);
     }
 
-    Wayfinder::PostProcessParamValue ZeroValue(const Wayfinder::PostProcessParamValue& v)
+    static Wayfinder::PostProcessParamValue ZeroValue(const Wayfinder::PostProcessParamValue& v)
     {
         return std::visit([](const auto& val) -> Wayfinder::PostProcessParamValue
         {
@@ -116,7 +116,7 @@ namespace Wayfinder
             }
             else if constexpr (std::is_same_v<T, Wayfinder::Colour>)
             {
-                return Wayfinder::Colour{0, 0, 0, 0};
+                return Wayfinder::Colour{.r = 0, .g = 0, .b = 0, .a = 0};
             }
             else
             {
@@ -125,7 +125,7 @@ namespace Wayfinder
         }, v);
     }
 
-    void BlendEffectInto(Wayfinder::PostProcessEffect& result, const Wayfinder::PostProcessEffect& source, float weight)
+    static void BlendEffectInto(Wayfinder::PostProcessEffect& result, const Wayfinder::PostProcessEffect& source, float weight)
     {
         for (const auto& [key, value] : source.Parameters)
         {
@@ -246,7 +246,7 @@ namespace Wayfinder
             sorted.push_back(&instance);
         }
 
-        std::stable_sort(sorted.begin(), sorted.end(), [](const auto* a, const auto* b)
+        std::ranges::stable_sort(sorted, [](const auto* a, const auto* b)
         {
             return a->Volume->Priority < b->Volume->Priority;
         });
