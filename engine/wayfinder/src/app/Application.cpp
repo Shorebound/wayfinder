@@ -167,7 +167,10 @@ namespace Wayfinder
         // Feed scroll events into input accumulator immediately
         dispatcher.Dispatch<MouseScrolledEvent>([this](MouseScrolledEvent& e)
         {
-            m_runtime->GetInput().AccumulateScroll(e.GetXOffset(), e.GetYOffset());
+            m_runtime->GetInput().AccumulateScroll(Input::ScrollDelta{
+                .X = e.GetXOffset(),
+                .Y = e.GetYOffset(),
+            });
             return true;
         });
 

@@ -74,9 +74,9 @@ namespace Wayfinder::Tests
             REQUIRE(camera.HasComponent<TransformComponent>());
 
             const auto& transform = camera.GetComponent<TransformComponent>();
-            CHECK(transform.Position.x == doctest::Approx(0.0f));
-            CHECK(transform.Position.y == doctest::Approx(5.0f));
-            CHECK(transform.Position.z == doctest::Approx(-10.0f));
+            CHECK(transform.Local.Position.x == doctest::Approx(0.0f));
+            CHECK(transform.Local.Position.y == doctest::Approx(5.0f));
+            CHECK(transform.Local.Position.z == doctest::Approx(-10.0f));
         }
 
         TEST_CASE("LoadFromFile rebuilds hierarchy relationships")

@@ -85,6 +85,8 @@ Formatting is enforced by `.clang-format` (Allman braces, 4-space indent, no col
 - Concepts and `requires` clauses for template constraints, not SFINAE or `static_assert` checks inside the body.
 - Prefer C++23 standard library: `std::span`, `std::optional`, `std::variant`, `std::string_view`, `std::format`, `std::filesystem`, etc. Avoid third-party utilities unless they provide significant value.
 - Prefer `constexpr`, `inline`, or templates over macros if they can achieve the same goal with better type safety and scoping.
+- Where it makes sense, use structured bindings, designated initializers, and aggregate initialization for clarity and brevity.
+- For error handling, prefer `Result<T, E>` as the return type. See `engine\wayfinder\src\core\Result.h`.
 
 ### Namespaces
 

@@ -2,7 +2,14 @@
 #include "platform/null/NullInput.h"
 
 #include <SDL3/SDL.h>
-#include <cstring>
+
+#include <algorithm>
+#include <iterator>
+
+namespace
+{
+    constexpr int SDL_MOUSE_BUTTON_FIRST = 1;
+}
 
 namespace Wayfinder
 {
@@ -34,22 +41,22 @@ namespace Wayfinder
         m_previousMouseButtons = m_currentMouseButtons;
 
         // Sample current keyboard state (scancodes index directly)
+        m_currentKeys.fill(false);
         int numKeys = 0;
         const bool* sdlKeys = SDL_GetKeyboardState(&numKeys);
-        if (sdlKeys)
+        if (sdlKeys && numKeys > 0)
         {
-            const int count = (numKeys < kMaxScancodes) ? numKeys : kMaxScancodes;
-            for (int i = 0; i < count; ++i)
-            {
-                m_currentKeys[i] = sdlKeys[i];
-            }
+            const auto keyCount = std::min(static_cast<std::size_t>(numKeys), m_currentKeys.size());
+            std::copy_n(sdlKeys, keyCount, m_currentKeys.begin());
         }
 
         // Sample current mouse button state
-        SDL_MouseButtonFlags mouseState = SDL_GetMouseState(nullptr, nullptr);
-        for (int i = 1; i < kMaxMouseButtons; ++i)
+        m_currentMouseButtons.fill(false);
+        const SDL_MouseButtonFlags mouseState = SDL_GetMouseState(nullptr, nullptr);
+        int button = SDL_MOUSE_BUTTON_FIRST;
+        for (auto buttonState = std::next(m_currentMouseButtons.begin()); buttonState != m_currentMouseButtons.end(); ++buttonState, ++button)
         {
-            m_currentMouseButtons[i] = (mouseState & SDL_BUTTON_MASK(i)) != 0;
+            *buttonState = (mouseState & SDL_BUTTON_MASK(button)) != 0;
         }
 
         // Reset scroll accumulator
@@ -59,74 +66,42 @@ namespace Wayfinder
 
     bool SDL3Input::IsKeyPressed(KeyCode key) const
     {
-        if (key >= kMaxScancodes)
-        {
-            return false;
-        }
-        return m_currentKeys[key] && !m_previousKeys[key];
+        return GetKeyState(m_currentKeys, key) && !GetKeyState(m_previousKeys, key);
     }
 
     bool SDL3Input::IsKeyDown(KeyCode key) const
     {
-        if (key >= kMaxScancodes)
-        {
-            return false;
-        }
-        return m_currentKeys[key];
+        return GetKeyState(m_currentKeys, key);
     }
 
     bool SDL3Input::IsKeyReleased(KeyCode key) const
     {
-        if (key >= kMaxScancodes)
-        {
-            return false;
-        }
-        return !m_currentKeys[key] && m_previousKeys[key];
+        return !GetKeyState(m_currentKeys, key) && GetKeyState(m_previousKeys, key);
     }
 
     bool SDL3Input::IsKeyUp(KeyCode key) const
     {
-        if (key >= kMaxScancodes)
-        {
-            return false;
-        }
-        return !m_currentKeys[key];
+        return !GetKeyState(m_currentKeys, key);
     }
 
     bool SDL3Input::IsMouseButtonPressed(MouseCode button) const
     {
-        if (button >= kMaxMouseButtons)
-        {
-            return false;
-        }
-        return m_currentMouseButtons[button] && !m_previousMouseButtons[button];
+        return GetMouseButtonState(m_currentMouseButtons, button) && !GetMouseButtonState(m_previousMouseButtons, button);
     }
 
     bool SDL3Input::IsMouseButtonDown(MouseCode button) const
     {
-        if (button >= kMaxMouseButtons)
-        {
-            return false;
-        }
-        return m_currentMouseButtons[button];
+        return GetMouseButtonState(m_currentMouseButtons, button);
     }
 
     bool SDL3Input::IsMouseButtonReleased(MouseCode button) const
     {
-        if (button >= kMaxMouseButtons)
-        {
-            return false;
-        }
-        return !m_currentMouseButtons[button] && m_previousMouseButtons[button];
+        return !GetMouseButtonState(m_currentMouseButtons, button) && GetMouseButtonState(m_previousMouseButtons, button);
     }
 
     bool SDL3Input::IsMouseButtonUp(MouseCode button) const
     {
-        if (button >= kMaxMouseButtons)
-        {
-            return false;
-        }
-        return !m_currentMouseButtons[button];
+        return !GetMouseButtonState(m_currentMouseButtons, button);
     }
 
     std::pair<float, float> SDL3Input::GetMousePosition() const
@@ -155,9 +130,53 @@ namespace Wayfinder
         return m_scrollY;
     }
 
-    void SDL3Input::AccumulateScroll(float x, float y)
+    void SDL3Input::AccumulateScroll(ScrollDelta delta)
     {
-        m_scrollX += x;
-        m_scrollY += y;
+        m_scrollX += delta.X;
+        m_scrollY += delta.Y;
+    }
+
+    std::optional<std::size_t> SDL3Input::TryGetKeyIndex(KeyCode key)
+    {
+        const auto index = static_cast<std::size_t>(key);
+        if (index >= kMaxScancodes)
+        {
+            return std::nullopt;
+        }
+
+        return index;
+    }
+
+    std::optional<std::size_t> SDL3Input::TryGetMouseButtonIndex(MouseCode button)
+    {
+        const auto index = static_cast<std::size_t>(button);
+        if (index >= kMaxMouseButtons)
+        {
+            return std::nullopt;
+        }
+
+        return index;
+    }
+
+    bool SDL3Input::GetKeyState(const std::array<bool, kMaxScancodes>& states, KeyCode key) const
+    {
+        const auto index = TryGetKeyIndex(key);
+        if (!index.has_value())
+        {
+            return false;
+        }
+
+        return states.at(*index);
+    }
+
+    bool SDL3Input::GetMouseButtonState(const std::array<bool, kMaxMouseButtons>& states, MouseCode button) const
+    {
+        const auto index = TryGetMouseButtonIndex(button);
+        if (!index.has_value())
+        {
+            return false;
+        }
+
+        return states.at(*index);
     }
 }

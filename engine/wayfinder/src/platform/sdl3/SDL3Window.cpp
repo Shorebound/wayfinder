@@ -26,10 +26,7 @@ namespace Wayfinder
 
     SDL3Window::~SDL3Window()
     {
-        if (m_initialised)
-        {
-            Shutdown();
-        }
+        ReleaseResources();
     }
 
     bool SDL3Window::Initialise()
@@ -53,13 +50,22 @@ namespace Wayfinder
 
     void SDL3Window::Shutdown()
     {
+        ReleaseResources();
+    }
+
+    void SDL3Window::ReleaseResources()
+    {
         if (m_window)
         {
             SDL_DestroyWindow(m_window);
             m_window = nullptr;
         }
 
-        SDL_Quit();
+        if (m_initialised)
+        {
+            SDL_Quit();
+        }
+
         m_initialised = false;
     }
 
@@ -101,7 +107,7 @@ namespace Wayfinder
             case SDL_EVENT_KEY_DOWN: {
                 if (m_eventCallback)
                 {
-                    KeyCode key = static_cast<KeyCode>(event.key.scancode);
+                    const auto key = static_cast<KeyCode>(event.key.scancode);
                     KeyPressedEvent e(key, event.key.repeat);
                     m_eventCallback(e);
                 }
@@ -110,7 +116,7 @@ namespace Wayfinder
             case SDL_EVENT_KEY_UP: {
                 if (m_eventCallback)
                 {
-                    KeyCode key = static_cast<KeyCode>(event.key.scancode);
+                    const auto key = static_cast<KeyCode>(event.key.scancode);
                     KeyReleasedEvent e(key);
                     m_eventCallback(e);
                 }
@@ -119,7 +125,7 @@ namespace Wayfinder
             case SDL_EVENT_MOUSE_BUTTON_DOWN: {
                 if (m_eventCallback)
                 {
-                    MouseCode button = static_cast<MouseCode>(event.button.button);
+                    const auto button = static_cast<MouseCode>(event.button.button);
                     MouseButtonPressedEvent e(button);
                     m_eventCallback(e);
                 }
@@ -128,7 +134,7 @@ namespace Wayfinder
             case SDL_EVENT_MOUSE_BUTTON_UP: {
                 if (m_eventCallback)
                 {
-                    MouseCode button = static_cast<MouseCode>(event.button.button);
+                    const auto button = static_cast<MouseCode>(event.button.button);
                     MouseButtonReleasedEvent e(button);
                     m_eventCallback(e);
                 }

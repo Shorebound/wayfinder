@@ -12,6 +12,12 @@ namespace Wayfinder
     class WAYFINDER_API Input
     {
     public:
+        struct ScrollDelta
+        {
+            float X = 0.0f;
+            float Y = 0.0f;
+        };
+
         virtual ~Input() = default;
 
         // Called once per frame before event polling to snapshot previous state
@@ -33,7 +39,7 @@ namespace Wayfinder
         virtual float GetMouseWheelMove() const = 0;
 
         // Called by the window layer to accumulate scroll events during polling
-        virtual void AccumulateScroll(float x, float y) = 0;
+        virtual void AccumulateScroll(ScrollDelta delta) = 0;
 
         static std::unique_ptr<Input> Create(PlatformBackend backend = PlatformBackend::SDL3);
     };

@@ -2,6 +2,7 @@
 #include "platform/Input.h"
 
 #include <array>
+#include <optional>
 
 namespace Wayfinder
 {
@@ -28,11 +29,17 @@ namespace Wayfinder
         float GetMouseY() const override;
         float GetMouseWheelMove() const override;
 
-        void AccumulateScroll(float x, float y) override;
+        void AccumulateScroll(ScrollDelta delta) override;
 
     private:
-        static constexpr int kMaxScancodes = 512;
-        static constexpr int kMaxMouseButtons = 6; // SDL3: 1-5
+        static constexpr std::size_t kMaxScancodes = 512;
+        static constexpr std::size_t kMaxMouseButtons = 6; // SDL3: 1-5
+
+        static std::optional<std::size_t> TryGetKeyIndex(KeyCode key);
+        static std::optional<std::size_t> TryGetMouseButtonIndex(MouseCode button);
+
+        bool GetKeyState(const std::array<bool, kMaxScancodes>& states, KeyCode key) const;
+        bool GetMouseButtonState(const std::array<bool, kMaxMouseButtons>& states, MouseCode button) const;
 
         std::array<bool, kMaxScancodes> m_currentKeys{};
         std::array<bool, kMaxScancodes> m_previousKeys{};

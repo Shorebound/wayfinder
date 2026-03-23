@@ -64,7 +64,7 @@ namespace Wayfinder
             return 0.0f;
         }
 
-        void AccumulateScroll(float, float) override {}
+        void AccumulateScroll(ScrollDelta) override {}
     };
 
 } // namespace Wayfinder
