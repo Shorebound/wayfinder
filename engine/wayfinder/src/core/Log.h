@@ -3,9 +3,9 @@
 #include "core/logging/LogTypes.h"
 #include "wayfinder_exports.h"
 
+#include <cstdint>
 #include <memory>
 #include <string>
-#include <unordered_map>
 
 namespace Wayfinder
 {
@@ -38,6 +38,23 @@ namespace Wayfinder
         LogVerbosity m_verbosity;
     };
 
+    class WAYFINDER_API LogCategoryHandle
+    {
+    public:
+        constexpr explicit LogCategoryHandle(const char* name) noexcept : m_name(name) {}
+
+        LogCategory& Get() const;
+        const std::string& GetName() const;
+        std::shared_ptr<ILogger> GetLogger() const;
+        LogVerbosity GetVerbosity() const;
+        operator LogCategory&() const;
+
+    private:
+        const char* m_name;
+        mutable LogCategory* m_cached = nullptr;
+        mutable std::uint64_t m_generation = 0;
+    };
+
     class WAYFINDER_API Log
     {
     public:
@@ -51,10 +68,7 @@ namespace Wayfinder
         static void SetGlobalVerbosity(LogVerbosity level);
 
         // Configuration methods
-        static const LogConfig& GetConfig()
-        {
-            return s_config;
-        }
+        static const LogConfig& GetConfig();
         static void SetConfig(const LogConfig& config);
 
         // Convenience methods for output configuration
@@ -65,29 +79,40 @@ namespace Wayfinder
         static void SetLogFilePath(const std::string& path);
         static void SetLogFileRotationSize(size_t maxSize);
         static void SetLogFileMaxFiles(size_t maxFiles);
-
-    private:
-        static std::unordered_map<std::string, std::unique_ptr<LogCategory>> s_categories;
-        static LogVerbosity s_globalVerbosity;
-        static LogConfig s_config;
     };
 
     // Declare common categories
-    extern WAYFINDER_API LogCategory& LogEngine;
-    extern WAYFINDER_API LogCategory& LogRenderer;
-    extern WAYFINDER_API LogCategory& LogInput;
-    extern WAYFINDER_API LogCategory& LogAudio;
-    extern WAYFINDER_API LogCategory& LogAssets;
-    extern WAYFINDER_API LogCategory& LogPhysics;
-    extern WAYFINDER_API LogCategory& LogGame;
-    extern WAYFINDER_API LogCategory& LogScene;
+    extern WAYFINDER_API const LogCategoryHandle LogEngine;
+    extern WAYFINDER_API const LogCategoryHandle LogRenderer;
+    extern WAYFINDER_API const LogCategoryHandle LogInput;
+    extern WAYFINDER_API const LogCategoryHandle LogAudio;
+    extern WAYFINDER_API const LogCategoryHandle LogAssets;
+    extern WAYFINDER_API const LogCategoryHandle LogPhysics;
+    extern WAYFINDER_API const LogCategoryHandle LogGame;
+    extern WAYFINDER_API const LogCategoryHandle LogScene;
+
+    inline LogCategory& ResolveLogCategory(LogCategory& category)
+    {
+        return category;
+    }
+
+    inline LogCategory& ResolveLogCategory(const LogCategoryHandle& category)
+    {
+        return category.Get();
+    }
 
 } // namespace Wayfinder
 
 // Logging macros
 #define WAYFINDER_LOG(category, verbosity, ...)                                                                                                                                                                            \
-    if (verbosity <= category.GetVerbosity())                                                                                                                                                                              \
-    category.GetLogger()->LogFormat(verbosity, __VA_ARGS__)
+    do                                                                                                                                                                                                                     \
+    {                                                                                                                                                                                                                      \
+        auto& wayfinderLogCategory = Wayfinder::ResolveLogCategory(category);                                                                                                                                              \
+        if (verbosity <= wayfinderLogCategory.GetVerbosity())                                                                                                                                                              \
+        {                                                                                                                                                                                                                  \
+            wayfinderLogCategory.GetLogger()->LogFormat(verbosity, __VA_ARGS__);                                                                                                                                           \
+        }                                                                                                                                                                                                                  \
+    } while (false)
 
 #define WAYFINDER_VERBOSE(category, ...) WAYFINDER_LOG(category, Wayfinder::LogVerbosity::Verbose, __VA_ARGS__)
 #define WAYFINDER_INFO(category, ...) WAYFINDER_LOG(category, Wayfinder::LogVerbosity::Info, __VA_ARGS__)

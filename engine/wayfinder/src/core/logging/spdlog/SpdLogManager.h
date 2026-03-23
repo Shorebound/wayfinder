@@ -3,6 +3,7 @@
 #include "core/logging/ILogger.h"
 
 #include <ranges>
+#include <unordered_map>
 
 namespace Wayfinder
 {
@@ -18,25 +19,27 @@ namespace Wayfinder
 
         static void Shutdown()
         {
-            s_loggers.clear();
+            GetLoggers().clear();
             spdlog::shutdown();
         }
 
         static std::shared_ptr<ILogger> CreateLogger(const std::string& name, LogVerbosity defaultVerbosity = LogVerbosity::Info)
         {
-            if (const auto it = s_loggers.find(name); it != s_loggers.end())
+            auto& loggers = GetLoggers();
+            if (const auto it = loggers.find(name); it != loggers.end())
             {
                 return it->second;
             }
 
             auto logger = std::make_shared<SpdLogger>(name, defaultVerbosity);
-            s_loggers[name] = logger;
+            loggers[name] = logger;
             return logger;
         }
 
         static std::shared_ptr<ILogger> GetLogger(const std::string& name)
         {
-            if (const auto it = s_loggers.find(name); it != s_loggers.end())
+            auto& loggers = GetLoggers();
+            if (const auto it = loggers.find(name); it != loggers.end())
             {
                 return it->second;
             }
@@ -45,7 +48,7 @@ namespace Wayfinder
 
         static void UpdateLoggerOutputs(const LogConfig& config)
         {
-            for (const auto& logger : s_loggers | std::views::values)
+            for (const auto& logger : GetLoggers() | std::views::values)
             {
                 UpdateLoggerOutputs(logger, config);
             }
@@ -73,10 +76,11 @@ namespace Wayfinder
         }
 
     private:
-        static std::unordered_map<std::string, std::shared_ptr<ILogger>> s_loggers;
+        static std::unordered_map<std::string, std::shared_ptr<ILogger>>& GetLoggers()
+        {
+            static std::unordered_map<std::string, std::shared_ptr<ILogger>> sLoggers;
+            return sLoggers;
+        }
     };
-
-    /// Static member initialisation.
-    std::unordered_map<std::string, std::shared_ptr<ILogger>> SpdLogManager::s_loggers;
 
 } // namespace Wayfinder
