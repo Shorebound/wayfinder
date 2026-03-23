@@ -73,6 +73,17 @@ namespace Wayfinder
         m_tags.AddFile(std::move(relativePath));
     }
 
+    void PluginRegistry::ApplyComponentRegisterFns(flecs::world& world) const
+    {
+        for (const auto& desc : m_components)
+        {
+            if (desc.RegisterFn)
+            {
+                desc.RegisterFn(world);
+            }
+        }
+    }
+
     void PluginRegistry::ApplyToWorld(flecs::world& world) const
     {
         // Component registration is handled by RuntimeComponentRegistry,

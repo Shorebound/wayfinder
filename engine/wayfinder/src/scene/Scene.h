@@ -28,13 +28,16 @@ namespace Wayfinder
         Scene(Scene&&) = delete;
         Scene& operator=(Scene&&) = delete;
 
-        /// Registers core scene component types into the given world.
+        /// Registers core scene infrastructure component types (identity, ownership, names, etc.).
+        /// Runtime components owned by scene plugins (e.g. world transform, active camera) are
+        /// registered via \ref PluginRegistry::RegisterComponent (RegisterFn only).
         /// Call once per world before creating any scenes.
         static void RegisterCoreComponents(flecs::world& world);
 
-        /// Registers core scene simulation systems (transform propagation, camera extraction).
-        /// Call after RegisterCoreComponents and RuntimeComponentRegistry::RegisterComponents,
-        /// before world.progress(), when tests or tools need the same systems as Application.
+        /// Registers transform/camera Flecs types and simulation systems (same plugins as a game
+        /// would add via its root plugin). Call after \ref RegisterCoreComponents (and after
+        /// \ref RuntimeComponentRegistry::RegisterComponents when using scene JSON), before
+        /// \c world.progress(), when tests or tools need the same systems as the running game.
         static void RegisterCoreSceneSystems(flecs::world& world);
 
         void Shutdown();

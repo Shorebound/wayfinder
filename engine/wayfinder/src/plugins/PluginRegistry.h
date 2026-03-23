@@ -55,7 +55,10 @@ namespace Wayfinder
         using TagDescriptor = TagRegistrar::Descriptor;
 
         /**
-         * @brief Describes a serialisable ECS component for scene authoring.
+         * @brief Describes an ECS component registration for the runtime world.
+         *
+         * For scene authoring, set Apply/Serialise/Validate. For runtime-only types
+         * (e.g. cached world transforms), only \ref Key and \ref RegisterFn are required.
          */
         struct ComponentDescriptor
         {
@@ -94,6 +97,10 @@ namespace Wayfinder
 
         /// Call OnShutdown() on all plugins in reverse registration order.
         void NotifyShutdown();
+
+        /// Call every \ref ComponentDescriptor::RegisterFn from \ref RegisterComponent entries.
+        /// Used when applying plugins without a \ref RuntimeComponentRegistry (e.g. headless tests).
+        void ApplyComponentRegisterFns(flecs::world& world) const;
 
         /// Register a named ECS system factory.  The factory will be called
         /// once when the engine creates its persistent flecs::world.

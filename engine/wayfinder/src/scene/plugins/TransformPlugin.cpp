@@ -8,8 +8,17 @@
 
 namespace Wayfinder
 {
+    namespace
+    {
+        void RegisterWorldTransformType(flecs::world& world)
+        {
+            world.component<WorldTransformComponent>();
+        }
+    } // namespace
+
     void TransformPlugin::Build(PluginRegistry& registry)
     {
+        registry.RegisterComponent({.Key = "world_transform", .RegisterFn = RegisterWorldTransformType});
         registry.RegisterSystem("UpdateWorldTransforms", [](flecs::world& world)
         {
             // NOLINTNEXTLINE(clang-analyzer-core.StackAddressEscape)

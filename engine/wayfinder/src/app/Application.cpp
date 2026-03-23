@@ -16,8 +16,6 @@
 #include "plugins/PluginRegistry.h"
 #include "project/ProjectDescriptor.h"
 #include "project/ProjectResolver.h"
-#include "scene/plugins/CameraPlugin.h"
-#include "scene/plugins/TransformPlugin.h"
 
 namespace Wayfinder
 {
@@ -73,8 +71,6 @@ namespace Wayfinder
 
         // 3. Plugin registration (before Game so scene creation can use factories)
         m_pluginRegistry = std::make_unique<PluginRegistry>(*m_project, *m_config);
-        m_pluginRegistry->AddPlugin<TransformPlugin>();
-        m_pluginRegistry->AddPlugin<CameraPlugin>();
         if (m_gamePlugin)
         {
             m_pluginRegistry->AddPlugin(std::move(m_gamePlugin));

@@ -115,8 +115,6 @@ namespace Wayfinder
         world.component<NameComponent>();
         world.component<SceneObjectIdComponent>();
         world.component<PrefabInstanceComponent>();
-        world.component<WorldTransformComponent>();
-        world.component<ActiveCameraStateComponent>();
     }
 
     void Scene::RegisterCoreSceneSystems(flecs::world& world)
@@ -127,6 +125,7 @@ namespace Wayfinder
         PluginRegistry registry(project, config);
         registry.AddPlugin<TransformPlugin>();
         registry.AddPlugin<CameraPlugin>();
+        registry.ApplyComponentRegisterFns(world);
         registry.ApplyToWorld(world);
     }
 

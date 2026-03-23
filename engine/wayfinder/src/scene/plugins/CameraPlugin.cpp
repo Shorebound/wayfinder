@@ -8,8 +8,17 @@
 
 namespace Wayfinder
 {
+    namespace
+    {
+        void RegisterActiveCameraStateType(flecs::world& world)
+        {
+            world.component<ActiveCameraStateComponent>();
+        }
+    } // namespace
+
     void CameraPlugin::Build(PluginRegistry& registry)
     {
+        registry.RegisterComponent({.Key = "active_camera_state", .RegisterFn = RegisterActiveCameraStateType});
         registry.RegisterSystem("ExtractActiveCamera", [](flecs::world& world)
         {
             world.system<>("ExtractActiveCamera")
