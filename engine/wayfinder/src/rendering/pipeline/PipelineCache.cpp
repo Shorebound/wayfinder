@@ -2,6 +2,7 @@
 #include "core/Log.h"
 
 #include <functional>
+#include <ranges>
 
 namespace Wayfinder
 {
@@ -81,9 +82,8 @@ namespace Wayfinder
 
         // Colour target blend states
         combine(std::hash<uint32_t>{}(desc.numColourTargets));
-        for (uint32_t i = 0; i < desc.numColourTargets; ++i)
+        for (const BlendState& blend : desc.colourTargetBlends | std::views::take(desc.numColourTargets))
         {
-            const auto& blend = desc.colourTargetBlends[i];
             combine(std::hash<bool>{}(blend.Enabled));
             combine(std::hash<uint8_t>{}(static_cast<uint8_t>(blend.SrcColourFactor)));
             combine(std::hash<uint8_t>{}(static_cast<uint8_t>(blend.DstColourFactor)));

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <array>
 #include <memory>
 
 #include "VertexFormats.h"
@@ -178,6 +179,18 @@ namespace Wayfinder
         uint32_t sizeInBytes = 0;
     };
 
+    struct BufferUploadRegion
+    {
+        uint32_t sizeInBytes = 0;
+        uint32_t dstOffsetInBytes = 0;
+    };
+
+    struct VertexBufferBindingDesc
+    {
+        uint32_t slot = 0;
+        uint32_t offsetInBytes = 0;
+    };
+
     // ── Pipeline Create Descriptor ───────────────────────────
 
     struct PipelineCreateDesc
@@ -192,7 +205,7 @@ namespace Wayfinder
         bool depthTestEnabled = false;
         bool depthWriteEnabled = false;
         uint32_t numColourTargets = 1;
-        BlendState colourTargetBlends[MAX_COLOUR_TARGETS]{};
+        std::array<BlendState, MAX_COLOUR_TARGETS> colourTargetBlends{};
     };
 
     // ── Compute Pipeline Create Descriptor ───────────────────
@@ -253,11 +266,11 @@ namespace Wayfinder
 
         virtual GPUBufferHandle CreateBuffer(const BufferCreateDesc& desc) = 0;
         virtual void DestroyBuffer(GPUBufferHandle buffer) = 0;
-        virtual void UploadToBuffer(GPUBufferHandle buffer, const void* data, uint32_t sizeInBytes, uint32_t dstOffsetInBytes = 0) = 0;
+        virtual void UploadToBuffer(GPUBufferHandle buffer, const void* data, BufferUploadRegion region) = 0;
 
         // ── Draw Commands ────────────────────────────────────────
 
-        virtual void BindVertexBuffer(GPUBufferHandle buffer, uint32_t slot = 0, uint32_t offsetInBytes = 0) = 0;
+        virtual void BindVertexBuffer(GPUBufferHandle buffer, VertexBufferBindingDesc binding = {}) = 0;
         virtual void BindIndexBuffer(GPUBufferHandle buffer, IndexElementSize indexSize, uint32_t offsetInBytes = 0) = 0;
         virtual void DrawIndexed(uint32_t indexCount, uint32_t instanceCount = 1, uint32_t firstIndex = 0, int32_t vertexOffset = 0) = 0;
         virtual void DrawPrimitives(uint32_t vertexCount, uint32_t instanceCount = 1, uint32_t firstVertex = 0) = 0;
@@ -300,7 +313,7 @@ namespace Wayfinder
 
         // ── Swapchain Info ───────────────────────────────────────
 
-        virtual void GetSwapchainDimensions(uint32_t& width, uint32_t& height) const = 0;
+        [[nodiscard]] virtual Extent2D GetSwapchainDimensions() const = 0;
         // ── Device Info ──────────────────────────────────────
 
         virtual const RenderDeviceInfo& GetDeviceInfo() const = 0;

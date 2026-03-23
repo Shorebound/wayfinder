@@ -5,11 +5,121 @@
 #include "core/Log.h"
 
 #include <SDL3/SDL.h>
+#include <array>
 #include <cstring>
+#include <ranges>
 #include <vector>
 
 namespace Wayfinder
 {
+    namespace
+    {
+        SDL_GPUVertexElementFormat ToSDLVertexFormat(VertexAttribFormat fmt)
+        {
+            switch (fmt)
+            {
+            case VertexAttribFormat::Float2:
+                return SDL_GPU_VERTEXELEMENTFORMAT_FLOAT2;
+            case VertexAttribFormat::Float3:
+                return SDL_GPU_VERTEXELEMENTFORMAT_FLOAT3;
+            case VertexAttribFormat::Float4:
+                return SDL_GPU_VERTEXELEMENTFORMAT_FLOAT4;
+            }
+            return SDL_GPU_VERTEXELEMENTFORMAT_FLOAT3;
+        }
+
+        SDL_GPUBlendFactor ToSDLBlendFactor(BlendFactor f)
+        {
+            switch (f)
+            {
+            case BlendFactor::Zero:
+                return SDL_GPU_BLENDFACTOR_ZERO;
+            case BlendFactor::One:
+                return SDL_GPU_BLENDFACTOR_ONE;
+            case BlendFactor::SrcAlpha:
+                return SDL_GPU_BLENDFACTOR_SRC_ALPHA;
+            case BlendFactor::OneMinusSrcAlpha:
+                return SDL_GPU_BLENDFACTOR_ONE_MINUS_SRC_ALPHA;
+            case BlendFactor::DstAlpha:
+                return SDL_GPU_BLENDFACTOR_DST_ALPHA;
+            case BlendFactor::OneMinusDstAlpha:
+                return SDL_GPU_BLENDFACTOR_ONE_MINUS_DST_ALPHA;
+            case BlendFactor::SrcColour:
+                return SDL_GPU_BLENDFACTOR_SRC_COLOR;
+            case BlendFactor::OneMinusSrcColour:
+                return SDL_GPU_BLENDFACTOR_ONE_MINUS_SRC_COLOR;
+            case BlendFactor::DstColour:
+                return SDL_GPU_BLENDFACTOR_DST_COLOR;
+            case BlendFactor::OneMinusDstColour:
+                return SDL_GPU_BLENDFACTOR_ONE_MINUS_DST_COLOR;
+            case BlendFactor::ConstantColour:
+                return SDL_GPU_BLENDFACTOR_CONSTANT_COLOR;
+            case BlendFactor::OneMinusConstantColour:
+                return SDL_GPU_BLENDFACTOR_ONE_MINUS_CONSTANT_COLOR;
+            }
+            return SDL_GPU_BLENDFACTOR_ONE;
+        }
+
+        SDL_GPUBlendOp ToSDLBlendOp(BlendOp op)
+        {
+            switch (op)
+            {
+            case BlendOp::Add:
+                return SDL_GPU_BLENDOP_ADD;
+            case BlendOp::Subtract:
+                return SDL_GPU_BLENDOP_SUBTRACT;
+            case BlendOp::ReverseSubtract:
+                return SDL_GPU_BLENDOP_REVERSE_SUBTRACT;
+            case BlendOp::Min:
+                return SDL_GPU_BLENDOP_MIN;
+            case BlendOp::Max:
+                return SDL_GPU_BLENDOP_MAX;
+            }
+            return SDL_GPU_BLENDOP_ADD;
+        }
+
+        SDL_GPUTextureFormat ToSDLTextureFormat(TextureFormat format)
+        {
+            switch (format)
+            {
+            case TextureFormat::RGBA8_UNORM:
+                return SDL_GPU_TEXTUREFORMAT_R8G8B8A8_UNORM;
+            case TextureFormat::BGRA8_UNORM:
+                return SDL_GPU_TEXTUREFORMAT_B8G8R8A8_UNORM;
+            case TextureFormat::R16_FLOAT:
+                return SDL_GPU_TEXTUREFORMAT_R16_FLOAT;
+            case TextureFormat::RGBA16_FLOAT:
+                return SDL_GPU_TEXTUREFORMAT_R16G16B16A16_FLOAT;
+            case TextureFormat::R32_FLOAT:
+                return SDL_GPU_TEXTUREFORMAT_R32_FLOAT;
+            case TextureFormat::D32_FLOAT:
+                return SDL_GPU_TEXTUREFORMAT_D32_FLOAT;
+            case TextureFormat::D24_UNORM_S8:
+                return SDL_GPU_TEXTUREFORMAT_D24_UNORM_S8_UINT;
+            }
+            return SDL_GPU_TEXTUREFORMAT_R8G8B8A8_UNORM;
+        }
+
+        SDL_GPUTextureUsageFlags ToSDLTextureUsage(TextureUsage usage)
+        {
+            SDL_GPUTextureUsageFlags flags = 0;
+            if (HasFlag(usage, TextureUsage::Sampler))
+            {
+                flags |= SDL_GPU_TEXTUREUSAGE_SAMPLER;
+            }
+            if (HasFlag(usage, TextureUsage::ColourTarget))
+            {
+                flags |= SDL_GPU_TEXTUREUSAGE_COLOR_TARGET;
+            }
+            if (HasFlag(usage, TextureUsage::DepthTarget))
+            {
+                flags |= SDL_GPU_TEXTUREUSAGE_DEPTH_STENCIL_TARGET;
+            }
+            return flags;
+        }
+
+    } // namespace
+
     // ── Factory ──────────────────────────────────────────────
 
     std::unique_ptr<RenderDevice> RenderDevice::Create(RenderBackend backend)
@@ -27,9 +137,20 @@ namespace Wayfinder
 
     // ── Lifecycle ────────────────────────────────────────────
 
-    SDLGPUDevice::~SDLGPUDevice()
+    SDLGPUDevice::~SDLGPUDevice() noexcept
     {
-        Shutdown();
+        try
+        {
+            Shutdown();
+        }
+        catch (const std::exception& ex)
+        {
+            WAYFINDER_WARNING(LogRenderer, "SDLGPUDevice::~SDLGPUDevice suppressed exception during Shutdown(): {}", ex.what());
+        }
+        catch (...)
+        {
+            WAYFINDER_WARNING(LogRenderer, "SDLGPUDevice::~SDLGPUDevice suppressed unknown exception during Shutdown().");
+        }
     }
 
     bool SDLGPUDevice::Initialise(Window& window)
@@ -385,70 +506,6 @@ namespace Wayfinder
         }
     }
 
-    static SDL_GPUVertexElementFormat ToSDLVertexFormat(VertexAttribFormat fmt)
-    {
-        switch (fmt)
-        {
-        case VertexAttribFormat::Float2:
-            return SDL_GPU_VERTEXELEMENTFORMAT_FLOAT2;
-        case VertexAttribFormat::Float3:
-            return SDL_GPU_VERTEXELEMENTFORMAT_FLOAT3;
-        case VertexAttribFormat::Float4:
-            return SDL_GPU_VERTEXELEMENTFORMAT_FLOAT4;
-        }
-        return SDL_GPU_VERTEXELEMENTFORMAT_FLOAT3;
-    }
-
-    static SDL_GPUBlendFactor ToSDLBlendFactor(BlendFactor f)
-    {
-        switch (f)
-        {
-        case BlendFactor::Zero:
-            return SDL_GPU_BLENDFACTOR_ZERO;
-        case BlendFactor::One:
-            return SDL_GPU_BLENDFACTOR_ONE;
-        case BlendFactor::SrcAlpha:
-            return SDL_GPU_BLENDFACTOR_SRC_ALPHA;
-        case BlendFactor::OneMinusSrcAlpha:
-            return SDL_GPU_BLENDFACTOR_ONE_MINUS_SRC_ALPHA;
-        case BlendFactor::DstAlpha:
-            return SDL_GPU_BLENDFACTOR_DST_ALPHA;
-        case BlendFactor::OneMinusDstAlpha:
-            return SDL_GPU_BLENDFACTOR_ONE_MINUS_DST_ALPHA;
-        case BlendFactor::SrcColour:
-            return SDL_GPU_BLENDFACTOR_SRC_COLOR;
-        case BlendFactor::OneMinusSrcColour:
-            return SDL_GPU_BLENDFACTOR_ONE_MINUS_SRC_COLOR;
-        case BlendFactor::DstColour:
-            return SDL_GPU_BLENDFACTOR_DST_COLOR;
-        case BlendFactor::OneMinusDstColour:
-            return SDL_GPU_BLENDFACTOR_ONE_MINUS_DST_COLOR;
-        case BlendFactor::ConstantColour:
-            return SDL_GPU_BLENDFACTOR_CONSTANT_COLOR;
-        case BlendFactor::OneMinusConstantColour:
-            return SDL_GPU_BLENDFACTOR_ONE_MINUS_CONSTANT_COLOR;
-        }
-        return SDL_GPU_BLENDFACTOR_ONE;
-    }
-
-    static SDL_GPUBlendOp ToSDLBlendOp(BlendOp op)
-    {
-        switch (op)
-        {
-        case BlendOp::Add:
-            return SDL_GPU_BLENDOP_ADD;
-        case BlendOp::Subtract:
-            return SDL_GPU_BLENDOP_SUBTRACT;
-        case BlendOp::ReverseSubtract:
-            return SDL_GPU_BLENDOP_REVERSE_SUBTRACT;
-        case BlendOp::Min:
-            return SDL_GPU_BLENDOP_MIN;
-        case BlendOp::Max:
-            return SDL_GPU_BLENDOP_MAX;
-        }
-        return SDL_GPU_BLENDOP_ADD;
-    }
-
     GPUPipelineHandle SDLGPUDevice::CreatePipeline(const PipelineCreateDesc& desc)
     {
         if (!m_device || !m_window)
@@ -549,45 +606,47 @@ namespace Wayfinder
         }
 
         // Validate blend state
-        for (uint32_t i = 0; i < desc.numColourTargets; ++i)
+        uint32_t colourTargetIndex = 0;
+        for (const BlendState& blend : desc.colourTargetBlends | std::views::take(desc.numColourTargets))
         {
-            const auto& blend = desc.colourTargetBlends[i];
             if (!blend.Enabled && blend.ColourWriteMask == 0)
             {
-                WAYFINDER_WARNING(LogRenderer, "CreatePipeline: colour target {} has blending disabled and ColourWriteMask=0 — nothing will be written", i);
+                WAYFINDER_WARNING(LogRenderer, "CreatePipeline: colour target {} has blending disabled and ColourWriteMask=0 — nothing will be written", colourTargetIndex);
             }
             if (blend.Enabled && blend.ColourWriteMask == 0)
             {
-                WAYFINDER_WARNING(LogRenderer, "CreatePipeline: colour target {} has blending enabled but ColourWriteMask=0 — blended result will be discarded", i);
+                WAYFINDER_WARNING(LogRenderer, "CreatePipeline: colour target {} has blending enabled but ColourWriteMask=0 — blended result will be discarded", colourTargetIndex);
             }
+            ++colourTargetIndex;
         }
 
         // Colour targets — one per MRT attachment, all using swapchain format for now.
         // Non-swapchain render targets (e.g. G-buffer, shadow maps) will require
         // per-target format fields in PipelineCreateDesc once framebuffer abstraction lands.
         const SDL_GPUTextureFormat swapchainFormat = SDL_GetGPUSwapchainTextureFormat(m_device, m_window);
-        SDL_GPUColorTargetDescription colourTargetDescs[MAX_COLOUR_TARGETS]{};
-        for (uint32_t i = 0; i < desc.numColourTargets; ++i)
+        std::array<SDL_GPUColorTargetDescription, MAX_COLOUR_TARGETS> colourTargetDescs{};
+        auto colourTargetDescIt = colourTargetDescs.begin();
+        for (const BlendState& blend : desc.colourTargetBlends | std::views::take(desc.numColourTargets))
         {
-            colourTargetDescs[i].format = swapchainFormat;
+            auto& colourTargetDesc = *colourTargetDescIt++;
+            colourTargetDesc.format = swapchainFormat;
 
-            const auto& blend = desc.colourTargetBlends[i];
             if (blend.Enabled)
             {
-                colourTargetDescs[i].blend_state.enable_blend = true;
-                colourTargetDescs[i].blend_state.color_write_mask = blend.ColourWriteMask;
+                colourTargetDesc.blend_state.enable_blend = true;
+                colourTargetDesc.blend_state.color_write_mask = blend.ColourWriteMask;
 
-                colourTargetDescs[i].blend_state.src_color_blendfactor = ToSDLBlendFactor(blend.SrcColourFactor);
-                colourTargetDescs[i].blend_state.dst_color_blendfactor = ToSDLBlendFactor(blend.DstColourFactor);
-                colourTargetDescs[i].blend_state.color_blend_op = ToSDLBlendOp(blend.ColourOp);
-                colourTargetDescs[i].blend_state.src_alpha_blendfactor = ToSDLBlendFactor(blend.SrcAlphaFactor);
-                colourTargetDescs[i].blend_state.dst_alpha_blendfactor = ToSDLBlendFactor(blend.DstAlphaFactor);
-                colourTargetDescs[i].blend_state.alpha_blend_op = ToSDLBlendOp(blend.AlphaOp);
+                colourTargetDesc.blend_state.src_color_blendfactor = ToSDLBlendFactor(blend.SrcColourFactor);
+                colourTargetDesc.blend_state.dst_color_blendfactor = ToSDLBlendFactor(blend.DstColourFactor);
+                colourTargetDesc.blend_state.color_blend_op = ToSDLBlendOp(blend.ColourOp);
+                colourTargetDesc.blend_state.src_alpha_blendfactor = ToSDLBlendFactor(blend.SrcAlphaFactor);
+                colourTargetDesc.blend_state.dst_alpha_blendfactor = ToSDLBlendFactor(blend.DstAlphaFactor);
+                colourTargetDesc.blend_state.alpha_blend_op = ToSDLBlendOp(blend.AlphaOp);
             }
         }
 
         SDL_GPUGraphicsPipelineTargetInfo targetInfo{};
-        targetInfo.color_target_descriptions = colourTargetDescs;
+        targetInfo.color_target_descriptions = colourTargetDescs.data();
         targetInfo.num_color_targets = desc.numColourTargets;
         targetInfo.has_depth_stencil_target = desc.depthTestEnabled || desc.depthWriteEnabled;
         if (targetInfo.has_depth_stencil_target)
@@ -694,10 +753,10 @@ namespace Wayfinder
         }
     }
 
-    void SDLGPUDevice::UploadToBuffer(GPUBufferHandle buffer, const void* data, uint32_t sizeInBytes, uint32_t dstOffsetInBytes)
+    void SDLGPUDevice::UploadToBuffer(GPUBufferHandle buffer, const void* data, BufferUploadRegion region)
     {
         auto* pBuffer = m_bufferPool.Get(buffer);
-        if (!m_device || !pBuffer || !data || sizeInBytes == 0)
+        if (!m_device || !pBuffer || !data || region.sizeInBytes == 0)
         {
             return;
         }
@@ -705,7 +764,7 @@ namespace Wayfinder
         // Create a staging transfer buffer
         SDL_GPUTransferBufferCreateInfo transferInfo{};
         transferInfo.usage = SDL_GPU_TRANSFERBUFFERUSAGE_UPLOAD;
-        transferInfo.size = sizeInBytes;
+        transferInfo.size = region.sizeInBytes;
 
         SDL_GPUTransferBuffer* transferBuffer = SDL_CreateGPUTransferBuffer(m_device, &transferInfo);
         if (!transferBuffer)
@@ -723,7 +782,7 @@ namespace Wayfinder
             return;
         }
 
-        std::memcpy(mapped, data, sizeInBytes);
+        std::memcpy(mapped, data, region.sizeInBytes);
         SDL_UnmapGPUTransferBuffer(m_device, transferBuffer);
 
         // Upload via a dedicated command buffer + copy pass
@@ -743,8 +802,8 @@ namespace Wayfinder
 
         SDL_GPUBufferRegion dst{};
         dst.buffer = *pBuffer;
-        dst.offset = dstOffsetInBytes;
-        dst.size = sizeInBytes;
+        dst.offset = region.dstOffsetInBytes;
+        dst.size = region.sizeInBytes;
 
         SDL_UploadToGPUBuffer(copyPass, &src, &dst, false);
         SDL_EndGPUCopyPass(copyPass);
@@ -755,7 +814,7 @@ namespace Wayfinder
 
     // ── Draw Commands ────────────────────────────────────────
 
-    void SDLGPUDevice::BindVertexBuffer(GPUBufferHandle buffer, uint32_t slot, uint32_t offsetInBytes)
+    void SDLGPUDevice::BindVertexBuffer(GPUBufferHandle buffer, VertexBufferBindingDesc bindingDesc)
     {
         if (!m_renderPass)
         {
@@ -769,9 +828,9 @@ namespace Wayfinder
 
         SDL_GPUBufferBinding binding{};
         binding.buffer = *pBuffer;
-        binding.offset = offsetInBytes;
+        binding.offset = bindingDesc.offsetInBytes;
 
-        SDL_BindGPUVertexBuffers(m_renderPass, slot, &binding, 1);
+        SDL_BindGPUVertexBuffers(m_renderPass, bindingDesc.slot, &binding, 1);
     }
 
     void SDLGPUDevice::BindIndexBuffer(GPUBufferHandle buffer, IndexElementSize indexSize, uint32_t offsetInBytes)
@@ -931,46 +990,6 @@ namespace Wayfinder
     }
 
     // ── Textures ─────────────────────────────────────────────
-
-    static SDL_GPUTextureFormat ToSDLTextureFormat(TextureFormat format)
-    {
-        switch (format)
-        {
-        case TextureFormat::RGBA8_UNORM:
-            return SDL_GPU_TEXTUREFORMAT_R8G8B8A8_UNORM;
-        case TextureFormat::BGRA8_UNORM:
-            return SDL_GPU_TEXTUREFORMAT_B8G8R8A8_UNORM;
-        case TextureFormat::R16_FLOAT:
-            return SDL_GPU_TEXTUREFORMAT_R16_FLOAT;
-        case TextureFormat::RGBA16_FLOAT:
-            return SDL_GPU_TEXTUREFORMAT_R16G16B16A16_FLOAT;
-        case TextureFormat::R32_FLOAT:
-            return SDL_GPU_TEXTUREFORMAT_R32_FLOAT;
-        case TextureFormat::D32_FLOAT:
-            return SDL_GPU_TEXTUREFORMAT_D32_FLOAT;
-        case TextureFormat::D24_UNORM_S8:
-            return SDL_GPU_TEXTUREFORMAT_D24_UNORM_S8_UINT;
-        }
-        return SDL_GPU_TEXTUREFORMAT_R8G8B8A8_UNORM;
-    }
-
-    static SDL_GPUTextureUsageFlags ToSDLTextureUsage(TextureUsage usage)
-    {
-        SDL_GPUTextureUsageFlags flags = 0;
-        if (HasFlag(usage, TextureUsage::Sampler))
-        {
-            flags |= SDL_GPU_TEXTUREUSAGE_SAMPLER;
-        }
-        if (HasFlag(usage, TextureUsage::ColourTarget))
-        {
-            flags |= SDL_GPU_TEXTUREUSAGE_COLOR_TARGET;
-        }
-        if (HasFlag(usage, TextureUsage::DepthTarget))
-        {
-            flags |= SDL_GPU_TEXTUREUSAGE_DEPTH_STENCIL_TARGET;
-        }
-        return flags;
-    }
 
     GPUTextureHandle SDLGPUDevice::CreateTexture(const TextureCreateDesc& desc)
     {
@@ -1154,10 +1173,9 @@ namespace Wayfinder
         SDL_BindGPUFragmentSamplers(m_renderPass, slot, &binding, 1);
     }
 
-    void SDLGPUDevice::GetSwapchainDimensions(uint32_t& width, uint32_t& height) const
+    Extent2D SDLGPUDevice::GetSwapchainDimensions() const
     {
-        width = m_swapchainWidth;
-        height = m_swapchainHeight;
+        return {.width = m_swapchainWidth, .height = m_swapchainHeight};
     }
 
 } // namespace Wayfinder

@@ -51,7 +51,7 @@ namespace Wayfinder
             return;
         }
 
-        m_device->UploadToBuffer(m_handle, data, sizeInBytes);
+        m_device->UploadToBuffer(m_handle, data, {.sizeInBytes = sizeInBytes});
     }
 
     void GPUBuffer::Destroy()

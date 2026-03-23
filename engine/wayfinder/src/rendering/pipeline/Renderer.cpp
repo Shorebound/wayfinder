@@ -176,8 +176,9 @@ namespace Wayfinder
         }
 
         // ── Query swapchain dimensions for transient targets ──
-        uint32_t swapW = 0, swapH = 0;
-        m_device->GetSwapchainDimensions(swapW, swapH);
+        const Extent2D swapchainDimensions = m_device->GetSwapchainDimensions();
+        const uint32_t swapW = swapchainDimensions.width;
+        const uint32_t swapH = swapchainDimensions.height;
         if (swapW == 0 || swapH == 0)
         {
             m_device->EndFrame();

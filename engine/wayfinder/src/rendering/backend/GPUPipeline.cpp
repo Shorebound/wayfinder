@@ -3,6 +3,8 @@
 #include "rendering/materials/ShaderManager.h"
 #include "rendering/pipeline/PipelineCache.h"
 
+#include <algorithm>
+
 namespace Wayfinder
 {
     bool GPUPipeline::Create(RenderDevice& device, ShaderManager& shaders, const GPUPipelineDesc& desc, PipelineCache* cache)
@@ -34,10 +36,7 @@ namespace Wayfinder
         pipeDesc.depthTestEnabled = desc.depthTestEnabled;
         pipeDesc.depthWriteEnabled = desc.depthWriteEnabled;
         pipeDesc.numColourTargets = desc.numColourTargets;
-        for (uint32_t i = 0; i < desc.numColourTargets; ++i)
-        {
-            pipeDesc.colourTargetBlends[i] = desc.colourTargetBlends[i];
-        }
+        std::copy_n(desc.colourTargetBlends.begin(), desc.numColourTargets, pipeDesc.colourTargetBlends.begin());
 
         if (cache)
         {

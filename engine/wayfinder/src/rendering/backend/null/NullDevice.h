@@ -48,8 +48,8 @@ namespace Wayfinder
             return {};
         }
         void DestroyBuffer(GPUBufferHandle) override {}
-        void UploadToBuffer(GPUBufferHandle, const void*, uint32_t, uint32_t) override {}
-        void BindVertexBuffer(GPUBufferHandle, uint32_t, uint32_t) override {}
+        void UploadToBuffer(GPUBufferHandle, const void*, BufferUploadRegion) override {}
+        void BindVertexBuffer(GPUBufferHandle, VertexBufferBindingDesc) override {}
         void BindIndexBuffer(GPUBufferHandle, IndexElementSize, uint32_t) override {}
         void DrawIndexed(uint32_t, uint32_t, uint32_t, int32_t) override {}
         void DrawPrimitives(uint32_t, uint32_t, uint32_t) override {}
@@ -83,10 +83,9 @@ namespace Wayfinder
         void DestroySampler(GPUSamplerHandle) override {}
         void BindFragmentSampler(uint32_t, GPUTextureHandle, GPUSamplerHandle) override {}
 
-        void GetSwapchainDimensions(uint32_t& w, uint32_t& h) const override
+        [[nodiscard]] Extent2D GetSwapchainDimensions() const override
         {
-            w = 0;
-            h = 0;
+            return {};
         }
 
         const RenderDeviceInfo& GetDeviceInfo() const override

@@ -41,7 +41,7 @@ namespace Wayfinder
 
     void Mesh::Bind(RenderDevice& device) const
     {
-        device.BindVertexBuffer(m_vertexBuffer.GetHandle(), 0);
+        device.BindVertexBuffer(m_vertexBuffer.GetHandle());
         device.BindIndexBuffer(m_indexBuffer.GetHandle(), m_indexElementSize);
     }
 

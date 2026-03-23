@@ -21,7 +21,7 @@ namespace Wayfinder
     {
     public:
         SDLGPUDevice() = default;
-        ~SDLGPUDevice() override;
+        ~SDLGPUDevice() noexcept override;
 
         bool Initialise(Window& window) override;
         void Shutdown() override;
@@ -42,9 +42,9 @@ namespace Wayfinder
 
         GPUBufferHandle CreateBuffer(const BufferCreateDesc& desc) override;
         void DestroyBuffer(GPUBufferHandle buffer) override;
-        void UploadToBuffer(GPUBufferHandle buffer, const void* data, uint32_t sizeInBytes, uint32_t dstOffsetInBytes = 0) override;
+        void UploadToBuffer(GPUBufferHandle buffer, const void* data, BufferUploadRegion region) override;
 
-        void BindVertexBuffer(GPUBufferHandle buffer, uint32_t slot = 0, uint32_t offsetInBytes = 0) override;
+        void BindVertexBuffer(GPUBufferHandle buffer, VertexBufferBindingDesc binding = {}) override;
         void BindIndexBuffer(GPUBufferHandle buffer, IndexElementSize indexSize, uint32_t offsetInBytes = 0) override;
         void DrawIndexed(uint32_t indexCount, uint32_t instanceCount = 1, uint32_t firstIndex = 0, int32_t vertexOffset = 0) override;
         void DrawPrimitives(uint32_t vertexCount, uint32_t instanceCount = 1, uint32_t firstVertex = 0) override;
@@ -67,7 +67,7 @@ namespace Wayfinder
 
         void BindFragmentSampler(uint32_t slot, GPUTextureHandle texture, GPUSamplerHandle sampler) override;
 
-        void GetSwapchainDimensions(uint32_t& width, uint32_t& height) const override;
+        [[nodiscard]] Extent2D GetSwapchainDimensions() const override;
 
         const RenderDeviceInfo& GetDeviceInfo() const override
         {

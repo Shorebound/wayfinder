@@ -501,7 +501,7 @@ namespace Wayfinder
                         const DebugMaterialUBO materialUBO{Float4(1.0f)};
 
                         debugLinePipeline.Bind();
-                        device.BindVertexBuffer(alloc.Buffer, 0, alloc.Offset);
+                        device.BindVertexBuffer(alloc.Buffer, {.offsetInBytes = alloc.Offset});
                         device.PushVertexUniform(0, &mvp, sizeof(Matrix4));
                         device.PushFragmentUniform(0, &materialUBO, sizeof(DebugMaterialUBO));
                         device.DrawPrimitives(static_cast<uint32_t>(lineVertices.size()));

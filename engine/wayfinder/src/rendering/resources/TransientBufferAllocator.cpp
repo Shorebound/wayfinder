@@ -95,7 +95,7 @@ namespace Wayfinder
         }
 
         const uint32_t offset = alignedCursor;
-        m_device->UploadToBuffer(ring, data, sizeInBytes, offset);
+        m_device->UploadToBuffer(ring, data, {.sizeInBytes = sizeInBytes, .dstOffsetInBytes = offset});
         cursor = alignedCursor + sizeInBytes;
 
         return {.Buffer = ring, .Offset = offset, .Size = sizeInBytes};

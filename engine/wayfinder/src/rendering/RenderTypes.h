@@ -77,6 +77,12 @@ namespace Wayfinder
         TextureUsage usage = TextureUsage::ColourTarget;
     };
 
+    struct Extent2D
+    {
+        uint32_t width = 0;
+        uint32_t height = 0;
+    };
+
     // ── Sampler ───────────────────────────────────────────────
 
     enum class SamplerFilter : uint8_t
