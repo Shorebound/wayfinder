@@ -261,7 +261,14 @@ def main() -> int:
 
     # Discover files.
     if args.files:
-        files = [f.resolve() for f in args.files if f.suffix == '.cpp']
+        # Expand globs (PowerShell doesn't expand wildcards for us).
+        expanded: list[Path] = []
+        for pattern in args.files:
+            if '*' in str(pattern) or '?' in str(pattern):
+                expanded.extend(REPO_ROOT.glob(str(pattern)))
+            else:
+                expanded.append(pattern)
+        files = [f.resolve() for f in expanded if f.suffix == '.cpp']
     elif args.changed:
         files = _discover_changed_cpp()
     else:
