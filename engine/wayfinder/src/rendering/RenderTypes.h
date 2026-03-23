@@ -37,9 +37,14 @@ namespace Wayfinder
 
     enum class TextureUsage : uint32_t
     {
+        None = 0,
         Sampler = 1u << 0,
         ColourTarget = 1u << 1,
         DepthTarget = 1u << 2,
+        SamplerColourTarget = Sampler | ColourTarget,
+        SamplerDepthTarget = Sampler | DepthTarget,
+        ColourTargetDepthTarget = ColourTarget | DepthTarget,
+        All = Sampler | ColourTarget | DepthTarget,
     };
 
     inline TextureUsage operator|(TextureUsage a, TextureUsage b)
