@@ -179,8 +179,9 @@ jobs:
         shell: bash
         run: |
           set -o pipefail
-          cat /tmp/changed_files.txt \
-            | xargs -d '\n' clang-tidy -p build 2>&1 \
+          # Use tidy.py which filters the multi-config compile DB to Debug-only.
+          python3 tools/tidy.py $(cat /tmp/changed_files.txt | grep '\.cpp$' | tr '\n' ' ') \
+            --build-dir build 2>&1 \
             | tee /tmp/clang-tidy-output.txt
 
           if grep -q 'warning:' /tmp/clang-tidy-output.txt; then

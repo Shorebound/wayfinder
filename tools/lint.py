@@ -19,11 +19,13 @@ Exit codes:
 """
 
 import argparse
+import json
 import os
 import re
 import shutil
 import subprocess
 import sys
+import tempfile
 from pathlib import Path
 
 # Directories to scan for source files.
@@ -81,8 +83,8 @@ def _bold(text: str) -> str:
 
 
 def _find_tool(name: str) -> str | None:
-    """Find a tool, preferring the versioned -20 variant."""
-    versioned = f'{name}-20'
+    """Find a tool, preferring the versioned -22 variant."""
+    versioned = f'{name}-22'
     if shutil.which(versioned):
         return versioned
     if shutil.which(name):
@@ -239,6 +241,34 @@ def _apply_fixup(text: str) -> str:
     return _fixup_fn(text)
 
 
+def _filter_compile_db(compile_commands: Path, *, config: str = 'Debug') -> str:
+    """Filter a Ninja Multi-Config compile_commands.json to a single config.
+
+    Returns the path to a temp directory containing the filtered DB.
+    """
+    with open(compile_commands, 'r', encoding='utf-8') as f:
+        entries = json.load(f)
+
+    marker = f'CMAKE_INTDIR=\\\\\\\"{config}\\\\\\\"'
+    filtered = [e for e in entries if marker in e.get('command', '')]
+
+    if not filtered:
+        # Fallback: deduplicate by source file (keep first occurrence).
+        seen: set[str] = set()
+        for entry in entries:
+            src = entry.get('file', '')
+            if src not in seen:
+                seen.add(src)
+                filtered.append(entry)
+
+    tmp_dir = tempfile.mkdtemp(prefix='wayfinder-lint-tidy-')
+    out_path = Path(tmp_dir) / 'compile_commands.json'
+    with open(out_path, 'w', encoding='utf-8') as f:
+        json.dump(filtered, f, indent=2)
+
+    return tmp_dir
+
+
 def _run_clang_tidy(files: list[Path], *, build_dir: Path, tool: str) -> bool:
     """Run clang-tidy. Returns True if issues were found."""
     if not files:
@@ -259,7 +289,11 @@ def _run_clang_tidy(files: list[Path], *, build_dir: Path, tool: str) -> bool:
 
     print(_bold(f'\n-- clang-tidy ({len(cpp_files)} files) --'))
 
-    cmd = [tool, '-p', str(build_dir)]
+    # Ninja Multi-Config puts entries for every config in compile_commands.json.
+    # Filter to Debug-only so each file is analysed once.
+    tidy_dir = _filter_compile_db(compile_commands)
+
+    cmd = [tool, '-p', tidy_dir]
     cmd.extend(str(f) for f in cpp_files)
 
     result = subprocess.run(cmd, cwd=REPO_ROOT)
@@ -334,14 +368,14 @@ def main() -> int:
     # Find tools.
     clang_format = _find_tool('clang-format')
     if not clang_format:
-        print(_red('clang-format not found. Install clang-format-20.'), file=sys.stderr)
+        print(_red('clang-format not found. Install clang-format-22.'), file=sys.stderr)
         return 2
 
     clang_tidy = None
     if args.tidy:
         clang_tidy = _find_tool('clang-tidy')
         if not clang_tidy:
-            print(_red('clang-tidy not found. Install clang-tidy-20.'), file=sys.stderr)
+            print(_red('clang-tidy not found. Install clang-tidy-22.'), file=sys.stderr)
             return 2
 
     # Discover files.

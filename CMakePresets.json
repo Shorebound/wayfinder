@@ -58,6 +58,15 @@
             }
         },
         {
+            "name": "dev-clang-tidy",
+            "displayName": "Development (Clang + clang-tidy)",
+            "description": "Clang build with clang-tidy enabled — runs static analysis on every compile",
+            "inherits": "dev-clang",
+            "cacheVariables": {
+                "WAYFINDER_ENABLE_CLANG_TIDY": "ON"
+            }
+        },
+        {
             "name": "ci",
             "displayName": "CI",
             "description": "Continuous integration preset with warnings-as-errors",
@@ -146,6 +155,12 @@
             "name": "clang-debug",
             "displayName": "Clang (Debug)",
             "configurePreset": "dev-clang",
+            "configuration": "Debug"
+        },
+        {
+            "name": "clang-tidy-debug",
+            "displayName": "Clang + Tidy (Debug)",
+            "configurePreset": "dev-clang-tidy",
             "configuration": "Debug"
         },
         {

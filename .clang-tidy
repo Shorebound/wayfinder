@@ -1,8 +1,9 @@
 # .clang-tidy — Wayfinder Engine
 #
 # Static analysis and naming convention enforcement.
-# Run via CMake (WAYFINDER_ENABLE_CLANG_TIDY) or standalone:
-#   clang-tidy -p build/clang engine/wayfinder/src/**/*.cpp
+# Run standalone:  python tools/tidy.py
+# Run via CMake:   cmake --preset dev-clang-tidy && cmake --build --preset clang-tidy-debug
+# Run via lint:    python tools/lint.py --tidy
 
 ---
 
@@ -19,6 +20,7 @@ Checks: >
   -cppcoreguidelines-pro-type-reinterpret-cast,
   -cppcoreguidelines-special-member-functions,
   misc-*,
+  -misc-include-cleaner,
   -misc-non-private-member-variables-in-classes,
   modernize-*,
   -modernize-use-trailing-return-type,

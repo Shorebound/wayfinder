@@ -184,7 +184,7 @@ bin\Debug\wayfinder_render_tests.exe
 
 ## Code Quality
 
-Wayfinder uses clang-format, a post-format fixup script, and clang-tidy to enforce consistent style and catch bugs early. All tools are pinned to **version 20**.
+Wayfinder uses clang-format, a post-format fixup script, and clang-tidy to enforce consistent style and catch bugs early. All tools are pinned to **version 22**.
 
 ### Formatting
 
@@ -230,6 +230,22 @@ python tools/lint.py --tidy
 
 # Override compile_commands.json location
 python tools/lint.py --tidy --build-dir build/clang
+```
+
+`tools/tidy.py` is a dedicated clang-tidy runner with better ergonomics:
+
+```powershell
+# Analyse all engine .cpp files
+python tools/tidy.py
+
+# Only files changed vs main
+python tools/tidy.py --changed
+
+# Specific file(s)
+python tools/tidy.py engine/wayfinder/src/rendering/mesh/Mesh.cpp
+
+# Apply auto-fixes
+python tools/tidy.py --fix
 ```
 
 To generate `compile_commands.json` for clang-tidy:
