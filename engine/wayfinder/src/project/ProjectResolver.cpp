@@ -46,7 +46,7 @@ namespace Wayfinder
 
         while (true)
         {
-            const auto candidate = searchDir / kProjectFileName;
+            auto candidate = searchDir / PROJECT_FILE_NAME;
 
             ec.clear();
             const bool exists = std::filesystem::exists(candidate, ec);

@@ -48,6 +48,7 @@ namespace Wayfinder
             output.Descriptor.ProjectRoot = canonicalPath.parent_path();
         }
 
+        // NOLINTBEGIN(cppcoreguidelines-pro-bounds-avoid-unchecked-container-access)
         try
         {
             const toml::table tbl = toml::parse_file(path.string());
@@ -90,6 +91,8 @@ namespace Wayfinder
 
             WAYFINDER_INFO(LogEngine, "Loaded project '{}' v{} from: {}", output.Descriptor.Name, output.Descriptor.Version, path.string());
         }
+        // NOLINTEND(cppcoreguidelines-pro-bounds-avoid-unchecked-container-access)
+
         catch (const toml::parse_error& err)
         {
             WAYFINDER_ERROR(LogEngine, "Failed to parse project file {}: {}", path.string(), err.what());

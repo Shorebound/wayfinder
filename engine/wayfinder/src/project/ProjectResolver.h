@@ -7,9 +7,8 @@
 
 namespace Wayfinder
 {
-
     /// Filename used to identify a Wayfinder project root directory.
-    inline constexpr const char* kProjectFileName = "project.wayfinder";
+    inline constexpr std::string_view PROJECT_FILE_NAME = "project.wayfinder";
 
     /**
      * @brief Walk the directory tree upward from @p startPath looking for
