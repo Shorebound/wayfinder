@@ -10,7 +10,6 @@
 Checks: >
   -*,
   bugprone-*,
-  -bugprone-easily-swappable-parameters,
   clang-analyzer-*,
   cppcoreguidelines-*,
   -cppcoreguidelines-avoid-magic-numbers,
@@ -25,6 +24,7 @@ Checks: >
   -modernize-use-trailing-return-type,
   performance-*,
   readability-container-size-empty,
+  readability-function-size,
   readability-identifier-naming,
   readability-make-member-function-const,
   readability-qualified-auto,
@@ -112,3 +112,18 @@ CheckOptions:
   # Static methods — PascalCase (same as methods)
   - key: readability-identifier-naming.ClassMethodCase
     value: CamelCase
+
+  # --- Function Size Limits ---
+  # Only enforce parameter count. Other thresholds set high to stay out of the way.
+  - key: readability-function-size.ParameterThreshold
+    value: '6'
+  - key: readability-function-size.LineThreshold
+    value: '4294967295'
+  - key: readability-function-size.StatementThreshold
+    value: '4294967295'
+  - key: readability-function-size.BranchThreshold
+    value: '4294967295'
+  - key: readability-function-size.NestingThreshold
+    value: '4294967295'
+  - key: readability-function-size.VariableThreshold
+    value: '4294967295'
