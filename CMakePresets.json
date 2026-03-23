@@ -160,19 +160,28 @@
             "name": "test",
             "displayName": "Run Tests (Debug)",
             "configurePreset": "dev",
-            "configuration": "Debug"
+            "configuration": "Debug",
+            "output": {
+                "junit": "test-results.xml"
+            }
         },
         {
             "name": "ci-linux-test",
             "displayName": "Run Tests (CI Linux)",
             "configurePreset": "ci-linux",
-            "configuration": "Debug"
+            "configuration": "Debug",
+            "output": {
+                "junit": "test-results.xml"
+            }
         },
         {
             "name": "ci-windows-test",
             "displayName": "Run Tests (CI Windows)",
             "configurePreset": "ci-windows",
-            "configuration": "Debug"
+            "configuration": "Debug",
+            "output": {
+                "junit": "test-results.xml"
+            }
         }
     ]
 }

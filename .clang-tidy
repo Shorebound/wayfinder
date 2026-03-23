@@ -36,8 +36,7 @@ HeaderFilterRegex: 'engine/wayfinder/src/.*'
 SystemHeaders: false
 FormatStyle: file
 
-# Not promoted to errors yet — enable after baseline cleanup.
-WarningsAsErrors: ''
+WarningsAsErrors: '*'
 
 # --- Naming Conventions ---
 # Maps directly to the project style guide in copilot-instructions.md.

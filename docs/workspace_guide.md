@@ -184,7 +184,7 @@ bin\Debug\wayfinder_render_tests.exe
 
 ## Code Quality
 
-Wayfinder uses clang-format, a post-format fixup script, and clang-tidy to enforce consistent style and catch bugs early. All tools are pinned to **version 18**.
+Wayfinder uses clang-format, a post-format fixup script, and clang-tidy to enforce consistent style and catch bugs early. All tools are pinned to **version 20**.
 
 ### Formatting
 
@@ -276,12 +276,30 @@ The GitHub Actions CI workflow (`.github/workflows/ci.yml`) runs four parallel j
 
 | Job | Runner | What it checks |
 |-----|--------|---------------|
-| **Format Check** | ubuntu-latest | clang-format + format-fixup (all files) |
-| **Build & Test (Linux)** | ubuntu-latest | Clang build + CTest |
-| **Build & Test (Windows)** | windows-latest | MSVC build + CTest |
-| **Static Analysis** | ubuntu-latest | clang-tidy on changed files (report-only for now) |
+| **Format & Lint Check** | ubuntu-latest | `lint.py` — clang-format + format-fixup + banned includes |
+| **Build & Test (Linux)** | ubuntu-latest | Clang build + CTest (JUnit results uploaded as artifacts + PR annotations) |
+| **Build & Test (Windows)** | windows-latest | MSVC build + CTest (JUnit results uploaded as artifacts + PR annotations) |
+| **Static Analysis** | ubuntu-latest | clang-tidy on changed files (warnings are errors) |
 
 CPM dependency sources are cached between runs to speed up builds.
+
+### Reproducing CI Locally
+
+`tools/ci-local.py` runs the same checks locally:
+
+```powershell
+# Full CI: lint + build + test
+python tools/ci-local.py
+
+# Auto-fix format issues first
+python tools/ci-local.py --fix
+
+# Lint only (fast, no build)
+python tools/ci-local.py --skip-build
+
+# Include clang-tidy analysis
+python tools/ci-local.py --tidy
+```
 
 ## Recommended Reading Order
 
