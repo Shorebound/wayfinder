@@ -467,10 +467,9 @@ namespace Wayfinder::Tests
         auto sampler = fixture.m_Device->CreateSampler({});
         fixture.m_Device->DestroySampler(sampler);
 
-        uint32_t w, h;
-        fixture.m_Device->GetSwapchainDimensions(w, h);
-        CHECK(w == 0);
-        CHECK(h == 0);
+        const Wayfinder::Extent2D swapchainDimensions = fixture.m_Device->GetSwapchainDimensions();
+        CHECK(swapchainDimensions.width == 0);
+        CHECK(swapchainDimensions.height == 0);
     }
 
     // ── Depth Target ─────────────────────────────────────────

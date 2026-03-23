@@ -262,7 +262,7 @@ namespace Wayfinder::Tests
 
         // Upload some data — should be a no-op on NullDevice
         uint8_t data[64] = {};
-        device->UploadToBuffer(buffer, data, sizeof(data));
+        device->UploadToBuffer(buffer, data, {.sizeInBytes = sizeof(data)});
 
         device->DestroyBuffer(buffer);
     }
