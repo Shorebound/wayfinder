@@ -52,29 +52,26 @@ namespace Wayfinder
 
     bool GameplayTagContainer::HasTag(const GameplayTag& tag) const
     {
-        return std::any_of(m_tags.begin(), m_tags.end(),
-            [&](const GameplayTag& t)
-            {
-                return t.IsChildOf(tag);
-            });
+        return std::any_of(m_tags.begin(), m_tags.end(), [&](const GameplayTag& t)
+        {
+            return t.IsChildOf(tag);
+        });
     }
 
     bool GameplayTagContainer::HasAny(const GameplayTagContainer& other) const
     {
-        return std::any_of(other.m_tags.begin(), other.m_tags.end(),
-            [&](const GameplayTag& t)
-            {
-                return HasTag(t);
-            });
+        return std::any_of(other.m_tags.begin(), other.m_tags.end(), [&](const GameplayTag& t)
+        {
+            return HasTag(t);
+        });
     }
 
     bool GameplayTagContainer::HasAll(const GameplayTagContainer& other) const
     {
-        return std::all_of(other.m_tags.begin(), other.m_tags.end(),
-            [&](const GameplayTag& t)
-            {
-                return HasTag(t);
-            });
+        return std::all_of(other.m_tags.begin(), other.m_tags.end(), [&](const GameplayTag& t)
+        {
+            return HasTag(t);
+        });
     }
 
     void GameplayTagContainer::AddTag(const GameplayTag& tag)

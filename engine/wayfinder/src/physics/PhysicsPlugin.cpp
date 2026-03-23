@@ -364,28 +364,27 @@ namespace Wayfinder::Physics
         // Transform).  OnAdd fires once all three matched components are
         // present.  The RuntimeBodyId guard prevents double-creation if the
         // observer re-fires for the same entity.
-        registry.RegisterSystem("PhysicsCreateBodies",
-            [](flecs::world& world)
+        registry.RegisterSystem("PhysicsCreateBodies", [](flecs::world& world)
+        {
+            world.observer<RigidBodyComponent, const ColliderComponent, const TransformComponent>("PhysicsCreateBodies")
+                .event(flecs::OnAdd)
+                .each([](flecs::entity, RigidBodyComponent& rb, const ColliderComponent& col, const TransformComponent& transform)
             {
-                world.observer<RigidBodyComponent, const ColliderComponent, const TransformComponent>("PhysicsCreateBodies")
-                    .event(flecs::OnAdd)
-                    .each([](flecs::entity, RigidBodyComponent& rb, const ColliderComponent& col, const TransformComponent& transform)
-                        {
-                            if (rb.RuntimeBodyId != INVALID_PHYSICS_BODY)
-                            {
-                                return;
-                            }
+                if (rb.RuntimeBodyId != INVALID_PHYSICS_BODY)
+                {
+                    return;
+                }
 
-                            auto* physics = GameSubsystems::Find<PhysicsSubsystem>();
-                            if (!physics)
-                            {
-                                return;
-                            }
+                auto* physics = GameSubsystems::Find<PhysicsSubsystem>();
+                if (!physics)
+                {
+                    return;
+                }
 
-                            auto desc = MakeDescriptor(rb, col);
-                            rb.RuntimeBodyId = physics->GetWorld().CreateBody(desc, transform.Position, transform.Rotation);
-                        });
+                auto desc = MakeDescriptor(rb, col);
+                rb.RuntimeBodyId = physics->GetWorld().CreateBody(desc, transform.Position, transform.Rotation);
             });
+        });
 
         // PhysicsDestroyBodies: reactive observer that destroys the Jolt body
         // when RigidBodyComponent is removed from an entity (or entity deleted).
@@ -396,92 +395,88 @@ namespace Wayfinder::Physics
         // rather than caching the pointer, because OnRemove fires during
         // flecs::world destruction — which may happen after the subsystem
         // collection has been shut down and the PhysicsSubsystem destroyed.
-        registry.RegisterSystem("PhysicsDestroyBodies",
-            [](flecs::world& world)
+        registry.RegisterSystem("PhysicsDestroyBodies", [](flecs::world& world)
+        {
+            world.observer<RigidBodyComponent>("PhysicsDestroyBodies")
+                .event(flecs::OnRemove)
+                .each([](RigidBodyComponent& rb)
             {
-                world.observer<RigidBodyComponent>("PhysicsDestroyBodies")
-                    .event(flecs::OnRemove)
-                    .each([](RigidBodyComponent& rb)
-                        {
-                            if (rb.RuntimeBodyId == INVALID_PHYSICS_BODY)
-                            {
-                                return;
-                            }
+                if (rb.RuntimeBodyId == INVALID_PHYSICS_BODY)
+                {
+                    return;
+                }
 
-                            auto* physics = GameSubsystems::Find<PhysicsSubsystem>();
-                            if (!physics)
-                            {
-                                return;
-                            }
+                auto* physics = GameSubsystems::Find<PhysicsSubsystem>();
+                if (!physics)
+                {
+                    return;
+                }
 
-                            physics->GetWorld().DestroyBody(rb.RuntimeBodyId);
-                            rb.RuntimeBodyId = INVALID_PHYSICS_BODY;
-                        });
+                physics->GetWorld().DestroyBody(rb.RuntimeBodyId);
+                rb.RuntimeBodyId = INVALID_PHYSICS_BODY;
             });
+        });
 
         // PhysicsStep: advance the Jolt simulation using a fixed timestep
         // accumulator.  The configured timestep is captured here and applied
         // to the PhysicsWorld once during system registration (which runs
         // after subsystem initialisation).
-        registry.RegisterSystem("PhysicsStep",
-            [fixedTimestep](flecs::world& world)
+        registry.RegisterSystem("PhysicsStep", [fixedTimestep](flecs::world& world)
+        {
+            auto* physics = GameSubsystems::Find<PhysicsSubsystem>();
+            if (physics)
             {
-                auto* physics = GameSubsystems::Find<PhysicsSubsystem>();
+                physics->GetWorld().SetFixedTimestep(fixedTimestep);
+            }
+
+            world.system("PhysicsStep")
+                .kind(flecs::OnUpdate)
+                .run([physics](flecs::iter& it)
+            {
                 if (physics)
                 {
-                    physics->GetWorld().SetFixedTimestep(fixedTimestep);
+                    physics->GetWorld().StepFixed(it.delta_time());
                 }
-
-                world.system("PhysicsStep")
-                    .kind(flecs::OnUpdate)
-                    .run([physics](flecs::iter& it)
-                        {
-                            if (physics)
-                            {
-                                physics->GetWorld().StepFixed(it.delta_time());
-                            }
-                        });
             });
+        });
 
         // PhysicsSyncTransforms: copy Jolt body position and rotation into
         // WorldTransformComponent.  Builds the full LocalToWorld matrix from
         // physics position, physics rotation, and the entity's existing scale.
-        registry.RegisterSystem("PhysicsSyncTransforms",
-            [](flecs::world& world)
+        registry.RegisterSystem("PhysicsSyncTransforms", [](flecs::world& world)
+        {
+            auto* physics = GameSubsystems::Find<PhysicsSubsystem>();
+
+            world.system<const RigidBodyComponent, WorldTransformComponent>("PhysicsSyncTransforms")
+                .kind(flecs::OnValidate)
+                .each([physics](flecs::entity, const RigidBodyComponent& rb, WorldTransformComponent& wt)
             {
-                auto* physics = GameSubsystems::Find<PhysicsSubsystem>();
+                if (rb.RuntimeBodyId == INVALID_PHYSICS_BODY)
+                {
+                    return;
+                }
+                if (rb.Type == BodyType::Static)
+                {
+                    return;
+                }
+                if (!physics)
+                {
+                    return;
+                }
 
-                world.system<const RigidBodyComponent, WorldTransformComponent>("PhysicsSyncTransforms")
-                    .kind(flecs::OnValidate)
-                    .each([physics](flecs::entity, const RigidBodyComponent& rb, WorldTransformComponent& wt)
-                        {
-                            if (rb.RuntimeBodyId == INVALID_PHYSICS_BODY)
-                            {
-                                return;
-                            }
-                            if (rb.Type == BodyType::Static)
-                            {
-                                return;
-                            }
-                            if (!physics)
-                            {
-                                return;
-                            }
+                Float3 pos = physics->GetWorld().GetBodyPosition(rb.RuntimeBodyId);
+                Float4 rotQ = physics->GetWorld().GetBodyRotation(rb.RuntimeBodyId);
 
-                            Float3 pos = physics->GetWorld().GetBodyPosition(rb.RuntimeBodyId);
-                            Float4 rotQ = physics->GetWorld().GetBodyRotation(rb.RuntimeBodyId);
+                wt.Position = pos;
 
-                            wt.Position = pos;
-
-                            // Build LocalToWorld = translate * rotate * scale.
-                            Quaternion q(rotQ.w, rotQ.x, rotQ.y, rotQ.z);
-                            Matrix4 rotMat = Maths::ToMatrix4(q);
-                            Matrix4 translateMat = Maths::Translate(Matrix4(1.0f), pos);
-                            Matrix4 scaleMat = Maths::ScaleMatrix(Matrix4(1.0f), wt.Scale);
-                            wt.LocalToWorld = translateMat * rotMat * scaleMat;
-                        });
-            },
-            {}, {"PhysicsStep"});
+                // Build LocalToWorld = translate * rotate * scale.
+                Quaternion q(rotQ.w, rotQ.x, rotQ.y, rotQ.z);
+                Matrix4 rotMat = Maths::ToMatrix4(q);
+                Matrix4 translateMat = Maths::Translate(Matrix4(1.0f), pos);
+                Matrix4 scaleMat = Maths::ScaleMatrix(Matrix4(1.0f), wt.Scale);
+                wt.LocalToWorld = translateMat * rotMat * scaleMat;
+            });
+        }, {}, {"PhysicsStep"});
 
         WAYFINDER_INFO(LogPhysics, "PhysicsPlugin registered");
     }

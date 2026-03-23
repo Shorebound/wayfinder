@@ -122,22 +122,21 @@ namespace Wayfinder::Physics
 
         void InitialiseJoltGlobals()
         {
-            std::call_once(g_joltInitFlag,
-                []()
-                {
-                    JPH::RegisterDefaultAllocator();
-                    JPH::Factory::sInstance = new JPH::Factory();
-                    JPH::RegisterTypes();
+            std::call_once(g_joltInitFlag, []()
+            {
+                JPH::RegisterDefaultAllocator();
+                JPH::Factory::sInstance = new JPH::Factory();
+                JPH::RegisterTypes();
 
-                    // Register a one-time teardown so Jolt globals are cleaned up
-                    // when the process exits (avoids leak reports in sanitisers).
-                    std::atexit([]()
-                        {
-                            JPH::UnregisterTypes();
-                            delete JPH::Factory::sInstance;
-                            JPH::Factory::sInstance = nullptr;
-                        });
+                // Register a one-time teardown so Jolt globals are cleaned up
+                // when the process exits (avoids leak reports in sanitisers).
+                std::atexit([]()
+                {
+                    JPH::UnregisterTypes();
+                    delete JPH::Factory::sInstance;
+                    JPH::Factory::sInstance = nullptr;
                 });
+            });
         }
     } // anonymous namespace
 

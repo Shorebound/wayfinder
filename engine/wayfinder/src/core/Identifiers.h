@@ -79,10 +79,10 @@ namespace Wayfinder
         static auto Generate() -> Uuid
         {
             thread_local std::mt19937_64 sRng([]
-                {
-                    std::random_device rd;
-                    return rd();
-                }());
+            {
+                std::random_device rd;
+                return rd();
+            }());
 
             std::uniform_int_distribution<uint64_t> dist;
             uint64_t a = dist(sRng);
@@ -189,11 +189,10 @@ namespace Wayfinder
 
         constexpr bool IsNil() const
         {
-            return std::all_of(m_bytes.begin(), m_bytes.end(),
-                [](uint8_t b)
-                {
-                    return b == 0;
-                });
+            return std::all_of(m_bytes.begin(), m_bytes.end(), [](uint8_t b)
+            {
+                return b == 0;
+            });
         }
 
         constexpr explicit operator bool() const

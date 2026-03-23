@@ -172,9 +172,9 @@ namespace Wayfinder::Tests
 
             SubsystemCollection<GameSubsystem> collection;
             collection.Register<SubsystemA>([]() -> bool
-                {
-                    return false;
-                });
+            {
+                return false;
+            });
             collection.Initialise();
 
             CHECK(collection.Get<SubsystemA>() == nullptr);

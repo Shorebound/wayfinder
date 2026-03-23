@@ -89,24 +89,22 @@ namespace Wayfinder::Journey
             // Convention: the flecs system name must match the descriptor name
             // so the engine can look it up and toggle it via enable/disable.
             // Runs after BurnDamage so regen applies after damage each frame.
-            registry.RegisterSystem("HealthRegen",
-                [](flecs::world& world)
+            registry.RegisterSystem("HealthRegen", [](flecs::world& world)
+            {
+                world.system<HealthComponent>("HealthRegen")
+                    .kind(flecs::OnUpdate)
+                    .each([](HealthComponent& health)
                 {
-                    world.system<HealthComponent>("HealthRegen")
-                        .kind(flecs::OnUpdate)
-                        .each([](HealthComponent& health)
-                            {
-                                if (health.CurrentHealth < health.MaxHealth)
-                                {
-                                    health.CurrentHealth += 0.1f;
-                                    if (health.CurrentHealth > health.MaxHealth)
-                                    {
-                                        health.CurrentHealth = health.MaxHealth;
-                                    }
-                                }
-                            });
-                },
-                Wayfinder::InState("Playing"), {"BurnDamage"});
+                    if (health.CurrentHealth < health.MaxHealth)
+                    {
+                        health.CurrentHealth += 0.1f;
+                        if (health.CurrentHealth > health.MaxHealth)
+                        {
+                            health.CurrentHealth = health.MaxHealth;
+                        }
+                    }
+                });
+            }, Wayfinder::InState("Playing"), {"BurnDamage"});
 
             registry.SetInitialState("Playing");
         }
@@ -131,25 +129,22 @@ namespace Wayfinder::Journey
             // when the tag is set, ALL entities with HealthComponent take burn
             // damage.  For per-entity burning, attach a GameplayTagContainer to
             // each entity and query it inside the lambda instead.
-            registry.RegisterSystem(
-                "BurnDamage",
-                [](flecs::world& world)
+            registry.RegisterSystem("BurnDamage", [](flecs::world& world)
+            {
+                world.system<HealthComponent>("BurnDamage")
+                    .kind(flecs::OnUpdate)
+                    .each([](HealthComponent& health)
                 {
-                    world.system<HealthComponent>("BurnDamage")
-                        .kind(flecs::OnUpdate)
-                        .each([](HealthComponent& health)
-                            {
-                                if (health.CurrentHealth > 0.0f)
-                                {
-                                    health.CurrentHealth -= 0.5f;
-                                    if (health.CurrentHealth < 0.0f)
-                                    {
-                                        health.CurrentHealth = 0.0f;
-                                    }
-                                }
-                            });
-                },
-                HasTag(burning));
+                    if (health.CurrentHealth > 0.0f)
+                    {
+                        health.CurrentHealth -= 0.5f;
+                        if (health.CurrentHealth < 0.0f)
+                        {
+                            health.CurrentHealth = 0.0f;
+                        }
+                    }
+                });
+            }, HasTag(burning));
         }
     };
 

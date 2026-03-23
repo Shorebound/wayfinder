@@ -30,15 +30,14 @@ namespace Wayfinder::Tests
             m_log.push_back(m_name + "::AddPasses");
 
             // Inject a simple pass that reads SceneColour and writes swapchain
-            graph.AddPass(m_name,
-                [this](Wayfinder::RenderGraphBuilder& builder)
+            graph.AddPass(m_name, [this](Wayfinder::RenderGraphBuilder& builder)
+            {
+                auto colour = builder.CreateTransient({128, 128, Wayfinder::TextureFormat::RGBA8_UNORM, m_name.c_str()});
+                builder.WriteColour(colour);
+                return [](Wayfinder::RenderDevice&, const Wayfinder::RenderGraphResources&)
                 {
-                    auto colour = builder.CreateTransient({128, 128, Wayfinder::TextureFormat::RGBA8_UNORM, m_name.c_str()});
-                    builder.WriteColour(colour);
-                    return [](Wayfinder::RenderDevice&, const Wayfinder::RenderGraphResources&)
-                    {
-                    };
-                });
+                };
+            });
         }
 
         void OnAttach(const Wayfinder::RenderFeatureContext&) override
@@ -68,20 +67,19 @@ namespace Wayfinder::Tests
 
         void AddPasses(Wayfinder::RenderGraph& graph, const Wayfinder::RenderFrame&) override
         {
-            graph.AddPass("OverlayPass",
-                [&](Wayfinder::RenderGraphBuilder& builder)
+            graph.AddPass("OverlayPass", [&](Wayfinder::RenderGraphBuilder& builder)
+            {
+                auto colour = graph.FindHandle(Wayfinder::WellKnown::SceneColour);
+                if (colour.IsValid())
                 {
-                    auto colour = graph.FindHandle(Wayfinder::WellKnown::SceneColour);
-                    if (colour.IsValid())
-                    {
-                        builder.ReadTexture(colour);
-                    }
-                    builder.SetSwapchainOutput();
-                    return [this](Wayfinder::RenderDevice&, const Wayfinder::RenderGraphResources&)
-                    {
-                        m_executed = true;
-                    };
-                });
+                    builder.ReadTexture(colour);
+                }
+                builder.SetSwapchainOutput();
+                return [this](Wayfinder::RenderDevice&, const Wayfinder::RenderGraphResources&)
+                {
+                    m_executed = true;
+                };
+            });
         }
 
         bool WasExecuted() const
@@ -193,15 +191,14 @@ namespace Wayfinder::Tests
         colourDesc.Format = Wayfinder::TextureFormat::RGBA8_UNORM;
         colourDesc.DebugName = Wayfinder::WellKnown::SceneColour;
 
-        graph.AddPass("MainScene",
-            [&](Wayfinder::RenderGraphBuilder& builder)
+        graph.AddPass("MainScene", [&](Wayfinder::RenderGraphBuilder& builder)
+        {
+            auto colour = builder.CreateTransient(colourDesc);
+            builder.WriteColour(colour);
+            return [](Wayfinder::RenderDevice&, const Wayfinder::RenderGraphResources&)
             {
-                auto colour = builder.CreateTransient(colourDesc);
-                builder.WriteColour(colour);
-                return [](Wayfinder::RenderDevice&, const Wayfinder::RenderGraphResources&)
-                {
-                };
-            });
+            };
+        });
 
         // Feature injects its pass
         overlay.AddPasses(graph, frame);

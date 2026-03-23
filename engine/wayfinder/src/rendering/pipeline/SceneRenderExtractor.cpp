@@ -94,155 +94,155 @@ namespace Wayfinder
         }
 
         scene.GetWorld().each([&frame, &cameraView](flecs::entity entityHandle, const TransformComponent& transform, const MeshComponent& mesh, const RenderableComponent& renderable)
+        {
+            RenderMeshSubmission submission;
+            submission.Mesh.Origin = RenderResourceOrigin::BuiltIn;
+            submission.Mesh.StableKey = kBuiltInBoxMeshKey;
+            submission.Geometry.Type = RenderGeometryType::Box;
+            submission.Geometry.Dimensions = mesh.Dimensions;
+            submission.Material.Ref.Origin = RenderResourceOrigin::BuiltIn;
+            submission.Material.Ref.StableKey = kBuiltInSurfaceMaterialKey;
+            submission.Material.Domain = RenderMaterialDomain::Surface;
+            submission.Material.Parameters.SetColour("base_colour", LinearColour::White());
+
+            Matrix4 localToWorld = transform.GetLocalMatrix();
+
+            if (entityHandle.has<WorldTransformComponent>())
             {
-                RenderMeshSubmission submission;
-                submission.Mesh.Origin = RenderResourceOrigin::BuiltIn;
-                submission.Mesh.StableKey = kBuiltInBoxMeshKey;
-                submission.Geometry.Type = RenderGeometryType::Box;
-                submission.Geometry.Dimensions = mesh.Dimensions;
-                submission.Material.Ref.Origin = RenderResourceOrigin::BuiltIn;
-                submission.Material.Ref.StableKey = kBuiltInSurfaceMaterialKey;
-                submission.Material.Domain = RenderMaterialDomain::Surface;
-                submission.Material.Parameters.SetColour("base_colour", LinearColour::White());
+                const auto& worldTransform = entityHandle.get<WorldTransformComponent>();
+                localToWorld = worldTransform.LocalToWorld;
+            }
 
-                Matrix4 localToWorld = transform.GetLocalMatrix();
-
-                if (entityHandle.has<WorldTransformComponent>())
+            if (entityHandle.has<MaterialComponent>())
+            {
+                const auto& material = entityHandle.get<MaterialComponent>();
+                if (material.MaterialAssetId)
                 {
-                    const auto& worldTransform = entityHandle.get<WorldTransformComponent>();
-                    localToWorld = worldTransform.LocalToWorld;
+                    submission.Material.Ref.Origin = RenderResourceOrigin::Asset;
+                    submission.Material.Ref.AssetId = material.MaterialAssetId;
+                    submission.Material.Ref.StableKey = MakeStableKey(*material.MaterialAssetId);
                 }
 
-                if (entityHandle.has<MaterialComponent>())
+                if (material.HasBaseColourOverride || !material.MaterialAssetId)
                 {
-                    const auto& material = entityHandle.get<MaterialComponent>();
-                    if (material.MaterialAssetId)
-                    {
-                        submission.Material.Ref.Origin = RenderResourceOrigin::Asset;
-                        submission.Material.Ref.AssetId = material.MaterialAssetId;
-                        submission.Material.Ref.StableKey = MakeStableKey(*material.MaterialAssetId);
-                    }
-
-                    if (material.HasBaseColourOverride || !material.MaterialAssetId)
-                    {
-                        submission.Material.HasOverrides = true;
-                        submission.Material.Overrides.SetColour("base_colour", LinearColour::FromColour(material.BaseColour));
-                    }
+                    submission.Material.HasOverrides = true;
+                    submission.Material.Overrides.SetColour("base_colour", LinearColour::FromColour(material.BaseColour));
                 }
+            }
 
-                if (entityHandle.has<RenderOverrideComponent>())
+            if (entityHandle.has<RenderOverrideComponent>())
+            {
+                const auto& renderOverride = entityHandle.get<RenderOverrideComponent>();
+                if (renderOverride.Wireframe.has_value())
                 {
-                    const auto& renderOverride = entityHandle.get<RenderOverrideComponent>();
-                    if (renderOverride.Wireframe.has_value())
-                    {
-                        submission.Material.StateOverrides.FillMode = *renderOverride.Wireframe ? RenderFillMode::SolidAndWireframe : RenderFillMode::Solid;
-                    }
+                    submission.Material.StateOverrides.FillMode = *renderOverride.Wireframe ? RenderFillMode::SolidAndWireframe : RenderFillMode::Solid;
                 }
+            }
 
-                submission.Visible = renderable.Visible;
-                submission.Layer = renderable.Layer;
-                submission.SortPriority = renderable.SortPriority;
+            submission.Visible = renderable.Visible;
+            submission.Layer = renderable.Layer;
+            submission.SortPriority = renderable.SortPriority;
 
-                submission.LocalToWorld = localToWorld;
+            submission.LocalToWorld = localToWorld;
 
-                // Compute camera-space Z for depth sorting
-                const Float4 worldPos = Float4(Float3(localToWorld[3]), 1.0f);
-                const float cameraSpaceZ = (cameraView * worldPos).z;
+            // Compute camera-space Z for depth sorting
+            const Float4 worldPos = Float4(Float3(localToWorld[3]), 1.0f);
+            const float cameraSpaceZ = (cameraView * worldPos).z;
 
-                submission.SortKey = SortKeyBuilder::Build(MapLayer(submission.Layer), MaterialIdBits(submission.Material.Ref.AssetId), cameraSpaceZ, static_cast<uint16_t>(submission.SortPriority));
+            submission.SortKey = SortKeyBuilder::Build(MapLayer(submission.Layer), MaterialIdBits(submission.Material.Ref.AssetId), cameraSpaceZ, static_cast<uint16_t>(submission.SortPriority));
 
-                RenderPass* owningPass = frame.FindScenePassForSubmission(submission, 0);
-                if (!owningPass)
-                {
-                    WAYFINDER_WARNING(LogRenderer, "SceneRenderExtractor skipped mesh submission because no scene pass matched layer '{0}' in frame '{1}'.", submission.Layer, frame.SceneName);
-                    return;
-                }
+            RenderPass* owningPass = frame.FindScenePassForSubmission(submission, 0);
+            if (!owningPass)
+            {
+                WAYFINDER_WARNING(LogRenderer, "SceneRenderExtractor skipped mesh submission because no scene pass matched layer '{0}' in frame '{1}'.", submission.Layer, frame.SceneName);
+                return;
+            }
 
-                owningPass->Meshes.push_back(std::move(submission));
-            });
+            owningPass->Meshes.push_back(std::move(submission));
+        });
 
         scene.GetWorld().each([&frame](flecs::entity entityHandle, const TransformComponent& transform, const LightComponent& light)
+        {
+            Matrix4 localToWorld = transform.GetLocalMatrix();
+            Float3 position = transform.Position;
+            if (entityHandle.has<WorldTransformComponent>())
             {
-                Matrix4 localToWorld = transform.GetLocalMatrix();
-                Float3 position = transform.Position;
-                if (entityHandle.has<WorldTransformComponent>())
+                const auto& worldTransform = entityHandle.get<WorldTransformComponent>();
+                localToWorld = worldTransform.LocalToWorld;
+                position = worldTransform.Position;
+            }
+
+            const Float3 direction = Maths::Normalize(Maths::TransformDirection(localToWorld, {0.0f, 0.0f, -1.0f}));
+
+            RenderLightSubmission submission;
+            submission.Type = light.Type == LightType::Directional ? RenderLightType::Directional : RenderLightType::Point;
+            submission.Position = position;
+            submission.Direction = direction;
+            submission.Tint = light.Tint;
+            submission.Intensity = light.Intensity;
+            submission.Range = light.Range;
+            submission.DebugDraw = light.DebugDraw;
+            frame.Lights.push_back(submission);
+
+            if (light.DebugDraw)
+            {
+                const float debugSize = light.Type == LightType::Directional ? 0.6f : 0.3f;
+                const Matrix4 debugTransform = Maths::ComposeTransform(position, {0.0f, 0.0f, 0.0f}, {debugSize, debugSize, debugSize});
+
+                RenderDebugBox debugBox;
+                debugBox.LocalToWorld = debugTransform;
+                debugBox.Dimensions = {1.0f, 1.0f, 1.0f};
+                debugBox.Material.Ref.Origin = RenderResourceOrigin::BuiltIn;
+                debugBox.Material.Ref.StableKey = 100ull;
+                debugBox.Material.Domain = RenderMaterialDomain::Debug;
+                debugBox.Material.Parameters.SetColour("base_colour", LinearColour::FromColour(light.Tint));
+
+                if (RenderPass* pass = frame.FindPass(RenderPassIds::Debug))
                 {
-                    const auto& worldTransform = entityHandle.get<WorldTransformComponent>();
-                    localToWorld = worldTransform.LocalToWorld;
-                    position = worldTransform.Position;
+                    pass->DebugDraw->Boxes.push_back(debugBox);
                 }
 
-                const Float3 direction = Maths::Normalize(Maths::TransformDirection(localToWorld, {0.0f, 0.0f, -1.0f}));
-
-                RenderLightSubmission submission;
-                submission.Type = light.Type == LightType::Directional ? RenderLightType::Directional : RenderLightType::Point;
-                submission.Position = position;
-                submission.Direction = direction;
-                submission.Tint = light.Tint;
-                submission.Intensity = light.Intensity;
-                submission.Range = light.Range;
-                submission.DebugDraw = light.DebugDraw;
-                frame.Lights.push_back(submission);
-
-                if (light.DebugDraw)
+                if (light.Type == LightType::Directional)
                 {
-                    const float debugSize = light.Type == LightType::Directional ? 0.6f : 0.3f;
-                    const Matrix4 debugTransform = Maths::ComposeTransform(position, {0.0f, 0.0f, 0.0f}, {debugSize, debugSize, debugSize});
-
-                    RenderDebugBox debugBox;
-                    debugBox.LocalToWorld = debugTransform;
-                    debugBox.Dimensions = {1.0f, 1.0f, 1.0f};
-                    debugBox.Material.Ref.Origin = RenderResourceOrigin::BuiltIn;
-                    debugBox.Material.Ref.StableKey = 100ull;
-                    debugBox.Material.Domain = RenderMaterialDomain::Debug;
-                    debugBox.Material.Parameters.SetColour("base_colour", LinearColour::FromColour(light.Tint));
+                    const Float3 lineEnd = Maths::Add(position, Maths::Scale(direction, 1.5f));
+                    RenderDebugLine debugLine;
+                    debugLine.Start = position;
+                    debugLine.End = lineEnd;
+                    debugLine.Tint = light.Tint;
 
                     if (RenderPass* pass = frame.FindPass(RenderPassIds::Debug))
                     {
-                        pass->DebugDraw->Boxes.push_back(debugBox);
-                    }
-
-                    if (light.Type == LightType::Directional)
-                    {
-                        const Float3 lineEnd = Maths::Add(position, Maths::Scale(direction, 1.5f));
-                        RenderDebugLine debugLine;
-                        debugLine.Start = position;
-                        debugLine.End = lineEnd;
-                        debugLine.Tint = light.Tint;
-
-                        if (RenderPass* pass = frame.FindPass(RenderPassIds::Debug))
-                        {
-                            pass->DebugDraw->Lines.push_back(debugLine);
-                        }
+                        pass->DebugDraw->Lines.push_back(debugLine);
                     }
                 }
-            });
+            }
+        });
 
         // Extract post-process volumes (global volumes may have no transform)
         std::vector<PostProcessVolumeInstance> volumeInstances;
         scene.GetWorld().each([&volumeInstances](flecs::entity entityHandle, const PostProcessVolumeComponent& volume)
+        {
+            Float3 position{0.0f, 0.0f, 0.0f};
+            Float3 scale{1.0f, 1.0f, 1.0f};
+            Matrix4 localToWorld = Matrix4(1.0f);
+
+            if (entityHandle.has<WorldTransformComponent>())
             {
-                Float3 position{0.0f, 0.0f, 0.0f};
-                Float3 scale{1.0f, 1.0f, 1.0f};
-                Matrix4 localToWorld = Matrix4(1.0f);
+                const auto& worldTransform = entityHandle.get<WorldTransformComponent>();
+                position = worldTransform.Position;
+                scale = worldTransform.Scale;
+                localToWorld = worldTransform.LocalToWorld;
+            }
+            else if (entityHandle.has<TransformComponent>())
+            {
+                const auto& transform = entityHandle.get<TransformComponent>();
+                position = transform.Position;
+                scale = transform.Scale;
+                localToWorld = transform.GetLocalMatrix();
+            }
 
-                if (entityHandle.has<WorldTransformComponent>())
-                {
-                    const auto& worldTransform = entityHandle.get<WorldTransformComponent>();
-                    position = worldTransform.Position;
-                    scale = worldTransform.Scale;
-                    localToWorld = worldTransform.LocalToWorld;
-                }
-                else if (entityHandle.has<TransformComponent>())
-                {
-                    const auto& transform = entityHandle.get<TransformComponent>();
-                    position = transform.Position;
-                    scale = transform.Scale;
-                    localToWorld = transform.GetLocalMatrix();
-                }
-
-                volumeInstances.push_back({.Volume = &volume, .WorldPosition = position, .WorldScale = scale, .LocalToWorld = localToWorld});
-            });
+            volumeInstances.push_back({.Volume = &volume, .WorldPosition = position, .WorldScale = scale, .LocalToWorld = localToWorld});
+        });
 
         // Blend post-process volumes per view using each view's camera position
         if (!volumeInstances.empty())

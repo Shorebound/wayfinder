@@ -1019,26 +1019,25 @@ namespace Wayfinder
     void WriteEffectParam(nlohmann::json& obj, const std::string& key, const Wayfinder::PostProcessParamValue& value)
     {
         std::visit([&](const auto& v)
+        {
+            using T = std::decay_t<decltype(v)>;
+            if constexpr (std::is_same_v<T, float>)
             {
-                using T = std::decay_t<decltype(v)>;
-                if constexpr (std::is_same_v<T, float>)
-                {
-                    obj[key] = v;
-                }
-                else if constexpr (std::is_same_v<T, int32_t>)
-                {
-                    obj[key] = static_cast<int64_t>(v);
-                }
-                else if constexpr (std::is_same_v<T, Wayfinder::Float3>)
-                {
-                    obj[key] = WriteVector3(v);
-                }
-                else if constexpr (std::is_same_v<T, Wayfinder::Colour>)
-                {
-                    obj[key] = WriteColour(v);
-                }
-            },
-            value);
+                obj[key] = v;
+            }
+            else if constexpr (std::is_same_v<T, int32_t>)
+            {
+                obj[key] = static_cast<int64_t>(v);
+            }
+            else if constexpr (std::is_same_v<T, Wayfinder::Float3>)
+            {
+                obj[key] = WriteVector3(v);
+            }
+            else if constexpr (std::is_same_v<T, Wayfinder::Colour>)
+            {
+                obj[key] = WriteColour(v);
+            }
+        }, value);
     }
 
     void SerialisePostProcessVolume(const Wayfinder::Entity& entity, nlohmann::json& componentTables)

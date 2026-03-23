@@ -70,61 +70,59 @@ namespace Wayfinder
         }
 
         return std::visit([&](const auto& a) -> Wayfinder::PostProcessParamValue
-            {
-                using T = std::decay_t<decltype(a)>;
-                const auto& b = std::get<T>(target);
+        {
+            using T = std::decay_t<decltype(a)>;
+            const auto& b = std::get<T>(target);
 
-                if constexpr (std::is_same_v<T, float>)
-                {
-                    return Maths::Mix(a, b, weight);
-                }
-                else if constexpr (std::is_same_v<T, int32_t>)
-                {
-                    return static_cast<int32_t>(std::round(Maths::Mix(static_cast<float>(a), static_cast<float>(b), weight)));
-                }
-                else if constexpr (std::is_same_v<T, Wayfinder::Float3>)
-                {
-                    return Maths::Mix(a, b, weight);
-                }
-                else if constexpr (std::is_same_v<T, Wayfinder::Colour>)
-                {
-                    return LerpColour(a, b, weight);
-                }
-                else
-                {
-                    return b;
-                }
-            },
-            current);
+            if constexpr (std::is_same_v<T, float>)
+            {
+                return Maths::Mix(a, b, weight);
+            }
+            else if constexpr (std::is_same_v<T, int32_t>)
+            {
+                return static_cast<int32_t>(std::round(Maths::Mix(static_cast<float>(a), static_cast<float>(b), weight)));
+            }
+            else if constexpr (std::is_same_v<T, Wayfinder::Float3>)
+            {
+                return Maths::Mix(a, b, weight);
+            }
+            else if constexpr (std::is_same_v<T, Wayfinder::Colour>)
+            {
+                return LerpColour(a, b, weight);
+            }
+            else
+            {
+                return b;
+            }
+        }, current);
     }
 
     Wayfinder::PostProcessParamValue ZeroValue(const Wayfinder::PostProcessParamValue& v)
     {
         return std::visit([](const auto& val) -> Wayfinder::PostProcessParamValue
+        {
+            using T = std::decay_t<decltype(val)>;
+            if constexpr (std::is_same_v<T, float>)
             {
-                using T = std::decay_t<decltype(val)>;
-                if constexpr (std::is_same_v<T, float>)
-                {
-                    return 0.0f;
-                }
-                else if constexpr (std::is_same_v<T, int32_t>)
-                {
-                    return int32_t{0};
-                }
-                else if constexpr (std::is_same_v<T, Wayfinder::Float3>)
-                {
-                    return Wayfinder::Float3{0.0f, 0.0f, 0.0f};
-                }
-                else if constexpr (std::is_same_v<T, Wayfinder::Colour>)
-                {
-                    return Wayfinder::Colour{0, 0, 0, 0};
-                }
-                else
-                {
-                    return val;
-                }
-            },
-            v);
+                return 0.0f;
+            }
+            else if constexpr (std::is_same_v<T, int32_t>)
+            {
+                return int32_t{0};
+            }
+            else if constexpr (std::is_same_v<T, Wayfinder::Float3>)
+            {
+                return Wayfinder::Float3{0.0f, 0.0f, 0.0f};
+            }
+            else if constexpr (std::is_same_v<T, Wayfinder::Colour>)
+            {
+                return Wayfinder::Colour{0, 0, 0, 0};
+            }
+            else
+            {
+                return val;
+            }
+        }, v);
     }
 
     void BlendEffectInto(Wayfinder::PostProcessEffect& result, const Wayfinder::PostProcessEffect& source, float weight)
@@ -248,11 +246,10 @@ namespace Wayfinder
             sorted.push_back(&instance);
         }
 
-        std::stable_sort(sorted.begin(), sorted.end(),
-            [](const auto* a, const auto* b)
-            {
-                return a->Volume->Priority < b->Volume->Priority;
-            });
+        std::stable_sort(sorted.begin(), sorted.end(), [](const auto* a, const auto* b)
+        {
+            return a->Volume->Priority < b->Volume->Priority;
+        });
 
         for (const auto* instance : sorted)
         {

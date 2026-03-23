@@ -86,9 +86,9 @@ namespace Wayfinder
 
         // Wire window events → Application::OnEvent
         m_runtime->GetWindow().SetEventCallback([this](Event& e)
-            {
-                OnEvent(e);
-            });
+        {
+            OnEvent(e);
+        });
 
         // 5. Layer stack
         m_layerStack = std::make_unique<LayerStack>();
@@ -123,9 +123,9 @@ namespace Wayfinder
 
             // Drain queued input events — single batch at a well-defined frame point
             m_eventQueue.Drain([this](Event& e)
-                {
-                    PropagateToLayers(e);
-                });
+            {
+                PropagateToLayers(e);
+            });
 
             const float dt = m_runtime->GetDeltaTime();
 
@@ -160,16 +160,16 @@ namespace Wayfinder
         });
 
         dispatcher.Dispatch<WindowResizeEvent>([this](WindowResizeEvent& e)
-            {
-                return OnWindowResize(e);
-            });
+        {
+            return OnWindowResize(e);
+        });
 
         // Feed scroll events into input accumulator immediately
         dispatcher.Dispatch<MouseScrolledEvent>([this](MouseScrolledEvent& e)
-            {
-                m_runtime->GetInput().AccumulateScroll(e.GetXOffset(), e.GetYOffset());
-                return true;
-            });
+        {
+            m_runtime->GetInput().AccumulateScroll(e.GetXOffset(), e.GetYOffset());
+            return true;
+        });
 
         if (event.Handled)
         {

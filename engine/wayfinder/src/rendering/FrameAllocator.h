@@ -111,10 +111,9 @@ namespace Wayfinder
         {
             void* entryStorage = Allocate(sizeof(DestructorEntry), alignof(DestructorEntry));
             m_destructorHead = ::new (entryStorage) DestructorEntry{[](void* ptr)
-                {
-                    static_cast<T*>(ptr)->~T();
-                },
-                object, m_destructorHead};
+            {
+                static_cast<T*>(ptr)->~T();
+            }, object, m_destructorHead};
         }
 
         return object;

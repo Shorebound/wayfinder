@@ -105,11 +105,10 @@ namespace Wayfinder
         const std::string canonical = std::filesystem::weakly_canonical(path).string();
 
         // Remove definitions sourced from this file
-        std::erase_if(m_definitions,
-            [&](const GameplayTagDefinition& def)
-            {
-                return def.SourceFile == canonical;
-            });
+        std::erase_if(m_definitions, [&](const GameplayTagDefinition& def)
+        {
+            return def.SourceFile == canonical;
+        });
 
         // Rebuild index
         m_index.clear();

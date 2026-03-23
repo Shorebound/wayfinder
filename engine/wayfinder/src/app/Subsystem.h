@@ -114,12 +114,10 @@ namespace Wayfinder
                     return false;
                 }
             }
-            m_factories.push_back({type,
-                []() -> std::unique_ptr<TBase>
-                {
-                    return std::make_unique<T>();
-                },
-                predicate});
+            m_factories.push_back({type, []() -> std::unique_ptr<TBase>
+            {
+                return std::make_unique<T>();
+            }, predicate});
             return true;
         }
 

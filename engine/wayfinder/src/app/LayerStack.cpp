@@ -28,11 +28,10 @@ namespace Wayfinder
 
     void LayerStack::PopLayer(Layer* layer)
     {
-        auto it = std::find_if(m_layers.begin(), m_layers.begin() + m_layerInsertIndex,
-            [layer](const std::unique_ptr<Layer>& l)
-            {
-                return l.get() == layer;
-            });
+        auto it = std::find_if(m_layers.begin(), m_layers.begin() + m_layerInsertIndex, [layer](const std::unique_ptr<Layer>& l)
+        {
+            return l.get() == layer;
+        });
 
         if (it != m_layers.begin() + m_layerInsertIndex)
         {
@@ -44,11 +43,10 @@ namespace Wayfinder
 
     void LayerStack::PopOverlay(Layer* overlay)
     {
-        auto it = std::find_if(m_layers.begin() + m_layerInsertIndex, m_layers.end(),
-            [overlay](const std::unique_ptr<Layer>& l)
-            {
-                return l.get() == overlay;
-            });
+        auto it = std::find_if(m_layers.begin() + m_layerInsertIndex, m_layers.end(), [overlay](const std::unique_ptr<Layer>& l)
+        {
+            return l.get() == overlay;
+        });
 
         if (it != m_layers.end())
         {

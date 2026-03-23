@@ -78,39 +78,39 @@ namespace Wayfinder
         {
             // Release all pooled GPU resources before destroying the device.
             m_shaderPool.ForEachAlive([&](SDL_GPUShader* s)
-                {
-                    SDL_ReleaseGPUShader(m_device, s);
-                });
+            {
+                SDL_ReleaseGPUShader(m_device, s);
+            });
             m_shaderPool.Clear();
 
             m_pipelinePool.ForEachAlive([&](SDL_GPUGraphicsPipeline* p)
-                {
-                    SDL_ReleaseGPUGraphicsPipeline(m_device, p);
-                });
+            {
+                SDL_ReleaseGPUGraphicsPipeline(m_device, p);
+            });
             m_pipelinePool.Clear();
 
             m_computePipelinePool.ForEachAlive([&](SDL_GPUComputePipeline* p)
-                {
-                    SDL_ReleaseGPUComputePipeline(m_device, p);
-                });
+            {
+                SDL_ReleaseGPUComputePipeline(m_device, p);
+            });
             m_computePipelinePool.Clear();
 
             m_bufferPool.ForEachAlive([&](SDL_GPUBuffer* b)
-                {
-                    SDL_ReleaseGPUBuffer(m_device, b);
-                });
+            {
+                SDL_ReleaseGPUBuffer(m_device, b);
+            });
             m_bufferPool.Clear();
 
             m_samplerPool.ForEachAlive([&](SDL_GPUSampler* s)
-                {
-                    SDL_ReleaseGPUSampler(m_device, s);
-                });
+            {
+                SDL_ReleaseGPUSampler(m_device, s);
+            });
             m_samplerPool.Clear();
 
             m_texturePool.ForEachAlive([&](SDL_GPUTexture* t)
-                {
-                    SDL_ReleaseGPUTexture(m_device, t);
-                });
+            {
+                SDL_ReleaseGPUTexture(m_device, t);
+            });
             m_texturePool.Clear();
 
             if (m_depthTexture)

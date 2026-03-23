@@ -112,78 +112,78 @@ namespace Wayfinder
         world.system<>("UpdateWorldTransforms")
             .kind(flecs::PreUpdate)
             .run([&world](flecs::iter&)
+        {
+            world.children([&](flecs::entity child)
+            {
+                struct TransformPropagation
                 {
-                    world.children([&](flecs::entity child)
+                    static void UpdateRecursive(flecs::entity entityHandle, const Matrix4& parentMatrix)
+                    {
+                        if (!entityHandle.has<TransformComponent>())
                         {
-                            struct TransformPropagation
+                            entityHandle.children([&](flecs::entity child)
                             {
-                                static void UpdateRecursive(flecs::entity entityHandle, const Matrix4& parentMatrix)
-                                {
-                                    if (!entityHandle.has<TransformComponent>())
-                                    {
-                                        entityHandle.children([&](flecs::entity child)
-                                            {
-                                                UpdateRecursive(child, parentMatrix);
-                                            });
-                                        return;
-                                    }
+                                UpdateRecursive(child, parentMatrix);
+                            });
+                            return;
+                        }
 
-                                    const TransformComponent& localTransform = entityHandle.get<TransformComponent>();
-                                    const Matrix4 localMatrix = localTransform.GetLocalMatrix();
-                                    const Matrix4 worldMatrix = Maths::Multiply(localMatrix, parentMatrix);
+                        const TransformComponent& localTransform = entityHandle.get<TransformComponent>();
+                        const Matrix4 localMatrix = localTransform.GetLocalMatrix();
+                        const Matrix4 worldMatrix = Maths::Multiply(localMatrix, parentMatrix);
 
-                                    WorldTransformComponent cachedWorldTransform;
-                                    cachedWorldTransform.LocalToWorld = worldMatrix;
-                                    cachedWorldTransform.Position = Maths::TransformPoint(worldMatrix, {0.0f, 0.0f, 0.0f});
-                                    cachedWorldTransform.Scale = Maths::ExtractScale(worldMatrix);
+                        WorldTransformComponent cachedWorldTransform;
+                        cachedWorldTransform.LocalToWorld = worldMatrix;
+                        cachedWorldTransform.Position = Maths::TransformPoint(worldMatrix, {0.0f, 0.0f, 0.0f});
+                        cachedWorldTransform.Scale = Maths::ExtractScale(worldMatrix);
 
-                                    entityHandle.set<WorldTransformComponent>(cachedWorldTransform);
-                                    entityHandle.children([&](flecs::entity child)
-                                        {
-                                            UpdateRecursive(child, worldMatrix);
-                                        });
-                                }
-                            };
-                            TransformPropagation::UpdateRecursive(child, Maths::Identity());
+                        entityHandle.set<WorldTransformComponent>(cachedWorldTransform);
+                        entityHandle.children([&](flecs::entity child)
+                        {
+                            UpdateRecursive(child, worldMatrix);
                         });
-                });
+                    }
+                };
+                TransformPropagation::UpdateRecursive(child, Maths::Identity());
+            });
+        });
 
         // Camera module
         world.component<ActiveCameraStateComponent>();
         world.system<>("ExtractActiveCamera")
             .kind(flecs::OnUpdate)
             .run([&world](flecs::iter&)
+        {
+            ActiveCameraStateComponent activeCamera;
+
+            world.each([&](flecs::entity entityHandle, const TransformComponent& transform, const CameraComponent& camera)
+            {
+                if (activeCamera.IsValid || !camera.Primary)
                 {
-                    ActiveCameraStateComponent activeCamera;
+                    return;
+                }
 
-                    world.each([&](flecs::entity entityHandle, const TransformComponent& transform, const CameraComponent& camera)
-                        {
-                            if (activeCamera.IsValid || !camera.Primary)
-                            {
-                                return;
-                            }
+                activeCamera.IsValid = true;
+                activeCamera.FieldOfView = camera.FieldOfView;
+                activeCamera.Projection = camera.Projection;
 
-                            activeCamera.IsValid = true;
-                            activeCamera.FieldOfView = camera.FieldOfView;
-                            activeCamera.Projection = camera.Projection;
+                if (entityHandle.has<WorldTransformComponent>())
+                {
+                    const auto& worldTransform = entityHandle.get<WorldTransformComponent>();
+                    activeCamera.Position = worldTransform.Position;
+                    activeCamera.Target = camera.Target;
+                    activeCamera.Up = Maths::Normalize(Maths::TransformDirection(worldTransform.LocalToWorld, camera.Up));
+                }
+                else
+                {
+                    activeCamera.Position = transform.Position;
+                    activeCamera.Target = camera.Target;
+                    activeCamera.Up = camera.Up;
+                }
+            });
 
-                            if (entityHandle.has<WorldTransformComponent>())
-                            {
-                                const auto& worldTransform = entityHandle.get<WorldTransformComponent>();
-                                activeCamera.Position = worldTransform.Position;
-                                activeCamera.Target = camera.Target;
-                                activeCamera.Up = Maths::Normalize(Maths::TransformDirection(worldTransform.LocalToWorld, camera.Up));
-                            }
-                            else
-                            {
-                                activeCamera.Position = transform.Position;
-                                activeCamera.Target = camera.Target;
-                                activeCamera.Up = camera.Up;
-                            }
-                        });
-
-                    world.set<ActiveCameraStateComponent>(activeCamera);
-                });
+            world.set<ActiveCameraStateComponent>(activeCamera);
+        });
     }
 
     void Scene::ClearEntities()
@@ -202,12 +202,12 @@ namespace Wayfinder
         /// m_entitiesById but left the flecs entity alive).
         std::vector<flecs::entity> orphans;
         m_world.each([&](flecs::entity entityHandle)
+        {
+            if (entityHandle.is_valid() && entityHandle.has<SceneOwnership>(m_sceneTag))
             {
-                if (entityHandle.is_valid() && entityHandle.has<SceneOwnership>(m_sceneTag))
-                {
-                    orphans.push_back(entityHandle);
-                }
-            });
+                orphans.push_back(entityHandle);
+            }
+        });
         for (auto& entityHandle : orphans)
         {
             entityHandle.destruct();
@@ -403,41 +403,41 @@ namespace Wayfinder
             }
 
             m_world.each([&](flecs::entity entityHandle)
+            {
+                if (!entityHandle.has<SceneOwnership>(m_sceneTag))
                 {
-                    if (!entityHandle.has<SceneOwnership>(m_sceneTag))
+                    return;
+                }
+
+                Entity entity{entityHandle, this};
+                if (!entity.HasSceneObjectId())
+                {
+                    WAYFINDER_WARNING(LogScene, "Skipping scene entity without SceneObjectId during save: {0}", entity.GetName());
+                    return;
+                }
+
+                SceneDocumentEntity record;
+                record.Id = entity.GetSceneObjectId();
+                record.Name = entity.GetName();
+
+                const flecs::entity parentHandle = entityHandle.parent();
+                if (parentHandle.is_valid())
+                {
+                    const Entity parentEntity{parentHandle, this};
+                    if (parentEntity.HasSceneObjectId())
                     {
-                        return;
+                        record.ParentId = parentEntity.GetSceneObjectId();
                     }
+                }
 
-                    Entity entity{entityHandle, this};
-                    if (!entity.HasSceneObjectId())
-                    {
-                        WAYFINDER_WARNING(LogScene, "Skipping scene entity without SceneObjectId during save: {0}", entity.GetName());
-                        return;
-                    }
+                if (entity.HasPrefabAssetId())
+                {
+                    record.PrefabAssetId = entity.GetPrefabAssetId();
+                }
 
-                    SceneDocumentEntity record;
-                    record.Id = entity.GetSceneObjectId();
-                    record.Name = entity.GetName();
-
-                    const flecs::entity parentHandle = entityHandle.parent();
-                    if (parentHandle.is_valid())
-                    {
-                        const Entity parentEntity{parentHandle, this};
-                        if (parentEntity.HasSceneObjectId())
-                        {
-                            record.ParentId = parentEntity.GetSceneObjectId();
-                        }
-                    }
-
-                    if (entity.HasPrefabAssetId())
-                    {
-                        record.PrefabAssetId = entity.GetPrefabAssetId();
-                    }
-
-                    m_componentRegistry.SerialiseComponents(entity, record.ComponentData);
-                    document.Entities.push_back(std::move(record));
-                });
+                m_componentRegistry.SerialiseComponents(entity, record.ComponentData);
+                document.Entities.push_back(std::move(record));
+            });
 
             std::string error;
             if (!SaveSceneDocument(document, filePath, error))

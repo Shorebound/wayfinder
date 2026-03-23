@@ -917,11 +917,10 @@ static void ShowReady()
         }
     }
 
-    std::sort(readyIssues.begin(), readyIssues.end(),
-        [](auto& a, auto& b)
-        {
-            return a.Number < b.Number;
-        });
+    std::sort(readyIssues.begin(), readyIssues.end(), [](auto& a, auto& b)
+    {
+        return a.Number < b.Number;
+    });
 
     std::cout << "\n";
     if (readyIssues.empty())
@@ -1102,11 +1101,10 @@ static void ShowOrphans()
         }
     }
 
-    std::sort(orphans.begin(), orphans.end(),
-        [](auto& a, auto& b)
-        {
-            return a.Number < b.Number;
-        });
+    std::sort(orphans.begin(), orphans.end(), [](auto& a, auto& b)
+    {
+        return a.Number < b.Number;
+    });
 
     std::cout << "\n";
     if (orphans.empty())

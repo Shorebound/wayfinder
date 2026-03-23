@@ -9,53 +9,52 @@ namespace Wayfinder
         void WriteValue(const MaterialParamValue& value, void* dst, uint32_t maxBytes)
         {
             std::visit([dst, maxBytes](auto&& v)
+            {
+                using T = std::decay_t<decltype(v)>;
+                if constexpr (std::is_same_v<T, float>)
                 {
-                    using T = std::decay_t<decltype(v)>;
-                    if constexpr (std::is_same_v<T, float>)
+                    if (maxBytes >= sizeof(float))
                     {
-                        if (maxBytes >= sizeof(float))
-                        {
-                            std::memcpy(dst, &v, sizeof(float));
-                        }
+                        std::memcpy(dst, &v, sizeof(float));
                     }
-                    else if constexpr (std::is_same_v<T, Float2>)
+                }
+                else if constexpr (std::is_same_v<T, Float2>)
+                {
+                    if (maxBytes >= sizeof(Float2))
                     {
-                        if (maxBytes >= sizeof(Float2))
-                        {
-                            std::memcpy(dst, &v, sizeof(Float2));
-                        }
+                        std::memcpy(dst, &v, sizeof(Float2));
                     }
-                    else if constexpr (std::is_same_v<T, Float3>)
+                }
+                else if constexpr (std::is_same_v<T, Float3>)
+                {
+                    if (maxBytes >= sizeof(Float3))
                     {
-                        if (maxBytes >= sizeof(Float3))
-                        {
-                            std::memcpy(dst, &v, sizeof(Float3));
-                        }
+                        std::memcpy(dst, &v, sizeof(Float3));
                     }
-                    else if constexpr (std::is_same_v<T, Float4>)
+                }
+                else if constexpr (std::is_same_v<T, Float4>)
+                {
+                    if (maxBytes >= sizeof(Float4))
                     {
-                        if (maxBytes >= sizeof(Float4))
-                        {
-                            std::memcpy(dst, &v, sizeof(Float4));
-                        }
+                        std::memcpy(dst, &v, sizeof(Float4));
                     }
-                    else if constexpr (std::is_same_v<T, LinearColour>)
+                }
+                else if constexpr (std::is_same_v<T, LinearColour>)
+                {
+                    // LinearColour has the same layout as float4
+                    if (maxBytes >= sizeof(LinearColour))
                     {
-                        // LinearColour has the same layout as float4
-                        if (maxBytes >= sizeof(LinearColour))
-                        {
-                            std::memcpy(dst, &v, sizeof(LinearColour));
-                        }
+                        std::memcpy(dst, &v, sizeof(LinearColour));
                     }
-                    else if constexpr (std::is_same_v<T, int32_t>)
+                }
+                else if constexpr (std::is_same_v<T, int32_t>)
+                {
+                    if (maxBytes >= sizeof(int32_t))
                     {
-                        if (maxBytes >= sizeof(int32_t))
-                        {
-                            std::memcpy(dst, &v, sizeof(int32_t));
-                        }
+                        std::memcpy(dst, &v, sizeof(int32_t));
                     }
-                },
-                value);
+                }
+            }, value);
         }
     }
 

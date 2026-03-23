@@ -120,12 +120,10 @@ namespace Wayfinder
         void RegisterSubsystem(SubsystemCollection<GameSubsystem>::PredicateFn predicate = nullptr)
         {
             static_assert(std::is_base_of_v<GameSubsystem, T>, "T must derive from GameSubsystem");
-            m_subsystemFactories.push_back({std::type_index(typeid(T)),
-                []() -> std::unique_ptr<GameSubsystem>
-                {
-                    return std::make_unique<T>();
-                },
-                predicate});
+            m_subsystemFactories.push_back({std::type_index(typeid(T)), []() -> std::unique_ptr<GameSubsystem>
+            {
+                return std::make_unique<T>();
+            }, predicate});
         }
 
         /// Apply all registered system factories into the given world.
