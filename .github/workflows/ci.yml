@@ -35,6 +35,7 @@ jobs:
             \( -name '*.cpp' -o -name '*.h' \) \
             -not -path '*/thirdparty/*' \
             -not -path '*/_deps/*' \
+            -not -path '*/shadercompiler/*' \
             -print0 \
             | xargs -0 clang-format --dry-run --Werror
 
@@ -44,6 +45,7 @@ jobs:
             \( -name '*.cpp' -o -name '*.h' \) \
             -not -path '*/thirdparty/*' \
             -not -path '*/_deps/*' \
+            -not -path '*/shadercompiler/*' \
             -print0 \
             | xargs -0 python3 tools/format-fixup.py --check
 
@@ -96,6 +98,34 @@ jobs:
           path: thirdparty
           key: cpm-${{ runner.os }}-${{ hashFiles('cmake/WayfinderDependencies.cmake') }}
           restore-keys: cpm-${{ runner.os }}-
+
+      - name: Cache DXC shader compiler
+        id: cache-dxc
+        uses: actions/cache@v4
+        with:
+          path: tools/shadercompiler/bin
+          key: dxc-windows-x64-v1.9.2602
+
+      - name: Download DXC shader compiler
+        if: steps.cache-dxc.outputs.cache-hit != 'true'
+        shell: pwsh
+        run: |
+          # Pin to v1.9.2602 — matches local dev setup. Update tag + cache key together.
+          $tag = "v1.9.2602"
+          $release = Invoke-RestMethod `
+            -Uri "https://api.github.com/repos/microsoft/DirectXShaderCompiler/releases/tags/$tag" `
+            -Headers @{ "Accept" = "application/vnd.github+json"; "Authorization" = "Bearer ${{ secrets.GITHUB_TOKEN }}" }
+          $asset = $release.assets | Where-Object { $_.name -like "dxc_*.zip" } | Select-Object -First 1
+          if (-not $asset) { throw "No dxc_*.zip asset found in DXC release $tag" }
+          Write-Host "Downloading $($asset.name)"
+          Invoke-WebRequest -Uri $asset.browser_download_url -OutFile "dxc.zip"
+          Expand-Archive "dxc.zip" -DestinationPath "dxc-staging"
+          # Copy only the x64 binaries into the project's expected location
+          $x64Bin = Join-Path "dxc-staging" "bin" "x64"
+          if (-not (Test-Path "$x64Bin\dxc.exe")) { throw "bin/x64/dxc.exe not found in DXC archive" }
+          New-Item -ItemType Directory -Path "tools/shadercompiler/bin/x64" -Force | Out-Null
+          Copy-Item "$x64Bin\*" "tools/shadercompiler/bin/x64/" -Recurse
+          Write-Host "DXC installed to tools/shadercompiler/bin/x64/"
 
       - name: Configure
         run: cmake --preset ci-windows
