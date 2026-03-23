@@ -19,7 +19,7 @@ namespace Wayfinder
     class WAYFINDER_API Scene
     {
     public:
-        Scene(flecs::world& world, const RuntimeComponentRegistry& componentRegistry, const std::string& name = "Default Scene");
+        Scene(flecs::world& world, const RuntimeComponentRegistry& componentRegistry, std::string name = "Default Scene");
         ~Scene();
 
         Scene(const Scene&) = delete;

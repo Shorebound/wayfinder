@@ -9,11 +9,12 @@
 
 #include <filesystem>
 #include <unordered_map>
+#include <utility>
 #include <vector>
 
 namespace Wayfinder
 {
-    void LogDocumentErrors(const std::vector<std::string>& errors, const std::string& filePath)
+    static void LogDocumentErrors(const std::vector<std::string>& errors, const std::string& filePath)
     {
         Wayfinder::LogScene.GetLogger()->LogFormat(Wayfinder::LogVerbosity::Error, "Scene validation failed for {0} with {1} issue(s)", filePath, errors.size());
         for (const std::string& error : errors)
@@ -26,7 +27,7 @@ namespace Wayfinder
 
 namespace Wayfinder
 {
-    Scene::Scene(flecs::world& world, const RuntimeComponentRegistry& componentRegistry, const std::string& name) : m_world(world), m_componentRegistry(componentRegistry), m_name(name)
+    Scene::Scene(flecs::world& world, const RuntimeComponentRegistry& componentRegistry, std::string name) : m_world(world), m_componentRegistry(componentRegistry), m_name(std::move(name))
     {
         m_sceneTag = m_world.entity();
     }
@@ -128,7 +129,7 @@ namespace Wayfinder
                             return;
                         }
 
-                        const TransformComponent& localTransform = entityHandle.get<TransformComponent>();
+                        const auto& localTransform = entityHandle.get<TransformComponent>();
                         const Matrix4 localMatrix = localTransform.GetLocalMatrix();
                         const Matrix4 worldMatrix = Maths::Multiply(localMatrix, parentMatrix);
 
@@ -190,7 +191,7 @@ namespace Wayfinder
     {
         for (const auto& [id, entityId] : m_entitiesById)
         {
-            flecs::entity entityHandle = m_world.entity(entityId);
+            const flecs::entity entityHandle = m_world.entity(entityId);
             if (entityHandle.is_valid())
             {
                 entityHandle.destruct();
@@ -268,7 +269,7 @@ namespace Wayfinder
         /// Create an anonymous flecs entity.  Entity identity within a
         /// scene is tracked via NameComponent / SceneObjectIdComponent,
         /// not flecs' world-global naming system.
-        flecs::entity handle = m_world.entity();
+        const flecs::entity handle = m_world.entity();
         const SceneObjectId sceneObjectId = SceneObjectId::Generate();
         handle.add<SceneEntityComponent>();
         handle.add<SceneOwnership>(m_sceneTag);
@@ -409,7 +410,7 @@ namespace Wayfinder
                     return;
                 }
 
-                Entity entity{entityHandle, this};
+                const Entity entity{entityHandle, this};
                 if (!entity.HasSceneObjectId())
                 {
                     WAYFINDER_WARNING(LogScene, "Skipping scene entity without SceneObjectId during save: {0}", entity.GetName());
