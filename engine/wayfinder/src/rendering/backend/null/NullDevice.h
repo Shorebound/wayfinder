@@ -14,9 +14,9 @@ namespace Wayfinder
         }
         ~NullDevice() override = default;
 
-        bool Initialise(Window&) override
+        Result<void> Initialise(Window&) override
         {
-            return true;
+            return {};
         }
         void Shutdown() override {}
 

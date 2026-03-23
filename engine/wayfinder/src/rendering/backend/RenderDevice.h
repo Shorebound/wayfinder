@@ -3,6 +3,7 @@
 #include <array>
 #include <memory>
 
+#include "core/Result.h"
 #include "VertexFormats.h"
 #include "rendering/RenderTypes.h"
 
@@ -233,7 +234,7 @@ namespace Wayfinder
 
         /// ── Lifecycle ────────────────────────────────────────
 
-        virtual bool Initialise(Window& window) = 0;
+        virtual Result<void> Initialise(Window& window) = 0;
         virtual void Shutdown() = 0;
 
         /// ── Frame Lifecycle ──────────────────────────────────

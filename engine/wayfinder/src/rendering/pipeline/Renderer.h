@@ -1,5 +1,6 @@
 #pragma once
 
+#include "core/Result.h"
 #include "rendering/RenderTypes.h"
 #include "rendering/backend/GPUPipeline.h"
 #include "rendering/graph/RenderFeature.h"
@@ -27,7 +28,7 @@ namespace Wayfinder
         Renderer();
         ~Renderer() noexcept;
 
-        bool Initialise(RenderDevice& device, const EngineConfig& config);
+        Result<void> Initialise(RenderDevice& device, const EngineConfig& config);
         void Shutdown();
 
         void Render(const RenderFrame& frame);

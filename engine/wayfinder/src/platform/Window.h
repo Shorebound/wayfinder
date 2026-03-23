@@ -1,5 +1,6 @@
 #pragma once
 
+#include "core/Result.h"
 #include "core/events/Event.h"
 #include "platform/BackendConfig.h"
 
@@ -22,7 +23,7 @@ namespace Wayfinder
 
         virtual ~Window() = default;
 
-        virtual bool Initialise() = 0;
+        virtual Result<void> Initialise() = 0;
         virtual void Shutdown() = 0;
         virtual void Update() = 0;
 

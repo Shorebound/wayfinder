@@ -6,6 +6,7 @@
 #include "core/events/MouseEvent.h"
 
 #include <SDL3/SDL.h>
+#include <format>
 
 namespace Wayfinder
 {
@@ -29,23 +30,24 @@ namespace Wayfinder
         ReleaseResources();
     }
 
-    bool SDL3Window::Initialise()
+    Result<void> SDL3Window::Initialise()
     {
         if (!SDL_Init(SDL_INIT_VIDEO | SDL_INIT_EVENTS))
         {
-            return false;
+            return MakeError(std::format("SDL_Init failed: {}", SDL_GetError()));
         }
 
         m_window = SDL_CreateWindow(m_title.c_str(), static_cast<int>(m_width), static_cast<int>(m_height), 0);
 
         if (!m_window)
         {
+            auto error = MakeError(std::format("SDL_CreateWindow failed: {}", SDL_GetError()));
             SDL_Quit();
-            return false;
+            return error;
         }
 
         m_initialised = true;
-        return true;
+        return {};
     }
 
     void SDL3Window::Shutdown()
@@ -76,7 +78,8 @@ namespace Wayfinder
         {
             switch (event.type)
             {
-            case SDL_EVENT_QUIT: {
+            case SDL_EVENT_QUIT:
+            {
                 m_shouldClose = true;
                 if (m_eventCallback)
                 {
@@ -85,7 +88,8 @@ namespace Wayfinder
                 }
                 break;
             }
-            case SDL_EVENT_WINDOW_CLOSE_REQUESTED: {
+            case SDL_EVENT_WINDOW_CLOSE_REQUESTED:
+            {
                 m_shouldClose = true;
                 if (m_eventCallback)
                 {
@@ -94,7 +98,8 @@ namespace Wayfinder
                 }
                 break;
             }
-            case SDL_EVENT_WINDOW_RESIZED: {
+            case SDL_EVENT_WINDOW_RESIZED:
+            {
                 m_width = static_cast<uint32_t>(event.window.data1);
                 m_height = static_cast<uint32_t>(event.window.data2);
                 if (m_eventCallback)
@@ -104,7 +109,8 @@ namespace Wayfinder
                 }
                 break;
             }
-            case SDL_EVENT_KEY_DOWN: {
+            case SDL_EVENT_KEY_DOWN:
+            {
                 if (m_eventCallback)
                 {
                     const auto key = static_cast<KeyCode>(event.key.scancode);
@@ -113,7 +119,8 @@ namespace Wayfinder
                 }
                 break;
             }
-            case SDL_EVENT_KEY_UP: {
+            case SDL_EVENT_KEY_UP:
+            {
                 if (m_eventCallback)
                 {
                     const auto key = static_cast<KeyCode>(event.key.scancode);
@@ -122,7 +129,8 @@ namespace Wayfinder
                 }
                 break;
             }
-            case SDL_EVENT_MOUSE_BUTTON_DOWN: {
+            case SDL_EVENT_MOUSE_BUTTON_DOWN:
+            {
                 if (m_eventCallback)
                 {
                     const auto button = static_cast<MouseCode>(event.button.button);
@@ -131,7 +139,8 @@ namespace Wayfinder
                 }
                 break;
             }
-            case SDL_EVENT_MOUSE_BUTTON_UP: {
+            case SDL_EVENT_MOUSE_BUTTON_UP:
+            {
                 if (m_eventCallback)
                 {
                     const auto button = static_cast<MouseCode>(event.button.button);
@@ -140,7 +149,8 @@ namespace Wayfinder
                 }
                 break;
             }
-            case SDL_EVENT_MOUSE_MOTION: {
+            case SDL_EVENT_MOUSE_MOTION:
+            {
                 if (m_eventCallback)
                 {
                     MouseMovedEvent e(event.motion.x, event.motion.y);
@@ -148,7 +158,8 @@ namespace Wayfinder
                 }
                 break;
             }
-            case SDL_EVENT_MOUSE_WHEEL: {
+            case SDL_EVENT_MOUSE_WHEEL:
+            {
                 if (m_eventCallback)
                 {
                     MouseScrolledEvent e(event.wheel.x, event.wheel.y);

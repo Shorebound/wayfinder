@@ -49,57 +49,57 @@ namespace Wayfinder
     using Degrees = float;
     using Radians = float;
 
-    inline constexpr Float3 Up { 0.f, 1.f, 0.f };
-    inline constexpr Float3 Down { 0.f, -1.f, 0.f };
-    inline constexpr Float3 Right { 1.f,  0.f,  0.f };
-    inline constexpr Float3 Left { -1.f,  0.f,  0.f };
-    inline constexpr Float3 Forward { 0.f,  0.f,  -1.f };
-    inline constexpr Float3 Back { 0.f, 0.f,  1.f };
-    inline constexpr Float3 One { 1.f,  1.f,  1.f };
-    inline constexpr Float3 Zero { 0.f,  0.f,  0.f };
+    inline constexpr Float3 Up{0.f, 1.f, 0.f};
+    inline constexpr Float3 Down{0.f, -1.f, 0.f};
+    inline constexpr Float3 Right{1.f, 0.f, 0.f};
+    inline constexpr Float3 Left{-1.f, 0.f, 0.f};
+    inline constexpr Float3 Forward{0.f, 0.f, -1.f};
+    inline constexpr Float3 Back{0.f, 0.f, 1.f};
+    inline constexpr Float3 One{1.f, 1.f, 1.f};
+    inline constexpr Float3 Zero{0.f, 0.f, 0.f};
 
     // ============ Unity-style (Y-up, left-handed) ============
-    namespace Unity 
+    namespace Unity
     {
-        inline constexpr Float3 Up      {  0.f,  1.f,  0.f };
-        inline constexpr Float3 Down    {  0.f, -1.f,  0.f };
-        inline constexpr Float3 Right   {  1.f,  0.f,  0.f };
-        inline constexpr Float3 Left    { -1.f,  0.f,  0.f };
-        inline constexpr Float3 Forward {  0.f,  0.f,  1.f };
-        inline constexpr Float3 Back    {  0.f,  0.f, -1.f };
+        inline constexpr Float3 Up{0.f, 1.f, 0.f};
+        inline constexpr Float3 Down{0.f, -1.f, 0.f};
+        inline constexpr Float3 Right{1.f, 0.f, 0.f};
+        inline constexpr Float3 Left{-1.f, 0.f, 0.f};
+        inline constexpr Float3 Forward{0.f, 0.f, 1.f};
+        inline constexpr Float3 Back{0.f, 0.f, -1.f};
     }
 
     // ============ Unreal-style (Z-up, left-handed) ============
-    namespace Unreal 
+    namespace Unreal
     {
-        inline constexpr Float3 Up      {  0.f,  0.f,  1.f };
-        inline constexpr Float3 Down    {  0.f,  0.f, -1.f };
-        inline constexpr Float3 Right   {  0.f,  1.f,  0.f };
-        inline constexpr Float3 Left    {  0.f, -1.f,  0.f };
-        inline constexpr Float3 Forward {  1.f,  0.f,  0.f };
-        inline constexpr Float3 Back    { -1.f,  0.f,  0.f };
+        inline constexpr Float3 Up{0.f, 0.f, 1.f};
+        inline constexpr Float3 Down{0.f, 0.f, -1.f};
+        inline constexpr Float3 Right{0.f, 1.f, 0.f};
+        inline constexpr Float3 Left{0.f, -1.f, 0.f};
+        inline constexpr Float3 Forward{1.f, 0.f, 0.f};
+        inline constexpr Float3 Back{-1.f, 0.f, 0.f};
     }
 
     // ============ Godot / OpenGL (Y-up, right-handed) ============
-    namespace Godot 
+    namespace Godot
     {
-        inline constexpr Float3 Up      {  0.f,  1.f,  0.f };
-        inline constexpr Float3 Down    {  0.f, -1.f,  0.f };
-        inline constexpr Float3 Right   {  1.f,  0.f,  0.f };
-        inline constexpr Float3 Left    { -1.f,  0.f,  0.f };
-        inline constexpr Float3 Forward {  0.f,  0.f, -1.f };
-        inline constexpr Float3 Back    {  0.f,  0.f,  1.f };
+        inline constexpr Float3 Up{0.f, 1.f, 0.f};
+        inline constexpr Float3 Down{0.f, -1.f, 0.f};
+        inline constexpr Float3 Right{1.f, 0.f, 0.f};
+        inline constexpr Float3 Left{-1.f, 0.f, 0.f};
+        inline constexpr Float3 Forward{0.f, 0.f, -1.f};
+        inline constexpr Float3 Back{0.f, 0.f, 1.f};
     }
 
     // ============ Source / Blender (Z-up, right-handed) ============
-    namespace Source 
+    namespace Source
     {
-        inline constexpr Float3 Up      {  0.f,  0.f,  1.f };
-        inline constexpr Float3 Down    {  0.f,  0.f, -1.f };
-        inline constexpr Float3 Right   {  1.f,  0.f,  0.f };
-        inline constexpr Float3 Left    { -1.f,  0.f,  0.f };
-        inline constexpr Float3 Forward {  0.f,  1.f,  0.f };
-        inline constexpr Float3 Back    {  0.f, -1.f,  0.f };
+        inline constexpr Float3 Up{0.f, 0.f, 1.f};
+        inline constexpr Float3 Down{0.f, 0.f, -1.f};
+        inline constexpr Float3 Right{1.f, 0.f, 0.f};
+        inline constexpr Float3 Left{-1.f, 0.f, 0.f};
+        inline constexpr Float3 Forward{0.f, 1.f, 0.f};
+        inline constexpr Float3 Back{0.f, -1.f, 0.f};
     }
 
     struct Transform

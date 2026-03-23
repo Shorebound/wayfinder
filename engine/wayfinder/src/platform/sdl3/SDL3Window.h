@@ -11,7 +11,7 @@ namespace Wayfinder
         explicit SDL3Window(const Window::Config& config);
         ~SDL3Window() override;
 
-        bool Initialise() override;
+        Result<void> Initialise() override;
         void Shutdown() override;
         void Update() override;
 

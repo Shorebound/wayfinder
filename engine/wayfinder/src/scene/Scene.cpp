@@ -8,6 +8,7 @@
 #include "scene/entity/Entity.h"
 
 #include <filesystem>
+#include <format>
 #include <unordered_map>
 #include <utility>
 #include <vector>
@@ -322,7 +323,7 @@ namespace Wayfinder
         return Entity{entityHandle, this};
     }
 
-    bool Scene::LoadFromFile(const std::string& filePath)
+    Result<void> Scene::LoadFromFile(const std::string& filePath)
     {
         try
         {
@@ -330,7 +331,7 @@ namespace Wayfinder
             if (!loadResult.Document)
             {
                 LogDocumentErrors(loadResult.Errors, filePath);
-                return false;
+                return MakeError(std::format("Failed to load scene document: {}", filePath));
             }
 
             ClearEntities();
@@ -384,16 +385,16 @@ namespace Wayfinder
             settings.SetData(loadResult.Document->Settings);
             m_world.set<SceneSettings>(settings);
 
-            return true;
+            return {};
         }
         catch (const std::exception& error)
         {
             WAYFINDER_ERROR(LogScene, "Failed to load scene file {0}: {1}", filePath, error.what());
-            return false;
+            return MakeError(std::format("Failed to load scene file: {}", error.what()));
         }
     }
 
-    bool Scene::SaveToFile(const std::string& filePath) const
+    Result<void> Scene::SaveToFile(const std::string& filePath) const
     {
         try
         {
@@ -447,16 +448,16 @@ namespace Wayfinder
             if (!SaveSceneDocument(document, filePath, error))
             {
                 WAYFINDER_ERROR(LogScene, "{0}", error);
-                return false;
+                return MakeError(error);
             }
 
             WAYFINDER_INFO(LogScene, "Saved scene data to: {0}", filePath);
-            return true;
+            return {};
         }
         catch (const std::exception& error)
         {
             WAYFINDER_ERROR(LogScene, "Failed to save scene file {0}: {1}", filePath, error.what());
-            return false;
+            return MakeError(std::format("Failed to save scene file: {}", error.what()));
         }
     }
 

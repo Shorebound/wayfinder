@@ -302,8 +302,10 @@ struct std::formatter<Wayfinder::TypedId<Tag>> : std::formatter<Wayfinder::Uuid>
 namespace Wayfinder
 {
     // Tag types — add new ID domains trivially by adding a tag + using alias.
-    struct SceneObjectIdTag {};
-    struct AssetIdTag {};
+    struct SceneObjectIdTag
+    {};
+    struct AssetIdTag
+    {};
 
     using SceneObjectId = TypedId<SceneObjectIdTag>;
     using AssetId = TypedId<AssetIdTag>;

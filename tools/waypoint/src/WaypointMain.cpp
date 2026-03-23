@@ -88,9 +88,9 @@ namespace Wayfinder
         WaypointContext ctx(project, toolDir);
         Wayfinder::Scene scene{ctx.World, ctx.Registry, "Waypoint Validation Scene"};
 
-        const bool success = scene.LoadFromFile(scenePath.string());
+        const auto result = scene.LoadFromFile(scenePath.string());
         scene.Shutdown();
-        return success ? 0 : 1;
+        return result ? 0 : 1;
     }
 
     int RunRoundtripSave(const std::filesystem::path& scenePath, const std::filesystem::path& outputPath, const Wayfinder::ProjectDescriptor* project = nullptr, const std::filesystem::path& toolDir = {})
@@ -98,16 +98,15 @@ namespace Wayfinder
         WaypointContext ctx(project, toolDir);
         Wayfinder::Scene scene{ctx.World, ctx.Registry, "Waypoint Roundtrip Scene"};
 
-        const bool loaded = scene.LoadFromFile(scenePath.string());
-        if (!loaded)
+        if (auto loadResult = scene.LoadFromFile(scenePath.string()); !loadResult)
         {
             scene.Shutdown();
             return 1;
         }
 
-        const bool saved = scene.SaveToFile(outputPath.string());
+        const auto saveResult = scene.SaveToFile(outputPath.string());
         scene.Shutdown();
-        return saved ? 0 : 1;
+        return saveResult ? 0 : 1;
     }
 }
 

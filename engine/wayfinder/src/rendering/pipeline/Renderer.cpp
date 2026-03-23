@@ -2,6 +2,7 @@
 
 #include "RenderContext.h"
 #include "RenderPipeline.h"
+#include "core/Result.h"
 #include "rendering/backend/RenderDevice.h"
 #include "rendering/graph/RenderFeature.h"
 #include "rendering/graph/RenderFrame.h"
@@ -39,17 +40,17 @@ namespace Wayfinder
         }
     }
 
-    bool Renderer::Initialise(RenderDevice& device, const EngineConfig& config)
+    Result<void> Renderer::Initialise(RenderDevice& device, const EngineConfig& config)
     {
         m_device = &device;
         m_screenWidth = static_cast<int>(config.Window.Width);
         m_screenHeight = static_cast<int>(config.Window.Height);
         // ── GPU infrastructure ───────────────────────────────
         m_context = std::make_unique<RenderContext>();
-        if (!m_context->Initialise(device, config))
+        if (auto result = m_context->Initialise(device, config); !result)
         {
-            WAYFINDER_WARNING(LogRenderer, "Renderer: Failed to initialise RenderContext");
-            return false;
+            WAYFINDER_WARNING(LogRenderer, "Renderer: Failed to initialise RenderContext — {}", result.error().GetMessage());
+            return std::unexpected(result.error());
         }
 
         // ── Render pipeline (registers shader programs) ──────
@@ -94,7 +95,7 @@ namespace Wayfinder
         WAYFINDER_INFO(LogRenderer, "Renderer initialised ({}x{}, backend: {})", m_screenWidth, m_screenHeight, device.GetDeviceInfo().BackendName);
 
         m_isInitialised = true;
-        return true;
+        return {};
     }
 
     void Renderer::Shutdown()

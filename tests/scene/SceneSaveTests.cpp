@@ -40,7 +40,7 @@ namespace Wayfinder::Tests
             entity.AddComponent<TransformComponent>(TransformComponent{{1.0f, 2.0f, 3.0f}});
 
             auto path = TempScenePath();
-            bool result = scene.SaveToFile(path.string());
+            auto result = scene.SaveToFile(path.string());
 
             CHECK(result);
             CHECK(std::filesystem::exists(path));

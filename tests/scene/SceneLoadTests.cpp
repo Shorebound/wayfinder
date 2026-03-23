@@ -31,7 +31,7 @@ namespace Wayfinder::Tests
             Scene scene(world, registry, "Default");
 
             auto path = FixturesDir() / "test_scene.json";
-            bool result = scene.LoadFromFile(path.string());
+            auto result = scene.LoadFromFile(path.string());
 
             CHECK(result);
             CHECK(scene.GetName() == "Test Scene");
@@ -111,7 +111,7 @@ namespace Wayfinder::Tests
             Scene scene(world, registry, "Default");
 
             auto path = FixturesDir() / "bad_scene.json";
-            bool result = scene.LoadFromFile(path.string());
+            auto result = scene.LoadFromFile(path.string());
 
             CHECK_FALSE(result);
         }
@@ -138,7 +138,7 @@ namespace Wayfinder::Tests
             Scene::RegisterCoreECS(world);
             Scene scene(world, registry, "Default");
 
-            bool result = scene.LoadFromFile("nonexistent_scene.json");
+            auto result = scene.LoadFromFile("nonexistent_scene.json");
             CHECK_FALSE(result);
         }
 

@@ -35,6 +35,7 @@ namespace Wayfinder
         if (!m_input)
         {
             WAYFINDER_ERROR(LogEngine, "EngineRuntime: Failed to create Input");
+            Shutdown();
             return MakeError("Failed to create Input");
         }
 
@@ -42,7 +43,7 @@ namespace Wayfinder
         if (!m_time)
         {
             WAYFINDER_ERROR(LogEngine, "EngineRuntime: Failed to create Time");
-            m_input = nullptr;
+            Shutdown();
             return MakeError("Failed to create Time");
         }
 
@@ -53,50 +54,42 @@ namespace Wayfinder
         if (!m_window)
         {
             WAYFINDER_ERROR(LogEngine, "EngineRuntime: Failed to create Window");
-            m_time = nullptr;
-            m_input = nullptr;
+            Shutdown();
             return MakeError("Failed to create Window");
         }
 
-        if (!m_window->Initialise())
+        if (auto result = m_window->Initialise(); !result)
         {
-            WAYFINDER_ERROR(LogEngine, "EngineRuntime: Failed to initialise Window");
-            m_window = nullptr;
-            m_time = nullptr;
-            m_input = nullptr;
-            return MakeError("Failed to initialise Window");
+            WAYFINDER_ERROR(LogEngine, "EngineRuntime: Failed to initialise Window — {}", result.error().GetMessage());
+            Shutdown();
+            return std::unexpected(result.error());
         }
 
         // GPU device — needs window handle for swapchain
         m_device = RenderDevice::Create(m_config.Backends.Rendering);
-
-        if (!m_device || !m_device->Initialise(*m_window))
+        if (!m_device)
         {
-            WAYFINDER_ERROR(LogEngine, "EngineRuntime: Failed to initialise RenderDevice");
-            m_device = nullptr;
-            m_window->Shutdown();
-            m_window = nullptr;
-            m_time = nullptr;
-            m_input = nullptr;
-            return MakeError("Failed to initialise RenderDevice");
+            WAYFINDER_ERROR(LogEngine, "EngineRuntime: Failed to create RenderDevice");
+            Shutdown();
+            return MakeError("Failed to create RenderDevice");
+        }
+
+        if (auto result = m_device->Initialise(*m_window); !result)
+        {
+            WAYFINDER_ERROR(LogEngine, "EngineRuntime: Failed to initialise RenderDevice — {}", result.error().GetMessage());
+            Shutdown();
+            return std::unexpected(result.error());
         }
 
         // Rendering
         m_renderer = std::make_unique<Renderer>();
         m_extractor = std::make_unique<SceneRenderExtractor>();
 
-        if (!m_renderer->Initialise(*m_device, m_config))
+        if (auto result = m_renderer->Initialise(*m_device, m_config); !result)
         {
-            WAYFINDER_ERROR(LogEngine, "EngineRuntime: Failed to initialise Renderer");
-            m_renderer = nullptr;
-            m_extractor = nullptr;
-            m_device->Shutdown();
-            m_device = nullptr;
-            m_window->Shutdown();
-            m_window = nullptr;
-            m_time = nullptr;
-            m_input = nullptr;
-            return MakeError("Failed to initialise Renderer");
+            WAYFINDER_ERROR(LogEngine, "EngineRuntime: Failed to initialise Renderer — {}", result.error().GetMessage());
+            Shutdown();
+            return std::unexpected(result.error());
         }
 
         WAYFINDER_INFO(LogEngine, "EngineRuntime initialised");

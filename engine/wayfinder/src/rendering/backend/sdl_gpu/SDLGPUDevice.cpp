@@ -7,6 +7,7 @@
 #include <SDL3/SDL.h>
 #include <array>
 #include <cstring>
+#include <format>
 #include <ranges>
 #include <vector>
 
@@ -153,13 +154,13 @@ namespace Wayfinder
         }
     }
 
-    bool SDLGPUDevice::Initialise(Window& window)
+    Result<void> SDLGPUDevice::Initialise(Window& window)
     {
         m_window = static_cast<SDL_Window*>(window.GetNativeHandle());
         if (!m_window)
         {
             WAYFINDER_ERROR(LogRenderer, "SDLGPUDevice: Window has no valid native handle");
-            return false;
+            return MakeError("SDLGPUDevice: Window has no valid native handle");
         }
 
         // Only request formats we can actually provide.
@@ -171,7 +172,7 @@ namespace Wayfinder
         if (!m_device)
         {
             WAYFINDER_ERROR(LogRenderer, "SDLGPUDevice: Failed to create GPU device — {}", SDL_GetError());
-            return false;
+            return MakeError(std::format("SDLGPUDevice: Failed to create GPU device — {}", SDL_GetError()));
         }
 
         m_shaderFormats = SDL_GetGPUShaderFormats(m_device);
@@ -179,9 +180,10 @@ namespace Wayfinder
         if (!SDL_ClaimWindowForGPUDevice(m_device, m_window))
         {
             WAYFINDER_ERROR(LogRenderer, "SDLGPUDevice: Failed to claim window for GPU device — {}", SDL_GetError());
+            auto error = MakeError(std::format("SDLGPUDevice: Failed to claim window — {}", SDL_GetError()));
             SDL_DestroyGPUDevice(m_device);
             m_device = nullptr;
-            return false;
+            return error;
         }
 
         m_info.BackendName = "SDL_GPU";
@@ -190,7 +192,7 @@ namespace Wayfinder
         m_info.DriverInfo = driver ? driver : "unknown";
 
         WAYFINDER_INFO(LogRenderer, "SDLGPUDevice: Initialised (driver: {})", m_info.DriverInfo);
-        return true;
+        return {};
     }
 
     void SDLGPUDevice::Shutdown()

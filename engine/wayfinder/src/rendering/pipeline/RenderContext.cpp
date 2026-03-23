@@ -6,7 +6,7 @@
 
 namespace Wayfinder
 {
-    bool RenderContext::Initialise(RenderDevice& device, const EngineConfig& config)
+    Result<void> RenderContext::Initialise(RenderDevice& device, const EngineConfig& config)
     {
         m_device = &device;
 
@@ -38,7 +38,7 @@ namespace Wayfinder
             m_nearestSampler = device.CreateSampler(samplerDesc);
         }
 
-        return true;
+        return {};
     }
 
     void RenderContext::Shutdown()

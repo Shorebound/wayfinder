@@ -11,9 +11,9 @@ namespace Wayfinder
     public:
         explicit NullWindow(const Config& config = {}) : m_width(config.Width), m_height(config.Height), m_title(config.Title), m_vsync(config.VSync) {}
 
-        bool Initialise() override
+        Result<void> Initialise() override
         {
-            return true;
+            return {};
         }
         void Shutdown() override {}
         void Update() override {}

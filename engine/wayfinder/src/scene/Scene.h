@@ -8,6 +8,7 @@
 #include "ecs/Flecs.h"
 
 #include "core/Identifiers.h"
+#include "core/Result.h"
 #include "wayfinder_exports.h"
 
 namespace Wayfinder
@@ -45,8 +46,8 @@ namespace Wayfinder
         /// if necessary.  The entity identified by @p excludeEntity (if any)
         /// is ignored during the collision check.
         std::string GenerateUniqueName(const std::string& base, flecs::entity_t excludeEntity = 0) const;
-        bool LoadFromFile(const std::string& filePath);
-        bool SaveToFile(const std::string& filePath) const;
+        Result<void> LoadFromFile(const std::string& filePath);
+        Result<void> SaveToFile(const std::string& filePath) const;
         void SetAssetService(const std::shared_ptr<AssetService>& assetService)
         {
             m_assetService = assetService;

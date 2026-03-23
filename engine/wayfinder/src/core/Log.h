@@ -112,7 +112,8 @@ namespace Wayfinder
         {                                                                                                                                                                                                                  \
             wayfinderLogCategory.GetLogger()->LogFormat(verbosity, __VA_ARGS__);                                                                                                                                           \
         }                                                                                                                                                                                                                  \
-    } while (false)
+    }                                                                                                                                                                                                                      \
+    while (false)
 
 #define WAYFINDER_VERBOSE(category, ...) WAYFINDER_LOG(category, Wayfinder::LogVerbosity::Verbose, __VA_ARGS__)
 #define WAYFINDER_INFO(category, ...) WAYFINDER_LOG(category, Wayfinder::LogVerbosity::Info, __VA_ARGS__)

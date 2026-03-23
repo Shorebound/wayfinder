@@ -1,5 +1,6 @@
 #pragma once
 
+#include "core/Result.h"
 #include "PipelineCache.h"
 #include "rendering/materials/ShaderManager.h"
 #include "rendering/materials/ShaderProgram.h"
@@ -28,7 +29,7 @@ namespace Wayfinder
         RenderContext(RenderContext&&) = delete;
         RenderContext& operator=(RenderContext&&) = delete;
 
-        bool Initialise(RenderDevice& device, const EngineConfig& config);
+        Result<void> Initialise(RenderDevice& device, const EngineConfig& config);
         void Shutdown();
 
         // ── Accessors ────────────────────────────────────────

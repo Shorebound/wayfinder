@@ -77,11 +77,11 @@ namespace Wayfinder
         m_currentScene = std::make_unique<Scene>(m_world, m_componentRegistry, "Default Scene");
         m_currentScene->SetAssetService(m_assetService);
 
-        if (!m_currentScene->LoadFromFile(resolvedPath.string()))
+        if (auto loadResult = m_currentScene->LoadFromFile(resolvedPath.string()); !loadResult)
         {
             WAYFINDER_ERROR(LogGame, "Failed to load bootstrap scene: {}", resolvedPath.string());
             m_currentScene.reset();
-            return MakeError("Failed to load bootstrap scene");
+            return std::unexpected(loadResult.error());
         }
 
         WAYFINDER_INFO(LogGame, "Loaded bootstrap scene from: {}", resolvedPath.string());
@@ -174,7 +174,10 @@ namespace Wayfinder
 
         if (std::filesystem::exists(scenePath))
         {
-            m_currentScene->LoadFromFile(scenePath);
+            if (auto result = m_currentScene->LoadFromFile(scenePath); !result)
+            {
+                WAYFINDER_ERROR(LogGame, "Failed to load scene '{}': {}", scenePath, result.error().GetMessage());
+            }
         }
 
         WAYFINDER_INFO(LogGame, "Loaded scene: {}", scenePath);
