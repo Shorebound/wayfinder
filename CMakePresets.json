@@ -162,7 +162,7 @@
             "configurePreset": "dev",
             "configuration": "Debug",
             "output": {
-                "junit": "test-results.xml"
+                "outputJUnitFile": "test-results.xml"
             }
         },
         {
@@ -171,7 +171,7 @@
             "configurePreset": "ci-linux",
             "configuration": "Debug",
             "output": {
-                "junit": "test-results.xml"
+                "outputJUnitFile": "test-results.xml"
             }
         },
         {
@@ -180,7 +180,7 @@
             "configurePreset": "ci-windows",
             "configuration": "Debug",
             "output": {
-                "junit": "test-results.xml"
+                "outputJUnitFile": "test-results.xml"
             }
         }
     ]
