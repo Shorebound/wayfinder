@@ -44,9 +44,9 @@ namespace Wayfinder::Maths
     {
         return 
         {
-            Length(TransformDirection(matrix, {1.0f, 0.0f, 0.0f})),
-            Length(TransformDirection(matrix, {0.0f, 1.0f, 0.0f})),
-            Length(TransformDirection(matrix, {0.0f, 0.0f, 1.0f})),
+            Length(TransformDirection(matrix, Right)),
+            Length(TransformDirection(matrix, Up)),
+            Length(TransformDirection(matrix, Forward)),
         };
     }
 
