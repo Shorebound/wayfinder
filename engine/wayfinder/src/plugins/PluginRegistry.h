@@ -109,7 +109,7 @@ namespace Wayfinder
         /// Register a serialisable component for scene authoring.
         void RegisterComponent(ComponentDescriptor descriptor);
 
-        /// Register a typed world singleton (global data).
+        /// Register a typed world singleton (global data). An empty \p factory is rejected (logged, no-op), matching \ref RegisterSystem.
         void RegisterGlobal(std::string name, GlobalFactory factory);
 
         /// Register a named game state with optional enter/exit callbacks.

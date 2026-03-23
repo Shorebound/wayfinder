@@ -111,7 +111,7 @@ namespace Wayfinder::Tests
         REQUIRE(debugPass != nullptr);
         CHECK(mainPass->Meshes.size() == 1);
         REQUIRE(debugPass->DebugDraw.has_value());
-        const Wayfinder::RenderDebugDrawList& debugDraw = debugPass->DebugDraw.value();
+        const Wayfinder::RenderDebugDrawList& debugDraw = *debugPass->DebugDraw;
         CHECK(debugDraw.Boxes.size() == 1);
         CHECK(debugDraw.Lines.size() == 1);
     }

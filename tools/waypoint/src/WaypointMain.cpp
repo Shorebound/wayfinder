@@ -1,5 +1,6 @@
 #include "app/EngineConfig.h"
 #include "assets/AssetRegistry.h"
+#include "core/Assert.h"
 #include "core/Log.h"
 #include "core/Result.h"
 #include "plugins/PluginLoader.h"
@@ -199,7 +200,16 @@ int main(int argc, char** argv)
             return 1;
         }
 
-        const std::filesystem::path scenePath = (argIndex < argc) ? std::filesystem::path(argv[argIndex]) : project.value().ResolveBootScene();
+        std::filesystem::path scenePath;
+        if (argIndex < argc)
+        {
+            scenePath = std::filesystem::path(argv[argIndex]);
+        }
+        else
+        {
+            WAYFINDER_ASSERT(project.has_value(), "Boot scene path requires --project when no scene argument is given");
+            scenePath = project->ResolveBootScene();
+        }
 
         exitCode = RunValidate(scenePath, project ? &*project : nullptr, toolDir);
     }

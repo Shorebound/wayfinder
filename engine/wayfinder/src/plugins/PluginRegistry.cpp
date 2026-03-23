@@ -47,6 +47,12 @@ namespace Wayfinder
 
     void PluginRegistry::RegisterGlobal(std::string name, GlobalFactory factory)
     {
+        if (!factory)
+        {
+            WAYFINDER_ERROR(LogEngine, "PluginRegistry: empty factory for global '{}' — registration rejected", name);
+            return;
+        }
+
         WAYFINDER_INFO(LogEngine, "PluginRegistry: registered global '{}'", name);
         m_globals.push_back({.Name = std::move(name), .Factory = std::move(factory)});
     }

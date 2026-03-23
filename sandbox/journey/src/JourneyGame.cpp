@@ -71,6 +71,37 @@ namespace Wayfinder::Journey
                     return false;
                 }
 
+                if (table.contains("max_health") && table["max_health"].is_number())
+                {
+                    const float maxHealth = table["max_health"].get<float>();
+                    if (maxHealth < 0.0f)
+                    {
+                        error = "'max_health' must be non-negative";
+                        return false;
+                    }
+                }
+
+                if (table.contains("current_health") && table["current_health"].is_number())
+                {
+                    const float currentHealth = table["current_health"].get<float>();
+                    if (currentHealth < 0.0f)
+                    {
+                        error = "'current_health' must be non-negative";
+                        return false;
+                    }
+                }
+
+                if (table.contains("max_health") && table["max_health"].is_number() && table.contains("current_health") && table["current_health"].is_number())
+                {
+                    const float maxHealth = table["max_health"].get<float>();
+                    const float currentHealth = table["current_health"].get<float>();
+                    if (currentHealth > maxHealth)
+                    {
+                        error = "'current_health' cannot exceed 'max_health'";
+                        return false;
+                    }
+                }
+
                 return true;
             };
 
