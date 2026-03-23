@@ -107,6 +107,14 @@
                 "WAYFINDER_BUILD_SAMPLES": "OFF",
                 "WAYFINDER_WARNINGS_AS_ERRORS": "ON"
             }
+        },
+        {
+            "name": "ci-windows",
+            "displayName": "CI (Windows / MSVC)",
+            "description": "Windows CI — Ninja for speed, MSVC for compatibility",
+            "generator": "Ninja Multi-Config",
+            "binaryDir": "${sourceDir}/build",
+            "inherits": "ci"
         }
     ],
     "buildPresets": [
@@ -139,6 +147,12 @@
             "displayName": "Clang (Debug)",
             "configurePreset": "dev-clang",
             "configuration": "Debug"
+        },
+        {
+            "name": "ci-windows-debug",
+            "displayName": "CI Windows (Debug)",
+            "configurePreset": "ci-windows",
+            "configuration": "Debug"
         }
     ],
     "testPresets": [
@@ -152,6 +166,12 @@
             "name": "ci-linux-test",
             "displayName": "Run Tests (CI Linux)",
             "configurePreset": "ci-linux",
+            "configuration": "Debug"
+        },
+        {
+            "name": "ci-windows-test",
+            "displayName": "Run Tests (CI Windows)",
+            "configurePreset": "ci-windows",
             "configuration": "Debug"
         }
     ]

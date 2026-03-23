@@ -182,6 +182,107 @@ ctest --preset test
 bin\Debug\wayfinder_render_tests.exe
 ```
 
+## Code Quality
+
+Wayfinder uses clang-format, a post-format fixup script, and clang-tidy to enforce consistent style and catch bugs early. All tools are pinned to **version 18**.
+
+### Formatting
+
+Two tools work together:
+
+- **`.clang-format`** — Allman braces, 4-space indent, `ColumnLimit: 0` (you control line breaks; the formatter handles indentation and spacing).
+- **`tools/format-fixup.py`** — post-processor for patterns clang-format cannot handle: collapsing empty type bodies onto one line (`struct Foo {}`) and moving initialiser-list braces to a new line (Allman style).
+
+### Static Analysis
+
+**`.clang-tidy`** enforces naming conventions and catches common bugs:
+
+| Element | Rule | Example |
+|---------|------|---------|
+| Types | `CamelCase` | `RenderGraph` |
+| Functions / Methods | `CamelCase` | `Initialise()` |
+| Private / Protected members | `m_` prefix | `m_window` |
+| Public members | `CamelCase` (no prefix) | `Position` |
+| Local variables / Parameters | `camelBack` | `frameCount` |
+| Constants / Enum values | `UPPER_CASE` | `MAX_ENTITIES` |
+| Abstract classes | `I` prefix | `ILogger` |
+| Template parameters | `T` prefix | `TResource` |
+| Namespaces | `CamelCase` | `Rendering` |
+
+Enabled check families: `bugprone-*`, `cppcoreguidelines-*`, `modernize-*`, `performance-*`, `readability-*`, `clang-analyzer-*`, `misc-*`.
+
+### Local Workflow
+
+`tools/lint.py` is the unified entry point:
+
+```powershell
+# Check all source files (no modifications)
+python tools/lint.py
+
+# Fix formatting in-place
+python tools/lint.py --fix
+
+# Only files changed vs main
+python tools/lint.py --changed
+
+# Also run clang-tidy (requires a Clang build)
+python tools/lint.py --tidy
+
+# Override compile_commands.json location
+python tools/lint.py --tidy --build-dir build/clang
+```
+
+To generate `compile_commands.json` for clang-tidy:
+
+```powershell
+cmake --preset dev-clang
+```
+
+### Pre-commit Hooks
+
+**Option A** — `pre-commit` framework (recommended if you have Python):
+
+```powershell
+pip install pre-commit
+pre-commit install
+```
+
+**Option B** — standalone script (zero dependencies):
+
+```powershell
+python tools/install-hooks.py            # install
+python tools/install-hooks.py --uninstall # remove
+```
+
+Both options run `lint.py --fix --staged` before each commit, formatting only the files you are committing. clang-tidy is **not** run in the hook (too slow) — it runs in CI.
+
+### Suppressing Warnings
+
+Use sparingly and with a justification:
+
+```cpp
+// NOLINTNEXTLINE(bugprone-narrowing-conversions) — SDL API requires int
+int width = static_cast<int>(m_width);
+
+void LegacyCallback(void* data)  // NOLINT(modernize-use-trailing-return-type)
+{
+    ...
+}
+```
+
+### CI Pipeline
+
+The GitHub Actions CI workflow (`.github/workflows/ci.yml`) runs four parallel jobs on every push and PR to `main`:
+
+| Job | Runner | What it checks |
+|-----|--------|---------------|
+| **Format Check** | ubuntu-latest | clang-format + format-fixup (all files) |
+| **Build & Test (Linux)** | ubuntu-latest | Clang build + CTest |
+| **Build & Test (Windows)** | windows-latest | MSVC build + CTest |
+| **Static Analysis** | ubuntu-latest | clang-tidy on changed files (report-only for now) |
+
+CPM dependency sources are cached between runs to speed up builds.
+
 ## Recommended Reading Order
 
 If you are new to the repository, read the docs in this order:

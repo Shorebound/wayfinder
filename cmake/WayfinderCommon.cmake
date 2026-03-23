@@ -56,6 +56,7 @@ target_compile_options(wayfinder_common INTERFACE
     $<$<CXX_COMPILER_ID:MSVC>:/W4>
     $<$<CXX_COMPILER_ID:MSVC>:/permissive->
     $<$<CXX_COMPILER_ID:MSVC>:/utf-8>
+    $<$<CXX_COMPILER_ID:MSVC>:/external:W0>
 )
 
 # Optional: Treat warnings as errors
@@ -65,6 +66,20 @@ if(WAYFINDER_WARNINGS_AS_ERRORS)
         $<$<CXX_COMPILER_ID:MSVC>:/WX>
     )
     message(STATUS "Common: Treating compiler warnings as errors")
+endif()
+
+# clang-tidy — engine targets only, not third-party.
+# Sets WAYFINDER_CLANG_TIDY_COMMAND for targets to consume via set_target_properties.
+if(WAYFINDER_ENABLE_CLANG_TIDY)
+    find_program(CLANG_TIDY_EXE NAMES clang-tidy)
+    if(CLANG_TIDY_EXE)
+        set(WAYFINDER_CLANG_TIDY_COMMAND
+            "${CLANG_TIDY_EXE}" "--config-file=${CMAKE_SOURCE_DIR}/.clang-tidy"
+        )
+        message(STATUS "Common: clang-tidy found (${CLANG_TIDY_EXE})")
+    else()
+        message(WARNING "WAYFINDER_ENABLE_CLANG_TIDY is ON but clang-tidy was not found")
+    endif()
 endif()
 
 # RTTI Control

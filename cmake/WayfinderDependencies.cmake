@@ -8,6 +8,8 @@ CPMAddPackage(
     NAME SDL3
     GITHUB_REPOSITORY Shorebound/sdl
     GIT_TAG main
+    SYSTEM TRUE
+    EXCLUDE_FROM_ALL YES
     OPTIONS
         "SDL_SHARED OFF"
         "SDL_STATIC ON"
@@ -20,6 +22,8 @@ CPMAddPackage(
     NAME SDL3_image
     GITHUB_REPOSITORY Shorebound/sdl-image
     GIT_TAG main
+    SYSTEM TRUE
+    EXCLUDE_FROM_ALL YES
     OPTIONS
         "BUILD_SHARED_LIBS OFF"
         "SDLIMAGE_SAMPLES OFF"
@@ -39,26 +43,54 @@ CPMAddPackage(
     NAME glm
     GIT_REPOSITORY https://github.com/g-truc/glm.git
     GIT_TAG 1.0.3
+    SYSTEM TRUE
+    EXCLUDE_FROM_ALL YES
 )
 
 # --- spdlog ---
 set(SPDLOG_USE_STD_FORMAT ON CACHE BOOL "Use std::format instead of bundled fmt" FORCE)
-CPMAddPackage("gh:gabime/spdlog@1.17.0")
+CPMAddPackage(
+    NAME spdlog
+    GITHUB_REPOSITORY gabime/spdlog
+    VERSION 1.17.0
+    SYSTEM TRUE
+    EXCLUDE_FROM_ALL YES
+)
 
 # --- tomlplusplus ---
-CPMAddPackage("gh:marzer/tomlplusplus@3.4.0")
+CPMAddPackage(
+    NAME tomlplusplus
+    GITHUB_REPOSITORY marzer/tomlplusplus
+    VERSION 3.4.0
+    SYSTEM TRUE
+    EXCLUDE_FROM_ALL YES
+)
 
 # --- nlohmann/json ---
-CPMAddPackage("gh:nlohmann/json@3.12.0")
+CPMAddPackage(
+    NAME nlohmann_json
+    GITHUB_REPOSITORY nlohmann/json
+    VERSION 3.12.0
+    SYSTEM TRUE
+    EXCLUDE_FROM_ALL YES
+)
 
 # --- Tracy ---
-CPMAddPackage("gh:wolfpld/tracy@0.13.1")
+CPMAddPackage(
+    NAME tracy
+    GITHUB_REPOSITORY wolfpld/tracy
+    VERSION 0.13.1
+    SYSTEM TRUE
+    EXCLUDE_FROM_ALL YES
+)
 
 # --- Box2D ---
 CPMAddPackage(
     NAME box2d
     GITHUB_REPOSITORY erincatto/box2d
     VERSION 3.1.1
+    SYSTEM TRUE
+    EXCLUDE_FROM_ALL YES
     OPTIONS
         "BOX2D_BUILD_TESTBED OFF"
 )
@@ -69,6 +101,8 @@ CPMAddPackage(
     GITHUB_REPOSITORY Shorebound/jolt
     GIT_TAG master
     SOURCE_SUBDIR "Build"
+    SYSTEM TRUE
+    EXCLUDE_FROM_ALL YES
     OPTIONS
         "BUILD_SHARED_LIBS OFF"
         "DOUBLE_PRECISION OFF"
@@ -84,6 +118,8 @@ CPMAddPackage(
     NAME flecs
     GITHUB_REPOSITORY Shorebound/flecs
     GIT_TAG master
+    SYSTEM TRUE
+    EXCLUDE_FROM_ALL YES
     OPTIONS
         "FLECS_SHARED OFF"
         "FLECS_STATIC ON"
@@ -96,6 +132,8 @@ CPMAddPackage(
     GITHUB_REPOSITORY ocornut/imgui
     VERSION 1.92.6
     DOWNLOAD_ONLY YES
+    SYSTEM TRUE
+    EXCLUDE_FROM_ALL YES
 )
 
 if(imgui_ADDED)
@@ -109,7 +147,7 @@ if(imgui_ADDED)
         "${imgui_SOURCE_DIR}/backends/imgui_impl_sdl3.cpp"
         "${imgui_SOURCE_DIR}/backends/imgui_impl_sdlgpu3.cpp"
     )
-    target_include_directories(imgui PUBLIC
+    target_include_directories(imgui SYSTEM PUBLIC
         "${imgui_SOURCE_DIR}"
         "${imgui_SOURCE_DIR}/backends"
     )
@@ -123,11 +161,23 @@ if(WAYFINDER_BUILD_TESTS)
         GITHUB_REPOSITORY doctest/doctest
         VERSION 2.4.11
         DOWNLOAD_ONLY YES
+        SYSTEM TRUE
+        EXCLUDE_FROM_ALL YES
     )
     if(doctest_ADDED)
         # Header-only interface (no implementation — use in all test TUs)
         add_library(doctest_headers INTERFACE)
-        target_include_directories(doctest_headers INTERFACE "${doctest_SOURCE_DIR}")
+        target_include_directories(doctest_headers SYSTEM INTERFACE "${doctest_SOURCE_DIR}")
+
+        # doctest macros (TEST_CASE etc.) expand __COUNTER__, which Clang ≥ 19
+        # flags as a C2y extension under -Wpedantic.  Suppress for consumers.
+        # Only add if the compiler actually supports it (Clang < 19 doesn't).
+        include(CheckCompilerFlag)
+        check_compiler_flag(CXX "-Wno-c2y-extensions" WAYFINDER_HAS_WNO_C2Y_EXTENSIONS)
+        if(WAYFINDER_HAS_WNO_C2Y_EXTENSIONS)
+            target_compile_options(doctest_headers INTERFACE -Wno-c2y-extensions)
+        endif()
+
         add_library(doctest::doctest ALIAS doctest_headers)
 
         # Single-TU implementation with main() — link to one test executable

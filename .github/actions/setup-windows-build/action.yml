@@ -1,0 +1,13 @@
+name: 'Setup Windows Build Environment'
+description: 'Install CMake, Ninja, and configure MSVC environment for Windows CI'
+
+runs:
+  using: composite
+  steps:
+    - name: Install CMake 4.0.1
+      uses: lukka/get-cmake@v4.3.0
+      with:
+        cmakeVersion: '4.0.1'
+
+    - name: Setup MSVC environment
+      uses: ilammy/msvc-dev-cmd@v1

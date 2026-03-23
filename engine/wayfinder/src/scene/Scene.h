@@ -5,7 +5,7 @@
 #include <string>
 #include <unordered_map>
 
-#include <flecs.h>
+#include "ecs/Flecs.h"
 
 #include "core/Identifiers.h"
 #include "wayfinder_exports.h"

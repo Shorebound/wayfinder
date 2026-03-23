@@ -96,6 +96,7 @@ option(WAYFINDER_ENABLE_EXCEPTIONS "Enable C++ Exceptions" ON)
 option(WAYFINDER_ENABLE_LOGGING "Enable the logging system" ON) 
 
 option(WAYFINDER_PHYSICS "Enable physics support" ON)
+option(WAYFINDER_ENABLE_CLANG_TIDY "Run clang-tidy during Clang builds" OFF)
 
 message(STATUS "Wayfinder Project Configuration:")
 message(STATUS "  Build Sandbox: ${WAYFINDER_BUILD_SANDBOX}")

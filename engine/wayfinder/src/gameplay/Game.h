@@ -5,7 +5,7 @@
 #include <string_view>
 #include <vector>
 
-#include <flecs.h>
+#include "ecs/Flecs.h"
 
 #include "GameplayTag.h"
 #include "GameplayTagRegistry.h"

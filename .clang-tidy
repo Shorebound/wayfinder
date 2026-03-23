@@ -1,0 +1,115 @@
+# .clang-tidy — Wayfinder Engine
+#
+# Static analysis and naming convention enforcement.
+# Run via CMake (WAYFINDER_ENABLE_CLANG_TIDY) or standalone:
+#   clang-tidy -p build/clang engine/wayfinder/src/**/*.cpp
+
+---
+
+# --- Check Selection ---
+Checks: >
+  -*,
+  bugprone-*,
+  -bugprone-easily-swappable-parameters,
+  clang-analyzer-*,
+  cppcoreguidelines-*,
+  -cppcoreguidelines-avoid-magic-numbers,
+  -cppcoreguidelines-avoid-non-const-global-variables,
+  -cppcoreguidelines-owning-memory,
+  -cppcoreguidelines-pro-bounds-pointer-arithmetic,
+  -cppcoreguidelines-pro-type-reinterpret-cast,
+  -cppcoreguidelines-special-member-functions,
+  misc-*,
+  -misc-non-private-member-variables-in-classes,
+  modernize-*,
+  -modernize-use-trailing-return-type,
+  performance-*,
+  readability-container-size-empty,
+  readability-identifier-naming,
+  readability-make-member-function-const,
+  readability-qualified-auto,
+  readability-redundant-*,
+  readability-simplify-*
+
+# Only analyse project headers, not third-party or system.
+HeaderFilterRegex: 'engine/wayfinder/src/.*'
+SystemHeaders: false
+FormatStyle: file
+
+# Not promoted to errors yet — enable after baseline cleanup.
+WarningsAsErrors: ''
+
+# --- Naming Conventions ---
+# Maps directly to the project style guide in copilot-instructions.md.
+CheckOptions:
+  # Types — PascalCase
+  - key: readability-identifier-naming.ClassCase
+    value: CamelCase
+  - key: readability-identifier-naming.StructCase
+    value: CamelCase
+  - key: readability-identifier-naming.EnumCase
+    value: CamelCase
+  - key: readability-identifier-naming.UnionCase
+    value: CamelCase
+  - key: readability-identifier-naming.TypeAliasCase
+    value: CamelCase
+  - key: readability-identifier-naming.TypedefCase
+    value: CamelCase
+
+  # Interfaces — I prefix
+  - key: readability-identifier-naming.AbstractClassCase
+    value: CamelCase
+  - key: readability-identifier-naming.AbstractClassPrefix
+    value: I
+
+  # Functions / Methods — PascalCase
+  - key: readability-identifier-naming.FunctionCase
+    value: CamelCase
+  - key: readability-identifier-naming.GlobalFunctionCase
+    value: CamelCase
+  - key: readability-identifier-naming.MethodCase
+    value: CamelCase
+
+  # Members — m_ prefix for private/protected, PascalCase for public
+  - key: readability-identifier-naming.PrivateMemberCase
+    value: CamelCase
+  - key: readability-identifier-naming.PrivateMemberPrefix
+    value: m_
+  - key: readability-identifier-naming.ProtectedMemberCase
+    value: CamelCase
+  - key: readability-identifier-naming.ProtectedMemberPrefix
+    value: m_
+  - key: readability-identifier-naming.PublicMemberCase
+    value: CamelCase
+
+  # Constants — SCREAMING_SNAKE_CASE
+  - key: readability-identifier-naming.ConstantCase
+    value: UPPER_CASE
+  - key: readability-identifier-naming.EnumConstantCase
+    value: UPPER_CASE
+  - key: readability-identifier-naming.ConstexprVariableCase
+    value: UPPER_CASE
+  - key: readability-identifier-naming.StaticConstantCase
+    value: UPPER_CASE
+  - key: readability-identifier-naming.GlobalConstantCase
+    value: UPPER_CASE
+
+  # Local variables / parameters — camelCase
+  - key: readability-identifier-naming.LocalVariableCase
+    value: camelBack
+  - key: readability-identifier-naming.ParameterCase
+    value: camelBack
+
+  # Template parameters — T prefix
+  - key: readability-identifier-naming.TypeTemplateParameterCase
+    value: CamelCase
+  - key: readability-identifier-naming.TypeTemplateParameterPrefix
+    value: T
+
+  # Namespaces — PascalCase
+  - key: readability-identifier-naming.NamespaceCase
+    value: CamelCase
+
+  # Static methods — PascalCase (same as methods)
+  - key: readability-identifier-naming.ClassMethodCase
+    value: CamelCase

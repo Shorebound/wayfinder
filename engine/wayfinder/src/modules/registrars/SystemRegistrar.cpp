@@ -5,7 +5,7 @@
 #include <queue>
 #include <unordered_map>
 
-#include <flecs.h>
+#include "ecs/Flecs.h"
 
 namespace Wayfinder
 {

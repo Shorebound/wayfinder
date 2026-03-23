@@ -13,7 +13,7 @@
 #include <string>
 #include <string_view>
 
-#include <flecs.h>
+#include "ecs/Flecs.h"
 #include <nlohmann/json.hpp>
 
 

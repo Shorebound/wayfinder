@@ -14,17 +14,21 @@ BraceWrapping:
   AfterEnum: true
   AfterNamespace: true
   AfterUnion: true
+  AfterExternBlock: true
   BeforeCatch: true
   BeforeElse: true
+  BeforeLambdaBody: true
+  BeforeWhile: true
   SplitEmptyFunction: false
   SplitEmptyRecord: false
   SplitEmptyNamespace: false
-  
+
 AllowShortFunctionsOnASingleLine: All
 AllowShortBlocksOnASingleLine: Always
 AllowShortIfStatementsOnASingleLine: WithoutElse
 AllowShortLambdasOnASingleLine: All
 
+ContinuationIndentWidth: 4
 IndentCaseLabels: false
 ColumnLimit: 0
 AccessModifierOffset: -4

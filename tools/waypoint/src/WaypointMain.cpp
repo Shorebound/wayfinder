@@ -9,7 +9,7 @@
 #include "scene/RuntimeComponentRegistry.h"
 #include "scene/Scene.h"
 
-#include <flecs.h>
+#include "ecs/Flecs.h"
 #include <filesystem>
 #include <iostream>
 #include <optional>

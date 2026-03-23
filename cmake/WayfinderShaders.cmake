@@ -7,7 +7,8 @@
 
 if(NOT DXC_EXECUTABLE)
     find_program(DXC_EXECUTABLE dxc
-        HINTS "${CMAKE_SOURCE_DIR}/tools/shadercompiler/bin/x64"
+        HINTS "${CMAKE_SOURCE_DIR}/tools/shadercompiler/bin/x64"   # Windows layout
+              "${CMAKE_SOURCE_DIR}/tools/shadercompiler/bin"        # Linux layout
     )
 endif()
 
