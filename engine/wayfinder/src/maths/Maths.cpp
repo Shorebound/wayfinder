@@ -17,15 +17,15 @@ namespace Wayfinder::Maths
 
     Matrix4 ComposeTransform(const Transform& transform)
     {
-        const Radians rotationX = ToRadians(glm::dot(transform.RotationDegrees, Float3(1.0f, 0.0f, 0.0f)));
-        const Radians rotationY = ToRadians(glm::dot(transform.RotationDegrees, Float3(0.0f, 1.0f, 0.0f)));
-        const Radians rotationZ = ToRadians(glm::dot(transform.RotationDegrees, Float3(0.0f, 0.0f, 1.0f)));
+        const Radians rotationX = ToRadians(glm::dot(transform.RotationDegrees, Right));
+        const Radians rotationY = ToRadians(glm::dot(transform.RotationDegrees, Up));
+        const Radians rotationZ = ToRadians(glm::dot(transform.RotationDegrees, Forward));
 
         Matrix4 result(1.0f);
         result = glm::translate(result, transform.Position);
-        result = glm::rotate(result, rotationZ, Float3(0.0f, 0.0f, 1.0f));
-        result = glm::rotate(result, rotationY, Float3(0.0f, 1.0f, 0.0f));
-        result = glm::rotate(result, rotationX, Float3(1.0f, 0.0f, 0.0f));
+        result = glm::rotate(result, rotationZ, Forward);
+        result = glm::rotate(result, rotationY, Up);
+        result = glm::rotate(result, rotationX, Right);
         result = glm::scale(result, transform.Scale);
         return result;
     }
@@ -42,10 +42,11 @@ namespace Wayfinder::Maths
 
     Float3 ExtractScale(const Matrix4& matrix)
     {
-        return {
-        Length(TransformDirection(matrix, {1.0f, 0.0f, 0.0f})),
-        Length(TransformDirection(matrix, {0.0f, 1.0f, 0.0f})),
-        Length(TransformDirection(matrix, {0.0f, 0.0f, 1.0f})),
+        return 
+        {
+            Length(TransformDirection(matrix, {1.0f, 0.0f, 0.0f})),
+            Length(TransformDirection(matrix, {0.0f, 1.0f, 0.0f})),
+            Length(TransformDirection(matrix, {0.0f, 0.0f, 1.0f})),
         };
     }
 
