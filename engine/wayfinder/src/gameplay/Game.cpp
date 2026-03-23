@@ -56,7 +56,7 @@ namespace Wayfinder
             {
                 Fn();
             }
-        } guard{cleanup};
+        } const guard{cleanup};
 
         const auto bootScenePath = ctx.project.ResolveBootScene();
 
@@ -210,7 +210,7 @@ namespace Wayfinder
 
     void Game::AddGameplayTag(const GameplayTag& tag)
     {
-        ActiveGameplayTags& tags = m_world.get_mut<ActiveGameplayTags>();
+        auto& tags = m_world.get_mut<ActiveGameplayTags>();
         tags.Tags.AddTag(tag);
         WAYFINDER_INFO(LogGame, "Added gameplay tag: '{}'", tag.GetName());
         if (m_stateMachine)
@@ -221,7 +221,7 @@ namespace Wayfinder
 
     void Game::RemoveGameplayTag(const GameplayTag& tag)
     {
-        ActiveGameplayTags& tags = m_world.get_mut<ActiveGameplayTags>();
+        auto& tags = m_world.get_mut<ActiveGameplayTags>();
         tags.Tags.RemoveTag(tag);
         WAYFINDER_INFO(LogGame, "Removed gameplay tag: '{}'", tag.GetName());
         if (m_stateMachine)
@@ -232,7 +232,7 @@ namespace Wayfinder
 
     bool Game::HasGameplayTag(const GameplayTag& tag) const
     {
-        const ActiveGameplayTags& tags = m_world.get<ActiveGameplayTags>();
+        const auto& tags = m_world.get<ActiveGameplayTags>();
         return tags.Tags.HasTag(tag);
     }
 

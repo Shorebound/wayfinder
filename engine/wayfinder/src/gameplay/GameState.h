@@ -29,10 +29,10 @@ namespace Wayfinder
     using RunCondition = std::function<bool(const flecs::world&)>;
 
     /// Returns a run condition that is true when the given state is active.
-    WAYFINDER_API RunCondition InState(std::string stateName);
+    WAYFINDER_API RunCondition InState(const std::string& stateName);
 
     /// Returns a run condition that is true when the given state is NOT active.
-    WAYFINDER_API RunCondition NotInState(std::string stateName);
+    WAYFINDER_API RunCondition NotInState(const std::string& stateName);
 
     /// Returns a run condition that is true when the given gameplay tag is active.
     WAYFINDER_API RunCondition HasTag(GameplayTag tag);

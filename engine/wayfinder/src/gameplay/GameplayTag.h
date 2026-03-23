@@ -3,6 +3,7 @@
 #include "core/InternedString.h"
 #include "wayfinder_exports.h"
 
+#include <compare>
 #include <optional>
 #include <string>
 #include <string_view>
@@ -26,13 +27,9 @@ namespace Wayfinder
         {
             return m_name == other.m_name;
         }
-        bool operator!=(const GameplayTag& other) const
+        std::strong_ordering operator<=>(const GameplayTag& other) const
         {
-            return m_name != other.m_name;
-        }
-        bool operator<(const GameplayTag& other) const
-        {
-            return m_name < other.m_name;
+            return GetName() <=> other.GetName();
         }
 
         const std::string& GetName() const

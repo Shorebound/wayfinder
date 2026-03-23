@@ -1,6 +1,7 @@
 # .clang-format
 BasedOnStyle: LLVM
 PointerAlignment: Left
+QualifierAlignment: Left
 UseTab: Never
 IndentWidth: 4
 TabWidth: 4

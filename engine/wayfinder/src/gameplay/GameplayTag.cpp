@@ -2,6 +2,7 @@
 #include "core/InternedString.h"
 
 #include <algorithm>
+#include <ranges>
 
 namespace Wayfinder
 {
@@ -19,7 +20,7 @@ namespace Wayfinder
         {
             return false;
         }
-        return name.starts_with(parentName) && name[parentName.size()] == '.';
+        return name.starts_with(parentName) && name.compare(parentName.size(), 1, ".") == 0;
     }
 
     std::optional<GameplayTag> GameplayTag::Parent() const
@@ -47,12 +48,12 @@ namespace Wayfinder
 
     bool GameplayTagContainer::HasExact(const GameplayTag& tag) const
     {
-        return std::binary_search(m_tags.begin(), m_tags.end(), tag);
+        return std::ranges::binary_search(m_tags, tag);
     }
 
     bool GameplayTagContainer::HasTag(const GameplayTag& tag) const
     {
-        return std::any_of(m_tags.begin(), m_tags.end(), [&](const GameplayTag& t)
+        return std::ranges::any_of(m_tags, [&](const GameplayTag& t)
         {
             return t.IsChildOf(tag);
         });
@@ -60,7 +61,7 @@ namespace Wayfinder
 
     bool GameplayTagContainer::HasAny(const GameplayTagContainer& other) const
     {
-        return std::any_of(other.m_tags.begin(), other.m_tags.end(), [&](const GameplayTag& t)
+        return std::ranges::any_of(other.m_tags, [&](const GameplayTag& t)
         {
             return HasTag(t);
         });
@@ -68,7 +69,7 @@ namespace Wayfinder
 
     bool GameplayTagContainer::HasAll(const GameplayTagContainer& other) const
     {
-        return std::all_of(other.m_tags.begin(), other.m_tags.end(), [&](const GameplayTag& t)
+        return std::ranges::all_of(other.m_tags, [&](const GameplayTag& t)
         {
             return HasTag(t);
         });
@@ -76,7 +77,7 @@ namespace Wayfinder
 
     void GameplayTagContainer::AddTag(const GameplayTag& tag)
     {
-        auto it = std::lower_bound(m_tags.begin(), m_tags.end(), tag);
+        auto it = std::ranges::lower_bound(m_tags, tag);
         if (it == m_tags.end() || *it != tag)
         {
             m_tags.insert(it, tag);
@@ -85,7 +86,7 @@ namespace Wayfinder
 
     void GameplayTagContainer::RemoveTag(const GameplayTag& tag)
     {
-        auto it = std::lower_bound(m_tags.begin(), m_tags.end(), tag);
+        auto it = std::ranges::lower_bound(m_tags, tag);
         if (it != m_tags.end() && *it == tag)
         {
             m_tags.erase(it);

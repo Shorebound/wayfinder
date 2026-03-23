@@ -49,7 +49,7 @@ namespace Wayfinder
 
         // Early-out if already in the requested state (avoids interning).
         {
-            const ActiveGameState& state = m_world->get<ActiveGameState>();
+            const auto& state = m_world->get<ActiveGameState>();
             if (state.Current.GetString() == stateName)
             {
                 return;
@@ -60,7 +60,7 @@ namespace Wayfinder
         const ModuleRegistry::StateDescriptor* exitDesc = nullptr;
         if (m_moduleRegistry)
         {
-            const ActiveGameState& state = m_world->get<ActiveGameState>();
+            const auto& state = m_world->get<ActiveGameState>();
             for (const auto& desc : m_moduleRegistry->GetStateDescriptors())
             {
                 if (desc.Name == stateName)
@@ -81,7 +81,7 @@ namespace Wayfinder
         }
 
         const auto internedName = InternedString::Intern(stateName);
-        ActiveGameState& state = m_world->get_mut<ActiveGameState>();
+        auto& state = m_world->get_mut<ActiveGameState>();
         const InternedString oldState = state.Current;
 
         // Call OnExit for the outgoing state
@@ -108,7 +108,7 @@ namespace Wayfinder
     std::string_view GameStateMachine::GetCurrentState() const
     {
         WAYFINDER_ASSERT(m_world, "GetCurrentState() called before Configure()");
-        const ActiveGameState& state = m_world->get<ActiveGameState>();
+        const auto& state = m_world->get<ActiveGameState>();
         return state.Current.GetString();
     }
 
@@ -126,7 +126,7 @@ namespace Wayfinder
                 continue;
             }
 
-            flecs::entity sys = m_world->lookup(desc.Name.c_str());
+            const flecs::entity sys = m_world->lookup(desc.Name.c_str());
             if (!sys.is_valid())
             {
                 WAYFINDER_WARNING(LogGame,
@@ -142,7 +142,7 @@ namespace Wayfinder
                 sys.disable();
             }
 
-            m_conditionedSystems.push_back({sys, desc.Condition, initiallyEnabled});
+            m_conditionedSystems.push_back({.SystemEntity = sys, .Condition = desc.Condition, .Enabled = initiallyEnabled});
         }
     }
 

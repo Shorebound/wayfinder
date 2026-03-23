@@ -12,6 +12,12 @@
 
 namespace Wayfinder
 {
+    enum class GameplayTagSourceKind
+    {
+        Code,
+        File,
+    };
+
     /**
      * @struct GameplayTagDefinition
      * @brief Metadata for a registered gameplay tag.
@@ -85,7 +91,7 @@ namespace Wayfinder
 
     private:
         /// Ensures all ancestor tags exist (e.g. registering "A.B.C" also registers "A" and "A.B").
-        void EnsureAncestors(const std::string& name, const std::string& sourceFile);
+        void EnsureAncestors(std::string_view name, GameplayTagSourceKind sourceKind, std::string_view sourceFile = {});
 
         std::vector<GameplayTagDefinition> m_definitions;
         std::unordered_map<std::string, size_t> m_index; ///< Name -> index into m_definitions.
