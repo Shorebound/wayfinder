@@ -1,14 +1,15 @@
 #include "app/EntryPoint.h"
 #include "gameplay/GameState.h"
 #include "gameplay/GameplayTag.h"
-#include "modules/Module.h"
-#include "modules/ModuleExport.h"
-#include "modules/ModuleRegistry.h"
-#include "modules/Plugin.h"
 #include "physics/PhysicsPlugin.h"
+#include "plugins/Plugin.h"
+#include "plugins/PluginExport.h"
+#include "plugins/PluginRegistry.h"
 #include "scene/entity/Entity.h"
 
 #include "ecs/Flecs.h"
+
+#include <nlohmann/json.hpp>
 
 namespace Wayfinder::Journey
 {
@@ -22,9 +23,9 @@ namespace Wayfinder::Journey
     class HealthPlugin : public Plugin
     {
     public:
-        void Build(ModuleRegistry& registry) override
+        void Build(PluginRegistry& registry) override
         {
-            ModuleRegistry::ComponentDescriptor desc;
+            PluginRegistry::ComponentDescriptor desc;
             desc.Key = "health";
 
             desc.RegisterFn = [](flecs::world& world)
@@ -79,7 +80,7 @@ namespace Wayfinder::Journey
     class GameplayPlugin : public Plugin
     {
     public:
-        void Build(ModuleRegistry& registry) override
+        void Build(PluginRegistry& registry) override
         {
             // Register game states with lifecycle callbacks
             registry.RegisterState({"Playing", nullptr, nullptr});
@@ -114,7 +115,7 @@ namespace Wayfinder::Journey
     class TagDemoPlugin : public Plugin
     {
     public:
-        void Build(ModuleRegistry& registry) override
+        void Build(PluginRegistry& registry) override
         {
             // Load data-driven tag files from config/tags/
             registry.RegisterTagFile("tags/status.tags.toml");
@@ -148,9 +149,9 @@ namespace Wayfinder::Journey
         }
     };
 
-    class JourneyModule : public Module
+    class JourneyGame : public Plugin
     {
-        void Register(ModuleRegistry& registry) override
+        void Build(PluginRegistry& registry) override
         {
             registry.AddPlugin<Physics::PhysicsPlugin>();
             registry.AddPlugin<HealthPlugin>();
@@ -160,10 +161,10 @@ namespace Wayfinder::Journey
     };
 } // namespace Wayfinder::Journey
 
-std::unique_ptr<Wayfinder::Module> Wayfinder::CreateModule()
+std::unique_ptr<Wayfinder::Plugin> Wayfinder::CreateGamePlugin()
 {
-    return std::make_unique<Journey::JourneyModule>();
+    return std::make_unique<Journey::JourneyGame>();
 }
 
-// Dynamic entry point for tools loading the module as a shared library.
-WAYFINDER_IMPLEMENT_MODULE(Wayfinder::Journey::JourneyModule)
+// Dynamic entry point for tools loading the plugin as a shared library.
+WAYFINDER_IMPLEMENT_GAME_PLUGIN(Wayfinder::Journey::JourneyGame)

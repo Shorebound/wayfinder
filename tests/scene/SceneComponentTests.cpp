@@ -47,7 +47,7 @@ namespace Wayfinder::Tests
     TEST_CASE("RenderOverrideComponent is an opt-in override")
     {
         flecs::world world;
-        Wayfinder::Scene::RegisterCoreECS(world);
+        Wayfinder::Scene::RegisterCoreComponents(world);
         Wayfinder::RuntimeComponentRegistry registry;
         registry.AddCoreEntries();
         registry.RegisterComponents(world);
@@ -96,7 +96,7 @@ namespace Wayfinder::Tests
     TEST_CASE("RenderOverrideComponent serialisation round-trip with wireframe=true")
     {
         flecs::world world;
-        Wayfinder::Scene::RegisterCoreECS(world);
+        Wayfinder::Scene::RegisterCoreComponents(world);
         Wayfinder::RuntimeComponentRegistry registry;
         registry.AddCoreEntries();
         registry.RegisterComponents(world);
@@ -133,7 +133,7 @@ namespace Wayfinder::Tests
     TEST_CASE("RenderOverrideComponent serialisation round-trip with wireframe=false")
     {
         flecs::world world;
-        Wayfinder::Scene::RegisterCoreECS(world);
+        Wayfinder::Scene::RegisterCoreComponents(world);
         Wayfinder::RuntimeComponentRegistry registry;
         registry.AddCoreEntries();
         registry.RegisterComponents(world);
@@ -171,7 +171,7 @@ namespace Wayfinder::Tests
     TEST_CASE("RenderOverrideComponent serialisation skips empty component")
     {
         flecs::world world;
-        Wayfinder::Scene::RegisterCoreECS(world);
+        Wayfinder::Scene::RegisterCoreComponents(world);
         Wayfinder::RuntimeComponentRegistry registry;
         registry.AddCoreEntries();
         registry.RegisterComponents(world);
@@ -193,7 +193,7 @@ namespace Wayfinder::Tests
     TEST_CASE("MaterialComponent serialisation has no wireframe field")
     {
         flecs::world world;
-        Wayfinder::Scene::RegisterCoreECS(world);
+        Wayfinder::Scene::RegisterCoreComponents(world);
         Wayfinder::RuntimeComponentRegistry registry;
         registry.AddCoreEntries();
         registry.RegisterComponents(world);
@@ -240,10 +240,11 @@ namespace Wayfinder::Tests
     TEST_CASE("Extractor uses RenderOverrideComponent for wireframe")
     {
         flecs::world world;
-        Wayfinder::Scene::RegisterCoreECS(world);
+        Wayfinder::Scene::RegisterCoreComponents(world);
         Wayfinder::RuntimeComponentRegistry registry;
         registry.AddCoreEntries();
         registry.RegisterComponents(world);
+        Wayfinder::Scene::RegisterCoreSceneSystems(world);
         Wayfinder::Scene scene(world, registry, "Extractor Override Test");
 
         Wayfinder::Entity camera = scene.CreateEntity("Camera");

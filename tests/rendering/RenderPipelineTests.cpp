@@ -61,10 +61,11 @@ namespace Wayfinder::Tests
     TEST_CASE("Extractor builds explicit passes and debug payload")
     {
         flecs::world world;
-        Wayfinder::Scene::RegisterCoreECS(world);
+        Wayfinder::Scene::RegisterCoreComponents(world);
         Wayfinder::RuntimeComponentRegistry registry;
         registry.AddCoreEntries();
         registry.RegisterComponents(world);
+        Wayfinder::Scene::RegisterCoreSceneSystems(world);
         Wayfinder::Scene scene(world, registry, "Extractor Test Scene");
 
         Wayfinder::Entity camera = scene.CreateEntity("Camera");
@@ -110,10 +111,11 @@ namespace Wayfinder::Tests
     TEST_CASE("Extractor skips mesh without renderable")
     {
         flecs::world world;
-        Wayfinder::Scene::RegisterCoreECS(world);
+        Wayfinder::Scene::RegisterCoreComponents(world);
         Wayfinder::RuntimeComponentRegistry registry;
         registry.AddCoreEntries();
         registry.RegisterComponents(world);
+        Wayfinder::Scene::RegisterCoreSceneSystems(world);
         Wayfinder::Scene scene(world, registry, "Extractor Skip Scene");
 
         Wayfinder::Entity camera = scene.CreateEntity("Camera");

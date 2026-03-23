@@ -1,7 +1,7 @@
 #include "RuntimeComponentRegistry.h"
 #include "ComponentRegistry.h"
 #include "core/Log.h"
-#include "modules/ModuleRegistry.h"
+#include "plugins/PluginRegistry.h"
 
 namespace Wayfinder
 {
@@ -26,7 +26,7 @@ namespace Wayfinder
         }
     }
 
-    void RuntimeComponentRegistry::AddGameEntries(const ModuleRegistry& registry)
+    void RuntimeComponentRegistry::AddGameEntries(const PluginRegistry& registry)
     {
         for (const auto& desc : registry.GetComponentDescriptors())
         {

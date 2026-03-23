@@ -8,7 +8,7 @@ message(STATUS "Sandbox: Configuring target ${SANDBOX_NAME}")
 # --- Sources ---
 target_sources(${SANDBOX_NAME} 
     PRIVATE
-        src/JourneyModule.cpp 
+        src/JourneyGame.cpp 
 )
 
 # --- Include Directories ---
@@ -25,7 +25,7 @@ target_link_libraries(${SANDBOX_NAME}
 
 # --- Module shared library (loaded at runtime by tools like waypoint) ---
 set(MODULE_NAME ${SANDBOX_NAME}_module)
-add_library(${MODULE_NAME} SHARED src/JourneyModule.cpp)
+add_library(${MODULE_NAME} SHARED src/JourneyGame.cpp)
 wayfinder_set_output_directories(${MODULE_NAME})
 target_include_directories(${MODULE_NAME} PRIVATE src)
 target_link_libraries(${MODULE_NAME} PRIVATE ${ENGINE_NAME})

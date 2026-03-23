@@ -12,7 +12,7 @@
 
 namespace Wayfinder
 {
-    class ModuleRegistry;
+    class PluginRegistry;
 
     /// Manages game-state transitions, run-condition evaluation, and
     /// conditioned-system tracking.  Extracted from Game so that state
@@ -28,7 +28,7 @@ namespace Wayfinder
     {
     public:
         /// Post-initialisation configuration.  Must be called before Setup().
-        void Configure(flecs::world& world, const ModuleRegistry* moduleRegistry);
+        void Configure(flecs::world& world, const PluginRegistry& pluginRegistry);
 
         /// Bind conditioned systems and perform the initial state transition.
         /// Call once after Configure() and after ApplyToWorld().
@@ -64,7 +64,7 @@ namespace Wayfinder
         void EvaluateRunConditions();
 
         flecs::world* m_world = nullptr;
-        const ModuleRegistry* m_moduleRegistry = nullptr;
+        const PluginRegistry* m_pluginRegistry = nullptr;
         std::vector<ConditionedSystem> m_conditionedSystems;
         bool m_runConditionsDirty = false;
     };

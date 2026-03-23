@@ -2,8 +2,8 @@
 #include "assets/AssetRegistry.h"
 #include "core/Log.h"
 #include "core/Result.h"
-#include "modules/ModuleLoader.h"
-#include "modules/ModuleRegistry.h"
+#include "plugins/PluginLoader.h"
+#include "plugins/PluginRegistry.h"
 #include "project/ProjectDescriptor.h"
 #include "project/ProjectResolver.h"
 #include "scene/RuntimeComponentRegistry.h"
@@ -45,12 +45,12 @@ namespace Wayfinder
     {
         flecs::world World;
         Wayfinder::RuntimeComponentRegistry Registry;
-        std::optional<Wayfinder::LoadedModule> Module;
-        std::unique_ptr<Wayfinder::ModuleRegistry> ModReg;
+        std::optional<Wayfinder::LoadedPlugin> GamePlugin;
+        std::unique_ptr<Wayfinder::PluginRegistry> PluginReg;
 
         explicit WaypointContext(const Wayfinder::ProjectDescriptor* project = nullptr, const std::filesystem::path& toolDir = {})
         {
-            Wayfinder::Scene::RegisterCoreECS(World);
+            Wayfinder::Scene::RegisterCoreComponents(World);
             Registry.AddCoreEntries();
 
             if (project && !project->Paths.Module.empty())
@@ -64,18 +64,18 @@ namespace Wayfinder
                     modulePath = toolDir / modulePath.filename();
                 }
 
-                auto loadResult = Wayfinder::ModuleLoader::Load(modulePath);
+                auto loadResult = Wayfinder::PluginLoader::Load(modulePath);
                 if (loadResult && loadResult->Instance)
                 {
-                    Module = std::move(*loadResult);
+                    GamePlugin = std::move(*loadResult);
                     auto defaultConfig = Wayfinder::EngineConfig::LoadDefaults();
-                    ModReg = std::make_unique<Wayfinder::ModuleRegistry>(*project, defaultConfig);
-                    Module->Instance->Register(*ModReg);
-                    Registry.AddGameEntries(*ModReg);
+                    PluginReg = std::make_unique<Wayfinder::PluginRegistry>(*project, defaultConfig);
+                    GamePlugin->Instance->Build(*PluginReg);
+                    Registry.AddGameEntries(*PluginReg);
                 }
                 else
                 {
-                    std::cerr << "Warning: failed to load game module from " << modulePath.string() << '\n';
+                    std::cerr << "Warning: failed to load game plugin from " << modulePath.string() << '\n';
                 }
             }
 

@@ -10,17 +10,18 @@
 #include "core/events/MouseEvent.h"
 #include "gameplay/Game.h"
 #include "gameplay/GameContext.h"
-#include "modules/Module.h"
-#include "modules/ModuleRegistry.h"
 #include "platform/Input.h"
 #include "platform/Window.h"
+#include "plugins/Plugin.h"
+#include "plugins/PluginRegistry.h"
 #include "project/ProjectDescriptor.h"
 #include "project/ProjectResolver.h"
-#include "scene/Scene.h"
+#include "scene/plugins/CameraPlugin.h"
+#include "scene/plugins/TransformPlugin.h"
 
 namespace Wayfinder
 {
-    Application::Application(std::unique_ptr<Module> module, const CommandLineArgs& args) : m_module(std::move(module)), m_args(args) {}
+    Application::Application(std::unique_ptr<Plugin> gamePlugin, const CommandLineArgs& args) : m_gamePlugin(std::move(gamePlugin)), m_args(args) {}
 
     Application::~Application()
     {
@@ -70,11 +71,13 @@ namespace Wayfinder
         // 2. Load engine config
         m_config = std::make_unique<EngineConfig>(EngineConfig::LoadFromFile(m_project->ResolveEngineConfigPath()));
 
-        // 3. Module registration (before Game so scene creation can use factories)
-        if (m_module)
+        // 3. Plugin registration (before Game so scene creation can use factories)
+        m_pluginRegistry = std::make_unique<PluginRegistry>(*m_project, *m_config);
+        m_pluginRegistry->AddPlugin<TransformPlugin>();
+        m_pluginRegistry->AddPlugin<CameraPlugin>();
+        if (m_gamePlugin)
         {
-            m_moduleRegistry = std::make_unique<ModuleRegistry>(*m_project, *m_config);
-            m_module->Register(*m_moduleRegistry);
+            m_pluginRegistry->AddPlugin(std::move(m_gamePlugin));
         }
 
         // 4. Platform + rendering services
@@ -94,8 +97,9 @@ namespace Wayfinder
         m_layerStack = std::make_unique<LayerStack>();
 
         // 6. Game
-        const GameContext gameCtx{.project = *m_project, .moduleRegistry = m_moduleRegistry.get()};
-        m_game = std::make_unique<Game>();
+        WAYFINDER_ASSERT(m_pluginRegistry, "Plugin registry must exist after initialisation");
+        const GameContext gameCtx{.project = *m_project, .pluginRegistry = *m_pluginRegistry};
+        m_game = std::make_unique<Game>(*m_pluginRegistry);
 
         if (auto gameResult = m_game->Initialise(gameCtx); !gameResult)
         {
@@ -104,12 +108,9 @@ namespace Wayfinder
 
         m_runtime->SetAssetService(m_game->GetAssetService());
 
-        // 7. Module startup
-        if (m_module)
-        {
-            m_module->OnStartup();
-            m_moduleStarted = true;
-        }
+        // 7. Plugin startup lifecycle
+        m_pluginRegistry->NotifyStartup();
+        m_pluginsStarted = true;
 
         m_running = true;
         return {};
@@ -253,13 +254,13 @@ namespace Wayfinder
         {
             WAYFINDER_INFO(LogEngine, "Shutting down Wayfinder Engine");
 
-            if (m_module && m_moduleStarted)
+            if (m_pluginRegistry && m_pluginsStarted)
             {
-                m_module->OnShutdown();
-                m_moduleStarted = false;
+                m_pluginRegistry->NotifyShutdown();
+                m_pluginsStarted = false;
             }
 
-            m_moduleRegistry = nullptr;
+            m_pluginRegistry = nullptr;
 
             if (m_game)
             {

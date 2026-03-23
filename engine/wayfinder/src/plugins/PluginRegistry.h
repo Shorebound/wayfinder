@@ -3,9 +3,9 @@
 #include "Plugin.h"
 #include "app/Subsystem.h"
 #include "gameplay/GameState.h"
-#include "modules/registrars/StateRegistrar.h"
-#include "modules/registrars/SystemRegistrar.h"
-#include "modules/registrars/TagRegistrar.h"
+#include "plugins/registrars/StateRegistrar.h"
+#include "plugins/registrars/SystemRegistrar.h"
+#include "plugins/registrars/TagRegistrar.h"
 #include "wayfinder_exports.h"
 
 #include <functional>
@@ -30,16 +30,16 @@ namespace Wayfinder
     struct ProjectDescriptor;
 
     /**
-     * @brief Collects game-specific ECS registrations during Module::Register().
+     * @brief Collects ECS registrations from plugins during Plugin::Build().
      *
-     * This is a descriptor store, not a live world facade. Game modules
-     * declare their systems/components here, and the engine applies those
+     * This is a descriptor store, not a live world facade. Plugins declare
+     * their systems and components here, and the engine applies those
      * declarations once into the persistent flecs::world at startup.
      *
      * Internally delegates system, state, and tag storage to focused
      * sub-registries (SystemRegistrar, StateRegistrar, TagRegistrar).
      */
-    class WAYFINDER_API ModuleRegistry
+    class WAYFINDER_API PluginRegistry
     {
     public:
         using SystemFactory = std::function<void(flecs::world&)>;
@@ -75,7 +75,7 @@ namespace Wayfinder
             GlobalFactory Factory;
         };
 
-        ModuleRegistry(const ProjectDescriptor& project, const EngineConfig& config);
+        PluginRegistry(const ProjectDescriptor& project, const EngineConfig& config);
 
         /// Add a plugin. The plugin's Build() is called immediately.
         template<typename T>
@@ -85,6 +85,15 @@ namespace Wayfinder
             plugin->Build(*this);
             m_plugins.push_back(std::move(plugin));
         }
+
+        /// Add an externally-created plugin (e.g. the game's root plugin from CreateGamePlugin()).
+        void AddPlugin(std::unique_ptr<Plugin> plugin);
+
+        /// Call OnStartup() on all plugins in registration order.
+        void NotifyStartup();
+
+        /// Call OnShutdown() on all plugins in reverse registration order.
+        void NotifyShutdown();
 
         /// Register a named ECS system factory.  The factory will be called
         /// once when the engine creates its persistent flecs::world.
@@ -174,7 +183,7 @@ namespace Wayfinder
             SubsystemCollection<GameSubsystem>::PredicateFn Predicate = nullptr;
         };
 
-        /// Read-only access to module-registered subsystem factories.
+        /// Read-only access to plugin-registered subsystem factories.
         const std::vector<SubsystemFactoryEntry>& GetSubsystemFactories() const
         {
             return m_subsystemFactories;

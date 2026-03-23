@@ -8,7 +8,7 @@
 namespace Wayfinder
 {
     /// Internal storage for gameplay-tag descriptors and tag-file paths.
-    /// Owned by ModuleRegistry — not a subsystem.
+    /// Owned by PluginRegistry — not a subsystem.
     class WAYFINDER_API TagRegistrar
     {
     public:

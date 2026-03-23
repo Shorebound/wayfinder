@@ -1,13 +1,13 @@
 #include "app/EntryPoint.h"
-#include "modules/Module.h"
-#include "modules/ModuleRegistry.h"
+#include "plugins/Plugin.h"
+#include "plugins/PluginRegistry.h"
 
-class WaystoneModule : public Wayfinder::Module
+class WaystoneGame : public Wayfinder::Plugin
 {
-    void Register(Wayfinder::ModuleRegistry& /*registry*/) override {}
+    void Build(Wayfinder::PluginRegistry& /*registry*/) override {}
 };
 
-std::unique_ptr<Wayfinder::Module> Wayfinder::CreateModule()
+std::unique_ptr<Wayfinder::Plugin> Wayfinder::CreateGamePlugin()
 {
-    return std::make_unique<WaystoneModule>();
+    return std::make_unique<WaystoneGame>();
 }

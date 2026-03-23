@@ -15,7 +15,7 @@ namespace flecs
 namespace Wayfinder
 {
     /// Internal storage and topological-sort logic for ECS system descriptors.
-    /// Owned by ModuleRegistry — not a subsystem.
+    /// Owned by PluginRegistry — not a subsystem.
     class WAYFINDER_API SystemRegistrar
     {
     public:

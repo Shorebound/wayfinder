@@ -1,5 +1,5 @@
-#include "ModuleLoader.h"
-#include "ModuleExport.h"
+#include "PluginLoader.h"
+#include "PluginExport.h"
 #include "core/Log.h"
 #include "core/Result.h"
 
@@ -15,10 +15,10 @@ namespace Wayfinder
 {
 
     // ---------------------------------------------------------------
-    //  LoadedModule
+    //  LoadedPlugin
     // ---------------------------------------------------------------
 
-    LoadedModule::~LoadedModule()
+    LoadedPlugin::~LoadedPlugin()
     {
         if (Instance && m_destroyFn)
         {
@@ -35,14 +35,14 @@ namespace Wayfinder
         }
     }
 
-    LoadedModule::LoadedModule(LoadedModule&& other) noexcept : Instance(other.Instance), m_destroyFn(other.m_destroyFn), m_libraryHandle(other.m_libraryHandle)
+    LoadedPlugin::LoadedPlugin(LoadedPlugin&& other) noexcept : Instance(other.Instance), m_destroyFn(other.m_destroyFn), m_libraryHandle(other.m_libraryHandle)
     {
         other.Instance = nullptr;
         other.m_destroyFn = nullptr;
         other.m_libraryHandle = nullptr;
     }
 
-    LoadedModule& LoadedModule::operator=(LoadedModule&& other) noexcept
+    LoadedPlugin& LoadedPlugin::operator=(LoadedPlugin&& other) noexcept
     {
         if (this != &other)
         {
@@ -72,14 +72,14 @@ namespace Wayfinder
     }
 
     // ---------------------------------------------------------------
-    //  ModuleLoader
+    //  PluginLoader
     // ---------------------------------------------------------------
 
-    Result<LoadedModule> ModuleLoader::Load(const std::filesystem::path& libraryPath)
+    Result<LoadedPlugin> PluginLoader::Load(const std::filesystem::path& libraryPath)
     {
         if (libraryPath.empty())
         {
-            WAYFINDER_ERROR(LogEngine, "ModuleLoader: empty library path");
+            WAYFINDER_ERROR(LogEngine, "PluginLoader: empty library path");
             return MakeError("Empty library path");
         }
 
@@ -87,48 +87,48 @@ namespace Wayfinder
         HMODULE handle = LoadLibraryW(libraryPath.c_str());
         if (!handle)
         {
-            WAYFINDER_ERROR(LogEngine, "ModuleLoader: failed to load '{}' (error {})", libraryPath.string(), GetLastError());
+            WAYFINDER_ERROR(LogEngine, "PluginLoader: failed to load '{}' (error {})", libraryPath.string(), GetLastError());
             return MakeError("Failed to load shared library");
         }
 
-        auto createFn = reinterpret_cast<WayfinderCreateModuleFn>(GetProcAddress(handle, "WayfinderCreateModule"));
-        auto destroyFn = reinterpret_cast<WayfinderDestroyModuleFn>(GetProcAddress(handle, "WayfinderDestroyModule"));
+        auto createFn = reinterpret_cast<WayfinderCreateGamePluginFn>(GetProcAddress(handle, "WayfinderCreateGamePlugin"));
+        auto destroyFn = reinterpret_cast<WayfinderDestroyGamePluginFn>(GetProcAddress(handle, "WayfinderDestroyGamePlugin"));
 #else
         void* handle = dlopen(libraryPath.c_str(), RTLD_NOW | RTLD_LOCAL);
         if (!handle)
         {
-            WAYFINDER_ERROR(LogEngine, "ModuleLoader: failed to load '{}': {}", libraryPath.string(), dlerror());
+            WAYFINDER_ERROR(LogEngine, "PluginLoader: failed to load '{}': {}", libraryPath.string(), dlerror());
             return MakeError("Failed to load shared library");
         }
 
-        auto createFn = reinterpret_cast<WayfinderCreateModuleFn>(dlsym(handle, "WayfinderCreateModule"));
-        auto destroyFn = reinterpret_cast<WayfinderDestroyModuleFn>(dlsym(handle, "WayfinderDestroyModule"));
+        auto createFn = reinterpret_cast<WayfinderCreateGamePluginFn>(dlsym(handle, "WayfinderCreateGamePlugin"));
+        auto destroyFn = reinterpret_cast<WayfinderDestroyGamePluginFn>(dlsym(handle, "WayfinderDestroyGamePlugin"));
 #endif
 
         if (!createFn || !destroyFn)
         {
             WAYFINDER_ERROR(
-                LogEngine, "ModuleLoader: '{}' missing required exports (WayfinderCreateModule={}, WayfinderDestroyModule={})", libraryPath.string(), static_cast<bool>(createFn), static_cast<bool>(destroyFn));
+                LogEngine, "PluginLoader: '{}' missing required exports (WayfinderCreateGamePlugin={}, WayfinderDestroyGamePlugin={})", libraryPath.string(), static_cast<bool>(createFn), static_cast<bool>(destroyFn));
 #ifdef _WIN32
             FreeLibrary(handle);
 #else
             dlclose(handle);
 #endif
-            return MakeError("Missing required module exports");
+            return MakeError("Missing required plugin exports");
         }
 
-        LoadedModule result;
+        LoadedPlugin result;
         result.Instance = createFn();
         result.m_destroyFn = destroyFn;
         result.m_libraryHandle = static_cast<void*>(handle);
 
         if (!result.Instance)
         {
-            WAYFINDER_ERROR(LogEngine, "ModuleLoader: WayfinderCreateModule() returned null for '{}'", libraryPath.string());
-            return MakeError("WayfinderCreateModule returned null");
+            WAYFINDER_ERROR(LogEngine, "PluginLoader: WayfinderCreateGamePlugin() returned null for '{}'", libraryPath.string());
+            return MakeError("WayfinderCreateGamePlugin returned null");
         }
 
-        WAYFINDER_INFO(LogEngine, "ModuleLoader: loaded game module from '{}'", libraryPath.string());
+        WAYFINDER_INFO(LogEngine, "PluginLoader: loaded game plugin from '{}'", libraryPath.string());
         return result;
     }
 

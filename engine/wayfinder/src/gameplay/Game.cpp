@@ -7,7 +7,7 @@
 #include "core/InternedString.h"
 #include "core/Log.h"
 #include "core/Result.h"
-#include "modules/ModuleRegistry.h"
+#include "plugins/PluginRegistry.h"
 #include "project/ProjectDescriptor.h"
 #include "scene/Scene.h"
 #include "scene/SceneSettings.h"
@@ -18,7 +18,7 @@
 
 namespace Wayfinder
 {
-    Game::Game() = default;
+    Game::Game(const PluginRegistry& pluginRegistry) : m_pluginRegistry(pluginRegistry) {}
 
     Game::~Game()
     {
@@ -32,7 +32,6 @@ namespace Wayfinder
     {
         WAYFINDER_INFO(LogGame, "Initialising game");
 
-        m_moduleRegistry = ctx.moduleRegistry;
         m_assetService = std::make_shared<AssetService>();
 
         InitialiseSubsystems();
@@ -96,13 +95,10 @@ namespace Wayfinder
     {
         // Build the unified component registry: core entries + game entries
         m_componentRegistry.AddCoreEntries();
-        if (m_moduleRegistry)
-        {
-            m_componentRegistry.AddGameEntries(*m_moduleRegistry);
-        }
+        m_componentRegistry.AddGameEntries(m_pluginRegistry);
 
         // Register ECS infrastructure and all components into the world
-        Scene::RegisterCoreECS(m_world);
+        Scene::RegisterCoreComponents(m_world);
         m_componentRegistry.RegisterComponents(m_world);
 
         // Initialise the game state singleton
@@ -117,16 +113,13 @@ namespace Wayfinder
         m_world.component<ActiveGameplayTags>();
         m_world.set<ActiveGameplayTags>({});
 
-        if (m_moduleRegistry)
-        {
-            m_moduleRegistry->ApplyToWorld(m_world);
-        }
+        m_pluginRegistry.ApplyToWorld(m_world);
 
         // Configure and set up the state machine after world registration
         m_stateMachine = GameSubsystems::Find<GameStateMachine>();
         if (m_stateMachine)
         {
-            m_stateMachine->Configure(m_world, m_moduleRegistry);
+            m_stateMachine->Configure(m_world, m_pluginRegistry);
             m_stateMachine->Setup();
         }
     }
@@ -245,13 +238,10 @@ namespace Wayfinder
         m_subsystems.Register<GameplayTagRegistry>();
         m_subsystems.Register<GameStateMachine>();
 
-        // Register game-module subsystems
-        if (m_moduleRegistry)
+        // Register plugin subsystems
+        for (const auto& [type, factory, predicate] : m_pluginRegistry.GetSubsystemFactories())
         {
-            for (const auto& [type, factory, predicate] : m_moduleRegistry->GetSubsystemFactories())
-            {
-                m_subsystems.Register(type, factory, predicate);
-            }
+            m_subsystems.Register(type, factory, predicate);
         }
 
         m_subsystems.Initialise();
@@ -262,15 +252,10 @@ namespace Wayfinder
     {
         auto& tagRegistry = GameSubsystems::Get<GameplayTagRegistry>();
 
-        if (!m_moduleRegistry)
-        {
-            return;
-        }
-
         // Load tag files registered by plugins (paths relative to config dir)
-        const auto& project = m_moduleRegistry->GetProject();
+        const auto& project = m_pluginRegistry.GetProject();
         const auto configDir = project.ResolveConfigDir();
-        for (const auto& relPath : m_moduleRegistry->GetTagFiles())
+        for (const auto& relPath : m_pluginRegistry.GetTagFiles())
         {
             const auto fullPath = configDir / relPath;
             if (std::filesystem::exists(fullPath))
@@ -284,7 +269,7 @@ namespace Wayfinder
         }
 
         // Register code-defined tags
-        for (const auto& desc : m_moduleRegistry->GetRegisteredTags())
+        for (const auto& desc : m_pluginRegistry.GetRegisteredTags())
         {
             tagRegistry.RegisterTag(desc.Name, desc.Comment);
         }

@@ -1,11 +1,11 @@
 #include "app/EngineConfig.h"
 #include "gameplay/GameState.h"
 #include "gameplay/GameplayTag.h"
-#include "modules/ModuleRegistry.h"
-#include "modules/Plugin.h"
-#include "modules/registrars/StateRegistrar.h"
-#include "modules/registrars/SystemRegistrar.h"
-#include "modules/registrars/TagRegistrar.h"
+#include "plugins/Plugin.h"
+#include "plugins/PluginRegistry.h"
+#include "plugins/registrars/StateRegistrar.h"
+#include "plugins/registrars/SystemRegistrar.h"
+#include "plugins/registrars/TagRegistrar.h"
 #include "project/ProjectDescriptor.h"
 
 #include "ecs/Flecs.h"
@@ -20,7 +20,7 @@ namespace Wayfinder::Tests
     static ProjectDescriptor MakeTestProject()
     {
         ProjectDescriptor desc{};
-        desc.Name = "ModuleRegistryTest";
+        desc.Name = "PluginRegistryTest";
         return desc;
     }
 
@@ -294,15 +294,15 @@ namespace Wayfinder::Tests
         }
     }
 
-    // ── ModuleRegistry ──────────────────────────────────────
+    // ── PluginRegistry ──────────────────────────────────────
 
-    TEST_SUITE("ModuleRegistry")
+    TEST_SUITE("PluginRegistry")
     {
         TEST_CASE("RegisterSystem delegates to SystemRegistrar")
         {
             auto project = MakeTestProject();
             auto config = MakeTestConfig();
-            ModuleRegistry registry(project, config);
+            PluginRegistry registry(project, config);
 
             registry.RegisterSystem("TestSystem", [](flecs::world&)
             {
@@ -316,7 +316,7 @@ namespace Wayfinder::Tests
         {
             auto project = MakeTestProject();
             auto config = MakeTestConfig();
-            ModuleRegistry registry(project, config);
+            PluginRegistry registry(project, config);
 
             registry.RegisterState({"MainMenu", nullptr, nullptr});
             registry.SetInitialState("MainMenu");
@@ -329,7 +329,7 @@ namespace Wayfinder::Tests
         {
             auto project = MakeTestProject();
             auto config = MakeTestConfig();
-            ModuleRegistry registry(project, config);
+            PluginRegistry registry(project, config);
 
             auto tag = registry.RegisterTag("Status.Burning", "On fire");
 
@@ -342,7 +342,7 @@ namespace Wayfinder::Tests
         {
             auto project = MakeTestProject();
             auto config = MakeTestConfig();
-            ModuleRegistry registry(project, config);
+            PluginRegistry registry(project, config);
 
             registry.RegisterTagFile("config/tags/gameplay.toml");
 
@@ -353,9 +353,9 @@ namespace Wayfinder::Tests
         {
             auto project = MakeTestProject();
             auto config = MakeTestConfig();
-            ModuleRegistry registry(project, config);
+            PluginRegistry registry(project, config);
 
-            ModuleRegistry::ComponentDescriptor desc;
+            PluginRegistry::ComponentDescriptor desc;
             desc.Key = "TestComponent";
             registry.RegisterComponent(std::move(desc));
 
@@ -367,7 +367,7 @@ namespace Wayfinder::Tests
         {
             auto project = MakeTestProject();
             auto config = MakeTestConfig();
-            ModuleRegistry registry(project, config);
+            PluginRegistry registry(project, config);
 
             bool called = false;
             registry.RegisterGlobal("TestGlobal", [&](flecs::world&)
@@ -385,7 +385,7 @@ namespace Wayfinder::Tests
         {
             auto project = MakeTestProject();
             auto config = MakeTestConfig();
-            ModuleRegistry registry(project, config);
+            PluginRegistry registry(project, config);
 
             bool called = false;
             registry.RegisterSystem("TestSystem", [&](flecs::world&)
@@ -403,16 +403,16 @@ namespace Wayfinder::Tests
         {
             auto project = MakeTestProject();
             auto config = MakeTestConfig();
-            ModuleRegistry registry(project, config);
+            PluginRegistry registry(project, config);
 
-            CHECK(registry.GetProject().Name == "ModuleRegistryTest");
+            CHECK(registry.GetProject().Name == "PluginRegistryTest");
         }
 
         TEST_CASE("GetConfig returns the engine configuration")
         {
             auto project = MakeTestProject();
             auto config = MakeTestConfig();
-            ModuleRegistry registry(project, config);
+            PluginRegistry registry(project, config);
 
             CHECK(registry.GetConfig().Physics.FixedTimestep == doctest::Approx(1.0f / 60.0f));
         }
@@ -423,7 +423,7 @@ namespace Wayfinder::Tests
         {
             struct TestPlugin : Plugin
             {
-                void Build(ModuleRegistry&) override
+                void Build(PluginRegistry&) override
                 {
                     g_TestPluginBuildCalled = true;
                 }
@@ -431,7 +431,7 @@ namespace Wayfinder::Tests
 
             auto project = MakeTestProject();
             auto config = MakeTestConfig();
-            ModuleRegistry registry(project, config);
+            PluginRegistry registry(project, config);
 
             g_TestPluginBuildCalled = false;
             registry.AddPlugin<TestPlugin>();

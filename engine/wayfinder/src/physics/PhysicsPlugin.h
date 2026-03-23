@@ -1,6 +1,6 @@
 #pragma once
 
-#include "modules/Plugin.h"
+#include "plugins/Plugin.h"
 
 namespace Wayfinder::Physics
 {
@@ -26,7 +26,7 @@ namespace Wayfinder::Physics
     class WAYFINDER_API PhysicsPlugin : public Plugin
     {
     public:
-        void Build(ModuleRegistry& registry) override;
+        void Build(PluginRegistry& registry) override;
     };
 
 } // namespace Wayfinder::Physics

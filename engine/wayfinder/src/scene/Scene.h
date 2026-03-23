@@ -28,9 +28,14 @@ namespace Wayfinder
         Scene(Scene&&) = delete;
         Scene& operator=(Scene&&) = delete;
 
-        /// Registers all core ECS components and modules into the given world.
+        /// Registers core scene component types into the given world.
         /// Call once per world before creating any scenes.
-        static void RegisterCoreECS(flecs::world& world);
+        static void RegisterCoreComponents(flecs::world& world);
+
+        /// Registers core scene simulation systems (transform propagation, camera extraction).
+        /// Call after RegisterCoreComponents and RuntimeComponentRegistry::RegisterComponents,
+        /// before world.progress(), when tests or tools need the same systems as Application.
+        static void RegisterCoreSceneSystems(flecs::world& world);
 
         void Shutdown();
 

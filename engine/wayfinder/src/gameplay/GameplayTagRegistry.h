@@ -34,7 +34,7 @@ namespace Wayfinder
      * @brief Central registry for gameplay tag definitions, analogous to Unreal's FGameplayTagsManager.
      *
      * Tags must be registered here before use. Registration can happen:
-     * - In code via ModuleRegistry::RegisterTag(name, comment)
+     * - In code via PluginRegistry::RegisterTag(name, comment)
      * - In data via TOML tag files loaded from config/tags/
      *
      * The registry validates tag requests and issues warnings for unregistered tags.

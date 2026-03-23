@@ -12,11 +12,11 @@
 
 #include "app/EngineConfig.h"
 #include "app/Subsystem.h"
-#include "modules/ModuleRegistry.h"
 #include "physics/PhysicsComponents.h"
 #include "physics/PhysicsPlugin.h"
 #include "physics/PhysicsSubsystem.h"
 #include "physics/PhysicsWorld.h"
+#include "plugins/PluginRegistry.h"
 #include "project/ProjectDescriptor.h"
 #include "scene/Components.h"
 
@@ -51,12 +51,12 @@ namespace Wayfinder::Tests
 
         PhysicsIntegrationFixture()
         {
-            // Build the ModuleRegistry with PhysicsPlugin, exactly as Game does.
+            // Build the PluginRegistry with PhysicsPlugin, exactly as Game does.
             ProjectDescriptor project{};
             project.Name = "PhysicsIntegrationTest";
             EngineConfig config = EngineConfig::LoadDefaults();
 
-            ModuleRegistry registry(project, config);
+            PluginRegistry registry(project, config);
             registry.AddPlugin<PhysicsPlugin>();
 
             // Stand up the subsystem from the plugin's registration.
