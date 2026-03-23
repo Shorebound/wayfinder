@@ -53,7 +53,7 @@ jobs:
   build-test-linux:
     name: Linux (Clang)
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
 
@@ -66,6 +66,36 @@ jobs:
 
       - name: Setup build environment
         uses: ./.github/actions/setup-linux-build
+
+      - name: Cache DXC shader compiler
+        id: cache-dxc-linux
+        uses: actions/cache@v4
+        with:
+          path: tools/shadercompiler/bin
+          key: dxc-linux-x64-v1.9.2602
+
+      - name: Download DXC shader compiler
+        if: steps.cache-dxc-linux.outputs.cache-hit != 'true'
+        run: |
+          # Pin to v1.9.2602 — matches local dev setup. Update tag + cache key together.
+          tag="v1.9.2602"
+          asset_url=$(curl -s \
+            -H "Accept: application/vnd.github+json" \
+            -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+            "https://api.github.com/repos/microsoft/DirectXShaderCompiler/releases/tags/$tag" \
+            | jq -r '.assets[] | select(.name | test("^linux_dxc_.*x86_64\\.tar\\.gz$")) | .browser_download_url')
+          if [ -z "$asset_url" ]; then echo "No linux DXC asset found in $tag" && exit 1; fi
+          echo "Downloading from $asset_url"
+          curl -L "$asset_url" -o dxc.tar.gz
+          mkdir -p dxc-staging
+          tar -xzf dxc.tar.gz -C dxc-staging
+          # Linux archive has bin/dxc at the root
+          if [ ! -f dxc-staging/bin/dxc ]; then echo "bin/dxc not found in archive" && exit 1; fi
+          mkdir -p tools/shadercompiler/bin
+          cp dxc-staging/bin/dxc tools/shadercompiler/bin/
+          cp dxc-staging/lib/*.so tools/shadercompiler/bin/ 2>/dev/null || true
+          chmod +x tools/shadercompiler/bin/dxc
+          echo "DXC installed to tools/shadercompiler/bin/"
 
       - name: Configure
         run: cmake --preset ci-linux
