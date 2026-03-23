@@ -142,11 +142,11 @@ namespace Wayfinder
     RenderFeatureContext Renderer::MakeFeatureContext()
     {
         return RenderFeatureContext{
-        .Device = m_context->GetDevice(),
-        .ProgramRegistry = m_context->GetPrograms(),
-        .ShaderManager = m_context->GetShaders(),
-        .PipelineCache = m_context->GetPipelines(),
-        .NearestSampler = m_context->GetNearestSampler(),
+            .Device = m_context->GetDevice(),
+            .ProgramRegistry = m_context->GetPrograms(),
+            .ShaderManager = m_context->GetShaders(),
+            .PipelineCache = m_context->GetPipelines(),
+            .NearestSampler = m_context->GetNearestSampler(),
         };
     }
 
@@ -200,7 +200,8 @@ namespace Wayfinder
         // ── Build and execute render graph ───────────────────
         RenderGraph graph;
 
-        const std::unordered_map<uint32_t, Mesh*> meshesByStride = {
+        const std::unordered_map<uint32_t, Mesh*> meshesByStride =
+        {
             {VertexLayouts::PosNormalColour.stride, &m_primitiveMesh},
             {VertexLayouts::PosNormalUV.stride, &m_texturedPrimitiveMesh},
         };

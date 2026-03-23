@@ -3,8 +3,8 @@
 #include <array>
 #include <memory>
 
-#include "core/Result.h"
 #include "VertexFormats.h"
+#include "core/Result.h"
 #include "rendering/RenderTypes.h"
 
 namespace Wayfinder

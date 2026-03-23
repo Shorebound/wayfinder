@@ -235,7 +235,7 @@ namespace Wayfinder::Tests
             std::ofstream file(tempDir / "clear_material.json");
             file << R"({
                 "asset_id": ")" +
-                    assetIdText + R"(",
+                        assetIdText + R"(",
                 "asset_type": "material",
                 "name": "clear_test",
                 "shader": "basic_lit"
@@ -270,7 +270,7 @@ namespace Wayfinder::Tests
             std::ofstream file(tempDir / "test_material.json");
             file << R"({
                 "asset_id": ")" +
-                    assetIdText + R"(",
+                        assetIdText + R"(",
                 "asset_type": "material",
                 "name": "load_or_get_test",
                 "shader": "basic_lit"

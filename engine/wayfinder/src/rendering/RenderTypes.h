@@ -138,10 +138,10 @@ namespace Wayfinder
         static ClearValue FromColour(const Colour& c)
         {
             return {
-            .r = static_cast<float>(c.r) / 255.0f,
-            .g = static_cast<float>(c.g) / 255.0f,
-            .b = static_cast<float>(c.b) / 255.0f,
-            .a = static_cast<float>(c.a) / 255.0f,
+                .r = static_cast<float>(c.r) / 255.0f,
+                .g = static_cast<float>(c.g) / 255.0f,
+                .b = static_cast<float>(c.b) / 255.0f,
+                .a = static_cast<float>(c.a) / 255.0f,
             };
         }
     };

@@ -84,7 +84,8 @@ namespace Wayfinder
             desc.Cull = CullMode::Back;
             desc.DepthTest = true;
             desc.DepthWrite = true;
-            desc.MaterialParams = {
+            desc.MaterialParams =
+            {
                 {.Name = "base_colour", .Type = MaterialParamType::Colour, .Offset = 0, .Default = LinearColour::White()},
             };
             desc.MaterialUBOSize = 16; // float4
@@ -105,7 +106,8 @@ namespace Wayfinder
             desc.Cull = CullMode::Back;
             desc.DepthTest = true;
             desc.DepthWrite = true;
-            desc.MaterialParams = {
+            desc.MaterialParams =
+            {
                 {.Name = "base_colour", .Type = MaterialParamType::Colour, .Offset = 0, .Default = LinearColour::White()},
             };
             desc.MaterialUBOSize = 16; // float4
@@ -126,7 +128,8 @@ namespace Wayfinder
             desc.Cull = CullMode::Back;
             desc.DepthTest = true;
             desc.DepthWrite = true;
-            desc.MaterialParams = {
+            desc.MaterialParams =
+            {
                 {.Name = "base_colour", .Type = MaterialParamType::Colour, .Offset = 0, .Default = LinearColour::White()},
             };
             desc.MaterialUBOSize = 16; // float4

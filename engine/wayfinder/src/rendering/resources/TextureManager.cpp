@@ -220,7 +220,8 @@ namespace Wayfinder
                 const bool isLight = ((x + y) % 2) == 0;
                 const size_t offset = ((static_cast<size_t>(y) * static_cast<size_t>(K_SIZE)) + static_cast<size_t>(x)) * static_cast<size_t>(K_CHANNELS);
                 auto texel = pixelSpan.subspan(offset, K_CHANNELS);
-                const std::array<uint8_t, 4> texelValues = {
+                const std::array<uint8_t, 4> texelValues =
+                {
                     isLight ? static_cast<uint8_t>(255) : static_cast<uint8_t>(0),
                     0,
                     isLight ? static_cast<uint8_t>(200) : static_cast<uint8_t>(0),
@@ -254,7 +255,7 @@ namespace Wayfinder
 
         // Pack 4 enum bytes into a 32-bit value, then hash via FNV-1a.
         const uint32_t packed =
-        (static_cast<uint32_t>(desc.minFilter) << 0) | (static_cast<uint32_t>(desc.magFilter) << 8) | (static_cast<uint32_t>(desc.addressModeU) << 16) | (static_cast<uint32_t>(desc.addressModeV) << 24);
+            (static_cast<uint32_t>(desc.minFilter) << 0) | (static_cast<uint32_t>(desc.magFilter) << 8) | (static_cast<uint32_t>(desc.addressModeU) << 16) | (static_cast<uint32_t>(desc.addressModeV) << 24);
 
         // FNV-1a 64-bit
         uint64_t hash = 14695981039346656037ull;

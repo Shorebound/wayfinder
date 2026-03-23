@@ -53,25 +53,54 @@ namespace Wayfinder
             }};
 
             const std::array<uint16_t, 36> indices = {{
-                0, 1, 2, 0, 2, 3,
-                4, 5, 6, 4, 6, 7,
-                8, 9, 10, 8, 10, 11,
-                12, 13, 14, 12, 14, 15,
-                16, 17, 18, 16, 18, 19,
-                20, 21, 22, 20, 22, 23,
+                0,
+                1,
+                2,
+                0,
+                2,
+                3,
+                4,
+                5,
+                6,
+                4,
+                6,
+                7,
+                8,
+                9,
+                10,
+                8,
+                10,
+                11,
+                12,
+                13,
+                14,
+                12,
+                14,
+                15,
+                16,
+                17,
+                18,
+                16,
+                18,
+                19,
+                20,
+                21,
+                22,
+                20,
+                22,
+                23,
             }};
 
             Mesh mesh;
-            if (!mesh.Create(device,
-                    {
-                        .VertexData = vertices.data(),
-                        .VertexDataSize = static_cast<uint32_t>(vertices.size() * sizeof(VertexPosNormalColour)),
-                        .VertexCount = static_cast<uint32_t>(vertices.size()),
-                        .IndexData = indices.data(),
-                        .IndexDataSize = static_cast<uint32_t>(indices.size() * sizeof(uint16_t)),
-                        .IndexCount = static_cast<uint32_t>(indices.size()),
-                        .IndexElementType = IndexElementSize::Uint16,
-                    }))
+            if (!mesh.Create(device, {
+                                         .VertexData = vertices.data(),
+                                         .VertexDataSize = static_cast<uint32_t>(vertices.size() * sizeof(VertexPosNormalColour)),
+                                         .VertexCount = static_cast<uint32_t>(vertices.size()),
+                                         .IndexData = indices.data(),
+                                         .IndexDataSize = static_cast<uint32_t>(indices.size() * sizeof(uint16_t)),
+                                         .IndexCount = static_cast<uint32_t>(indices.size()),
+                                         .IndexElementType = IndexElementSize::Uint16,
+                                     }))
             {
                 WAYFINDER_ERROR(LogRenderer, "Mesh: Failed to create primitive cube");
                 return {};
@@ -124,25 +153,54 @@ namespace Wayfinder
             }};
 
             const std::array<uint16_t, 36> indices = {{
-                0, 1, 2, 0, 2, 3,
-                4, 5, 6, 4, 6, 7,
-                8, 9, 10, 8, 10, 11,
-                12, 13, 14, 12, 14, 15,
-                16, 17, 18, 16, 18, 19,
-                20, 21, 22, 20, 22, 23,
+                0,
+                1,
+                2,
+                0,
+                2,
+                3,
+                4,
+                5,
+                6,
+                4,
+                6,
+                7,
+                8,
+                9,
+                10,
+                8,
+                10,
+                11,
+                12,
+                13,
+                14,
+                12,
+                14,
+                15,
+                16,
+                17,
+                18,
+                16,
+                18,
+                19,
+                20,
+                21,
+                22,
+                20,
+                22,
+                23,
             }};
 
             Mesh mesh;
-            if (!mesh.Create(device,
-                    {
-                        .VertexData = vertices.data(),
-                        .VertexDataSize = static_cast<uint32_t>(vertices.size() * sizeof(VertexPosNormalUV)),
-                        .VertexCount = static_cast<uint32_t>(vertices.size()),
-                        .IndexData = indices.data(),
-                        .IndexDataSize = static_cast<uint32_t>(indices.size() * sizeof(uint16_t)),
-                        .IndexCount = static_cast<uint32_t>(indices.size()),
-                        .IndexElementType = IndexElementSize::Uint16,
-                    }))
+            if (!mesh.Create(device, {
+                                         .VertexData = vertices.data(),
+                                         .VertexDataSize = static_cast<uint32_t>(vertices.size() * sizeof(VertexPosNormalUV)),
+                                         .VertexCount = static_cast<uint32_t>(vertices.size()),
+                                         .IndexData = indices.data(),
+                                         .IndexDataSize = static_cast<uint32_t>(indices.size() * sizeof(uint16_t)),
+                                         .IndexCount = static_cast<uint32_t>(indices.size()),
+                                         .IndexElementType = IndexElementSize::Uint16,
+                                     }))
             {
                 WAYFINDER_ERROR(LogRenderer, "Mesh: Failed to create textured primitive cube");
                 return {};

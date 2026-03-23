@@ -15,17 +15,17 @@
 
 namespace Wayfinder
 {
-namespace
-{
-    void LogDocumentErrors(const std::vector<std::string>& errors, const std::string& filePath)
+    namespace
     {
-        Wayfinder::LogScene.GetLogger()->LogFormat(Wayfinder::LogVerbosity::Error, "Scene validation failed for {0} with {1} issue(s)", filePath, errors.size());
-        for (const std::string& error : errors)
+        void LogDocumentErrors(const std::vector<std::string>& errors, const std::string& filePath)
         {
-            Wayfinder::LogScene.GetLogger()->LogFormat(Wayfinder::LogVerbosity::Error, "  - {0}", error);
+            Wayfinder::LogScene.GetLogger()->LogFormat(Wayfinder::LogVerbosity::Error, "Scene validation failed for {0} with {1} issue(s)", filePath, errors.size());
+            for (const std::string& error : errors)
+            {
+                Wayfinder::LogScene.GetLogger()->LogFormat(Wayfinder::LogVerbosity::Error, "  - {0}", error);
+            }
         }
-    }
-} // anonymous namespace
+    } // anonymous namespace
 }
 
 namespace Wayfinder
@@ -115,8 +115,8 @@ namespace Wayfinder
         world.component<WorldTransformComponent>();
         // NOLINTNEXTLINE(clang-analyzer-core.StackAddressEscape)
         world.system<>("UpdateWorldTransforms")
-        .kind(flecs::PreUpdate)
-        .run([&world](flecs::iter&)
+            .kind(flecs::PreUpdate)
+            .run([&world](flecs::iter&)
         {
             world.children([&](flecs::entity child)
             {
@@ -156,8 +156,8 @@ namespace Wayfinder
         // Camera module
         world.component<ActiveCameraStateComponent>();
         world.system<>("ExtractActiveCamera")
-        .kind(flecs::OnUpdate)
-        .run([&world](flecs::iter&)
+            .kind(flecs::OnUpdate)
+            .run([&world](flecs::iter&)
         {
             ActiveCameraStateComponent activeCamera;
 
