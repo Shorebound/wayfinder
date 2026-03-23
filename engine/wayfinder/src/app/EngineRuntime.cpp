@@ -19,7 +19,10 @@ namespace Wayfinder
 {
     EngineRuntime::EngineRuntime(const EngineConfig& config, const ProjectDescriptor& project) : m_config(config), m_project(project) {}
 
-    EngineRuntime::~EngineRuntime() { Shutdown(); }
+    EngineRuntime::~EngineRuntime()
+    {
+        Shutdown();
+    }
 
     // ── Lifecycle ────────────────────────────────────────────
 
@@ -44,8 +47,7 @@ namespace Wayfinder
         }
 
         // Window — must exist before RenderDevice (swapchain needs a surface)
-        const auto windowConfig =
-            Window::Config{m_config.Window.Width, m_config.Window.Height, m_config.Window.Title, m_config.Window.VSync};
+        const auto windowConfig = Window::Config{m_config.Window.Width, m_config.Window.Height, m_config.Window.Title, m_config.Window.VSync};
 
         m_window = Window::Create(windowConfig, m_config.Backends.Platform);
         if (!m_window)
@@ -149,19 +151,31 @@ namespace Wayfinder
 
     void EngineRuntime::RenderScene(const Scene& scene)
     {
-        if (m_renderer && m_extractor) { m_renderer->Render(m_extractor->Extract(scene)); }
+        if (m_renderer && m_extractor)
+        {
+            m_renderer->Render(m_extractor->Extract(scene));
+        }
     }
 
     void EngineRuntime::SetAssetService(const std::shared_ptr<AssetService>& assetService)
     {
-        if (m_renderer) { m_renderer->SetAssetService(assetService); }
+        if (m_renderer)
+        {
+            m_renderer->SetAssetService(assetService);
+        }
     }
 
     // ── Queries ──────────────────────────────────────────────
 
-    bool EngineRuntime::ShouldClose() const { return m_window && m_window->ShouldClose(); }
+    bool EngineRuntime::ShouldClose() const
+    {
+        return m_window && m_window->ShouldClose();
+    }
 
-    float EngineRuntime::GetDeltaTime() const { return m_time ? m_time->GetDeltaTime() : 0.0f; }
+    float EngineRuntime::GetDeltaTime() const
+    {
+        return m_time ? m_time->GetDeltaTime() : 0.0f;
+    }
 
     // ── Non-owning accessors ─────────────────────────────────
 
@@ -193,6 +207,9 @@ namespace Wayfinder
 
     // ── Context bundle ───────────────────────────────────────
 
-    EngineContext EngineRuntime::BuildContext() const { return EngineContext{*m_window, *m_input, *m_time, m_config, m_project}; }
+    EngineContext EngineRuntime::BuildContext() const
+    {
+        return EngineContext{*m_window, *m_input, *m_time, m_config, m_project};
+    }
 
 } // namespace Wayfinder

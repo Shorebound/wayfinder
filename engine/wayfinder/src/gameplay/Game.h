@@ -63,19 +63,46 @@ namespace Wayfinder
          * @brief Access the gameplay tag registry for tag lookups and validation.
          * @pre Initialise() must have completed; will terminate if subsystem is missing.
          */
-        GameplayTagRegistry& GetTagRegistry() { return GameSubsystems::Get<GameplayTagRegistry>(); }
+        GameplayTagRegistry& GetTagRegistry()
+        {
+            return GameSubsystems::Get<GameplayTagRegistry>();
+        }
         /// @copydoc GetTagRegistry()
-        const GameplayTagRegistry& GetTagRegistry() const { return GameSubsystems::Get<GameplayTagRegistry>(); }
+        const GameplayTagRegistry& GetTagRegistry() const
+        {
+            return GameSubsystems::Get<GameplayTagRegistry>();
+        }
 
-        Scene* GetCurrentScene() { return m_currentScene.get(); }
-        const Scene* GetCurrentScene() const { return m_currentScene.get(); }
-        std::shared_ptr<AssetService> GetAssetService() const { return m_assetService; }
+        Scene* GetCurrentScene()
+        {
+            return m_currentScene.get();
+        }
+        const Scene* GetCurrentScene() const
+        {
+            return m_currentScene.get();
+        }
+        std::shared_ptr<AssetService> GetAssetService() const
+        {
+            return m_assetService;
+        }
 
-        flecs::world& GetWorld() { return m_world; }
-        const flecs::world& GetWorld() const { return m_world; }
+        flecs::world& GetWorld()
+        {
+            return m_world;
+        }
+        const flecs::world& GetWorld() const
+        {
+            return m_world;
+        }
 
-        void SetRunning(bool isRunning) { m_running = isRunning; }
-        bool IsRunning() const { return m_running; }
+        void SetRunning(bool isRunning)
+        {
+            m_running = isRunning;
+        }
+        bool IsRunning() const
+        {
+            return m_running;
+        }
 
     private:
         void InitialiseWorld();

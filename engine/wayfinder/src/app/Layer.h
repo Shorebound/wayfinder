@@ -17,7 +17,10 @@ namespace Wayfinder
         virtual void OnUpdate(float /*deltaTime*/) {}
         virtual void OnEvent(Event& /*event*/) {}
 
-        virtual const char* GetName() const { return "Layer"; }
+        virtual const char* GetName() const
+        {
+            return "Layer";
+        }
     };
 
 }

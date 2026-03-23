@@ -30,14 +30,12 @@ namespace Wayfinder
     // Add operator overloads for enum class bitwise operations
     inline LogOutputType operator|(LogOutputType a, LogOutputType b)
     {
-        return static_cast<LogOutputType>(
-            static_cast<std::underlying_type_t<LogOutputType>>(a) | static_cast<std::underlying_type_t<LogOutputType>>(b));
+        return static_cast<LogOutputType>(static_cast<std::underlying_type_t<LogOutputType>>(a) | static_cast<std::underlying_type_t<LogOutputType>>(b));
     }
 
     inline LogOutputType operator&(LogOutputType a, LogOutputType b)
     {
-        return static_cast<LogOutputType>(
-            static_cast<std::underlying_type_t<LogOutputType>>(a) & static_cast<std::underlying_type_t<LogOutputType>>(b));
+        return static_cast<LogOutputType>(static_cast<std::underlying_type_t<LogOutputType>>(a) & static_cast<std::underlying_type_t<LogOutputType>>(b));
     }
 
     inline LogOutputType& operator|=(LogOutputType& a, LogOutputType b)
@@ -72,7 +70,10 @@ namespace Wayfinder
         // Helper methods to enable/disable specific outputs
         void EnableOutput(LogOutputType output, const bool enable = true)
         {
-            if (enable) { EnabledOutputs = EnabledOutputs | output; }
+            if (enable)
+            {
+                EnabledOutputs = EnabledOutputs | output;
+            }
             else
             {
                 // Clear the specific bit using AND with inverted bits
@@ -80,6 +81,9 @@ namespace Wayfinder
             }
         }
 
-        bool IsOutputEnabled(const LogOutputType output) const { return static_cast<bool>(EnabledOutputs & output); }
+        bool IsOutputEnabled(const LogOutputType output) const
+        {
+            return static_cast<bool>(EnabledOutputs & output);
+        }
     };
 } // namespace Wayfinder

@@ -33,16 +33,28 @@ namespace Wayfinder
         std::filesystem::path ProjectRoot;
 
         /// Resolve the absolute path to the asset root.
-        std::filesystem::path ResolveAssetRoot() const { return ProjectRoot / Paths.AssetRoot; }
+        std::filesystem::path ResolveAssetRoot() const
+        {
+            return ProjectRoot / Paths.AssetRoot;
+        }
 
         /// Resolve the absolute path to the boot scene.
-        std::filesystem::path ResolveBootScene() const { return ResolveAssetRoot() / Paths.BootScene; }
+        std::filesystem::path ResolveBootScene() const
+        {
+            return ResolveAssetRoot() / Paths.BootScene;
+        }
 
         /// Resolve the absolute path to the config directory.
-        std::filesystem::path ResolveConfigDir() const { return ProjectRoot / Paths.ConfigDir; }
+        std::filesystem::path ResolveConfigDir() const
+        {
+            return ProjectRoot / Paths.ConfigDir;
+        }
 
         /// Resolve the absolute path to engine.toml.
-        std::filesystem::path ResolveEngineConfigPath() const { return ResolveConfigDir() / "engine.toml"; }
+        std::filesystem::path ResolveEngineConfigPath() const
+        {
+            return ResolveConfigDir() / "engine.toml";
+        }
 
         /// Resolve the absolute path to the game module shared library.
         /// Applies platform-specific prefix/suffix (e.g. .dll on Windows, lib*.so on Linux).

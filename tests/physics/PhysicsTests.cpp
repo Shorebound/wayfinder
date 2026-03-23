@@ -41,7 +41,10 @@ namespace Wayfinder::Tests
             Subsystems.Shutdown();
         }
 
-        PhysicsWorld& GetWorld() { return Subsystems.Get<PhysicsSubsystem>()->GetWorld(); }
+        PhysicsWorld& GetWorld()
+        {
+            return Subsystems.Get<PhysicsSubsystem>()->GetWorld();
+        }
     };
 
     /// Register the PhysicsCreateBodies observer on @p world.
@@ -52,31 +55,32 @@ namespace Wayfinder::Tests
     {
         world.observer<RigidBodyComponent, const ColliderComponent, const TransformComponent>("PhysicsCreateBodies")
             .event(flecs::OnAdd)
-            .each([onCreated = std::move(onCreated)](RigidBodyComponent& rb, const ColliderComponent& col, const TransformComponent& transform)
-            {
-                if (rb.RuntimeBodyId != INVALID_PHYSICS_BODY) return;
-                auto* sub = GameSubsystems::Find<PhysicsSubsystem>();
+            .each(
+                [onCreated = std::move(onCreated)](RigidBodyComponent& rb, const ColliderComponent& col, const TransformComponent& transform)
+                {
+                    if (rb.RuntimeBodyId != INVALID_PHYSICS_BODY) return;
+                    auto* sub = GameSubsystems::Find<PhysicsSubsystem>();
 
-                if (!sub) return;
+                    if (!sub) return;
 
-                PhysicsBodyDescriptor desc;
-                desc.Type = rb.Type;
-                desc.Mass = rb.Mass;
-                desc.GravityFactor = rb.GravityFactor;
-                desc.LinearDamping = rb.LinearDamping;
-                desc.AngularDamping = rb.AngularDamping;
-                desc.LinearVelocity = rb.LinearVelocity;
-                desc.AngularVelocity = rb.AngularVelocity;
-                desc.Shape = col.Shape;
-                desc.HalfExtents = col.HalfExtents;
-                desc.Radius = col.Radius;
-                desc.Height = col.Height;
-                desc.Friction = col.Friction;
-                desc.Restitution = col.Restitution;
-                rb.RuntimeBodyId = sub->GetWorld().CreateBody(desc, transform.Position, transform.Rotation);
+                    PhysicsBodyDescriptor desc;
+                    desc.Type = rb.Type;
+                    desc.Mass = rb.Mass;
+                    desc.GravityFactor = rb.GravityFactor;
+                    desc.LinearDamping = rb.LinearDamping;
+                    desc.AngularDamping = rb.AngularDamping;
+                    desc.LinearVelocity = rb.LinearVelocity;
+                    desc.AngularVelocity = rb.AngularVelocity;
+                    desc.Shape = col.Shape;
+                    desc.HalfExtents = col.HalfExtents;
+                    desc.Radius = col.Radius;
+                    desc.Height = col.Height;
+                    desc.Friction = col.Friction;
+                    desc.Restitution = col.Restitution;
+                    rb.RuntimeBodyId = sub->GetWorld().CreateBody(desc, transform.Position, transform.Rotation);
 
-                if (onCreated) onCreated(rb.RuntimeBodyId);
-            });
+                    if (onCreated) onCreated(rb.RuntimeBodyId);
+                });
     }
 
     /// Register the PhysicsDestroyBodies observer on @p world.
@@ -86,15 +90,15 @@ namespace Wayfinder::Tests
         world.observer<RigidBodyComponent>("PhysicsDestroyBodies")
             .event(flecs::OnRemove)
             .each([onDestroyed = std::move(onDestroyed)](flecs::entity, RigidBodyComponent& rb)
-            {
-                if (rb.RuntimeBodyId == INVALID_PHYSICS_BODY) return;
-                auto* sub = GameSubsystems::Find<PhysicsSubsystem>();
-                if (!sub) return;
+                {
+                    if (rb.RuntimeBodyId == INVALID_PHYSICS_BODY) return;
+                    auto* sub = GameSubsystems::Find<PhysicsSubsystem>();
+                    if (!sub) return;
 
-                sub->GetWorld().DestroyBody(rb.RuntimeBodyId);
-                rb.RuntimeBodyId = INVALID_PHYSICS_BODY;
-                if (onDestroyed) onDestroyed();
-            });
+                    sub->GetWorld().DestroyBody(rb.RuntimeBodyId);
+                    rb.RuntimeBodyId = INVALID_PHYSICS_BODY;
+                    if (onDestroyed) onDestroyed();
+                });
     }
 
     // ── PhysicsWorld Lifecycle ──────────────────────────────────
@@ -627,17 +631,9 @@ namespace Wayfinder::Tests
             uint32_t createdBodyId = INVALID_PHYSICS_BODY;
             bool bodyDestroyed = false;
 
-            RegisterCreateBodiesObserver(ecsWorld,
-                [&createdBodyId](uint32_t id)
-                {
-                    createdBodyId = id;
-                });
+            RegisterCreateBodiesObserver(ecsWorld, [&createdBodyId](uint32_t id) { createdBodyId = id; });
 
-            RegisterDestroyBodiesObserver(ecsWorld,
-                [&bodyDestroyed]()
-                {
-                    bodyDestroyed = true;
-                });
+            RegisterDestroyBodiesObserver(ecsWorld, [&bodyDestroyed]() { bodyDestroyed = true; });
 
             auto entity = ecsWorld.entity("TestBox");
             ecsWorld.defer_begin();
@@ -671,11 +667,7 @@ namespace Wayfinder::Tests
 
             RegisterCreateBodiesObserver(ecsWorld);
 
-            RegisterDestroyBodiesObserver(ecsWorld,
-                [&bodyDestroyed]()
-                {
-                    bodyDestroyed = true;
-                });
+            RegisterDestroyBodiesObserver(ecsWorld, [&bodyDestroyed]() { bodyDestroyed = true; });
 
             auto entity = ecsWorld.entity("TestBox");
             ecsWorld.defer_begin();
@@ -718,30 +710,32 @@ namespace Wayfinder::Tests
             // Register step system
             ecsWorld.system("PhysicsStep")
                 .kind(flecs::OnUpdate)
-                .run([](flecs::iter& it)
-                {
-                    auto* sub = GameSubsystems::Find<PhysicsSubsystem>();
-                    if (sub) sub->GetWorld().StepFixed(it.delta_time());
-                });
+                .run(
+                    [](flecs::iter& it)
+                    {
+                        auto* sub = GameSubsystems::Find<PhysicsSubsystem>();
+                        if (sub) sub->GetWorld().StepFixed(it.delta_time());
+                    });
 
             // Register sync system
             ecsWorld.system<const RigidBodyComponent, WorldTransformComponent>("PhysicsSyncTransforms")
                 .kind(flecs::OnValidate)
-                .each([](flecs::entity, const RigidBodyComponent& rb, WorldTransformComponent& wt)
-                {
-                    if (rb.RuntimeBodyId == INVALID_PHYSICS_BODY) return;
-                    if (rb.Type == BodyType::Static) return;
-                    auto* sub = GameSubsystems::Find<PhysicsSubsystem>();
-                    if (!sub) return;
-                    Float3 pos = sub->GetWorld().GetBodyPosition(rb.RuntimeBodyId);
-                    Float4 rotQ = sub->GetWorld().GetBodyRotation(rb.RuntimeBodyId);
-                    wt.Position = pos;
-                    Quaternion q(rotQ.w, rotQ.x, rotQ.y, rotQ.z);
-                    Matrix4 rotMat = Maths::ToMatrix4(q);
-                    Matrix4 translateMat = Maths::Translate(Matrix4(1.0f), pos);
-                    Matrix4 scaleMat = Maths::ScaleMatrix(Matrix4(1.0f), wt.Scale);
-                    wt.LocalToWorld = translateMat * rotMat * scaleMat;
-                });
+                .each(
+                    [](flecs::entity, const RigidBodyComponent& rb, WorldTransformComponent& wt)
+                    {
+                        if (rb.RuntimeBodyId == INVALID_PHYSICS_BODY) return;
+                        if (rb.Type == BodyType::Static) return;
+                        auto* sub = GameSubsystems::Find<PhysicsSubsystem>();
+                        if (!sub) return;
+                        Float3 pos = sub->GetWorld().GetBodyPosition(rb.RuntimeBodyId);
+                        Float4 rotQ = sub->GetWorld().GetBodyRotation(rb.RuntimeBodyId);
+                        wt.Position = pos;
+                        Quaternion q(rotQ.w, rotQ.x, rotQ.y, rotQ.z);
+                        Matrix4 rotMat = Maths::ToMatrix4(q);
+                        Matrix4 translateMat = Maths::Translate(Matrix4(1.0f), pos);
+                        Matrix4 scaleMat = Maths::ScaleMatrix(Matrix4(1.0f), wt.Scale);
+                        wt.LocalToWorld = translateMat * rotMat * scaleMat;
+                    });
 
             // Create a dynamic entity at height 20
             const float startY = 20.0f;

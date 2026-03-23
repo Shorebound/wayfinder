@@ -60,8 +60,7 @@ namespace Wayfinder
 
         GPUTextureHandle CreateTexture(const TextureCreateDesc& desc) override;
         void DestroyTexture(GPUTextureHandle texture) override;
-        void UploadToTexture(
-            GPUTextureHandle texture, const void* pixelData, uint32_t width, uint32_t height, uint32_t bytesPerRow) override;
+        void UploadToTexture(GPUTextureHandle texture, const void* pixelData, uint32_t width, uint32_t height, uint32_t bytesPerRow) override;
 
         GPUSamplerHandle CreateSampler(const SamplerCreateDesc& desc) override;
         void DestroySampler(GPUSamplerHandle sampler) override;
@@ -70,9 +69,15 @@ namespace Wayfinder
 
         void GetSwapchainDimensions(uint32_t& width, uint32_t& height) const override;
 
-        const RenderDeviceInfo& GetDeviceInfo() const override { return m_info; }
+        const RenderDeviceInfo& GetDeviceInfo() const override
+        {
+            return m_info;
+        }
 
-        SDL_GPUDevice* GetGPUDevice() const { return m_device; }
+        SDL_GPUDevice* GetGPUDevice() const
+        {
+            return m_device;
+        }
 
     private:
         SDL_GPUDevice* m_device = nullptr;

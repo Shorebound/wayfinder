@@ -46,7 +46,10 @@ namespace Wayfinder
 
     void GPUBuffer::Upload(const void* data, uint32_t sizeInBytes)
     {
-        if (!m_device || !m_handle) { return; }
+        if (!m_device || !m_handle)
+        {
+            return;
+        }
 
         m_device->UploadToBuffer(m_handle, data, sizeInBytes);
     }

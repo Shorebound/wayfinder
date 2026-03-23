@@ -7,7 +7,10 @@
 
 namespace Wayfinder
 {
-    ShaderProgramRegistry::~ShaderProgramRegistry() { Shutdown(); }
+    ShaderProgramRegistry::~ShaderProgramRegistry()
+    {
+        Shutdown();
+    }
 
     void ShaderProgramRegistry::Initialise(RenderDevice& device, ShaderManager& shaders, PipelineCache& cache)
     {

@@ -23,7 +23,10 @@ namespace Wayfinder
     struct RenderGraphHandle
     {
         uint32_t Index = UINT32_MAX;
-        bool IsValid() const { return Index != UINT32_MAX; }
+        bool IsValid() const
+        {
+            return Index != UINT32_MAX;
+        }
         bool operator==(const RenderGraphHandle&) const = default;
     };
 

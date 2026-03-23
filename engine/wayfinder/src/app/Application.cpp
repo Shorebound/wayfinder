@@ -22,7 +22,10 @@ namespace Wayfinder
 {
     Application::Application(std::unique_ptr<Module> module, const CommandLineArgs& args) : m_module(std::move(module)), m_args(args) {}
 
-    Application::~Application() { Shutdown(); }
+    Application::~Application()
+    {
+        Shutdown();
+    }
 
     void Application::Run()
     {
@@ -73,10 +76,7 @@ namespace Wayfinder
         if (auto runtimeResult = m_runtime->Initialise(); !runtimeResult) return std::unexpected(runtimeResult.error());
 
         // Wire window events → Application::OnEvent
-        m_runtime->GetWindow().SetEventCallback([this](Event& e)
-        {
-            OnEvent(e);
-        });
+        m_runtime->GetWindow().SetEventCallback([this](Event& e) { OnEvent(e); });
 
         // 5. Layer stack
         m_layerStack = std::make_unique<LayerStack>();
@@ -107,10 +107,7 @@ namespace Wayfinder
             m_runtime->BeginFrame();
 
             // Drain queued input events — single batch at a well-defined frame point
-            m_eventQueue.Drain([this](Event& e)
-            {
-                PropagateToLayers(e);
-            });
+            m_eventQueue.Drain([this](Event& e) { PropagateToLayers(e); });
 
             const float dt = m_runtime->GetDeltaTime();
 
@@ -124,7 +121,10 @@ namespace Wayfinder
             {
                 m_game->Update(dt);
 
-                if (const auto* currentScene = m_game->GetCurrentScene()) { m_runtime->RenderScene(*currentScene); }
+                if (const auto* currentScene = m_game->GetCurrentScene())
+                {
+                    m_runtime->RenderScene(*currentScene);
+                }
             }
 
             m_runtime->EndFrame();
@@ -136,16 +136,8 @@ namespace Wayfinder
     {
         // Latency-sensitive events: dispatch immediately
         EventDispatcher dispatcher(event);
-        dispatcher.Dispatch<WindowCloseEvent>(
-            [this](WindowCloseEvent& e)
-            {
-                return OnWindowClose(e);
-            });
-        dispatcher.Dispatch<WindowResizeEvent>(
-            [this](WindowResizeEvent& e)
-            {
-                return OnWindowResize(e);
-            });
+        dispatcher.Dispatch<WindowCloseEvent>([this](WindowCloseEvent& e) { return OnWindowClose(e); });
+        dispatcher.Dispatch<WindowResizeEvent>([this](WindowResizeEvent& e) { return OnWindowResize(e); });
 
         // Feed scroll events into input accumulator immediately
         dispatcher.Dispatch<MouseScrolledEvent>(
@@ -217,7 +209,10 @@ namespace Wayfinder
         return false;
     }
 
-    LayerStack& Application::GetLayerStack() { return *m_layerStack; }
+    LayerStack& Application::GetLayerStack()
+    {
+        return *m_layerStack;
+    }
 
     void Application::Shutdown()
     {

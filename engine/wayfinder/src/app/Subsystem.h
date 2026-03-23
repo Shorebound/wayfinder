@@ -52,7 +52,10 @@ namespace Wayfinder
 
         /// Return false to skip creation for this run. Checked once before
         /// Initialise(). Default is true (always create).
-        virtual bool ShouldCreate() const { return true; }
+        virtual bool ShouldCreate() const
+        {
+            return true;
+        }
     };
 
     // -----------------------------------------------------------------
@@ -108,12 +111,7 @@ namespace Wayfinder
             {
                 if (entry.Type == type) return false;
             }
-            m_factories.push_back({type,
-                []() -> std::unique_ptr<TBase>
-                {
-                    return std::make_unique<T>();
-                },
-                predicate});
+            m_factories.push_back({type, []() -> std::unique_ptr<TBase> { return std::make_unique<T>(); }, predicate});
             return true;
         }
 
@@ -220,7 +218,10 @@ namespace Wayfinder
 
         /// Retrieve a live game subsystem, or nullptr if not registered.
         template<typename T>
-        static T* Find() { return s_collection ? s_collection->Get<T>() : nullptr; }
+        static T* Find()
+        {
+            return s_collection ? s_collection->Get<T>() : nullptr;
+        }
 
     private:
         friend class Game;
@@ -231,7 +232,10 @@ namespace Wayfinder
         /// Bind the active SubsystemCollection.  Called by Game during init;
         /// also available for integration tests that stand up subsystems
         /// outside of the full Game lifecycle.
-        static void Bind(SubsystemCollection<GameSubsystem>* collection) { s_collection = collection; }
+        static void Bind(SubsystemCollection<GameSubsystem>* collection)
+        {
+            s_collection = collection;
+        }
 
         /// Detach the SubsystemCollection.  Callers should prefer this over
         /// Bind(nullptr) so intent is explicit.

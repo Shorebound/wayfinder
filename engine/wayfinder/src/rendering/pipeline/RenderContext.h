@@ -43,25 +43,64 @@ namespace Wayfinder
             return *m_device;
         }
 
-        ShaderManager& GetShaders() { return m_shaderManager; }
-        const ShaderManager& GetShaders() const { return m_shaderManager; }
+        ShaderManager& GetShaders()
+        {
+            return m_shaderManager;
+        }
+        const ShaderManager& GetShaders() const
+        {
+            return m_shaderManager;
+        }
 
-        PipelineCache& GetPipelines() { return m_pipelineCache; }
-        const PipelineCache& GetPipelines() const { return m_pipelineCache; }
+        PipelineCache& GetPipelines()
+        {
+            return m_pipelineCache;
+        }
+        const PipelineCache& GetPipelines() const
+        {
+            return m_pipelineCache;
+        }
 
-        ShaderProgramRegistry& GetPrograms() { return m_programRegistry; }
-        const ShaderProgramRegistry& GetPrograms() const { return m_programRegistry; }
+        ShaderProgramRegistry& GetPrograms()
+        {
+            return m_programRegistry;
+        }
+        const ShaderProgramRegistry& GetPrograms() const
+        {
+            return m_programRegistry;
+        }
 
-        TransientBufferAllocator& GetTransientBuffers() { return m_transientAllocator; }
-        const TransientBufferAllocator& GetTransientBuffers() const { return m_transientAllocator; }
+        TransientBufferAllocator& GetTransientBuffers()
+        {
+            return m_transientAllocator;
+        }
+        const TransientBufferAllocator& GetTransientBuffers() const
+        {
+            return m_transientAllocator;
+        }
 
-        TransientResourcePool& GetTransientPool() { return m_transientPool; }
-        const TransientResourcePool& GetTransientPool() const { return m_transientPool; }
+        TransientResourcePool& GetTransientPool()
+        {
+            return m_transientPool;
+        }
+        const TransientResourcePool& GetTransientPool() const
+        {
+            return m_transientPool;
+        }
 
-        TextureManager& GetTextures() { return m_textureManager; }
-        const TextureManager& GetTextures() const { return m_textureManager; }
+        TextureManager& GetTextures()
+        {
+            return m_textureManager;
+        }
+        const TextureManager& GetTextures() const
+        {
+            return m_textureManager;
+        }
 
-        GPUSamplerHandle GetNearestSampler() const { return m_nearestSampler; }
+        GPUSamplerHandle GetNearestSampler() const
+        {
+            return m_nearestSampler;
+        }
 
     private:
         RenderDevice* m_device = nullptr;

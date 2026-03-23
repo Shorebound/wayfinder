@@ -18,9 +18,18 @@ namespace Wayfinder
         // Rebuild outputs based on current configuration
         void UpdateOutputs();
 
-        const std::string& GetName() const { return m_name; }
-        std::shared_ptr<ILogger> GetLogger() { return m_logger; }
-        LogVerbosity GetVerbosity() const { return m_verbosity; }
+        const std::string& GetName() const
+        {
+            return m_name;
+        }
+        std::shared_ptr<ILogger> GetLogger()
+        {
+            return m_logger;
+        }
+        LogVerbosity GetVerbosity() const
+        {
+            return m_verbosity;
+        }
         void SetVerbosity(LogVerbosity level);
 
     private:
@@ -42,7 +51,10 @@ namespace Wayfinder
         static void SetGlobalVerbosity(LogVerbosity level);
 
         // Configuration methods
-        static const LogConfig& GetConfig() { return s_config; }
+        static const LogConfig& GetConfig()
+        {
+            return s_config;
+        }
         static void SetConfig(const LogConfig& config);
 
         // Convenience methods for output configuration
@@ -73,7 +85,7 @@ namespace Wayfinder
 } // namespace Wayfinder
 
 // Logging macros
-#define WAYFINDER_LOG(category, verbosity, ...) \
+#define WAYFINDER_LOG(category, verbosity, ...)                                                                                                                                                        \
     if (verbosity <= category.GetVerbosity()) category.GetLogger()->LogFormat(verbosity, __VA_ARGS__)
 
 #define WAYFINDER_VERBOSE(category, ...) WAYFINDER_LOG(category, Wayfinder::LogVerbosity::Verbose, __VA_ARGS__)

@@ -27,10 +27,16 @@ namespace Wayfinder
 
         explicit Error(const char* message) : m_message(message ? message : "") {}
 
-        [[nodiscard]] const std::string& GetMessage() const noexcept { return m_message; }
+        [[nodiscard]] const std::string& GetMessage() const noexcept
+        {
+            return m_message;
+        }
 
         /// Implicit conversion to string_view for convenient logging.
-        [[nodiscard]] operator std::string_view() const noexcept { return m_message; }
+        [[nodiscard]] operator std::string_view() const noexcept
+        {
+            return m_message;
+        }
 
         bool operator==(const Error& other) const = default;
 
@@ -56,7 +62,10 @@ namespace Wayfinder
      * @return An `std::unexpected<Error>` suitable for returning from a
      *         function that yields `Result<T>`.
      */
-    [[nodiscard]] inline std::unexpected<Error> MakeError(std::string message) { return std::unexpected<Error>(Error(std::move(message))); }
+    [[nodiscard]] inline std::unexpected<Error> MakeError(std::string message)
+    {
+        return std::unexpected<Error>(Error(std::move(message)));
+    }
 
     /**
      * @brief Construct an unexpected Error from a C-string literal.
@@ -65,6 +74,9 @@ namespace Wayfinder
      * @return An `std::unexpected<Error>` suitable for returning from a
      *         function that yields `Result<T>`.
      */
-    [[nodiscard]] inline std::unexpected<Error> MakeError(const char* message) { return std::unexpected<Error>(Error(message)); }
+    [[nodiscard]] inline std::unexpected<Error> MakeError(const char* message)
+    {
+        return std::unexpected<Error>(Error(message));
+    }
 
 } // namespace Wayfinder

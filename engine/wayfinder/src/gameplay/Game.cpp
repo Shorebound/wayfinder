@@ -22,7 +22,10 @@ namespace Wayfinder
 
     Game::~Game()
     {
-        if (m_initialised) { Shutdown(); }
+        if (m_initialised)
+        {
+            Shutdown();
+        }
     }
 
     Result<void> Game::Initialise(const GameContext& ctx)
@@ -38,7 +41,8 @@ namespace Wayfinder
 
         // Guard that tears down subsystems on any early return.  Dismissed on success.
         bool committed = false;
-        auto cleanup = [&] {
+        auto cleanup = [&]
+        {
             if (!committed)
             {
                 GameSubsystems::Unbind();
@@ -48,7 +52,10 @@ namespace Wayfinder
         struct CleanupGuard
         {
             std::function<void()> Fn;
-            ~CleanupGuard() { Fn(); }
+            ~CleanupGuard()
+            {
+                Fn();
+            }
         } guard{cleanup};
 
         const auto bootScenePath = ctx.project.ResolveBootScene();
@@ -63,8 +70,7 @@ namespace Wayfinder
         const auto resolvedPath = std::filesystem::weakly_canonical(bootScenePath, canonicalError);
         if (canonicalError)
         {
-            WAYFINDER_ERROR(
-                LogGame, "Failed to resolve canonical path for boot scene '{}': {}", bootScenePath.string(), canonicalError.message());
+            WAYFINDER_ERROR(LogGame, "Failed to resolve canonical path for boot scene '{}': {}", bootScenePath.string(), canonicalError.message());
             return MakeError("Failed to resolve boot scene path");
         }
 
@@ -108,7 +114,10 @@ namespace Wayfinder
         m_world.component<ActiveGameplayTags>();
         m_world.set<ActiveGameplayTags>({});
 
-        if (m_moduleRegistry) { m_moduleRegistry->ApplyToWorld(m_world); }
+        if (m_moduleRegistry)
+        {
+            m_moduleRegistry->ApplyToWorld(m_world);
+        }
 
         // Configure and set up the state machine after world registration
         m_stateMachine = GameSubsystems::Find<GameStateMachine>();
@@ -151,7 +160,10 @@ namespace Wayfinder
         m_currentScene = std::make_unique<Scene>(m_world, m_componentRegistry, scenePath);
         m_currentScene->SetAssetService(m_assetService);
 
-        if (std::filesystem::exists(scenePath)) { m_currentScene->LoadFromFile(scenePath); }
+        if (std::filesystem::exists(scenePath))
+        {
+            m_currentScene->LoadFromFile(scenePath);
+        }
 
         WAYFINDER_INFO(LogGame, "Loaded scene: {}", scenePath);
     }

@@ -81,14 +81,12 @@ namespace Wayfinder
     // Add operator overloads for enum class bitwise operations
     inline constexpr EventCategory operator|(EventCategory a, EventCategory b)
     {
-        return static_cast<EventCategory>(
-            static_cast<std::underlying_type_t<EventCategory>>(a) | static_cast<std::underlying_type_t<EventCategory>>(b));
+        return static_cast<EventCategory>(static_cast<std::underlying_type_t<EventCategory>>(a) | static_cast<std::underlying_type_t<EventCategory>>(b));
     }
 
     inline constexpr EventCategory operator&(EventCategory a, EventCategory b)
     {
-        return static_cast<EventCategory>(
-            static_cast<std::underlying_type_t<EventCategory>>(a) & static_cast<std::underlying_type_t<EventCategory>>(b));
+        return static_cast<EventCategory>(static_cast<std::underlying_type_t<EventCategory>>(a) & static_cast<std::underlying_type_t<EventCategory>>(b));
     }
 
     inline constexpr EventCategory& operator|=(EventCategory& a, EventCategory b)
@@ -113,9 +111,15 @@ namespace Wayfinder
         virtual EventType GetEventType() const = 0;
         virtual const char* GetName() const = 0;
         virtual EventCategory GetCategoryFlags() const = 0;
-        virtual std::string ToString() const { return GetName(); }
+        virtual std::string ToString() const
+        {
+            return GetName();
+        }
 
-        bool IsInCategory(const EventCategory category) const { return (GetCategoryFlags() & category) != EventCategory::None; }
+        bool IsInCategory(const EventCategory category) const
+        {
+            return (GetCategoryFlags() & category) != EventCategory::None;
+        }
     };
 
     class EventDispatcher
@@ -139,7 +143,10 @@ namespace Wayfinder
         Event& m_event;
     };
 
-    inline std::ostream& operator<<(std::ostream& os, const Event& e) { return os << e.ToString(); }
+    inline std::ostream& operator<<(std::ostream& os, const Event& e)
+    {
+        return os << e.ToString();
+    }
 
     template<typename Base, EventType TTypeValue, EventCategory TCategoryValue>
     class EventImpl : public Base
@@ -149,12 +156,27 @@ namespace Wayfinder
     public:
         using Base::Base; // Inherit constructors
 
-        static constexpr EventType GetStaticType() noexcept { return TTypeValue; }
-        static constexpr EventCategory GetStaticCategory() noexcept { return TCategoryValue; }
+        static constexpr EventType GetStaticType() noexcept
+        {
+            return TTypeValue;
+        }
+        static constexpr EventCategory GetStaticCategory() noexcept
+        {
+            return TCategoryValue;
+        }
 
-        virtual EventType GetEventType() const override { return GetStaticType(); }
-        virtual const char* GetName() const override { return EventTypeToString(GetStaticType()); }
-        virtual EventCategory GetCategoryFlags() const override { return GetStaticCategory(); }
+        virtual EventType GetEventType() const override
+        {
+            return GetStaticType();
+        }
+        virtual const char* GetName() const override
+        {
+            return EventTypeToString(GetStaticType());
+        }
+        virtual EventCategory GetCategoryFlags() const override
+        {
+            return GetStaticCategory();
+        }
     };
 
 }

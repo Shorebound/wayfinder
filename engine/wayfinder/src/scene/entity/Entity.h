@@ -32,27 +32,60 @@ namespace Wayfinder
         }
 
         template<typename T>
-        T& GetMutableComponent() { return m_entityHandle.get_mut<T>(); }
+        T& GetMutableComponent()
+        {
+            return m_entityHandle.get_mut<T>();
+        }
 
         template<typename T>
-        const T& GetComponent() const { return m_entityHandle.get<T>(); }
+        const T& GetComponent() const
+        {
+            return m_entityHandle.get<T>();
+        }
 
         template<typename T>
-        bool HasComponent() const { return m_entityHandle.has<T>(); }
+        bool HasComponent() const
+        {
+            return m_entityHandle.has<T>();
+        }
 
         template<typename T>
-        void RemoveComponent() { m_entityHandle.remove<T>(); }
+        void RemoveComponent()
+        {
+            m_entityHandle.remove<T>();
+        }
 
-        operator bool() const { return m_entityHandle.is_valid(); }
-        operator flecs::entity() const { return m_entityHandle; }
-        operator uint64_t() const { return m_entityHandle.id(); }
+        operator bool() const
+        {
+            return m_entityHandle.is_valid();
+        }
+        operator flecs::entity() const
+        {
+            return m_entityHandle;
+        }
+        operator uint64_t() const
+        {
+            return m_entityHandle.id();
+        }
 
-        flecs::entity GetHandle() const { return m_entityHandle; }
+        flecs::entity GetHandle() const
+        {
+            return m_entityHandle;
+        }
 
-        bool operator==(const Entity& other) const { return m_entityHandle == other.m_entityHandle && m_scene == other.m_scene; }
-        bool operator!=(const Entity& other) const { return !(*this == other); }
+        bool operator==(const Entity& other) const
+        {
+            return m_entityHandle == other.m_entityHandle && m_scene == other.m_scene;
+        }
+        bool operator!=(const Entity& other) const
+        {
+            return !(*this == other);
+        }
 
-        bool IsValid() const { return m_entityHandle.is_valid() && m_scene != nullptr; }
+        bool IsValid() const
+        {
+            return m_entityHandle.is_valid() && m_scene != nullptr;
+        }
 
         std::string GetName() const;
         void SetName(const std::string& name);

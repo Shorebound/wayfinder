@@ -202,8 +202,7 @@ namespace Wayfinder::Tests
             bool foundDuplicateIdError = false;
             for (const std::string& error : result.Errors)
             {
-                if (error.find("duplicate entity id") != std::string::npos && error.find(expectedEntityId) != std::string::npos &&
-                    error.find(expectedEntityName) != std::string::npos)
+                if (error.find("duplicate entity id") != std::string::npos && error.find(expectedEntityId) != std::string::npos && error.find(expectedEntityName) != std::string::npos)
                 {
                     foundDuplicateIdError = true;
                     break;

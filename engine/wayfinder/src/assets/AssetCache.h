@@ -31,14 +31,20 @@ namespace Wayfinder
         /// Retrieve a previously loaded asset (cache hit only).
         const TAsset* Get(const AssetId& assetId) const
         {
-            if (const auto it = m_assets.find(assetId); it != m_assets.end()) { return &it->second; }
+            if (const auto it = m_assets.find(assetId); it != m_assets.end())
+            {
+                return &it->second;
+            }
             return nullptr;
         }
 
         /// Retrieve a mutable reference to a cached asset (e.g. to release pixel data post-upload).
         TAsset* GetMutable(const AssetId& assetId)
         {
-            if (auto it = m_assets.find(assetId); it != m_assets.end()) { return &it->second; }
+            if (auto it = m_assets.find(assetId); it != m_assets.end())
+            {
+                return &it->second;
+            }
             return nullptr;
         }
 
@@ -52,7 +58,10 @@ namespace Wayfinder
         const TAsset* LoadOrGet(const AssetId& assetId, const AssetRegistry& registry, std::string& error)
         {
             // Cache hit
-            if (const auto it = m_assets.find(assetId); it != m_assets.end()) { return &it->second; }
+            if (const auto it = m_assets.find(assetId); it != m_assets.end())
+            {
+                return &it->second;
+            }
 
             // Known miss — avoid re-attempting
             if (m_misses.contains(assetId))
@@ -117,7 +126,10 @@ namespace Wayfinder
         }
 
         /// Number of successfully cached assets.
-        size_t Size() const { return m_assets.size(); }
+        size_t Size() const
+        {
+            return m_assets.size();
+        }
 
     private:
         std::unordered_map<AssetId, TAsset> m_assets;

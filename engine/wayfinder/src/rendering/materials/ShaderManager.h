@@ -23,7 +23,9 @@ namespace Wayfinder
     };
 
     inline ShaderVariantKey operator|(ShaderFeature a, ShaderFeature b)
-    { return static_cast<ShaderVariantKey>(a) | static_cast<ShaderVariantKey>(b); }
+    {
+        return static_cast<ShaderVariantKey>(a) | static_cast<ShaderVariantKey>(b);
+    }
 
     // Loads pre-compiled shader bytecode from disk and caches GPU shader handles.
     // Shader files are expected as .spv (SPIR-V bytecode), loaded once per name+stage+variant triple.
@@ -43,8 +45,7 @@ namespace Wayfinder
         // creates a GPU shader, and caches it. Returns nullptr on failure.
         // Resource counts describe the shader's bindings — passed through to ShaderCreateDesc.
         // Variant key selects a pre-compiled permutation (0 = base variant).
-        GPUShaderHandle GetShader(
-            const std::string& name, ShaderStage stage, const ShaderResourceCounts& resources = {}, ShaderVariantKey variant = 0);
+        GPUShaderHandle GetShader(const std::string& name, ShaderStage stage, const ShaderResourceCounts& resources = {}, ShaderVariantKey variant = 0);
 
         // Loads compute shader bytecode from "<shaderDirectory>/<name>.comp.spv".
         // Returns the raw bytecode for use with RenderDevice::CreateComputePipeline.
@@ -57,7 +58,10 @@ namespace Wayfinder
             ShaderStage stage;
             ShaderVariantKey variant = 0;
 
-            bool operator==(const ShaderKey& other) const { return name == other.name && stage == other.stage && variant == other.variant; }
+            bool operator==(const ShaderKey& other) const
+            {
+                return name == other.name && stage == other.stage && variant == other.variant;
+            }
         };
 
         struct ShaderKeyHash

@@ -24,7 +24,10 @@ namespace Wayfinder
         }
     }
 
-    EngineConfig EngineConfig::LoadDefaults() { return EngineConfig{}; }
+    EngineConfig EngineConfig::LoadDefaults()
+    {
+        return EngineConfig{};
+    }
 
     EngineConfig EngineConfig::LoadFromFile(const std::filesystem::path& path)
     {

@@ -82,7 +82,10 @@ namespace Wayfinder::Tests
             Subsystems.Shutdown();
         }
 
-        PhysicsWorld& GetPhysicsWorld() { return Subsystems.Get<PhysicsSubsystem>()->GetWorld(); }
+        PhysicsWorld& GetPhysicsWorld()
+        {
+            return Subsystems.Get<PhysicsSubsystem>()->GetWorld();
+        }
 
         // Create a physics entity with the given body type, position, and collider.
         flecs::entity CreatePhysicsEntity(const char* name, BodyType type, const Float3& position, ColliderShape shape = ColliderShape::Box)

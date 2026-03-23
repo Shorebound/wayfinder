@@ -14,7 +14,9 @@ namespace Wayfinder
     RenderGraphBuilder::RenderGraphBuilder(RenderGraph& graph, uint32_t passIndex) : m_graph(graph), m_passIndex(passIndex) {}
 
     RenderGraphHandle RenderGraphBuilder::CreateTransient(const RenderGraphTextureDesc& desc)
-    { return m_graph.AllocateResource(desc, InternedString::Intern(desc.DebugName)); }
+    {
+        return m_graph.AllocateResource(desc, InternedString::Intern(desc.DebugName));
+    }
 
     void RenderGraphBuilder::ReadTexture(RenderGraphHandle handle)
     {
@@ -24,7 +26,10 @@ namespace Wayfinder
 
         auto& res = m_graph.m_resources[handle.Index];
         // Record dependency on whoever last wrote this resource
-        if (res.WrittenByPass != UINT32_MAX && res.WrittenByPass != m_passIndex) { pass.DependsOn.push_back(res.WrittenByPass); }
+        if (res.WrittenByPass != UINT32_MAX && res.WrittenByPass != m_passIndex)
+        {
+            pass.DependsOn.push_back(res.WrittenByPass);
+        }
         res.IsReadAsSampler = true;
         res.LastReadByPass = (res.LastReadByPass == UINT32_MAX) ? m_passIndex : std::max(res.LastReadByPass, m_passIndex);
     }
@@ -73,8 +78,7 @@ namespace Wayfinder
     {
         if (!handle.IsValid() || handle.Index >= m_textures.size())
         {
-            WAYFINDER_VERBOSE(LogRenderer, "RenderGraphResources::GetTexture: invalid handle (index={}, valid={}, count={})", handle.Index,
-                handle.IsValid(), m_textures.size());
+            WAYFINDER_VERBOSE(LogRenderer, "RenderGraphResources::GetTexture: invalid handle (index={}, valid={}, count={})", handle.Index, handle.IsValid(), m_textures.size());
             return GPUTextureHandle::Invalid();
         }
         return m_textures[handle.Index];
@@ -102,7 +106,10 @@ namespace Wayfinder
         // Check if already imported
         for (uint32_t i = 0; i < m_resources.size(); ++i)
         {
-            if (m_resources[i].Name == internedName) { return {i}; }
+            if (m_resources[i].Name == internedName)
+            {
+                return {i};
+            }
         }
 
         // Imported/externally-provided textures use a default-constructed desc
@@ -118,7 +125,10 @@ namespace Wayfinder
 
         for (uint32_t i = 0; i < m_resources.size(); ++i)
         {
-            if (m_resources[i].Name == internedName) { return {i}; }
+            if (m_resources[i].Name == internedName)
+            {
+                return {i};
+            }
         }
         return {};
     }
@@ -168,7 +178,10 @@ namespace Wayfinder
 
             for (uint32_t next : adjacency[current])
             {
-                if (--inDegree[next] == 0) { ready.push(next); }
+                if (--inDegree[next] == 0)
+                {
+                    ready.push(next);
+                }
             }
         }
 
@@ -186,7 +199,10 @@ namespace Wayfinder
         // Seed: passes that write to the swapchain are always alive
         for (uint32_t i = 0; i < passCount; ++i)
         {
-            if (m_passes[i].SwapchainWrite) { alive[i] = true; }
+            if (m_passes[i].SwapchainWrite)
+            {
+                alive[i] = true;
+            }
         }
 
         // Propagate backwards: if pass B is alive and depends on pass A, then A is alive too.
@@ -235,7 +251,10 @@ namespace Wayfinder
             {
                 usage = TextureUsage::DepthTarget;
             }
-            if (res.IsReadAsSampler) { usage |= TextureUsage::Sampler; }
+            if (res.IsReadAsSampler)
+            {
+                usage |= TextureUsage::Sampler;
+            }
             return usage;
         };
 

@@ -22,12 +22,27 @@ namespace Wayfinder
      */
     struct WAYFINDER_API GameplayTag
     {
-        bool operator==(const GameplayTag& other) const { return m_name == other.m_name; }
-        bool operator!=(const GameplayTag& other) const { return m_name != other.m_name; }
-        bool operator<(const GameplayTag& other) const { return m_name < other.m_name; }
+        bool operator==(const GameplayTag& other) const
+        {
+            return m_name == other.m_name;
+        }
+        bool operator!=(const GameplayTag& other) const
+        {
+            return m_name != other.m_name;
+        }
+        bool operator<(const GameplayTag& other) const
+        {
+            return m_name < other.m_name;
+        }
 
-        const std::string& GetName() const { return m_name.GetString(); }
-        bool IsValid() const { return !m_name.IsEmpty(); }
+        const std::string& GetName() const
+        {
+            return m_name.GetString();
+        }
+        bool IsValid() const
+        {
+            return !m_name.IsEmpty();
+        }
 
         /// True if this tag equals or is a descendant of @p parent.
         /// "Status.Burning".IsChildOf("Status") -> true
@@ -42,15 +57,24 @@ namespace Wayfinder
         int Depth() const;
 
         /// Returns an empty/invalid tag.
-        static GameplayTag None() { return {}; }
+        static GameplayTag None()
+        {
+            return {};
+        }
 
         /// Construct a tag from a pre-interned string.  Used by registries
         /// and internal code that already holds an InternedString.
-        static GameplayTag FromInterned(InternedString name) { return GameplayTag{name}; }
+        static GameplayTag FromInterned(InternedString name)
+        {
+            return GameplayTag{name};
+        }
 
         /// Construct a tag from a plain name string.  Interns the string
         /// and returns the tag.
-        static GameplayTag FromName(const std::string& name) { return GameplayTag{name}; }
+        static GameplayTag FromName(const std::string& name)
+        {
+            return GameplayTag{name};
+        }
 
     private:
         explicit GameplayTag(const std::string& name) : m_name(InternedString::Intern(name)) {}
@@ -80,13 +104,31 @@ namespace Wayfinder
 
         void AddTag(const GameplayTag& tag);
         void RemoveTag(const GameplayTag& tag);
-        bool IsEmpty() const { return m_tags.empty(); }
-        size_t Size() const { return m_tags.size(); }
+        bool IsEmpty() const
+        {
+            return m_tags.empty();
+        }
+        size_t Size() const
+        {
+            return m_tags.size();
+        }
 
-        auto begin() const { return m_tags.begin(); }
-        auto end() const { return m_tags.end(); }
-        auto cbegin() const { return m_tags.cbegin(); }
-        auto cend() const { return m_tags.cend(); }
+        auto begin() const
+        {
+            return m_tags.begin();
+        }
+        auto end() const
+        {
+            return m_tags.end();
+        }
+        auto cbegin() const
+        {
+            return m_tags.cbegin();
+        }
+        auto cend() const
+        {
+            return m_tags.cend();
+        }
 
     private:
         std::vector<GameplayTag> m_tags;

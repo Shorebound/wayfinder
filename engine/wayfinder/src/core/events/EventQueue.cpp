@@ -3,7 +3,10 @@
 namespace Wayfinder
 {
 
-    EventQueue::EventQueue() { m_order.reserve(INITIAL_ORDER_CAPACITY); }
+    EventQueue::EventQueue()
+    {
+        m_order.reserve(INITIAL_ORDER_CAPACITY);
+    }
 
     void EventQueue::Clear()
     {
@@ -21,8 +24,14 @@ namespace Wayfinder
         m_totalSize = 0;
     }
 
-    size_t EventQueue::Size() const { return m_totalSize; }
+    size_t EventQueue::Size() const
+    {
+        return m_totalSize;
+    }
 
-    bool EventQueue::IsEmpty() const { return m_totalSize == 0; }
+    bool EventQueue::IsEmpty() const
+    {
+        return m_totalSize == 0;
+    }
 
 } // namespace Wayfinder

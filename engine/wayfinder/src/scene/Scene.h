@@ -47,16 +47,37 @@ namespace Wayfinder
         std::string GenerateUniqueName(const std::string& base, flecs::entity_t excludeEntity = 0) const;
         bool LoadFromFile(const std::string& filePath);
         bool SaveToFile(const std::string& filePath) const;
-        void SetAssetService(const std::shared_ptr<AssetService>& assetService) { m_assetService = assetService; }
-        const std::shared_ptr<AssetService>& GetAssetService() const { return m_assetService; }
+        void SetAssetService(const std::shared_ptr<AssetService>& assetService)
+        {
+            m_assetService = assetService;
+        }
+        const std::shared_ptr<AssetService>& GetAssetService() const
+        {
+            return m_assetService;
+        }
 
-        const std::string& GetName() const { return m_name; }
-        const std::filesystem::path& GetSourcePath() const { return m_sourcePath; }
-        const std::filesystem::path& GetAssetRoot() const { return m_assetRoot; }
+        const std::string& GetName() const
+        {
+            return m_name;
+        }
+        const std::filesystem::path& GetSourcePath() const
+        {
+            return m_sourcePath;
+        }
+        const std::filesystem::path& GetAssetRoot() const
+        {
+            return m_assetRoot;
+        }
 
         /// Expose the Flecs world for querying and external registration.
-        flecs::world& GetWorld() { return m_world; }
-        const flecs::world& GetWorld() const { return m_world; }
+        flecs::world& GetWorld()
+        {
+            return m_world;
+        }
+        const flecs::world& GetWorld() const
+        {
+            return m_world;
+        }
 
     private:
         friend class Entity;

@@ -56,8 +56,14 @@ namespace Wayfinder
         // Called when the feature is removed. Use the context for cleanup.
         virtual void OnDetach(const RenderFeatureContext& /*context*/) {}
 
-        bool IsEnabled() const { return m_enabled; }
-        void SetEnabled(bool enabled) { m_enabled = enabled; }
+        bool IsEnabled() const
+        {
+            return m_enabled;
+        }
+        void SetEnabled(bool enabled)
+        {
+            m_enabled = enabled;
+        }
 
     private:
         bool m_enabled = true;

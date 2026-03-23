@@ -17,24 +17,25 @@ BraceWrapping:
   AfterExternBlock: true
   BeforeCatch: true
   BeforeElse: true
-  BeforeLambdaBody: false
+  BeforeLambdaBody: true
   BeforeWhile: true
   SplitEmptyFunction: false
   SplitEmptyRecord: false
   SplitEmptyNamespace: false
 
-AllowShortFunctionsOnASingleLine: All
-AllowShortBlocksOnASingleLine: Always
+AllowShortFunctionsOnASingleLine: Empty
+AllowShortBlocksOnASingleLine: Never
 AllowShortIfStatementsOnASingleLine: WithoutElse
-AllowShortLambdasOnASingleLine: Empty
+AllowShortLambdasOnASingleLine: All
 AllowShortEnumsOnASingleLine: true
 
 AlignAfterOpenBracket: DontAlign
+BreakTemplateDeclarations: Yes
 SpaceAfterTemplateKeyword: false
 
 ContinuationIndentWidth: 4
 IndentCaseLabels: false
-ColumnLimit: 0
+ColumnLimit: 200
 AccessModifierOffset: -4
 NamespaceIndentation: All
 FixNamespaceComments: false

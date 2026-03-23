@@ -142,8 +142,7 @@ namespace Wayfinder::Tests
     {
         Wayfinder::RenderFrame frame;
         const size_t viewIndex = frame.AddView(Wayfinder::RenderView{});
-        Wayfinder::RenderPass& scenePass =
-            frame.AddScenePass(Wayfinder::RenderPassIds::MainScene, viewIndex, Wayfinder::RenderLayers::Main);
+        Wayfinder::RenderPass& scenePass = frame.AddScenePass(Wayfinder::RenderPassIds::MainScene, viewIndex, Wayfinder::RenderLayers::Main);
         scenePass.Meshes.push_back(MakeSolidMesh(100, Wayfinder::Colour::Red()));
         scenePass.Meshes.push_back(MakeSolidMesh(10, Wayfinder::Colour::Blue()));
 

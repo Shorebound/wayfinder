@@ -10,7 +10,10 @@ namespace Wayfinder
     class KeyEvent : public Event
     {
     public:
-        KeyCode GetKeyCode() const { return m_keyCode; }
+        KeyCode GetKeyCode() const
+        {
+            return m_keyCode;
+        }
 
     protected:
         KeyEvent(const KeyCode keycode) : m_keyCode(keycode) {}
@@ -23,9 +26,15 @@ namespace Wayfinder
     public:
         KeyPressedEvent(const KeyCode keycode, bool isRepeat = false) : EventImpl(keycode), m_repeating(isRepeat) {}
 
-        bool IsRepeat() const { return m_repeating; }
+        bool IsRepeat() const
+        {
+            return m_repeating;
+        }
 
-        std::string ToString() const override { return std::format("{}: {} (repeat = {})", GetName(), m_keyCode, m_repeating); }
+        std::string ToString() const override
+        {
+            return std::format("{}: {} (repeat = {})", GetName(), m_keyCode, m_repeating);
+        }
 
     private:
         bool m_repeating;
@@ -36,7 +45,10 @@ namespace Wayfinder
     public:
         KeyReleasedEvent(const KeyCode keycode) : EventImpl(keycode) {}
 
-        std::string ToString() const override { return std::format("{}: {}", GetName(), m_keyCode); }
+        std::string ToString() const override
+        {
+            return std::format("{}: {}", GetName(), m_keyCode);
+        }
     };
 
     class KeyTypedEvent : public EventImpl<KeyEvent, EventType::KeyTyped, EventCategory::Keyboard | EventCategory::Input>
@@ -44,6 +56,9 @@ namespace Wayfinder
     public:
         KeyTypedEvent(const KeyCode keycode) : EventImpl(keycode) {}
 
-        std::string ToString() const override { return std::format("{}: {}", GetName(), m_keyCode); }
+        std::string ToString() const override
+        {
+            return std::format("{}: {}", GetName(), m_keyCode);
+        }
     };
 }

@@ -9,16 +9,27 @@ namespace Wayfinder
     {
     public:
         SpdLogMessage(const spdlog::details::log_msg& msg)
-            : m_level(ConvertLevel(msg.level)), m_loggerName(msg.logger_name.data(), msg.logger_name.size()),
-              m_payload(msg.payload.data(), msg.payload.size()),
+            : m_level(ConvertLevel(msg.level)), m_loggerName(msg.logger_name.data(), msg.logger_name.size()), m_payload(msg.payload.data(), msg.payload.size()),
               m_timestamp(msg.time.time_since_epoch().count() / 1000000000.0) // Convert to seconds
         {}
 
         // ILogMessage implementation
-        LogVerbosity GetVerbosity() const override { return m_level; }
-        const std::string& GetLoggerName() const override { return m_loggerName; }
-        const std::string& GetPayload() const override { return m_payload; }
-        double GetTimestamp() const override { return m_timestamp; }
+        LogVerbosity GetVerbosity() const override
+        {
+            return m_level;
+        }
+        const std::string& GetLoggerName() const override
+        {
+            return m_loggerName;
+        }
+        const std::string& GetPayload() const override
+        {
+            return m_payload;
+        }
+        double GetTimestamp() const override
+        {
+            return m_timestamp;
+        }
 
         // Convert spdlog level to Wayfinder level
         static LogVerbosity ConvertLevel(const spdlog::level::level_enum level)
@@ -75,8 +86,7 @@ namespace Wayfinder
     class SpdLogger : public ILogger
     {
     public:
-        SpdLogger(const std::string& name, const LogVerbosity defaultVerbosity = LogVerbosity::Info)
-            : m_name(name), m_verbosity(defaultVerbosity)
+        SpdLogger(const std::string& name, const LogVerbosity defaultVerbosity = LogVerbosity::Info) : m_name(name), m_verbosity(defaultVerbosity)
         {
             m_logger = std::make_shared<spdlog::logger>(name);
             m_logger->set_level(SpdLogMessage::ConvertLevel(defaultVerbosity));
@@ -85,8 +95,14 @@ namespace Wayfinder
 
         virtual ~SpdLogger() override = default;
 
-        const std::string& GetName() const override { return m_name; }
-        LogVerbosity GetVerbosity() const override { return m_verbosity; }
+        const std::string& GetName() const override
+        {
+            return m_name;
+        }
+        LogVerbosity GetVerbosity() const override
+        {
+            return m_verbosity;
+        }
 
         void SetVerbosity(const LogVerbosity level) override
         {
@@ -114,10 +130,15 @@ namespace Wayfinder
             m_logger->sinks().clear();
         }
 
-        const std::vector<std::shared_ptr<ILogOutput>>& GetOutputs() const override { return m_outputs; }
+        const std::vector<std::shared_ptr<ILogOutput>>& GetOutputs() const override
+        {
+            return m_outputs;
+        }
 
         void Log(const LogVerbosity level, const std::string_view message) override
-        { m_logger->log(SpdLogMessage::ConvertLevel(level), message); }
+        {
+            m_logger->log(SpdLogMessage::ConvertLevel(level), message);
+        }
 
     protected:
         void LogFormatted(const LogVerbosity level, const std::string_view format, const std::format_args args) override
@@ -131,7 +152,10 @@ namespace Wayfinder
         }
 
     public:
-        std::shared_ptr<spdlog::logger> GetSpdLogger() const { return m_logger; }
+        std::shared_ptr<spdlog::logger> GetSpdLogger() const
+        {
+            return m_logger;
+        }
 
     private:
         std::string m_name;

@@ -29,9 +29,15 @@ namespace Wayfinder
         m_lastTicks = now;
     }
 
-    float SDL3Time::GetDeltaTime() const { return m_deltaTime; }
+    float SDL3Time::GetDeltaTime() const
+    {
+        return m_deltaTime;
+    }
 
-    float SDL3Time::GetElapsedTime() const { return m_elapsedTime; }
+    float SDL3Time::GetElapsedTime() const
+    {
+        return m_elapsedTime;
+    }
 
     double SDL3Time::GetTimeSinceStartup() const
     {

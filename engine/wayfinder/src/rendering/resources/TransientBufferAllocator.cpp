@@ -33,8 +33,7 @@ namespace Wayfinder
             return false;
         }
 
-        WAYFINDER_INFO(
-            LogRenderer, "TransientBufferAllocator initialised (vertex: {} KB, index: {} KB)", vertexCapacity / 1024, indexCapacity / 1024);
+        WAYFINDER_INFO(LogRenderer, "TransientBufferAllocator initialised (vertex: {} KB, index: {} KB)", vertexCapacity / 1024, indexCapacity / 1024);
 
         return true;
     }
@@ -63,15 +62,21 @@ namespace Wayfinder
     }
 
     TransientAllocation TransientBufferAllocator::AllocateVertices(const void* data, uint32_t sizeInBytes)
-    { return AllocateFromRing(m_vertexRing, m_vertexCapacity, m_vertexCursor, data, sizeInBytes); }
+    {
+        return AllocateFromRing(m_vertexRing, m_vertexCapacity, m_vertexCursor, data, sizeInBytes);
+    }
 
     TransientAllocation TransientBufferAllocator::AllocateIndices(const void* data, uint32_t sizeInBytes)
-    { return AllocateFromRing(m_indexRing, m_indexCapacity, m_indexCursor, data, sizeInBytes); }
-
-    TransientAllocation TransientBufferAllocator::AllocateFromRing(
-        GPUBufferHandle ring, uint32_t capacity, uint32_t& cursor, const void* data, uint32_t sizeInBytes)
     {
-        if (!m_device || !ring || !data || sizeInBytes == 0) { return {}; }
+        return AllocateFromRing(m_indexRing, m_indexCapacity, m_indexCursor, data, sizeInBytes);
+    }
+
+    TransientAllocation TransientBufferAllocator::AllocateFromRing(GPUBufferHandle ring, uint32_t capacity, uint32_t& cursor, const void* data, uint32_t sizeInBytes)
+    {
+        if (!m_device || !ring || !data || sizeInBytes == 0)
+        {
+            return {};
+        }
 
         // Align cursor to GPU minimum buffer offset alignment (256 bytes for Vulkan)
         static constexpr uint32_t kMinAlignment = 256;
@@ -79,8 +84,7 @@ namespace Wayfinder
 
         if (alignedCursor + sizeInBytes > capacity)
         {
-            WAYFINDER_WARNING(
-                LogRenderer, "TransientBufferAllocator: Ring buffer overflow ({} + {} > {} bytes)", alignedCursor, sizeInBytes, capacity);
+            WAYFINDER_WARNING(LogRenderer, "TransientBufferAllocator: Ring buffer overflow ({} + {} > {} bytes)", alignedCursor, sizeInBytes, capacity);
             return {};
         }
 

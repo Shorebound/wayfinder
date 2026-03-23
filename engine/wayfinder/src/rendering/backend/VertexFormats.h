@@ -67,10 +67,10 @@ namespace Wayfinder
     {
         // Empty layout for fullscreen passes using SV_VertexID (no vertex buffer)
         inline constexpr VertexLayout Empty =
-            {
-                .stride = 0,
-                .attribs = nullptr,
-                .attribCount = 0,
+        {
+            .stride = 0,
+            .attribs = nullptr,
+            .attribCount = 0,
         };
 
         inline constexpr std::array<VertexAttrib, 1> PosAttribs = {{
@@ -78,10 +78,10 @@ namespace Wayfinder
         }};
 
         inline constexpr VertexLayout Pos =
-            {
-                .stride = sizeof(VertexPos),
-                .attribs = PosAttribs.data(),
-                .attribCount = static_cast<uint32_t>(PosAttribs.size()),
+        {
+            .stride = sizeof(VertexPos),
+            .attribs = PosAttribs.data(),
+            .attribCount = static_cast<uint32_t>(PosAttribs.size()),
         };
 
         inline constexpr std::array<VertexAttrib, 2> PosColourAttribs = {{
@@ -90,10 +90,10 @@ namespace Wayfinder
         }};
 
         inline constexpr VertexLayout PosColour =
-            {
-                .stride = sizeof(VertexPosColour),
-                .attribs = PosColourAttribs.data(),
-                .attribCount = static_cast<uint32_t>(PosColourAttribs.size()),
+        {
+            .stride = sizeof(VertexPosColour),
+            .attribs = PosColourAttribs.data(),
+            .attribCount = static_cast<uint32_t>(PosColourAttribs.size()),
         };
 
         inline constexpr std::array<VertexAttrib, 3> PosNormalUVAttribs = {{
@@ -103,10 +103,10 @@ namespace Wayfinder
         }};
 
         inline constexpr VertexLayout PosNormalUV =
-            {
-                .stride = sizeof(VertexPosNormalUV),
-                .attribs = PosNormalUVAttribs.data(),
-                .attribCount = static_cast<uint32_t>(PosNormalUVAttribs.size()),
+        {
+            .stride = sizeof(VertexPosNormalUV),
+            .attribs = PosNormalUVAttribs.data(),
+            .attribCount = static_cast<uint32_t>(PosNormalUVAttribs.size()),
         };
 
         inline constexpr std::array<VertexAttrib, 3> PosNormalColourAttribs = {{
@@ -116,10 +116,10 @@ namespace Wayfinder
         }};
 
         inline constexpr VertexLayout PosNormalColour =
-            {
-                .stride = sizeof(VertexPosNormalColour),
-                .attribs = PosNormalColourAttribs.data(),
-                .attribCount = static_cast<uint32_t>(PosNormalColourAttribs.size()),
+        {
+            .stride = sizeof(VertexPosNormalColour),
+            .attribs = PosNormalColourAttribs.data(),
+            .attribCount = static_cast<uint32_t>(PosNormalColourAttribs.size()),
         };
     }
 

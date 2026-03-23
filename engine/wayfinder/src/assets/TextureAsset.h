@@ -49,12 +49,10 @@ namespace Wayfinder
     };
 
     /// Parse and validate a texture asset JSON document (schema check only, no image load).
-    WAYFINDER_API bool ValidateTextureAssetDocument(
-        const nlohmann::json& document, const std::filesystem::path& filePath, std::string& error);
+    WAYFINDER_API bool ValidateTextureAssetDocument(const nlohmann::json& document, const std::filesystem::path& filePath, std::string& error);
 
     /// Parse a texture JSON and load the referenced image from disk via SDL_image.
-    WAYFINDER_API std::optional<TextureAsset> LoadTextureAssetFromDocument(
-        const nlohmann::json& document, const std::filesystem::path& filePath, std::string& error);
+    WAYFINDER_API std::optional<TextureAsset> LoadTextureAssetFromDocument(const nlohmann::json& document, const std::filesystem::path& filePath, std::string& error);
 
     // ── AssetLoader specialisation ───────────────────────────
 
@@ -62,7 +60,9 @@ namespace Wayfinder
     struct AssetLoader<TextureAsset>
     {
         static std::optional<TextureAsset> Load(const nlohmann::json& document, const std::filesystem::path& filePath, std::string& error)
-        { return LoadTextureAssetFromDocument(document, filePath, error); }
+        {
+            return LoadTextureAssetFromDocument(document, filePath, error);
+        }
     };
 
 } // namespace Wayfinder

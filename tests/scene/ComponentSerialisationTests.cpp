@@ -105,9 +105,7 @@ namespace Wayfinder::Tests
 
         TEST_CASE("Camera round-trip preserves values")
         {
-            nlohmann::json input =
-                {
-                    {"primary", true}, {"fov", 90.0}, {"projection", "orthographic"}, {"target", {1.0, 2.0, 3.0}}, {"up", {0.0, 1.0, 0.0}}};
+            nlohmann::json input = {{"primary", true}, {"fov", 90.0}, {"projection", "orthographic"}, {"target", {1.0, 2.0, 3.0}}, {"up", {0.0, 1.0, 0.0}}};
 
             auto output = RoundTrip("camera", input);
 

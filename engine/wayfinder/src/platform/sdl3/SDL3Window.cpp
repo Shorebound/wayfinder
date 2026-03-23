@@ -22,18 +22,22 @@ namespace Wayfinder
         return nullptr;
     }
 
-    SDL3Window::SDL3Window(const Window::Config& config)
-        : m_width(config.Width), m_height(config.Height), m_title(config.Title), m_vsync(config.VSync)
-    {}
+    SDL3Window::SDL3Window(const Window::Config& config) : m_width(config.Width), m_height(config.Height), m_title(config.Title), m_vsync(config.VSync) {}
 
     SDL3Window::~SDL3Window()
     {
-        if (m_initialised) { Shutdown(); }
+        if (m_initialised)
+        {
+            Shutdown();
+        }
     }
 
     bool SDL3Window::Initialise()
     {
-        if (!SDL_Init(SDL_INIT_VIDEO | SDL_INIT_EVENTS)) { return false; }
+        if (!SDL_Init(SDL_INIT_VIDEO | SDL_INIT_EVENTS))
+        {
+            return false;
+        }
 
         m_window = SDL_CreateWindow(m_title.c_str(), static_cast<int>(m_width), static_cast<int>(m_height), 0);
 
@@ -152,22 +156,37 @@ namespace Wayfinder
         }
     }
 
-    bool SDL3Window::ShouldClose() const { return m_shouldClose; }
+    bool SDL3Window::ShouldClose() const
+    {
+        return m_shouldClose;
+    }
 
-    void SDL3Window::SetEventCallback(const EventCallbackFn& callback) { m_eventCallback = callback; }
+    void SDL3Window::SetEventCallback(const EventCallbackFn& callback)
+    {
+        m_eventCallback = callback;
+    }
 
-    void SDL3Window::SetVSync(bool enabled) { m_vsync = enabled; }
+    void SDL3Window::SetVSync(bool enabled)
+    {
+        m_vsync = enabled;
+    }
 
     void SDL3Window::SetTitle(const std::string& title)
     {
         m_title = title;
-        if (m_window) { SDL_SetWindowTitle(m_window, title.c_str()); }
+        if (m_window)
+        {
+            SDL_SetWindowTitle(m_window, title.c_str());
+        }
     }
 
     void SDL3Window::SetSize(uint32_t width, uint32_t height)
     {
         m_width = width;
         m_height = height;
-        if (m_window) { SDL_SetWindowSize(m_window, static_cast<int>(width), static_cast<int>(height)); }
+        if (m_window)
+        {
+            SDL_SetWindowSize(m_window, static_cast<int>(width), static_cast<int>(height));
+        }
     }
 }

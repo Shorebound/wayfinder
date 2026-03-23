@@ -93,11 +93,7 @@ namespace Wayfinder
         const std::string canonical = std::filesystem::weakly_canonical(path).string();
 
         // Remove definitions sourced from this file
-        std::erase_if(m_definitions,
-            [&](const GameplayTagDefinition& def)
-            {
-                return def.SourceFile == canonical;
-            });
+        std::erase_if(m_definitions, [&](const GameplayTagDefinition& def) { return def.SourceFile == canonical; });
 
         // Rebuild index
         m_index.clear();
@@ -123,7 +119,10 @@ namespace Wayfinder
         return GameplayTag::FromName(name);
     }
 
-    bool GameplayTagRegistry::IsRegistered(const std::string& name) const { return m_index.contains(name); }
+    bool GameplayTagRegistry::IsRegistered(const std::string& name) const
+    {
+        return m_index.contains(name);
+    }
 
     const GameplayTagDefinition* GameplayTagRegistry::FindDefinition(const std::string& name) const
     {

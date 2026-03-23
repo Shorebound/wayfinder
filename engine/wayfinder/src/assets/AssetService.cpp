@@ -4,25 +4,34 @@ namespace Wayfinder
 {
     bool AssetService::SetAssetRoot(const std::filesystem::path& assetRoot, std::string& error)
     {
-        const std::filesystem::path normalisedRoot =
-            assetRoot.empty() ? std::filesystem::path{} : std::filesystem::weakly_canonical(assetRoot);
-        if (normalisedRoot == m_assetRoot) { return true; }
+        const std::filesystem::path normalisedRoot = assetRoot.empty() ? std::filesystem::path{} : std::filesystem::weakly_canonical(assetRoot);
+        if (normalisedRoot == m_assetRoot)
+        {
+            return true;
+        }
 
         m_assetRoot = normalisedRoot;
         m_hasAssetRegistry = false;
         m_materialCache.Clear();
         m_textureCache.Clear();
 
-        if (m_assetRoot.empty()) { return true; }
+        if (m_assetRoot.empty())
+        {
+            return true;
+        }
 
         return (m_hasAssetRegistry = m_assetRegistry.BuildFromDirectory(m_assetRoot, error));
     }
 
     const AssetRecord* AssetService::ResolveRecord(const AssetId& assetId) const
-    { return m_hasAssetRegistry ? m_assetRegistry.ResolveRecord(assetId) : nullptr; }
+    {
+        return m_hasAssetRegistry ? m_assetRegistry.ResolveRecord(assetId) : nullptr;
+    }
 
     const std::filesystem::path* AssetService::ResolvePath(const AssetId& assetId) const
-    { return m_hasAssetRegistry ? m_assetRegistry.ResolvePath(assetId) : nullptr; }
+    {
+        return m_hasAssetRegistry ? m_assetRegistry.ResolvePath(assetId) : nullptr;
+    }
 
     const MaterialAsset* AssetService::LoadMaterialAsset(const AssetId& assetId, std::string& error)
     {
@@ -37,8 +46,14 @@ namespace Wayfinder
 
     void AssetService::ReleaseTexturePixelData(const AssetId& assetId)
     {
-        if (TextureAsset* texture = GetMutableAsset<TextureAsset>(assetId)) { texture->ReleasePixelData(); }
+        if (TextureAsset* texture = GetMutableAsset<TextureAsset>(assetId))
+        {
+            texture->ReleasePixelData();
+        }
     }
 
-    void AssetService::InvalidateTextureAsset(const AssetId& assetId) { m_textureCache.Invalidate(assetId); }
+    void AssetService::InvalidateTextureAsset(const AssetId& assetId)
+    {
+        m_textureCache.Invalidate(assetId);
+    }
 } // namespace Wayfinder

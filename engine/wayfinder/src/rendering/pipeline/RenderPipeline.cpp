@@ -82,9 +82,9 @@ namespace Wayfinder
             desc.DepthTest = true;
             desc.DepthWrite = true;
             desc.MaterialParams =
-                {
-                    {"base_colour", MaterialParamType::Colour, 0, LinearColour::White()},
-                };
+            {
+                {"base_colour", MaterialParamType::Colour, 0, LinearColour::White()},
+            };
             desc.MaterialUBOSize = 16; // float4
             desc.VertexUBOSize = sizeof(UnlitTransformUBO);
             desc.NeedsSceneGlobals = false;
@@ -104,9 +104,9 @@ namespace Wayfinder
             desc.DepthTest = true;
             desc.DepthWrite = true;
             desc.MaterialParams =
-                {
-                    {"base_colour", MaterialParamType::Colour, 0, LinearColour::White()},
-                };
+            {
+                {"base_colour", MaterialParamType::Colour, 0, LinearColour::White()},
+            };
             desc.MaterialUBOSize = 16; // float4
             desc.VertexUBOSize = sizeof(TransformUBO);
             desc.NeedsSceneGlobals = true;
@@ -126,9 +126,9 @@ namespace Wayfinder
             desc.DepthTest = true;
             desc.DepthWrite = true;
             desc.MaterialParams =
-                {
-                    {"base_colour", MaterialParamType::Colour, 0, LinearColour::White()},
-                };
+            {
+                {"base_colour", MaterialParamType::Colour, 0, LinearColour::White()},
+            };
             desc.MaterialUBOSize = 16; // float4
             desc.VertexUBOSize = sizeof(TransformUBO);
             desc.NeedsSceneGlobals = true;
@@ -156,7 +156,10 @@ namespace Wayfinder
         }
     }
 
-    void RenderPipeline::Shutdown() { m_context = nullptr; }
+    void RenderPipeline::Shutdown()
+    {
+        m_context = nullptr;
+    }
 
     bool RenderPipeline::Prepare(RenderFrame& frame) const
     {
@@ -174,7 +177,10 @@ namespace Wayfinder
 
         for (RenderPass& pass : frame.Passes)
         {
-            if (!pass.Enabled || pass.Id.IsEmpty()) { continue; }
+            if (!pass.Enabled || pass.Id.IsEmpty())
+            {
+                continue;
+            }
 
             if (pass.ViewIndex >= frame.Views.size())
             {
@@ -186,11 +192,7 @@ namespace Wayfinder
             // Sort scene pass submissions by sort key (front-to-back for opaque)
             if (pass.Kind == RenderPassKind::Scene)
             {
-                std::sort(pass.Meshes.begin(), pass.Meshes.end(),
-                    [](const RenderMeshSubmission& a, const RenderMeshSubmission& b)
-                    {
-                        return a.SortKey < b.SortKey;
-                    });
+                std::sort(pass.Meshes.begin(), pass.Meshes.end(), [](const RenderMeshSubmission& a, const RenderMeshSubmission& b) { return a.SortKey < b.SortKey; });
             }
         }
 
@@ -216,7 +218,10 @@ namespace Wayfinder
             const float aspect = static_cast<float>(swapW) / static_cast<float>(swapH);
 
             view = Maths::LookAt(camera.Position, camera.Target, camera.Up);
-            if (camera.ProjectionType == 0) { projection = Maths::PerspectiveRH_ZO(Maths::ToRadians(camera.FOV), aspect, 0.1f, 1000.0f); }
+            if (camera.ProjectionType == 0)
+            {
+                projection = Maths::PerspectiveRH_ZO(Maths::ToRadians(camera.FOV), aspect, 0.1f, 1000.0f);
+            }
             else
             {
                 const float halfH = camera.FOV * 0.5f;
@@ -254,8 +259,8 @@ namespace Wayfinder
                 builder.WriteColour(colour, LoadOp::Clear, ClearValue::FromColour(clearColour));
                 builder.WriteDepth(depth, LoadOp::Clear, 1.0f);
 
-                return [this, &preparedFrame, &params, viewMat, projMat, sceneGlobals, hasCamera](
-                           RenderDevice& device, const RenderGraphResources& /*resources*/) {
+                return [this, &preparedFrame, &params, viewMat, projMat, sceneGlobals, hasCamera](RenderDevice& device, const RenderGraphResources& /*resources*/)
+                {
                     if (!hasCamera) return;
 
                     auto& registry = m_context->GetPrograms();
@@ -279,9 +284,7 @@ namespace Wayfinder
                         {
                             const auto& pv = preparedFrame.Views[pass.ViewIndex];
                             const auto& cam = pv.CameraState;
-                            const float aspect = (params.SwapchainHeight > 0) ? static_cast<float>(params.SwapchainWidth) /
-                                                                                    static_cast<float>(params.SwapchainHeight)
-                                                                              : 1.0f;
+                            const float aspect = (params.SwapchainHeight > 0) ? static_cast<float>(params.SwapchainWidth) / static_cast<float>(params.SwapchainHeight) : 1.0f;
 
                             passView = Maths::LookAt(cam.Position, cam.Target, cam.Up);
                             if (cam.ProjectionType == 0)
@@ -333,8 +336,7 @@ namespace Wayfinder
                                     }
                                 }
 
-                                mergedParams.SerialiseToUBO(
-                                    program->Desc.MaterialParams, materialUBOData.data(), static_cast<uint32_t>(materialUBOData.size()));
+                                mergedParams.SerialiseToUBO(program->Desc.MaterialParams, materialUBOData.data(), static_cast<uint32_t>(materialUBOData.size()));
                                 device.PushFragmentUniform(0, materialUBOData.data(), static_cast<uint32_t>(materialUBOData.size()));
 
                                 if (program->Desc.NeedsSceneGlobals)
@@ -348,7 +350,10 @@ namespace Wayfinder
                             {
                                 // Look up the mesh for this program's vertex layout
                                 const auto meshIt = params.MeshesByStride.find(program->Desc.VertexLayout.stride);
-                                if (meshIt == params.MeshesByStride.end() || !meshIt->second) { continue; }
+                                if (meshIt == params.MeshesByStride.end() || !meshIt->second)
+                                {
+                                    continue;
+                                }
                                 const auto& mesh = *meshIt->second;
 
                                 if (program != lastBoundProgram)
@@ -419,8 +424,8 @@ namespace Wayfinder
                 builder.WriteColour(colour, LoadOp::Load);
                 builder.WriteDepth(depth, LoadOp::Load);
 
-                return [this, &preparedFrame, &params, viewMat, projMat, hasCamera](
-                           RenderDevice& device, const RenderGraphResources& /*resources*/) {
+                return [this, &preparedFrame, &params, viewMat, projMat, hasCamera](RenderDevice& device, const RenderGraphResources& /*resources*/)
+                {
                     if (!hasCamera) return;
 
                     auto& debugLinePipeline = params.DebugLinePipeline;
@@ -526,7 +531,10 @@ namespace Wayfinder
         // ── Feature passes ───────────────────────────────────
         for (const auto& feature : params.Features)
         {
-            if (feature->IsEnabled()) { feature->AddPasses(graph, preparedFrame); }
+            if (feature->IsEnabled())
+            {
+                feature->AddPasses(graph, preparedFrame);
+            }
         }
 
         // ── Composition Pass ─────────────────────────────────

@@ -50,16 +50,21 @@ namespace Wayfinder::Physics
             if (!data.contains(key)) return fallback;
             const auto& arr = data[key];
             if (!arr.is_array() || arr.size() != 3) return fallback;
-            return {arr[0].is_number() ? arr[0].get<float>() : fallback.x, arr[1].is_number() ? arr[1].get<float>() : fallback.y,
-                arr[2].is_number() ? arr[2].get<float>() : fallback.z};
+            return {arr[0].is_number() ? arr[0].get<float>() : fallback.x, arr[1].is_number() ? arr[1].get<float>() : fallback.y, arr[2].is_number() ? arr[2].get<float>() : fallback.z};
         }
 
         /// Write a Float3 as a 3-element JSON array.
-        nlohmann::json WriteVector3(const Float3& value) { return nlohmann::json::array({value.x, value.y, value.z}); }
+        nlohmann::json WriteVector3(const Float3& value)
+        {
+            return nlohmann::json::array({value.x, value.y, value.z});
+        }
 
         // --- RigidBodyComponent ---
 
-        void RegisterRigidBody(flecs::world& world) { world.component<RigidBodyComponent>(); }
+        void RegisterRigidBody(flecs::world& world)
+        {
+            world.component<RigidBodyComponent>();
+        }
 
         void ApplyRigidBody(const nlohmann::json& data, Entity& entity)
         {
@@ -162,7 +167,10 @@ namespace Wayfinder::Physics
 
         // --- ColliderComponent ---
 
-        void RegisterCollider(flecs::world& world) { world.component<ColliderComponent>(); }
+        void RegisterCollider(flecs::world& world)
+        {
+            world.component<ColliderComponent>();
+        }
 
         void ApplyCollider(const nlohmann::json& data, Entity& entity)
         {
@@ -337,16 +345,17 @@ namespace Wayfinder::Physics
             {
                 world.observer<RigidBodyComponent, const ColliderComponent, const TransformComponent>("PhysicsCreateBodies")
                     .event(flecs::OnAdd)
-                    .each([](flecs::entity, RigidBodyComponent& rb, const ColliderComponent& col, const TransformComponent& transform)
-                    {
-                        if (rb.RuntimeBodyId != INVALID_PHYSICS_BODY) return;
+                    .each(
+                        [](flecs::entity, RigidBodyComponent& rb, const ColliderComponent& col, const TransformComponent& transform)
+                        {
+                            if (rb.RuntimeBodyId != INVALID_PHYSICS_BODY) return;
 
-                        auto* physics = GameSubsystems::Find<PhysicsSubsystem>();
-                        if (!physics) return;
+                            auto* physics = GameSubsystems::Find<PhysicsSubsystem>();
+                            if (!physics) return;
 
-                        auto desc = MakeDescriptor(rb, col);
-                        rb.RuntimeBodyId = physics->GetWorld().CreateBody(desc, transform.Position, transform.Rotation);
-                    });
+                            auto desc = MakeDescriptor(rb, col);
+                            rb.RuntimeBodyId = physics->GetWorld().CreateBody(desc, transform.Position, transform.Rotation);
+                        });
             });
 
         // PhysicsDestroyBodies: reactive observer that destroys the Jolt body
@@ -363,16 +372,17 @@ namespace Wayfinder::Physics
             {
                 world.observer<RigidBodyComponent>("PhysicsDestroyBodies")
                     .event(flecs::OnRemove)
-                    .each([](RigidBodyComponent& rb)
-                    {
-                        if (rb.RuntimeBodyId == INVALID_PHYSICS_BODY) return;
+                    .each(
+                        [](RigidBodyComponent& rb)
+                        {
+                            if (rb.RuntimeBodyId == INVALID_PHYSICS_BODY) return;
 
-                        auto* physics = GameSubsystems::Find<PhysicsSubsystem>();
-                        if (!physics) return;
+                            auto* physics = GameSubsystems::Find<PhysicsSubsystem>();
+                            if (!physics) return;
 
-                        physics->GetWorld().DestroyBody(rb.RuntimeBodyId);
-                        rb.RuntimeBodyId = INVALID_PHYSICS_BODY;
-                    });
+                            physics->GetWorld().DestroyBody(rb.RuntimeBodyId);
+                            rb.RuntimeBodyId = INVALID_PHYSICS_BODY;
+                        });
             });
 
         // PhysicsStep: advance the Jolt simulation using a fixed timestep
@@ -387,10 +397,11 @@ namespace Wayfinder::Physics
 
                 world.system("PhysicsStep")
                     .kind(flecs::OnUpdate)
-                    .run([physics](flecs::iter& it)
-                    {
-                        if (physics) physics->GetWorld().StepFixed(it.delta_time());
-                    });
+                    .run(
+                        [physics](flecs::iter& it)
+                        {
+                            if (physics) physics->GetWorld().StepFixed(it.delta_time());
+                        });
             });
 
         // PhysicsSyncTransforms: copy Jolt body position and rotation into
@@ -403,24 +414,25 @@ namespace Wayfinder::Physics
 
                 world.system<const RigidBodyComponent, WorldTransformComponent>("PhysicsSyncTransforms")
                     .kind(flecs::OnValidate)
-                    .each([physics](flecs::entity, const RigidBodyComponent& rb, WorldTransformComponent& wt)
-                    {
-                        if (rb.RuntimeBodyId == INVALID_PHYSICS_BODY) return;
-                        if (rb.Type == BodyType::Static) return;
-                        if (!physics) return;
+                    .each(
+                        [physics](flecs::entity, const RigidBodyComponent& rb, WorldTransformComponent& wt)
+                        {
+                            if (rb.RuntimeBodyId == INVALID_PHYSICS_BODY) return;
+                            if (rb.Type == BodyType::Static) return;
+                            if (!physics) return;
 
-                        Float3 pos = physics->GetWorld().GetBodyPosition(rb.RuntimeBodyId);
-                        Float4 rotQ = physics->GetWorld().GetBodyRotation(rb.RuntimeBodyId);
+                            Float3 pos = physics->GetWorld().GetBodyPosition(rb.RuntimeBodyId);
+                            Float4 rotQ = physics->GetWorld().GetBodyRotation(rb.RuntimeBodyId);
 
-                        wt.Position = pos;
+                            wt.Position = pos;
 
-                        // Build LocalToWorld = translate * rotate * scale.
-                        Quaternion q(rotQ.w, rotQ.x, rotQ.y, rotQ.z);
-                        Matrix4 rotMat = Maths::ToMatrix4(q);
-                        Matrix4 translateMat = Maths::Translate(Matrix4(1.0f), pos);
-                        Matrix4 scaleMat = Maths::ScaleMatrix(Matrix4(1.0f), wt.Scale);
-                        wt.LocalToWorld = translateMat * rotMat * scaleMat;
-                    });
+                            // Build LocalToWorld = translate * rotate * scale.
+                            Quaternion q(rotQ.w, rotQ.x, rotQ.y, rotQ.z);
+                            Matrix4 rotMat = Maths::ToMatrix4(q);
+                            Matrix4 translateMat = Maths::Translate(Matrix4(1.0f), pos);
+                            Matrix4 scaleMat = Maths::ScaleMatrix(Matrix4(1.0f), wt.Scale);
+                            wt.LocalToWorld = translateMat * rotMat * scaleMat;
+                        });
             },
             {}, {"PhysicsStep"});
 

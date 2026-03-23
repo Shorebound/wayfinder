@@ -5,7 +5,10 @@
 
 namespace Wayfinder
 {
-    void PipelineCache::Initialise(RenderDevice& device) { m_device = &device; }
+    void PipelineCache::Initialise(RenderDevice& device)
+    {
+        m_device = &device;
+    }
 
     void PipelineCache::Shutdown()
     {
@@ -13,7 +16,10 @@ namespace Wayfinder
         {
             for (auto& [hash, handle] : m_cache)
             {
-                if (handle) { m_device->DestroyPipeline(handle); }
+                if (handle)
+                {
+                    m_device->DestroyPipeline(handle);
+                }
             }
         }
 
@@ -23,11 +29,17 @@ namespace Wayfinder
 
     GPUPipelineHandle PipelineCache::GetOrCreate(const PipelineCreateDesc& desc)
     {
-        if (!m_device) { return GPUPipelineHandle::Invalid(); }
+        if (!m_device)
+        {
+            return GPUPipelineHandle::Invalid();
+        }
 
         const size_t hash = HashDesc(desc);
         auto it = m_cache.find(hash);
-        if (it != m_cache.end()) { return it->second; }
+        if (it != m_cache.end())
+        {
+            return it->second;
+        }
 
         GPUPipelineHandle handle = m_device->CreatePipeline(desc);
         if (handle.IsValid())
@@ -42,10 +54,7 @@ namespace Wayfinder
     size_t PipelineCache::HashDesc(const PipelineCreateDesc& desc)
     {
         size_t h = 0;
-        auto combine = [&h](size_t v)
-        {
-            h ^= v + 0x9e3779b9 + (h << 6) + (h >> 2);
-        };
+        auto combine = [&h](size_t v) { h ^= v + 0x9e3779b9 + (h << 6) + (h >> 2); };
 
         combine(std::hash<GPUShaderHandle>{}(desc.vertexShader));
         combine(std::hash<GPUShaderHandle>{}(desc.fragmentShader));

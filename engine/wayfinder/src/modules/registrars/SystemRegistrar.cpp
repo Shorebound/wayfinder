@@ -9,8 +9,7 @@
 
 namespace Wayfinder
 {
-    void SystemRegistrar::Register(std::string name, std::function<void(flecs::world&)> factory, RunCondition condition,
-        std::vector<std::string> after, std::vector<std::string> before)
+    void SystemRegistrar::Register(std::string name, std::function<void(flecs::world&)> factory, RunCondition condition, std::vector<std::string> after, std::vector<std::string> before)
     {
         if (!factory)
         {

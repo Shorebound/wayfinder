@@ -6,9 +6,15 @@
 
 namespace Wayfinder
 {
-    FrameAllocator::FrameAllocator(size_t pageSize) : m_pageSize(pageSize) { AddPage(m_pageSize); }
+    FrameAllocator::FrameAllocator(size_t pageSize) : m_pageSize(pageSize)
+    {
+        AddPage(m_pageSize);
+    }
 
-    FrameAllocator::~FrameAllocator() { Reset(); }
+    FrameAllocator::~FrameAllocator()
+    {
+        Reset();
+    }
 
     void* FrameAllocator::Allocate(size_t bytes, size_t alignment)
     {
@@ -96,8 +102,7 @@ namespace Wayfinder
 
     size_t FrameAllocator::AlignUp(size_t value, size_t alignment)
     {
-        WAYFINDER_ASSERT(
-            alignment != 0 && (alignment & (alignment - 1)) == 0, "AlignUp: alignment must be a non-zero power of two (got {})", alignment);
+        WAYFINDER_ASSERT(alignment != 0 && (alignment & (alignment - 1)) == 0, "AlignUp: alignment must be a non-zero power of two (got {})", alignment);
         return (value + alignment - 1) & ~(alignment - 1);
     }
 

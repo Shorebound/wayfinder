@@ -27,10 +27,7 @@ namespace Wayfinder::Journey
             ModuleRegistry::ComponentDescriptor desc;
             desc.Key = "health";
 
-            desc.RegisterFn = [](flecs::world& world)
-            {
-                world.component<HealthComponent>();
-            };
+            desc.RegisterFn = [](flecs::world& world) { world.component<HealthComponent>(); };
 
             desc.ApplyFn = [](const nlohmann::json& table, Entity& entity)
             {
@@ -91,14 +88,15 @@ namespace Wayfinder::Journey
                 {
                     world.system<HealthComponent>("HealthRegen")
                         .kind(flecs::OnUpdate)
-                        .each([](HealthComponent& health)
-                        {
-                            if (health.CurrentHealth < health.MaxHealth)
+                        .each(
+                            [](HealthComponent& health)
                             {
-                                health.CurrentHealth += 0.1f;
-                                if (health.CurrentHealth > health.MaxHealth) health.CurrentHealth = health.MaxHealth;
-                            }
-                        });
+                                if (health.CurrentHealth < health.MaxHealth)
+                                {
+                                    health.CurrentHealth += 0.1f;
+                                    if (health.CurrentHealth > health.MaxHealth) health.CurrentHealth = health.MaxHealth;
+                                }
+                            });
                 },
                 Wayfinder::InState("Playing"), {"BurnDamage"});
 
@@ -131,14 +129,18 @@ namespace Wayfinder::Journey
                 {
                     world.system<HealthComponent>("BurnDamage")
                         .kind(flecs::OnUpdate)
-                        .each([](HealthComponent& health)
-                        {
-                            if (health.CurrentHealth > 0.0f)
+                        .each(
+                            [](HealthComponent& health)
                             {
-                                health.CurrentHealth -= 0.5f;
-                                if (health.CurrentHealth < 0.0f) { health.CurrentHealth = 0.0f; }
-                            }
-                        });
+                                if (health.CurrentHealth > 0.0f)
+                                {
+                                    health.CurrentHealth -= 0.5f;
+                                    if (health.CurrentHealth < 0.0f)
+                                    {
+                                        health.CurrentHealth = 0.0f;
+                                    }
+                                }
+                            });
                 },
                 HasTag(burning));
         }
@@ -156,7 +158,10 @@ namespace Wayfinder::Journey
     };
 } // namespace Wayfinder::Journey
 
-std::unique_ptr<Wayfinder::Module> Wayfinder::CreateModule() { return std::make_unique<Journey::JourneyModule>(); }
+std::unique_ptr<Wayfinder::Module> Wayfinder::CreateModule()
+{
+    return std::make_unique<Journey::JourneyModule>();
+}
 
 // Dynamic entry point for tools loading the module as a shared library.
 WAYFINDER_IMPLEMENT_MODULE(Wayfinder::Journey::JourneyModule)

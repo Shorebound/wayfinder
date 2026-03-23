@@ -122,7 +122,10 @@ namespace Wayfinder
         /**
          * @brief Returns the number of currently alive slots.
          */
-        [[nodiscard]] size_t ActiveCount() const { return m_activeCount; }
+        [[nodiscard]] size_t ActiveCount() const
+        {
+            return m_activeCount;
+        }
 
         /**
          * @brief Calls fn(TResource&) for each alive entry.

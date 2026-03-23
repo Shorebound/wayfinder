@@ -35,8 +35,14 @@ namespace Wayfinder
         constexpr explicit StringHash(uint64_t v) : Value(v) {}
         constexpr explicit StringHash(std::string_view str) : Value(Fnv1a64(str)) {}
 
-        constexpr bool IsValid() const { return Value != 0; }
-        constexpr explicit operator bool() const { return IsValid(); }
+        constexpr bool IsValid() const
+        {
+            return Value != 0;
+        }
+        constexpr explicit operator bool() const
+        {
+            return IsValid();
+        }
 
         constexpr auto operator==(const StringHash&) const -> bool = default;
         constexpr auto operator<=>(const StringHash&) const = default;
@@ -46,13 +52,19 @@ namespace Wayfinder
 template<>
 struct std::hash<Wayfinder::StringHash>
 {
-    auto operator()(Wayfinder::StringHash h) const noexcept -> size_t { return std::hash<uint64_t>{}(h.Value); }
+    auto operator()(Wayfinder::StringHash h) const noexcept -> size_t
+    {
+        return std::hash<uint64_t>{}(h.Value);
+    }
 };
 
 template<>
 struct std::formatter<Wayfinder::StringHash> : std::formatter<uint64_t>
 {
-    auto format(Wayfinder::StringHash h, auto& ctx) const { return std::formatter<uint64_t>::format(h.Value, ctx); }
+    auto format(Wayfinder::StringHash h, auto& ctx) const
+    {
+        return std::formatter<uint64_t>::format(h.Value, ctx);
+    }
 };
 
 namespace Wayfinder
@@ -66,10 +78,12 @@ namespace Wayfinder
 
         static auto Generate() -> Uuid
         {
-            thread_local std::mt19937_64 sRng([] {
-                std::random_device rd;
-                return rd();
-            }());
+            thread_local std::mt19937_64 sRng(
+                []
+                {
+                    std::random_device rd;
+                    return rd();
+                }());
 
             std::uniform_int_distribution<uint64_t> dist;
             uint64_t a = dist(sRng);
@@ -88,12 +102,18 @@ namespace Wayfinder
 
         static auto Parse(std::string_view text) -> std::optional<Uuid>
         {
-            if (text.size() != 36) { return std::nullopt; }
+            if (text.size() != 36)
+            {
+                return std::nullopt;
+            }
 
             constexpr size_t kDashPositions[] = {8, 13, 18, 23};
             for (auto pos : kDashPositions)
             {
-                if (text[pos] != '-') { return std::nullopt; }
+                if (text[pos] != '-')
+                {
+                    return std::nullopt;
+                }
             }
 
             auto hexVal = [](char c) -> int
@@ -115,17 +135,26 @@ namespace Wayfinder
                     continue;
                 }
 
-                if (i + 1 >= text.size() || byteIdx >= bytes.size()) { return std::nullopt; }
+                if (i + 1 >= text.size() || byteIdx >= bytes.size())
+                {
+                    return std::nullopt;
+                }
 
                 int hi = hexVal(text[i]);
                 int lo = hexVal(text[i + 1]);
-                if (hi < 0 || lo < 0) { return std::nullopt; }
+                if (hi < 0 || lo < 0)
+                {
+                    return std::nullopt;
+                }
 
                 bytes[byteIdx++] = static_cast<uint8_t>((hi << 4) | lo);
                 i += 2;
             }
 
-            if (byteIdx != bytes.size()) { return std::nullopt; }
+            if (byteIdx != bytes.size())
+            {
+                return std::nullopt;
+            }
 
             return Uuid(bytes);
         }
@@ -139,7 +168,10 @@ namespace Wayfinder
 
             for (size_t i = 0; i < m_bytes.size(); ++i)
             {
-                if (i == 4 || i == 6 || i == 8 || i == 10) { result.push_back('-'); }
+                if (i == 4 || i == 6 || i == 8 || i == 10)
+                {
+                    result.push_back('-');
+                }
                 result.push_back(kHex[(m_bytes[i] >> 4) & 0x0F]);
                 result.push_back(kHex[m_bytes[i] & 0x0F]);
             }
@@ -149,16 +181,18 @@ namespace Wayfinder
 
         constexpr bool IsNil() const
         {
-            return std::all_of(m_bytes.begin(), m_bytes.end(),
-                [](uint8_t b)
-                {
-                    return b == 0;
-                });
+            return std::all_of(m_bytes.begin(), m_bytes.end(), [](uint8_t b) { return b == 0; });
         }
 
-        constexpr explicit operator bool() const { return !IsNil(); }
+        constexpr explicit operator bool() const
+        {
+            return !IsNil();
+        }
 
-        constexpr auto GetBytes() const -> const std::array<uint8_t, 16>& { return m_bytes; }
+        constexpr auto GetBytes() const -> const std::array<uint8_t, 16>&
+        {
+            return m_bytes;
+        }
 
         constexpr auto operator==(const Uuid&) const -> bool = default;
         constexpr auto operator<=>(const Uuid&) const = default;
@@ -185,7 +219,10 @@ struct std::hash<Wayfinder::Uuid>
 template<>
 struct std::formatter<Wayfinder::Uuid> : std::formatter<std::string>
 {
-    auto format(const Wayfinder::Uuid& id, auto& ctx) const { return std::formatter<std::string>::format(id.ToString(), ctx); }
+    auto format(const Wayfinder::Uuid& id, auto& ctx) const
+    {
+        return std::formatter<std::string>::format(id.ToString(), ctx);
+    }
 };
 
 namespace Wayfinder
@@ -200,18 +237,33 @@ namespace Wayfinder
         TypedId() = default;
         explicit TypedId(Uuid id) : Value(id) {}
 
-        static auto Generate() -> TypedId { return TypedId(Uuid::Generate()); }
+        static auto Generate() -> TypedId
+        {
+            return TypedId(Uuid::Generate());
+        }
 
         static auto Parse(std::string_view text) -> std::optional<TypedId>
         {
-            if (auto id = Uuid::Parse(text)) { return TypedId(*id); }
+            if (auto id = Uuid::Parse(text))
+            {
+                return TypedId(*id);
+            }
             return std::nullopt;
         }
 
-        bool IsNil() const { return Value.IsNil(); }
-        auto ToString() const -> std::string { return Value.ToString(); }
+        bool IsNil() const
+        {
+            return Value.IsNil();
+        }
+        auto ToString() const -> std::string
+        {
+            return Value.ToString();
+        }
 
-        explicit operator bool() const { return !IsNil(); }
+        explicit operator bool() const
+        {
+            return !IsNil();
+        }
 
         auto operator==(const TypedId&) const -> bool = default;
         auto operator<=>(const TypedId&) const = default;
@@ -221,13 +273,19 @@ namespace Wayfinder
 template<typename Tag>
 struct std::hash<Wayfinder::TypedId<Tag>>
 {
-    auto operator()(const Wayfinder::TypedId<Tag>& id) const noexcept -> size_t { return std::hash<Wayfinder::Uuid>{}(id.Value); }
+    auto operator()(const Wayfinder::TypedId<Tag>& id) const noexcept -> size_t
+    {
+        return std::hash<Wayfinder::Uuid>{}(id.Value);
+    }
 };
 
 template<typename Tag>
 struct std::formatter<Wayfinder::TypedId<Tag>> : std::formatter<Wayfinder::Uuid>
 {
-    auto format(const Wayfinder::TypedId<Tag>& id, auto& ctx) const { return std::formatter<Wayfinder::Uuid>::format(id.Value, ctx); }
+    auto format(const Wayfinder::TypedId<Tag>& id, auto& ctx) const
+    {
+        return std::formatter<Wayfinder::Uuid>::format(id.Value, ctx);
+    }
 };
 
 namespace Wayfinder

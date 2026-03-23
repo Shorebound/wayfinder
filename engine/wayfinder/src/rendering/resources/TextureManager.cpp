@@ -35,8 +35,7 @@ namespace Wayfinder
         // Destroy cached asset textures (skip built-ins — they are destroyed below)
         for (auto& [id, handle] : m_textureCache)
         {
-            if (handle && handle != m_fallbackTexture && handle != m_whiteTexture && handle != m_blackTexture &&
-                handle != m_flatNormalTexture)
+            if (handle && handle != m_fallbackTexture && handle != m_whiteTexture && handle != m_blackTexture && handle != m_flatNormalTexture)
             {
                 m_device->DestroyTexture(handle);
             }
@@ -84,7 +83,10 @@ namespace Wayfinder
         }
 
         // Cache hit
-        if (const auto it = m_textureCache.find(assetId); it != m_textureCache.end()) { return it->second; }
+        if (const auto it = m_textureCache.find(assetId); it != m_textureCache.end())
+        {
+            return it->second;
+        }
 
         // Load TextureAsset from the asset system
         std::string error;
@@ -103,8 +105,7 @@ namespace Wayfinder
             asset = assetService.LoadAsset<TextureAsset>(assetId, error);
             if (!asset || asset->PixelData.empty())
             {
-                WAYFINDER_WARNING(
-                    LogRenderer, "TextureManager: Failed to reload pixel data for texture '{}': {}", assetId.ToString(), error);
+                WAYFINDER_WARNING(LogRenderer, "TextureManager: Failed to reload pixel data for texture '{}': {}", assetId.ToString(), error);
                 m_textureCache[assetId] = m_fallbackTexture;
                 return m_fallbackTexture;
             }
@@ -138,16 +139,25 @@ namespace Wayfinder
 
         const uint64_t hash = HashSamplerDesc(desc);
 
-        if (const auto it = m_samplerCache.find(hash); it != m_samplerCache.end()) { return it->second; }
+        if (const auto it = m_samplerCache.find(hash); it != m_samplerCache.end())
+        {
+            return it->second;
+        }
 
         GPUSamplerHandle sampler = m_device->CreateSampler(desc);
-        if (sampler) { m_samplerCache[hash] = sampler; }
+        if (sampler)
+        {
+            m_samplerCache[hash] = sampler;
+        }
         return sampler;
     }
 
     GPUTextureHandle TextureManager::CreateAndUpload(const TextureAsset& asset)
     {
-        if (asset.Width == 0 || asset.Height == 0 || asset.PixelData.empty()) { return GPUTextureHandle::Invalid(); }
+        if (asset.Width == 0 || asset.Height == 0 || asset.PixelData.empty())
+        {
+            return GPUTextureHandle::Invalid();
+        }
 
         TextureCreateDesc desc;
         desc.width = asset.Width;
@@ -219,8 +229,8 @@ namespace Wayfinder
         static_assert(sizeof(SamplerAddressMode) == 1, "SamplerAddressMode must be 1 byte for hash packing");
 
         // Pack 4 enum bytes into a 32-bit value, then hash via FNV-1a.
-        const uint32_t packed = (static_cast<uint32_t>(desc.minFilter) << 0) | (static_cast<uint32_t>(desc.magFilter) << 8) |
-                                (static_cast<uint32_t>(desc.addressModeU) << 16) | (static_cast<uint32_t>(desc.addressModeV) << 24);
+        const uint32_t packed = (static_cast<uint32_t>(desc.minFilter) << 0) | (static_cast<uint32_t>(desc.magFilter) << 8) | (static_cast<uint32_t>(desc.addressModeU) << 16) |
+                                (static_cast<uint32_t>(desc.addressModeV) << 24);
 
         // FNV-1a 64-bit
         uint64_t hash = 14695981039346656037ull;

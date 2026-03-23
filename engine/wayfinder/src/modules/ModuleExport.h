@@ -29,6 +29,12 @@ namespace Wayfinder
 #define WAYFINDER_MODULE_API __attribute__((visibility("default")))
 #endif
 
-#define WAYFINDER_IMPLEMENT_MODULE(ModuleClass)                                                              \
-    extern "C" WAYFINDER_MODULE_API Wayfinder::Module* WayfinderCreateModule() { return new ModuleClass(); } \
-    extern "C" WAYFINDER_MODULE_API void WayfinderDestroyModule(Wayfinder::Module* m) { delete m; }
+#define WAYFINDER_IMPLEMENT_MODULE(ModuleClass)                                                                                                                                                        \
+    extern "C" WAYFINDER_MODULE_API Wayfinder::Module* WayfinderCreateModule()                                                                                                                         \
+    {                                                                                                                                                                                                  \
+        return new ModuleClass();                                                                                                                                                                      \
+    }                                                                                                                                                                                                  \
+    extern "C" WAYFINDER_MODULE_API void WayfinderDestroyModule(Wayfinder::Module* m)                                                                                                                  \
+    {                                                                                                                                                                                                  \
+        delete m;                                                                                                                                                                                      \
+    }

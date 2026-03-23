@@ -96,7 +96,10 @@ namespace Wayfinder
         }
     }
 
-    bool Log::IsOutputEnabled(LogOutputType output) { return s_config.IsOutputEnabled(output); }
+    bool Log::IsOutputEnabled(LogOutputType output)
+    {
+        return s_config.IsOutputEnabled(output);
+    }
 
     void Log::SetLogFilePath(const std::string& path)
     {
@@ -134,7 +137,10 @@ namespace Wayfinder
     LogCategory& Log::CreateCategory(const std::string& name, LogVerbosity defaultVerbosity)
     {
         auto it = s_categories.find(name);
-        if (it != s_categories.end()) { return *it->second; }
+        if (it != s_categories.end())
+        {
+            return *it->second;
+        }
 
         auto category = std::make_unique<LogCategory>(name, defaultVerbosity);
         auto& ref = *category;
@@ -145,7 +151,10 @@ namespace Wayfinder
     LogCategory& Log::GetCategory(const std::string& name)
     {
         auto it = s_categories.find(name);
-        if (it != s_categories.end()) { return *it->second; }
+        if (it != s_categories.end())
+        {
+            return *it->second;
+        }
         return CreateCategory(name);
     }
 

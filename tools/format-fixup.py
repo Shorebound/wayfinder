@@ -13,22 +13,6 @@ Handles formatting patterns that clang-format cannot enforce:
        };                        1, 2,
                               };
 
-3. Lambda braces — moves opening brace to new line (Allman) for multi-line
-   lambda bodies.  clang-format with BeforeLambdaBody: false keeps the brace
-   on the signature line; this fixup converts it:
-       .each([](int x) {     .each([](int x)
-           body          →   {
-       });                       body
-                              });
-
-4. Split lambda arguments — rejoins a lambda that was split to the line below
-   its enclosing call (ColumnLimit: 0 preserves manual breaks):
-       .each(                .each([](int x)
-           [](int x)     →   {
-       {                         body
-           body               });
-       });
-
 Usage:
     python format-fixup.py [--check] <file>...
 
@@ -44,26 +28,6 @@ from pathlib import Path
 # then an empty '{}' body.  Handles both \n and \r\n line endings.
 EMPTY_BODY = re.compile(
     r'^([^\S\r\n]*(?:struct|class|enum|union)\b[^\r\n{]*)\r?\n(\s*\{\})', re.MULTILINE
-)
-
-# Matches a multi-line lambda whose opening brace is on the signature line
-# (K&R style from BeforeLambdaBody: false).  We detect lambdas by the ](…)
-# pattern and only match when there is nothing else after { on that line
-# (ruling out single-line lambdas like [](int x) { return x; }).
-LAMBDA_BRACE_INLINE = re.compile(
-    r'^([^\S\r\n]*)(.*\]\(.*\)[^\n{]*?)\s*\{[ \t]*$',
-    re.MULTILINE,
-)
-
-# Matches a lambda that has been split onto the next line from its enclosing
-# call.  ColumnLimit: 0 preserves manual line breaks, so patterns like:
-#     .each(
-#         [capture](params)
-# get rejoined to:
-#     .each([capture](params)
-LAMBDA_ARG_SPLIT = re.compile(
-    r'^([^\S\r\n]*)(.*\w\()[ \t]*\r?\n[^\S\r\n]+(\[)',
-    re.MULTILINE,
 )
 
 # Matches "= {" on the same line where the body continues on subsequent lines
@@ -92,19 +56,9 @@ def _fix_init_brace(match: re.Match) -> str:
     return match.group(0)
 
 
-def _fix_lambda_brace(match: re.Match) -> str:
-    """Move '{' from the lambda signature line to its own Allman-style line."""
-    indent = match.group(1)
-    signature = match.group(2)
-    cr = '\r' if match.group(0).endswith('\r') else ''
-    return f'{indent}{signature}{cr}\n{indent}{{{cr}'
-
-
 def fixup(text: str) -> str:
     """Apply all formatting fixups."""
     text = EMPTY_BODY.sub(r'\1 {}', text)
-    text = LAMBDA_ARG_SPLIT.sub(r'\1\2\3', text)
-    text = LAMBDA_BRACE_INLINE.sub(_fix_lambda_brace, text)
     text = INIT_BRACE_SAME_LINE.sub(_fix_init_brace, text)
     return text
 
@@ -147,11 +101,10 @@ def main() -> int:
         if process_file(path, check=args.check):
             changed = True
 
-    if args.check and changed:
+    if changed and args.check:
         print('\nSome files need format-fixup. Run without --check to fix.',
               file=sys.stderr)
-        return 1
-    return 0
+    return 1 if changed else 0
 
 
 if __name__ == '__main__':

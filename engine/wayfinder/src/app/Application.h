@@ -24,7 +24,10 @@ namespace Wayfinder
             int Count = 0;
             char** Args = nullptr;
 
-            const char* operator[](int index) const { return Args[index]; }
+            const char* operator[](int index) const
+            {
+                return Args[index];
+            }
         };
 
         /**

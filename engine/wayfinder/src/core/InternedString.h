@@ -37,19 +37,37 @@ namespace Wayfinder
         static InternedString Intern(std::string_view text);
 
         /// O(1) pointer equality.
-        bool operator==(const InternedString& other) const { return m_ptr == other.m_ptr; }
-        bool operator!=(const InternedString& other) const { return m_ptr != other.m_ptr; }
+        bool operator==(const InternedString& other) const
+        {
+            return m_ptr == other.m_ptr;
+        }
+        bool operator!=(const InternedString& other) const
+        {
+            return m_ptr != other.m_ptr;
+        }
 
         /// Content-based ordering (for sorted containers).
-        bool operator<(const InternedString& other) const { return *m_ptr < *other.m_ptr; }
+        bool operator<(const InternedString& other) const
+        {
+            return *m_ptr < *other.m_ptr;
+        }
 
         /// Access the underlying string.
-        const std::string& GetString() const { return *m_ptr; }
+        const std::string& GetString() const
+        {
+            return *m_ptr;
+        }
 
         /// Convenience implicit conversion for logging, formatting, etc.
-        operator const std::string&() const { return *m_ptr; }
+        operator const std::string&() const
+        {
+            return *m_ptr;
+        }
 
-        bool IsEmpty() const { return m_ptr->empty(); }
+        bool IsEmpty() const
+        {
+            return m_ptr->empty();
+        }
 
     private:
         explicit InternedString(const std::string* ptr) : m_ptr(ptr) {}
@@ -66,12 +84,18 @@ namespace Wayfinder
 template<>
 struct std::hash<Wayfinder::InternedString>
 {
-    size_t operator()(const Wayfinder::InternedString& s) const noexcept { return std::hash<const void*>{}(&s.GetString()); }
+    size_t operator()(const Wayfinder::InternedString& s) const noexcept
+    {
+        return std::hash<const void*>{}(&s.GetString());
+    }
 };
 
 /// std::formatter specialisation so InternedString works with std::format / std::print.
 template<>
 struct std::formatter<Wayfinder::InternedString> : std::formatter<std::string>
 {
-    auto format(const Wayfinder::InternedString& s, auto& ctx) const { return std::formatter<std::string>::format(s.GetString(), ctx); }
+    auto format(const Wayfinder::InternedString& s, auto& ctx) const
+    {
+        return std::formatter<std::string>::format(s.GetString(), ctx);
+    }
 };

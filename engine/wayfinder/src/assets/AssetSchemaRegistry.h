@@ -25,8 +25,7 @@ namespace Wayfinder
         static bool IsRegisteredType(std::string_view typeName);
         static std::optional<AssetKind> ResolveBuiltinKind(std::string_view typeName);
 
-        static bool ValidateDocument(
-            std::string_view typeName, const nlohmann::json& document, const std::filesystem::path& filePath, std::string& error);
+        static bool ValidateDocument(std::string_view typeName, const nlohmann::json& document, const std::filesystem::path& filePath, std::string& error);
 
     private:
         static const Entry* Find(std::string_view typeName);

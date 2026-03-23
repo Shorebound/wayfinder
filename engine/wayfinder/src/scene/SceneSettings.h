@@ -57,16 +57,28 @@ namespace Wayfinder
 
         /// Set or overwrite a scalar value at runtime (override).
         template<typename T>
-        void Set(const std::string& key, T&& value) { m_data[key] = std::forward<T>(value); }
+        void Set(const std::string& key, T&& value)
+        {
+            m_data[key] = std::forward<T>(value);
+        }
 
         /// Read-only access to the underlying data.
-        const nlohmann::json& GetData() const { return m_data; }
+        const nlohmann::json& GetData() const
+        {
+            return m_data;
+        }
 
         /// Mutable access to the underlying data for in-place edits.
-        nlohmann::json& GetData() { return m_data; }
+        nlohmann::json& GetData()
+        {
+            return m_data;
+        }
 
         /// Replace the entire settings data (used during scene load).
-        void SetData(nlohmann::json data) { m_data = std::move(data); }
+        void SetData(nlohmann::json data)
+        {
+            m_data = std::move(data);
+        }
 
     private:
         nlohmann::json m_data = nlohmann::json::object();

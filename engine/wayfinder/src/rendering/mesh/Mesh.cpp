@@ -5,8 +5,8 @@
 
 namespace Wayfinder
 {
-    bool Mesh::Create(RenderDevice& device, const void* vertexData, uint32_t vertexDataSize, uint32_t vertexCount, const void* indexData,
-        uint32_t indexDataSize, uint32_t indexCount, IndexElementSize indexElementSize)
+    bool Mesh::Create(RenderDevice& device, const void* vertexData, uint32_t vertexDataSize, uint32_t vertexCount, const void* indexData, uint32_t indexDataSize, uint32_t indexCount,
+        IndexElementSize indexElementSize)
     {
         if (!m_vertexBuffer.Create(device, BufferUsage::Vertex, vertexDataSize))
         {
@@ -46,7 +46,10 @@ namespace Wayfinder
         device.BindIndexBuffer(m_indexBuffer.GetHandle(), m_indexElementSize);
     }
 
-    void Mesh::Draw(RenderDevice& device, uint32_t instanceCount) const { device.DrawIndexed(m_indexCount, instanceCount); }
+    void Mesh::Draw(RenderDevice& device, uint32_t instanceCount) const
+    {
+        device.DrawIndexed(m_indexCount, instanceCount);
+    }
 
     // ── Built-in Primitives ──────────────────────────────────
 
@@ -143,9 +146,8 @@ namespace Wayfinder
         }};
 
         Mesh mesh;
-        if (!mesh.Create(device, vertices.data(), static_cast<uint32_t>(vertices.size() * sizeof(VertexPosNormalColour)),
-                static_cast<uint32_t>(vertices.size()), indices.data(), static_cast<uint32_t>(indices.size() * sizeof(uint16_t)),
-                static_cast<uint32_t>(indices.size()), IndexElementSize::Uint16))
+        if (!mesh.Create(device, vertices.data(), static_cast<uint32_t>(vertices.size() * sizeof(VertexPosNormalColour)), static_cast<uint32_t>(vertices.size()), indices.data(),
+                static_cast<uint32_t>(indices.size() * sizeof(uint16_t)), static_cast<uint32_t>(indices.size()), IndexElementSize::Uint16))
         {
             WAYFINDER_ERROR(LogRenderer, "Mesh: Failed to create primitive cube");
         }
@@ -254,9 +256,8 @@ namespace Wayfinder
         }};
 
         Mesh mesh;
-        if (!mesh.Create(device, vertices.data(), static_cast<uint32_t>(vertices.size() * sizeof(VertexPosNormalUV)),
-                static_cast<uint32_t>(vertices.size()), indices.data(), static_cast<uint32_t>(indices.size() * sizeof(uint16_t)),
-                static_cast<uint32_t>(indices.size()), IndexElementSize::Uint16))
+        if (!mesh.Create(device, vertices.data(), static_cast<uint32_t>(vertices.size() * sizeof(VertexPosNormalUV)), static_cast<uint32_t>(vertices.size()), indices.data(),
+                static_cast<uint32_t>(indices.size() * sizeof(uint16_t)), static_cast<uint32_t>(indices.size()), IndexElementSize::Uint16))
         {
             WAYFINDER_ERROR(LogRenderer, "Mesh: Failed to create textured primitive cube");
         }

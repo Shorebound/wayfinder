@@ -7,16 +7,31 @@ namespace Wayfinder::Maths
 {
     // ── Angle conversion ─────────────────────────────────────
 
-    inline Radians ToRadians(Degrees degrees) { return glm::radians(degrees); }
-    inline Degrees ToDegrees(Radians radians) { return glm::degrees(radians); }
+    inline Radians ToRadians(Degrees degrees)
+    {
+        return glm::radians(degrees);
+    }
+    inline Degrees ToDegrees(Radians radians)
+    {
+        return glm::degrees(radians);
+    }
 
     // ── Quaternion / matrix conversion ───────────────────────
 
-    inline Quaternion EulerDegreesToQuaternion(const Rotation& eulerDegrees) { return Quaternion(glm::radians(eulerDegrees)); }
+    inline Quaternion EulerDegreesToQuaternion(const Rotation& eulerDegrees)
+    {
+        return Quaternion(glm::radians(eulerDegrees));
+    }
 
-    inline Quaternion ToQuaternion(const Matrix4& mat) { return glm::quat_cast(mat); }
+    inline Quaternion ToQuaternion(const Matrix4& mat)
+    {
+        return glm::quat_cast(mat);
+    }
 
-    inline Matrix4 ToMatrix4(const Quaternion& q) { return glm::mat4_cast(q); }
+    inline Matrix4 ToMatrix4(const Quaternion& q)
+    {
+        return glm::mat4_cast(q);
+    }
 
     // ── Transform operations ─────────────────────────────────
 

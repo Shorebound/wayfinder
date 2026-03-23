@@ -110,11 +110,7 @@ namespace Wayfinder
         if constexpr (!std::is_trivially_destructible_v<T>)
         {
             void* entryStorage = Allocate(sizeof(DestructorEntry), alignof(DestructorEntry));
-            m_destructorHead = ::new (entryStorage) DestructorEntry{[](void* ptr)
-            {
-                                                                        static_cast<T*>(ptr)->~T();
-                                                                    },
-                object, m_destructorHead};
+            m_destructorHead = ::new (entryStorage) DestructorEntry{[](void* ptr) { static_cast<T*>(ptr)->~T(); }, object, m_destructorHead};
         }
 
         return object;

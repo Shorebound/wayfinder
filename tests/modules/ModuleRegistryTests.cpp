@@ -24,7 +24,10 @@ namespace Wayfinder::Tests
         return desc;
     }
 
-    static EngineConfig MakeTestConfig() { return EngineConfig::LoadDefaults(); }
+    static EngineConfig MakeTestConfig()
+    {
+        return EngineConfig::LoadDefaults();
+    }
 
     // ── StateRegistrar ──────────────────────────────────────
 
@@ -107,23 +110,9 @@ namespace Wayfinder::Tests
             SystemRegistrar registrar;
             std::vector<std::string> callOrder;
 
-            registrar.Register("SystemA",
-                [&](flecs::world&)
-                {
-                    callOrder.push_back("A");
-                });
-            registrar.Register("SystemB",
-                [&](flecs::world&)
-                {
-                    callOrder.push_back("B");
-                },
-                {}, {"SystemA"}, {}); // B runs after A
-            registrar.Register("SystemC",
-                [&](flecs::world&)
-                {
-                    callOrder.push_back("C");
-                },
-                {}, {"SystemB"}, {}); // C runs after B
+            registrar.Register("SystemA", [&](flecs::world&) { callOrder.push_back("A"); });
+            registrar.Register("SystemB", [&](flecs::world&) { callOrder.push_back("B"); }, {}, {"SystemA"}, {}); // B runs after A
+            registrar.Register("SystemC", [&](flecs::world&) { callOrder.push_back("C"); }, {}, {"SystemB"}, {}); // C runs after B
 
             flecs::world world;
             registrar.ApplyToWorld(world);
@@ -146,17 +135,8 @@ namespace Wayfinder::Tests
             SystemRegistrar registrar;
             std::vector<std::string> callOrder;
 
-            registrar.Register("SystemA",
-                [&](flecs::world&)
-                {
-                    callOrder.push_back("A");
-                },
-                {}, {}, {"SystemB"}); // A runs before B
-            registrar.Register("SystemB",
-                [&](flecs::world&)
-                {
-                    callOrder.push_back("B");
-                });
+            registrar.Register("SystemA", [&](flecs::world&) { callOrder.push_back("A"); }, {}, {}, {"SystemB"}); // A runs before B
+            registrar.Register("SystemB", [&](flecs::world&) { callOrder.push_back("B"); });
 
             flecs::world world;
             registrar.ApplyToWorld(world);
@@ -177,18 +157,8 @@ namespace Wayfinder::Tests
             std::vector<std::string> callOrder;
 
             // A -> B -> A (cycle)
-            registrar.Register("SystemA",
-                [&](flecs::world&)
-                {
-                    callOrder.push_back("A");
-                },
-                {}, {"SystemB"}, {}); // A after B
-            registrar.Register("SystemB",
-                [&](flecs::world&)
-                {
-                    callOrder.push_back("B");
-                },
-                {}, {"SystemA"}, {}); // B after A
+            registrar.Register("SystemA", [&](flecs::world&) { callOrder.push_back("A"); }, {}, {"SystemB"}, {}); // A after B
+            registrar.Register("SystemB", [&](flecs::world&) { callOrder.push_back("B"); }, {}, {"SystemA"}, {}); // B after A
 
             flecs::world world;
             registrar.ApplyToWorld(world);
@@ -202,23 +172,9 @@ namespace Wayfinder::Tests
             SystemRegistrar registrar;
             std::vector<std::string> callOrder;
 
-            registrar.Register("Independent",
-                [&](flecs::world&)
-                {
-                    callOrder.push_back("I");
-                });
-            registrar.Register("SystemA",
-                [&](flecs::world&)
-                {
-                    callOrder.push_back("A");
-                },
-                {}, {"SystemB"}, {});
-            registrar.Register("SystemB",
-                [&](flecs::world&)
-                {
-                    callOrder.push_back("B");
-                },
-                {}, {"SystemA"}, {});
+            registrar.Register("Independent", [&](flecs::world&) { callOrder.push_back("I"); });
+            registrar.Register("SystemA", [&](flecs::world&) { callOrder.push_back("A"); }, {}, {"SystemB"}, {});
+            registrar.Register("SystemB", [&](flecs::world&) { callOrder.push_back("B"); }, {}, {"SystemA"}, {});
 
             flecs::world world;
             registrar.ApplyToWorld(world);
@@ -232,12 +188,7 @@ namespace Wayfinder::Tests
             SystemRegistrar registrar;
             std::vector<std::string> callOrder;
 
-            registrar.Register("SystemA",
-                [&](flecs::world&)
-                {
-                    callOrder.push_back("A");
-                },
-                {}, {"NonExistent"}, {});
+            registrar.Register("SystemA", [&](flecs::world&) { callOrder.push_back("A"); }, {}, {"NonExistent"}, {});
 
             flecs::world world;
             registrar.ApplyToWorld(world);
@@ -363,11 +314,7 @@ namespace Wayfinder::Tests
             ModuleRegistry registry(project, config);
 
             bool called = false;
-            registry.RegisterGlobal("TestGlobal",
-                [&](flecs::world&)
-                {
-                    called = true;
-                });
+            registry.RegisterGlobal("TestGlobal", [&](flecs::world&) { called = true; });
 
             flecs::world world;
             registry.ApplyToWorld(world);
@@ -382,11 +329,7 @@ namespace Wayfinder::Tests
             ModuleRegistry registry(project, config);
 
             bool called = false;
-            registry.RegisterSystem("TestSystem",
-                [&](flecs::world&)
-                {
-                    called = true;
-                });
+            registry.RegisterSystem("TestSystem", [&](flecs::world&) { called = true; });
 
             flecs::world world;
             registry.ApplyToWorld(world);
@@ -418,7 +361,10 @@ namespace Wayfinder::Tests
         {
             struct TestPlugin : Plugin
             {
-                void Build(ModuleRegistry&) override { g_TestPluginBuildCalled = true; }
+                void Build(ModuleRegistry&) override
+                {
+                    g_TestPluginBuildCalled = true;
+                }
             };
 
             auto project = MakeTestProject();

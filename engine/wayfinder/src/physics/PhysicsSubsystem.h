@@ -23,8 +23,14 @@ namespace Wayfinder::Physics
         void Initialise() override;
         void Shutdown() override;
 
-        PhysicsWorld& GetWorld() { return m_world; }
-        const PhysicsWorld& GetWorld() const { return m_world; }
+        PhysicsWorld& GetWorld()
+        {
+            return m_world;
+        }
+        const PhysicsWorld& GetWorld() const
+        {
+            return m_world;
+        }
 
     private:
         PhysicsWorld m_world;

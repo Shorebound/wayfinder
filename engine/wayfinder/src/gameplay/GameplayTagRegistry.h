@@ -72,10 +72,16 @@ namespace Wayfinder
         const GameplayTagDefinition* FindDefinition(const std::string& name) const;
 
         /// All registered tag definitions.
-        const std::vector<GameplayTagDefinition>& GetAllDefinitions() const { return m_definitions; }
+        const std::vector<GameplayTagDefinition>& GetAllDefinitions() const
+        {
+            return m_definitions;
+        }
 
         /// All currently loaded tag file paths.
-        const std::vector<std::string>& GetLoadedFiles() const { return m_loadedFiles; }
+        const std::vector<std::string>& GetLoadedFiles() const
+        {
+            return m_loadedFiles;
+        }
 
     private:
         /// Ensures all ancestor tags exist (e.g. registering "A.B.C" also registers "A" and "A.B").

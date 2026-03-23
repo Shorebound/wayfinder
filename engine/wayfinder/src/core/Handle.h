@@ -24,11 +24,20 @@ namespace Wayfinder
         uint32_t Index : 20 = 0;
         uint32_t Generation : 12 = 0;
 
-        [[nodiscard]] constexpr bool IsValid() const noexcept { return Generation != 0; }
-        constexpr explicit operator bool() const noexcept { return IsValid(); }
+        [[nodiscard]] constexpr bool IsValid() const noexcept
+        {
+            return Generation != 0;
+        }
+        constexpr explicit operator bool() const noexcept
+        {
+            return IsValid();
+        }
         constexpr auto operator<=>(const Handle&) const = default;
 
-        static constexpr Handle Invalid() noexcept { return {}; }
+        static constexpr Handle Invalid() noexcept
+        {
+            return {};
+        }
     };
 
 } // namespace Wayfinder
@@ -37,5 +46,7 @@ template<typename TTag>
 struct std::hash<Wayfinder::Handle<TTag>>
 {
     size_t operator()(const Wayfinder::Handle<TTag>& h) const noexcept
-    { return std::hash<uint32_t>{}((static_cast<uint32_t>(h.Index) << 12) | h.Generation); }
+    {
+        return std::hash<uint32_t>{}((static_cast<uint32_t>(h.Index) << 12) | h.Generation);
+    }
 };

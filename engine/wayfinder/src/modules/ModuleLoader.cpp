@@ -32,8 +32,7 @@ namespace Wayfinder
         }
     }
 
-    LoadedModule::LoadedModule(LoadedModule&& other) noexcept
-        : Instance(other.Instance), m_destroyFn(other.m_destroyFn), m_libraryHandle(other.m_libraryHandle)
+    LoadedModule::LoadedModule(LoadedModule&& other) noexcept : Instance(other.Instance), m_destroyFn(other.m_destroyFn), m_libraryHandle(other.m_libraryHandle)
     {
         other.Instance = nullptr;
         other.m_destroyFn = nullptr;
@@ -102,8 +101,8 @@ namespace Wayfinder
 
         if (!createFn || !destroyFn)
         {
-            WAYFINDER_ERROR(LogEngine, "ModuleLoader: '{}' missing required exports (WayfinderCreateModule={}, WayfinderDestroyModule={})",
-                libraryPath.string(), static_cast<bool>(createFn), static_cast<bool>(destroyFn));
+            WAYFINDER_ERROR(LogEngine, "ModuleLoader: '{}' missing required exports (WayfinderCreateModule={}, WayfinderDestroyModule={})", libraryPath.string(), static_cast<bool>(createFn),
+                static_cast<bool>(destroyFn));
 #ifdef _WIN32
             FreeLibrary(handle);
 #else

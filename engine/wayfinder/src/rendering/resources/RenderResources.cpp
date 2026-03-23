@@ -10,7 +10,10 @@ namespace Wayfinder
 {
     void RenderResourceCache::SetAssetService(const std::shared_ptr<AssetService>& assetService)
     {
-        if (m_assetService == assetService) { return; }
+        if (m_assetService == assetService)
+        {
+            return;
+        }
 
         m_assetService = assetService;
         m_materialsByKey.clear();
@@ -24,7 +27,10 @@ namespace Wayfinder
 
     void RenderResourceCache::SetProgramRegistry(const ShaderProgramRegistry* programs)
     {
-        if (m_programs == programs) { return; }
+        if (m_programs == programs)
+        {
+            return;
+        }
 
         m_programs = programs;
         m_materialsByKey.clear();
@@ -39,7 +45,10 @@ namespace Wayfinder
                 mesh.Material = PrepareMaterialBinding(mesh.Material);
             }
 
-            if (!pass.DebugDraw) { continue; }
+            if (!pass.DebugDraw)
+            {
+                continue;
+            }
 
             for (RenderDebugBox& debugBox : pass.DebugDraw->Boxes)
             {
@@ -51,7 +60,10 @@ namespace Wayfinder
     const RenderMeshResource& RenderResourceCache::ResolveMesh(const RenderMeshSubmission& submission)
     {
         auto existing = m_meshesByKey.find(submission.Mesh.StableKey);
-        if (existing != m_meshesByKey.end()) { return existing->second; }
+        if (existing != m_meshesByKey.end())
+        {
+            return existing->second;
+        }
 
         RenderMeshResource resource;
         resource.Ref = submission.Mesh;
@@ -62,7 +74,10 @@ namespace Wayfinder
 
     RenderMaterialBinding RenderResourceCache::PrepareMaterialBinding(const RenderMaterialBinding& binding)
     {
-        if (binding.Ref.Origin != RenderResourceOrigin::Asset) { return binding; }
+        if (binding.Ref.Origin != RenderResourceOrigin::Asset)
+        {
+            return binding;
+        }
 
         auto existing = m_materialsByKey.find(binding.Ref.StableKey);
         if (existing == m_materialsByKey.end())
@@ -81,7 +96,10 @@ namespace Wayfinder
             resolved.Overrides = binding.Overrides;
         }
 
-        if (binding.StateOverrides.FillMode) { resolved.StateOverrides.FillMode = binding.StateOverrides.FillMode; }
+        if (binding.StateOverrides.FillMode)
+        {
+            resolved.StateOverrides.FillMode = binding.StateOverrides.FillMode;
+        }
 
         return resolved;
     }
@@ -92,11 +110,17 @@ namespace Wayfinder
         resource.Ref = binding.Ref;
         resource.Binding = binding;
 
-        if (binding.Ref.Origin != RenderResourceOrigin::Asset || !binding.Ref.AssetId || !m_assetService) { return resource; }
+        if (binding.Ref.Origin != RenderResourceOrigin::Asset || !binding.Ref.AssetId || !m_assetService)
+        {
+            return resource;
+        }
 
         std::string error;
         const MaterialAsset* materialAsset = m_assetService->LoadMaterialAsset(*binding.Ref.AssetId, error);
-        if (!materialAsset) { return resource; }
+        if (!materialAsset)
+        {
+            return resource;
+        }
 
         resource.IsLoadedFromAsset = true;
         resource.Binding.ShaderName = materialAsset->ShaderName;
@@ -143,9 +167,7 @@ namespace Wayfinder
 
             // Create/get a sampler for this texture asset's filter/address settings
             std::string texError;
-            const TextureAsset* texAsset = (slotIt != binding.Textures.Slots.end() && m_assetService)
-                                               ? m_assetService->LoadAsset<TextureAsset>(slotIt->second, texError)
-                                               : nullptr;
+            const TextureAsset* texAsset = (slotIt != binding.Textures.Slots.end() && m_assetService) ? m_assetService->LoadAsset<TextureAsset>(slotIt->second, texError) : nullptr;
 
             SamplerCreateDesc samplerDesc;
             if (texAsset)
@@ -165,8 +187,8 @@ namespace Wayfinder
         {
             if (!consumedSlots.contains(slotName))
             {
-                WAYFINDER_WARNING(LogRenderer, "RenderResourceCache: Material '{}' shader '{}' has no slot '{}' — texture ignored",
-                    binding.Ref.AssetId ? binding.Ref.AssetId->ToString() : "<unknown>", binding.ShaderName, slotName);
+                WAYFINDER_WARNING(LogRenderer, "RenderResourceCache: Material '{}' shader '{}' has no slot '{}' — texture ignored", binding.Ref.AssetId ? binding.Ref.AssetId->ToString() : "<unknown>",
+                    binding.ShaderName, slotName);
             }
         }
     }

@@ -24,7 +24,10 @@ namespace Wayfinder
 
         static std::shared_ptr<ILogger> CreateLogger(const std::string& name, LogVerbosity defaultVerbosity = LogVerbosity::Info)
         {
-            if (const auto it = s_loggers.find(name); it != s_loggers.end()) { return it->second; }
+            if (const auto it = s_loggers.find(name); it != s_loggers.end())
+            {
+                return it->second;
+            }
 
             auto logger = std::make_shared<SpdLogger>(name, defaultVerbosity);
             s_loggers[name] = logger;
@@ -33,7 +36,10 @@ namespace Wayfinder
 
         static std::shared_ptr<ILogger> GetLogger(const std::string& name)
         {
-            if (const auto it = s_loggers.find(name); it != s_loggers.end()) { return it->second; }
+            if (const auto it = s_loggers.find(name); it != s_loggers.end())
+            {
+                return it->second;
+            }
             return CreateLogger(name);
         }
 

@@ -47,7 +47,10 @@ namespace Wayfinder
         std::string_view GetCurrentState() const;
 
         /// Mark run conditions as dirty so they are re-evaluated next Update().
-        void MarkDirty() { m_runConditionsDirty = true; }
+        void MarkDirty()
+        {
+            m_runConditionsDirty = true;
+        }
 
     private:
         struct ConditionedSystem

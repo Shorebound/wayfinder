@@ -128,29 +128,34 @@ namespace Wayfinder
     namespace BlendPresets
     {
         /** @return Disabled blending (opaque fragments). */
-        constexpr BlendState Opaque() { return {}; }
+        constexpr BlendState Opaque()
+        {
+            return {};
+        }
 
         /** @return Standard alpha blending (src·α + dst·(1−α)). */
         constexpr BlendState AlphaBlend()
         {
-            return {true, BlendFactor::SrcAlpha, BlendFactor::OneMinusSrcAlpha, BlendOp::Add, BlendFactor::One,
-                BlendFactor::OneMinusSrcAlpha, BlendOp::Add};
+            return {true, BlendFactor::SrcAlpha, BlendFactor::OneMinusSrcAlpha, BlendOp::Add, BlendFactor::One, BlendFactor::OneMinusSrcAlpha, BlendOp::Add};
         }
 
         /** @return Additive blending (src·α + dst). */
         constexpr BlendState Additive()
-        { return {true, BlendFactor::SrcAlpha, BlendFactor::One, BlendOp::Add, BlendFactor::SrcAlpha, BlendFactor::One, BlendOp::Add}; }
+        {
+            return {true, BlendFactor::SrcAlpha, BlendFactor::One, BlendOp::Add, BlendFactor::SrcAlpha, BlendFactor::One, BlendOp::Add};
+        }
 
         /** @return Pre-multiplied alpha blending (src + dst·(1−α)). */
         constexpr BlendState Premultiplied()
         {
-            return {true, BlendFactor::One, BlendFactor::OneMinusSrcAlpha, BlendOp::Add, BlendFactor::One, BlendFactor::OneMinusSrcAlpha,
-                BlendOp::Add};
+            return {true, BlendFactor::One, BlendFactor::OneMinusSrcAlpha, BlendOp::Add, BlendFactor::One, BlendFactor::OneMinusSrcAlpha, BlendOp::Add};
         }
 
         /** @return Multiplicative blending (src·dst + 0). */
         constexpr BlendState Multiplicative()
-        { return {true, BlendFactor::DstColour, BlendFactor::Zero, BlendOp::Add, BlendFactor::DstAlpha, BlendFactor::Zero, BlendOp::Add}; }
+        {
+            return {true, BlendFactor::DstColour, BlendFactor::Zero, BlendOp::Add, BlendFactor::DstAlpha, BlendFactor::Zero, BlendOp::Add};
+        }
     }
 
     // ── Buffer Enums / Descriptors ──────────────────────────
@@ -284,8 +289,7 @@ namespace Wayfinder
          * @param height  Height of the image in pixels.
          * @param bytesPerRow  Bytes per row (must equal width * bytesPerPixel for tightly packed data).
          */
-        virtual void UploadToTexture(
-            GPUTextureHandle texture, const void* pixelData, uint32_t width, uint32_t height, uint32_t bytesPerRow) = 0;
+        virtual void UploadToTexture(GPUTextureHandle texture, const void* pixelData, uint32_t width, uint32_t height, uint32_t bytesPerRow) = 0;
 
         // ── Samplers ─────────────────────────────────────────────
 

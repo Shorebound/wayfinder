@@ -20,7 +20,10 @@ namespace Wayfinder
         void SetPattern(const std::string& pattern) override;
 
         // Get the underlying spdlog sink
-        std::shared_ptr<spdlog::sinks::sink> GetSink() const { return m_sink; }
+        std::shared_ptr<spdlog::sinks::sink> GetSink() const
+        {
+            return m_sink;
+        }
 
     protected:
         std::shared_ptr<spdlog::sinks::sink> m_sink;

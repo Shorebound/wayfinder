@@ -23,7 +23,10 @@ namespace Wayfinder
         if (m_moduleRegistry)
         {
             const auto& initialState = m_moduleRegistry->GetInitialState();
-            if (!initialState.empty()) { TransitionTo(initialState); }
+            if (!initialState.empty())
+            {
+                TransitionTo(initialState);
+            }
             else
             {
                 EvaluateRunConditions();

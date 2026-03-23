@@ -20,7 +20,10 @@ namespace Wayfinder::Tests
     public:
         explicit TestFeature(std::string name, std::vector<std::string>& log) : m_name(std::move(name)), m_log(log) {}
 
-        const std::string& GetName() const override { return m_name; }
+        const std::string& GetName() const override
+        {
+            return m_name;
+        }
 
         void AddPasses(Wayfinder::RenderGraph& graph, const Wayfinder::RenderFrame&) override
         {
@@ -36,9 +39,15 @@ namespace Wayfinder::Tests
                 });
         }
 
-        void OnAttach(const Wayfinder::RenderFeatureContext&) override { m_log.push_back(m_name + "::OnAttach"); }
+        void OnAttach(const Wayfinder::RenderFeatureContext&) override
+        {
+            m_log.push_back(m_name + "::OnAttach");
+        }
 
-        void OnDetach(const Wayfinder::RenderFeatureContext&) override { m_log.push_back(m_name + "::OnDetach"); }
+        void OnDetach(const Wayfinder::RenderFeatureContext&) override
+        {
+            m_log.push_back(m_name + "::OnDetach");
+        }
 
     private:
         std::string m_name;
@@ -61,17 +70,23 @@ namespace Wayfinder::Tests
                 [&](Wayfinder::RenderGraphBuilder& builder)
                 {
                     auto colour = graph.FindHandle(Wayfinder::WellKnown::SceneColour);
-                    if (colour.IsValid()) { builder.ReadTexture(colour); }
-                    builder.SetSwapchainOutput();
-                    return [this](Wayfinder::RenderDevice&, const Wayfinder::RenderGraphResources&)
+                    if (colour.IsValid())
                     {
-                        m_executed = true;
-                    };
+                        builder.ReadTexture(colour);
+                    }
+                    builder.SetSwapchainOutput();
+                    return [this](Wayfinder::RenderDevice&, const Wayfinder::RenderGraphResources&) { m_executed = true; };
                 });
         }
 
-        bool WasExecuted() const { return m_executed; }
-        void Reset() { m_executed = false; }
+        bool WasExecuted() const
+        {
+            return m_executed;
+        }
+        void Reset()
+        {
+            m_executed = false;
+        }
 
     private:
         bool m_executed = false;
@@ -117,7 +132,10 @@ namespace Wayfinder::Tests
 
         // The renderer checks IsEnabled() before calling AddPasses.
         // We simulate that pattern here.
-        if (feature.IsEnabled()) { feature.AddPasses(graph, frame); }
+        if (feature.IsEnabled())
+        {
+            feature.AddPasses(graph, frame);
+        }
 
         CHECK(log.empty());
     }
@@ -140,7 +158,10 @@ namespace Wayfinder::Tests
 
         for (auto& feature : features)
         {
-            if (feature->IsEnabled()) { feature->AddPasses(graph, frame); }
+            if (feature->IsEnabled())
+            {
+                feature->AddPasses(graph, frame);
+            }
         }
 
         REQUIRE(log.size() == 2);
@@ -202,7 +223,10 @@ namespace Wayfinder::Tests
 
         for (auto& feature : features)
         {
-            if (feature->IsEnabled()) { feature->AddPasses(graph, frame); }
+            if (feature->IsEnabled())
+            {
+                feature->AddPasses(graph, frame);
+            }
         }
 
         REQUIRE(log.size() == 1);
@@ -258,8 +282,7 @@ namespace Wayfinder::Tests
     {
         Wayfinder::RenderFrame frame;
         const size_t viewIndex = frame.AddView(Wayfinder::RenderView{});
-        Wayfinder::RenderPass& scenePass =
-            frame.AddScenePass(Wayfinder::RenderPassIds::MainScene, viewIndex, Wayfinder::RenderLayers::Main);
+        Wayfinder::RenderPass& scenePass = frame.AddScenePass(Wayfinder::RenderPassIds::MainScene, viewIndex, Wayfinder::RenderLayers::Main);
 
         Wayfinder::RenderMeshSubmission submission;
         submission.Mesh.Origin = Wayfinder::RenderResourceOrigin::BuiltIn;

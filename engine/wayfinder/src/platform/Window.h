@@ -55,7 +55,10 @@ namespace Wayfinder
          * Convenience overload that delegates to Create(Config{}).
          * @return A std::unique_ptr<Window> owning the platform window.
          */
-        static std::unique_ptr<Window> Create() { return Create(Config{}); }
+        static std::unique_ptr<Window> Create()
+        {
+            return Create(Config{});
+        }
     };
 
 }

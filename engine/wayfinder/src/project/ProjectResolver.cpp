@@ -23,7 +23,10 @@ namespace Wayfinder
         std::filesystem::path searchDir = startPath;
 
         // If startPath is a file, walk up from its parent directory.
-        if (std::filesystem::is_regular_file(searchDir, ec)) { searchDir = searchDir.parent_path(); }
+        if (std::filesystem::is_regular_file(searchDir, ec))
+        {
+            searchDir = searchDir.parent_path();
+        }
         else if (ec)
         {
             WAYFINDER_WARNING(LogEngine, "Failed to stat start path '{}': {}", startPath.string(), ec.message());
@@ -49,8 +52,7 @@ namespace Wayfinder
             const bool exists = std::filesystem::exists(candidate, ec);
             if (ec)
             {
-                WAYFINDER_WARNING(
-                    LogEngine, "Failed to query existence of project file candidate '{}': {}", candidate.string(), ec.message());
+                WAYFINDER_WARNING(LogEngine, "Failed to query existence of project file candidate '{}': {}", candidate.string(), ec.message());
                 return MakeError("Failed to query project file candidate");
             }
 
@@ -74,18 +76,30 @@ namespace Wayfinder
         std::error_code ec;
         std::filesystem::path searchDir = startPath;
 
-        if (std::filesystem::is_regular_file(searchDir, ec)) { searchDir = searchDir.parent_path(); }
-        else if (ec) { return std::nullopt; }
+        if (std::filesystem::is_regular_file(searchDir, ec))
+        {
+            searchDir = searchDir.parent_path();
+        }
+        else if (ec)
+        {
+            return std::nullopt;
+        }
 
         ec.clear();
         const auto canonical = std::filesystem::weakly_canonical(searchDir, ec);
-        if (ec) { return std::nullopt; }
+        if (ec)
+        {
+            return std::nullopt;
+        }
 
         searchDir = canonical;
 
         while (true)
         {
-            if (searchDir.filename() == "assets") { return searchDir; }
+            if (searchDir.filename() == "assets")
+            {
+                return searchDir;
+            }
 
             const auto parent = searchDir.parent_path();
             if (parent == searchDir) break;

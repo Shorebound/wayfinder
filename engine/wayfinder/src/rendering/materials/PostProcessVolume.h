@@ -47,13 +47,25 @@ namespace Wayfinder
         Colour GetColour(const std::string& name, const Colour& fallback = Colour::White()) const;
 
         /** @brief Set a float parameter. */
-        void SetFloat(const std::string& name, float v) { Parameters[name] = v; }
+        void SetFloat(const std::string& name, float v)
+        {
+            Parameters[name] = v;
+        }
         /** @brief Set an integer parameter. */
-        void SetInt(const std::string& name, int32_t v) { Parameters[name] = v; }
+        void SetInt(const std::string& name, int32_t v)
+        {
+            Parameters[name] = v;
+        }
         /** @brief Set a Float3 parameter. */
-        void SetFloat3(const std::string& name, const Float3& v) { Parameters[name] = v; }
+        void SetFloat3(const std::string& name, const Float3& v)
+        {
+            Parameters[name] = v;
+        }
         /** @brief Set a Colour parameter. */
-        void SetColour(const std::string& name, const Colour& v) { Parameters[name] = v; }
+        void SetColour(const std::string& name, const Colour& v)
+        {
+            Parameters[name] = v;
+        }
     };
 
     /**
@@ -109,6 +121,5 @@ namespace Wayfinder
      * @param volumes        Span of volume instances to evaluate (null Volume entries are skipped).
      * @return A PostProcessStack with all contributing effects blended by priority and distance.
      */
-    WAYFINDER_API PostProcessStack BlendPostProcessVolumes(
-        const Float3& cameraPosition, std::span<const PostProcessVolumeInstance> volumes);
+    WAYFINDER_API PostProcessStack BlendPostProcessVolumes(const Float3& cameraPosition, std::span<const PostProcessVolumeInstance> volumes);
 } // namespace Wayfinder

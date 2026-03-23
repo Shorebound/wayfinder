@@ -122,7 +122,10 @@ namespace Wayfinder
         return y;
     }
 
-    float SDL3Input::GetMouseWheelMove() const { return m_scrollY; }
+    float SDL3Input::GetMouseWheelMove() const
+    {
+        return m_scrollY;
+    }
 
     void SDL3Input::AccumulateScroll(float x, float y)
     {

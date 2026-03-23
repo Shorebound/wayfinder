@@ -69,13 +69,15 @@ namespace Wayfinder
         return true;
     }
 
-    std::optional<TextureAsset> LoadTextureAssetFromDocument(
-        const nlohmann::json& document, const std::filesystem::path& filePath, std::string& error)
+    std::optional<TextureAsset> LoadTextureAssetFromDocument(const nlohmann::json& document, const std::filesystem::path& filePath, std::string& error)
     {
         const std::string label = filePath.generic_string();
 
         // Validate structure first
-        if (!ValidateTextureAssetDocument(document, filePath, error)) { return std::nullopt; }
+        if (!ValidateTextureAssetDocument(document, filePath, error))
+        {
+            return std::nullopt;
+        }
 
         // Parse asset ID
         const std::string assetIdText = document.at(kTextureAssetIdKey).get<std::string>();
@@ -138,8 +140,7 @@ namespace Wayfinder
 
         SDL_DestroySurface(rgbaSurface);
 
-        WAYFINDER_INFO(LogAssets, "Loaded texture '{}' ({}x{}, RGBA8) from '{}'", texture.Name, texture.Width, texture.Height,
-            imagePath.generic_string());
+        WAYFINDER_INFO(LogAssets, "Loaded texture '{}' ({}x{}, RGBA8) from '{}'", texture.Name, texture.Width, texture.Height, imagePath.generic_string());
 
         return texture;
     }

@@ -82,7 +82,10 @@ namespace Wayfinder
                 buf->FinishDrain();
             }
 
-            if (m_order.capacity() < batch.capacity()) { m_order.reserve(batch.capacity()); }
+            if (m_order.capacity() < batch.capacity())
+            {
+                m_order.reserve(batch.capacity());
+            }
 
             m_isDraining = false;
 
@@ -108,7 +111,10 @@ namespace Wayfinder
         [[nodiscard]] std::span<const TEvent> Read() const
         {
             auto it = m_buffers.find(std::type_index(typeid(TEvent)));
-            if (it == m_buffers.end()) { return {}; }
+            if (it == m_buffers.end())
+            {
+                return {};
+            }
             auto* typed = static_cast<const TypedEventBuffer<TEvent>*>(it->second.get());
             return typed->Events();
         }
@@ -136,7 +142,10 @@ namespace Wayfinder
         {
             auto key = std::type_index(typeid(TEvent));
             auto it = m_buffers.find(key);
-            if (it != m_buffers.end()) { return static_cast<TypedEventBuffer<TEvent>&>(*it->second); }
+            if (it != m_buffers.end())
+            {
+                return static_cast<TypedEventBuffer<TEvent>&>(*it->second);
+            }
             auto [inserted, success] = m_buffers.emplace(key, std::make_unique<TypedEventBuffer<TEvent>>());
             return static_cast<TypedEventBuffer<TEvent>&>(*inserted->second);
         }

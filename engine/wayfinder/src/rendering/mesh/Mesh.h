@@ -37,17 +37,26 @@ namespace Wayfinder
         Mesh(Mesh&&) noexcept = default;
         Mesh& operator=(Mesh&&) noexcept = default;
 
-        bool Create(RenderDevice& device, const void* vertexData, uint32_t vertexDataSize, uint32_t vertexCount, const void* indexData,
-            uint32_t indexDataSize, uint32_t indexCount, IndexElementSize indexElementSize = IndexElementSize::Uint16);
+        bool Create(RenderDevice& device, const void* vertexData, uint32_t vertexDataSize, uint32_t vertexCount, const void* indexData, uint32_t indexDataSize, uint32_t indexCount,
+            IndexElementSize indexElementSize = IndexElementSize::Uint16);
 
         void Destroy();
 
         void Bind(RenderDevice& device) const;
         void Draw(RenderDevice& device, uint32_t instanceCount = 1) const;
 
-        bool IsValid() const { return m_vertexBuffer.IsValid() && m_indexBuffer.IsValid(); }
-        uint32_t GetIndexCount() const { return m_indexCount; }
-        uint32_t GetVertexCount() const { return m_vertexCount; }
+        bool IsValid() const
+        {
+            return m_vertexBuffer.IsValid() && m_indexBuffer.IsValid();
+        }
+        uint32_t GetIndexCount() const
+        {
+            return m_indexCount;
+        }
+        uint32_t GetVertexCount() const
+        {
+            return m_vertexCount;
+        }
 
         // ── Built-in Primitive Factory ────────────────────────
         // All primitives produce VertexPosNormalColour geometry.

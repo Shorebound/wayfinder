@@ -44,7 +44,10 @@ namespace Wayfinder::Tests
     class SubsystemC : public GameSubsystem
     {
     public:
-        bool ShouldCreate() const override { return false; }
+        bool ShouldCreate() const override
+        {
+            return false;
+        }
         void Initialise() override
         {
             if (s_log) s_log->Events.push_back("C.Init");
@@ -150,11 +153,7 @@ namespace Wayfinder::Tests
             s_log = &log;
 
             SubsystemCollection<GameSubsystem> collection;
-            collection.Register<SubsystemA>(
-                []() -> bool
-                {
-                    return false;
-                });
+            collection.Register<SubsystemA>([]() -> bool { return false; });
             collection.Initialise();
 
             CHECK(collection.Get<SubsystemA>() == nullptr);

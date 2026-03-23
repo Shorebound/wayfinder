@@ -46,7 +46,10 @@ namespace Wayfinder
         void Destroy();
         void Bind();
 
-        bool IsValid() const { return m_pipeline.IsValid(); }
+        bool IsValid() const
+        {
+            return m_pipeline.IsValid();
+        }
 
     private:
         RenderDevice* m_device = nullptr;

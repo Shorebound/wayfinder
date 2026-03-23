@@ -139,9 +139,6 @@ def _discover_changed_files(staged_only: bool = False) -> list[Path]:
 def _run_format_fix(files: list[Path], *, tool: str) -> bool:
     """Fix mode: run clang-format -i then format-fixup in-place.
 
-    Runs up to three passes so that fixup rules (e.g. split lambda rejoins)
-    that change structure get properly re-indented by a follow-up clang-format.
-
     Returns True if any file was changed.
     """
     if not files:
@@ -155,36 +152,15 @@ def _run_format_fix(files: list[Path], *, tool: str) -> bool:
         except (UnicodeDecodeError, OSError):
             pass
 
-    for pass_num in range(1, 4):
-        print(_bold(f'\n-- format pass {pass_num} ({len(files)} files) --'))
+    print(_bold(f'\n-- formatting ({len(files)} files) --'))
 
-        cmd = [tool, '-i']
-        cmd.extend(str(f) for f in files)
-        subprocess.run(cmd, cwd=REPO_ROOT)
+    cmd = [tool, '-i']
+    cmd.extend(str(f) for f in files)
+    subprocess.run(cmd, cwd=REPO_ROOT)
 
-        cmd = [sys.executable, str(FIXUP_SCRIPT)]
-        cmd.extend(str(f) for f in files)
-        result = subprocess.run(cmd, cwd=REPO_ROOT)
-
-        # Check if this pass changed anything.
-        pass_changed = False
-        if pass_num == 1:
-            # First pass: compare against originals.
-            for path, before in originals.items():
-                try:
-                    if path.read_text(encoding='utf-8') != before:
-                        pass_changed = True
-                        break
-                except (UnicodeDecodeError, OSError):
-                    pass
-        else:
-            # Subsequent passes: compare against post-previous-pass state.
-            pass_changed = result.returncode != 0
-
-        if not pass_changed:
-            print(_green('  Stable.'))
-            break
-        print(_yellow('  Applied fixes.'))
+    cmd = [sys.executable, str(FIXUP_SCRIPT)]
+    cmd.extend(str(f) for f in files)
+    subprocess.run(cmd, cwd=REPO_ROOT)
 
     any_changed = False
     for path, before in originals.items():
@@ -195,16 +171,16 @@ def _run_format_fix(files: list[Path], *, tool: str) -> bool:
         except (UnicodeDecodeError, OSError):
             pass
 
+    if any_changed:
+        print(_yellow('  Applied fixes.'))
+    else:
+        print(_green('  Clean.'))
+
     return any_changed
 
 
 def _run_format_check(files: list[Path], *, tool: str) -> bool:
     """Check mode: verify clang-format + format-fixup produce no changes.
-
-    Runs clang-format → format-fixup in a loop until the output stabilises
-    (typically two passes), then diffs against the original.  The loop is
-    needed because some fixup rules (e.g. rejoining split lambda arguments)
-    produce output that clang-format needs to re-indent.
 
     Returns True if issues were found.
     """
@@ -220,33 +196,19 @@ def _run_format_check(files: list[Path], *, tool: str) -> bool:
         except (UnicodeDecodeError, OSError):
             continue
 
-        # Run clang-format via stdin/stdout (binary to avoid codec issues).
-        raw = path.read_bytes()
-
-        text = raw
-        for _ in range(3):
-            result = subprocess.run(
-                [tool, f'--assume-filename={path}'],
-                input=text, capture_output=True, cwd=REPO_ROOT,
-            )
-            if result.returncode != 0:
-                dirty.append(path)
-                break
-
-            # Decode and normalise line endings to match the original file.
-            cf_text = result.stdout.decode('utf-8', errors='replace')
-            if '\r\n' not in original_text and '\r\n' in cf_text:
-                cf_text = cf_text.replace('\r\n', '\n')
-
-            formatted_text = _apply_fixup(cf_text)
-            new_bytes = formatted_text.encode('utf-8')
-            if new_bytes == text:
-                break
-            text = new_bytes
-        else:
-            # Did not converge — treat as dirty.
+        result = subprocess.run(
+            [tool, f'--assume-filename={path}'],
+            input=path.read_bytes(), capture_output=True, cwd=REPO_ROOT,
+        )
+        if result.returncode != 0:
             dirty.append(path)
             continue
+
+        cf_text = result.stdout.decode('utf-8', errors='replace')
+        if '\r\n' not in original_text and '\r\n' in cf_text:
+            cf_text = cf_text.replace('\r\n', '\n')
+
+        formatted_text = _apply_fixup(cf_text)
 
         if formatted_text != original_text:
             dirty.append(path)

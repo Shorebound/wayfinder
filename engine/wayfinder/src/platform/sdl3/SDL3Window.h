@@ -15,11 +15,26 @@ namespace Wayfinder
         void Shutdown() override;
         void Update() override;
 
-        uint32_t GetWidth() const override { return m_width; }
-        uint32_t GetHeight() const override { return m_height; }
-        std::string GetTitle() const override { return m_title; }
-        bool IsFullscreen() const override { return false; }
-        bool IsVSync() const override { return m_vsync; }
+        uint32_t GetWidth() const override
+        {
+            return m_width;
+        }
+        uint32_t GetHeight() const override
+        {
+            return m_height;
+        }
+        std::string GetTitle() const override
+        {
+            return m_title;
+        }
+        bool IsFullscreen() const override
+        {
+            return false;
+        }
+        bool IsVSync() const override
+        {
+            return m_vsync;
+        }
 
         void SetVSync(bool enabled) override;
         void SetTitle(const std::string& title) override;
@@ -27,9 +42,15 @@ namespace Wayfinder
         void SetEventCallback(const EventCallbackFn& callback) override;
 
         bool ShouldClose() const override;
-        void* GetNativeHandle() const override { return m_window; }
+        void* GetNativeHandle() const override
+        {
+            return m_window;
+        }
 
-        SDL_Window* GetNativeWindow() const { return m_window; }
+        SDL_Window* GetNativeWindow() const
+        {
+            return m_window;
+        }
 
     private:
         uint32_t m_width = 0;

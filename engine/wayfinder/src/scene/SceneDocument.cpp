@@ -28,10 +28,12 @@ namespace Wayfinder
     const std::string kRenderableComponentKey = "renderable";
 
     template<typename TId>
-    std::optional<TId> ParseTypedId(
-        const nlohmann::json& data, const std::string& key, const std::string& sourceLabel, std::vector<std::string>& errors)
+    std::optional<TId> ParseTypedId(const nlohmann::json& data, const std::string& key, const std::string& sourceLabel, std::vector<std::string>& errors)
     {
-        if (!data.contains(key)) { return std::nullopt; }
+        if (!data.contains(key))
+        {
+            return std::nullopt;
+        }
 
         const auto& node = data[key];
         if (!node.is_string())
@@ -55,7 +57,10 @@ namespace Wayfinder
     {
         for (const auto& [key, value] : overrides.items())
         {
-            if (value.is_object() && destination.contains(key) && destination[key].is_object()) { MergeObjects(destination[key], value); }
+            if (value.is_object() && destination.contains(key) && destination[key].is_object())
+            {
+                MergeObjects(destination[key], value);
+            }
             else
             {
                 destination[key] = value;
@@ -63,11 +68,14 @@ namespace Wayfinder
         }
     }
 
-    Wayfinder::SceneDocumentEntity ParseEntityDefinition(const nlohmann::json& data, const Wayfinder::RuntimeComponentRegistry& registry,
-        const std::string& fallbackName, const std::string& sourceLabel, std::vector<std::string>& errors)
+    Wayfinder::SceneDocumentEntity ParseEntityDefinition(
+        const nlohmann::json& data, const Wayfinder::RuntimeComponentRegistry& registry, const std::string& fallbackName, const std::string& sourceLabel, std::vector<std::string>& errors)
     {
         Wayfinder::SceneDocumentEntity definition;
-        if (const auto parsedId = ParseTypedId<Wayfinder::SceneObjectId>(data, kIdKey, sourceLabel, errors)) { definition.Id = *parsedId; }
+        if (const auto parsedId = ParseTypedId<Wayfinder::SceneObjectId>(data, kIdKey, sourceLabel, errors))
+        {
+            definition.Id = *parsedId;
+        }
         else
         {
             definition.Id = Wayfinder::SceneObjectId::Generate();
@@ -79,8 +87,7 @@ namespace Wayfinder
 
         for (const auto& [key, node] : data.items())
         {
-            if (key == kIdKey || key == kNameKey || key == kParentIdKey || key == kPrefabIdKey || key == kAssetIdKey ||
-                key == kAssetTypeKey)
+            if (key == kIdKey || key == kNameKey || key == kParentIdKey || key == kPrefabIdKey || key == kAssetIdKey || key == kAssetTypeKey)
             {
                 continue;
             }
@@ -110,19 +117,20 @@ namespace Wayfinder
         return definition;
     }
 
-    std::optional<Wayfinder::SceneDocumentEntity> ParsePrefabDefinition(const std::filesystem::path& prefabPath,
-        const Wayfinder::RuntimeComponentRegistry& registry, std::unordered_map<std::string, Wayfinder::SceneDocumentEntity>& prefabCache,
-        std::vector<std::string>& errors)
+    std::optional<Wayfinder::SceneDocumentEntity> ParsePrefabDefinition(const std::filesystem::path& prefabPath, const Wayfinder::RuntimeComponentRegistry& registry,
+        std::unordered_map<std::string, Wayfinder::SceneDocumentEntity>& prefabCache, std::vector<std::string>& errors)
     {
         const std::string key = std::filesystem::weakly_canonical(prefabPath).string();
-        if (const auto cached = prefabCache.find(key); cached != prefabCache.end()) { return cached->second; }
+        if (const auto cached = prefabCache.find(key); cached != prefabCache.end())
+        {
+            return cached->second;
+        }
 
         try
         {
             std::ifstream file(key);
             nlohmann::json prefabData = nlohmann::json::parse(file);
-            Wayfinder::SceneDocumentEntity definition = ParseEntityDefinition(
-                prefabData, registry, prefabPath.stem().string(), "Prefab '" + prefabPath.generic_string() + "'", errors);
+            Wayfinder::SceneDocumentEntity definition = ParseEntityDefinition(prefabData, registry, prefabPath.stem().string(), "Prefab '" + prefabPath.generic_string() + "'", errors);
             prefabCache.emplace(key, definition);
             return definition;
         }
@@ -135,16 +143,27 @@ namespace Wayfinder
 
     void MergeDefinition(Wayfinder::SceneDocumentEntity& destination, const Wayfinder::SceneDocumentEntity& overrideData)
     {
-        if (!overrideData.Name.empty()) { destination.Name = overrideData.Name; }
-        if (!overrideData.Id.IsNil()) { destination.Id = overrideData.Id; }
-        if (overrideData.ParentId) { destination.ParentId = overrideData.ParentId; }
-        if (overrideData.PrefabAssetId) { destination.PrefabAssetId = overrideData.PrefabAssetId; }
+        if (!overrideData.Name.empty())
+        {
+            destination.Name = overrideData.Name;
+        }
+        if (!overrideData.Id.IsNil())
+        {
+            destination.Id = overrideData.Id;
+        }
+        if (overrideData.ParentId)
+        {
+            destination.ParentId = overrideData.ParentId;
+        }
+        if (overrideData.PrefabAssetId)
+        {
+            destination.PrefabAssetId = overrideData.PrefabAssetId;
+        }
 
         MergeObjects(destination.ComponentData, overrideData.ComponentData);
     }
 
-    bool ResolveMaterialComponentData(Wayfinder::SceneDocumentEntity& definition, Wayfinder::AssetService& assetService,
-        const std::string& sourceLabel, std::vector<std::string>& errors)
+    bool ResolveMaterialComponentData(Wayfinder::SceneDocumentEntity& definition, Wayfinder::AssetService& assetService, const std::string& sourceLabel, std::vector<std::string>& errors)
     {
         if (!definition.ComponentData.contains(kMaterialComponentKey) || !definition.ComponentData[kMaterialComponentKey].is_object())
         {
@@ -153,9 +172,11 @@ namespace Wayfinder
 
         nlohmann::json& materialData = definition.ComponentData[kMaterialComponentKey];
         const std::string materialLabel = sourceLabel + " material";
-        const std::optional<Wayfinder::AssetId> materialAssetId =
-            ParseTypedId<Wayfinder::AssetId>(materialData, "material_id", materialLabel, errors);
-        if (!materialAssetId) { return true; }
+        const std::optional<Wayfinder::AssetId> materialAssetId = ParseTypedId<Wayfinder::AssetId>(materialData, "material_id", materialLabel, errors);
+        if (!materialAssetId)
+        {
+            return true;
+        }
 
         const Wayfinder::AssetRecord* materialRecord = assetService.ResolveRecord(*materialAssetId);
         if (!materialRecord)
@@ -166,8 +187,7 @@ namespace Wayfinder
 
         if (materialRecord->Kind != Wayfinder::AssetKind::Material)
         {
-            errors.push_back(sourceLabel + " references asset id '" + materialAssetId->ToString() +
-                             "' as a material, but it is registered as '" + materialRecord->TypeName + "'");
+            errors.push_back(sourceLabel + " references asset id '" + materialAssetId->ToString() + "' as a material, but it is registered as '" + materialRecord->TypeName + "'");
             return false;
         }
 
@@ -185,8 +205,7 @@ namespace Wayfinder
         return true;
     }
 
-    bool ValidateRenderableRequirements(
-        const Wayfinder::SceneDocumentEntity& definition, const std::string& sourceLabel, std::vector<std::string>& errors)
+    bool ValidateRenderableRequirements(const Wayfinder::SceneDocumentEntity& definition, const std::string& sourceLabel, std::vector<std::string>& errors)
     {
         if (definition.ComponentData.contains(kMeshComponentKey) && !definition.ComponentData.contains(kRenderableComponentKey))
         {
@@ -200,8 +219,7 @@ namespace Wayfinder
 
 namespace Wayfinder
 {
-    SceneDocumentLoadResult LoadSceneDocument(
-        const std::string& filePath, const RuntimeComponentRegistry& registry, AssetService* assetService)
+    SceneDocumentLoadResult LoadSceneDocument(const std::string& filePath, const RuntimeComponentRegistry& registry, AssetService* assetService)
     {
         SceneDocumentLoadResult result;
 
@@ -234,8 +252,7 @@ namespace Wayfinder
             const int version = sceneData[kVersionKey].get<int>();
             if (version != SCENE_FORMAT_VERSION)
             {
-                result.Errors.push_back("Unsupported scene format version " + std::to_string(version) + " (expected " +
-                                        std::to_string(SCENE_FORMAT_VERSION) + ")");
+                result.Errors.push_back("Unsupported scene format version " + std::to_string(version) + " (expected " + std::to_string(SCENE_FORMAT_VERSION) + ")");
                 return result;
             }
 
@@ -284,30 +301,27 @@ namespace Wayfinder
                 }
 
                 const std::string entityLabel = "Entity #" + std::to_string(index);
-                SceneDocumentEntity definition =
-                    ParseEntityDefinition(entityNode, registry, "Entity" + std::to_string(index), entityLabel, result.Errors);
+                SceneDocumentEntity definition = ParseEntityDefinition(entityNode, registry, "Entity" + std::to_string(index), entityLabel, result.Errors);
 
                 if (definition.PrefabAssetId)
                 {
                     const AssetRecord* prefabRecord = activeAssetService.ResolveRecord(*definition.PrefabAssetId);
                     if (!prefabRecord)
                     {
-                        result.Errors.push_back(
-                            entityLabel + " references missing prefab asset id '" + definition.PrefabAssetId->ToString() + "'");
+                        result.Errors.push_back(entityLabel + " references missing prefab asset id '" + definition.PrefabAssetId->ToString() + "'");
                         ++index;
                         continue;
                     }
 
                     if (prefabRecord->Kind != AssetKind::Prefab)
                     {
-                        result.Errors.push_back(entityLabel + " references asset id '" + definition.PrefabAssetId->ToString() +
-                                                "' as a prefab, but it is registered as '" + prefabRecord->TypeName + "'");
+                        result.Errors.push_back(
+                            entityLabel + " references asset id '" + definition.PrefabAssetId->ToString() + "' as a prefab, but it is registered as '" + prefabRecord->TypeName + "'");
                         ++index;
                         continue;
                     }
 
-                    const std::optional<SceneDocumentEntity> prefabDefinition =
-                        ParsePrefabDefinition(prefabRecord->Path, registry, prefabCache, result.Errors);
+                    const std::optional<SceneDocumentEntity> prefabDefinition = ParsePrefabDefinition(prefabRecord->Path, registry, prefabCache, result.Errors);
                     if (!prefabDefinition)
                     {
                         ++index;
@@ -338,8 +352,7 @@ namespace Wayfinder
 
                 if (!entityIds.insert(definition.Id).second)
                 {
-                    result.Errors.push_back(
-                        entityLabel + " '" + definition.Name + "' resolves to duplicate entity id '" + definition.Id.ToString() + "'");
+                    result.Errors.push_back(entityLabel + " '" + definition.Name + "' resolves to duplicate entity id '" + definition.Id.ToString() + "'");
                 }
 
                 document.Entities.push_back(std::move(definition));
@@ -350,12 +363,14 @@ namespace Wayfinder
             {
                 if (definition.ParentId && entityIds.find(*definition.ParentId) == entityIds.end())
                 {
-                    result.Errors.push_back(
-                        "Entity '" + definition.Name + "' references missing parent id '" + definition.ParentId->ToString() + "'");
+                    result.Errors.push_back("Entity '" + definition.Name + "' references missing parent id '" + definition.ParentId->ToString() + "'");
                 }
             }
 
-            if (result.Errors.empty()) { result.Document = std::move(document); }
+            if (result.Errors.empty())
+            {
+                result.Document = std::move(document);
+            }
         }
         catch (const nlohmann::json::exception& error)
         {
@@ -370,22 +385,20 @@ namespace Wayfinder
         try
         {
             const std::filesystem::path outputPath = std::filesystem::path(filePath);
-            const std::filesystem::path outputDirectory =
-                outputPath.has_parent_path() ? outputPath.parent_path() : std::filesystem::current_path();
+            const std::filesystem::path outputDirectory = outputPath.has_parent_path() ? outputPath.parent_path() : std::filesystem::current_path();
             nlohmann::json sceneData = nlohmann::json::object();
             nlohmann::json entitiesArray = nlohmann::json::array();
 
             sceneData[kVersionKey] = document.Version;
             sceneData[kSceneNameKey] = document.Name;
 
-            if (!document.Settings.empty()) { sceneData[kSettingsKey] = document.Settings; }
+            if (!document.Settings.empty())
+            {
+                sceneData[kSettingsKey] = document.Settings;
+            }
 
             std::vector<SceneDocumentEntity> sortedEntities = document.Entities;
-            std::sort(sortedEntities.begin(), sortedEntities.end(),
-                [](const SceneDocumentEntity& left, const SceneDocumentEntity& right)
-                {
-                    return left.Name < right.Name;
-                });
+            std::sort(sortedEntities.begin(), sortedEntities.end(), [](const SceneDocumentEntity& left, const SceneDocumentEntity& right) { return left.Name < right.Name; });
 
             for (const SceneDocumentEntity& entityRecord : sortedEntities)
             {
@@ -393,9 +406,15 @@ namespace Wayfinder
                 entityObj[kIdKey] = entityRecord.Id.ToString();
                 entityObj[kNameKey] = entityRecord.Name;
 
-                if (entityRecord.ParentId) { entityObj[kParentIdKey] = entityRecord.ParentId->ToString(); }
+                if (entityRecord.ParentId)
+                {
+                    entityObj[kParentIdKey] = entityRecord.ParentId->ToString();
+                }
 
-                if (entityRecord.PrefabAssetId) { entityObj[kPrefabIdKey] = entityRecord.PrefabAssetId->ToString(); }
+                if (entityRecord.PrefabAssetId)
+                {
+                    entityObj[kPrefabIdKey] = entityRecord.PrefabAssetId->ToString();
+                }
 
                 for (const auto& [key, value] : entityRecord.ComponentData.items())
                 {

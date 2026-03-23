@@ -4,7 +4,10 @@
 
 namespace Wayfinder
 {
-    void TransientResourcePool::Initialise(RenderDevice& device) { m_device = &device; }
+    void TransientResourcePool::Initialise(RenderDevice& device)
+    {
+        m_device = &device;
+    }
 
     void TransientResourcePool::Shutdown()
     {
@@ -38,7 +41,10 @@ namespace Wayfinder
 
         // Create a new texture
         GPUTextureHandle tex = m_device->CreateTexture(desc);
-        if (tex) { m_allTextures.push_back(tex); }
+        if (tex)
+        {
+            m_allTextures.push_back(tex);
+        }
         return tex;
     }
 

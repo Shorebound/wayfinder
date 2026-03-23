@@ -62,7 +62,10 @@ namespace Wayfinder
         TransformComponent& operator=(const TransformComponent&) = default;
         TransformComponent(const Float3& position) : Position(position) {}
 
-        Matrix4 GetLocalMatrix() const { return Maths::ComposeTransform(Position, Rotation, Scale); }
+        Matrix4 GetLocalMatrix() const
+        {
+            return Maths::ComposeTransform(Position, Rotation, Scale);
+        }
     };
 
     struct WorldTransformComponent

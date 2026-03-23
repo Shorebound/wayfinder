@@ -13,15 +13,13 @@ namespace Wayfinder
         GPUShaderHandle fs = shaders.GetShader(desc.fragmentShaderName, ShaderStage::Fragment, desc.fragmentResources);
         if (!vs || !fs)
         {
-            WAYFINDER_ERROR(
-                LogRenderer, "GPUPipeline: Failed to resolve shaders '{}' / '{}'", desc.vertexShaderName, desc.fragmentShaderName);
+            WAYFINDER_ERROR(LogRenderer, "GPUPipeline: Failed to resolve shaders '{}' / '{}'", desc.vertexShaderName, desc.fragmentShaderName);
             return false;
         }
 
         if (desc.numColourTargets == 0 || desc.numColourTargets > MAX_COLOUR_TARGETS)
         {
-            WAYFINDER_ERROR(
-                LogRenderer, "GPUPipeline: numColourTargets={} is out of range [1, {}]", desc.numColourTargets, MAX_COLOUR_TARGETS);
+            WAYFINDER_ERROR(LogRenderer, "GPUPipeline: numColourTargets={} is out of range [1, {}]", desc.numColourTargets, MAX_COLOUR_TARGETS);
             return false;
         }
 
@@ -79,7 +77,10 @@ namespace Wayfinder
 
     void GPUPipeline::Bind()
     {
-        if (m_device && m_pipeline) { m_device->BindPipeline(m_pipeline); }
+        if (m_device && m_pipeline)
+        {
+            m_device->BindPipeline(m_pipeline);
+        }
     }
 
 } // namespace Wayfinder
