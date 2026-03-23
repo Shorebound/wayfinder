@@ -17,7 +17,9 @@ runs:
       id: cache-dxc
       uses: actions/cache@v4
       with:
-        path: tools/shadercompiler/bin
+        path: |
+          tools/shadercompiler/bin
+          tools/shadercompiler/lib
         key: dxc-${{ runner.os }}-x64-${{ inputs.version }}
 
     - name: Download DXC (Linux)
@@ -35,9 +37,9 @@ runs:
         mkdir -p dxc-staging
         tar -xzf dxc.tar.gz -C dxc-staging
         if [ ! -f dxc-staging/bin/dxc ]; then echo "::error::bin/dxc not found in archive" && exit 1; fi
-        mkdir -p tools/shadercompiler/bin
+        mkdir -p tools/shadercompiler/bin tools/shadercompiler/lib
         cp dxc-staging/bin/dxc tools/shadercompiler/bin/
-        cp dxc-staging/lib/*.so tools/shadercompiler/bin/ 2>/dev/null || true
+        cp dxc-staging/lib/*.so* tools/shadercompiler/lib/ 2>/dev/null || true
         chmod +x tools/shadercompiler/bin/dxc
         rm -rf dxc-staging dxc.tar.gz
 
@@ -59,6 +61,13 @@ runs:
         Copy-Item "$x64Bin\*" "tools/shadercompiler/bin/x64/" -Recurse
         Remove-Item "dxc-staging", "dxc.zip" -Recurse -Force
 
+    - name: Set DXC library path (Linux)
+      if: runner.os == 'Linux'
+      shell: bash
+      run: |
+        lib_dir="$GITHUB_WORKSPACE/tools/shadercompiler/lib"
+        echo "LD_LIBRARY_PATH=${lib_dir}${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}" >> "$GITHUB_ENV"
+
     - name: Verify DXC
       shell: bash
       run: |
@@ -69,3 +78,4 @@ runs:
         fi
         if [ ! -f "$dxc" ]; then echo "::error::DXC not found at $dxc" && exit 1; fi
         echo "DXC ready at $dxc"
+        "$dxc" --help > /dev/null 2>&1 || true
