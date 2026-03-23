@@ -41,5 +41,5 @@ AccessModifierOffset: -4
 NamespaceIndentation: All
 FixNamespaceComments: false
 LambdaBodyIndentation: OuterScope
-BinPackArguments: false
-BinPackParameters: OnePerLine
+# BinPackArguments: true
+# BinPackParameters: OnePerLine
