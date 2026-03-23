@@ -11,38 +11,19 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  # ── Format Check ────────────────────────────────────────────────
+  # ── Format & Lint Check ─────────────────────────────────────────
   format-check:
-    name: Format Check
+    name: Format & Lint Check
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install clang-format
-        run: |
-          wget -qO- https://apt.llvm.org/llvm-snapshot.gpg.key | sudo tee /etc/apt/trusted.gpg.d/llvm.asc
-          . /etc/lsb-release
-          echo "deb http://apt.llvm.org/${DISTRIB_CODENAME}/ llvm-toolchain-${DISTRIB_CODENAME}-20 main" \
-            | sudo tee /etc/apt/sources.list.d/llvm-20.list
-          sudo apt-get update
-          sudo apt-get install -y clang-format-20
-          sudo update-alternatives --install /usr/bin/clang-format clang-format /usr/bin/clang-format-20 100
+      - name: Setup build environment
+        uses: ./.github/actions/setup-linux-build
 
-      - name: Find source files
-        run: |
-          find engine/ sandbox/ tests/ tools/ \
-            \( -name '*.cpp' -o -name '*.h' \) \
-            -not -path '*/thirdparty/*' \
-            -not -path '*/_deps/*' \
-            -not -path '*/shadercompiler/*' \
-            -print0 > /tmp/source_files.txt
-
-      - name: Run clang-format (dry run)
-        run: xargs -0 clang-format --dry-run --Werror < /tmp/source_files.txt
-
-      - name: Run format-fixup check
-        run: xargs -0 python3 tools/format-fixup.py --check < /tmp/source_files.txt
+      - name: Run lint checks
+        run: python3 tools/lint.py
 
   # ── Build & Test (Linux / Clang) ───────────────────────────────
   build-test-linux:
@@ -76,6 +57,22 @@ jobs:
       - name: Test
         run: ctest --preset ci-linux-test --output-on-failure
 
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results-linux
+          path: build/test-results.xml
+          if-no-files-found: warn
+
+      - name: Report test results
+        if: always()
+        uses: mikepenz/action-junit-report@v5
+        with:
+          report_paths: build/test-results.xml
+          check_name: Test Results (Linux)
+          fail_on_failure: true
+
   # ── Build & Test (Windows / MSVC) ──────────────────────────────
   build-test-windows:
     name: Windows (MSVC)
@@ -107,6 +104,22 @@ jobs:
 
       - name: Test
         run: ctest --preset ci-windows-test --output-on-failure
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results-windows
+          path: build/test-results.xml
+          if-no-files-found: warn
+
+      - name: Report test results
+        if: always()
+        uses: mikepenz/action-junit-report@v5
+        with:
+          report_paths: build/test-results.xml
+          check_name: Test Results (Windows)
+          fail_on_failure: true
 
   # ── Static Analysis (clang-tidy) ───────────────────────────────
   static-analysis:
@@ -167,11 +180,10 @@ jobs:
         run: |
           set -o pipefail
           cat /tmp/changed_files.txt \
-            | xargs clang-tidy -p build --warnings-as-errors='' 2>&1 \
+            | xargs -d '\n' clang-tidy -p build 2>&1 \
             | tee /tmp/clang-tidy-output.txt
 
-          # For now, report but don't fail. Uncomment to enforce:
-          # if grep -q 'warning:' /tmp/clang-tidy-output.txt; then
-          #   echo "::error::clang-tidy reported warnings on changed files"
-          #   exit 1
-          # fi
+          if grep -q 'warning:' /tmp/clang-tidy-output.txt; then
+            echo "::error::clang-tidy reported warnings on changed files"
+            exit 1
+          fi

@@ -29,7 +29,7 @@ from pathlib import Path
 # Directories to scan for source files.
 SOURCE_DIRS = ['engine', 'sandbox', 'tests', 'tools']
 SOURCE_EXTENSIONS = {'.cpp', '.h'}
-EXCLUDE_DIRS = {'thirdparty', '_deps', 'build'}
+EXCLUDE_DIRS = {'thirdparty', '_deps', 'build', 'shadercompiler'}
 
 # Direct includes of these headers are banned — use the wrapper instead.
 # Each entry: (regex matching the banned include, allowed wrapper file, replacement include).
@@ -81,8 +81,8 @@ def _bold(text: str) -> str:
 
 
 def _find_tool(name: str) -> str | None:
-    """Find a tool, preferring the versioned -18 variant."""
-    versioned = f'{name}-18'
+    """Find a tool, preferring the versioned -20 variant."""
+    versioned = f'{name}-20'
     if shutil.which(versioned):
         return versioned
     if shutil.which(name):
@@ -282,14 +282,14 @@ def main() -> int:
     # Find tools.
     clang_format = _find_tool('clang-format')
     if not clang_format:
-        print(_red('clang-format not found. Install clang-format-18.'), file=sys.stderr)
+        print(_red('clang-format not found. Install clang-format-20.'), file=sys.stderr)
         return 2
 
     clang_tidy = None
     if args.tidy:
         clang_tidy = _find_tool('clang-tidy')
         if not clang_tidy:
-            print(_red('clang-tidy not found. Install clang-tidy-18.'), file=sys.stderr)
+            print(_red('clang-tidy not found. Install clang-tidy-20.'), file=sys.stderr)
             return 2
 
     # Discover files.

@@ -160,19 +160,37 @@
             "name": "test",
             "displayName": "Run Tests (Debug)",
             "configurePreset": "dev",
-            "configuration": "Debug"
+            "configuration": "Debug",
+            "output": {
+                "outputJUnitFile": "test-results.xml"
+            }
         },
         {
             "name": "ci-linux-test",
             "displayName": "Run Tests (CI Linux)",
             "configurePreset": "ci-linux",
-            "configuration": "Debug"
+            "configuration": "Debug",
+            "output": {
+                "outputJUnitFile": "test-results.xml"
+            }
         },
         {
             "name": "ci-windows-test",
             "displayName": "Run Tests (CI Windows)",
             "configurePreset": "ci-windows",
-            "configuration": "Debug"
+            "configuration": "Debug",
+            "output": {
+                "outputJUnitFile": "test-results.xml"
+            }
+        },
+        {
+            "name": "clang-test",
+            "displayName": "Run Tests (Clang)",
+            "configurePreset": "dev-clang",
+            "configuration": "Debug",
+            "output": {
+                "outputJUnitFile": "test-results.xml"
+            }
         }
     ]
 }
