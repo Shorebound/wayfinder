@@ -5,6 +5,7 @@
 #include "LayerStack.h"
 #include "core/Assert.h"
 #include "core/Log.h"
+#include "core/Profiling.h"
 #include "core/events/ApplicationEvent.h"
 #include "core/events/KeyEvent.h"
 #include "core/events/MouseEvent.h"
@@ -146,6 +147,7 @@ namespace Wayfinder
             }
 
             m_runtime->EndFrame();
+            WAYFINDER_PROFILE_FRAME_MARK();
             m_running = m_game->IsRunning();
         }
     }

@@ -19,7 +19,8 @@
                 "WAYFINDER_BUILD_TESTS": "ON",
                 "WAYFINDER_BUILD_EDITOR": "OFF",
                 "WAYFINDER_BUILD_RUNTIME": "OFF",
-                "WAYFINDER_BUILD_SAMPLES": "OFF"
+                "WAYFINDER_BUILD_SAMPLES": "OFF",
+                "WAYFINDER_ENABLE_PROFILING": "ON"
             }
         },
         {

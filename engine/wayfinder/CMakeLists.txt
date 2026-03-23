@@ -79,6 +79,7 @@ set(ENGINE_ALL_SOURCES
   src/core/InternedString.h
   src/core/Log.cpp
   src/core/Log.h
+  src/core/Profiling.h
   src/core/ResourcePool.h
   src/core/Result.h
   src/core/Types.h
@@ -292,6 +293,10 @@ target_link_libraries(${ENGINE_NAME}
     PRIVATE
       SDL3_image::SDL3_image-static
 )
+
+if(WAYFINDER_ENABLE_PROFILING)
+    target_link_libraries(${ENGINE_NAME} PUBLIC TracyClient)
+endif()
 
 if(WAYFINDER_ENABLE_LOGGING)
     target_link_libraries(${ENGINE_NAME} PUBLIC spdlog::spdlog)

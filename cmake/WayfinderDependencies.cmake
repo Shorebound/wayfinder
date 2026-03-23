@@ -76,6 +76,12 @@ CPMAddPackage(
 )
 
 # --- Tracy ---
+if(WAYFINDER_ENABLE_PROFILING)
+    set(TRACY_ENABLE ON CACHE BOOL "" FORCE)
+else()
+    set(TRACY_ENABLE OFF CACHE BOOL "" FORCE)
+endif()
+
 CPMAddPackage(
     NAME tracy
     GITHUB_REPOSITORY wolfpld/tracy
