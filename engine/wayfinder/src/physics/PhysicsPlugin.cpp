@@ -464,16 +464,16 @@ namespace Wayfinder::Physics
                     return;
                 }
 
-                Float3 pos = physics->GetWorld().GetBodyPosition(rb.RuntimeBodyId);
-                Float4 rotQ = physics->GetWorld().GetBodyRotation(rb.RuntimeBodyId);
+                const Float3 pos = physics->GetWorld().GetBodyPosition(rb.RuntimeBodyId);
+                const Float4 rotQ = physics->GetWorld().GetBodyRotation(rb.RuntimeBodyId);
 
                 wt.Position = pos;
 
                 // Build LocalToWorld = translate * rotate * scale.
-                Quaternion q(rotQ.w, rotQ.x, rotQ.y, rotQ.z);
-                Matrix4 rotMat = Maths::ToMatrix4(q);
-                Matrix4 translateMat = Maths::Translate(Matrix4(1.0f), pos);
-                Matrix4 scaleMat = Maths::ScaleMatrix(Matrix4(1.0f), wt.Scale);
+                const Quaternion q(rotQ.w, rotQ.x, rotQ.y, rotQ.z);
+                const Matrix4 rotMat = Maths::ToMatrix4(q);
+                const Matrix4 translateMat = Maths::Translate(Matrix4(1.0f), pos);
+                const Matrix4 scaleMat = Maths::ScaleMatrix(Matrix4(1.0f), wt.Scale);
                 wt.LocalToWorld = translateMat * rotMat * scaleMat;
             });
         }, {}, {"PhysicsStep"});

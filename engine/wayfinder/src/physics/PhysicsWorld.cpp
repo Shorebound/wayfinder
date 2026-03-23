@@ -48,12 +48,12 @@ namespace Wayfinder::Physics
             m_objectToBroadPhase[PhysicsLayers::MOVING] = BroadPhaseLayers::MOVING;
         }
 
-        JPH::uint GetNumBroadPhaseLayers() const override
+        [[nodiscard]] JPH::uint GetNumBroadPhaseLayers() const override
         {
             return BroadPhaseLayers::NUM_LAYERS;
         }
 
-        JPH::BroadPhaseLayer GetBroadPhaseLayer(JPH::ObjectLayer inLayer) const override
+        [[nodiscard]] JPH::BroadPhaseLayer GetBroadPhaseLayer(JPH::ObjectLayer inLayer) const override
         {
             JPH_ASSERT(inLayer < PhysicsLayers::NUM_LAYERS);
             if (inLayer >= PhysicsLayers::NUM_LAYERS)
@@ -63,7 +63,7 @@ namespace Wayfinder::Physics
             return m_objectToBroadPhase[inLayer];
         }
 
-        const char* GetBroadPhaseLayerName(JPH::BroadPhaseLayer inLayer) const override
+        [[nodiscard]] const char* GetBroadPhaseLayerName(JPH::BroadPhaseLayer inLayer) const override
         {
             switch (static_cast<JPH::BroadPhaseLayer::Type>(inLayer))
             {
@@ -77,13 +77,13 @@ namespace Wayfinder::Physics
         }
 
     private:
-        JPH::BroadPhaseLayer m_objectToBroadPhase[PhysicsLayers::NUM_LAYERS];
+        JPH::BroadPhaseLayer m_objectToBroadPhase[PhysicsLayers::NUM_LAYERS]{};
     };
 
     class ObjectVsBroadPhaseLayerFilterImpl final : public JPH::ObjectVsBroadPhaseLayerFilter
     {
     public:
-        bool ShouldCollide(JPH::ObjectLayer inLayer1, JPH::BroadPhaseLayer inLayer2) const override
+        [[nodiscard]] bool ShouldCollide(JPH::ObjectLayer inLayer1, JPH::BroadPhaseLayer inLayer2) const override
         {
             switch (inLayer1)
             {
@@ -100,7 +100,7 @@ namespace Wayfinder::Physics
     class ObjectLayerPairFilterImpl final : public JPH::ObjectLayerPairFilter
     {
     public:
-        bool ShouldCollide(JPH::ObjectLayer inLayer1, JPH::ObjectLayer inLayer2) const override
+        [[nodiscard]] bool ShouldCollide(JPH::ObjectLayer inLayer1, JPH::ObjectLayer inLayer2) const override
         {
             switch (inLayer1)
             {
@@ -155,7 +155,7 @@ namespace Wayfinder::Physics
         std::unique_ptr<JPH::JobSystemSingleThreaded> JobSys;
 
         BPLayerInterfaceImpl BroadPhaseLayerIface;
-        ObjectVsBroadPhaseLayerFilterImpl ObjVsBPFilter;
+        ObjectVsBroadPhaseLayerFilterImpl ObjVsBpFilter;
         ObjectLayerPairFilterImpl ObjPairFilter;
     };
 
@@ -184,7 +184,7 @@ namespace Wayfinder::Physics
         m_impl->JobSys = std::make_unique<JPH::JobSystemSingleThreaded>(JPH::cMaxPhysicsJobs);
 
         m_impl->PhysSystem = std::make_unique<JPH::PhysicsSystem>();
-        m_impl->PhysSystem->Init(Impl::MAX_BODIES, Impl::NUM_BODY_MUTEXES, Impl::MAX_BODY_PAIRS, Impl::MAX_CONTACT_CONSTRAINTS, m_impl->BroadPhaseLayerIface, m_impl->ObjVsBPFilter, m_impl->ObjPairFilter);
+        m_impl->PhysSystem->Init(Impl::MAX_BODIES, Impl::NUM_BODY_MUTEXES, Impl::MAX_BODY_PAIRS, Impl::MAX_CONTACT_CONSTRAINTS, m_impl->BroadPhaseLayerIface, m_impl->ObjVsBpFilter, m_impl->ObjPairFilter);
 
         m_accumulator = 0.0f;
         m_initialised = true;
@@ -300,10 +300,10 @@ namespace Wayfinder::Physics
         // Jolt's sEulerAngles applies rotations in X-Y-Z intrinsic order.
         // TransformComponent.Local.RotationDegrees stores degrees in the same convention
         // as Maths::ComposeTransform (Z-Y-X extrinsic = X-Y-Z intrinsic).
-        float rx = Maths::ToRadians(rotationDegrees.x);
-        float ry = Maths::ToRadians(rotationDegrees.y);
-        float rz = Maths::ToRadians(rotationDegrees.z);
-        JPH::Quat rotation = JPH::Quat::sEulerAngles(JPH::Vec3(rx, ry, rz));
+        const float rx = Maths::ToRadians(rotationDegrees.x);
+        const float ry = Maths::ToRadians(rotationDegrees.y);
+        const float rz = Maths::ToRadians(rotationDegrees.z);
+        const JPH::Quat rotation = JPH::Quat::sEulerAngles(JPH::Vec3(rx, ry, rz));
 
         JPH::BodyCreationSettings settings(shape, JPH::RVec3(position.x, position.y, position.z), rotation, motionType, objectLayer);
 
@@ -329,14 +329,14 @@ namespace Wayfinder::Physics
         }
 
         JPH::BodyInterface& bodyInterface = m_impl->PhysSystem->GetBodyInterface();
-        JPH::Body* joltBody = bodyInterface.CreateBody(settings);
+        const JPH::Body* joltBody = bodyInterface.CreateBody(settings);
         if (!joltBody)
         {
             WAYFINDER_ERROR(LogPhysics, "Failed to create Jolt body (type={}, shape={}, pos=[{},{},{}])", static_cast<int>(desc.Type), static_cast<int>(desc.Shape), position.x, position.y, position.z);
             return INVALID_PHYSICS_BODY;
         }
 
-        JPH::BodyID id = joltBody->GetID();
+        const JPH::BodyID id = joltBody->GetID();
         bodyInterface.AddBody(id, JPH::EActivation::Activate);
         return id.GetIndexAndSequenceNumber();
     }
@@ -349,7 +349,7 @@ namespace Wayfinder::Physics
         }
 
         JPH::BodyInterface& bodyInterface = m_impl->PhysSystem->GetBodyInterface();
-        JPH::BodyID joltId(bodyId);
+        const JPH::BodyID joltId(bodyId);
         bodyInterface.RemoveBody(joltId);
         bodyInterface.DestroyBody(joltId);
     }
@@ -362,8 +362,8 @@ namespace Wayfinder::Physics
         }
 
         const JPH::BodyInterface& bodyInterface = m_impl->PhysSystem->GetBodyInterface();
-        JPH::RVec3 pos = bodyInterface.GetPosition(JPH::BodyID(bodyId));
-        return {static_cast<float>(pos.GetX()), static_cast<float>(pos.GetY()), static_cast<float>(pos.GetZ())};
+        const JPH::RVec3 pos = bodyInterface.GetPosition(JPH::BodyID(bodyId));
+        return {pos.GetX(), pos.GetY(), pos.GetZ()};
     }
 
     Float4 PhysicsWorld::GetBodyRotation(uint32_t bodyId) const
@@ -374,7 +374,7 @@ namespace Wayfinder::Physics
         }
 
         const JPH::BodyInterface& bodyInterface = m_impl->PhysSystem->GetBodyInterface();
-        JPH::Quat rot = bodyInterface.GetRotation(JPH::BodyID(bodyId));
+        const JPH::Quat rot = bodyInterface.GetRotation(JPH::BodyID(bodyId));
         return {rot.GetX(), rot.GetY(), rot.GetZ(), rot.GetW()};
     }
 

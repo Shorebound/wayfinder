@@ -73,13 +73,13 @@ CheckOptions:
   - key: readability-identifier-naming.MethodCase
     value: CamelCase
 
-  # Members — m_ prefix for private/protected, PascalCase for public
+  # Members — m_ prefix for private/protected, camelCase after the prefix
   - key: readability-identifier-naming.PrivateMemberCase
-    value: CamelCase
+    value: camelBack
   - key: readability-identifier-naming.PrivateMemberPrefix
     value: m_
   - key: readability-identifier-naming.ProtectedMemberCase
-    value: CamelCase
+    value: camelBack
   - key: readability-identifier-naming.ProtectedMemberPrefix
     value: m_
   - key: readability-identifier-naming.PublicMemberCase
