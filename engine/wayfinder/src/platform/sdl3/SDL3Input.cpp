@@ -40,13 +40,17 @@ namespace Wayfinder
         {
             const int count = (numKeys < kMaxScancodes) ? numKeys : kMaxScancodes;
             for (int i = 0; i < count; ++i)
+            {
                 m_currentKeys[i] = sdlKeys[i];
+            }
         }
 
         // Sample current mouse button state
         SDL_MouseButtonFlags mouseState = SDL_GetMouseState(nullptr, nullptr);
         for (int i = 1; i < kMaxMouseButtons; ++i)
+        {
             m_currentMouseButtons[i] = (mouseState & SDL_BUTTON_MASK(i)) != 0;
+        }
 
         // Reset scroll accumulator
         m_scrollX = 0.0f;
@@ -55,49 +59,73 @@ namespace Wayfinder
 
     bool SDL3Input::IsKeyPressed(KeyCode key) const
     {
-        if (key >= kMaxScancodes) return false;
+        if (key >= kMaxScancodes)
+        {
+            return false;
+        }
         return m_currentKeys[key] && !m_previousKeys[key];
     }
 
     bool SDL3Input::IsKeyDown(KeyCode key) const
     {
-        if (key >= kMaxScancodes) return false;
+        if (key >= kMaxScancodes)
+        {
+            return false;
+        }
         return m_currentKeys[key];
     }
 
     bool SDL3Input::IsKeyReleased(KeyCode key) const
     {
-        if (key >= kMaxScancodes) return false;
+        if (key >= kMaxScancodes)
+        {
+            return false;
+        }
         return !m_currentKeys[key] && m_previousKeys[key];
     }
 
     bool SDL3Input::IsKeyUp(KeyCode key) const
     {
-        if (key >= kMaxScancodes) return false;
+        if (key >= kMaxScancodes)
+        {
+            return false;
+        }
         return !m_currentKeys[key];
     }
 
     bool SDL3Input::IsMouseButtonPressed(MouseCode button) const
     {
-        if (button >= kMaxMouseButtons) return false;
+        if (button >= kMaxMouseButtons)
+        {
+            return false;
+        }
         return m_currentMouseButtons[button] && !m_previousMouseButtons[button];
     }
 
     bool SDL3Input::IsMouseButtonDown(MouseCode button) const
     {
-        if (button >= kMaxMouseButtons) return false;
+        if (button >= kMaxMouseButtons)
+        {
+            return false;
+        }
         return m_currentMouseButtons[button];
     }
 
     bool SDL3Input::IsMouseButtonReleased(MouseCode button) const
     {
-        if (button >= kMaxMouseButtons) return false;
+        if (button >= kMaxMouseButtons)
+        {
+            return false;
+        }
         return !m_currentMouseButtons[button] && m_previousMouseButtons[button];
     }
 
     bool SDL3Input::IsMouseButtonUp(MouseCode button) const
     {
-        if (button >= kMaxMouseButtons) return false;
+        if (button >= kMaxMouseButtons)
+        {
+            return false;
+        }
         return !m_currentMouseButtons[button];
     }
 

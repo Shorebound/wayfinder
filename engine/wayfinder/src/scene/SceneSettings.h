@@ -27,7 +27,10 @@ namespace Wayfinder
         {
             const std::string k{key};
             auto it = m_data.find(k);
-            if (it == m_data.end()) return std::nullopt;
+            if (it == m_data.end())
+            {
+                return std::nullopt;
+            }
             try
             {
                 return it->get<T>();
@@ -44,7 +47,10 @@ namespace Wayfinder
         {
             const std::string k{key};
             auto it = m_data.find(k);
-            if (it == m_data.end()) return defaultValue;
+            if (it == m_data.end())
+            {
+                return defaultValue;
+            }
             try
             {
                 return it->get<T>();

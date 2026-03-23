@@ -75,15 +75,25 @@ namespace Wayfinder
                 const auto& b = std::get<T>(target);
 
                 if constexpr (std::is_same_v<T, float>)
+                {
                     return Maths::Mix(a, b, weight);
+                }
                 else if constexpr (std::is_same_v<T, int32_t>)
+                {
                     return static_cast<int32_t>(std::round(Maths::Mix(static_cast<float>(a), static_cast<float>(b), weight)));
+                }
                 else if constexpr (std::is_same_v<T, Wayfinder::Float3>)
+                {
                     return Maths::Mix(a, b, weight);
+                }
                 else if constexpr (std::is_same_v<T, Wayfinder::Colour>)
+                {
                     return LerpColour(a, b, weight);
+                }
                 else
+                {
                     return b;
+                }
             },
             current);
     }
@@ -94,15 +104,25 @@ namespace Wayfinder
             {
                 using T = std::decay_t<decltype(val)>;
                 if constexpr (std::is_same_v<T, float>)
+                {
                     return 0.0f;
+                }
                 else if constexpr (std::is_same_v<T, int32_t>)
+                {
                     return int32_t{0};
+                }
                 else if constexpr (std::is_same_v<T, Wayfinder::Float3>)
+                {
                     return Wayfinder::Float3{0.0f, 0.0f, 0.0f};
+                }
                 else if constexpr (std::is_same_v<T, Wayfinder::Colour>)
+                {
                     return Wayfinder::Colour{0, 0, 0, 0};
+                }
                 else
+                {
                     return val;
+                }
             },
             v);
     }
@@ -131,34 +151,64 @@ namespace Wayfinder
     float PostProcessEffect::GetFloat(const std::string& name, float fallback) const
     {
         auto it = Parameters.find(name);
-        if (it == Parameters.end()) return fallback;
-        if (const auto* v = std::get_if<float>(&it->second)) return *v;
-        if (const auto* v = std::get_if<int32_t>(&it->second)) return static_cast<float>(*v);
+        if (it == Parameters.end())
+        {
+            return fallback;
+        }
+        if (const auto* v = std::get_if<float>(&it->second))
+        {
+            return *v;
+        }
+        if (const auto* v = std::get_if<int32_t>(&it->second))
+        {
+            return static_cast<float>(*v);
+        }
         return fallback;
     }
 
     int32_t PostProcessEffect::GetInt(const std::string& name, int32_t fallback) const
     {
         auto it = Parameters.find(name);
-        if (it == Parameters.end()) return fallback;
-        if (const auto* v = std::get_if<int32_t>(&it->second)) return *v;
-        if (const auto* v = std::get_if<float>(&it->second)) return static_cast<int32_t>(*v);
+        if (it == Parameters.end())
+        {
+            return fallback;
+        }
+        if (const auto* v = std::get_if<int32_t>(&it->second))
+        {
+            return *v;
+        }
+        if (const auto* v = std::get_if<float>(&it->second))
+        {
+            return static_cast<int32_t>(*v);
+        }
         return fallback;
     }
 
     Float3 PostProcessEffect::GetFloat3(const std::string& name, const Float3& fallback) const
     {
         auto it = Parameters.find(name);
-        if (it == Parameters.end()) return fallback;
-        if (const auto* v = std::get_if<Float3>(&it->second)) return *v;
+        if (it == Parameters.end())
+        {
+            return fallback;
+        }
+        if (const auto* v = std::get_if<Float3>(&it->second))
+        {
+            return *v;
+        }
         return fallback;
     }
 
     Colour PostProcessEffect::GetColour(const std::string& name, const Colour& fallback) const
     {
         auto it = Parameters.find(name);
-        if (it == Parameters.end()) return fallback;
-        if (const auto* v = std::get_if<Colour>(&it->second)) return *v;
+        if (it == Parameters.end())
+        {
+            return fallback;
+        }
+        if (const auto* v = std::get_if<Colour>(&it->second))
+        {
+            return *v;
+        }
         return fallback;
     }
 
@@ -191,11 +241,18 @@ namespace Wayfinder
         sorted.reserve(volumes.size());
         for (const auto& instance : volumes)
         {
-            if (!instance.Volume) continue;
+            if (!instance.Volume)
+            {
+                continue;
+            }
             sorted.push_back(&instance);
         }
 
-        std::stable_sort(sorted.begin(), sorted.end(), [](const auto* a, const auto* b) { return a->Volume->Priority < b->Volume->Priority; });
+        std::stable_sort(sorted.begin(), sorted.end(),
+            [](const auto* a, const auto* b)
+            {
+                return a->Volume->Priority < b->Volume->Priority;
+            });
 
         for (const auto* instance : sorted)
         {

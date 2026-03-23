@@ -86,13 +86,25 @@ namespace Wayfinder::Tests
 
             ModuleRegistry::StateDescriptor menuState;
             menuState.Name = "MainMenu";
-            menuState.OnEnter = [&](flecs::world&) { callLog.push_back("MainMenu.OnEnter"); };
-            menuState.OnExit = [&](flecs::world&) { callLog.push_back("MainMenu.OnExit"); };
+            menuState.OnEnter = [&](flecs::world&)
+            {
+                callLog.push_back("MainMenu.OnEnter");
+            };
+            menuState.OnExit = [&](flecs::world&)
+            {
+                callLog.push_back("MainMenu.OnExit");
+            };
 
             ModuleRegistry::StateDescriptor gameState;
             gameState.Name = "InGame";
-            gameState.OnEnter = [&](flecs::world&) { callLog.push_back("InGame.OnEnter"); };
-            gameState.OnExit = [&](flecs::world&) { callLog.push_back("InGame.OnExit"); };
+            gameState.OnEnter = [&](flecs::world&)
+            {
+                callLog.push_back("InGame.OnEnter");
+            };
+            gameState.OnExit = [&](flecs::world&)
+            {
+                callLog.push_back("InGame.OnExit");
+            };
 
             registry.RegisterState(std::move(menuState));
             registry.RegisterState(std::move(gameState));
@@ -124,7 +136,10 @@ namespace Wayfinder::Tests
 
             ModuleRegistry::StateDescriptor menuState;
             menuState.Name = "MainMenu";
-            menuState.OnEnter = [&](flecs::world&) { callLog.push_back("MainMenu.OnEnter"); };
+            menuState.OnEnter = [&](flecs::world&)
+            {
+                callLog.push_back("MainMenu.OnEnter");
+            };
 
             registry.RegisterState(std::move(menuState));
             registry.SetInitialState("MainMenu");

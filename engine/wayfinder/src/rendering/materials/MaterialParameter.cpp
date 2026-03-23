@@ -13,28 +13,46 @@ namespace Wayfinder
                     using T = std::decay_t<decltype(v)>;
                     if constexpr (std::is_same_v<T, float>)
                     {
-                        if (maxBytes >= sizeof(float)) std::memcpy(dst, &v, sizeof(float));
+                        if (maxBytes >= sizeof(float))
+                        {
+                            std::memcpy(dst, &v, sizeof(float));
+                        }
                     }
                     else if constexpr (std::is_same_v<T, Float2>)
                     {
-                        if (maxBytes >= sizeof(Float2)) std::memcpy(dst, &v, sizeof(Float2));
+                        if (maxBytes >= sizeof(Float2))
+                        {
+                            std::memcpy(dst, &v, sizeof(Float2));
+                        }
                     }
                     else if constexpr (std::is_same_v<T, Float3>)
                     {
-                        if (maxBytes >= sizeof(Float3)) std::memcpy(dst, &v, sizeof(Float3));
+                        if (maxBytes >= sizeof(Float3))
+                        {
+                            std::memcpy(dst, &v, sizeof(Float3));
+                        }
                     }
                     else if constexpr (std::is_same_v<T, Float4>)
                     {
-                        if (maxBytes >= sizeof(Float4)) std::memcpy(dst, &v, sizeof(Float4));
+                        if (maxBytes >= sizeof(Float4))
+                        {
+                            std::memcpy(dst, &v, sizeof(Float4));
+                        }
                     }
                     else if constexpr (std::is_same_v<T, LinearColour>)
                     {
                         // LinearColour has the same layout as float4
-                        if (maxBytes >= sizeof(LinearColour)) std::memcpy(dst, &v, sizeof(LinearColour));
+                        if (maxBytes >= sizeof(LinearColour))
+                        {
+                            std::memcpy(dst, &v, sizeof(LinearColour));
+                        }
                     }
                     else if constexpr (std::is_same_v<T, int32_t>)
                     {
-                        if (maxBytes >= sizeof(int32_t)) std::memcpy(dst, &v, sizeof(int32_t));
+                        if (maxBytes >= sizeof(int32_t))
+                        {
+                            std::memcpy(dst, &v, sizeof(int32_t));
+                        }
                     }
                 },
                 value);
@@ -47,7 +65,10 @@ namespace Wayfinder
 
         for (const auto& decl : decls)
         {
-            if (decl.Offset >= bufferSize) continue;
+            if (decl.Offset >= bufferSize)
+            {
+                continue;
+            }
 
             const uint32_t remaining = bufferSize - decl.Offset;
             auto it = Values.find(decl.Name);

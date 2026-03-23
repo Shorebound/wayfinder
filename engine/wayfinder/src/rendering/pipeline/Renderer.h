@@ -39,7 +39,11 @@ namespace Wayfinder
         template<typename T>
         bool RemoveFeature()
         {
-            auto it = std::find_if(m_features.begin(), m_features.end(), [](const std::unique_ptr<RenderFeature>& f) { return dynamic_cast<T*>(f.get()) != nullptr; });
+            auto it = std::find_if(m_features.begin(), m_features.end(),
+                [](const std::unique_ptr<RenderFeature>& f)
+                {
+                    return dynamic_cast<T*>(f.get()) != nullptr;
+                });
             if (it != m_features.end())
             {
                 if (m_device)
@@ -58,7 +62,10 @@ namespace Wayfinder
         {
             for (const auto& f : m_features)
             {
-                if (auto* ptr = dynamic_cast<const T*>(f.get())) return ptr;
+                if (auto* ptr = dynamic_cast<const T*>(f.get()))
+                {
+                    return ptr;
+                }
             }
             return nullptr;
         }
@@ -68,7 +75,10 @@ namespace Wayfinder
         {
             for (auto& f : m_features)
             {
-                if (auto* ptr = dynamic_cast<T*>(f.get())) return ptr;
+                if (auto* ptr = dynamic_cast<T*>(f.get()))
+                {
+                    return ptr;
+                }
             }
             return nullptr;
         }

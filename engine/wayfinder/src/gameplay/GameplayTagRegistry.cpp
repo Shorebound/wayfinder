@@ -11,7 +11,10 @@ namespace Wayfinder
         if (auto it = m_index.find(name); it != m_index.end())
         {
             // Update existing definition (code overrides data comment if non-empty).
-            if (!comment.empty()) m_definitions[it->second].Comment = comment;
+            if (!comment.empty())
+            {
+                m_definitions[it->second].Comment = comment;
+            }
             // Mark as code-owned so UnloadTagFile() won't remove it.
             m_definitions[it->second].SourceFile = "(code)";
             return GameplayTag::FromName(name);
@@ -46,7 +49,10 @@ namespace Wayfinder
             for (const toml::node& node : *tags)
             {
                 const toml::table* entry = node.as_table();
-                if (!entry) continue;
+                if (!entry)
+                {
+                    continue;
+                }
 
                 const auto name = (*entry)["name"].value<std::string>();
                 if (!name || name->empty())
@@ -62,10 +68,16 @@ namespace Wayfinder
                 if (auto it = m_index.find(*name); it != m_index.end())
                 {
                     auto& def = m_definitions[it->second];
-                    if (!comment.empty()) def.Comment = comment;
+                    if (!comment.empty())
+                    {
+                        def.Comment = comment;
+                    }
                     // Only overwrite SourceFile for definitions that were not
                     // registered from code, so UnloadTagFile won't erase them.
-                    if (def.SourceFile != "(code)") def.SourceFile = canonical;
+                    if (def.SourceFile != "(code)")
+                    {
+                        def.SourceFile = canonical;
+                    }
                 }
                 else
                 {
@@ -93,12 +105,18 @@ namespace Wayfinder
         const std::string canonical = std::filesystem::weakly_canonical(path).string();
 
         // Remove definitions sourced from this file
-        std::erase_if(m_definitions, [&](const GameplayTagDefinition& def) { return def.SourceFile == canonical; });
+        std::erase_if(m_definitions,
+            [&](const GameplayTagDefinition& def)
+            {
+                return def.SourceFile == canonical;
+            });
 
         // Rebuild index
         m_index.clear();
         for (size_t i = 0; i < m_definitions.size(); ++i)
+        {
             m_index[m_definitions[i].Name] = i;
+        }
 
         // Remove from loaded file list
         std::erase(m_loadedFiles, canonical);
@@ -126,7 +144,10 @@ namespace Wayfinder
 
     const GameplayTagDefinition* GameplayTagRegistry::FindDefinition(const std::string& name) const
     {
-        if (const auto it = m_index.find(name); it != m_index.end()) return &m_definitions[it->second];
+        if (const auto it = m_index.find(name); it != m_index.end())
+        {
+            return &m_definitions[it->second];
+        }
         return nullptr;
     }
 

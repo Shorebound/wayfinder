@@ -140,10 +140,16 @@ namespace Wayfinder
     {
         binding.ResolvedTextures.clear();
 
-        if (!m_textureManager || !m_programs) return;
+        if (!m_textureManager || !m_programs)
+        {
+            return;
+        }
 
         const ShaderProgram* program = m_programs->FindOrDefault(binding.ShaderName);
-        if (!program) return;
+        if (!program)
+        {
+            return;
+        }
 
         // Track which authored texture keys are consumed by the shader
         std::unordered_set<std::string> consumedSlots;

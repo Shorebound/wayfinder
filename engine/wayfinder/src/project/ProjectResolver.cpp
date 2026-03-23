@@ -63,7 +63,10 @@ namespace Wayfinder
             }
 
             const auto parent = searchDir.parent_path();
-            if (parent == searchDir) break; // reached filesystem root
+            if (parent == searchDir)
+            {
+                break; // reached filesystem root
+            }
 
             searchDir = parent;
         }
@@ -102,7 +105,10 @@ namespace Wayfinder
             }
 
             const auto parent = searchDir.parent_path();
-            if (parent == searchDir) break;
+            if (parent == searchDir)
+            {
+                break;
+            }
 
             searchDir = parent;
         }

@@ -21,6 +21,12 @@ Handles formatting patterns that clang-format cannot enforce:
            body               });
        });
 
+       Dispatch<Foo>(         Dispatch<Foo>([](Foo& value)
+           [](Foo& value) →   {
+       {                         body
+           body               });
+       });
+
 Usage:
     python format-fixup.py [--check] <file>...
 
@@ -42,10 +48,14 @@ EMPTY_BODY = re.compile(
 # call, such as:
 #     .each(
 #         [capture](params)
+# or:
+#     Dispatch<Foo>(
+#         [capture](params)
 # which should become:
 #     .each([capture](params)
+#     Dispatch<Foo>([capture](params)
 LAMBDA_ARG_SPLIT = re.compile(
-    r'^([^\S\r\n]*)(.*\w\()[ \t]*\r?\n[^\S\r\n]+(\[)',
+    r'^([^\S\r\n]*)(.*\()[ \t]*\r?\n[^\S\r\n]+(\[)',
     re.MULTILINE,
 )
 

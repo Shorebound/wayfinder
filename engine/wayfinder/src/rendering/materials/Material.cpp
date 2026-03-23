@@ -100,7 +100,10 @@ namespace Wayfinder
         auto it = Parameters.Values.find("base_colour");
         if (it != Parameters.Values.end())
         {
-            if (const auto* c = std::get_if<LinearColour>(&it->second)) return *c;
+            if (const auto* c = std::get_if<LinearColour>(&it->second))
+            {
+                return *c;
+            }
         }
         return LinearColour::White();
     }

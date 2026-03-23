@@ -150,8 +150,14 @@ namespace Wayfinder
 
     void Renderer::Render(const RenderFrame& frame)
     {
-        if (!m_isInitialised || !m_device) return;
-        if (!m_device->BeginFrame()) return;
+        if (!m_isInitialised || !m_device)
+        {
+            return;
+        }
+        if (!m_device->BeginFrame())
+        {
+            return;
+        }
 
         m_context->GetTransientBuffers().BeginFrame();
 

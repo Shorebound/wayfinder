@@ -20,11 +20,17 @@ namespace Wayfinder::Tests
     public:
         void Initialise() override
         {
-            if (s_log) s_log->Events.push_back("A.Init");
+            if (s_log)
+            {
+                s_log->Events.push_back("A.Init");
+            }
         }
         void Shutdown() override
         {
-            if (s_log) s_log->Events.push_back("A.Shutdown");
+            if (s_log)
+            {
+                s_log->Events.push_back("A.Shutdown");
+            }
         }
     };
 
@@ -33,11 +39,17 @@ namespace Wayfinder::Tests
     public:
         void Initialise() override
         {
-            if (s_log) s_log->Events.push_back("B.Init");
+            if (s_log)
+            {
+                s_log->Events.push_back("B.Init");
+            }
         }
         void Shutdown() override
         {
-            if (s_log) s_log->Events.push_back("B.Shutdown");
+            if (s_log)
+            {
+                s_log->Events.push_back("B.Shutdown");
+            }
         }
     };
 
@@ -50,11 +62,17 @@ namespace Wayfinder::Tests
         }
         void Initialise() override
         {
-            if (s_log) s_log->Events.push_back("C.Init");
+            if (s_log)
+            {
+                s_log->Events.push_back("C.Init");
+            }
         }
         void Shutdown() override
         {
-            if (s_log) s_log->Events.push_back("C.Shutdown");
+            if (s_log)
+            {
+                s_log->Events.push_back("C.Shutdown");
+            }
         }
     };
 
@@ -153,7 +171,10 @@ namespace Wayfinder::Tests
             s_log = &log;
 
             SubsystemCollection<GameSubsystem> collection;
-            collection.Register<SubsystemA>([]() -> bool { return false; });
+            collection.Register<SubsystemA>([]() -> bool
+                {
+                    return false;
+                });
             collection.Initialise();
 
             CHECK(collection.Get<SubsystemA>() == nullptr);

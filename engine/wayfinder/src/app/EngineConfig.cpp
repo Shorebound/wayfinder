@@ -10,15 +10,24 @@ namespace Wayfinder
     {
         PlatformBackend ParsePlatformBackend(std::string_view value)
         {
-            if (value == "sdl3") return PlatformBackend::SDL3;
+            if (value == "sdl3")
+            {
+                return PlatformBackend::SDL3;
+            }
             WAYFINDER_WARNING(LogEngine, "Unknown platform backend '{}', defaulting to SDL3", value);
             return PlatformBackend::SDL3;
         }
 
         RenderBackend ParseRenderBackend(std::string_view value)
         {
-            if (value == "sdl_gpu") return RenderBackend::SDL_GPU;
-            if (value == "null") return RenderBackend::Null;
+            if (value == "sdl_gpu")
+            {
+                return RenderBackend::SDL_GPU;
+            }
+            if (value == "null")
+            {
+                return RenderBackend::Null;
+            }
             WAYFINDER_WARNING(LogEngine, "Unknown render backend '{}', defaulting to SDL_GPU", value);
             return RenderBackend::SDL_GPU;
         }
@@ -45,26 +54,50 @@ namespace Wayfinder
 
             if (const auto* window = tbl["window"].as_table())
             {
-                if (auto v = (*window)["width"].value<uint32_t>()) config.Window.Width = *v;
-                if (auto v = (*window)["height"].value<uint32_t>()) config.Window.Height = *v;
-                if (auto v = (*window)["title"].value<std::string>()) config.Window.Title = *v;
-                if (auto v = (*window)["vsync"].value<bool>()) config.Window.VSync = *v;
+                if (auto v = (*window)["width"].value<uint32_t>())
+                {
+                    config.Window.Width = *v;
+                }
+                if (auto v = (*window)["height"].value<uint32_t>())
+                {
+                    config.Window.Height = *v;
+                }
+                if (auto v = (*window)["title"].value<std::string>())
+                {
+                    config.Window.Title = *v;
+                }
+                if (auto v = (*window)["vsync"].value<bool>())
+                {
+                    config.Window.VSync = *v;
+                }
             }
 
             if (const auto* backends = tbl["backends"].as_table())
             {
-                if (auto v = (*backends)["platform"].value<std::string>()) config.Backends.Platform = ParsePlatformBackend(*v);
-                if (auto v = (*backends)["rendering"].value<std::string>()) config.Backends.Rendering = ParseRenderBackend(*v);
+                if (auto v = (*backends)["platform"].value<std::string>())
+                {
+                    config.Backends.Platform = ParsePlatformBackend(*v);
+                }
+                if (auto v = (*backends)["rendering"].value<std::string>())
+                {
+                    config.Backends.Rendering = ParseRenderBackend(*v);
+                }
             }
 
             if (const auto* shaders = tbl["shaders"].as_table())
             {
-                if (auto v = (*shaders)["directory"].value<std::string>()) config.Shaders.Directory = *v;
+                if (auto v = (*shaders)["directory"].value<std::string>())
+                {
+                    config.Shaders.Directory = *v;
+                }
             }
 
             if (const auto* physics = tbl["physics"].as_table())
             {
-                if (auto v = (*physics)["fixed_timestep"].value<double>()) config.Physics.FixedTimestep = static_cast<float>(*v);
+                if (auto v = (*physics)["fixed_timestep"].value<double>())
+                {
+                    config.Physics.FixedTimestep = static_cast<float>(*v);
+                }
             }
 
             WAYFINDER_INFO(LogEngine, "Loaded config from: {}", path.string());

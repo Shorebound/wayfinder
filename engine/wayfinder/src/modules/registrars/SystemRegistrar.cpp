@@ -35,7 +35,9 @@ namespace Wayfinder
         // Topological sort of systems based on After/Before declarations.
         std::unordered_map<std::string, size_t> nameToIdx;
         for (size_t i = 0; i < m_descriptors.size(); ++i)
+        {
             nameToIdx[m_descriptors[i].Name] = i;
+        }
 
         const size_t n = m_descriptors.size();
         std::vector<std::vector<size_t>> adj(n);
@@ -82,7 +84,10 @@ namespace Wayfinder
         std::queue<size_t> ready;
         for (size_t i = 0; i < n; ++i)
         {
-            if (inDegree[i] == 0) ready.push(i);
+            if (inDegree[i] == 0)
+            {
+                ready.push(i);
+            }
         }
 
         std::vector<size_t> sorted;
@@ -95,7 +100,10 @@ namespace Wayfinder
 
             for (const size_t next : adj[cur])
             {
-                if (--inDegree[next] == 0) ready.push(next);
+                if (--inDegree[next] == 0)
+                {
+                    ready.push(next);
+                }
             }
         }
 
@@ -107,7 +115,10 @@ namespace Wayfinder
             {
                 if (inDegree[i] > 0)
                 {
-                    if (!cycleMembers.empty()) cycleMembers += ", ";
+                    if (!cycleMembers.empty())
+                    {
+                        cycleMembers += ", ";
+                    }
                     cycleMembers += m_descriptors[i].Name;
                 }
             }
@@ -119,7 +130,9 @@ namespace Wayfinder
         }
 
         for (const size_t idx : sorted)
+        {
             m_descriptors[idx].Factory(world);
+        }
     }
 
 } // namespace Wayfinder

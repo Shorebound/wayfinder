@@ -96,7 +96,10 @@ namespace Wayfinder
     {
         // Build the unified component registry: core entries + game entries
         m_componentRegistry.AddCoreEntries();
-        if (m_moduleRegistry) m_componentRegistry.AddGameEntries(*m_moduleRegistry);
+        if (m_moduleRegistry)
+        {
+            m_componentRegistry.AddGameEntries(*m_moduleRegistry);
+        }
 
         // Register ECS infrastructure and all components into the world
         Scene::RegisterCoreECS(m_world);
@@ -130,16 +133,25 @@ namespace Wayfinder
 
     void Game::Update(const float deltaTime)
     {
-        if (!m_running || !m_initialised) return;
+        if (!m_running || !m_initialised)
+        {
+            return;
+        }
 
-        if (m_stateMachine) m_stateMachine->Update();
+        if (m_stateMachine)
+        {
+            m_stateMachine->Update();
+        }
 
         m_world.progress(deltaTime);
     }
 
     void Game::Shutdown()
     {
-        if (!m_initialised) return;
+        if (!m_initialised)
+        {
+            return;
+        }
 
         WAYFINDER_INFO(LogGame, "Shutting down game");
 
@@ -189,7 +201,10 @@ namespace Wayfinder
 
     std::string_view Game::GetCurrentState() const
     {
-        if (m_stateMachine) return m_stateMachine->GetCurrentState();
+        if (m_stateMachine)
+        {
+            return m_stateMachine->GetCurrentState();
+        }
         return {};
     }
 
@@ -198,7 +213,10 @@ namespace Wayfinder
         ActiveGameplayTags& tags = m_world.get_mut<ActiveGameplayTags>();
         tags.Tags.AddTag(tag);
         WAYFINDER_INFO(LogGame, "Added gameplay tag: '{}'", tag.GetName());
-        if (m_stateMachine) m_stateMachine->MarkDirty();
+        if (m_stateMachine)
+        {
+            m_stateMachine->MarkDirty();
+        }
     }
 
     void Game::RemoveGameplayTag(const GameplayTag& tag)
@@ -206,7 +224,10 @@ namespace Wayfinder
         ActiveGameplayTags& tags = m_world.get_mut<ActiveGameplayTags>();
         tags.Tags.RemoveTag(tag);
         WAYFINDER_INFO(LogGame, "Removed gameplay tag: '{}'", tag.GetName());
-        if (m_stateMachine) m_stateMachine->MarkDirty();
+        if (m_stateMachine)
+        {
+            m_stateMachine->MarkDirty();
+        }
     }
 
     bool Game::HasGameplayTag(const GameplayTag& tag) const
@@ -225,7 +246,9 @@ namespace Wayfinder
         if (m_moduleRegistry)
         {
             for (const auto& [type, factory, predicate] : m_moduleRegistry->GetSubsystemFactories())
+            {
                 m_subsystems.Register(type, factory, predicate);
+            }
         }
 
         m_subsystems.Initialise();
@@ -236,7 +259,10 @@ namespace Wayfinder
     {
         auto& tagRegistry = GameSubsystems::Get<GameplayTagRegistry>();
 
-        if (!m_moduleRegistry) return;
+        if (!m_moduleRegistry)
+        {
+            return;
+        }
 
         // Load tag files registered by plugins (paths relative to config dir)
         const auto& project = m_moduleRegistry->GetProject();
@@ -245,14 +271,20 @@ namespace Wayfinder
         {
             const auto fullPath = configDir / relPath;
             if (std::filesystem::exists(fullPath))
+            {
                 tagRegistry.LoadTagFile(fullPath);
+            }
             else
+            {
                 WAYFINDER_WARNING(LogGame, "Tag file not found: '{}'", fullPath.string());
+            }
         }
 
         // Register code-defined tags
         for (const auto& desc : m_moduleRegistry->GetRegisteredTags())
+        {
             tagRegistry.RegisterTag(desc.Name, desc.Comment);
+        }
     }
 
 } // namespace Wayfinder

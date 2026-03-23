@@ -105,7 +105,10 @@ namespace Wayfinder
 
     void EngineRuntime::Shutdown()
     {
-        if (!m_renderer && !m_device && !m_window && !m_input && !m_time) return; // already shut down or never initialised
+        if (!m_renderer && !m_device && !m_window && !m_input && !m_time)
+        {
+            return; // already shut down or never initialised
+        }
 
         WAYFINDER_INFO(LogEngine, "Shutting down EngineRuntime");
 

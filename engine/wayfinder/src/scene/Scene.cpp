@@ -121,7 +121,10 @@ namespace Wayfinder
                                 {
                                     if (!entityHandle.has<TransformComponent>())
                                     {
-                                        entityHandle.children([&](flecs::entity child) { UpdateRecursive(child, parentMatrix); });
+                                        entityHandle.children([&](flecs::entity child)
+                                            {
+                                                UpdateRecursive(child, parentMatrix);
+                                            });
                                         return;
                                     }
 
@@ -135,7 +138,10 @@ namespace Wayfinder
                                     cachedWorldTransform.Scale = Maths::ExtractScale(worldMatrix);
 
                                     entityHandle.set<WorldTransformComponent>(cachedWorldTransform);
-                                    entityHandle.children([&](flecs::entity child) { UpdateRecursive(child, worldMatrix); });
+                                    entityHandle.children([&](flecs::entity child)
+                                        {
+                                            UpdateRecursive(child, worldMatrix);
+                                        });
                                 }
                             };
                             TransformPropagation::UpdateRecursive(child, Maths::Identity());
@@ -216,7 +222,10 @@ namespace Wayfinder
 
     void Scene::Shutdown()
     {
-        if (!m_active) return;
+        if (!m_active)
+        {
+            return;
+        }
 
         WAYFINDER_INFO(LogScene, "Shutting down scene: {0}", m_name);
 
@@ -388,7 +397,10 @@ namespace Wayfinder
             document.Name = m_name;
 
             // Persist scene settings from the world singleton into the document
-            if (m_world.has<SceneSettings>()) document.Settings = m_world.get<SceneSettings>().GetData();
+            if (m_world.has<SceneSettings>())
+            {
+                document.Settings = m_world.get<SceneSettings>().GetData();
+            }
 
             m_world.each([&](flecs::entity entityHandle)
                 {

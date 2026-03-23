@@ -31,13 +31,19 @@ namespace Wayfinder
 
     Wayfinder::SortLayer MapLayer(const Wayfinder::RenderLayerId& layer)
     {
-        if (layer == Wayfinder::RenderLayers::Overlay) return Wayfinder::SortLayer::Overlay;
+        if (layer == Wayfinder::RenderLayers::Overlay)
+        {
+            return Wayfinder::SortLayer::Overlay;
+        }
         return Wayfinder::SortLayer::Opaque;
     }
 
     uint16_t MaterialIdBits(const std::optional<Wayfinder::AssetId>& assetId)
     {
-        if (!assetId) return 0;
+        if (!assetId)
+        {
+            return 0;
+        }
         // XOR-fold all 16 UUID bytes into 16 bits for better distribution
         const std::array<std::uint8_t, 16>& bytes = assetId->Value.GetBytes();
         uint16_t hash = 0;

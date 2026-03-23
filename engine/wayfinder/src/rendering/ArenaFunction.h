@@ -43,7 +43,10 @@ namespace Wayfinder
 
             auto* storage = allocator.Create<Decayed>(std::forward<TCallable>(callable));
             m_data = storage;
-            m_invoke = [](void* data, TArgs... args) -> TReturn { return (*static_cast<Decayed*>(data))(std::forward<TArgs>(args)...); };
+            m_invoke = [](void* data, TArgs... args) -> TReturn
+            {
+                return (*static_cast<Decayed*>(data))(std::forward<TArgs>(args)...);
+            };
         }
 
         // Non-copyable

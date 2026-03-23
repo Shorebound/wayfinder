@@ -35,7 +35,9 @@ namespace Wayfinder::Tests
                 {
                     auto colour = builder.CreateTransient({128, 128, Wayfinder::TextureFormat::RGBA8_UNORM, m_name.c_str()});
                     builder.WriteColour(colour);
-                    return [](Wayfinder::RenderDevice&, const Wayfinder::RenderGraphResources&) {};
+                    return [](Wayfinder::RenderDevice&, const Wayfinder::RenderGraphResources&)
+                    {
+                    };
                 });
         }
 
@@ -75,7 +77,10 @@ namespace Wayfinder::Tests
                         builder.ReadTexture(colour);
                     }
                     builder.SetSwapchainOutput();
-                    return [this](Wayfinder::RenderDevice&, const Wayfinder::RenderGraphResources&) { m_executed = true; };
+                    return [this](Wayfinder::RenderDevice&, const Wayfinder::RenderGraphResources&)
+                    {
+                        m_executed = true;
+                    };
                 });
         }
 
@@ -193,7 +198,9 @@ namespace Wayfinder::Tests
             {
                 auto colour = builder.CreateTransient(colourDesc);
                 builder.WriteColour(colour);
-                return [](Wayfinder::RenderDevice&, const Wayfinder::RenderGraphResources&) {};
+                return [](Wayfinder::RenderDevice&, const Wayfinder::RenderGraphResources&)
+                {
+                };
             });
 
         // Feature injects its pass

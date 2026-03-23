@@ -54,7 +54,10 @@ namespace Wayfinder
     size_t PipelineCache::HashDesc(const PipelineCreateDesc& desc)
     {
         size_t h = 0;
-        auto combine = [&h](size_t v) { h ^= v + 0x9e3779b9 + (h << 6) + (h >> 2); };
+        auto combine = [&h](size_t v)
+        {
+            h ^= v + 0x9e3779b9 + (h << 6) + (h >> 2);
+        };
 
         combine(std::hash<GPUShaderHandle>{}(desc.vertexShader));
         combine(std::hash<GPUShaderHandle>{}(desc.fragmentShader));

@@ -59,7 +59,10 @@ namespace Wayfinder
 
                 /// If the module isn't next to the project file, try the
                 /// tool's own directory (common for build-output layouts).
-                if (!std::filesystem::exists(modulePath) && !toolDir.empty()) modulePath = toolDir / modulePath.filename();
+                if (!std::filesystem::exists(modulePath) && !toolDir.empty())
+                {
+                    modulePath = toolDir / modulePath.filename();
+                }
 
                 auto loadResult = Wayfinder::ModuleLoader::Load(modulePath);
                 if (loadResult && loadResult->Instance)
@@ -192,9 +195,13 @@ int main(int argc, char** argv)
     {
         std::filesystem::path assetRoot;
         if (project)
+        {
             assetRoot = project->ResolveAssetRoot();
+        }
         else if (argIndex < argc)
+        {
             assetRoot = std::filesystem::path(argv[argIndex]);
+        }
         else
         {
             Wayfinder::PrintUsage();

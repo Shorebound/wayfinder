@@ -15,14 +15,23 @@ namespace Wayfinder
 
     static SamplerFilter ParseFilter(const std::string& text)
     {
-        if (text == "nearest") return SamplerFilter::Nearest;
+        if (text == "nearest")
+        {
+            return SamplerFilter::Nearest;
+        }
         return SamplerFilter::Linear; // default
     }
 
     static SamplerAddressMode ParseAddressMode(const std::string& text)
     {
-        if (text == "clamp" || text == "clamp_to_edge") return SamplerAddressMode::ClampToEdge;
-        if (text == "mirrored_repeat") return SamplerAddressMode::MirroredRepeat;
+        if (text == "clamp" || text == "clamp_to_edge")
+        {
+            return SamplerAddressMode::ClampToEdge;
+        }
+        if (text == "mirrored_repeat")
+        {
+            return SamplerAddressMode::MirroredRepeat;
+        }
         return SamplerAddressMode::Repeat; // default
     }
 

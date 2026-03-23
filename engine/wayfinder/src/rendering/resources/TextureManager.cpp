@@ -30,7 +30,10 @@ namespace Wayfinder
 
     void TextureManager::Shutdown()
     {
-        if (!m_device) return;
+        if (!m_device)
+        {
+            return;
+        }
 
         // Destroy cached asset textures (skip built-ins — they are destroyed below)
         for (auto& [id, handle] : m_textureCache)
@@ -67,7 +70,10 @@ namespace Wayfinder
         // Destroy cached samplers
         for (auto& [hash, handle] : m_samplerCache)
         {
-            if (handle) m_device->DestroySampler(handle);
+            if (handle)
+            {
+                m_device->DestroySampler(handle);
+            }
         }
         m_samplerCache.clear();
 
@@ -166,7 +172,10 @@ namespace Wayfinder
         desc.usage = TextureUsage::Sampler;
 
         GPUTextureHandle texture = m_device->CreateTexture(desc);
-        if (!texture) return GPUTextureHandle::Invalid();
+        if (!texture)
+        {
+            return GPUTextureHandle::Invalid();
+        }
 
         m_device->UploadToTexture(texture, asset.PixelData.data(), asset.Width, asset.Height, asset.Width * asset.Channels);
 
@@ -182,7 +191,10 @@ namespace Wayfinder
         desc.usage = TextureUsage::Sampler;
 
         GPUTextureHandle texture = m_device->CreateTexture(desc);
-        if (!texture) return GPUTextureHandle::Invalid();
+        if (!texture)
+        {
+            return GPUTextureHandle::Invalid();
+        }
 
         const std::array<uint8_t, 4> pixel = {r, g, b, a};
         m_device->UploadToTexture(texture, pixel.data(), 1, 1, 4);
@@ -216,7 +228,10 @@ namespace Wayfinder
         desc.usage = TextureUsage::Sampler;
 
         GPUTextureHandle texture = m_device->CreateTexture(desc);
-        if (!texture) return GPUTextureHandle::Invalid();
+        if (!texture)
+        {
+            return GPUTextureHandle::Invalid();
+        }
 
         m_device->UploadToTexture(texture, pixels.data(), kSize, kSize, kSize * kChannels);
 

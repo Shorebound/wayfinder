@@ -85,8 +85,14 @@ namespace Wayfinder
 
     const ShaderProgram* ShaderProgramRegistry::FindOrDefault(const std::string& name, const std::string& fallback) const
     {
-        if (const auto* program = Find(name)) return program;
-        if (const auto* fb = Find(fallback)) return fb;
+        if (const auto* program = Find(name))
+        {
+            return program;
+        }
+        if (const auto* fb = Find(fallback))
+        {
+            return fb;
+        }
         return nullptr;
     }
 

@@ -42,8 +42,14 @@ namespace Wayfinder
     {
         if (m_device)
         {
-            if (m_vertexRing) m_device->DestroyBuffer(m_vertexRing);
-            if (m_indexRing) m_device->DestroyBuffer(m_indexRing);
+            if (m_vertexRing)
+            {
+                m_device->DestroyBuffer(m_vertexRing);
+            }
+            if (m_indexRing)
+            {
+                m_device->DestroyBuffer(m_indexRing);
+            }
         }
 
         m_vertexRing = {};

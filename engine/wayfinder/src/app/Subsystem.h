@@ -109,9 +109,17 @@ namespace Wayfinder
             const std::type_index type{typeid(T)};
             for (const auto& entry : m_factories)
             {
-                if (entry.Type == type) return false;
+                if (entry.Type == type)
+                {
+                    return false;
+                }
             }
-            m_factories.push_back({type, []() -> std::unique_ptr<TBase> { return std::make_unique<T>(); }, predicate});
+            m_factories.push_back({type,
+                []() -> std::unique_ptr<TBase>
+                {
+                    return std::make_unique<T>();
+                },
+                predicate});
             return true;
         }
 
@@ -121,7 +129,10 @@ namespace Wayfinder
         {
             for (const auto& entry : m_factories)
             {
-                if (entry.Type == type) return false;
+                if (entry.Type == type)
+                {
+                    return false;
+                }
             }
             m_factories.push_back({type, factory, predicate});
             return true;
@@ -135,10 +146,16 @@ namespace Wayfinder
         {
             for (auto& [type, factory, predicate] : m_factories)
             {
-                if (predicate && !predicate()) continue;
+                if (predicate && !predicate())
+                {
+                    continue;
+                }
 
                 auto subsystem = factory();
-                if (!subsystem->ShouldCreate()) continue;
+                if (!subsystem->ShouldCreate())
+                {
+                    continue;
+                }
 
                 subsystem->Initialise();
                 m_lookup[type] = subsystem.get();
@@ -150,7 +167,9 @@ namespace Wayfinder
         void Shutdown()
         {
             for (auto it = m_subsystems.rbegin(); it != m_subsystems.rend(); ++it)
+            {
                 (*it)->Shutdown();
+            }
 
             m_lookup.clear();
             m_subsystems.clear();
@@ -160,7 +179,10 @@ namespace Wayfinder
         template<typename T>
         T* Get()
         {
-            if (auto it = m_lookup.find(std::type_index(typeid(T))); it != m_lookup.end()) return static_cast<T*>(it->second);
+            if (auto it = m_lookup.find(std::type_index(typeid(T))); it != m_lookup.end())
+            {
+                return static_cast<T*>(it->second);
+            }
             return nullptr;
         }
 
@@ -168,7 +190,10 @@ namespace Wayfinder
         template<typename T>
         const T* Get() const
         {
-            if (auto it = m_lookup.find(std::type_index(typeid(T))); it != m_lookup.end()) return static_cast<const T*>(it->second);
+            if (auto it = m_lookup.find(std::type_index(typeid(T))); it != m_lookup.end())
+            {
+                return static_cast<const T*>(it->second);
+            }
             return nullptr;
         }
 

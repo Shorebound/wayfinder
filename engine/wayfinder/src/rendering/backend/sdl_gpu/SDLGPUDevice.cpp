@@ -77,22 +77,40 @@ namespace Wayfinder
         if (m_device)
         {
             // Release all pooled GPU resources before destroying the device.
-            m_shaderPool.ForEachAlive([&](SDL_GPUShader* s) { SDL_ReleaseGPUShader(m_device, s); });
+            m_shaderPool.ForEachAlive([&](SDL_GPUShader* s)
+                {
+                    SDL_ReleaseGPUShader(m_device, s);
+                });
             m_shaderPool.Clear();
 
-            m_pipelinePool.ForEachAlive([&](SDL_GPUGraphicsPipeline* p) { SDL_ReleaseGPUGraphicsPipeline(m_device, p); });
+            m_pipelinePool.ForEachAlive([&](SDL_GPUGraphicsPipeline* p)
+                {
+                    SDL_ReleaseGPUGraphicsPipeline(m_device, p);
+                });
             m_pipelinePool.Clear();
 
-            m_computePipelinePool.ForEachAlive([&](SDL_GPUComputePipeline* p) { SDL_ReleaseGPUComputePipeline(m_device, p); });
+            m_computePipelinePool.ForEachAlive([&](SDL_GPUComputePipeline* p)
+                {
+                    SDL_ReleaseGPUComputePipeline(m_device, p);
+                });
             m_computePipelinePool.Clear();
 
-            m_bufferPool.ForEachAlive([&](SDL_GPUBuffer* b) { SDL_ReleaseGPUBuffer(m_device, b); });
+            m_bufferPool.ForEachAlive([&](SDL_GPUBuffer* b)
+                {
+                    SDL_ReleaseGPUBuffer(m_device, b);
+                });
             m_bufferPool.Clear();
 
-            m_samplerPool.ForEachAlive([&](SDL_GPUSampler* s) { SDL_ReleaseGPUSampler(m_device, s); });
+            m_samplerPool.ForEachAlive([&](SDL_GPUSampler* s)
+                {
+                    SDL_ReleaseGPUSampler(m_device, s);
+                });
             m_samplerPool.Clear();
 
-            m_texturePool.ForEachAlive([&](SDL_GPUTexture* t) { SDL_ReleaseGPUTexture(m_device, t); });
+            m_texturePool.ForEachAlive([&](SDL_GPUTexture* t)
+                {
+                    SDL_ReleaseGPUTexture(m_device, t);
+                });
             m_texturePool.Clear();
 
             if (m_depthTexture)
@@ -201,7 +219,10 @@ namespace Wayfinder
         SDL_GPUTexture* colourTexture = nullptr;
         if (descriptor.targetSwapchain)
         {
-            if (!m_swapchainTexture) return;
+            if (!m_swapchainTexture)
+            {
+                return;
+            }
             colourTexture = m_swapchainTexture;
         }
         else if (descriptor.colourTarget.IsValid())
@@ -210,7 +231,10 @@ namespace Wayfinder
             colourTexture = pTex ? *pTex : nullptr;
         }
 
-        if (!colourTexture) return;
+        if (!colourTexture)
+        {
+            return;
+        }
 
         SDL_GPUColorTargetInfo colourTarget{};
         colourTarget.texture = colourTexture;
@@ -350,7 +374,10 @@ namespace Wayfinder
 
     void SDLGPUDevice::DestroyShader(GPUShaderHandle shader)
     {
-        if (!m_device) return;
+        if (!m_device)
+        {
+            return;
+        }
         auto* pShader = m_shaderPool.Get(shader);
         if (pShader)
         {
@@ -605,7 +632,10 @@ namespace Wayfinder
 
     void SDLGPUDevice::DestroyPipeline(GPUPipelineHandle pipeline)
     {
-        if (!m_device) return;
+        if (!m_device)
+        {
+            return;
+        }
         auto* pPipeline = m_pipelinePool.Get(pipeline);
         if (pPipeline)
         {
@@ -616,7 +646,10 @@ namespace Wayfinder
 
     void SDLGPUDevice::BindPipeline(GPUPipelineHandle pipeline)
     {
-        if (!m_renderPass) return;
+        if (!m_renderPass)
+        {
+            return;
+        }
         auto* pPipeline = m_pipelinePool.Get(pipeline);
         if (pPipeline)
         {
@@ -650,7 +683,10 @@ namespace Wayfinder
 
     void SDLGPUDevice::DestroyBuffer(GPUBufferHandle buffer)
     {
-        if (!m_device) return;
+        if (!m_device)
+        {
+            return;
+        }
         auto* pBuffer = m_bufferPool.Get(buffer);
         if (pBuffer)
         {
@@ -722,9 +758,15 @@ namespace Wayfinder
 
     void SDLGPUDevice::BindVertexBuffer(GPUBufferHandle buffer, uint32_t slot, uint32_t offsetInBytes)
     {
-        if (!m_renderPass) return;
+        if (!m_renderPass)
+        {
+            return;
+        }
         auto* pBuffer = m_bufferPool.Get(buffer);
-        if (!pBuffer) return;
+        if (!pBuffer)
+        {
+            return;
+        }
 
         SDL_GPUBufferBinding binding{};
         binding.buffer = *pBuffer;
@@ -735,9 +777,15 @@ namespace Wayfinder
 
     void SDLGPUDevice::BindIndexBuffer(GPUBufferHandle buffer, IndexElementSize indexSize, uint32_t offsetInBytes)
     {
-        if (!m_renderPass) return;
+        if (!m_renderPass)
+        {
+            return;
+        }
         auto* pBuffer = m_bufferPool.Get(buffer);
-        if (!pBuffer) return;
+        if (!pBuffer)
+        {
+            return;
+        }
 
         SDL_GPUBufferBinding binding{};
         binding.buffer = *pBuffer;
@@ -831,7 +879,10 @@ namespace Wayfinder
 
     void SDLGPUDevice::DestroyComputePipeline(GPUComputePipelineHandle pipeline)
     {
-        if (!m_device) return;
+        if (!m_device)
+        {
+            return;
+        }
         auto* pPipeline = m_computePipelinePool.Get(pipeline);
         if (pPipeline)
         {
@@ -861,7 +912,10 @@ namespace Wayfinder
 
     void SDLGPUDevice::BindComputePipeline(GPUComputePipelineHandle pipeline)
     {
-        if (!m_computePass) return;
+        if (!m_computePass)
+        {
+            return;
+        }
         auto* pPipeline = m_computePipelinePool.Get(pipeline);
         if (pPipeline)
         {
@@ -904,9 +958,18 @@ namespace Wayfinder
     static SDL_GPUTextureUsageFlags ToSDLTextureUsage(TextureUsage usage)
     {
         SDL_GPUTextureUsageFlags flags = 0;
-        if (HasFlag(usage, TextureUsage::Sampler)) flags |= SDL_GPU_TEXTUREUSAGE_SAMPLER;
-        if (HasFlag(usage, TextureUsage::ColourTarget)) flags |= SDL_GPU_TEXTUREUSAGE_COLOR_TARGET;
-        if (HasFlag(usage, TextureUsage::DepthTarget)) flags |= SDL_GPU_TEXTUREUSAGE_DEPTH_STENCIL_TARGET;
+        if (HasFlag(usage, TextureUsage::Sampler))
+        {
+            flags |= SDL_GPU_TEXTUREUSAGE_SAMPLER;
+        }
+        if (HasFlag(usage, TextureUsage::ColourTarget))
+        {
+            flags |= SDL_GPU_TEXTUREUSAGE_COLOR_TARGET;
+        }
+        if (HasFlag(usage, TextureUsage::DepthTarget))
+        {
+            flags |= SDL_GPU_TEXTUREUSAGE_DEPTH_STENCIL_TARGET;
+        }
         return flags;
     }
 
@@ -939,7 +1002,10 @@ namespace Wayfinder
 
     void SDLGPUDevice::DestroyTexture(GPUTextureHandle texture)
     {
-        if (!m_device) return;
+        if (!m_device)
+        {
+            return;
+        }
         auto* pTexture = m_texturePool.Get(texture);
         if (pTexture)
         {
@@ -1057,7 +1123,10 @@ namespace Wayfinder
 
     void SDLGPUDevice::DestroySampler(GPUSamplerHandle sampler)
     {
-        if (!m_device) return;
+        if (!m_device)
+        {
+            return;
+        }
         auto* pSampler = m_samplerPool.Get(sampler);
         if (pSampler)
         {
@@ -1068,10 +1137,16 @@ namespace Wayfinder
 
     void SDLGPUDevice::BindFragmentSampler(uint32_t slot, GPUTextureHandle texture, GPUSamplerHandle sampler)
     {
-        if (!m_renderPass) return;
+        if (!m_renderPass)
+        {
+            return;
+        }
         auto* pTexture = m_texturePool.Get(texture);
         auto* pSampler = m_samplerPool.Get(sampler);
-        if (!pTexture || !pSampler) return;
+        if (!pTexture || !pSampler)
+        {
+            return;
+        }
 
         SDL_GPUTextureSamplerBinding binding{};
         binding.texture = *pTexture;

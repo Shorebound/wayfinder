@@ -70,7 +70,10 @@ static void EnableAnsiOnWindows()
 /// Pads a string to a minimum width with trailing spaces.
 static std::string PadRight(const std::string& s, size_t width)
 {
-    if (s.size() >= width) return s;
+    if (s.size() >= width)
+    {
+        return s;
+    }
     return s + std::string(width - s.size(), ' ');
 }
 
@@ -114,7 +117,10 @@ static ProcessResult RunProcess(const std::string& command)
     // _pclose returns the process exit code directly on Windows
 #else
     // On POSIX, pclose returns the status from waitpid — extract exit code
-    if (WIFEXITED(result.ExitCode)) result.ExitCode = WEXITSTATUS(result.ExitCode);
+    if (WIFEXITED(result.ExitCode))
+    {
+        result.ExitCode = WEXITSTATUS(result.ExitCode);
+    }
 #endif
     return result;
 }
@@ -208,7 +214,10 @@ static std::map<int, IssueInfo> GetIssueNodeIds(const std::set<int>& numbers)
     std::string fields;
     for (int num : numbers)
     {
-        if (!fields.empty()) fields += " ";
+        if (!fields.empty())
+        {
+            fields += " ";
+        }
         fields += std::format("i{}: issue(number: {}) {{ id title }}", num, num);
     }
     auto query = std::format(R"(query {{ repository(owner: "{}", name: "{}") {{ {} }} }})", OWNER, REPO, fields);
@@ -252,7 +261,10 @@ static void AddBlockedBy(int blockedIssue, const std::vector<int>& blockingIssue
     allNums.insert(blockingIssues.begin(), blockingIssues.end());
 
     auto ids = GetIssueNodeIds(allNums);
-    if (ids.empty()) return;
+    if (ids.empty())
+    {
+        return;
+    }
 
     auto& blockedInfo = ids[blockedIssue];
     std::cout << std::format("{}Issue #{} ({}){}\n", Colour::Cyan, blockedIssue, blockedInfo.Title, Colour::Reset);
@@ -294,7 +306,10 @@ static void AddBlocking(int blockingIssue, const std::vector<int>& blockedIssues
     allNums.insert(blockedIssues.begin(), blockedIssues.end());
 
     auto ids = GetIssueNodeIds(allNums);
-    if (ids.empty()) return;
+    if (ids.empty())
+    {
+        return;
+    }
 
     auto& blockingInfo = ids[blockingIssue];
     std::cout << std::format("{}Issue #{} ({}) now blocking:{}\n", Colour::Cyan, blockingIssue, blockingInfo.Title, Colour::Reset);
@@ -336,7 +351,10 @@ static void AddSubIssue(int parentIssue, const std::vector<int>& childIssues)
     allNums.insert(childIssues.begin(), childIssues.end());
 
     auto ids = GetIssueNodeIds(allNums);
-    if (ids.empty()) return;
+    if (ids.empty())
+    {
+        return;
+    }
 
     auto& parentInfo = ids[parentIssue];
     std::cout << std::format("{}Parent #{} ({}){}\n", Colour::Cyan, parentIssue, parentInfo.Title, Colour::Reset);
@@ -378,7 +396,10 @@ static void RemoveBlockedBy(int blockedIssue, const std::vector<int>& blockingIs
     allNums.insert(blockingIssues.begin(), blockingIssues.end());
 
     auto ids = GetIssueNodeIds(allNums);
-    if (ids.empty()) return;
+    if (ids.empty())
+    {
+        return;
+    }
 
     auto& blockedInfo = ids[blockedIssue];
     std::cout << std::format("{}Issue #{} ({}){}\n", Colour::Cyan, blockedIssue, blockedInfo.Title, Colour::Reset);
@@ -412,7 +433,10 @@ static void RemoveBlocking(int blockingIssue, const std::vector<int>& blockedIss
     allNums.insert(blockedIssues.begin(), blockedIssues.end());
 
     auto ids = GetIssueNodeIds(allNums);
-    if (ids.empty()) return;
+    if (ids.empty())
+    {
+        return;
+    }
 
     auto& blockingInfo = ids[blockingIssue];
     std::cout << std::format("{}Issue #{} ({}) removing blocking:{}\n", Colour::Cyan, blockingIssue, blockingInfo.Title, Colour::Reset);
@@ -446,7 +470,10 @@ static void RemoveSubIssue(int parentIssue, const std::vector<int>& childIssues)
     allNums.insert(childIssues.begin(), childIssues.end());
 
     auto ids = GetIssueNodeIds(allNums);
-    if (ids.empty()) return;
+    if (ids.empty())
+    {
+        return;
+    }
 
     auto& parentInfo = ids[parentIssue];
     std::cout << std::format("{}Parent #{} ({}){}\n", Colour::Cyan, parentIssue, parentInfo.Title, Colour::Reset);
@@ -527,7 +554,10 @@ static void ShowRelationships(int issueNumber)
         std::string labelStr;
         for (auto& l : labels)
         {
-            if (!labelStr.empty()) labelStr += ", ";
+            if (!labelStr.empty())
+            {
+                labelStr += ", ";
+            }
             labelStr += l["name"].get<std::string>();
         }
         std::cout << std::format("{}  Labels: {}{}\n", Colour::Gray, labelStr, Colour::Reset);
@@ -540,7 +570,10 @@ static void ShowRelationships(int issueNumber)
         std::string assigneeStr;
         for (auto& a : assignees)
         {
-            if (!assigneeStr.empty()) assigneeStr += ", ";
+            if (!assigneeStr.empty())
+            {
+                assigneeStr += ", ";
+            }
             assigneeStr += "@" + a["login"].get<std::string>();
         }
         std::cout << std::format("{}  Assigned: {}{}\n", Colour::Gray, assigneeStr, Colour::Reset);
@@ -563,13 +596,22 @@ static void ShowRelationships(int issueNumber)
     {
         int resolvedCount = 0;
         for (auto& b : blockedByNodes)
-            if (b["state"] == "CLOSED") resolvedCount++;
+        {
+            if (b["state"] == "CLOSED")
+            {
+                resolvedCount++;
+            }
+        }
         int totalCount = static_cast<int>(blockedByNodes.size());
 
         if (resolvedCount == totalCount)
+        {
             std::cout << std::format("{}  Blocked by (ALL RESOLVED):{}\n", Colour::Green, Colour::Reset);
+        }
         else
+        {
             std::cout << std::format("{}  Blocked by ({}/{} resolved):{}\n", Colour::Yellow, resolvedCount, totalCount, Colour::Reset);
+        }
 
         for (auto& b : blockedByNodes)
         {
@@ -586,7 +628,12 @@ static void ShowRelationships(int issueNumber)
     {
         int doneCount = 0;
         for (auto& b : blockingNodes)
-            if (b["state"] == "CLOSED") doneCount++;
+        {
+            if (b["state"] == "CLOSED")
+            {
+                doneCount++;
+            }
+        }
         int totalCount = static_cast<int>(blockingNodes.size());
 
         std::cout << std::format("{}  Blocking ({}/{} done):{}\n", Colour::Yellow, doneCount, totalCount, Colour::Reset);
@@ -605,7 +652,12 @@ static void ShowRelationships(int issueNumber)
     {
         int doneCount = 0;
         for (auto& s : subNodes)
-            if (s["state"] == "CLOSED") doneCount++;
+        {
+            if (s["state"] == "CLOSED")
+            {
+                doneCount++;
+            }
+        }
         int totalCount = static_cast<int>(subNodes.size());
 
         auto subColour = (doneCount == totalCount) ? Colour::Green : Colour::Yellow;
@@ -635,7 +687,12 @@ static void ShowRelationships(int issueNumber)
     {
         int unresolvedCount = 0;
         for (auto& b : blockedByNodes)
-            if (b["state"] != "CLOSED") unresolvedCount++;
+        {
+            if (b["state"] != "CLOSED")
+            {
+                unresolvedCount++;
+            }
+        }
         if (unresolvedCount > 0)
         {
             auto plural = (unresolvedCount != 1) ? "s" : "";
@@ -660,7 +717,10 @@ static void ShowBatchSummary(const std::vector<int>& issueNumbers)
     std::string fields;
     for (int num : unique)
     {
-        if (!fields.empty()) fields += " ";
+        if (!fields.empty())
+        {
+            fields += " ";
+        }
         fields += std::format("i{}: issue(number: {}) {{ number title state labels(first: 10) {{ nodes {{ name }} }} "
                               "assignees(first: 5) {{ nodes {{ login }} }} blockedBy(first: 50) {{ nodes {{ state }} "
                               "}} subIssues(first: 50) {{ nodes {{ state }} }} }}",
@@ -688,14 +748,22 @@ static void ShowBatchSummary(const std::vector<int>& issueNumbers)
     {
         auto key = std::format("i{}", num);
         auto& iss = result.Data["data"]["repository"][key];
-        if (iss.is_null()) continue;
+        if (iss.is_null())
+        {
+            continue;
+        }
 
         auto issState = iss["state"].get<std::string>();
         auto issTitle = iss["title"].get<std::string>();
 
         int unresolvedBlockers = 0;
         for (auto& b : iss["blockedBy"]["nodes"])
-            if (b["state"] != "CLOSED") unresolvedBlockers++;
+        {
+            if (b["state"] != "CLOSED")
+            {
+                unresolvedBlockers++;
+            }
+        }
 
         std::string statusStr;
         std::string_view statusColour;
@@ -721,7 +789,12 @@ static void ShowBatchSummary(const std::vector<int>& issueNumbers)
         {
             int subDone = 0;
             for (auto& s : subs)
-                if (s["state"] == "CLOSED") subDone++;
+            {
+                if (s["state"] == "CLOSED")
+                {
+                    subDone++;
+                }
+            }
             subStr = std::format("{}/{}", subDone, subs.size());
         }
 
@@ -754,7 +827,10 @@ static void ShowReady()
     for (auto& iss : issues)
     {
         int num = iss["number"].get<int>();
-        if (!fields.empty()) fields += " ";
+        if (!fields.empty())
+        {
+            fields += " ";
+        }
         fields += std::format("i{}: issue(number: {}) {{ number title state labels(first: 10) {{ nodes {{ name }} }} "
                               "assignees(first: 5) {{ nodes {{ login }} }} blockedBy(first: 50) {{ nodes {{ state }} }} }}",
             num, num);
@@ -788,29 +864,49 @@ static void ShowReady()
         int num = iss["number"].get<int>();
         auto key = std::format("i{}", num);
         auto& gqlIs = gqlResult.Data["data"]["repository"][key];
-        if (gqlIs.is_null()) continue;
+        if (gqlIs.is_null())
+        {
+            continue;
+        }
 
         int unresolvedBlockers = 0;
         for (auto& b : gqlIs["blockedBy"]["nodes"])
-            if (b["state"] != "CLOSED") unresolvedBlockers++;
+        {
+            if (b["state"] != "CLOSED")
+            {
+                unresolvedBlockers++;
+            }
+        }
 
         if (unresolvedBlockers == 0)
         {
             std::string labels;
             for (auto& l : gqlIs["labels"]["nodes"])
             {
-                if (!labels.empty()) labels += ", ";
+                if (!labels.empty())
+                {
+                    labels += ", ";
+                }
                 labels += l["name"].get<std::string>();
             }
-            if (labels.size() > 30) labels = labels.substr(0, 27) + "...";
+            if (labels.size() > 30)
+            {
+                labels = labels.substr(0, 27) + "...";
+            }
 
             std::string assigneeStr;
             for (auto& a : gqlIs["assignees"]["nodes"])
             {
-                if (!assigneeStr.empty()) assigneeStr += ", ";
+                if (!assigneeStr.empty())
+                {
+                    assigneeStr += ", ";
+                }
                 assigneeStr += "@" + a["login"].get<std::string>();
             }
-            if (assigneeStr.empty()) assigneeStr = "-";
+            if (assigneeStr.empty())
+            {
+                assigneeStr = "-";
+            }
 
             readyIssues.push_back({
                 .Number = gqlIs["number"].get<int>(),
@@ -821,7 +917,11 @@ static void ShowReady()
         }
     }
 
-    std::sort(readyIssues.begin(), readyIssues.end(), [](auto& a, auto& b) { return a.Number < b.Number; });
+    std::sort(readyIssues.begin(), readyIssues.end(),
+        [](auto& a, auto& b)
+        {
+            return a.Number < b.Number;
+        });
 
     std::cout << "\n";
     if (readyIssues.empty())
@@ -863,9 +963,13 @@ static void ShowMilestoneStatus(const std::string& milestoneTitle)
     for (auto& iss : issues)
     {
         if (iss["state"] == "OPEN" || iss["state"] == "open")
+        {
             openIssues.push_back(&iss);
+        }
         else
+        {
             closedIssues.push_back(&iss);
+        }
     }
 
     int total = static_cast<int>(issues.size());
@@ -883,7 +987,10 @@ static void ShowMilestoneStatus(const std::string& milestoneTitle)
     std::cout << std::format("{}  {} {}% ({}/{}){}\n\n", barColour, bar, pct, doneCount, total, Colour::Reset);
 
     // Sort helpers
-    auto sortByNumber = [](json* a, json* b) { return (*a)["number"].get<int>() < (*b)["number"].get<int>(); };
+    auto sortByNumber = [](json* a, json* b)
+    {
+        return (*a)["number"].get<int>() < (*b)["number"].get<int>();
+    };
 
     if (!openIssues.empty())
     {
@@ -894,7 +1001,10 @@ static void ShowMilestoneStatus(const std::string& milestoneTitle)
             std::string labels;
             for (auto& l : (*iss)["labels"])
             {
-                if (!labels.empty()) labels += ", ";
+                if (!labels.empty())
+                {
+                    labels += ", ";
+                }
                 labels += l["name"].get<std::string>();
             }
             auto labelSuffix = labels.empty() ? "" : std::format(" [{}]", labels);
@@ -935,7 +1045,10 @@ static void ShowOrphans()
     for (auto& iss : issues)
     {
         int num = iss["number"].get<int>();
-        if (!fields.empty()) fields += " ";
+        if (!fields.empty())
+        {
+            fields += " ";
+        }
         fields += std::format("i{}: issue(number: {}) {{ number title parent {{ number }} labels(first: 10) {{ nodes {{ name }} }} }}", num, num);
     }
     auto query = std::format(R"(query {{ repository(owner: "{}", name: "{}") {{ {} }} }})", OWNER, REPO, fields);
@@ -965,14 +1078,20 @@ static void ShowOrphans()
         int num = iss["number"].get<int>();
         auto key = std::format("i{}", num);
         auto& gqlIs = gqlResult.Data["data"]["repository"][key];
-        if (gqlIs.is_null()) continue;
+        if (gqlIs.is_null())
+        {
+            continue;
+        }
 
         if (gqlIs["parent"].is_null())
         {
             std::string labels;
             for (auto& l : gqlIs["labels"]["nodes"])
             {
-                if (!labels.empty()) labels += ", ";
+                if (!labels.empty())
+                {
+                    labels += ", ";
+                }
                 labels += l["name"].get<std::string>();
             }
             orphans.push_back({
@@ -983,7 +1102,11 @@ static void ShowOrphans()
         }
     }
 
-    std::sort(orphans.begin(), orphans.end(), [](auto& a, auto& b) { return a.Number < b.Number; });
+    std::sort(orphans.begin(), orphans.end(),
+        [](auto& a, auto& b)
+        {
+            return a.Number < b.Number;
+        });
 
     std::cout << "\n";
     if (orphans.empty())
@@ -1009,7 +1132,10 @@ static void ShowChain(int issueNumber)
 
     std::function<void(int, int)> walkBlockers = [&](int num, int depth)
     {
-        if (visited.contains(num)) return;
+        if (visited.contains(num))
+        {
+            return;
+        }
         if (depth >= MAX_RECURSION_DEPTH)
         {
             std::cout << std::format("{}  Walk-Blockers: depth cap ({}) reached at #{} — stopping{}\n", Colour::Yellow, MAX_RECURSION_DEPTH, num, Colour::Reset);
@@ -1039,14 +1165,20 @@ static void ShowChain(int issueNumber)
 
         if (result.Data.contains("errors"))
         {
-            if (depth == 0) std::cerr << std::format("ShowChain: GraphQL error for root issue #{}: {}\n", num, result.Data["errors"][0]["message"].get<std::string>());
+            if (depth == 0)
+            {
+                std::cerr << std::format("ShowChain: GraphQL error for root issue #{}: {}\n", num, result.Data["errors"][0]["message"].get<std::string>());
+            }
             return;
         }
 
         auto& issue = result.Data["data"]["repository"]["issue"];
         if (issue.is_null())
         {
-            if (depth == 0) std::cerr << std::format("ShowChain: Issue not found or inaccessible: #{}\n", num);
+            if (depth == 0)
+            {
+                std::cerr << std::format("ShowChain: Issue not found or inaccessible: #{}\n", num);
+            }
             return;
         }
 
@@ -1075,7 +1207,12 @@ static void ShowChain(int issueNumber)
 
     int maxDepth = 0;
     for (auto& e : chain)
-        if (e.Depth > maxDepth) maxDepth = e.Depth;
+    {
+        if (e.Depth > maxDepth)
+        {
+            maxDepth = e.Depth;
+        }
+    }
 
     for (auto& entry : chain)
     {
@@ -1091,8 +1228,14 @@ static void ShowChain(int issueNumber)
     std::vector<ChainEntry*> unresolvedLeaves;
     for (auto& e : chain)
     {
-        if (e.State != "CLOSED" && e.Depth > 0) totalUnresolved++;
-        if (e.Depth == maxDepth && e.State != "CLOSED") unresolvedLeaves.push_back(&e);
+        if (e.State != "CLOSED" && e.Depth > 0)
+        {
+            totalUnresolved++;
+        }
+        if (e.Depth == maxDepth && e.State != "CLOSED")
+        {
+            unresolvedLeaves.push_back(&e);
+        }
     }
 
     std::cout << "\n";
@@ -1108,7 +1251,10 @@ static void ShowChain(int issueNumber)
             std::string leafNums;
             for (auto* leaf : unresolvedLeaves)
             {
-                if (!leafNums.empty()) leafNums += ", ";
+                if (!leafNums.empty())
+                {
+                    leafNums += ", ";
+                }
                 leafNums += std::format("#{}", leaf->Number);
             }
             std::cout << std::format("{}  Start here: {}{}\n", Colour::Red, leafNums, Colour::Reset);
@@ -1131,7 +1277,10 @@ static TreeCounts GetTreeCounts(const std::vector<TreeNode>& nodes)
     for (auto& n : nodes)
     {
         counts.Total++;
-        if (n.State == "CLOSED") counts.Done++;
+        if (n.State == "CLOSED")
+        {
+            counts.Done++;
+        }
         if (!n.Children.empty())
         {
             auto sub = GetTreeCounts(n.Children);
@@ -1177,7 +1326,10 @@ static TreeNode FetchSubIssueTree(int num, int depth)
     }
 
     auto& issue = result.Data["data"]["repository"]["issue"];
-    if (issue.is_null()) return {};
+    if (issue.is_null())
+    {
+        return {};
+    }
 
     TreeNode node{
         .Number = issue["number"].get<int>(),
@@ -1213,9 +1365,13 @@ static void PrintTreeNode(const TreeNode& node, int depth)
 
     std::string_view colour;
     if (depth == 0)
+    {
         colour = (node.State == "CLOSED") ? Colour::Green : Colour::Cyan;
+    }
     else
+    {
         colour = (node.State == "CLOSED") ? Colour::Gray : Colour::White;
+    }
 
     std::string childProgress;
     if (!node.Children.empty())
@@ -1371,7 +1527,10 @@ int main(int argc, char** argv)
     }
 
     auto issues = ParseIntList(argv[2]);
-    if (issues.empty()) return 1;
+    if (issues.empty())
+    {
+        return 1;
+    }
 
     // show with multiple issues → batch summary
     if (action == "show")
@@ -1423,20 +1582,35 @@ int main(int argc, char** argv)
     int singleIssue = issues[0];
 
     auto targets = ParseIntList(argv[3]);
-    if (targets.empty()) return 1;
+    if (targets.empty())
+    {
+        return 1;
+    }
 
     if (action == "blocked-by")
+    {
         AddBlockedBy(singleIssue, targets);
+    }
     else if (action == "blocking")
+    {
         AddBlocking(singleIssue, targets);
+    }
     else if (action == "sub-issue")
+    {
         AddSubIssue(singleIssue, targets);
+    }
     else if (action == "remove-blocked-by")
+    {
         RemoveBlockedBy(singleIssue, targets);
+    }
     else if (action == "remove-blocking")
+    {
         RemoveBlocking(singleIssue, targets);
+    }
     else if (action == "remove-sub-issue")
+    {
         RemoveSubIssue(singleIssue, targets);
+    }
     else
     {
         std::cerr << std::format("Unknown action: {}\n", action);

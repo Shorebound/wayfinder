@@ -20,7 +20,10 @@ namespace Wayfinder
 
     LoadedModule::~LoadedModule()
     {
-        if (Instance && m_destroyFn) m_destroyFn(Instance);
+        if (Instance && m_destroyFn)
+        {
+            m_destroyFn(Instance);
+        }
 
         if (m_libraryHandle)
         {
@@ -44,7 +47,10 @@ namespace Wayfinder
         if (this != &other)
         {
             // Destroy current
-            if (Instance && m_destroyFn) m_destroyFn(Instance);
+            if (Instance && m_destroyFn)
+            {
+                m_destroyFn(Instance);
+            }
             if (m_libraryHandle)
             {
 #ifdef _WIN32

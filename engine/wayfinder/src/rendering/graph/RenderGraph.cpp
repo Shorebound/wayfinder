@@ -20,7 +20,10 @@ namespace Wayfinder
 
     void RenderGraphBuilder::ReadTexture(RenderGraphHandle handle)
     {
-        if (!handle.IsValid() || handle.Index >= m_graph.m_resources.size()) return;
+        if (!handle.IsValid() || handle.Index >= m_graph.m_resources.size())
+        {
+            return;
+        }
         auto& pass = m_graph.m_passes[m_passIndex];
         pass.Reads.push_back(handle);
 
@@ -36,7 +39,10 @@ namespace Wayfinder
 
     void RenderGraphBuilder::WriteColour(RenderGraphHandle handle, LoadOp load, ClearValue clear)
     {
-        if (!handle.IsValid() || handle.Index >= m_graph.m_resources.size()) return;
+        if (!handle.IsValid() || handle.Index >= m_graph.m_resources.size())
+        {
+            return;
+        }
         auto& pass = m_graph.m_passes[m_passIndex];
         pass.ColourWrite = RenderGraph::ColourWriteInfo{handle, load, clear};
 
@@ -52,7 +58,10 @@ namespace Wayfinder
 
     void RenderGraphBuilder::WriteDepth(RenderGraphHandle handle, LoadOp load, float clearDepth)
     {
-        if (!handle.IsValid() || handle.Index >= m_graph.m_resources.size()) return;
+        if (!handle.IsValid() || handle.Index >= m_graph.m_resources.size())
+        {
+            return;
+        }
         auto& pass = m_graph.m_passes[m_passIndex];
         pass.DepthWrite = RenderGraph::DepthWriteInfo{handle, load, clearDepth};
 
@@ -136,7 +145,10 @@ namespace Wayfinder
     bool RenderGraph::Compile()
     {
         const uint32_t passCount = static_cast<uint32_t>(m_passes.size());
-        if (passCount == 0) return false;
+        if (passCount == 0)
+        {
+            return false;
+        }
 
         // ── Build dependency graph ───────────────────────────
         // Dependencies are recorded during setup (ReadTexture, WriteColour+Load, WriteDepth+Load).
@@ -164,7 +176,10 @@ namespace Wayfinder
         std::queue<uint32_t> ready;
         for (uint32_t i = 0; i < passCount; ++i)
         {
-            if (inDegree[i] == 0) ready.push(i);
+            if (inDegree[i] == 0)
+            {
+                ready.push(i);
+            }
         }
 
         m_executionOrder.clear();
@@ -212,7 +227,10 @@ namespace Wayfinder
             changed = false;
             for (uint32_t i = 0; i < passCount; ++i)
             {
-                if (!alive[i]) continue;
+                if (!alive[i])
+                {
+                    continue;
+                }
                 for (uint32_t dep : m_passes[i].DependsOn)
                 {
                     if (dep < passCount && !alive[dep])
@@ -242,7 +260,10 @@ namespace Wayfinder
 
     void RenderGraph::Execute(RenderDevice& device, TransientResourcePool& pool)
     {
-        if (!m_compiled) return;
+        if (!m_compiled)
+        {
+            return;
+        }
 
         auto deriveUsage = [](const ResourceEntry& res) -> TextureUsage
         {
@@ -265,8 +286,14 @@ namespace Wayfinder
         for (uint32_t i = 0; i < m_resources.size(); ++i)
         {
             auto& res = m_resources[i];
-            if (!res.IsTransient) continue;
-            if (res.Desc.Width == 0 || res.Desc.Height == 0) continue;
+            if (!res.IsTransient)
+            {
+                continue;
+            }
+            if (res.Desc.Width == 0 || res.Desc.Height == 0)
+            {
+                continue;
+            }
 
             TextureCreateDesc texDesc;
             texDesc.width = res.Desc.Width;
@@ -281,7 +308,10 @@ namespace Wayfinder
         for (uint32_t passIdx : m_executionOrder)
         {
             auto& pass = m_passes[passIdx];
-            if (pass.Culled || !pass.Execute) continue;
+            if (pass.Culled || !pass.Execute)
+            {
+                continue;
+            }
 
             if (pass.Type == RenderGraphPassType::Raster)
             {
@@ -330,7 +360,10 @@ namespace Wayfinder
         for (uint32_t i = 0; i < m_resources.size(); ++i)
         {
             auto& res = m_resources[i];
-            if (!res.IsTransient || !resources.m_textures[i]) continue;
+            if (!res.IsTransient || !resources.m_textures[i])
+            {
+                continue;
+            }
 
             TextureCreateDesc texDesc;
             texDesc.width = res.Desc.Width;

@@ -75,7 +75,10 @@ namespace Wayfinder
          */
         void Release(HandleType handle)
         {
-            if (!IsValid(handle)) return;
+            if (!IsValid(handle))
+            {
+                return;
+            }
 
             auto& entry = m_entries[handle.Index];
             entry.Resource = TResource{};
@@ -84,7 +87,10 @@ namespace Wayfinder
 
             /// Bump generation so stale handles to this slot fail validation.
             entry.Generation = (entry.Generation + 1) & MAX_GENERATION;
-            if (entry.Generation == 0) entry.Generation = 1;
+            if (entry.Generation == 0)
+            {
+                entry.Generation = 1;
+            }
 
             m_freeList.push_back(handle.Index);
         }
@@ -94,8 +100,14 @@ namespace Wayfinder
          */
         [[nodiscard]] bool IsValid(HandleType handle) const
         {
-            if (!handle.IsValid()) return false;
-            if (handle.Index >= m_entries.size()) return false;
+            if (!handle.IsValid())
+            {
+                return false;
+            }
+            if (handle.Index >= m_entries.size())
+            {
+                return false;
+            }
 
             const auto& entry = m_entries[handle.Index];
             return entry.Alive && entry.Generation == handle.Generation;
@@ -106,7 +118,10 @@ namespace Wayfinder
          */
         [[nodiscard]] TResource* Get(HandleType handle)
         {
-            if (!IsValid(handle)) return nullptr;
+            if (!IsValid(handle))
+            {
+                return nullptr;
+            }
             return &m_entries[handle.Index].Resource;
         }
 
@@ -115,7 +130,10 @@ namespace Wayfinder
          */
         [[nodiscard]] const TResource* Get(HandleType handle) const
         {
-            if (!IsValid(handle)) return nullptr;
+            if (!IsValid(handle))
+            {
+                return nullptr;
+            }
             return &m_entries[handle.Index].Resource;
         }
 
@@ -135,7 +153,10 @@ namespace Wayfinder
         {
             for (auto& entry : m_entries)
             {
-                if (entry.Alive) fn(entry.Resource);
+                if (entry.Alive)
+                {
+                    fn(entry.Resource);
+                }
             }
         }
 
@@ -154,7 +175,10 @@ namespace Wayfinder
                 entry.Resource = TResource{};
                 entry.Alive = false;
                 entry.Generation = (entry.Generation + 1) & MAX_GENERATION;
-                if (entry.Generation == 0) entry.Generation = 1;
+                if (entry.Generation == 0)
+                {
+                    entry.Generation = 1;
+                }
                 m_freeList.push_back(i);
             }
         }

@@ -9,7 +9,10 @@ namespace Wayfinder
 
     std::filesystem::path ProjectDescriptor::ResolveModulePath() const
     {
-        if (Paths.Module.empty()) return {};
+        if (Paths.Module.empty())
+        {
+            return {};
+        }
 
 #ifdef _WIN32
         return ProjectRoot / (Paths.Module + ".dll");
@@ -51,17 +54,38 @@ namespace Wayfinder
 
             if (const auto* project = tbl["project"].as_table())
             {
-                if (auto v = (*project)["name"].value<std::string>()) output.Descriptor.Name = *v;
-                if (auto v = (*project)["version"].value<std::string>()) output.Descriptor.Version = *v;
-                if (auto v = (*project)["engine_version"].value<std::string>()) output.Descriptor.EngineVersion = *v;
-                if (auto v = (*project)["module"].value<std::string>()) output.Descriptor.Paths.Module = *v;
+                if (auto v = (*project)["name"].value<std::string>())
+                {
+                    output.Descriptor.Name = *v;
+                }
+                if (auto v = (*project)["version"].value<std::string>())
+                {
+                    output.Descriptor.Version = *v;
+                }
+                if (auto v = (*project)["engine_version"].value<std::string>())
+                {
+                    output.Descriptor.EngineVersion = *v;
+                }
+                if (auto v = (*project)["module"].value<std::string>())
+                {
+                    output.Descriptor.Paths.Module = *v;
+                }
             }
 
             if (const auto* paths = tbl["paths"].as_table())
             {
-                if (auto v = (*paths)["asset_root"].value<std::string>()) output.Descriptor.Paths.AssetRoot = *v;
-                if (auto v = (*paths)["boot_scene"].value<std::string>()) output.Descriptor.Paths.BootScene = *v;
-                if (auto v = (*paths)["config_dir"].value<std::string>()) output.Descriptor.Paths.ConfigDir = *v;
+                if (auto v = (*paths)["asset_root"].value<std::string>())
+                {
+                    output.Descriptor.Paths.AssetRoot = *v;
+                }
+                if (auto v = (*paths)["boot_scene"].value<std::string>())
+                {
+                    output.Descriptor.Paths.BootScene = *v;
+                }
+                if (auto v = (*paths)["config_dir"].value<std::string>())
+                {
+                    output.Descriptor.Paths.ConfigDir = *v;
+                }
             }
 
             WAYFINDER_INFO(LogEngine, "Loaded project '{}' v{} from: {}", output.Descriptor.Name, output.Descriptor.Version, path.string());

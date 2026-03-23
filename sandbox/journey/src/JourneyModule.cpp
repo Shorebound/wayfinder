@@ -27,7 +27,10 @@ namespace Wayfinder::Journey
             ModuleRegistry::ComponentDescriptor desc;
             desc.Key = "health";
 
-            desc.RegisterFn = [](flecs::world& world) { world.component<HealthComponent>(); };
+            desc.RegisterFn = [](flecs::world& world)
+            {
+                world.component<HealthComponent>();
+            };
 
             desc.ApplyFn = [](const nlohmann::json& table, Entity& entity)
             {
@@ -39,7 +42,10 @@ namespace Wayfinder::Journey
 
             desc.SerialiseFn = [](const Entity& entity, nlohmann::json& tables)
             {
-                if (!entity.HasComponent<HealthComponent>()) return;
+                if (!entity.HasComponent<HealthComponent>())
+                {
+                    return;
+                }
 
                 const auto& health = entity.GetComponent<HealthComponent>();
                 nlohmann::json t;
@@ -93,7 +99,10 @@ namespace Wayfinder::Journey
                                 if (health.CurrentHealth < health.MaxHealth)
                                 {
                                     health.CurrentHealth += 0.1f;
-                                    if (health.CurrentHealth > health.MaxHealth) health.CurrentHealth = health.MaxHealth;
+                                    if (health.CurrentHealth > health.MaxHealth)
+                                    {
+                                        health.CurrentHealth = health.MaxHealth;
+                                    }
                                 }
                             });
                 },

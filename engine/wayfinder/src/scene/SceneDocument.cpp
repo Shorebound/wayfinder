@@ -398,7 +398,11 @@ namespace Wayfinder
             }
 
             std::vector<SceneDocumentEntity> sortedEntities = document.Entities;
-            std::sort(sortedEntities.begin(), sortedEntities.end(), [](const SceneDocumentEntity& left, const SceneDocumentEntity& right) { return left.Name < right.Name; });
+            std::sort(sortedEntities.begin(), sortedEntities.end(),
+                [](const SceneDocumentEntity& left, const SceneDocumentEntity& right)
+                {
+                    return left.Name < right.Name;
+                });
 
             for (const SceneDocumentEntity& entityRecord : sortedEntities)
             {

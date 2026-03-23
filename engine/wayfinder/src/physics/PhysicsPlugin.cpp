@@ -47,9 +47,15 @@ namespace Wayfinder::Physics
         /// Read a 3-element JSON array into a Float3, falling back to @p fallback.
         Float3 ReadVector3(const nlohmann::json& data, const char* key, const Float3& fallback)
         {
-            if (!data.contains(key)) return fallback;
+            if (!data.contains(key))
+            {
+                return fallback;
+            }
             const auto& arr = data[key];
-            if (!arr.is_array() || arr.size() != 3) return fallback;
+            if (!arr.is_array() || arr.size() != 3)
+            {
+                return fallback;
+            }
             return {arr[0].is_number() ? arr[0].get<float>() : fallback.x, arr[1].is_number() ? arr[1].get<float>() : fallback.y, arr[2].is_number() ? arr[2].get<float>() : fallback.z};
         }
 
@@ -74,11 +80,17 @@ namespace Wayfinder::Physics
             {
                 auto typeStr = it->get<std::string>();
                 if (typeStr == "static")
+                {
                     rb.Type = BodyType::Static;
+                }
                 else if (typeStr == "kinematic")
+                {
                     rb.Type = BodyType::Kinematic;
+                }
                 else
+                {
                     rb.Type = BodyType::Dynamic;
+                }
             }
 
             rb.Mass = data.value("mass", 1.0f);
@@ -93,7 +105,10 @@ namespace Wayfinder::Physics
 
         void SerialiseRigidBody(const Entity& entity, nlohmann::json& tables)
         {
-            if (!entity.HasComponent<RigidBodyComponent>()) return;
+            if (!entity.HasComponent<RigidBodyComponent>())
+            {
+                return;
+            }
 
             const auto& rb = entity.GetComponent<RigidBodyComponent>();
             nlohmann::json t;
@@ -180,11 +195,17 @@ namespace Wayfinder::Physics
             {
                 auto shapeStr = it->get<std::string>();
                 if (shapeStr == "sphere")
+                {
                     col.Shape = ColliderShape::Sphere;
+                }
                 else if (shapeStr == "capsule")
+                {
                     col.Shape = ColliderShape::Capsule;
+                }
                 else
+                {
                     col.Shape = ColliderShape::Box;
+                }
             }
 
             col.HalfExtents = ReadVector3(data, "half_extents", {0.5f, 0.5f, 0.5f});
@@ -199,7 +220,10 @@ namespace Wayfinder::Physics
 
         void SerialiseCollider(const Entity& entity, nlohmann::json& tables)
         {
-            if (!entity.HasComponent<ColliderComponent>()) return;
+            if (!entity.HasComponent<ColliderComponent>())
+            {
+                return;
+            }
 
             const auto& col = entity.GetComponent<ColliderComponent>();
             nlohmann::json t;
@@ -347,10 +371,16 @@ namespace Wayfinder::Physics
                     .event(flecs::OnAdd)
                     .each([](flecs::entity, RigidBodyComponent& rb, const ColliderComponent& col, const TransformComponent& transform)
                         {
-                            if (rb.RuntimeBodyId != INVALID_PHYSICS_BODY) return;
+                            if (rb.RuntimeBodyId != INVALID_PHYSICS_BODY)
+                            {
+                                return;
+                            }
 
                             auto* physics = GameSubsystems::Find<PhysicsSubsystem>();
-                            if (!physics) return;
+                            if (!physics)
+                            {
+                                return;
+                            }
 
                             auto desc = MakeDescriptor(rb, col);
                             rb.RuntimeBodyId = physics->GetWorld().CreateBody(desc, transform.Position, transform.Rotation);
@@ -373,10 +403,16 @@ namespace Wayfinder::Physics
                     .event(flecs::OnRemove)
                     .each([](RigidBodyComponent& rb)
                         {
-                            if (rb.RuntimeBodyId == INVALID_PHYSICS_BODY) return;
+                            if (rb.RuntimeBodyId == INVALID_PHYSICS_BODY)
+                            {
+                                return;
+                            }
 
                             auto* physics = GameSubsystems::Find<PhysicsSubsystem>();
-                            if (!physics) return;
+                            if (!physics)
+                            {
+                                return;
+                            }
 
                             physics->GetWorld().DestroyBody(rb.RuntimeBodyId);
                             rb.RuntimeBodyId = INVALID_PHYSICS_BODY;
@@ -391,13 +427,19 @@ namespace Wayfinder::Physics
             [fixedTimestep](flecs::world& world)
             {
                 auto* physics = GameSubsystems::Find<PhysicsSubsystem>();
-                if (physics) physics->GetWorld().SetFixedTimestep(fixedTimestep);
+                if (physics)
+                {
+                    physics->GetWorld().SetFixedTimestep(fixedTimestep);
+                }
 
                 world.system("PhysicsStep")
                     .kind(flecs::OnUpdate)
                     .run([physics](flecs::iter& it)
                         {
-                            if (physics) physics->GetWorld().StepFixed(it.delta_time());
+                            if (physics)
+                            {
+                                physics->GetWorld().StepFixed(it.delta_time());
+                            }
                         });
             });
 
@@ -413,9 +455,18 @@ namespace Wayfinder::Physics
                     .kind(flecs::OnValidate)
                     .each([physics](flecs::entity, const RigidBodyComponent& rb, WorldTransformComponent& wt)
                         {
-                            if (rb.RuntimeBodyId == INVALID_PHYSICS_BODY) return;
-                            if (rb.Type == BodyType::Static) return;
-                            if (!physics) return;
+                            if (rb.RuntimeBodyId == INVALID_PHYSICS_BODY)
+                            {
+                                return;
+                            }
+                            if (rb.Type == BodyType::Static)
+                            {
+                                return;
+                            }
+                            if (!physics)
+                            {
+                                return;
+                            }
 
                             Float3 pos = physics->GetWorld().GetBodyPosition(rb.RuntimeBodyId);
                             Float4 rotQ = physics->GetWorld().GetBodyRotation(rb.RuntimeBodyId);

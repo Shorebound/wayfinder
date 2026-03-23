@@ -61,7 +61,9 @@ namespace Wayfinder::Tests
 
             // Stand up the subsystem from the plugin's registration.
             for (const auto& entry : registry.GetSubsystemFactories())
+            {
                 Subsystems.Register(entry.Type, entry.Factory, entry.Predicate);
+            }
 
             Subsystems.Initialise();
             GameSubsystems::Bind(&Subsystems);
@@ -116,7 +118,9 @@ namespace Wayfinder::Tests
         void Simulate(int ticks = SIMULATION_STEPS)
         {
             for (int i = 0; i < ticks; ++i)
+            {
                 EcsWorld.progress(FIXED_DT);
+            }
         }
     };
 

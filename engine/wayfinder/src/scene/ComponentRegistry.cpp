@@ -30,25 +30,43 @@ namespace Wayfinder
 
     float ReadFloat(const nlohmann::json& data, const char* key, float fallback)
     {
-        if (!data.contains(key)) return fallback;
+        if (!data.contains(key))
+        {
+            return fallback;
+        }
         const auto& val = data[key];
-        if (val.is_number()) return val.get<float>();
+        if (val.is_number())
+        {
+            return val.get<float>();
+        }
         return fallback;
     }
 
     float ReadArrayFloat(const nlohmann::json& arr, size_t index, float fallback)
     {
-        if (index >= arr.size()) return fallback;
+        if (index >= arr.size())
+        {
+            return fallback;
+        }
         const auto& val = arr[index];
-        if (val.is_number()) return val.get<float>();
+        if (val.is_number())
+        {
+            return val.get<float>();
+        }
         return fallback;
     }
 
     Wayfinder::Float3 ReadVector3(const nlohmann::json& data, const char* key, const Wayfinder::Float3& fallback)
     {
-        if (!data.contains(key)) return fallback;
+        if (!data.contains(key))
+        {
+            return fallback;
+        }
         const auto& arr = data[key];
-        if (!arr.is_array() || arr.size() != 3) return fallback;
+        if (!arr.is_array() || arr.size() != 3)
+        {
+            return fallback;
+        }
 
         Wayfinder::Float3 result = fallback;
         result.x = ReadArrayFloat(arr, 0, result.x);
@@ -64,16 +82,28 @@ namespace Wayfinder
 
     uint8_t ClampColourChannel(int64_t value)
     {
-        if (value < 0) return 0;
-        if (value > 255) return 255;
+        if (value < 0)
+        {
+            return 0;
+        }
+        if (value > 255)
+        {
+            return 255;
+        }
         return static_cast<uint8_t>(value);
     }
 
     Wayfinder::Colour ReadColour(const nlohmann::json& data, const char* key, const Wayfinder::Colour& fallback)
     {
-        if (!data.contains(key)) return fallback;
+        if (!data.contains(key))
+        {
+            return fallback;
+        }
         const auto& arr = data[key];
-        if (!arr.is_array() || (arr.size() != 3 && arr.size() != 4)) return fallback;
+        if (!arr.is_array() || (arr.size() != 3 && arr.size() != 4))
+        {
+            return fallback;
+        }
 
         Wayfinder::Colour result = fallback;
         result.r = arr[0].is_number_integer() ? ClampColourChannel(arr[0].get<int64_t>()) : result.r;
@@ -513,15 +543,30 @@ namespace Wayfinder
 
     bool ValidatePostProcessVolume(const nlohmann::json& data, std::string& error)
     {
-        if (!ValidateOptionalEnumValue(data, "shape", {"global", "box", "sphere"}, error)) return false;
+        if (!ValidateOptionalEnumValue(data, "shape", {"global", "box", "sphere"}, error))
+        {
+            return false;
+        }
 
-        if (!ValidateOptionalInteger(data, "priority", error)) return false;
+        if (!ValidateOptionalInteger(data, "priority", error))
+        {
+            return false;
+        }
 
-        if (!ValidateOptionalNumber(data, "blend_distance", error)) return false;
+        if (!ValidateOptionalNumber(data, "blend_distance", error))
+        {
+            return false;
+        }
 
-        if (!ValidateOptionalVector3(data, "dimensions", error)) return false;
+        if (!ValidateOptionalVector3(data, "dimensions", error))
+        {
+            return false;
+        }
 
-        if (!ValidateOptionalNumber(data, "radius", error)) return false;
+        if (!ValidateOptionalNumber(data, "radius", error))
+        {
+            return false;
+        }
 
         // Validate the effects array if present
         if (data.contains("effects"))
@@ -650,11 +695,23 @@ namespace Wayfinder
 
     Wayfinder::PostProcessVolumeShape ReadVolumeShape(const nlohmann::json& data, const char* key, Wayfinder::PostProcessVolumeShape fallback)
     {
-        if (!data.contains(key) || !data[key].is_string()) return fallback;
+        if (!data.contains(key) || !data[key].is_string())
+        {
+            return fallback;
+        }
         const auto value = data[key].get<std::string>();
-        if (value == "global") return Wayfinder::PostProcessVolumeShape::Global;
-        if (value == "box") return Wayfinder::PostProcessVolumeShape::Box;
-        if (value == "sphere") return Wayfinder::PostProcessVolumeShape::Sphere;
+        if (value == "global")
+        {
+            return Wayfinder::PostProcessVolumeShape::Global;
+        }
+        if (value == "box")
+        {
+            return Wayfinder::PostProcessVolumeShape::Box;
+        }
+        if (value == "sphere")
+        {
+            return Wayfinder::PostProcessVolumeShape::Sphere;
+        }
         return fallback;
     }
 
@@ -662,7 +719,10 @@ namespace Wayfinder
 
     bool ValidateTags(const nlohmann::json& data, std::string& error)
     {
-        if (!data.contains("tags")) return true;
+        if (!data.contains("tags"))
+        {
+            return true;
+        }
 
         const auto& node = data["tags"];
         if (!node.is_array())
@@ -696,7 +756,10 @@ namespace Wayfinder
             {
                 for (const auto& node : data["tags"])
                 {
-                    if (node.is_string()) container.AddTag(registry->RequestTag(node.get<std::string>()));
+                    if (node.is_string())
+                    {
+                        container.AddTag(registry->RequestTag(node.get<std::string>()));
+                    }
                 }
             }
         }
@@ -710,14 +773,22 @@ namespace Wayfinder
 
     void SerialiseTags(const Wayfinder::Entity& entity, nlohmann::json& componentTables)
     {
-        if (!entity.HasComponent<Wayfinder::GameplayTagContainer>()) return;
+        if (!entity.HasComponent<Wayfinder::GameplayTagContainer>())
+        {
+            return;
+        }
 
         const auto& container = entity.GetComponent<Wayfinder::GameplayTagContainer>();
-        if (container.IsEmpty()) return;
+        if (container.IsEmpty())
+        {
+            return;
+        }
 
         nlohmann::json arr = nlohmann::json::array();
         for (const auto& tag : container)
+        {
             arr.push_back(tag.GetName());
+        }
 
         nlohmann::json t;
         t["tags"] = std::move(arr);
@@ -742,8 +813,14 @@ namespace Wayfinder
 
     Wayfinder::PostProcessParamValue ReadEffectParam(const nlohmann::json& node)
     {
-        if (node.is_number_float()) return node.get<float>();
-        if (node.is_number_integer()) return static_cast<int32_t>(node.get<int64_t>());
+        if (node.is_number_float())
+        {
+            return node.get<float>();
+        }
+        if (node.is_number_integer())
+        {
+            return static_cast<int32_t>(node.get<int64_t>());
+        }
 
         if (node.is_array())
         {
@@ -945,13 +1022,21 @@ namespace Wayfinder
             {
                 using T = std::decay_t<decltype(v)>;
                 if constexpr (std::is_same_v<T, float>)
+                {
                     obj[key] = v;
+                }
                 else if constexpr (std::is_same_v<T, int32_t>)
+                {
                     obj[key] = static_cast<int64_t>(v);
+                }
                 else if constexpr (std::is_same_v<T, Wayfinder::Float3>)
+                {
                     obj[key] = WriteVector3(v);
+                }
                 else if constexpr (std::is_same_v<T, Wayfinder::Colour>)
+                {
                     obj[key] = WriteColour(v);
+                }
             },
             value);
     }

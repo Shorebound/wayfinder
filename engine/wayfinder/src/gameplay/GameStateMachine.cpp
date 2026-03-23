@@ -50,7 +50,10 @@ namespace Wayfinder
         // Early-out if already in the requested state (avoids interning).
         {
             const ActiveGameState& state = m_world->get<ActiveGameState>();
-            if (state.Current.GetString() == stateName) return;
+            if (state.Current.GetString() == stateName)
+            {
+                return;
+            }
         }
 
         const ModuleRegistry::StateDescriptor* targetDesc = nullptr;
@@ -60,8 +63,14 @@ namespace Wayfinder
             const ActiveGameState& state = m_world->get<ActiveGameState>();
             for (const auto& desc : m_moduleRegistry->GetStateDescriptors())
             {
-                if (desc.Name == stateName) targetDesc = &desc;
-                if (!state.Current.IsEmpty() && desc.Name == state.Current.GetString()) exitDesc = &desc;
+                if (desc.Name == stateName)
+                {
+                    targetDesc = &desc;
+                }
+                if (!state.Current.IsEmpty() && desc.Name == state.Current.GetString())
+                {
+                    exitDesc = &desc;
+                }
             }
 
             if (!targetDesc)
@@ -76,14 +85,20 @@ namespace Wayfinder
         const InternedString oldState = state.Current;
 
         // Call OnExit for the outgoing state
-        if (exitDesc && exitDesc->OnExit) exitDesc->OnExit(*m_world);
+        if (exitDesc && exitDesc->OnExit)
+        {
+            exitDesc->OnExit(*m_world);
+        }
 
         // Update the singleton
         state.Previous = oldState;
         state.Current = internedName;
 
         // Call OnEnter for the incoming state
-        if (targetDesc && targetDesc->OnEnter) targetDesc->OnEnter(*m_world);
+        if (targetDesc && targetDesc->OnEnter)
+        {
+            targetDesc->OnEnter(*m_world);
+        }
 
         WAYFINDER_INFO(LogGame, "State transition: '{}' -> '{}'", oldState.GetString(), stateName);
 
@@ -99,11 +114,17 @@ namespace Wayfinder
 
     void GameStateMachine::BindConditionedSystems()
     {
-        if (!m_moduleRegistry) return;
+        if (!m_moduleRegistry)
+        {
+            return;
+        }
 
         for (const auto& desc : m_moduleRegistry->GetSystems())
         {
-            if (!desc.Condition) continue;
+            if (!desc.Condition)
+            {
+                continue;
+            }
 
             flecs::entity sys = m_world->lookup(desc.Name.c_str());
             if (!sys.is_valid())
@@ -116,7 +137,10 @@ namespace Wayfinder
             }
 
             const bool initiallyEnabled = desc.Condition(*m_world);
-            if (!initiallyEnabled) sys.disable();
+            if (!initiallyEnabled)
+            {
+                sys.disable();
+            }
 
             m_conditionedSystems.push_back({sys, desc.Condition, initiallyEnabled});
         }
@@ -130,9 +154,13 @@ namespace Wayfinder
             if (shouldRun != cs.Enabled)
             {
                 if (shouldRun)
+                {
                     cs.SystemEntity.enable();
+                }
                 else
+                {
                     cs.SystemEntity.disable();
+                }
                 cs.Enabled = shouldRun;
             }
         }

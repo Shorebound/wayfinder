@@ -49,10 +49,16 @@ namespace Wayfinder
 
         // 1. Discover project descriptor from CWD
         auto projectFile = FindProjectFile();
-        if (!projectFile) return std::unexpected(projectFile.error());
+        if (!projectFile)
+        {
+            return std::unexpected(projectFile.error());
+        }
 
         auto loadResult = ProjectDescriptor::LoadFromFile(*projectFile);
-        if (!loadResult) return std::unexpected(loadResult.error());
+        if (!loadResult)
+        {
+            return std::unexpected(loadResult.error());
+        }
 
         for (const auto& warning : loadResult->Warnings)
         {
@@ -73,10 +79,16 @@ namespace Wayfinder
 
         // 4. Platform + rendering services
         m_runtime = std::make_unique<EngineRuntime>(*m_config, *m_project);
-        if (auto runtimeResult = m_runtime->Initialise(); !runtimeResult) return std::unexpected(runtimeResult.error());
+        if (auto runtimeResult = m_runtime->Initialise(); !runtimeResult)
+        {
+            return std::unexpected(runtimeResult.error());
+        }
 
         // Wire window events → Application::OnEvent
-        m_runtime->GetWindow().SetEventCallback([this](Event& e) { OnEvent(e); });
+        m_runtime->GetWindow().SetEventCallback([this](Event& e)
+            {
+                OnEvent(e);
+            });
 
         // 5. Layer stack
         m_layerStack = std::make_unique<LayerStack>();
@@ -85,7 +97,10 @@ namespace Wayfinder
         GameContext gameCtx{*m_project, m_moduleRegistry.get()};
         m_game = std::make_unique<Game>();
 
-        if (auto gameResult = m_game->Initialise(gameCtx); !gameResult) return std::unexpected(gameResult.error());
+        if (auto gameResult = m_game->Initialise(gameCtx); !gameResult)
+        {
+            return std::unexpected(gameResult.error());
+        }
 
         m_runtime->SetAssetService(m_game->GetAssetService());
 
@@ -107,7 +122,10 @@ namespace Wayfinder
             m_runtime->BeginFrame();
 
             // Drain queued input events — single batch at a well-defined frame point
-            m_eventQueue.Drain([this](Event& e) { PropagateToLayers(e); });
+            m_eventQueue.Drain([this](Event& e)
+                {
+                    PropagateToLayers(e);
+                });
 
             const float dt = m_runtime->GetDeltaTime();
 
@@ -136,18 +154,27 @@ namespace Wayfinder
     {
         // Latency-sensitive events: dispatch immediately
         EventDispatcher dispatcher(event);
-        dispatcher.Dispatch<WindowCloseEvent>([this](WindowCloseEvent& e) { return OnWindowClose(e); });
-        dispatcher.Dispatch<WindowResizeEvent>([this](WindowResizeEvent& e) { return OnWindowResize(e); });
+        dispatcher.Dispatch<WindowCloseEvent>([this](WindowCloseEvent& e)
+        {
+            return OnWindowClose(e);
+        });
+
+        dispatcher.Dispatch<WindowResizeEvent>([this](WindowResizeEvent& e)
+            {
+                return OnWindowResize(e);
+            });
 
         // Feed scroll events into input accumulator immediately
-        dispatcher.Dispatch<MouseScrolledEvent>(
-            [this](MouseScrolledEvent& e)
+        dispatcher.Dispatch<MouseScrolledEvent>([this](MouseScrolledEvent& e)
             {
                 m_runtime->GetInput().AccumulateScroll(e.GetXOffset(), e.GetYOffset());
                 return true;
             });
 
-        if (event.Handled) return;
+        if (event.Handled)
+        {
+            return;
+        }
 
         // Defer input events to typed buffers for batched dispatch
         if (event.IsInCategory(EventCategory::Input))
@@ -164,7 +191,10 @@ namespace Wayfinder
     {
         for (auto it = m_layerStack->rbegin(); it != m_layerStack->rend(); ++it)
         {
-            if (event.Handled) break;
+            if (event.Handled)
+            {
+                break;
+            }
             (*it)->OnEvent(event);
         }
     }

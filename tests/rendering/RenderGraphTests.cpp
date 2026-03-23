@@ -42,7 +42,9 @@ namespace Wayfinder::Tests
             [](Wayfinder::RenderGraphBuilder& builder)
             {
                 builder.SetSwapchainOutput();
-                return [](Wayfinder::RenderDevice&, const Wayfinder::RenderGraphResources&) {};
+                return [](Wayfinder::RenderDevice&, const Wayfinder::RenderGraphResources&)
+                {
+                };
             });
 
         CHECK(graph.Compile());
@@ -67,7 +69,10 @@ namespace Wayfinder::Tests
             {
                 auto colour = builder.CreateTransient(colourDesc);
                 builder.WriteColour(colour);
-                return [&executionOrder](Wayfinder::RenderDevice&, const Wayfinder::RenderGraphResources&) { executionOrder.push_back("A"); };
+                return [&executionOrder](Wayfinder::RenderDevice&, const Wayfinder::RenderGraphResources&)
+                {
+                    executionOrder.push_back("A");
+                };
             });
 
         graph.AddPass("B_ReadAndPresent",
@@ -76,7 +81,10 @@ namespace Wayfinder::Tests
                 auto colour = graph.FindHandle(Wayfinder::WellKnown::SceneColour);
                 builder.ReadTexture(colour);
                 builder.SetSwapchainOutput();
-                return [&executionOrder](Wayfinder::RenderDevice&, const Wayfinder::RenderGraphResources&) { executionOrder.push_back("B"); };
+                return [&executionOrder](Wayfinder::RenderDevice&, const Wayfinder::RenderGraphResources&)
+                {
+                    executionOrder.push_back("B");
+                };
             });
 
         REQUIRE(graph.Compile());
@@ -106,7 +114,10 @@ namespace Wayfinder::Tests
             {
                 auto tex = builder.CreateTransient(desc);
                 builder.WriteColour(tex);
-                return [&executionOrder](Wayfinder::RenderDevice&, const Wayfinder::RenderGraphResources&) { executionOrder.push_back("First"); };
+                return [&executionOrder](Wayfinder::RenderDevice&, const Wayfinder::RenderGraphResources&)
+                {
+                    executionOrder.push_back("First");
+                };
             });
 
         graph.AddPass("Second",
@@ -114,7 +125,10 @@ namespace Wayfinder::Tests
             {
                 auto tex = graph.FindHandle("IntermediateColour");
                 builder.WriteColour(tex, Wayfinder::LoadOp::Load);
-                return [&executionOrder](Wayfinder::RenderDevice&, const Wayfinder::RenderGraphResources&) { executionOrder.push_back("Second"); };
+                return [&executionOrder](Wayfinder::RenderDevice&, const Wayfinder::RenderGraphResources&)
+                {
+                    executionOrder.push_back("Second");
+                };
             });
 
         graph.AddPass("Present",
@@ -123,7 +137,10 @@ namespace Wayfinder::Tests
                 auto tex = graph.FindHandle("IntermediateColour");
                 builder.ReadTexture(tex);
                 builder.SetSwapchainOutput();
-                return [&executionOrder](Wayfinder::RenderDevice&, const Wayfinder::RenderGraphResources&) { executionOrder.push_back("Present"); };
+                return [&executionOrder](Wayfinder::RenderDevice&, const Wayfinder::RenderGraphResources&)
+                {
+                    executionOrder.push_back("Present");
+                };
             });
 
         REQUIRE(graph.Compile());
@@ -157,14 +174,20 @@ namespace Wayfinder::Tests
             {
                 auto tex = builder.CreateTransient(desc);
                 builder.WriteColour(tex);
-                return [&executionOrder](Wayfinder::RenderDevice&, const Wayfinder::RenderGraphResources&) { executionOrder.push_back("Orphan"); };
+                return [&executionOrder](Wayfinder::RenderDevice&, const Wayfinder::RenderGraphResources&)
+                {
+                    executionOrder.push_back("Orphan");
+                };
             });
 
         graph.AddPass("Present",
             [&](Wayfinder::RenderGraphBuilder& builder)
             {
                 builder.SetSwapchainOutput();
-                return [&executionOrder](Wayfinder::RenderDevice&, const Wayfinder::RenderGraphResources&) { executionOrder.push_back("Present"); };
+                return [&executionOrder](Wayfinder::RenderDevice&, const Wayfinder::RenderGraphResources&)
+                {
+                    executionOrder.push_back("Present");
+                };
             });
 
         REQUIRE(graph.Compile());
@@ -194,7 +217,10 @@ namespace Wayfinder::Tests
             {
                 auto tex = builder.CreateTransient(desc);
                 builder.WriteColour(tex);
-                return [&executionOrder](Wayfinder::RenderDevice&, const Wayfinder::RenderGraphResources&) { executionOrder.push_back("Producer"); };
+                return [&executionOrder](Wayfinder::RenderDevice&, const Wayfinder::RenderGraphResources&)
+                {
+                    executionOrder.push_back("Producer");
+                };
             });
 
         graph.AddPass("Consumer",
@@ -203,7 +229,10 @@ namespace Wayfinder::Tests
                 auto tex = graph.FindHandle("Needed");
                 builder.ReadTexture(tex);
                 builder.SetSwapchainOutput();
-                return [&executionOrder](Wayfinder::RenderDevice&, const Wayfinder::RenderGraphResources&) { executionOrder.push_back("Consumer"); };
+                return [&executionOrder](Wayfinder::RenderDevice&, const Wayfinder::RenderGraphResources&)
+                {
+                    executionOrder.push_back("Consumer");
+                };
             });
 
         REQUIRE(graph.Compile());
@@ -242,7 +271,9 @@ namespace Wayfinder::Tests
                 builder.WriteColour(a);
                 auto c = graph.ImportTexture("TexC");
                 builder.ReadTexture(c);
-                return [](Wayfinder::RenderDevice&, const Wayfinder::RenderGraphResources&) {};
+                return [](Wayfinder::RenderDevice&, const Wayfinder::RenderGraphResources&)
+                {
+                };
             });
 
         graph.AddPass("PassB",
@@ -252,7 +283,9 @@ namespace Wayfinder::Tests
                 builder.WriteColour(b);
                 auto a = graph.FindHandle("TexA");
                 builder.ReadTexture(a);
-                return [](Wayfinder::RenderDevice&, const Wayfinder::RenderGraphResources&) {};
+                return [](Wayfinder::RenderDevice&, const Wayfinder::RenderGraphResources&)
+                {
+                };
             });
 
         graph.AddPass("PassC",
@@ -263,7 +296,9 @@ namespace Wayfinder::Tests
                 auto b = graph.FindHandle("TexB");
                 builder.ReadTexture(b);
                 builder.SetSwapchainOutput();
-                return [](Wayfinder::RenderDevice&, const Wayfinder::RenderGraphResources&) {};
+                return [](Wayfinder::RenderDevice&, const Wayfinder::RenderGraphResources&)
+                {
+                };
             });
 
         CHECK(graph.Compile());
@@ -287,7 +322,10 @@ namespace Wayfinder::Tests
             {
                 auto tex = builder.CreateTransient(desc);
                 builder.WriteColour(tex);
-                return [&executionOrder](Wayfinder::RenderDevice&, const Wayfinder::RenderGraphResources&) { executionOrder.push_back("Compute"); };
+                return [&executionOrder](Wayfinder::RenderDevice&, const Wayfinder::RenderGraphResources&)
+                {
+                    executionOrder.push_back("Compute");
+                };
             });
 
         graph.AddPass("Present",
@@ -296,7 +334,10 @@ namespace Wayfinder::Tests
                 auto tex = graph.FindHandle("ComputeOutput");
                 builder.ReadTexture(tex);
                 builder.SetSwapchainOutput();
-                return [&executionOrder](Wayfinder::RenderDevice&, const Wayfinder::RenderGraphResources&) { executionOrder.push_back("Present"); };
+                return [&executionOrder](Wayfinder::RenderDevice&, const Wayfinder::RenderGraphResources&)
+                {
+                    executionOrder.push_back("Present");
+                };
             });
 
         REQUIRE(graph.Compile());
@@ -384,7 +425,9 @@ namespace Wayfinder::Tests
 
                 auto texture = builder.CreateTransient(desc);
                 builder.WriteColour(texture);
-                return [](Wayfinder::RenderDevice&, const Wayfinder::RenderGraphResources&) {};
+                return [](Wayfinder::RenderDevice&, const Wayfinder::RenderGraphResources&)
+                {
+                };
             });
 
         graph.AddPass(std::string{"TemporaryConsumer"},
@@ -393,7 +436,9 @@ namespace Wayfinder::Tests
                 auto texture = graph.FindHandle(std::string{"TemporaryTexture"});
                 builder.ReadTexture(texture);
                 builder.SetSwapchainOutput();
-                return [](Wayfinder::RenderDevice&, const Wayfinder::RenderGraphResources&) {};
+                return [](Wayfinder::RenderDevice&, const Wayfinder::RenderGraphResources&)
+                {
+                };
             });
 
         CHECK(graph.ImportTexture(std::string{"ImportedTexture"}).IsValid());
@@ -471,7 +516,10 @@ namespace Wayfinder::Tests
                 auto depth = builder.CreateTransient(depthDesc);
                 builder.WriteColour(colour);
                 builder.WriteDepth(depth);
-                return [&executionOrder](Wayfinder::RenderDevice&, const Wayfinder::RenderGraphResources&) { executionOrder.push_back("Scene"); };
+                return [&executionOrder](Wayfinder::RenderDevice&, const Wayfinder::RenderGraphResources&)
+                {
+                    executionOrder.push_back("Scene");
+                };
             });
 
         graph.AddPass("Composition",
@@ -480,7 +528,10 @@ namespace Wayfinder::Tests
                 auto colour = graph.FindHandle("SceneColour");
                 builder.ReadTexture(colour);
                 builder.SetSwapchainOutput();
-                return [&executionOrder](Wayfinder::RenderDevice&, const Wayfinder::RenderGraphResources&) { executionOrder.push_back("Composition"); };
+                return [&executionOrder](Wayfinder::RenderDevice&, const Wayfinder::RenderGraphResources&)
+                {
+                    executionOrder.push_back("Composition");
+                };
             });
 
         REQUIRE(graph.Compile());

@@ -57,10 +57,16 @@ namespace Wayfinder::Tests
             .event(flecs::OnAdd)
             .each([onCreated = std::move(onCreated)](RigidBodyComponent& rb, const ColliderComponent& col, const TransformComponent& transform)
                 {
-                    if (rb.RuntimeBodyId != INVALID_PHYSICS_BODY) return;
+                    if (rb.RuntimeBodyId != INVALID_PHYSICS_BODY)
+                    {
+                        return;
+                    }
                     auto* sub = GameSubsystems::Find<PhysicsSubsystem>();
 
-                    if (!sub) return;
+                    if (!sub)
+                    {
+                        return;
+                    }
 
                     PhysicsBodyDescriptor desc;
                     desc.Type = rb.Type;
@@ -78,7 +84,10 @@ namespace Wayfinder::Tests
                     desc.Restitution = col.Restitution;
                     rb.RuntimeBodyId = sub->GetWorld().CreateBody(desc, transform.Position, transform.Rotation);
 
-                    if (onCreated) onCreated(rb.RuntimeBodyId);
+                    if (onCreated)
+                    {
+                        onCreated(rb.RuntimeBodyId);
+                    }
                 });
     }
 
@@ -90,13 +99,22 @@ namespace Wayfinder::Tests
             .event(flecs::OnRemove)
             .each([onDestroyed = std::move(onDestroyed)](flecs::entity, RigidBodyComponent& rb)
                 {
-                    if (rb.RuntimeBodyId == INVALID_PHYSICS_BODY) return;
+                    if (rb.RuntimeBodyId == INVALID_PHYSICS_BODY)
+                    {
+                        return;
+                    }
                     auto* sub = GameSubsystems::Find<PhysicsSubsystem>();
-                    if (!sub) return;
+                    if (!sub)
+                    {
+                        return;
+                    }
 
                     sub->GetWorld().DestroyBody(rb.RuntimeBodyId);
                     rb.RuntimeBodyId = INVALID_PHYSICS_BODY;
-                    if (onDestroyed) onDestroyed();
+                    if (onDestroyed)
+                    {
+                        onDestroyed();
+                    }
                 });
     }
 
@@ -306,7 +324,9 @@ namespace Wayfinder::Tests
 
             // Step several times to let gravity take effect
             for (int i = 0; i < SIMULATION_STEPS; ++i)
+            {
                 world.Step(FIXED_DT);
+            }
 
             Float3 pos = world.GetBodyPosition(id);
             CHECK(pos.y < startY);
@@ -331,7 +351,9 @@ namespace Wayfinder::Tests
             REQUIRE(id != INVALID_PHYSICS_BODY);
 
             for (int i = 0; i < SIMULATION_STEPS; ++i)
+            {
                 world.Step(FIXED_DT);
+            }
 
             Float3 pos = world.GetBodyPosition(id);
             CHECK(pos.x == doctest::Approx(0.0f));
@@ -362,7 +384,9 @@ namespace Wayfinder::Tests
 
             // Simulate
             for (int i = 0; i < SIMULATION_STEPS; ++i)
+            {
                 physWorld.Step(FIXED_DT);
+            }
 
             // Verify via position query
             Float3 pos = physWorld.GetBodyPosition(rb.RuntimeBodyId);
@@ -403,7 +427,9 @@ namespace Wayfinder::Tests
             CHECK(dynId != statId);
 
             for (int i = 0; i < SIMULATION_STEPS; ++i)
+            {
                 world.Step(FIXED_DT);
+            }
 
             // Dynamic body fell
             Float3 dynPos = world.GetBodyPosition(dynId);
@@ -630,9 +656,17 @@ namespace Wayfinder::Tests
             uint32_t createdBodyId = INVALID_PHYSICS_BODY;
             bool bodyDestroyed = false;
 
-            RegisterCreateBodiesObserver(ecsWorld, [&createdBodyId](uint32_t id) { createdBodyId = id; });
+            RegisterCreateBodiesObserver(ecsWorld,
+                [&createdBodyId](uint32_t id)
+                {
+                    createdBodyId = id;
+                });
 
-            RegisterDestroyBodiesObserver(ecsWorld, [&bodyDestroyed]() { bodyDestroyed = true; });
+            RegisterDestroyBodiesObserver(ecsWorld,
+                [&bodyDestroyed]()
+                {
+                    bodyDestroyed = true;
+                });
 
             auto entity = ecsWorld.entity("TestBox");
             ecsWorld.defer_begin();
@@ -666,7 +700,11 @@ namespace Wayfinder::Tests
 
             RegisterCreateBodiesObserver(ecsWorld);
 
-            RegisterDestroyBodiesObserver(ecsWorld, [&bodyDestroyed]() { bodyDestroyed = true; });
+            RegisterDestroyBodiesObserver(ecsWorld,
+                [&bodyDestroyed]()
+                {
+                    bodyDestroyed = true;
+                });
 
             auto entity = ecsWorld.entity("TestBox");
             ecsWorld.defer_begin();
@@ -712,7 +750,10 @@ namespace Wayfinder::Tests
                 .run([](flecs::iter& it)
                     {
                         auto* sub = GameSubsystems::Find<PhysicsSubsystem>();
-                        if (sub) sub->GetWorld().StepFixed(it.delta_time());
+                        if (sub)
+                        {
+                            sub->GetWorld().StepFixed(it.delta_time());
+                        }
                     });
 
             // Register sync system
@@ -720,10 +761,19 @@ namespace Wayfinder::Tests
                 .kind(flecs::OnValidate)
                 .each([](flecs::entity, const RigidBodyComponent& rb, WorldTransformComponent& wt)
                     {
-                        if (rb.RuntimeBodyId == INVALID_PHYSICS_BODY) return;
-                        if (rb.Type == BodyType::Static) return;
+                        if (rb.RuntimeBodyId == INVALID_PHYSICS_BODY)
+                        {
+                            return;
+                        }
+                        if (rb.Type == BodyType::Static)
+                        {
+                            return;
+                        }
                         auto* sub = GameSubsystems::Find<PhysicsSubsystem>();
-                        if (!sub) return;
+                        if (!sub)
+                        {
+                            return;
+                        }
                         Float3 pos = sub->GetWorld().GetBodyPosition(rb.RuntimeBodyId);
                         Float4 rotQ = sub->GetWorld().GetBodyRotation(rb.RuntimeBodyId);
                         wt.Position = pos;
@@ -744,7 +794,9 @@ namespace Wayfinder::Tests
 
             // Step the ECS world
             for (int i = 0; i < SIMULATION_STEPS; ++i)
+            {
                 ecsWorld.progress(FIXED_DT);
+            }
 
             // Verify: WorldTransformComponent was updated by the sync system
             const auto& wt = entity.get<WorldTransformComponent>();

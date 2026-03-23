@@ -11,7 +11,10 @@ namespace Wayfinder
 
     void TransientResourcePool::Shutdown()
     {
-        if (!m_device) return;
+        if (!m_device)
+        {
+            return;
+        }
 
         for (GPUTextureHandle tex : m_allTextures)
         {
@@ -50,8 +53,14 @@ namespace Wayfinder
 
     void TransientResourcePool::Release(GPUTextureHandle texture, const TextureCreateDesc& desc)
     {
-        if (!texture.IsValid()) return;
-        if (!m_device) return;
+        if (!texture.IsValid())
+        {
+            return;
+        }
+        if (!m_device)
+        {
+            return;
+        }
 
         PoolKey key{desc.width, desc.height, desc.format, desc.usage};
         m_available[key].push_back(texture);

@@ -25,8 +25,8 @@ BraceWrapping:
 
 AllowShortFunctionsOnASingleLine: Empty
 AllowShortBlocksOnASingleLine: Never
-AllowShortIfStatementsOnASingleLine: WithoutElse
-AllowShortLambdasOnASingleLine: All
+AllowShortIfStatementsOnASingleLine: Never
+AllowShortLambdasOnASingleLine: None
 AllowShortEnumsOnASingleLine: true
 
 AlignAfterOpenBracket: DontAlign
@@ -35,6 +35,7 @@ SpaceAfterTemplateKeyword: false
 
 ContinuationIndentWidth: 4
 IndentCaseLabels: false
+InsertBraces: true
 ColumnLimit: 200
 AccessModifierOffset: -4
 NamespaceIndentation: All

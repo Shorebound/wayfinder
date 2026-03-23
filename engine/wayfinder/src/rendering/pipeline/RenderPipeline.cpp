@@ -47,7 +47,10 @@ namespace Wayfinder
         {
             GPUShaderHandle vs = shaders.GetShader(desc.VertexShaderName, ShaderStage::Vertex, desc.VertexResources);
             GPUShaderHandle fs = shaders.GetShader(desc.FragmentShaderName, ShaderStage::Fragment, desc.FragmentResources);
-            if (!vs || !fs) return std::nullopt;
+            if (!vs || !fs)
+            {
+                return std::nullopt;
+            }
 
             PipelineCreateDesc pipeDesc{};
             pipeDesc.vertexShader = vs;
@@ -192,7 +195,11 @@ namespace Wayfinder
             // Sort scene pass submissions by sort key (front-to-back for opaque)
             if (pass.Kind == RenderPassKind::Scene)
             {
-                std::sort(pass.Meshes.begin(), pass.Meshes.end(), [](const RenderMeshSubmission& a, const RenderMeshSubmission& b) { return a.SortKey < b.SortKey; });
+                std::sort(pass.Meshes.begin(), pass.Meshes.end(),
+                    [](const RenderMeshSubmission& a, const RenderMeshSubmission& b)
+                    {
+                        return a.SortKey < b.SortKey;
+                    });
             }
         }
 
@@ -261,7 +268,10 @@ namespace Wayfinder
 
                 return [this, &preparedFrame, &params, viewMat, projMat, sceneGlobals, hasCamera](RenderDevice& device, const RenderGraphResources& /*resources*/)
                 {
-                    if (!hasCamera) return;
+                    if (!hasCamera)
+                    {
+                        return;
+                    }
 
                     auto& registry = m_context->GetPrograms();
                     auto& pipelineCache = m_context->GetPipelines();
@@ -274,7 +284,10 @@ namespace Wayfinder
 
                     for (const auto& pass : preparedFrame.Passes)
                     {
-                        if (!pass.Enabled || pass.Kind != RenderPassKind::Scene) continue;
+                        if (!pass.Enabled || pass.Kind != RenderPassKind::Scene)
+                        {
+                            continue;
+                        }
 
                         // Per-pass camera from the pass's own view
                         Matrix4 passView = viewMat;
@@ -301,10 +314,16 @@ namespace Wayfinder
 
                         for (const auto& submission : pass.Meshes)
                         {
-                            if (!submission.Visible) continue;
+                            if (!submission.Visible)
+                            {
+                                continue;
+                            }
 
                             const ShaderProgram* program = registry.FindOrDefault(submission.Material.ShaderName);
-                            if (!program || !program->Pipeline) continue;
+                            if (!program || !program->Pipeline)
+                            {
+                                continue;
+                            }
 
                             // Determine fill mode: use override if set, otherwise default solid
                             const RenderFillMode fillMode = submission.Material.StateOverrides.FillMode.value_or(RenderFillMode::Solid);
@@ -426,7 +445,10 @@ namespace Wayfinder
 
                 return [this, &preparedFrame, &params, viewMat, projMat, hasCamera](RenderDevice& device, const RenderGraphResources& /*resources*/)
                 {
-                    if (!hasCamera) return;
+                    if (!hasCamera)
+                    {
+                        return;
+                    }
 
                     auto& debugLinePipeline = params.DebugLinePipeline;
                     auto& transientAllocator = m_context->GetTransientBuffers();
@@ -441,7 +463,10 @@ namespace Wayfinder
 
                     for (const auto& pass : preparedFrame.Passes)
                     {
-                        if (!pass.Enabled || !pass.DebugDraw) continue;
+                        if (!pass.Enabled || !pass.DebugDraw)
+                        {
+                            continue;
+                        }
 
                         if (pass.DebugDraw->ShowWorldGrid)
                         {
@@ -491,7 +516,10 @@ namespace Wayfinder
 
                     // ── Debug boxes ──────────────────────────────
                     const ShaderProgram* unlitProgram = registry.Find("unlit");
-                    if (!unlitProgram || !unlitProgram->Pipeline || !primitiveMeshPtr || !primitiveMeshPtr->IsValid()) return;
+                    if (!unlitProgram || !unlitProgram->Pipeline || !primitiveMeshPtr || !primitiveMeshPtr->IsValid())
+                    {
+                        return;
+                    }
 
                     bool hasPendingBoxes = false;
                     for (const auto& pass : preparedFrame.Passes)
@@ -503,14 +531,20 @@ namespace Wayfinder
                         }
                     }
 
-                    if (!hasPendingBoxes) return;
+                    if (!hasPendingBoxes)
+                    {
+                        return;
+                    }
 
                     unlitProgram->Pipeline->Bind();
                     primitiveMeshPtr->Bind(device);
 
                     for (const auto& pass : preparedFrame.Passes)
                     {
-                        if (!pass.Enabled || !pass.DebugDraw) continue;
+                        if (!pass.Enabled || !pass.DebugDraw)
+                        {
+                            continue;
+                        }
 
                         for (const auto& box : pass.DebugDraw->Boxes)
                         {
@@ -551,7 +585,10 @@ namespace Wayfinder
 
                     const ShaderProgram* compProgram = m_context->GetPrograms().Find("composition");
                     const auto nearestSampler = m_context->GetNearestSampler();
-                    if (!compProgram || !compProgram->Pipeline || !sceneColourTex || !nearestSampler) return;
+                    if (!compProgram || !compProgram->Pipeline || !sceneColourTex || !nearestSampler)
+                    {
+                        return;
+                    }
 
                     compProgram->Pipeline->Bind();
                     device.BindFragmentSampler(0, sceneColourTex, nearestSampler);

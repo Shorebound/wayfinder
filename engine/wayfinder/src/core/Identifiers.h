@@ -117,9 +117,18 @@ namespace Wayfinder
 
             auto hexVal = [](char c) -> int
             {
-                if (c >= '0' && c <= '9') return c - '0';
-                if (c >= 'a' && c <= 'f') return 10 + (c - 'a');
-                if (c >= 'A' && c <= 'F') return 10 + (c - 'A');
+                if (c >= '0' && c <= '9')
+                {
+                    return c - '0';
+                }
+                if (c >= 'a' && c <= 'f')
+                {
+                    return 10 + (c - 'a');
+                }
+                if (c >= 'A' && c <= 'F')
+                {
+                    return 10 + (c - 'A');
+                }
                 return -1;
             };
 
@@ -180,7 +189,11 @@ namespace Wayfinder
 
         constexpr bool IsNil() const
         {
-            return std::all_of(m_bytes.begin(), m_bytes.end(), [](uint8_t b) { return b == 0; });
+            return std::all_of(m_bytes.begin(), m_bytes.end(),
+                [](uint8_t b)
+                {
+                    return b == 0;
+                });
         }
 
         constexpr explicit operator bool() const
