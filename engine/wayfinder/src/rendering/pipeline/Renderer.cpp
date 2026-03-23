@@ -130,11 +130,11 @@ namespace Wayfinder
     RenderFeatureContext Renderer::MakeFeatureContext()
     {
         return RenderFeatureContext{
-            .Device = m_context->GetDevice(),
-            .ProgramRegistry = m_context->GetPrograms(),
-            .ShaderManager = m_context->GetShaders(),
-            .PipelineCache = m_context->GetPipelines(),
-            .NearestSampler = m_context->GetNearestSampler(),
+        .Device = m_context->GetDevice(),
+        .ProgramRegistry = m_context->GetPrograms(),
+        .ShaderManager = m_context->GetShaders(),
+        .PipelineCache = m_context->GetPipelines(),
+        .NearestSampler = m_context->GetNearestSampler(),
         };
     }
 
@@ -189,17 +189,17 @@ namespace Wayfinder
 
         std::unordered_map<uint32_t, Mesh*> meshesByStride =
         {
-            {VertexLayouts::PosNormalColour.stride, &m_primitiveMesh},
-            {VertexLayouts::PosNormalUV.stride, &m_texturedPrimitiveMesh},
+        {VertexLayouts::PosNormalColour.stride, &m_primitiveMesh},
+        {VertexLayouts::PosNormalUV.stride, &m_texturedPrimitiveMesh},
         };
 
         RenderPipelineFrameParams params{
-            .Frame = preparedFrame,
-            .SwapchainWidth = swapW,
-            .SwapchainHeight = swapH,
-            .MeshesByStride = meshesByStride,
-            .DebugLinePipeline = m_debugLinePipeline,
-            .Features = m_features,
+        .Frame = preparedFrame,
+        .SwapchainWidth = swapW,
+        .SwapchainHeight = swapH,
+        .MeshesByStride = meshesByStride,
+        .DebugLinePipeline = m_debugLinePipeline,
+        .Features = m_features,
         };
         m_renderPipeline->BuildGraph(graph, params);
 

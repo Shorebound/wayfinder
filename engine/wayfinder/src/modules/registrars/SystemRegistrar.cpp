@@ -56,9 +56,9 @@ namespace Wayfinder
                 else
                 {
                     WAYFINDER_WARNING(LogEngine,
-                        "SystemRegistrar: system '{}' declares After '{}' but no such "
-                        "system is registered; ignoring ordering constraint.",
-                        m_descriptors[i].Name, dep);
+                    "SystemRegistrar: system '{}' declares After '{}' but no such "
+                    "system is registered; ignoring ordering constraint.",
+                    m_descriptors[i].Name, dep);
                 }
             }
 
@@ -73,9 +73,9 @@ namespace Wayfinder
                 else
                 {
                     WAYFINDER_WARNING(LogEngine,
-                        "SystemRegistrar: system '{}' declares Before '{}' but no such "
-                        "system is registered; ignoring ordering constraint.",
-                        m_descriptors[i].Name, dep);
+                    "SystemRegistrar: system '{}' declares Before '{}' but no such "
+                    "system is registered; ignoring ordering constraint.",
+                    m_descriptors[i].Name, dep);
                 }
             }
         }
@@ -124,9 +124,9 @@ namespace Wayfinder
             }
 
             WAYFINDER_ERROR(LogEngine,
-                "SystemRegistrar: cycle detected in system ordering constraints! "
-                "Cyclic systems skipped: {}. Initialising {} non-cyclic system(s) in topological order.",
-                cycleMembers, sorted.size());
+            "SystemRegistrar: cycle detected in system ordering constraints! "
+            "Cyclic systems skipped: {}. Initialising {} non-cyclic system(s) in topological order.",
+            cycleMembers, sorted.size());
         }
 
         for (const size_t idx : sorted)

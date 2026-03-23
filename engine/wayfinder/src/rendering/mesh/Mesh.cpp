@@ -5,8 +5,7 @@
 
 namespace Wayfinder
 {
-    bool Mesh::Create(RenderDevice& device, const void* vertexData, uint32_t vertexDataSize, uint32_t vertexCount, const void* indexData, uint32_t indexDataSize, uint32_t indexCount,
-        IndexElementSize indexElementSize)
+    bool Mesh::Create(RenderDevice& device, const void* vertexData, uint32_t vertexDataSize, uint32_t vertexCount, const void* indexData, uint32_t indexDataSize, uint32_t indexCount, IndexElementSize indexElementSize)
     {
         if (!m_vertexBuffer.Create(device, BufferUsage::Vertex, vertexDataSize))
         {
@@ -74,80 +73,80 @@ namespace Wayfinder
         constexpr Float3 cLeft = {0.2f, 0.9f, 0.9f};
 
         std::array<VertexPosNormalColour, 24> vertices = {{
-            // Front (+Z)
-            {{-H, -H, H}, nFront, cFront},
-            {{H, -H, H}, nFront, cFront},
-            {{H, H, H}, nFront, cFront},
-            {{-H, H, H}, nFront, cFront},
-            // Back (-Z)
-            {{H, -H, -H}, nBack, cBack},
-            {{-H, -H, -H}, nBack, cBack},
-            {{-H, H, -H}, nBack, cBack},
-            {{H, H, -H}, nBack, cBack},
-            // Top (+Y)
-            {{-H, H, H}, nTop, cTop},
-            {{H, H, H}, nTop, cTop},
-            {{H, H, -H}, nTop, cTop},
-            {{-H, H, -H}, nTop, cTop},
-            // Bottom (-Y)
-            {{-H, -H, -H}, nBottom, cBottom},
-            {{H, -H, -H}, nBottom, cBottom},
-            {{H, -H, H}, nBottom, cBottom},
-            {{-H, -H, H}, nBottom, cBottom},
-            // Right (+X)
-            {{H, -H, H}, nRight, cRight},
-            {{H, -H, -H}, nRight, cRight},
-            {{H, H, -H}, nRight, cRight},
-            {{H, H, H}, nRight, cRight},
-            // Left (-X)
-            {{-H, -H, -H}, nLeft, cLeft},
-            {{-H, -H, H}, nLeft, cLeft},
-            {{-H, H, H}, nLeft, cLeft},
-            {{-H, H, -H}, nLeft, cLeft},
+        // Front (+Z)
+        {{-H, -H, H}, nFront, cFront},
+        {{H, -H, H}, nFront, cFront},
+        {{H, H, H}, nFront, cFront},
+        {{-H, H, H}, nFront, cFront},
+        // Back (-Z)
+        {{H, -H, -H}, nBack, cBack},
+        {{-H, -H, -H}, nBack, cBack},
+        {{-H, H, -H}, nBack, cBack},
+        {{H, H, -H}, nBack, cBack},
+        // Top (+Y)
+        {{-H, H, H}, nTop, cTop},
+        {{H, H, H}, nTop, cTop},
+        {{H, H, -H}, nTop, cTop},
+        {{-H, H, -H}, nTop, cTop},
+        // Bottom (-Y)
+        {{-H, -H, -H}, nBottom, cBottom},
+        {{H, -H, -H}, nBottom, cBottom},
+        {{H, -H, H}, nBottom, cBottom},
+        {{-H, -H, H}, nBottom, cBottom},
+        // Right (+X)
+        {{H, -H, H}, nRight, cRight},
+        {{H, -H, -H}, nRight, cRight},
+        {{H, H, -H}, nRight, cRight},
+        {{H, H, H}, nRight, cRight},
+        // Left (-X)
+        {{-H, -H, -H}, nLeft, cLeft},
+        {{-H, -H, H}, nLeft, cLeft},
+        {{-H, H, H}, nLeft, cLeft},
+        {{-H, H, -H}, nLeft, cLeft},
         }};
 
         std::array<uint16_t, 36> indices = {{
-            0,
-            1,
-            2,
-            0,
-            2,
-            3,
-            4,
-            5,
-            6,
-            4,
-            6,
-            7,
-            8,
-            9,
-            10,
-            8,
-            10,
-            11,
-            12,
-            13,
-            14,
-            12,
-            14,
-            15,
-            16,
-            17,
-            18,
-            16,
-            18,
-            19,
-            20,
-            21,
-            22,
-            20,
-            22,
-            23,
+        0,
+        1,
+        2,
+        0,
+        2,
+        3,
+        4,
+        5,
+        6,
+        4,
+        6,
+        7,
+        8,
+        9,
+        10,
+        8,
+        10,
+        11,
+        12,
+        13,
+        14,
+        12,
+        14,
+        15,
+        16,
+        17,
+        18,
+        16,
+        18,
+        19,
+        20,
+        21,
+        22,
+        20,
+        22,
+        23,
         }};
 
         Mesh mesh;
         if (!mesh.Create(device, vertices.data(), static_cast<uint32_t>(vertices.size() * sizeof(VertexPosNormalColour)), static_cast<uint32_t>(vertices.size()), indices.data(),
-                static_cast<uint32_t>(indices.size() * sizeof(uint16_t)), static_cast<uint32_t>(indices.size()), IndexElementSize::Uint16))
+            static_cast<uint32_t>(indices.size() * sizeof(uint16_t)), static_cast<uint32_t>(indices.size()), IndexElementSize::Uint16))
         {
             WAYFINDER_ERROR(LogRenderer, "Mesh: Failed to create primitive cube");
         }
@@ -184,80 +183,80 @@ namespace Wayfinder
         constexpr Float2 uv01 = {0.0f, 0.0f};
 
         std::array<VertexPosNormalUV, 24> vertices = {{
-            // Front (+Z)
-            {{-H, -H, H}, nFront, uv00},
-            {{H, -H, H}, nFront, uv10},
-            {{H, H, H}, nFront, uv11},
-            {{-H, H, H}, nFront, uv01},
-            // Back (-Z)
-            {{H, -H, -H}, nBack, uv00},
-            {{-H, -H, -H}, nBack, uv10},
-            {{-H, H, -H}, nBack, uv11},
-            {{H, H, -H}, nBack, uv01},
-            // Top (+Y)
-            {{-H, H, H}, nTop, uv00},
-            {{H, H, H}, nTop, uv10},
-            {{H, H, -H}, nTop, uv11},
-            {{-H, H, -H}, nTop, uv01},
-            // Bottom (-Y)
-            {{-H, -H, -H}, nBottom, uv00},
-            {{H, -H, -H}, nBottom, uv10},
-            {{H, -H, H}, nBottom, uv11},
-            {{-H, -H, H}, nBottom, uv01},
-            // Right (+X)
-            {{H, -H, H}, nRight, uv00},
-            {{H, -H, -H}, nRight, uv10},
-            {{H, H, -H}, nRight, uv11},
-            {{H, H, H}, nRight, uv01},
-            // Left (-X)
-            {{-H, -H, -H}, nLeft, uv00},
-            {{-H, -H, H}, nLeft, uv10},
-            {{-H, H, H}, nLeft, uv11},
-            {{-H, H, -H}, nLeft, uv01},
+        // Front (+Z)
+        {{-H, -H, H}, nFront, uv00},
+        {{H, -H, H}, nFront, uv10},
+        {{H, H, H}, nFront, uv11},
+        {{-H, H, H}, nFront, uv01},
+        // Back (-Z)
+        {{H, -H, -H}, nBack, uv00},
+        {{-H, -H, -H}, nBack, uv10},
+        {{-H, H, -H}, nBack, uv11},
+        {{H, H, -H}, nBack, uv01},
+        // Top (+Y)
+        {{-H, H, H}, nTop, uv00},
+        {{H, H, H}, nTop, uv10},
+        {{H, H, -H}, nTop, uv11},
+        {{-H, H, -H}, nTop, uv01},
+        // Bottom (-Y)
+        {{-H, -H, -H}, nBottom, uv00},
+        {{H, -H, -H}, nBottom, uv10},
+        {{H, -H, H}, nBottom, uv11},
+        {{-H, -H, H}, nBottom, uv01},
+        // Right (+X)
+        {{H, -H, H}, nRight, uv00},
+        {{H, -H, -H}, nRight, uv10},
+        {{H, H, -H}, nRight, uv11},
+        {{H, H, H}, nRight, uv01},
+        // Left (-X)
+        {{-H, -H, -H}, nLeft, uv00},
+        {{-H, -H, H}, nLeft, uv10},
+        {{-H, H, H}, nLeft, uv11},
+        {{-H, H, -H}, nLeft, uv01},
         }};
 
         std::array<uint16_t, 36> indices = {{
-            0,
-            1,
-            2,
-            0,
-            2,
-            3,
-            4,
-            5,
-            6,
-            4,
-            6,
-            7,
-            8,
-            9,
-            10,
-            8,
-            10,
-            11,
-            12,
-            13,
-            14,
-            12,
-            14,
-            15,
-            16,
-            17,
-            18,
-            16,
-            18,
-            19,
-            20,
-            21,
-            22,
-            20,
-            22,
-            23,
+        0,
+        1,
+        2,
+        0,
+        2,
+        3,
+        4,
+        5,
+        6,
+        4,
+        6,
+        7,
+        8,
+        9,
+        10,
+        8,
+        10,
+        11,
+        12,
+        13,
+        14,
+        12,
+        14,
+        15,
+        16,
+        17,
+        18,
+        16,
+        18,
+        19,
+        20,
+        21,
+        22,
+        20,
+        22,
+        23,
         }};
 
         Mesh mesh;
         if (!mesh.Create(device, vertices.data(), static_cast<uint32_t>(vertices.size() * sizeof(VertexPosNormalUV)), static_cast<uint32_t>(vertices.size()), indices.data(),
-                static_cast<uint32_t>(indices.size() * sizeof(uint16_t)), static_cast<uint32_t>(indices.size()), IndexElementSize::Uint16))
+            static_cast<uint32_t>(indices.size() * sizeof(uint16_t)), static_cast<uint32_t>(indices.size()), IndexElementSize::Uint16))
         {
             WAYFINDER_ERROR(LogRenderer, "Mesh: Failed to create textured primitive cube");
         }

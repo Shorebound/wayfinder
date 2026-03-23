@@ -367,8 +367,8 @@ namespace Wayfinder::Physics
         registry.RegisterSystem("PhysicsCreateBodies", [](flecs::world& world)
         {
             world.observer<RigidBodyComponent, const ColliderComponent, const TransformComponent>("PhysicsCreateBodies")
-                .event(flecs::OnAdd)
-                .each([](flecs::entity, RigidBodyComponent& rb, const ColliderComponent& col, const TransformComponent& transform)
+            .event(flecs::OnAdd)
+            .each([](flecs::entity, RigidBodyComponent& rb, const ColliderComponent& col, const TransformComponent& transform)
             {
                 if (rb.RuntimeBodyId != INVALID_PHYSICS_BODY)
                 {
@@ -398,8 +398,8 @@ namespace Wayfinder::Physics
         registry.RegisterSystem("PhysicsDestroyBodies", [](flecs::world& world)
         {
             world.observer<RigidBodyComponent>("PhysicsDestroyBodies")
-                .event(flecs::OnRemove)
-                .each([](RigidBodyComponent& rb)
+            .event(flecs::OnRemove)
+            .each([](RigidBodyComponent& rb)
             {
                 if (rb.RuntimeBodyId == INVALID_PHYSICS_BODY)
                 {
@@ -430,8 +430,8 @@ namespace Wayfinder::Physics
             }
 
             world.system("PhysicsStep")
-                .kind(flecs::OnUpdate)
-                .run([physics](flecs::iter& it)
+            .kind(flecs::OnUpdate)
+            .run([physics](flecs::iter& it)
             {
                 if (physics)
                 {
@@ -448,8 +448,8 @@ namespace Wayfinder::Physics
             auto* physics = GameSubsystems::Find<PhysicsSubsystem>();
 
             world.system<const RigidBodyComponent, WorldTransformComponent>("PhysicsSyncTransforms")
-                .kind(flecs::OnValidate)
-                .each([physics](flecs::entity, const RigidBodyComponent& rb, WorldTransformComponent& wt)
+            .kind(flecs::OnValidate)
+            .each([physics](flecs::entity, const RigidBodyComponent& rb, WorldTransformComponent& wt)
             {
                 if (rb.RuntimeBodyId == INVALID_PHYSICS_BODY)
                 {

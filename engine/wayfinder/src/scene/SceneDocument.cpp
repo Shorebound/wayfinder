@@ -69,7 +69,7 @@ namespace Wayfinder
     }
 
     Wayfinder::SceneDocumentEntity ParseEntityDefinition(
-        const nlohmann::json& data, const Wayfinder::RuntimeComponentRegistry& registry, const std::string& fallbackName, const std::string& sourceLabel, std::vector<std::string>& errors)
+    const nlohmann::json& data, const Wayfinder::RuntimeComponentRegistry& registry, const std::string& fallbackName, const std::string& sourceLabel, std::vector<std::string>& errors)
     {
         Wayfinder::SceneDocumentEntity definition;
         if (const auto parsedId = ParseTypedId<Wayfinder::SceneObjectId>(data, kIdKey, sourceLabel, errors))
@@ -117,8 +117,8 @@ namespace Wayfinder
         return definition;
     }
 
-    std::optional<Wayfinder::SceneDocumentEntity> ParsePrefabDefinition(const std::filesystem::path& prefabPath, const Wayfinder::RuntimeComponentRegistry& registry,
-        std::unordered_map<std::string, Wayfinder::SceneDocumentEntity>& prefabCache, std::vector<std::string>& errors)
+    std::optional<Wayfinder::SceneDocumentEntity> ParsePrefabDefinition(
+    const std::filesystem::path& prefabPath, const Wayfinder::RuntimeComponentRegistry& registry, std::unordered_map<std::string, Wayfinder::SceneDocumentEntity>& prefabCache, std::vector<std::string>& errors)
     {
         const std::string key = std::filesystem::weakly_canonical(prefabPath).string();
         if (const auto cached = prefabCache.find(key); cached != prefabCache.end())
@@ -315,8 +315,7 @@ namespace Wayfinder
 
                     if (prefabRecord->Kind != AssetKind::Prefab)
                     {
-                        result.Errors.push_back(
-                            entityLabel + " references asset id '" + definition.PrefabAssetId->ToString() + "' as a prefab, but it is registered as '" + prefabRecord->TypeName + "'");
+                        result.Errors.push_back(entityLabel + " references asset id '" + definition.PrefabAssetId->ToString() + "' as a prefab, but it is registered as '" + prefabRecord->TypeName + "'");
                         ++index;
                         continue;
                     }

@@ -107,8 +107,8 @@ namespace Wayfinder
 
         if (!createFn || !destroyFn)
         {
-            WAYFINDER_ERROR(LogEngine, "ModuleLoader: '{}' missing required exports (WayfinderCreateModule={}, WayfinderDestroyModule={})", libraryPath.string(), static_cast<bool>(createFn),
-                static_cast<bool>(destroyFn));
+            WAYFINDER_ERROR(
+            LogEngine, "ModuleLoader: '{}' missing required exports (WayfinderCreateModule={}, WayfinderDestroyModule={})", libraryPath.string(), static_cast<bool>(createFn), static_cast<bool>(destroyFn));
 #ifdef _WIN32
             FreeLibrary(handle);
 #else

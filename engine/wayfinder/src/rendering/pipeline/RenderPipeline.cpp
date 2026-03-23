@@ -86,7 +86,7 @@ namespace Wayfinder
             desc.DepthWrite = true;
             desc.MaterialParams =
             {
-                {"base_colour", MaterialParamType::Colour, 0, LinearColour::White()},
+            {"base_colour", MaterialParamType::Colour, 0, LinearColour::White()},
             };
             desc.MaterialUBOSize = 16; // float4
             desc.VertexUBOSize = sizeof(UnlitTransformUBO);
@@ -108,7 +108,7 @@ namespace Wayfinder
             desc.DepthWrite = true;
             desc.MaterialParams =
             {
-                {"base_colour", MaterialParamType::Colour, 0, LinearColour::White()},
+            {"base_colour", MaterialParamType::Colour, 0, LinearColour::White()},
             };
             desc.MaterialUBOSize = 16; // float4
             desc.VertexUBOSize = sizeof(TransformUBO);
@@ -130,7 +130,7 @@ namespace Wayfinder
             desc.DepthWrite = true;
             desc.MaterialParams =
             {
-                {"base_colour", MaterialParamType::Colour, 0, LinearColour::White()},
+            {"base_colour", MaterialParamType::Colour, 0, LinearColour::White()},
             };
             desc.MaterialUBOSize = 16; // float4
             desc.VertexUBOSize = sizeof(TransformUBO);

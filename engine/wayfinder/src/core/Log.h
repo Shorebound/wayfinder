@@ -85,8 +85,8 @@ namespace Wayfinder
 } // namespace Wayfinder
 
 // Logging macros
-#define WAYFINDER_LOG(category, verbosity, ...)                                                                                                                                                        \
-    if (verbosity <= category.GetVerbosity())                                                                                                                                                          \
+#define WAYFINDER_LOG(category, verbosity, ...)                                                                                                                                                                            \
+    if (verbosity <= category.GetVerbosity())                                                                                                                                                                              \
     category.GetLogger()->LogFormat(verbosity, __VA_ARGS__)
 
 #define WAYFINDER_VERBOSE(category, ...) WAYFINDER_LOG(category, Wayfinder::LogVerbosity::Verbose, __VA_ARGS__)

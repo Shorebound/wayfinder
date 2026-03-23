@@ -50,9 +50,9 @@ namespace Wayfinder
     const std::array<AssetSchemaRegistry::Entry, 3>& AssetSchemaRegistry::GetEntries()
     {
         static const std::array<Entry, 3> entries = {{
-            {"prefab", AssetKind::Prefab, &ValidatePrefabDocument},
-            {"material", AssetKind::Material, &ValidateMaterialDocument},
-            {"texture", AssetKind::Texture, &ValidateTextureDocument},
+        {"prefab", AssetKind::Prefab, &ValidatePrefabDocument},
+        {"material", AssetKind::Material, &ValidateMaterialDocument},
+        {"texture", AssetKind::Texture, &ValidateTextureDocument},
         }};
         return entries;
     }

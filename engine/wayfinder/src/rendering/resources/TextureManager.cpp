@@ -244,8 +244,8 @@ namespace Wayfinder
         static_assert(sizeof(SamplerAddressMode) == 1, "SamplerAddressMode must be 1 byte for hash packing");
 
         // Pack 4 enum bytes into a 32-bit value, then hash via FNV-1a.
-        const uint32_t packed = (static_cast<uint32_t>(desc.minFilter) << 0) | (static_cast<uint32_t>(desc.magFilter) << 8) | (static_cast<uint32_t>(desc.addressModeU) << 16) |
-                                (static_cast<uint32_t>(desc.addressModeV) << 24);
+        const uint32_t packed =
+        (static_cast<uint32_t>(desc.minFilter) << 0) | (static_cast<uint32_t>(desc.magFilter) << 8) | (static_cast<uint32_t>(desc.addressModeU) << 16) | (static_cast<uint32_t>(desc.addressModeV) << 24);
 
         // FNV-1a 64-bit
         uint64_t hash = 14695981039346656037ull;

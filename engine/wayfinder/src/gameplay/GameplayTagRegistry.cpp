@@ -128,9 +128,9 @@ namespace Wayfinder
         if (!IsRegistered(name))
         {
             WAYFINDER_WARNING(LogEngine,
-                "GameplayTagRegistry: requested unregistered tag '{}'. "
-                "Register it in a tag file or via ModuleRegistry::RegisterTag().",
-                name);
+            "GameplayTagRegistry: requested unregistered tag '{}'. "
+            "Register it in a tag file or via ModuleRegistry::RegisterTag().",
+            name);
         }
 
         return GameplayTag::FromName(name);

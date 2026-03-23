@@ -213,8 +213,7 @@ namespace Wayfinder
         RenderGraphBuilder builder(*this, passIndex);
         auto executeFn = std::forward<TSetup>(setup)(builder);
 
-        static_assert(std::is_invocable_r_v<void, decltype(executeFn), RenderDevice&, const RenderGraphResources&>,
-            "AddPass: setup must return a callable matching void(RenderDevice&, const RenderGraphResources&)");
+        static_assert(std::is_invocable_r_v<void, decltype(executeFn), RenderDevice&, const RenderGraphResources&>, "AddPass: setup must return a callable matching void(RenderDevice&, const RenderGraphResources&)");
 
         m_passes.back().Execute = RenderGraphExecuteFn(m_allocator, std::move(executeFn));
     }
@@ -230,8 +229,8 @@ namespace Wayfinder
         RenderGraphBuilder builder(*this, passIndex);
         auto executeFn = std::forward<TSetup>(setup)(builder);
 
-        static_assert(std::is_invocable_r_v<void, decltype(executeFn), RenderDevice&, const RenderGraphResources&>,
-            "AddComputePass: setup must return a callable matching void(RenderDevice&, const RenderGraphResources&)");
+        static_assert(
+        std::is_invocable_r_v<void, decltype(executeFn), RenderDevice&, const RenderGraphResources&>, "AddComputePass: setup must return a callable matching void(RenderDevice&, const RenderGraphResources&)");
 
         m_passes.back().Execute = RenderGraphExecuteFn(m_allocator, std::move(executeFn));
     }

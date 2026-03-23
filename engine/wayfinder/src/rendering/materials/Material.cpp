@@ -70,8 +70,7 @@ namespace Wayfinder
                     }
                     else if (node.size() == 4)
                     {
-                        Wayfinder::Float4 v{
-                            static_cast<float>(node[0].get<double>()), static_cast<float>(node[1].get<double>()), static_cast<float>(node[2].get<double>()), static_cast<float>(node[3].get<double>())};
+                        Wayfinder::Float4 v{static_cast<float>(node[0].get<double>()), static_cast<float>(node[1].get<double>()), static_cast<float>(node[2].get<double>()), static_cast<float>(node[3].get<double>())};
                         block.SetVec4(name, v);
                     }
                 }
@@ -241,8 +240,8 @@ namespace Wayfinder
         table["material_id"] = material.Id.ToString();
 
         LinearColour baseColour = material.GetBaseColour();
-        table["base_colour"] = nlohmann::json::array(
-            {static_cast<int64_t>(baseColour.r * 255.0f), static_cast<int64_t>(baseColour.g * 255.0f), static_cast<int64_t>(baseColour.b * 255.0f), static_cast<int64_t>(baseColour.a * 255.0f)});
+        table["base_colour"] =
+        nlohmann::json::array({static_cast<int64_t>(baseColour.r * 255.0f), static_cast<int64_t>(baseColour.g * 255.0f), static_cast<int64_t>(baseColour.b * 255.0f), static_cast<int64_t>(baseColour.a * 255.0f)});
 
         return table;
     }

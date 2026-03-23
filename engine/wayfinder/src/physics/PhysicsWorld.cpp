@@ -184,8 +184,7 @@ namespace Wayfinder::Physics
         m_impl->JobSys = std::make_unique<JPH::JobSystemSingleThreaded>(JPH::cMaxPhysicsJobs);
 
         m_impl->PhysSystem = std::make_unique<JPH::PhysicsSystem>();
-        m_impl->PhysSystem->Init(
-            Impl::MAX_BODIES, Impl::NUM_BODY_MUTEXES, Impl::MAX_BODY_PAIRS, Impl::MAX_CONTACT_CONSTRAINTS, m_impl->BroadPhaseLayerIface, m_impl->ObjVsBPFilter, m_impl->ObjPairFilter);
+        m_impl->PhysSystem->Init(Impl::MAX_BODIES, Impl::NUM_BODY_MUTEXES, Impl::MAX_BODY_PAIRS, Impl::MAX_CONTACT_CONSTRAINTS, m_impl->BroadPhaseLayerIface, m_impl->ObjVsBPFilter, m_impl->ObjPairFilter);
 
         m_accumulator = 0.0f;
         m_initialised = true;
@@ -333,8 +332,7 @@ namespace Wayfinder::Physics
         JPH::Body* joltBody = bodyInterface.CreateBody(settings);
         if (!joltBody)
         {
-            WAYFINDER_ERROR(
-                LogPhysics, "Failed to create Jolt body (type={}, shape={}, pos=[{},{},{}])", static_cast<int>(desc.Type), static_cast<int>(desc.Shape), position.x, position.y, position.z);
+            WAYFINDER_ERROR(LogPhysics, "Failed to create Jolt body (type={}, shape={}, pos=[{},{},{}])", static_cast<int>(desc.Type), static_cast<int>(desc.Shape), position.x, position.y, position.z);
             return INVALID_PHYSICS_BODY;
         }
 

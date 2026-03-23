@@ -110,8 +110,8 @@ namespace Wayfinder
         // Transform module
         world.component<WorldTransformComponent>();
         world.system<>("UpdateWorldTransforms")
-            .kind(flecs::PreUpdate)
-            .run([&world](flecs::iter&)
+        .kind(flecs::PreUpdate)
+        .run([&world](flecs::iter&)
         {
             world.children([&](flecs::entity child)
             {
@@ -151,8 +151,8 @@ namespace Wayfinder
         // Camera module
         world.component<ActiveCameraStateComponent>();
         world.system<>("ExtractActiveCamera")
-            .kind(flecs::OnUpdate)
-            .run([&world](flecs::iter&)
+        .kind(flecs::OnUpdate)
+        .run([&world](flecs::iter&)
         {
             ActiveCameraStateComponent activeCamera;
 

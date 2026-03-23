@@ -92,8 +92,8 @@ namespace Wayfinder::Journey
             registry.RegisterSystem("HealthRegen", [](flecs::world& world)
             {
                 world.system<HealthComponent>("HealthRegen")
-                    .kind(flecs::OnUpdate)
-                    .each([](HealthComponent& health)
+                .kind(flecs::OnUpdate)
+                .each([](HealthComponent& health)
                 {
                     if (health.CurrentHealth < health.MaxHealth)
                     {
@@ -132,8 +132,8 @@ namespace Wayfinder::Journey
             registry.RegisterSystem("BurnDamage", [](flecs::world& world)
             {
                 world.system<HealthComponent>("BurnDamage")
-                    .kind(flecs::OnUpdate)
-                    .each([](HealthComponent& health)
+                .kind(flecs::OnUpdate)
+                .each([](HealthComponent& health)
                 {
                     if (health.CurrentHealth > 0.0f)
                     {

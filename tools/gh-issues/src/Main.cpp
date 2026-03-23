@@ -246,8 +246,8 @@ static std::map<int, IssueInfo> GetIssueNodeIds(const std::set<int>& numbers)
             return {};
         }
         map[num] = IssueInfo{
-            .NodeId = repo[key]["id"].get<std::string>(),
-            .Title = repo[key]["title"].get<std::string>(),
+        .NodeId = repo[key]["id"].get<std::string>(),
+        .Title = repo[key]["title"].get<std::string>(),
         };
     }
     return map;
@@ -518,7 +518,7 @@ static void ShowRelationships(int issueNumber)
     }}
   }}
 }})",
-        OWNER, REPO, issueNumber);
+    OWNER, REPO, issueNumber);
 
     auto result = RunGraphQL(query, "ShowRelationships");
     if (!result.Ok())
@@ -724,7 +724,7 @@ static void ShowBatchSummary(const std::vector<int>& issueNumbers)
         fields += std::format("i{}: issue(number: {}) {{ number title state labels(first: 10) {{ nodes {{ name }} }} "
                               "assignees(first: 5) {{ nodes {{ login }} }} blockedBy(first: 50) {{ nodes {{ state }} "
                               "}} subIssues(first: 50) {{ nodes {{ state }} }} }}",
-            num, num);
+        num, num);
     }
     auto query = std::format(R"(query {{ repository(owner: "{}", name: "{}") {{ {} }} }})", OWNER, REPO, fields);
 
@@ -800,8 +800,8 @@ static void ShowBatchSummary(const std::vector<int>& issueNumbers)
 
         auto stateColour = (issState == "CLOSED") ? Colour::Gray : Colour::White;
 
-        std::cout << std::format("  {}{}{}{}{}{}{}  {}{}\n", stateColour, PadRight(std::format("#{}", num), 8), PadRight(issState, 9), statusColour, PadRight(statusStr, 11), stateColour,
-            PadRight(subStr, 12), issTitle, Colour::Reset);
+        std::cout << std::format(
+        "  {}{}{}{}{}{}{}  {}{}\n", stateColour, PadRight(std::format("#{}", num), 8), PadRight(issState, 9), statusColour, PadRight(statusStr, 11), stateColour, PadRight(subStr, 12), issTitle, Colour::Reset);
     }
     std::cout << "\n";
 }
@@ -833,7 +833,7 @@ static void ShowReady()
         }
         fields += std::format("i{}: issue(number: {}) {{ number title state labels(first: 10) {{ nodes {{ name }} }} "
                               "assignees(first: 5) {{ nodes {{ login }} }} blockedBy(first: 50) {{ nodes {{ state }} }} }}",
-            num, num);
+        num, num);
     }
     auto query = std::format(R"(query {{ repository(owner: "{}", name: "{}") {{ {} }} }})", OWNER, REPO, fields);
     auto gqlResult = RunGraphQL(query, "ShowReady");
@@ -909,10 +909,10 @@ static void ShowReady()
             }
 
             readyIssues.push_back({
-                .Number = gqlIs["number"].get<int>(),
-                .Title = gqlIs["title"].get<std::string>(),
-                .Labels = std::move(labels),
-                .Assignees = std::move(assigneeStr),
+            .Number = gqlIs["number"].get<int>(),
+            .Title = gqlIs["title"].get<std::string>(),
+            .Labels = std::move(labels),
+            .Assignees = std::move(assigneeStr),
             });
         }
     }
@@ -935,8 +935,8 @@ static void ShowReady()
 
         for (auto& r : readyIssues)
         {
-            std::cout << std::format("  {}{}{}{}{}{}  {}{}\n", Colour::White, PadRight(std::format("#{}", r.Number), 8), Colour::Gray, PadRight(r.Labels, 32), PadRight(r.Assignees, 11), Colour::White,
-                r.Title, Colour::Reset);
+            std::cout << std::format(
+            "  {}{}{}{}{}{}  {}{}\n", Colour::White, PadRight(std::format("#{}", r.Number), 8), Colour::Gray, PadRight(r.Labels, 32), PadRight(r.Assignees, 11), Colour::White, r.Title, Colour::Reset);
         }
     }
     std::cout << "\n";
@@ -1094,9 +1094,9 @@ static void ShowOrphans()
                 labels += l["name"].get<std::string>();
             }
             orphans.push_back({
-                .Number = gqlIs["number"].get<int>(),
-                .Title = gqlIs["title"].get<std::string>(),
-                .Labels = std::move(labels),
+            .Number = gqlIs["number"].get<int>(),
+            .Title = gqlIs["title"].get<std::string>(),
+            .Labels = std::move(labels),
             });
         }
     }
@@ -1149,7 +1149,7 @@ static void ShowChain(int issueNumber)
     }}
   }}
 }})",
-            OWNER, REPO, num);
+        OWNER, REPO, num);
 
         auto result = RunGraphQL(query, "ShowChain");
         if (!result.Ok())
@@ -1181,10 +1181,10 @@ static void ShowChain(int issueNumber)
         }
 
         chain.push_back({
-            .Number = issue["number"].get<int>(),
-            .Title = issue["title"].get<std::string>(),
-            .State = issue["state"].get<std::string>(),
-            .Depth = depth,
+        .Number = issue["number"].get<int>(),
+        .Title = issue["title"].get<std::string>(),
+        .State = issue["state"].get<std::string>(),
+        .Depth = depth,
         });
 
         for (auto& b : issue["blockedBy"]["nodes"])
@@ -1307,7 +1307,7 @@ static TreeNode FetchSubIssueTree(int num, int depth)
     }}
   }}
 }})",
-        OWNER, REPO, num);
+    OWNER, REPO, num);
 
     auto result = RunGraphQL(query, "ShowTree");
     if (!result.Ok())
@@ -1330,9 +1330,9 @@ static TreeNode FetchSubIssueTree(int num, int depth)
     }
 
     TreeNode node{
-        .Number = issue["number"].get<int>(),
-        .Title = issue["title"].get<std::string>(),
-        .State = issue["state"].get<std::string>(),
+    .Number = issue["number"].get<int>(),
+    .Title = issue["title"].get<std::string>(),
+    .State = issue["state"].get<std::string>(),
     };
 
     for (auto& child : issue["subIssues"]["nodes"])
@@ -1346,9 +1346,9 @@ static TreeNode FetchSubIssueTree(int num, int depth)
         {
             // Leaf node or fetch failed
             node.Children.push_back({
-                .Number = child["number"].get<int>(),
-                .Title = child["title"].get<std::string>(),
-                .State = child["state"].get<std::string>(),
+            .Number = child["number"].get<int>(),
+            .Title = child["title"].get<std::string>(),
+            .State = child["state"].get<std::string>(),
             });
         }
     }
@@ -1455,7 +1455,7 @@ Examples:
   {} orphans                   # Find orphaned issues
   {} chain 12                  # Dependency chain for #12
 )",
-        progName, progName, progName, progName, progName, progName, progName, progName, progName, progName, progName);
+    progName, progName, progName, progName, progName, progName, progName, progName, progName, progName, progName);
 }
 
 int main(int argc, char** argv)

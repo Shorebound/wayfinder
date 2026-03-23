@@ -8,8 +8,8 @@
 
 namespace Wayfinder
 {
-    float ComputeDistanceToVolume(const Wayfinder::PostProcessVolumeComponent& volume, const Wayfinder::Float3& worldPosition, const Wayfinder::Float3& worldScale,
-        const Wayfinder::Matrix4& localToWorld, const Wayfinder::Float3& cameraPosition)
+    float ComputeDistanceToVolume(
+    const Wayfinder::PostProcessVolumeComponent& volume, const Wayfinder::Float3& worldPosition, const Wayfinder::Float3& worldScale, const Wayfinder::Matrix4& localToWorld, const Wayfinder::Float3& cameraPosition)
     {
         using namespace Wayfinder;
 

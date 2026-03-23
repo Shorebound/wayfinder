@@ -449,8 +449,8 @@ namespace Wayfinder
 
     bool ValidateCamera(const nlohmann::json& data, std::string& error)
     {
-        return ValidateOptionalBool(data, "primary", error) && ValidateOptionalVector3(data, "target", error) && ValidateOptionalVector3(data, "up", error) &&
-               ValidateOptionalNumber(data, "fov", error) && ValidateOptionalEnumValue(data, "projection", {"perspective", "orthographic"}, error);
+        return ValidateOptionalBool(data, "primary", error) && ValidateOptionalVector3(data, "target", error) && ValidateOptionalVector3(data, "up", error) && ValidateOptionalNumber(data, "fov", error) &&
+               ValidateOptionalEnumValue(data, "projection", {"perspective", "orthographic"}, error);
     }
 
     bool ValidateLight(const nlohmann::json& data, std::string& error)
@@ -765,8 +765,7 @@ namespace Wayfinder
         }
         else if (data.contains("tags") && data["tags"].is_array() && !data["tags"].empty())
         {
-            Wayfinder::LogScene.GetLogger()->LogFormat(
-                Wayfinder::LogVerbosity::Warning, "Entity specifies {0} tag(s) but no GameplayTagRegistry is available — tags will be ignored.", data["tags"].size());
+            Wayfinder::LogScene.GetLogger()->LogFormat(Wayfinder::LogVerbosity::Warning, "Entity specifies {0} tag(s) but no GameplayTagRegistry is available — tags will be ignored.", data["tags"].size());
         }
         entity.AddComponent<Wayfinder::GameplayTagContainer>(container);
     }
@@ -1082,15 +1081,15 @@ namespace Wayfinder
     }
 
     constexpr std::array<Wayfinder::SceneComponentRegistry::Entry, 9> kEntries = {{
-        {"transform", &RegisterComponent<Wayfinder::TransformComponent>, &ApplyTransform, &SerialiseTransform, &ValidateTransform},
-        {"mesh", &RegisterComponent<Wayfinder::MeshComponent>, &ApplyMesh, &SerialiseMesh, &ValidateMesh},
-        {"camera", &RegisterComponent<Wayfinder::CameraComponent>, &ApplyCamera, &SerialiseCamera, &ValidateCamera},
-        {"light", &RegisterComponent<Wayfinder::LightComponent>, &ApplyLight, &SerialiseLight, &ValidateLight},
-        {"material", &RegisterComponent<Wayfinder::MaterialComponent>, &ApplyMaterial, &SerialiseMaterial, &ValidateMaterial},
-        {"renderable", &RegisterComponent<Wayfinder::RenderableComponent>, &ApplyRenderable, &SerialiseRenderable, &ValidateRenderable},
-        {"render_override", &RegisterComponent<Wayfinder::RenderOverrideComponent>, &ApplyRenderOverride, &SerialiseRenderOverride, &ValidateRenderOverride},
-        {"gameplay_tags", &RegisterComponent<Wayfinder::GameplayTagContainer>, &ApplyTags, &SerialiseTags, &ValidateTags},
-        {"post_process_volume", &RegisterComponent<Wayfinder::PostProcessVolumeComponent>, &ApplyPostProcessVolume, &SerialisePostProcessVolume, &ValidatePostProcessVolume},
+    {"transform", &RegisterComponent<Wayfinder::TransformComponent>, &ApplyTransform, &SerialiseTransform, &ValidateTransform},
+    {"mesh", &RegisterComponent<Wayfinder::MeshComponent>, &ApplyMesh, &SerialiseMesh, &ValidateMesh},
+    {"camera", &RegisterComponent<Wayfinder::CameraComponent>, &ApplyCamera, &SerialiseCamera, &ValidateCamera},
+    {"light", &RegisterComponent<Wayfinder::LightComponent>, &ApplyLight, &SerialiseLight, &ValidateLight},
+    {"material", &RegisterComponent<Wayfinder::MaterialComponent>, &ApplyMaterial, &SerialiseMaterial, &ValidateMaterial},
+    {"renderable", &RegisterComponent<Wayfinder::RenderableComponent>, &ApplyRenderable, &SerialiseRenderable, &ValidateRenderable},
+    {"render_override", &RegisterComponent<Wayfinder::RenderOverrideComponent>, &ApplyRenderOverride, &SerialiseRenderOverride, &ValidateRenderOverride},
+    {"gameplay_tags", &RegisterComponent<Wayfinder::GameplayTagContainer>, &ApplyTags, &SerialiseTags, &ValidateTags},
+    {"post_process_volume", &RegisterComponent<Wayfinder::PostProcessVolumeComponent>, &ApplyPostProcessVolume, &SerialisePostProcessVolume, &ValidatePostProcessVolume},
     }};
 }
 

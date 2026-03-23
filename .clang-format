@@ -33,11 +33,13 @@ AlignAfterOpenBracket: DontAlign
 BreakTemplateDeclarations: Yes
 SpaceAfterTemplateKeyword: false
 
-ContinuationIndentWidth: 4
+ContinuationIndentWidth: 0
 IndentCaseLabels: false
 InsertBraces: true
-ColumnLimit: 200
+ColumnLimit: 220
 AccessModifierOffset: -4
 NamespaceIndentation: All
 FixNamespaceComments: false
 LambdaBodyIndentation: OuterScope
+BinPackArguments: false
+BinPackParameters: OnePerLine
