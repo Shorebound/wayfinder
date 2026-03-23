@@ -56,7 +56,7 @@ namespace Wayfinder
         pipelineDesc.cullMode = desc.Cull;
         pipelineDesc.depthTestEnabled = desc.DepthTest;
         pipelineDesc.depthWriteEnabled = desc.DepthWrite;
-        pipelineDesc.colourTargetBlends[0] = desc.Blend;
+        pipelineDesc.colourTargetBlends.front() = desc.Blend;
 
         auto* pipeline = new GPUPipeline();
         if (!pipeline->Create(*m_device, *m_shaders, pipelineDesc, m_cache))

@@ -8,138 +8,142 @@
 
 namespace Wayfinder
 {
-    static float ComputeDistanceToVolume(
-        const Wayfinder::PostProcessVolumeComponent& volume, const Wayfinder::Float3& worldPosition, const Wayfinder::Float3& worldScale, const Wayfinder::Matrix4& localToWorld, const Wayfinder::Float3& cameraPosition)
+    namespace
     {
-        using namespace Wayfinder;
+        float ComputeDistanceToVolume(const Wayfinder::PostProcessVolumeInstance& instance, const Wayfinder::Float3& cameraPosition)
+        {
+            using namespace Wayfinder;
 
-        if (volume.Shape == PostProcessVolumeShape::Global)
+            const PostProcessVolumeComponent& volume = *instance.Volume;
+            if (volume.Shape == PostProcessVolumeShape::Global)
+            {
+                return 0.0f;
+            }
+
+            const Float3 offset = cameraPosition - instance.WorldPosition;
+
+            if (volume.Shape == PostProcessVolumeShape::Sphere)
+            {
+                const Float3 absScale = Maths::Abs(instance.WorldScale);
+                const float scaledRadius = volume.Radius * Maths::Max(absScale.x, Maths::Max(absScale.y, absScale.z)); // NOLINT(cppcoreguidelines-pro-type-union-access)
+                return Maths::Max(Maths::Length(offset) - scaledRadius, 0.0f);
+            }
+
+            // Box: extract rotation from local-to-world, rotate offset into local
+            // orientation, then compute axis-aligned distance with scaled extents.
+            Matrix3 rotMat(instance.LocalToWorld);
+            rotMat[0] = Maths::Normalize(rotMat[0]); // NOLINT(cppcoreguidelines-pro-bounds-avoid-unchecked-container-access)
+            rotMat[1] = Maths::Normalize(rotMat[1]); // NOLINT(cppcoreguidelines-pro-bounds-avoid-unchecked-container-access)
+            rotMat[2] = Maths::Normalize(rotMat[2]); // NOLINT(cppcoreguidelines-pro-bounds-avoid-unchecked-container-access)
+            const Float3 localOffset = Maths::Transpose(rotMat) * offset;
+
+            const Float3 halfExtents = (volume.Dimensions * 0.5f) * Maths::Abs(instance.WorldScale);
+            const Float3 absLocal = Maths::Abs(localOffset);
+            const Float3 outside = Maths::Max(absLocal - halfExtents, Float3(0.0f));
+            return Maths::Length(outside);
+        }
+
+        float ComputeBlendWeight(float distance, float blendDistance)
+        {
+            if (blendDistance <= 0.0f)
+            {
+                return distance <= 0.0f ? 1.0f : 0.0f;
+            }
+            return Maths::Clamp(1.0f - (distance / blendDistance), 0.0f, 1.0f);
+        }
+
+        uint8_t LerpByte(uint8_t a, uint8_t b, float t)
+        {
+            return static_cast<uint8_t>(Maths::Clamp(static_cast<float>(a) + (static_cast<float>(b) - static_cast<float>(a)) * t, 0.0f, 255.0f));
+        }
+
+        Wayfinder::Colour LerpColour(const Wayfinder::Colour& a, const Wayfinder::Colour& b, float t)
+        {
+            return {.r = LerpByte(a.r, b.r, t), .g = LerpByte(a.g, b.g, t), .b = LerpByte(a.b, b.b, t), .a = LerpByte(a.a, b.a, t)};
+        }
+
+        float LerpParamValue(float current, float target, float weight)
+        {
+            return Maths::Mix(current, target, weight);
+        }
+
+        int32_t LerpParamValue(int32_t current, int32_t target, float weight)
+        {
+            return static_cast<int32_t>(std::round(Maths::Mix(static_cast<float>(current), static_cast<float>(target), weight)));
+        }
+
+        Wayfinder::Float3 LerpParamValue(const Wayfinder::Float3& current, const Wayfinder::Float3& target, float weight)
+        {
+            return Maths::Mix(current, target, weight);
+        }
+
+        Wayfinder::Colour LerpParamValue(const Wayfinder::Colour& current, const Wayfinder::Colour& target, float weight)
+        {
+            return LerpColour(current, target, weight);
+        }
+
+        // Blend a single parameter value toward a target by weight.
+        Wayfinder::PostProcessParamValue LerpParam(const Wayfinder::PostProcessParamValue& current, const Wayfinder::PostProcessParamValue& target, float weight)
+        {
+            // Both sides must hold the same type; if mismatched, take the target.
+            if (current.index() != target.index())
+            {
+                return target;
+            }
+
+            return std::visit([&](const auto& a) -> Wayfinder::PostProcessParamValue
+            {
+                using T = std::decay_t<decltype(a)>;
+                const auto& b = std::get<T>(target);
+                return LerpParamValue(a, b, weight);
+            }, current);
+        }
+
+        float ZeroParamValue(float)
         {
             return 0.0f;
         }
 
-        const Float3 offset = cameraPosition - worldPosition;
-
-        if (volume.Shape == PostProcessVolumeShape::Sphere)
+        int32_t ZeroParamValue(int32_t)
         {
-            const Float3 absScale = Maths::Abs(worldScale);
-            const float scaledRadius = volume.Radius * Maths::Max(absScale.x, Maths::Max(absScale.y, absScale.z));
-            return Maths::Max(Maths::Length(offset) - scaledRadius, 0.0f);
+            return int32_t{0};
         }
 
-        // Box: extract rotation from local-to-world, rotate offset into local
-        // orientation, then compute axis-aligned distance with scaled extents.
-        Matrix3 rotMat(localToWorld);
-        rotMat[0] = Maths::Normalize(rotMat[0]);
-        rotMat[1] = Maths::Normalize(rotMat[1]);
-        rotMat[2] = Maths::Normalize(rotMat[2]);
-        const Float3 localOffset = Maths::Transpose(rotMat) * offset;
-
-        const Float3 halfExtents = (volume.Dimensions * 0.5f) * Maths::Abs(worldScale);
-        const Float3 absLocal = Maths::Abs(localOffset);
-        const Float3 outside = Maths::Max(absLocal - halfExtents, Float3(0.0f));
-        return Maths::Length(outside);
-    }
-
-    static float ComputeBlendWeight(float distance, float blendDistance)
-    {
-        if (blendDistance <= 0.0f)
+        Wayfinder::Float3 ZeroParamValue(const Wayfinder::Float3&)
         {
-            return distance <= 0.0f ? 1.0f : 0.0f;
-        }
-        return Maths::Clamp(1.0f - (distance / blendDistance), 0.0f, 1.0f);
-    }
-
-    static uint8_t LerpByte(uint8_t a, uint8_t b, float t)
-    {
-        return static_cast<uint8_t>(Maths::Clamp(static_cast<float>(a) + (static_cast<float>(b) - static_cast<float>(a)) * t, 0.0f, 255.0f));
-    }
-
-    static Wayfinder::Colour LerpColour(const Wayfinder::Colour& a, const Wayfinder::Colour& b, float t)
-    {
-        return {.r = LerpByte(a.r, b.r, t), .g = LerpByte(a.g, b.g, t), .b = LerpByte(a.b, b.b, t), .a = LerpByte(a.a, b.a, t)};
-    }
-
-    // Blend a single parameter value toward a target by weight.
-    static Wayfinder::PostProcessParamValue LerpParam(const Wayfinder::PostProcessParamValue& current, const Wayfinder::PostProcessParamValue& target, float weight)
-    {
-        // Both sides must hold the same type; if mismatched, take the target.
-        if (current.index() != target.index())
-        {
-            return target;
+            return Wayfinder::Float3{0.0f, 0.0f, 0.0f};
         }
 
-        return std::visit([&](const auto& a) -> Wayfinder::PostProcessParamValue
+        Wayfinder::Colour ZeroParamValue(const Wayfinder::Colour&)
         {
-            using T = std::decay_t<decltype(a)>;
-            const auto& b = std::get<T>(target);
+            return Wayfinder::Colour{.r = 0, .g = 0, .b = 0, .a = 0};
+        }
 
-            if constexpr (std::is_same_v<T, float>)
-            {
-                return Maths::Mix(a, b, weight);
-            }
-            else if constexpr (std::is_same_v<T, int32_t>)
-            {
-                return static_cast<int32_t>(std::round(Maths::Mix(static_cast<float>(a), static_cast<float>(b), weight)));
-            }
-            else if constexpr (std::is_same_v<T, Wayfinder::Float3>)
-            {
-                return Maths::Mix(a, b, weight);
-            }
-            else if constexpr (std::is_same_v<T, Wayfinder::Colour>)
-            {
-                return LerpColour(a, b, weight);
-            }
-            else
-            {
-                return b;
-            }
-        }, current);
-    }
-
-    static Wayfinder::PostProcessParamValue ZeroValue(const Wayfinder::PostProcessParamValue& v)
-    {
-        return std::visit([](const auto& val) -> Wayfinder::PostProcessParamValue
+        Wayfinder::PostProcessParamValue ZeroValue(const Wayfinder::PostProcessParamValue& v)
         {
-            using T = std::decay_t<decltype(val)>;
-            if constexpr (std::is_same_v<T, float>)
+            return std::visit([](const auto& val) -> Wayfinder::PostProcessParamValue
             {
-                return 0.0f;
-            }
-            else if constexpr (std::is_same_v<T, int32_t>)
-            {
-                return int32_t{0};
-            }
-            else if constexpr (std::is_same_v<T, Wayfinder::Float3>)
-            {
-                return Wayfinder::Float3{0.0f, 0.0f, 0.0f};
-            }
-            else if constexpr (std::is_same_v<T, Wayfinder::Colour>)
-            {
-                return Wayfinder::Colour{.r = 0, .g = 0, .b = 0, .a = 0};
-            }
-            else
-            {
-                return val;
-            }
-        }, v);
-    }
+                return ZeroParamValue(val);
+            }, v);
+        }
 
-    static void BlendEffectInto(Wayfinder::PostProcessEffect& result, const Wayfinder::PostProcessEffect& source, float weight)
-    {
-        for (const auto& [key, value] : source.Parameters)
+        void BlendEffectInto(Wayfinder::PostProcessEffect& result, const Wayfinder::PostProcessEffect& source, float weight)
         {
-            auto it = result.Parameters.find(key);
-            if (it != result.Parameters.end())
+            for (const auto& [key, value] : source.Parameters)
             {
-                it->second = LerpParam(it->second, value, weight);
-            }
-            else
-            {
-                result.Parameters[key] = LerpParam(ZeroValue(value), value, weight);
+                auto it = result.Parameters.find(key);
+                if (it != result.Parameters.end())
+                {
+                    it->second = LerpParam(it->second, value, weight);
+                }
+                else
+                {
+                    result.Parameters[key] = LerpParam(ZeroValue(value), value, weight);
+                }
             }
         }
-    }
+
+    } // namespace
 }
 
 namespace Wayfinder
@@ -253,7 +257,7 @@ namespace Wayfinder
 
         for (const auto* instance : sorted)
         {
-            const float distance = ComputeDistanceToVolume(*instance->Volume, instance->WorldPosition, instance->WorldScale, instance->LocalToWorld, cameraPosition);
+            const float distance = ComputeDistanceToVolume(*instance, cameraPosition);
             const float weight = ComputeBlendWeight(distance, instance->Volume->BlendDistance);
 
             if (weight <= 0.0f)
