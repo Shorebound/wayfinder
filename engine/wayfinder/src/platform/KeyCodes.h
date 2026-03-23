@@ -1,4 +1,5 @@
 #pragma once
+#include <cstddef>
 #include <cstdint>
 
 namespace Wayfinder
@@ -7,6 +8,8 @@ namespace Wayfinder
 
     namespace Key
     {
+        inline constexpr std::size_t STATE_COUNT = 512;
+
         enum : KeyCode
         {
             // Values match SDL3 scancodes (physical key positions)
@@ -144,5 +147,10 @@ namespace Wayfinder
             RightAlt = 230,
             RightSuper = 231,
         };
+
+        constexpr bool IsValid(KeyCode key)
+        {
+            return static_cast<std::size_t>(key) < STATE_COUNT;
+        }
     }
 }

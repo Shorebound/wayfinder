@@ -4,10 +4,6 @@
 
 namespace Wayfinder
 {
-    /// Upper bounds matching SDL3Input for consistent out-of-range behaviour.
-    inline constexpr KeyCode kNullMaxScancodes = 512;
-    inline constexpr MouseCode kNullMaxMouseButtons = 8;
-
     class NullInput final : public Input
     {
     public:
@@ -15,36 +11,66 @@ namespace Wayfinder
 
         bool IsKeyPressed(KeyCode key) const override
         {
-            return key < kNullMaxScancodes ? false : false;
+            if (!Key::IsValid(key))
+            {
+                return false;
+            }
+
+            return false;
         }
         bool IsKeyDown(KeyCode key) const override
         {
-            return key < kNullMaxScancodes ? false : false;
+            if (!Key::IsValid(key))
+            {
+                return false;
+            }
+
+            return false;
         }
         bool IsKeyReleased(KeyCode key) const override
         {
-            return key < kNullMaxScancodes ? false : false;
+            if (!Key::IsValid(key))
+            {
+                return false;
+            }
+
+            return false;
         }
         bool IsKeyUp(KeyCode key) const override
         {
-            return key < kNullMaxScancodes ? true : false;
+            return Key::IsValid(key);
         }
 
         bool IsMouseButtonPressed(MouseCode btn) const override
         {
-            return btn < kNullMaxMouseButtons ? false : false;
+            if (!Mouse::IsValid(btn))
+            {
+                return false;
+            }
+
+            return false;
         }
         bool IsMouseButtonDown(MouseCode btn) const override
         {
-            return btn < kNullMaxMouseButtons ? false : false;
+            if (!Mouse::IsValid(btn))
+            {
+                return false;
+            }
+
+            return false;
         }
         bool IsMouseButtonReleased(MouseCode btn) const override
         {
-            return btn < kNullMaxMouseButtons ? false : false;
+            if (!Mouse::IsValid(btn))
+            {
+                return false;
+            }
+
+            return false;
         }
         bool IsMouseButtonUp(MouseCode btn) const override
         {
-            return btn < kNullMaxMouseButtons ? true : false;
+            return Mouse::IsValid(btn);
         }
 
         std::pair<float, float> GetMousePosition() const override

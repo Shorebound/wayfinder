@@ -138,27 +138,25 @@ namespace Wayfinder
 
     std::optional<std::size_t> SDL3Input::TryGetKeyIndex(KeyCode key)
     {
-        const auto index = static_cast<std::size_t>(key);
-        if (index >= kMaxScancodes)
+        if (!Key::IsValid(key))
         {
             return std::nullopt;
         }
 
-        return index;
+        return static_cast<std::size_t>(key);
     }
 
     std::optional<std::size_t> SDL3Input::TryGetMouseButtonIndex(MouseCode button)
     {
-        const auto index = static_cast<std::size_t>(button);
-        if (index >= kMaxMouseButtons)
+        if (!Mouse::IsValid(button))
         {
             return std::nullopt;
         }
 
-        return index;
+        return static_cast<std::size_t>(button);
     }
 
-    bool SDL3Input::GetKeyState(const std::array<bool, kMaxScancodes>& states, KeyCode key) const
+    bool SDL3Input::GetKeyState(const std::array<bool, Key::STATE_COUNT>& states, KeyCode key) const
     {
         const auto index = TryGetKeyIndex(key);
         if (!index.has_value())
@@ -169,7 +167,7 @@ namespace Wayfinder
         return states.at(*index);
     }
 
-    bool SDL3Input::GetMouseButtonState(const std::array<bool, kMaxMouseButtons>& states, MouseCode button) const
+    bool SDL3Input::GetMouseButtonState(const std::array<bool, Mouse::BUTTON_STATE_COUNT>& states, MouseCode button) const
     {
         const auto index = TryGetMouseButtonIndex(button);
         if (!index.has_value())

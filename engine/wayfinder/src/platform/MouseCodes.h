@@ -1,4 +1,5 @@
 #pragma once
+#include <cstddef>
 #include <cstdint>
 
 namespace Wayfinder
@@ -24,5 +25,12 @@ namespace Wayfinder
             Button4 = ButtonX2,
             ButtonLast = ButtonX2,
         };
+
+        inline constexpr std::size_t BUTTON_STATE_COUNT = static_cast<std::size_t>(ButtonLast) + 1;
+
+        constexpr bool IsValid(MouseCode button)
+        {
+            return static_cast<std::size_t>(button) < BUTTON_STATE_COUNT;
+        }
     }
 }
