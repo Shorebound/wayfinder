@@ -14,7 +14,9 @@
 
 namespace Wayfinder
 {
-    static void LogDocumentErrors(const std::vector<std::string>& errors, const std::string& filePath)
+namespace
+{
+    void LogDocumentErrors(const std::vector<std::string>& errors, const std::string& filePath)
     {
         Wayfinder::LogScene.GetLogger()->LogFormat(Wayfinder::LogVerbosity::Error, "Scene validation failed for {0} with {1} issue(s)", filePath, errors.size());
         for (const std::string& error : errors)
@@ -22,7 +24,7 @@ namespace Wayfinder
             Wayfinder::LogScene.GetLogger()->LogFormat(Wayfinder::LogVerbosity::Error, "  - {0}", error);
         }
     }
-
+} // anonymous namespace
 }
 
 namespace Wayfinder
@@ -95,7 +97,7 @@ namespace Wayfinder
         RegisterEntityName(entityHandle, newName);
     }
 
-    Scene::~Scene()
+    Scene::~Scene() // NOLINT(bugprone-exception-escape)
     {
         Shutdown();
     }
@@ -110,6 +112,7 @@ namespace Wayfinder
 
         // Transform module
         world.component<WorldTransformComponent>();
+        // NOLINTNEXTLINE(clang-analyzer-core.StackAddressEscape)
         world.system<>("UpdateWorldTransforms")
         .kind(flecs::PreUpdate)
         .run([&world](flecs::iter&)

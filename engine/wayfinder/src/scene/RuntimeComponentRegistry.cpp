@@ -110,7 +110,7 @@ namespace Wayfinder
     {
         if (auto it = m_index.find(std::string(key)); it != m_index.end())
         {
-            return &m_entries[it->second];
+            return &m_entries.at(it->second);
         }
         return nullptr;
     }

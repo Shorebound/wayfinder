@@ -22,7 +22,7 @@ namespace Wayfinder
         const bool hadPreviousName = m_entityHandle.has<NameComponent>();
         const std::string previousName = hadPreviousName ? m_entityHandle.get<NameComponent>().Value : std::string{};
 
-        std::string finalName = (m_scene != nullptr) ? m_scene->GenerateUniqueName(name, m_entityHandle.id()) : name;
+        const std::string finalName = (m_scene != nullptr) ? m_scene->GenerateUniqueName(name, m_entityHandle.id()) : name;
 
         if (m_entityHandle.has<NameComponent>())
         {
