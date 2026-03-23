@@ -166,8 +166,8 @@ namespace Wayfinder
         // Only request formats we can actually provide.
         // Currently all shaders are compiled to SPIR-V.
         m_device = SDL_CreateGPUDevice(SDL_GPU_SHADERFORMAT_SPIRV,
-        true, // debug mode
-        nullptr);
+            true, // debug mode
+            nullptr);
 
         if (!m_device)
         {

@@ -360,7 +360,8 @@ namespace Wayfinder::Physics
         if (!joltBody)
         {
             const auto positionComponents = GetFloat3Components(pose.Position);
-            WAYFINDER_ERROR(LogPhysics, "Failed to create Jolt body (type={}, shape={}, pos=[{},{},{}])", static_cast<int>(desc.Type), static_cast<int>(desc.Shape), positionComponents.at(0), positionComponents.at(1), positionComponents.at(2));
+            WAYFINDER_ERROR(LogPhysics, "Failed to create Jolt body (type={}, shape={}, pos=[{},{},{}])", static_cast<int>(desc.Type), static_cast<int>(desc.Shape), positionComponents.at(0), positionComponents.at(1),
+                positionComponents.at(2));
             return INVALID_PHYSICS_BODY;
         }
 

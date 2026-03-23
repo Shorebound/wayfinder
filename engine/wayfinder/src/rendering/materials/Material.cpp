@@ -257,7 +257,7 @@ namespace Wayfinder
 
         const LinearColour baseColour = material.GetBaseColour();
         table["base_colour"] =
-        nlohmann::json::array({static_cast<int64_t>(baseColour.r * 255.0f), static_cast<int64_t>(baseColour.g * 255.0f), static_cast<int64_t>(baseColour.b * 255.0f), static_cast<int64_t>(baseColour.a * 255.0f)});
+            nlohmann::json::array({static_cast<int64_t>(baseColour.r * 255.0f), static_cast<int64_t>(baseColour.g * 255.0f), static_cast<int64_t>(baseColour.b * 255.0f), static_cast<int64_t>(baseColour.a * 255.0f)});
         // NOLINTEND(cppcoreguidelines-pro-bounds-avoid-unchecked-container-access)
 
         return table;

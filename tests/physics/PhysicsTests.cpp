@@ -62,8 +62,8 @@ namespace Wayfinder::Tests
     void RegisterCreateBodiesObserver(flecs::world& world, std::function<void(uint32_t)> onCreated = nullptr)
     {
         world.observer<RigidBodyComponent, const ColliderComponent, const TransformComponent>("PhysicsCreateBodies")
-        .event(flecs::OnAdd)
-        .each([onCreated = std::move(onCreated)](RigidBodyComponent& rb, const ColliderComponent& col, const TransformComponent& transform)
+            .event(flecs::OnAdd)
+            .each([onCreated = std::move(onCreated)](RigidBodyComponent& rb, const ColliderComponent& col, const TransformComponent& transform)
         {
             if (rb.RuntimeBodyId != INVALID_PHYSICS_BODY)
             {
@@ -104,8 +104,8 @@ namespace Wayfinder::Tests
     void RegisterDestroyBodiesObserver(flecs::world& world, std::function<void()> onDestroyed = nullptr)
     {
         world.observer<RigidBodyComponent>("PhysicsDestroyBodies")
-        .event(flecs::OnRemove)
-        .each([onDestroyed = std::move(onDestroyed)](flecs::entity, RigidBodyComponent& rb)
+            .event(flecs::OnRemove)
+            .each([onDestroyed = std::move(onDestroyed)](flecs::entity, RigidBodyComponent& rb)
         {
             if (rb.RuntimeBodyId == INVALID_PHYSICS_BODY)
             {
@@ -751,8 +751,8 @@ namespace Wayfinder::Tests
 
             // Register step system
             ecsWorld.system("PhysicsStep")
-            .kind(flecs::OnUpdate)
-            .run([](flecs::iter& it)
+                .kind(flecs::OnUpdate)
+                .run([](flecs::iter& it)
             {
                 auto* sub = GameSubsystems::Find<PhysicsSubsystem>();
                 if (sub)
@@ -763,8 +763,8 @@ namespace Wayfinder::Tests
 
             // Register sync system
             ecsWorld.system<const RigidBodyComponent, WorldTransformComponent>("PhysicsSyncTransforms")
-            .kind(flecs::OnValidate)
-            .each([](flecs::entity, const RigidBodyComponent& rb, WorldTransformComponent& wt)
+                .kind(flecs::OnValidate)
+                .each([](flecs::entity, const RigidBodyComponent& rb, WorldTransformComponent& wt)
             {
                 if (rb.RuntimeBodyId == INVALID_PHYSICS_BODY)
                 {

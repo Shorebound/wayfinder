@@ -130,9 +130,9 @@ namespace Wayfinder
             if (!sys.is_valid())
             {
                 WAYFINDER_WARNING(LogGame,
-                "Conditioned system '{}' not found in world. "
-                "Ensure the flecs system name matches the descriptor name.",
-                desc.Name);
+                    "Conditioned system '{}' not found in world. "
+                    "Ensure the flecs system name matches the descriptor name.",
+                    desc.Name);
                 continue;
             }
 

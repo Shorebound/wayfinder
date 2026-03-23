@@ -217,7 +217,11 @@ namespace Wayfinder
             if (light.DebugDraw)
             {
                 const float debugSize = light.Type == LightType::Directional ? 0.6f : 0.3f;
-                const Matrix4 debugTransform = Maths::ComposeTransform({.Position = position, .RotationDegrees = {0.0f, 0.0f, 0.0f}, .Scale = {debugSize, debugSize, debugSize},});
+                const Matrix4 debugTransform = Maths::ComposeTransform({
+                    .Position = position,
+                    .RotationDegrees = {0.0f, 0.0f, 0.0f},
+                    .Scale = {debugSize, debugSize, debugSize},
+                });
 
                 RenderDebugBox debugBox;
                 debugBox.LocalToWorld = debugTransform;

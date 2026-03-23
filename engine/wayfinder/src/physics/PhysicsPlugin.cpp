@@ -96,10 +96,7 @@ namespace Wayfinder::Physics
             const auto fallbackComponents = GetFloat3Components(fallback);
 
             return {
-                xNode.is_number() ? xNode.get<float>() : fallbackComponents.at(0),
-                yNode.is_number() ? yNode.get<float>() : fallbackComponents.at(1),
-                zNode.is_number() ? zNode.get<float>() : fallbackComponents.at(2)
-            };
+                xNode.is_number() ? xNode.get<float>() : fallbackComponents.at(0), yNode.is_number() ? yNode.get<float>() : fallbackComponents.at(1), zNode.is_number() ? zNode.get<float>() : fallbackComponents.at(2)};
         }
 
         /// Write a Float3 as a 3-element JSON array.
@@ -411,8 +408,8 @@ namespace Wayfinder::Physics
         registry.RegisterSystem("PhysicsCreateBodies", [](flecs::world& world)
         {
             world.observer<RigidBodyComponent, const ColliderComponent, const TransformComponent>("PhysicsCreateBodies")
-            .event(flecs::OnAdd)
-            .each([](flecs::entity, RigidBodyComponent& rb, const ColliderComponent& col, const TransformComponent& transform)
+                .event(flecs::OnAdd)
+                .each([](flecs::entity, RigidBodyComponent& rb, const ColliderComponent& col, const TransformComponent& transform)
             {
                 if (rb.RuntimeBodyId != INVALID_PHYSICS_BODY)
                 {
@@ -426,7 +423,7 @@ namespace Wayfinder::Physics
                 }
 
                 auto desc = MakeDescriptor(rb, col);
-                const PhysicsBodyPose pose {
+                const PhysicsBodyPose pose{
                     .Position = transform.Local.Position,
                     .RotationDegrees = transform.Local.RotationDegrees,
                 };
@@ -447,8 +444,8 @@ namespace Wayfinder::Physics
         registry.RegisterSystem("PhysicsDestroyBodies", [](flecs::world& world)
         {
             world.observer<RigidBodyComponent>("PhysicsDestroyBodies")
-            .event(flecs::OnRemove)
-            .each([](RigidBodyComponent& rb)
+                .event(flecs::OnRemove)
+                .each([](RigidBodyComponent& rb)
             {
                 if (rb.RuntimeBodyId == INVALID_PHYSICS_BODY)
                 {
@@ -479,8 +476,8 @@ namespace Wayfinder::Physics
             }
 
             world.system("PhysicsStep")
-            .kind(flecs::OnUpdate)
-            .run([physics](flecs::iter& it)
+                .kind(flecs::OnUpdate)
+                .run([physics](flecs::iter& it)
             {
                 if (physics)
                 {
@@ -500,8 +497,8 @@ namespace Wayfinder::Physics
             // stack-escape analyzer through third-party template internals.
             // NOLINTNEXTLINE(clang-analyzer-core.StackAddressEscape)
             world.system<>("PhysicsSyncTransforms")
-            .kind(flecs::OnValidate)
-            .run([physics, &world](flecs::iter&)
+                .kind(flecs::OnValidate)
+                .run([physics, &world](flecs::iter&)
             {
                 if (!physics)
                 {
