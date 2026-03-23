@@ -290,7 +290,7 @@ namespace Wayfinder
 
                     if (pass.ViewIndex < preparedFrame.Views.size())
                     {
-                        const auto& pv = preparedFrame.Views[pass.ViewIndex];
+                        const auto& pv = preparedFrame.Views.at(pass.ViewIndex);
                         const auto& cam = pv.CameraState;
                         const float aspect = (params.SwapchainHeight > 0) ? static_cast<float>(params.SwapchainWidth) / static_cast<float>(params.SwapchainHeight) : 1.0f;
 

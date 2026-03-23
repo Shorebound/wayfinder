@@ -25,7 +25,7 @@ namespace Wayfinder
     {
     public:
         Renderer();
-        ~Renderer();
+        ~Renderer() noexcept;
 
         bool Initialise(RenderDevice& device, const EngineConfig& config);
         void Shutdown();

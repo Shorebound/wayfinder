@@ -20,11 +20,22 @@ namespace Wayfinder
         m_renderResources = std::make_unique<RenderResourceCache>();
     }
 
-    Renderer::~Renderer()
+    Renderer::~Renderer() noexcept
     {
         if (m_isInitialised)
         {
-            Shutdown();
+            try
+            {
+                Shutdown();
+            }
+            catch (const std::exception& exception)
+            {
+                WAYFINDER_WARNING(LogRenderer, "Renderer shutdown suppressed exception during destruction: {}", exception.what());
+            }
+            catch (...)
+            {
+                WAYFINDER_WARNING(LogRenderer, "Renderer shutdown suppressed unknown exception during destruction.");
+            }
         }
     }
 

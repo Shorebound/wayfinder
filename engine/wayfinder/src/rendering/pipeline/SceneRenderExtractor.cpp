@@ -10,49 +10,58 @@
 #include <array>
 #include <cstddef>
 #include <cstdint>
+#include <iterator>
 #include <vector>
 
 namespace Wayfinder
 {
-    constexpr uint64_t K_BUILT_IN_BOX_MESH_KEY = 1;
-    constexpr uint64_t K_BUILT_IN_SURFACE_MATERIAL_KEY = 1;
-
-    static uint64_t MakeStableKey(const Wayfinder::AssetId& assetId)
+    namespace
     {
-        const std::array<std::uint8_t, 16>& bytes = assetId.Value.GetBytes();
-        uint64_t result = 0;
-        for (size_t index = 0; index < 8; ++index)
+        constexpr uint64_t K_BUILT_IN_BOX_MESH_KEY = 1;
+        constexpr uint64_t K_BUILT_IN_SURFACE_MATERIAL_KEY = 1;
+
+        uint64_t MakeStableKey(const Wayfinder::AssetId& assetId)
         {
-            result = (result << 8) | static_cast<uint64_t>(bytes[index]);
+            const std::array<std::uint8_t, 16>& bytes = assetId.Value.GetBytes();
+            uint64_t result = 0;
+            auto iterator = bytes.begin();
+            for (size_t index = 0; index < 8; ++index, ++iterator)
+            {
+                result = (result << 8) | static_cast<uint64_t>(*iterator);
+            }
+
+            return result;
         }
 
-        return result;
-    }
+        Wayfinder::SortLayer MapLayer(const Wayfinder::RenderLayerId& layer)
+        {
+            if (layer == Wayfinder::RenderLayers::Overlay)
+            {
+                return Wayfinder::SortLayer::Overlay;
+            }
+            return Wayfinder::SortLayer::Opaque;
+        }
 
-    static Wayfinder::SortLayer MapLayer(const Wayfinder::RenderLayerId& layer)
-    {
-        if (layer == Wayfinder::RenderLayers::Overlay)
+        uint16_t MaterialIdBits(const std::optional<Wayfinder::AssetId>& assetId)
         {
-            return Wayfinder::SortLayer::Overlay;
-        }
-        return Wayfinder::SortLayer::Opaque;
-    }
+            if (!assetId)
+            {
+                return 0;
+            }
 
-    static uint16_t MaterialIdBits(const std::optional<Wayfinder::AssetId>& assetId)
-    {
-        if (!assetId)
-        {
-            return 0;
+            const std::array<std::uint8_t, 16>& bytes = assetId->Value.GetBytes();
+            uint16_t hash = 0;
+            for (auto iterator = bytes.begin(); iterator != bytes.end(); std::advance(iterator, 2))
+            {
+                const auto lowByte = static_cast<uint16_t>(*iterator);
+                const auto highByte = static_cast<uint16_t>(*std::next(iterator));
+                hash ^= lowByte | static_cast<uint16_t>(highByte << 8);
+            }
+
+            return hash;
         }
-        // XOR-fold all 16 UUID bytes into 16 bits for better distribution
-        const std::array<std::uint8_t, 16>& bytes = assetId->Value.GetBytes();
-        uint16_t hash = 0;
-        for (size_t i = 0; i < 16; i += 2)
-        {
-            hash ^= static_cast<uint16_t>(bytes[i]) | (static_cast<uint16_t>(bytes[i + 1]) << 8);
-        }
-        return hash;
-    }
+
+    } // namespace
 }
 
 namespace Wayfinder
@@ -78,7 +87,10 @@ namespace Wayfinder
                 frame.AddScenePass(RenderPassIds::MainScene, viewIndex, RenderLayers::Main);
                 frame.AddScenePass(RenderPassIds::OverlayScene, viewIndex, RenderLayers::Overlay);
                 RenderPass& debugPass = frame.AddDebugPass(RenderPassIds::Debug, viewIndex);
-                debugPass.DebugDraw->ShowWorldGrid = true;
+                if (debugPass.DebugDraw)
+                {
+                    debugPass.DebugDraw->ShowWorldGrid = true;
+                }
             }
         }
 
@@ -93,8 +105,17 @@ namespace Wayfinder
             }
         }
 
-        scene.GetWorld().each([&frame, &cameraView](flecs::entity entityHandle, const TransformComponent& transform, const MeshComponent& mesh, const RenderableComponent& renderable)
+        scene.GetWorld().each([&frame, &cameraView](flecs::entity entityHandle)
         {
+            if (!entityHandle.has<TransformComponent>() || !entityHandle.has<MeshComponent>() || !entityHandle.has<RenderableComponent>())
+            {
+                return;
+            }
+
+            const auto& transform = entityHandle.get<TransformComponent>();
+            const auto& mesh = entityHandle.get<MeshComponent>();
+            const auto& renderable = entityHandle.get<RenderableComponent>();
+
             RenderMeshSubmission submission;
             submission.Mesh.Origin = RenderResourceOrigin::BuiltIn;
             submission.Mesh.StableKey = K_BUILT_IN_BOX_MESH_KEY;
@@ -146,8 +167,9 @@ namespace Wayfinder
             submission.LocalToWorld = localToWorld;
 
             // Compute camera-space Z for depth sorting
-            const Float4 worldPos = Float4(Float3(localToWorld[3]), 1.0f);
-            const float cameraSpaceZ = (cameraView * worldPos).z;
+            const Float3 worldPosition = Maths::TransformPoint(localToWorld, {0.0f, 0.0f, 0.0f});
+            const Float3 cameraSpacePosition = Maths::TransformPoint(cameraView, worldPosition);
+            const float cameraSpaceZ = cameraSpacePosition.z; // NOLINT(cppcoreguidelines-pro-type-union-access)
 
             submission.SortKey = SortKeyBuilder::Build(MapLayer(submission.Layer), MaterialIdBits(submission.Material.Ref.AssetId), cameraSpaceZ, static_cast<uint16_t>(submission.SortPriority));
 
@@ -161,8 +183,16 @@ namespace Wayfinder
             owningPass->Meshes.push_back(std::move(submission));
         });
 
-        scene.GetWorld().each([&frame](flecs::entity entityHandle, const TransformComponent& transform, const LightComponent& light)
+        scene.GetWorld().each([&frame](flecs::entity entityHandle)
         {
+            if (!entityHandle.has<TransformComponent>() || !entityHandle.has<LightComponent>())
+            {
+                return;
+            }
+
+            const auto& transform = entityHandle.get<TransformComponent>();
+            const auto& light = entityHandle.get<LightComponent>();
+
             Matrix4 localToWorld = transform.GetLocalMatrix();
             Float3 position = transform.Local.Position;
             if (entityHandle.has<WorldTransformComponent>())
@@ -220,8 +250,15 @@ namespace Wayfinder
 
         // Extract post-process volumes (global volumes may have no transform)
         std::vector<PostProcessVolumeInstance> volumeInstances;
-        scene.GetWorld().each([&volumeInstances](flecs::entity entityHandle, const PostProcessVolumeComponent& volume)
+        scene.GetWorld().each([&volumeInstances](flecs::entity entityHandle)
         {
+            if (!entityHandle.has<PostProcessVolumeComponent>())
+            {
+                return;
+            }
+
+            const auto& volume = entityHandle.get<PostProcessVolumeComponent>();
+
             Float3 position{0.0f, 0.0f, 0.0f};
             Float3 scale{1.0f, 1.0f, 1.0f};
             auto localToWorld = Matrix4(1.0f);
