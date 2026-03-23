@@ -7,15 +7,15 @@
 
 #include "ecs/Flecs.h"
 
-#include "GameplayTag.h"
-#include "GameplayTagRegistry.h"
 #include "GameState.h"
 #include "GameStateMachine.h"
-#include "core/Result.h"
-#include "scene/SceneSettings.h"
+#include "GameplayTag.h"
+#include "GameplayTagRegistry.h"
 #include "app/Subsystem.h"
-#include "wayfinder_exports.h"
+#include "core/Result.h"
 #include "scene/RuntimeComponentRegistry.h"
+#include "scene/SceneSettings.h"
+#include "wayfinder_exports.h"
 
 namespace Wayfinder
 {

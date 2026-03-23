@@ -1,11 +1,11 @@
 #include "app/EngineConfig.h"
+#include "assets/AssetRegistry.h"
 #include "core/Log.h"
+#include "core/Result.h"
 #include "modules/ModuleLoader.h"
 #include "modules/ModuleRegistry.h"
 #include "project/ProjectDescriptor.h"
 #include "project/ProjectResolver.h"
-#include "core/Result.h"
-#include "assets/AssetRegistry.h"
 #include "scene/RuntimeComponentRegistry.h"
 #include "scene/Scene.h"
 
@@ -48,8 +48,7 @@ namespace Wayfinder
         std::optional<Wayfinder::LoadedModule> Module;
         std::unique_ptr<Wayfinder::ModuleRegistry> ModReg;
 
-        explicit WaypointContext(const Wayfinder::ProjectDescriptor* project = nullptr,
-                                const std::filesystem::path& toolDir = {})
+        explicit WaypointContext(const Wayfinder::ProjectDescriptor* project = nullptr, const std::filesystem::path& toolDir = {})
         {
             Wayfinder::Scene::RegisterCoreECS(World);
             Registry.AddCoreEntries();
@@ -60,8 +59,7 @@ namespace Wayfinder
 
                 /// If the module isn't next to the project file, try the
                 /// tool's own directory (common for build-output layouts).
-                if (!std::filesystem::exists(modulePath) && !toolDir.empty())
-                    modulePath = toolDir / modulePath.filename();
+                if (!std::filesystem::exists(modulePath) && !toolDir.empty()) modulePath = toolDir / modulePath.filename();
 
                 auto loadResult = Wayfinder::ModuleLoader::Load(modulePath);
                 if (loadResult && loadResult->Instance)
@@ -74,8 +72,7 @@ namespace Wayfinder
                 }
                 else
                 {
-                    std::cerr << "Warning: failed to load game module from "
-                              << modulePath.string() << '\n';
+                    std::cerr << "Warning: failed to load game module from " << modulePath.string() << '\n';
                 }
             }
 
@@ -83,9 +80,8 @@ namespace Wayfinder
         }
     };
 
-    int RunValidate(const std::filesystem::path& scenePath,
-                    const Wayfinder::ProjectDescriptor* project = nullptr,
-                    const std::filesystem::path& toolDir = {})
+    int RunValidate(const std::filesystem::path& scenePath, const Wayfinder::ProjectDescriptor* project = nullptr,
+        const std::filesystem::path& toolDir = {})
     {
         WaypointContext ctx(project, toolDir);
         Wayfinder::Scene scene{ctx.World, ctx.Registry, "Waypoint Validation Scene"};
@@ -95,10 +91,8 @@ namespace Wayfinder
         return success ? 0 : 1;
     }
 
-    int RunRoundtripSave(const std::filesystem::path& scenePath,
-                         const std::filesystem::path& outputPath,
-                         const Wayfinder::ProjectDescriptor* project = nullptr,
-                         const std::filesystem::path& toolDir = {})
+    int RunRoundtripSave(const std::filesystem::path& scenePath, const std::filesystem::path& outputPath,
+        const Wayfinder::ProjectDescriptor* project = nullptr, const std::filesystem::path& toolDir = {})
     {
         WaypointContext ctx(project, toolDir);
         Wayfinder::Scene scene{ctx.World, ctx.Registry, "Waypoint Roundtrip Scene"};
@@ -139,10 +133,8 @@ int main(int argc, char** argv)
         std::filesystem::path startPath = std::filesystem::current_path();
 
         // If the next arg exists and isn't a known command, treat it as a path
-        if (argIndex < argc && argv[argIndex][0] != '-'
-            && std::string(argv[argIndex]) != "validate"
-            && std::string(argv[argIndex]) != "validate-assets"
-            && std::string(argv[argIndex]) != "roundtrip-save")
+        if (argIndex < argc && argv[argIndex][0] != '-' && std::string(argv[argIndex]) != "validate" &&
+            std::string(argv[argIndex]) != "validate-assets" && std::string(argv[argIndex]) != "roundtrip-save")
         {
             startPath = std::filesystem::path(argv[argIndex]);
             ++argIndex;
@@ -151,8 +143,7 @@ int main(int argc, char** argv)
         const auto projectFile = Wayfinder::FindProjectFile(startPath);
         if (!projectFile)
         {
-            std::cerr << "No project.wayfinder found from: " << startPath.string()
-                      << " (" << projectFile.error().GetMessage() << ")\n";
+            std::cerr << "No project.wayfinder found from: " << startPath.string() << " (" << projectFile.error().GetMessage() << ")\n";
             Wayfinder::Log::Shutdown();
             return 1;
         }
@@ -161,8 +152,8 @@ int main(int argc, char** argv)
 
         if (!loadResult)
         {
-            std::cerr << "Failed to load project descriptor from: " << projectFile->string()
-                      << " (" << loadResult.error().GetMessage() << ")\n";
+            std::cerr << "Failed to load project descriptor from: " << projectFile->string() << " (" << loadResult.error().GetMessage()
+                      << ")\n";
             Wayfinder::Log::Shutdown();
             return 1;
         }
@@ -195,9 +186,7 @@ int main(int argc, char** argv)
             return 1;
         }
 
-        const std::filesystem::path scenePath = (argIndex < argc)
-            ? std::filesystem::path(argv[argIndex])
-            : project->ResolveBootScene();
+        const std::filesystem::path scenePath = (argIndex < argc) ? std::filesystem::path(argv[argIndex]) : project->ResolveBootScene();
 
         exitCode = Wayfinder::RunValidate(scenePath, project ? &*project : nullptr, toolDir);
     }
@@ -226,9 +215,8 @@ int main(int argc, char** argv)
             return 1;
         }
 
-        exitCode = Wayfinder::RunRoundtripSave(std::filesystem::path(argv[argIndex]),
-                                    std::filesystem::path(argv[argIndex + 1]),
-                                    project ? &*project : nullptr, toolDir);
+        exitCode = Wayfinder::RunRoundtripSave(
+            std::filesystem::path(argv[argIndex]), std::filesystem::path(argv[argIndex + 1]), project ? &*project : nullptr, toolDir);
     }
     else
     {

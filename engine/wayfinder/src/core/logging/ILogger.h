@@ -8,7 +8,6 @@
 #include <string_view>
 #include <vector>
 
-
 namespace Wayfinder
 {
     // Interface for loggers
@@ -37,50 +36,35 @@ namespace Wayfinder
                 LogFormatted(level, format, std::make_format_args(args...));
             }
         }*/
-    
+
         template<typename... Args>
         void LogFormat(const LogVerbosity level, const std::string_view format, Args&&... args)
         {
-            if (level <= GetVerbosity())
-            {
-                LogFormatted(level, format, std::make_format_args(args...));
-            }
+            if (level <= GetVerbosity()) { LogFormatted(level, format, std::make_format_args(args...)); }
         }
 
     protected:
         virtual void LogFormatted(LogVerbosity level, std::string_view format, std::format_args args) = 0;
 
     public:
-        template <typename... Args>
+        template<typename... Args>
         void Fatal(std::string_view format, Args&&... args)
-        {
-            LogFormat(LogVerbosity::Fatal, format, std::forward<Args>(args)...);
-        }
-        template <typename... Args>
+        { LogFormat(LogVerbosity::Fatal, format, std::forward<Args>(args)...); }
+        template<typename... Args>
         void Error(std::string_view format, Args&&... args)
-        {
-            LogFormat(LogVerbosity::Error, format, std::forward<Args>(args)...);
-        }
-        template <typename... Args>
+        { LogFormat(LogVerbosity::Error, format, std::forward<Args>(args)...); }
+        template<typename... Args>
         void Warning(std::string_view format, Args&&... args)
-        {
-            LogFormat(LogVerbosity::Warning, format, std::forward<Args>(args)...);
-        }
-        template <typename... Args>
+        { LogFormat(LogVerbosity::Warning, format, std::forward<Args>(args)...); }
+        template<typename... Args>
         void Info(std::string_view format, Args&&... args)
-        {
-            LogFormat(LogVerbosity::Info, format, std::forward<Args>(args)...);
-        }
-        template <typename... Args>
+        { LogFormat(LogVerbosity::Info, format, std::forward<Args>(args)...); }
+        template<typename... Args>
         void Verbose(std::string_view format, Args&&... args)
-        {
-            LogFormat(LogVerbosity::Verbose, format, std::forward<Args>(args)...);
-        }
-        template <typename... Args>
+        { LogFormat(LogVerbosity::Verbose, format, std::forward<Args>(args)...); }
+        template<typename... Args>
         void VeryVerbose(std::string_view format, Args&&... args)
-        {
-            LogFormat(LogVerbosity::VeryVerbose, format, std::forward<Args>(args)...);
-        }
+        { LogFormat(LogVerbosity::VeryVerbose, format, std::forward<Args>(args)...); }
     };
 
     // Factory function for creating loggers

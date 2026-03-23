@@ -81,12 +81,14 @@ namespace Wayfinder
     // Add operator overloads for enum class bitwise operations
     inline constexpr EventCategory operator|(EventCategory a, EventCategory b)
     {
-        return static_cast<EventCategory>(static_cast<std::underlying_type_t<EventCategory>>(a) | static_cast<std::underlying_type_t<EventCategory>>(b));
+        return static_cast<EventCategory>(
+            static_cast<std::underlying_type_t<EventCategory>>(a) | static_cast<std::underlying_type_t<EventCategory>>(b));
     }
 
     inline constexpr EventCategory operator&(EventCategory a, EventCategory b)
     {
-        return static_cast<EventCategory>(static_cast<std::underlying_type_t<EventCategory>>(a) & static_cast<std::underlying_type_t<EventCategory>>(b));
+        return static_cast<EventCategory>(
+            static_cast<std::underlying_type_t<EventCategory>>(a) & static_cast<std::underlying_type_t<EventCategory>>(b));
     }
 
     inline constexpr EventCategory& operator|=(EventCategory& a, EventCategory b)
@@ -113,19 +115,16 @@ namespace Wayfinder
         virtual EventCategory GetCategoryFlags() const = 0;
         virtual std::string ToString() const { return GetName(); }
 
-        bool IsInCategory(const EventCategory category) const
-        {
-            return (GetCategoryFlags() & category) != EventCategory::None;
-        }
+        bool IsInCategory(const EventCategory category) const { return (GetCategoryFlags() & category) != EventCategory::None; }
     };
 
     class EventDispatcher
     {
     public:
-        EventDispatcher(Event& event) : m_event(event) { }
+        EventDispatcher(Event& event) : m_event(event) {}
 
         // F will be deduced by the compiler
-        template <typename T, typename F>
+        template<typename T, typename F>
         bool Dispatch(const F& func)
         {
             if (m_event.GetEventType() == T::GetStaticType())
@@ -140,12 +139,9 @@ namespace Wayfinder
         Event& m_event;
     };
 
-    inline std::ostream& operator<<(std::ostream& os, const Event& e)
-    {
-        return os << e.ToString();
-    }
+    inline std::ostream& operator<<(std::ostream& os, const Event& e) { return os << e.ToString(); }
 
-    template <typename Base, EventType TTypeValue, EventCategory TCategoryValue>
+    template<typename Base, EventType TTypeValue, EventCategory TCategoryValue>
     class EventImpl : public Base
     {
         static_assert(std::is_base_of_v<Event, Base>, "Base must inherit from Event");

@@ -17,12 +17,12 @@
  */
 
 #ifdef WAYFINDER_COMPILER_MSVC
-    #pragma warning(push)
-    #pragma warning(disable : 4702) // unreachable code
+#pragma warning(push)
+#pragma warning(disable : 4702) // unreachable code
 #endif
 
 #include <flecs.h>
 
 #ifdef WAYFINDER_COMPILER_MSVC
-    #pragma warning(pop)
+#pragma warning(pop)
 #endif

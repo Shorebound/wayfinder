@@ -150,7 +150,11 @@ namespace Wayfinder::Tests
             s_log = &log;
 
             SubsystemCollection<GameSubsystem> collection;
-            collection.Register<SubsystemA>([]() -> bool { return false; });
+            collection.Register<SubsystemA>(
+                []() -> bool
+                {
+                    return false;
+                });
             collection.Initialise();
 
             CHECK(collection.Get<SubsystemA>() == nullptr);

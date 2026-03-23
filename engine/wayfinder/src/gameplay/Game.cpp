@@ -1,16 +1,16 @@
 #include "Game.h"
 #include "GameContext.h"
+#include "GameStateMachine.h"
 #include "GameplayTag.h"
 #include "GameplayTagRegistry.h"
-#include "GameStateMachine.h"
+#include "assets/AssetService.h"
 #include "core/InternedString.h"
 #include "core/Log.h"
+#include "core/Result.h"
 #include "modules/ModuleRegistry.h"
 #include "project/ProjectDescriptor.h"
-#include "core/Result.h"
-#include "scene/SceneSettings.h"
-#include "assets/AssetService.h"
 #include "scene/Scene.h"
+#include "scene/SceneSettings.h"
 
 #include <filesystem>
 #include <functional>
@@ -22,10 +22,7 @@ namespace Wayfinder
 
     Game::~Game()
     {
-        if (m_initialised)
-        {
-            Shutdown();
-        }
+        if (m_initialised) { Shutdown(); }
     }
 
     Result<void> Game::Initialise(const GameContext& ctx)
@@ -41,8 +38,7 @@ namespace Wayfinder
 
         // Guard that tears down subsystems on any early return.  Dismissed on success.
         bool committed = false;
-        auto cleanup = [&]
-        {
+        auto cleanup = [&] {
             if (!committed)
             {
                 GameSubsystems::Unbind();
@@ -67,10 +63,8 @@ namespace Wayfinder
         const auto resolvedPath = std::filesystem::weakly_canonical(bootScenePath, canonicalError);
         if (canonicalError)
         {
-            WAYFINDER_ERROR(LogGame,
-                            "Failed to resolve canonical path for boot scene '{}': {}",
-                            bootScenePath.string(),
-                            canonicalError.message());
+            WAYFINDER_ERROR(
+                LogGame, "Failed to resolve canonical path for boot scene '{}': {}", bootScenePath.string(), canonicalError.message());
             return MakeError("Failed to resolve boot scene path");
         }
 
@@ -96,8 +90,7 @@ namespace Wayfinder
     {
         // Build the unified component registry: core entries + game entries
         m_componentRegistry.AddCoreEntries();
-        if (m_moduleRegistry)
-            m_componentRegistry.AddGameEntries(*m_moduleRegistry);
+        if (m_moduleRegistry) m_componentRegistry.AddGameEntries(*m_moduleRegistry);
 
         // Register ECS infrastructure and all components into the world
         Scene::RegisterCoreECS(m_world);
@@ -115,10 +108,7 @@ namespace Wayfinder
         m_world.component<ActiveGameplayTags>();
         m_world.set<ActiveGameplayTags>({});
 
-        if (m_moduleRegistry)
-        {
-            m_moduleRegistry->ApplyToWorld(m_world);
-        }
+        if (m_moduleRegistry) { m_moduleRegistry->ApplyToWorld(m_world); }
 
         // Configure and set up the state machine after world registration
         m_stateMachine = GameSubsystems::Find<GameStateMachine>();
@@ -131,19 +121,16 @@ namespace Wayfinder
 
     void Game::Update(const float deltaTime)
     {
-        if (!m_running || !m_initialised)
-            return;
+        if (!m_running || !m_initialised) return;
 
-        if (m_stateMachine)
-            m_stateMachine->Update();
+        if (m_stateMachine) m_stateMachine->Update();
 
         m_world.progress(deltaTime);
     }
 
     void Game::Shutdown()
     {
-        if (!m_initialised)
-            return;
+        if (!m_initialised) return;
 
         WAYFINDER_INFO(LogGame, "Shutting down game");
 
@@ -164,10 +151,7 @@ namespace Wayfinder
         m_currentScene = std::make_unique<Scene>(m_world, m_componentRegistry, scenePath);
         m_currentScene->SetAssetService(m_assetService);
 
-        if (std::filesystem::exists(scenePath))
-        {
-            m_currentScene->LoadFromFile(scenePath);
-        }
+        if (std::filesystem::exists(scenePath)) { m_currentScene->LoadFromFile(scenePath); }
 
         WAYFINDER_INFO(LogGame, "Loaded scene: {}", scenePath);
     }
@@ -193,8 +177,7 @@ namespace Wayfinder
 
     std::string_view Game::GetCurrentState() const
     {
-        if (m_stateMachine)
-            return m_stateMachine->GetCurrentState();
+        if (m_stateMachine) return m_stateMachine->GetCurrentState();
         return {};
     }
 
@@ -203,8 +186,7 @@ namespace Wayfinder
         ActiveGameplayTags& tags = m_world.get_mut<ActiveGameplayTags>();
         tags.Tags.AddTag(tag);
         WAYFINDER_INFO(LogGame, "Added gameplay tag: '{}'", tag.GetName());
-        if (m_stateMachine)
-            m_stateMachine->MarkDirty();
+        if (m_stateMachine) m_stateMachine->MarkDirty();
     }
 
     void Game::RemoveGameplayTag(const GameplayTag& tag)
@@ -212,8 +194,7 @@ namespace Wayfinder
         ActiveGameplayTags& tags = m_world.get_mut<ActiveGameplayTags>();
         tags.Tags.RemoveTag(tag);
         WAYFINDER_INFO(LogGame, "Removed gameplay tag: '{}'", tag.GetName());
-        if (m_stateMachine)
-            m_stateMachine->MarkDirty();
+        if (m_stateMachine) m_stateMachine->MarkDirty();
     }
 
     bool Game::HasGameplayTag(const GameplayTag& tag) const
@@ -243,8 +224,7 @@ namespace Wayfinder
     {
         auto& tagRegistry = GameSubsystems::Get<GameplayTagRegistry>();
 
-        if (!m_moduleRegistry)
-            return;
+        if (!m_moduleRegistry) return;
 
         // Load tag files registered by plugins (paths relative to config dir)
         const auto& project = m_moduleRegistry->GetProject();

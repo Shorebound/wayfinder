@@ -1,7 +1,7 @@
 #pragma once
 
-#include "platform/BackendConfig.h"
 #include "core/events/Event.h"
+#include "platform/BackendConfig.h"
 
 #include <functional>
 
@@ -47,9 +47,7 @@ namespace Wayfinder
          * @param backend  Platform backend to use (defaults to PlatformBackend::SDL3).
          * @return A std::unique_ptr<Window> owning the platform window.
          */
-        static std::unique_ptr<Window> Create(
-            const Window::Config& config,
-            PlatformBackend backend = PlatformBackend::SDL3);
+        static std::unique_ptr<Window> Create(const Window::Config& config, PlatformBackend backend = PlatformBackend::SDL3);
 
         /**
          * @brief Create a Window with default configuration.
@@ -57,11 +55,7 @@ namespace Wayfinder
          * Convenience overload that delegates to Create(Config{}).
          * @return A std::unique_ptr<Window> owning the platform window.
          */
-        static std::unique_ptr<Window> Create()
-        {
-            return Create(Config{});
-        }
+        static std::unique_ptr<Window> Create() { return Create(Config{}); }
     };
 
 }
-

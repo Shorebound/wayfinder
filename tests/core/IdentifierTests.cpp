@@ -81,8 +81,7 @@ namespace Wayfinder::Tests
     TEST_CASE("SceneObjectId and AssetId are distinct types")
     {
         // Compile-time proof via type traits
-        static_assert(!std::is_same_v<SceneObjectId, AssetId>,
-                      "SceneObjectId and AssetId must be distinct types");
+        static_assert(!std::is_same_v<SceneObjectId, AssetId>, "SceneObjectId and AssetId must be distinct types");
     }
 
     TEST_CASE("TypedId generate and equality")

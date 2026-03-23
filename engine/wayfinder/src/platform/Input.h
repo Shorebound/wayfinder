@@ -4,8 +4,8 @@
 #include "platform/KeyCodes.h"
 #include "platform/MouseCodes.h"
 
-#include <utility>
 #include <memory>
+#include <utility>
 
 namespace Wayfinder
 {

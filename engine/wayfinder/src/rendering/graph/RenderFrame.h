@@ -1,20 +1,20 @@
 #pragma once
 
-#include <filesystem>
 #include <cstddef>
+#include <filesystem>
 #include <optional>
 #include <string>
 #include <string_view>
 #include <unordered_map>
 #include <vector>
 
+#include "RenderIntent.h"
 #include "core/Identifiers.h"
 #include "core/Types.h"
+#include "rendering/RenderTypes.h"
 #include "rendering/backend/GPUHandles.h"
 #include "rendering/materials/MaterialParameter.h"
 #include "rendering/materials/PostProcessVolume.h"
-#include "RenderIntent.h"
-#include "rendering/RenderTypes.h"
 
 namespace Wayfinder
 {
@@ -208,10 +208,7 @@ namespace Wayfinder
 
         bool AcceptsSceneSubmission(const RenderMeshSubmission& submission) const
         {
-            if (Kind != RenderPassKind::Scene)
-            {
-                return false;
-            }
+            if (Kind != RenderPassKind::Scene) { return false; }
 
             return !SceneLayer || submission.Layer == *SceneLayer;
         }
@@ -257,10 +254,7 @@ namespace Wayfinder
         {
             for (RenderPass& pass : Passes)
             {
-                if (pass.Id == id)
-                {
-                    return &pass;
-                }
+                if (pass.Id == id) { return &pass; }
             }
 
             return nullptr;
@@ -270,10 +264,7 @@ namespace Wayfinder
         {
             for (const RenderPass& pass : Passes)
             {
-                if (pass.Id == id)
-                {
-                    return &pass;
-                }
+                if (pass.Id == id) { return &pass; }
             }
 
             return nullptr;
@@ -283,10 +274,7 @@ namespace Wayfinder
         {
             for (RenderPass& pass : Passes)
             {
-                if (pass.ViewIndex == viewIndex && pass.AcceptsSceneSubmission(submission))
-                {
-                    return &pass;
-                }
+                if (pass.ViewIndex == viewIndex && pass.AcceptsSceneSubmission(submission)) { return &pass; }
             }
 
             return nullptr;

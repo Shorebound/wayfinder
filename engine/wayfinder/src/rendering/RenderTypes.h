@@ -4,8 +4,8 @@
 #include <string>
 #include <string_view>
 
-#include "platform/BackendConfig.h"
 #include "core/Types.h"
+#include "platform/BackendConfig.h"
 #include "rendering/backend/GPUHandles.h"
 #include "wayfinder_exports.h"
 
@@ -37,15 +37,13 @@ namespace Wayfinder
 
     enum class TextureUsage : uint32_t
     {
-        Sampler      = 1u << 0,
+        Sampler = 1u << 0,
         ColourTarget = 1u << 1,
-        DepthTarget  = 1u << 2,
+        DepthTarget = 1u << 2,
     };
 
     inline TextureUsage operator|(TextureUsage a, TextureUsage b)
-    {
-        return static_cast<TextureUsage>(static_cast<uint32_t>(a) | static_cast<uint32_t>(b));
-    }
+    { return static_cast<TextureUsage>(static_cast<uint32_t>(a) | static_cast<uint32_t>(b)); }
 
     inline TextureUsage& operator|=(TextureUsage& lhs, TextureUsage rhs)
     {
@@ -54,9 +52,7 @@ namespace Wayfinder
     }
 
     inline TextureUsage operator&(TextureUsage a, TextureUsage b)
-    {
-        return static_cast<TextureUsage>(static_cast<uint32_t>(a) & static_cast<uint32_t>(b));
-    }
+    { return static_cast<TextureUsage>(static_cast<uint32_t>(a) & static_cast<uint32_t>(b)); }
 
     inline TextureUsage& operator&=(TextureUsage& lhs, TextureUsage rhs)
     {
@@ -64,10 +60,7 @@ namespace Wayfinder
         return lhs;
     }
 
-    inline bool HasFlag(TextureUsage value, TextureUsage flag)
-    {
-        return (static_cast<uint32_t>(value) & static_cast<uint32_t>(flag)) != 0;
-    }
+    inline bool HasFlag(TextureUsage value, TextureUsage flag) { return (static_cast<uint32_t>(value) & static_cast<uint32_t>(flag)) != 0; }
 
     struct TextureCreateDesc
     {
@@ -158,7 +151,7 @@ namespace Wayfinder
         ColourAttachmentDescriptor colourAttachment{};
         DepthAttachmentDescriptor depthAttachment{};
         bool targetSwapchain = true;
-        GPUTextureHandle colourTarget{};  // If set and !targetSwapchain, render to this texture
+        GPUTextureHandle colourTarget{}; // If set and !targetSwapchain, render to this texture
         GPUTextureHandle depthTarget{};  // If set, use instead of auto-managed depth
     };
 

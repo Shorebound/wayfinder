@@ -1,8 +1,8 @@
 #include "ShaderManager.h"
 #include "core/Log.h"
 
-#include <fstream>
 #include <filesystem>
+#include <fstream>
 
 namespace Wayfinder
 {
@@ -17,25 +17,18 @@ namespace Wayfinder
     {
         for (auto& [key, handle] : m_cache)
         {
-            if (handle.IsValid())
-            {
-                m_device->DestroyShader(handle);
-            }
+            if (handle.IsValid()) { m_device->DestroyShader(handle); }
         }
         m_cache.clear();
         m_device = nullptr;
     }
 
-    GPUShaderHandle ShaderManager::GetShader(const std::string& name, ShaderStage stage,
-                                              const ShaderResourceCounts& resources,
-                                              ShaderVariantKey variant)
+    GPUShaderHandle ShaderManager::GetShader(
+        const std::string& name, ShaderStage stage, const ShaderResourceCounts& resources, ShaderVariantKey variant)
     {
         ShaderKey key{name, stage, variant};
         auto it = m_cache.find(key);
-        if (it != m_cache.end())
-        {
-            return it->second;
-        }
+        if (it != m_cache.end()) { return it->second; }
 
         // Build filename: <name>.vert.spv or <name>.frag.spv
         // Future: variant != 0 would append a suffix, e.g. <name>_VC.vert.spv
@@ -74,16 +67,10 @@ namespace Wayfinder
     std::vector<uint8_t> ShaderManager::ReadFile(const std::string& path)
     {
         std::ifstream file(path, std::ios::binary | std::ios::ate);
-        if (!file.is_open())
-        {
-            return {};
-        }
+        if (!file.is_open()) { return {}; }
 
         std::streamsize size = file.tellg();
-        if (size <= 0)
-        {
-            return {};
-        }
+        if (size <= 0) { return {}; }
 
         std::vector<uint8_t> buffer(static_cast<size_t>(size));
         file.seekg(0, std::ios::beg);
@@ -95,10 +82,7 @@ namespace Wayfinder
     {
         std::string filePath = (std::filesystem::path(m_shaderDir) / (name + ".comp.spv")).string();
         std::vector<uint8_t> bytecode = ReadFile(filePath);
-        if (bytecode.empty())
-        {
-            WAYFINDER_ERROR(LogRenderer, "ShaderManager: Failed to load compute shader '{}'", filePath);
-        }
+        if (bytecode.empty()) { WAYFINDER_ERROR(LogRenderer, "ShaderManager: Failed to load compute shader '{}'", filePath); }
         return bytecode;
     }
 

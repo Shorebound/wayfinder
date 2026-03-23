@@ -38,12 +38,10 @@ namespace Wayfinder
         return [ts = std::move(tags)](const flecs::world& world) -> bool
         {
             const ActiveGameplayTags* activeTags = world.try_get<ActiveGameplayTags>();
-            if (!activeTags)
-                return false;
+            if (!activeTags) return false;
             for (const auto& t : ts)
             {
-                if (activeTags->Tags.HasTag(t))
-                    return true;
+                if (activeTags->Tags.HasTag(t)) return true;
             }
             return false;
         };
@@ -55,8 +53,7 @@ namespace Wayfinder
         {
             for (const auto& c : cs)
             {
-                if (!c(world))
-                    return false;
+                if (!c(world)) return false;
             }
             return true;
         };
@@ -68,8 +65,7 @@ namespace Wayfinder
         {
             for (const auto& c : cs)
             {
-                if (c(world))
-                    return true;
+                if (c(world)) return true;
             }
             return false;
         };

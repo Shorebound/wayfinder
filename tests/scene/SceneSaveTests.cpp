@@ -1,4 +1,5 @@
 #include "TestHelpers.h"
+#include "ecs/Flecs.h"
 #include "scene/Components.h"
 #include "scene/RuntimeComponentRegistry.h"
 #include "scene/Scene.h"
@@ -7,17 +8,17 @@
 #include <doctest/doctest.h>
 #include <filesystem>
 #include <string>
-#include "ecs/Flecs.h"
 
 namespace Wayfinder::Tests
 {
     using Helpers::FixturesDir;
     using Helpers::MakeTestRegistry;
-    
+
     /// Temporary file path under the fixtures directory for save tests.
     std::filesystem::path TempScenePath()
     {
-        static const auto dir = []() {
+        static const auto dir = []()
+        {
             auto d = FixturesDir() / "temp";
             std::filesystem::create_directories(d);
             return d;

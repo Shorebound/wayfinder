@@ -1,8 +1,8 @@
 #include "TextureAsset.h"
 #include "core/Log.h"
 
-#include <SDL3_image/SDL_image.h>
 #include <SDL3/SDL_surface.h>
+#include <SDL3_image/SDL_image.h>
 
 namespace Wayfinder
 {
@@ -26,10 +26,7 @@ namespace Wayfinder
         return SamplerAddressMode::Repeat; // default
     }
 
-    bool ValidateTextureAssetDocument(
-        const nlohmann::json& document,
-        const std::filesystem::path& filePath,
-        std::string& error)
+    bool ValidateTextureAssetDocument(const nlohmann::json& document, const std::filesystem::path& filePath, std::string& error)
     {
         const std::string label = filePath.generic_string();
 
@@ -73,17 +70,12 @@ namespace Wayfinder
     }
 
     std::optional<TextureAsset> LoadTextureAssetFromDocument(
-        const nlohmann::json& document,
-        const std::filesystem::path& filePath,
-        std::string& error)
+        const nlohmann::json& document, const std::filesystem::path& filePath, std::string& error)
     {
         const std::string label = filePath.generic_string();
 
         // Validate structure first
-        if (!ValidateTextureAssetDocument(document, filePath, error))
-        {
-            return std::nullopt;
-        }
+        if (!ValidateTextureAssetDocument(document, filePath, error)) { return std::nullopt; }
 
         // Parse asset ID
         const std::string assetIdText = document.at(kTextureAssetIdKey).get<std::string>();
@@ -141,16 +133,13 @@ namespace Wayfinder
         const uint32_t dstPitch = texture.Width * texture.Channels;
         for (uint32_t row = 0; row < texture.Height; ++row)
         {
-            std::memcpy(
-                texture.PixelData.data() + row * dstPitch,
-                src + row * rgbaSurface->pitch,
-                dstPitch);
+            std::memcpy(texture.PixelData.data() + row * dstPitch, src + row * rgbaSurface->pitch, dstPitch);
         }
 
         SDL_DestroySurface(rgbaSurface);
 
-        WAYFINDER_INFO(LogAssets, "Loaded texture '{}' ({}x{}, RGBA8) from '{}'",
-            texture.Name, texture.Width, texture.Height, imagePath.generic_string());
+        WAYFINDER_INFO(LogAssets, "Loaded texture '{}' ({}x{}, RGBA8) from '{}'", texture.Name, texture.Width, texture.Height,
+            imagePath.generic_string());
 
         return texture;
     }

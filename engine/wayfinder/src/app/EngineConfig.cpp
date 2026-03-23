@@ -24,10 +24,7 @@ namespace Wayfinder
         }
     }
 
-    EngineConfig EngineConfig::LoadDefaults()
-    {
-        return EngineConfig{};
-    }
+    EngineConfig EngineConfig::LoadDefaults() { return EngineConfig{}; }
 
     EngineConfig EngineConfig::LoadFromFile(const std::filesystem::path& path)
     {
@@ -53,10 +50,8 @@ namespace Wayfinder
 
             if (const auto* backends = tbl["backends"].as_table())
             {
-                if (auto v = (*backends)["platform"].value<std::string>())
-                    config.Backends.Platform = ParsePlatformBackend(*v);
-                if (auto v = (*backends)["rendering"].value<std::string>())
-                    config.Backends.Rendering = ParseRenderBackend(*v);
+                if (auto v = (*backends)["platform"].value<std::string>()) config.Backends.Platform = ParsePlatformBackend(*v);
+                if (auto v = (*backends)["rendering"].value<std::string>()) config.Backends.Rendering = ParseRenderBackend(*v);
             }
 
             if (const auto* shaders = tbl["shaders"].as_table())
@@ -66,8 +61,7 @@ namespace Wayfinder
 
             if (const auto* physics = tbl["physics"].as_table())
             {
-                if (auto v = (*physics)["fixed_timestep"].value<double>())
-                    config.Physics.FixedTimestep = static_cast<float>(*v);
+                if (auto v = (*physics)["fixed_timestep"].value<double>()) config.Physics.FixedTimestep = static_cast<float>(*v);
             }
 
             WAYFINDER_INFO(LogEngine, "Loaded config from: {}", path.string());

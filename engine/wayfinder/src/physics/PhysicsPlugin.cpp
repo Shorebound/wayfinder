@@ -2,13 +2,12 @@
 #include "PhysicsComponents.h"
 #include "PhysicsSubsystem.h"
 #include "app/EngineConfig.h"
-#include "core/Log.h"
-#include "modules/ModuleRegistry.h"
 #include "app/Subsystem.h"
+#include "core/Log.h"
 #include "maths/Maths.h"
+#include "modules/ModuleRegistry.h"
 #include "scene/Components.h"
 #include "scene/entity/Entity.h"
-
 
 #include "ecs/Flecs.h"
 #include <nlohmann/json.hpp>
@@ -20,8 +19,7 @@ namespace Wayfinder::Physics
     namespace
     {
         /// Build a PhysicsBodyDescriptor from ECS components.
-        PhysicsBodyDescriptor MakeDescriptor(const RigidBodyComponent& rb,
-                                             const ColliderComponent& col)
+        PhysicsBodyDescriptor MakeDescriptor(const RigidBodyComponent& rb, const ColliderComponent& col)
         {
             PhysicsBodyDescriptor desc;
             desc.Type = rb.Type;
@@ -49,29 +47,19 @@ namespace Wayfinder::Physics
         /// Read a 3-element JSON array into a Float3, falling back to @p fallback.
         Float3 ReadVector3(const nlohmann::json& data, const char* key, const Float3& fallback)
         {
-            if (!data.contains(key))
-                return fallback;
+            if (!data.contains(key)) return fallback;
             const auto& arr = data[key];
-            if (!arr.is_array() || arr.size() != 3)
-                return fallback;
-            return {
-                arr[0].is_number() ? arr[0].get<float>() : fallback.x,
-                arr[1].is_number() ? arr[1].get<float>() : fallback.y,
+            if (!arr.is_array() || arr.size() != 3) return fallback;
+            return {arr[0].is_number() ? arr[0].get<float>() : fallback.x, arr[1].is_number() ? arr[1].get<float>() : fallback.y,
                 arr[2].is_number() ? arr[2].get<float>() : fallback.z};
         }
 
         /// Write a Float3 as a 3-element JSON array.
-        nlohmann::json WriteVector3(const Float3& value)
-        {
-            return nlohmann::json::array({value.x, value.y, value.z});
-        }
+        nlohmann::json WriteVector3(const Float3& value) { return nlohmann::json::array({value.x, value.y, value.z}); }
 
         // --- RigidBodyComponent ---
 
-        void RegisterRigidBody(flecs::world& world)
-        {
-            world.component<RigidBodyComponent>();
-        }
+        void RegisterRigidBody(flecs::world& world) { world.component<RigidBodyComponent>(); }
 
         void ApplyRigidBody(const nlohmann::json& data, Entity& entity)
         {
@@ -100,8 +88,7 @@ namespace Wayfinder::Physics
 
         void SerialiseRigidBody(const Entity& entity, nlohmann::json& tables)
         {
-            if (!entity.HasComponent<RigidBodyComponent>())
-                return;
+            if (!entity.HasComponent<RigidBodyComponent>()) return;
 
             const auto& rb = entity.GetComponent<RigidBodyComponent>();
             nlohmann::json t;
@@ -175,10 +162,7 @@ namespace Wayfinder::Physics
 
         // --- ColliderComponent ---
 
-        void RegisterCollider(flecs::world& world)
-        {
-            world.component<ColliderComponent>();
-        }
+        void RegisterCollider(flecs::world& world) { world.component<ColliderComponent>(); }
 
         void ApplyCollider(const nlohmann::json& data, Entity& entity)
         {
@@ -207,8 +191,7 @@ namespace Wayfinder::Physics
 
         void SerialiseCollider(const Entity& entity, nlohmann::json& tables)
         {
-            if (!entity.HasComponent<ColliderComponent>())
-                return;
+            if (!entity.HasComponent<ColliderComponent>()) return;
 
             const auto& col = entity.GetComponent<ColliderComponent>();
             nlohmann::json t;
@@ -349,24 +332,22 @@ namespace Wayfinder::Physics
         // Transform).  OnAdd fires once all three matched components are
         // present.  The RuntimeBodyId guard prevents double-creation if the
         // observer re-fires for the same entity.
-        registry.RegisterSystem("PhysicsCreateBodies", [](flecs::world& world)
-        {
-            world.observer<RigidBodyComponent, const ColliderComponent, const TransformComponent>("PhysicsCreateBodies")
-            .event(flecs::OnAdd)
-            .each([](flecs::entity, RigidBodyComponent& rb, const ColliderComponent& col, const TransformComponent& transform)
+        registry.RegisterSystem("PhysicsCreateBodies",
+            [](flecs::world& world)
             {
-                if (rb.RuntimeBodyId != INVALID_PHYSICS_BODY)
-                    return;
+                world.observer<RigidBodyComponent, const ColliderComponent, const TransformComponent>("PhysicsCreateBodies")
+                    .event(flecs::OnAdd)
+                    .each([](flecs::entity, RigidBodyComponent& rb, const ColliderComponent& col, const TransformComponent& transform)
+                    {
+                        if (rb.RuntimeBodyId != INVALID_PHYSICS_BODY) return;
 
-                auto* physics = GameSubsystems::Find<PhysicsSubsystem>();
-                if (!physics)
-                    return;
+                        auto* physics = GameSubsystems::Find<PhysicsSubsystem>();
+                        if (!physics) return;
 
-                auto desc = MakeDescriptor(rb, col);
-                rb.RuntimeBodyId = physics->GetWorld().CreateBody(desc, transform.Position, transform.Rotation);
+                        auto desc = MakeDescriptor(rb, col);
+                        rb.RuntimeBodyId = physics->GetWorld().CreateBody(desc, transform.Position, transform.Rotation);
+                    });
             });
-        });
-        
 
         // PhysicsDestroyBodies: reactive observer that destroys the Jolt body
         // when RigidBodyComponent is removed from an entity (or entity deleted).
@@ -377,74 +358,71 @@ namespace Wayfinder::Physics
         // rather than caching the pointer, because OnRemove fires during
         // flecs::world destruction — which may happen after the subsystem
         // collection has been shut down and the PhysicsSubsystem destroyed.
-        registry.RegisterSystem("PhysicsDestroyBodies", [](flecs::world& world) 
-        {
-            world.observer<RigidBodyComponent>("PhysicsDestroyBodies")
-            .event(flecs::OnRemove)
-            .each([](RigidBodyComponent& rb) 
+        registry.RegisterSystem("PhysicsDestroyBodies",
+            [](flecs::world& world)
             {
-                if (rb.RuntimeBodyId == INVALID_PHYSICS_BODY)
-                    return;
+                world.observer<RigidBodyComponent>("PhysicsDestroyBodies")
+                    .event(flecs::OnRemove)
+                    .each([](RigidBodyComponent& rb)
+                    {
+                        if (rb.RuntimeBodyId == INVALID_PHYSICS_BODY) return;
 
-                auto* physics = GameSubsystems::Find<PhysicsSubsystem>();
-                if (!physics)
-                    return;
+                        auto* physics = GameSubsystems::Find<PhysicsSubsystem>();
+                        if (!physics) return;
 
-                physics->GetWorld().DestroyBody(rb.RuntimeBodyId);
-                rb.RuntimeBodyId = INVALID_PHYSICS_BODY;
-                
+                        physics->GetWorld().DestroyBody(rb.RuntimeBodyId);
+                        rb.RuntimeBodyId = INVALID_PHYSICS_BODY;
+                    });
             });
-        });
 
         // PhysicsStep: advance the Jolt simulation using a fixed timestep
         // accumulator.  The configured timestep is captured here and applied
         // to the PhysicsWorld once during system registration (which runs
         // after subsystem initialisation).
-        registry.RegisterSystem("PhysicsStep", [fixedTimestep](flecs::world& world) {
-            auto* physics = GameSubsystems::Find<PhysicsSubsystem>();
-            if (physics)
-                physics->GetWorld().SetFixedTimestep(fixedTimestep);
+        registry.RegisterSystem("PhysicsStep",
+            [fixedTimestep](flecs::world& world)
+            {
+                auto* physics = GameSubsystems::Find<PhysicsSubsystem>();
+                if (physics) physics->GetWorld().SetFixedTimestep(fixedTimestep);
 
-            world.system("PhysicsStep")
-                .kind(flecs::OnUpdate)
-                .run([physics](flecs::iter& it) {
-                    if (physics)
-                        physics->GetWorld().StepFixed(it.delta_time());
-                });
-        });
+                world.system("PhysicsStep")
+                    .kind(flecs::OnUpdate)
+                    .run([physics](flecs::iter& it)
+                    {
+                        if (physics) physics->GetWorld().StepFixed(it.delta_time());
+                    });
+            });
 
         // PhysicsSyncTransforms: copy Jolt body position and rotation into
         // WorldTransformComponent.  Builds the full LocalToWorld matrix from
         // physics position, physics rotation, and the entity's existing scale.
-        registry.RegisterSystem("PhysicsSyncTransforms", [](flecs::world& world) 
-        {
-            auto* physics = GameSubsystems::Find<PhysicsSubsystem>();
-
-            world.system<const RigidBodyComponent, WorldTransformComponent>("PhysicsSyncTransforms")
-            .kind(flecs::OnValidate)
-            .each([physics](flecs::entity, const RigidBodyComponent& rb, WorldTransformComponent& wt) 
+        registry.RegisterSystem("PhysicsSyncTransforms",
+            [](flecs::world& world)
             {
-                if (rb.RuntimeBodyId == INVALID_PHYSICS_BODY)
-                    return;
-                if (rb.Type == BodyType::Static)
-                    return;
-                if (!physics)
-                    return;
+                auto* physics = GameSubsystems::Find<PhysicsSubsystem>();
 
-                Float3 pos = physics->GetWorld().GetBodyPosition(rb.RuntimeBodyId);
-                Float4 rotQ = physics->GetWorld().GetBodyRotation(rb.RuntimeBodyId);
+                world.system<const RigidBodyComponent, WorldTransformComponent>("PhysicsSyncTransforms")
+                    .kind(flecs::OnValidate)
+                    .each([physics](flecs::entity, const RigidBodyComponent& rb, WorldTransformComponent& wt)
+                    {
+                        if (rb.RuntimeBodyId == INVALID_PHYSICS_BODY) return;
+                        if (rb.Type == BodyType::Static) return;
+                        if (!physics) return;
 
-                wt.Position = pos;
+                        Float3 pos = physics->GetWorld().GetBodyPosition(rb.RuntimeBodyId);
+                        Float4 rotQ = physics->GetWorld().GetBodyRotation(rb.RuntimeBodyId);
 
-                // Build LocalToWorld = translate * rotate * scale.
-                Quaternion q(rotQ.w, rotQ.x, rotQ.y, rotQ.z);
-                Matrix4 rotMat = Maths::ToMatrix4(q);
-                Matrix4 translateMat = Maths::Translate(Matrix4(1.0f), pos);
-                Matrix4 scaleMat = Maths::ScaleMatrix(Matrix4(1.0f), wt.Scale);
-                wt.LocalToWorld = translateMat * rotMat * scaleMat;
-            });
-        },
-        {}, {"PhysicsStep"});
+                        wt.Position = pos;
+
+                        // Build LocalToWorld = translate * rotate * scale.
+                        Quaternion q(rotQ.w, rotQ.x, rotQ.y, rotQ.z);
+                        Matrix4 rotMat = Maths::ToMatrix4(q);
+                        Matrix4 translateMat = Maths::Translate(Matrix4(1.0f), pos);
+                        Matrix4 scaleMat = Maths::ScaleMatrix(Matrix4(1.0f), wt.Scale);
+                        wt.LocalToWorld = translateMat * rotMat * scaleMat;
+                    });
+            },
+            {}, {"PhysicsStep"});
 
         WAYFINDER_INFO(LogPhysics, "PhysicsPlugin registered");
     }

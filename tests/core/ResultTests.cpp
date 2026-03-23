@@ -124,8 +124,7 @@ namespace Wayfinder::Tests
 
     auto Divide(int a, int b) -> Result<int>
     {
-        if (b == 0)
-            return MakeError("division by zero");
+        if (b == 0) return MakeError("division by zero");
         return a / b;
     }
 

@@ -1,6 +1,6 @@
-#include "assets/TextureAsset.h"
 #include "assets/AssetCache.h"
 #include "assets/AssetRegistry.h"
+#include "assets/TextureAsset.h"
 #include "rendering/materials/Material.h"
 
 #include <doctest/doctest.h>
@@ -234,7 +234,8 @@ namespace Wayfinder::Tests
         {
             std::ofstream file(tempDir / "clear_material.json");
             file << R"({
-                "asset_id": ")" + assetIdText + R"(",
+                "asset_id": ")" +
+                        assetIdText + R"(",
                 "asset_type": "material",
                 "name": "clear_test",
                 "shader": "basic_lit"
@@ -268,7 +269,8 @@ namespace Wayfinder::Tests
         {
             std::ofstream file(tempDir / "test_material.json");
             file << R"({
-                "asset_id": ")" + assetIdText + R"(",
+                "asset_id": ")" +
+                        assetIdText + R"(",
                 "asset_type": "material",
                 "name": "load_or_get_test",
                 "shader": "basic_lit"

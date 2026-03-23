@@ -1,7 +1,7 @@
 #pragma once
 
-#include "rendering/backend/RenderDevice.h"
 #include "core/ResourcePool.h"
+#include "rendering/backend/RenderDevice.h"
 
 struct SDL_Window;
 struct SDL_GPUDevice;
@@ -46,8 +46,7 @@ namespace Wayfinder
 
         void BindVertexBuffer(GPUBufferHandle buffer, uint32_t slot = 0, uint32_t offsetInBytes = 0) override;
         void BindIndexBuffer(GPUBufferHandle buffer, IndexElementSize indexSize, uint32_t offsetInBytes = 0) override;
-        void DrawIndexed(uint32_t indexCount, uint32_t instanceCount = 1,
-                         uint32_t firstIndex = 0, int32_t vertexOffset = 0) override;
+        void DrawIndexed(uint32_t indexCount, uint32_t instanceCount = 1, uint32_t firstIndex = 0, int32_t vertexOffset = 0) override;
         void DrawPrimitives(uint32_t vertexCount, uint32_t instanceCount = 1, uint32_t firstVertex = 0) override;
         void PushVertexUniform(uint32_t slot, const void* data, uint32_t sizeInBytes) override;
         void PushFragmentUniform(uint32_t slot, const void* data, uint32_t sizeInBytes) override;
@@ -61,7 +60,8 @@ namespace Wayfinder
 
         GPUTextureHandle CreateTexture(const TextureCreateDesc& desc) override;
         void DestroyTexture(GPUTextureHandle texture) override;
-        void UploadToTexture(GPUTextureHandle texture, const void* pixelData, uint32_t width, uint32_t height, uint32_t bytesPerRow) override;
+        void UploadToTexture(
+            GPUTextureHandle texture, const void* pixelData, uint32_t width, uint32_t height, uint32_t bytesPerRow) override;
 
         GPUSamplerHandle CreateSampler(const SamplerCreateDesc& desc) override;
         void DestroySampler(GPUSamplerHandle sampler) override;
@@ -102,11 +102,11 @@ namespace Wayfinder
         // ── Resource Pools ───────────────────────────────────
         // Raw SDL pointers never leave the backend — the pools map
         // generational handles to the underlying GPU objects.
-        ResourcePool<GPUShaderTag, SDL_GPUShader*>              m_shaderPool;
-        ResourcePool<GPUPipelineTag, SDL_GPUGraphicsPipeline*>  m_pipelinePool;
-        ResourcePool<GPUBufferTag, SDL_GPUBuffer*>              m_bufferPool;
-        ResourcePool<GPUTextureTag, SDL_GPUTexture*>            m_texturePool;
-        ResourcePool<GPUSamplerTag, SDL_GPUSampler*>            m_samplerPool;
+        ResourcePool<GPUShaderTag, SDL_GPUShader*> m_shaderPool;
+        ResourcePool<GPUPipelineTag, SDL_GPUGraphicsPipeline*> m_pipelinePool;
+        ResourcePool<GPUBufferTag, SDL_GPUBuffer*> m_bufferPool;
+        ResourcePool<GPUTextureTag, SDL_GPUTexture*> m_texturePool;
+        ResourcePool<GPUSamplerTag, SDL_GPUSampler*> m_samplerPool;
         ResourcePool<GPUComputePipelineTag, SDL_GPUComputePipeline*> m_computePipelinePool;
     };
 

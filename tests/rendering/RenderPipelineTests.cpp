@@ -9,8 +9,8 @@
 #include "scene/Scene.h"
 #include "scene/entity/Entity.h"
 
-#include <doctest/doctest.h>
 #include "ecs/Flecs.h"
+#include <doctest/doctest.h>
 #include <string>
 
 namespace Wayfinder::Tests

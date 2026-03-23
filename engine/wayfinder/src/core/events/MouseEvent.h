@@ -1,7 +1,7 @@
 #pragma once
 
-#include "platform/MouseCodes.h"
 #include "Event.h"
+#include "platform/MouseCodes.h"
 #include <format>
 
 namespace Wayfinder
@@ -15,10 +15,7 @@ namespace Wayfinder
         float GetX() const { return m_mouseX; }
         float GetY() const { return m_mouseY; }
 
-        std::string ToString() const override
-        {
-            return std::format("{}: {}, {}", GetName(), m_mouseX, m_mouseY);
-        }
+        std::string ToString() const override { return std::format("{}: {}, {}", GetName(), m_mouseX, m_mouseY); }
 
     private:
         float m_mouseX;
@@ -33,10 +30,7 @@ namespace Wayfinder
         float GetXOffset() const { return m_xOffset; }
         float GetYOffset() const { return m_yOffset; }
 
-        std::string ToString() const override
-        {
-            return std::format("{}: {}, {}", GetName(), m_xOffset, m_yOffset);
-        }
+        std::string ToString() const override { return std::format("{}: {}, {}", GetName(), m_xOffset, m_yOffset); }
 
     private:
         float m_xOffset;
@@ -54,26 +48,22 @@ namespace Wayfinder
         MouseCode m_button;
     };
 
-    class MouseButtonPressedEvent : public EventImpl<MouseButtonEvent, EventType::MouseButtonPressed, EventCategory::MouseButton | EventCategory::Input>
+    class MouseButtonPressedEvent
+        : public EventImpl<MouseButtonEvent, EventType::MouseButtonPressed, EventCategory::MouseButton | EventCategory::Input>
     {
     public:
         MouseButtonPressedEvent(const MouseCode button) : EventImpl(button) {}
 
-        std::string ToString() const override
-        {
-            return std::format("{}: {}", GetName(), m_button);
-        }
+        std::string ToString() const override { return std::format("{}: {}", GetName(), m_button); }
     };
 
-    class MouseButtonReleasedEvent : public EventImpl<MouseButtonEvent, EventType::MouseButtonReleased, EventCategory::MouseButton | EventCategory::Input>
+    class MouseButtonReleasedEvent
+        : public EventImpl<MouseButtonEvent, EventType::MouseButtonReleased, EventCategory::MouseButton | EventCategory::Input>
     {
     public:
         MouseButtonReleasedEvent(const MouseCode button) : EventImpl(button) {}
 
-        std::string ToString() const override
-        {
-            return std::format("{}: {}", GetName(), m_button);
-        }
+        std::string ToString() const override { return std::format("{}: {}", GetName(), m_button); }
     };
 
 }

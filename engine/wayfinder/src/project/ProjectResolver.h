@@ -25,8 +25,7 @@ namespace Wayfinder
      *         existence-query errors, or reaching the filesystem root
      *         without finding the file.
      */
-    WAYFINDER_API Result<std::filesystem::path> FindProjectFile(
-        const std::filesystem::path& startPath);
+    WAYFINDER_API Result<std::filesystem::path> FindProjectFile(const std::filesystem::path& startPath);
 
     /**
      * @brief Convenience overload that begins the search from the current
@@ -44,7 +43,6 @@ namespace Wayfinder
     /// or nullopt if the filesystem root is reached without finding one.
     ///
     /// If `startPath` is a file, the search begins from its parent directory.
-    WAYFINDER_API std::optional<std::filesystem::path> FindAssetRoot(
-        const std::filesystem::path& startPath);
+    WAYFINDER_API std::optional<std::filesystem::path> FindAssetRoot(const std::filesystem::path& startPath);
 
 } // namespace Wayfinder

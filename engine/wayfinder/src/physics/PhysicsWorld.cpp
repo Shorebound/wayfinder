@@ -48,16 +48,12 @@ namespace Wayfinder::Physics
             m_objectToBroadPhase[PhysicsLayers::MOVING] = BroadPhaseLayers::MOVING;
         }
 
-        JPH::uint GetNumBroadPhaseLayers() const override
-        {
-            return BroadPhaseLayers::NUM_LAYERS;
-        }
+        JPH::uint GetNumBroadPhaseLayers() const override { return BroadPhaseLayers::NUM_LAYERS; }
 
         JPH::BroadPhaseLayer GetBroadPhaseLayer(JPH::ObjectLayer inLayer) const override
         {
             JPH_ASSERT(inLayer < PhysicsLayers::NUM_LAYERS);
-            if (inLayer >= PhysicsLayers::NUM_LAYERS)
-                return BroadPhaseLayers::NON_MOVING;
+            if (inLayer >= PhysicsLayers::NUM_LAYERS) return BroadPhaseLayers::NON_MOVING;
             return m_objectToBroadPhase[inLayer];
         }
 
@@ -120,21 +116,22 @@ namespace Wayfinder::Physics
 
         void InitialiseJoltGlobals()
         {
-            std::call_once(g_joltInitFlag, []()
-            {
-                JPH::RegisterDefaultAllocator();
-                JPH::Factory::sInstance = new JPH::Factory();
-                JPH::RegisterTypes();
-
-                // Register a one-time teardown so Jolt globals are cleaned up
-                // when the process exits (avoids leak reports in sanitisers).
-                std::atexit([]()
+            std::call_once(g_joltInitFlag,
+                []()
                 {
-                    JPH::UnregisterTypes();
-                    delete JPH::Factory::sInstance;
-                    JPH::Factory::sInstance = nullptr;
+                    JPH::RegisterDefaultAllocator();
+                    JPH::Factory::sInstance = new JPH::Factory();
+                    JPH::RegisterTypes();
+
+                    // Register a one-time teardown so Jolt globals are cleaned up
+                    // when the process exits (avoids leak reports in sanitisers).
+                    std::atexit([]()
+                    {
+                        JPH::UnregisterTypes();
+                        delete JPH::Factory::sInstance;
+                        JPH::Factory::sInstance = nullptr;
+                    });
                 });
-            });
         }
     } // anonymous namespace
 
@@ -162,14 +159,12 @@ namespace Wayfinder::Physics
     PhysicsWorld::PhysicsWorld() = default;
     PhysicsWorld::~PhysicsWorld()
     {
-        if (m_initialised)
-            Shutdown();
+        if (m_initialised) Shutdown();
     }
 
     void PhysicsWorld::Initialise()
     {
-        if (m_initialised)
-            return;
+        if (m_initialised) return;
 
         InitialiseJoltGlobals();
 
@@ -178,14 +173,8 @@ namespace Wayfinder::Physics
         m_impl->JobSys = std::make_unique<JPH::JobSystemSingleThreaded>(JPH::cMaxPhysicsJobs);
 
         m_impl->PhysSystem = std::make_unique<JPH::PhysicsSystem>();
-        m_impl->PhysSystem->Init(
-            Impl::MAX_BODIES,
-            Impl::NUM_BODY_MUTEXES,
-            Impl::MAX_BODY_PAIRS,
-            Impl::MAX_CONTACT_CONSTRAINTS,
-            m_impl->BroadPhaseLayerIface,
-            m_impl->ObjVsBPFilter,
-            m_impl->ObjPairFilter);
+        m_impl->PhysSystem->Init(Impl::MAX_BODIES, Impl::NUM_BODY_MUTEXES, Impl::MAX_BODY_PAIRS, Impl::MAX_CONTACT_CONSTRAINTS,
+            m_impl->BroadPhaseLayerIface, m_impl->ObjVsBPFilter, m_impl->ObjPairFilter);
 
         m_accumulator = 0.0f;
         m_initialised = true;
@@ -194,8 +183,7 @@ namespace Wayfinder::Physics
 
     void PhysicsWorld::Shutdown()
     {
-        if (!m_initialised)
-            return;
+        if (!m_initialised) return;
 
         m_impl.reset();
         m_initialised = false;
@@ -204,29 +192,22 @@ namespace Wayfinder::Physics
 
     void PhysicsWorld::Step(float deltaTime)
     {
-        if (!m_initialised || deltaTime <= 0.0f)
-            return;
+        if (!m_initialised || deltaTime <= 0.0f) return;
 
         constexpr int COLLISION_STEPS = 1;
-        m_impl->PhysSystem->Update(
-            deltaTime,
-            COLLISION_STEPS,
-            m_impl->TempAlloc.get(),
-            m_impl->JobSys.get());
+        m_impl->PhysSystem->Update(deltaTime, COLLISION_STEPS, m_impl->TempAlloc.get(), m_impl->JobSys.get());
     }
 
     int PhysicsWorld::StepFixed(float frameDeltaTime)
     {
-        if (!m_initialised || frameDeltaTime <= 0.0f)
-            return 0;
+        if (!m_initialised || frameDeltaTime <= 0.0f) return 0;
 
         m_accumulator += frameDeltaTime;
 
         // Cap the accumulator to avoid a spiral-of-death when a frame takes
         // much longer than expected (e.g. debugger pause, long hitch).
         constexpr float MAX_ACCUMULATED = 0.25f;
-        if (m_accumulator > MAX_ACCUMULATED)
-            m_accumulator = MAX_ACCUMULATED;
+        if (m_accumulator > MAX_ACCUMULATED) m_accumulator = MAX_ACCUMULATED;
 
         int steps = 0;
         while (m_accumulator >= m_fixedTimestep)
@@ -243,30 +224,22 @@ namespace Wayfinder::Physics
     {
         if (timestep <= 0.0f)
         {
-            WAYFINDER_WARNING(LogPhysics,
-                "SetFixedTimestep called with non-positive value {:.6f}; ignoring",
-                timestep);
+            WAYFINDER_WARNING(LogPhysics, "SetFixedTimestep called with non-positive value {:.6f}; ignoring", timestep);
             return;
         }
         m_fixedTimestep = timestep;
     }
 
-    uint32_t PhysicsWorld::CreateBody(const PhysicsBodyDescriptor& desc,
-                                      const Float3& position,
-                                      const Float3& rotationDegrees)
+    uint32_t PhysicsWorld::CreateBody(const PhysicsBodyDescriptor& desc, const Float3& position, const Float3& rotationDegrees)
     {
-        if (!m_initialised)
-            return INVALID_PHYSICS_BODY;
+        if (!m_initialised) return INVALID_PHYSICS_BODY;
 
         // Build shape
         JPH::Ref<JPH::Shape> shape;
         switch (desc.Shape)
         {
         case ColliderShape::Box:
-            shape = new JPH::BoxShape(
-                JPH::Vec3(desc.HalfExtents.x,
-                           desc.HalfExtents.y,
-                           desc.HalfExtents.z));
+            shape = new JPH::BoxShape(JPH::Vec3(desc.HalfExtents.x, desc.HalfExtents.y, desc.HalfExtents.z));
             break;
         case ColliderShape::Sphere:
             shape = new JPH::SphereShape(desc.Radius);
@@ -307,12 +280,7 @@ namespace Wayfinder::Physics
         float rz = Maths::ToRadians(rotationDegrees.z);
         JPH::Quat rotation = JPH::Quat::sEulerAngles(JPH::Vec3(rx, ry, rz));
 
-        JPH::BodyCreationSettings settings(
-            shape,
-            JPH::RVec3(position.x, position.y, position.z),
-            rotation,
-            motionType,
-            objectLayer);
+        JPH::BodyCreationSettings settings(shape, JPH::RVec3(position.x, position.y, position.z), rotation, motionType, objectLayer);
 
         // Material properties apply to both dynamic and kinematic bodies.
         settings.mFriction = desc.Friction;
@@ -323,14 +291,8 @@ namespace Wayfinder::Physics
             settings.mGravityFactor = desc.GravityFactor;
             settings.mLinearDamping = desc.LinearDamping;
             settings.mAngularDamping = desc.AngularDamping;
-            settings.mLinearVelocity = JPH::Vec3(
-                desc.LinearVelocity.x,
-                desc.LinearVelocity.y,
-                desc.LinearVelocity.z);
-            settings.mAngularVelocity = JPH::Vec3(
-                desc.AngularVelocity.x,
-                desc.AngularVelocity.y,
-                desc.AngularVelocity.z);
+            settings.mLinearVelocity = JPH::Vec3(desc.LinearVelocity.x, desc.LinearVelocity.y, desc.LinearVelocity.z);
+            settings.mAngularVelocity = JPH::Vec3(desc.AngularVelocity.x, desc.AngularVelocity.y, desc.AngularVelocity.z);
 
             // Override mass if a positive value was provided.
             // Mass <= 0 means "use shape-computed mass".
@@ -345,11 +307,8 @@ namespace Wayfinder::Physics
         JPH::Body* joltBody = bodyInterface.CreateBody(settings);
         if (!joltBody)
         {
-            WAYFINDER_ERROR(LogPhysics,
-                "Failed to create Jolt body (type={}, shape={}, pos=[{},{},{}])",
-                static_cast<int>(desc.Type),
-                static_cast<int>(desc.Shape),
-                position.x, position.y, position.z);
+            WAYFINDER_ERROR(LogPhysics, "Failed to create Jolt body (type={}, shape={}, pos=[{},{},{}])", static_cast<int>(desc.Type),
+                static_cast<int>(desc.Shape), position.x, position.y, position.z);
             return INVALID_PHYSICS_BODY;
         }
 
@@ -360,8 +319,7 @@ namespace Wayfinder::Physics
 
     void PhysicsWorld::DestroyBody(uint32_t bodyId)
     {
-        if (!m_initialised || bodyId == INVALID_PHYSICS_BODY)
-            return;
+        if (!m_initialised || bodyId == INVALID_PHYSICS_BODY) return;
 
         JPH::BodyInterface& bodyInterface = m_impl->PhysSystem->GetBodyInterface();
         JPH::BodyID joltId(bodyId);
@@ -371,20 +329,16 @@ namespace Wayfinder::Physics
 
     Float3 PhysicsWorld::GetBodyPosition(uint32_t bodyId) const
     {
-        if (!m_initialised || bodyId == INVALID_PHYSICS_BODY)
-            return {0.0f, 0.0f, 0.0f};
+        if (!m_initialised || bodyId == INVALID_PHYSICS_BODY) return {0.0f, 0.0f, 0.0f};
 
         const JPH::BodyInterface& bodyInterface = m_impl->PhysSystem->GetBodyInterface();
         JPH::RVec3 pos = bodyInterface.GetPosition(JPH::BodyID(bodyId));
-        return {static_cast<float>(pos.GetX()),
-                static_cast<float>(pos.GetY()),
-                static_cast<float>(pos.GetZ())};
+        return {static_cast<float>(pos.GetX()), static_cast<float>(pos.GetY()), static_cast<float>(pos.GetZ())};
     }
 
     Float4 PhysicsWorld::GetBodyRotation(uint32_t bodyId) const
     {
-        if (!m_initialised || bodyId == INVALID_PHYSICS_BODY)
-            return {0.0f, 0.0f, 0.0f, 1.0f};
+        if (!m_initialised || bodyId == INVALID_PHYSICS_BODY) return {0.0f, 0.0f, 0.0f, 1.0f};
 
         const JPH::BodyInterface& bodyInterface = m_impl->PhysSystem->GetBodyInterface();
         JPH::Quat rot = bodyInterface.GetRotation(JPH::BodyID(bodyId));
@@ -393,14 +347,10 @@ namespace Wayfinder::Physics
 
     void PhysicsWorld::SetBodyPosition(uint32_t bodyId, const Float3& position)
     {
-        if (!m_initialised || bodyId == INVALID_PHYSICS_BODY)
-            return;
+        if (!m_initialised || bodyId == INVALID_PHYSICS_BODY) return;
 
         JPH::BodyInterface& bodyInterface = m_impl->PhysSystem->GetBodyInterface();
-        bodyInterface.SetPosition(
-            JPH::BodyID(bodyId),
-            JPH::RVec3(position.x, position.y, position.z),
-            JPH::EActivation::Activate);
+        bodyInterface.SetPosition(JPH::BodyID(bodyId), JPH::RVec3(position.x, position.y, position.z), JPH::EActivation::Activate);
     }
 
 } // namespace Wayfinder::Physics

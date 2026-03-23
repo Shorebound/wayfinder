@@ -1,7 +1,6 @@
 #pragma once
 #include "core/logging/ILogOutput.h"
 
-
 namespace Wayfinder
 {
     // Forward declaration

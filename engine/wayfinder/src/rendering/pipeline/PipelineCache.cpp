@@ -5,10 +5,7 @@
 
 namespace Wayfinder
 {
-    void PipelineCache::Initialise(RenderDevice& device)
-    {
-        m_device = &device;
-    }
+    void PipelineCache::Initialise(RenderDevice& device) { m_device = &device; }
 
     void PipelineCache::Shutdown()
     {
@@ -16,10 +13,7 @@ namespace Wayfinder
         {
             for (auto& [hash, handle] : m_cache)
             {
-                if (handle)
-                {
-                    m_device->DestroyPipeline(handle);
-                }
+                if (handle) { m_device->DestroyPipeline(handle); }
             }
         }
 
@@ -29,17 +23,11 @@ namespace Wayfinder
 
     GPUPipelineHandle PipelineCache::GetOrCreate(const PipelineCreateDesc& desc)
     {
-        if (!m_device)
-        {
-            return GPUPipelineHandle::Invalid();
-        }
+        if (!m_device) { return GPUPipelineHandle::Invalid(); }
 
         const size_t hash = HashDesc(desc);
         auto it = m_cache.find(hash);
-        if (it != m_cache.end())
-        {
-            return it->second;
-        }
+        if (it != m_cache.end()) { return it->second; }
 
         GPUPipelineHandle handle = m_device->CreatePipeline(desc);
         if (handle.IsValid())

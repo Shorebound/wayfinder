@@ -5,7 +5,7 @@
 namespace Wayfinder
 {
     /// Upper bounds matching SDL3Input for consistent out-of-range behaviour.
-    inline constexpr KeyCode   kNullMaxScancodes   = 512;
+    inline constexpr KeyCode kNullMaxScancodes = 512;
     inline constexpr MouseCode kNullMaxMouseButtons = 8;
 
     class NullInput final : public Input

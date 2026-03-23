@@ -16,7 +16,7 @@ namespace Wayfinder
         /// Path to the boot scene, relative to AssetRoot.
         std::string BootScene = "scenes/default_scene.json";
         std::string ConfigDir = "config";
-        std::string Module;  ///< Shared library name for game module (empty = none).
+        std::string Module; ///< Shared library name for game module (empty = none).
     };
 
     inline constexpr const char* DEFAULT_PROJECT_NAME = "Untitled";

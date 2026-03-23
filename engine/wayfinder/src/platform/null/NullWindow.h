@@ -10,12 +10,8 @@ namespace Wayfinder
     {
     public:
         explicit NullWindow(const Config& config = {})
-            : m_width(config.Width)
-            , m_height(config.Height)
-            , m_title(config.Title)
-            , m_vsync(config.VSync)
-        {
-        }
+            : m_width(config.Width), m_height(config.Height), m_title(config.Title), m_vsync(config.VSync)
+        {}
 
         bool Initialise() override { return true; }
         void Shutdown() override {}
@@ -32,7 +28,11 @@ namespace Wayfinder
 
         void SetVSync(bool enabled) override { m_vsync = enabled; }
         void SetTitle(const std::string& title) override { m_title = title; }
-        void SetSize(uint32_t width, uint32_t height) override { m_width = width; m_height = height; }
+        void SetSize(uint32_t width, uint32_t height) override
+        {
+            m_width = width;
+            m_height = height;
+        }
 
         void SetEventCallback(const EventCallbackFn&) override {}
 

@@ -1,8 +1,8 @@
 #pragma once
 
-#include "gameplay/GameState.h"
 #include "Plugin.h"
 #include "app/Subsystem.h"
+#include "gameplay/GameState.h"
 #include "modules/registrars/StateRegistrar.h"
 #include "modules/registrars/SystemRegistrar.h"
 #include "modules/registrars/TagRegistrar.h"
@@ -43,10 +43,10 @@ namespace Wayfinder
     {
     public:
         using SystemFactory = std::function<void(flecs::world&)>;
-        using ComponentRegisterFn = void(*)(flecs::world& world);
-        using ComponentApplyFn = void(*)(const nlohmann::json& componentData, Entity& entity);
-        using ComponentSerialiseFn = void(*)(const Entity& entity, nlohmann::json& componentTables);
-        using ComponentValidateFn = bool(*)(const nlohmann::json& componentData, std::string& error);
+        using ComponentRegisterFn = void (*)(flecs::world& world);
+        using ComponentApplyFn = void (*)(const nlohmann::json& componentData, Entity& entity);
+        using ComponentSerialiseFn = void (*)(const Entity& entity, nlohmann::json& componentTables);
+        using ComponentValidateFn = bool (*)(const nlohmann::json& componentData, std::string& error);
         using GlobalFactory = std::function<void(flecs::world&)>;
 
         /// Type aliases that keep external consumers working unchanged.
@@ -75,11 +75,10 @@ namespace Wayfinder
             GlobalFactory Factory;
         };
 
-        ModuleRegistry(const ProjectDescriptor& project,
-                       const EngineConfig& config);
+        ModuleRegistry(const ProjectDescriptor& project, const EngineConfig& config);
 
         /// Add a plugin. The plugin's Build() is called immediately.
-        template <typename T>
+        template<typename T>
         void AddPlugin()
         {
             auto plugin = std::make_unique<T>();
@@ -91,10 +90,8 @@ namespace Wayfinder
         /// once when the engine creates its persistent flecs::world.
         /// An optional RunCondition controls whether the system is active.
         /// Optional After/Before lists declare ordering relative to other systems.
-        void RegisterSystem(std::string name, SystemFactory factory,
-                            RunCondition condition = {},
-                            std::vector<std::string> after = {},
-                            std::vector<std::string> before = {});
+        void RegisterSystem(std::string name, SystemFactory factory, RunCondition condition = {}, std::vector<std::string> after = {},
+            std::vector<std::string> before = {});
 
         /// Register a serialisable component for scene authoring.
         void RegisterComponent(ComponentDescriptor descriptor);
@@ -120,15 +117,16 @@ namespace Wayfinder
         /// Register a game subsystem type. It will be created automatically
         /// during Game initialisation alongside engine-core subsystems.
         /// An optional static predicate is checked before construction.
-        template <typename T>
+        template<typename T>
         void RegisterSubsystem(SubsystemCollection<GameSubsystem>::PredicateFn predicate = nullptr)
         {
-            static_assert(std::is_base_of_v<GameSubsystem, T>,
-                          "T must derive from GameSubsystem");
-            m_subsystemFactories.push_back(
-                {std::type_index(typeid(T)),
-                 []() -> std::unique_ptr<GameSubsystem> { return std::make_unique<T>(); },
-                 predicate});
+            static_assert(std::is_base_of_v<GameSubsystem, T>, "T must derive from GameSubsystem");
+            m_subsystemFactories.push_back({std::type_index(typeid(T)),
+                []() -> std::unique_ptr<GameSubsystem>
+                {
+                    return std::make_unique<T>();
+                },
+                predicate});
         }
 
         /// Apply all registered system factories into the given world.

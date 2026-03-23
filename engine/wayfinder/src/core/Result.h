@@ -23,15 +23,9 @@ namespace Wayfinder
     public:
         Error() = default;
 
-        explicit Error(std::string message)
-            : m_message(std::move(message))
-        {
-        }
+        explicit Error(std::string message) : m_message(std::move(message)) {}
 
-        explicit Error(const char* message)
-            : m_message(message ? message : "")
-        {
-        }
+        explicit Error(const char* message) : m_message(message ? message : "") {}
 
         [[nodiscard]] const std::string& GetMessage() const noexcept { return m_message; }
 
@@ -53,7 +47,7 @@ namespace Wayfinder
      * @tparam T  The value type on success (may be `void`).
      * @tparam E  The error type on failure (defaults to Wayfinder::Error).
      */
-    template <typename T, typename E = Error>
+    template<typename T, typename E = Error>
     using Result = std::expected<T, E>;
 
     /**
@@ -62,10 +56,7 @@ namespace Wayfinder
      * @return An `std::unexpected<Error>` suitable for returning from a
      *         function that yields `Result<T>`.
      */
-    [[nodiscard]] inline std::unexpected<Error> MakeError(std::string message)
-    {
-        return std::unexpected<Error>(Error(std::move(message)));
-    }
+    [[nodiscard]] inline std::unexpected<Error> MakeError(std::string message) { return std::unexpected<Error>(Error(std::move(message))); }
 
     /**
      * @brief Construct an unexpected Error from a C-string literal.
@@ -74,9 +65,6 @@ namespace Wayfinder
      * @return An `std::unexpected<Error>` suitable for returning from a
      *         function that yields `Result<T>`.
      */
-    [[nodiscard]] inline std::unexpected<Error> MakeError(const char* message)
-    {
-        return std::unexpected<Error>(Error(message));
-    }
+    [[nodiscard]] inline std::unexpected<Error> MakeError(const char* message) { return std::unexpected<Error>(Error(message)); }
 
 } // namespace Wayfinder

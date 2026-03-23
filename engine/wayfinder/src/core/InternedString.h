@@ -63,21 +63,15 @@ namespace Wayfinder
 /// Relies on pointer stability from interning: all InternedString instances
 /// pointing to the same logical string share the same address, so hashing
 /// the pointer is both valid and trivially cheap.
-template <>
+template<>
 struct std::hash<Wayfinder::InternedString>
 {
-    size_t operator()(const Wayfinder::InternedString& s) const noexcept
-    {
-        return std::hash<const void*>{}(&s.GetString());
-    }
+    size_t operator()(const Wayfinder::InternedString& s) const noexcept { return std::hash<const void*>{}(&s.GetString()); }
 };
 
 /// std::formatter specialisation so InternedString works with std::format / std::print.
-template <>
+template<>
 struct std::formatter<Wayfinder::InternedString> : std::formatter<std::string>
 {
-    auto format(const Wayfinder::InternedString& s, auto& ctx) const
-    {
-        return std::formatter<std::string>::format(s.GetString(), ctx);
-    }
+    auto format(const Wayfinder::InternedString& s, auto& ctx) const { return std::formatter<std::string>::format(s.GetString(), ctx); }
 };

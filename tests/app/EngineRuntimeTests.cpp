@@ -1,13 +1,13 @@
 #include <doctest/doctest.h>
 
-#include "platform/BackendConfig.h"
 #include "app/EngineConfig.h"
 #include "app/EngineContext.h"
 #include "app/EngineRuntime.h"
-#include "project/ProjectDescriptor.h"
+#include "platform/BackendConfig.h"
 #include "platform/Input.h"
 #include "platform/Time.h"
 #include "platform/Window.h"
+#include "project/ProjectDescriptor.h"
 #include "rendering/backend/RenderDevice.h"
 #include "rendering/pipeline/Renderer.h"
 

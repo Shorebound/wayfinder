@@ -193,10 +193,7 @@ namespace Wayfinder::Tests
         CHECK(desc.colourTargetBlends[2].DstColourFactor == BlendFactor::One);
     }
 
-    TEST_CASE("MAX_COLOUR_TARGETS is 8")
-    {
-        CHECK(MAX_COLOUR_TARGETS == 8);
-    }
+    TEST_CASE("MAX_COLOUR_TARGETS is 8") { CHECK(MAX_COLOUR_TARGETS == 8); }
 
     // ── Pipeline cache hash — blend differentiation ─────────
 

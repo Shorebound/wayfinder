@@ -41,12 +41,7 @@ namespace Wayfinder
     };
 
     WAYFINDER_API SceneDocumentLoadResult LoadSceneDocument(
-        const std::string& filePath,
-        const RuntimeComponentRegistry& registry,
-        AssetService* assetService = nullptr);
+        const std::string& filePath, const RuntimeComponentRegistry& registry, AssetService* assetService = nullptr);
 
-    WAYFINDER_API bool SaveSceneDocument(
-        const SceneDocument& document,
-        const std::string& filePath,
-        std::string& error);
+    WAYFINDER_API bool SaveSceneDocument(const SceneDocument& document, const std::string& filePath, std::string& error);
 } // namespace Wayfinder

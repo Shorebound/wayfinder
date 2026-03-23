@@ -25,13 +25,7 @@ namespace Wayfinder
         Int,
     };
 
-    using MaterialParamValue = std::variant<
-        float,
-        Float2,
-        Float3,
-        Float4,
-        LinearColour,
-        int32_t>;
+    using MaterialParamValue = std::variant<float, Float2, Float3, Float4, LinearColour, int32_t>;
 
     // ── Material Parameter Declaration ───────────────────────
     // Declared by a ShaderProgram to describe what parameters it expects.

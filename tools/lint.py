@@ -136,55 +136,145 @@ def _discover_changed_files(staged_only: bool = False) -> list[Path]:
     return files
 
 
-def _run_clang_format(files: list[Path], *, fix: bool, tool: str) -> bool:
-    """Run clang-format. Returns True if issues were found."""
+def _run_format_fix(files: list[Path], *, tool: str) -> bool:
+    """Fix mode: run clang-format -i then format-fixup in-place.
+
+    Runs up to three passes so that fixup rules (e.g. split lambda rejoins)
+    that change structure get properly re-indented by a follow-up clang-format.
+
+    Returns True if any file was changed.
+    """
     if not files:
         return False
 
-    print(_bold(f'\n-- clang-format ({len(files)} files) --'))
+    # Snapshot file contents to detect changes.
+    originals: dict[Path, str] = {}
+    for path in files:
+        try:
+            originals[path] = path.read_text(encoding='utf-8')
+        except (UnicodeDecodeError, OSError):
+            pass
 
-    cmd = [tool]
-    if fix:
-        cmd.append('-i')
-    else:
-        cmd.extend(['--dry-run', '--Werror'])
+    for pass_num in range(1, 4):
+        print(_bold(f'\n-- format pass {pass_num} ({len(files)} files) --'))
 
-    cmd.extend(str(f) for f in files)
+        cmd = [tool, '-i']
+        cmd.extend(str(f) for f in files)
+        subprocess.run(cmd, cwd=REPO_ROOT)
 
-    result = subprocess.run(cmd, cwd=REPO_ROOT)
-    if result.returncode != 0:
-        if fix:
-            print(_yellow('  Formatted files.'))
+        cmd = [sys.executable, str(FIXUP_SCRIPT)]
+        cmd.extend(str(f) for f in files)
+        result = subprocess.run(cmd, cwd=REPO_ROOT)
+
+        # Check if this pass changed anything.
+        pass_changed = False
+        if pass_num == 1:
+            # First pass: compare against originals.
+            for path, before in originals.items():
+                try:
+                    if path.read_text(encoding='utf-8') != before:
+                        pass_changed = True
+                        break
+                except (UnicodeDecodeError, OSError):
+                    pass
         else:
-            print(_red('  Format issues found.'))
+            # Subsequent passes: compare against post-previous-pass state.
+            pass_changed = result.returncode != 0
+
+        if not pass_changed:
+            print(_green('  Stable.'))
+            break
+        print(_yellow('  Applied fixes.'))
+
+    any_changed = False
+    for path, before in originals.items():
+        try:
+            if path.read_text(encoding='utf-8') != before:
+                any_changed = True
+                break
+        except (UnicodeDecodeError, OSError):
+            pass
+
+    return any_changed
+
+
+def _run_format_check(files: list[Path], *, tool: str) -> bool:
+    """Check mode: verify clang-format + format-fixup produce no changes.
+
+    Runs clang-format → format-fixup in a loop until the output stabilises
+    (typically two passes), then diffs against the original.  The loop is
+    needed because some fixup rules (e.g. rejoining split lambda arguments)
+    produce output that clang-format needs to re-indent.
+
+    Returns True if issues were found.
+    """
+    if not files:
+        return False
+
+    print(_bold(f'\n-- formatting ({len(files)} files) --'))
+
+    dirty: list[Path] = []
+    for path in files:
+        try:
+            original_text = path.read_text(encoding='utf-8')
+        except (UnicodeDecodeError, OSError):
+            continue
+
+        # Run clang-format via stdin/stdout (binary to avoid codec issues).
+        raw = path.read_bytes()
+
+        text = raw
+        for _ in range(3):
+            result = subprocess.run(
+                [tool, f'--assume-filename={path}'],
+                input=text, capture_output=True, cwd=REPO_ROOT,
+            )
+            if result.returncode != 0:
+                dirty.append(path)
+                break
+
+            # Decode and normalise line endings to match the original file.
+            cf_text = result.stdout.decode('utf-8', errors='replace')
+            if '\r\n' not in original_text and '\r\n' in cf_text:
+                cf_text = cf_text.replace('\r\n', '\n')
+
+            formatted_text = _apply_fixup(cf_text)
+            new_bytes = formatted_text.encode('utf-8')
+            if new_bytes == text:
+                break
+            text = new_bytes
+        else:
+            # Did not converge — treat as dirty.
+            dirty.append(path)
+            continue
+
+        if formatted_text != original_text:
+            dirty.append(path)
+
+    if dirty:
+        for path in dirty:
+            print(_red(f'  {path.relative_to(REPO_ROOT)}: needs formatting'))
+        print(_red(f'\n  {len(dirty)} file(s) need formatting.'))
         return True
 
     print(_green('  Clean.'))
     return False
 
 
-def _run_format_fixup(files: list[Path], *, fix: bool) -> bool:
-    """Run format-fixup.py. Returns True if issues were found."""
-    if not files:
-        return False
+# Cache the fixup function so we only import the module once.
+_fixup_fn = None
 
-    print(_bold(f'\n-- format-fixup ({len(files)} files) --'))
 
-    cmd = [sys.executable, str(FIXUP_SCRIPT)]
-    if not fix:
-        cmd.append('--check')
-    cmd.extend(str(f) for f in files)
-
-    result = subprocess.run(cmd, cwd=REPO_ROOT)
-    if result.returncode != 0:
-        if fix:
-            print(_yellow('  Applied fixups.'))
-        else:
-            print(_red('  Fixup issues found.'))
-        return True
-
-    print(_green('  Clean.'))
-    return False
+def _apply_fixup(text: str) -> str:
+    """Apply format-fixup.py transformations to *text* in-memory."""
+    global _fixup_fn
+    if _fixup_fn is None:
+        from importlib.util import spec_from_file_location, module_from_spec
+        spec = spec_from_file_location('format_fixup', FIXUP_SCRIPT)
+        mod = module_from_spec(spec)
+        spec.loader.exec_module(mod)
+        _fixup_fn = mod.fixup
+    return _fixup_fn(text)
 
 
 def _run_clang_tidy(files: list[Path], *, build_dir: Path, tool: str) -> bool:
@@ -308,8 +398,10 @@ def main() -> int:
 
     issues = False
     issues |= _check_banned_includes(files)
-    issues |= _run_clang_format(files, fix=args.fix, tool=clang_format)
-    issues |= _run_format_fixup(files, fix=args.fix)
+    if args.fix:
+        issues |= _run_format_fix(files, tool=clang_format)
+    else:
+        issues |= _run_format_check(files, tool=clang_format)
 
     if args.tidy and clang_tidy:
         issues |= _run_clang_tidy(files, build_dir=args.build_dir, tool=clang_tidy)

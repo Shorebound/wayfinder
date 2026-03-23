@@ -37,10 +37,8 @@ namespace Wayfinder
         Mesh(Mesh&&) noexcept = default;
         Mesh& operator=(Mesh&&) noexcept = default;
 
-        bool Create(RenderDevice& device,
-                     const void* vertexData, uint32_t vertexDataSize, uint32_t vertexCount,
-                     const void* indexData, uint32_t indexDataSize, uint32_t indexCount,
-                     IndexElementSize indexElementSize = IndexElementSize::Uint16);
+        bool Create(RenderDevice& device, const void* vertexData, uint32_t vertexDataSize, uint32_t vertexCount, const void* indexData,
+            uint32_t indexDataSize, uint32_t indexCount, IndexElementSize indexElementSize = IndexElementSize::Uint16);
 
         void Destroy();
 

@@ -1,16 +1,15 @@
 #include "ProjectDescriptor.h"
 #include "core/Log.h"
 
-#include <toml++/toml.hpp>
 #include <system_error>
+#include <toml++/toml.hpp>
 
 namespace Wayfinder
 {
 
     std::filesystem::path ProjectDescriptor::ResolveModulePath() const
     {
-        if (Paths.Module.empty())
-            return {};
+        if (Paths.Module.empty()) return {};
 
 #ifdef _WIN32
         return ProjectRoot / (Paths.Module + ".dll");
@@ -65,8 +64,7 @@ namespace Wayfinder
                 if (auto v = (*paths)["config_dir"].value<std::string>()) output.Descriptor.Paths.ConfigDir = *v;
             }
 
-            WAYFINDER_INFO(LogEngine, "Loaded project '{}' v{} from: {}",
-                           output.Descriptor.Name, output.Descriptor.Version, path.string());
+            WAYFINDER_INFO(LogEngine, "Loaded project '{}' v{} from: {}", output.Descriptor.Name, output.Descriptor.Version, path.string());
         }
         catch (const toml::parse_error& err)
         {

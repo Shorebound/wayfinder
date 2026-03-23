@@ -1,6 +1,6 @@
 #include "SceneRenderExtractor.h"
-#include "rendering/materials/PostProcessVolume.h"
 #include "rendering/graph/SortKey.h"
+#include "rendering/materials/PostProcessVolume.h"
 
 #include "core/Log.h"
 #include "maths/Maths.h"
@@ -81,14 +81,11 @@ namespace Wayfinder
         if (scene.GetWorld().has<ActiveCameraStateComponent>())
         {
             const ActiveCameraStateComponent& activeCamera = scene.GetWorld().get<ActiveCameraStateComponent>();
-            if (activeCamera.IsValid)
-            {
-                cameraView = Maths::LookAt(activeCamera.Position, activeCamera.Target, activeCamera.Up);
-            }
+            if (activeCamera.IsValid) { cameraView = Maths::LookAt(activeCamera.Position, activeCamera.Target, activeCamera.Up); }
         }
 
-        scene.GetWorld().each([&frame, &cameraView](flecs::entity entityHandle, const TransformComponent& transform, const MeshComponent& mesh, const RenderableComponent& renderable)
-        {
+        scene.GetWorld().each([&frame, &cameraView](flecs::entity entityHandle, const TransformComponent& transform, const MeshComponent& mesh,
+                                  const RenderableComponent& renderable) {
             RenderMeshSubmission submission;
             submission.Mesh.Origin = RenderResourceOrigin::BuiltIn;
             submission.Mesh.StableKey = kBuiltInBoxMeshKey;
@@ -129,9 +126,8 @@ namespace Wayfinder
                 const auto& renderOverride = entityHandle.get<RenderOverrideComponent>();
                 if (renderOverride.Wireframe.has_value())
                 {
-                    submission.Material.StateOverrides.FillMode = *renderOverride.Wireframe
-                        ? RenderFillMode::SolidAndWireframe
-                        : RenderFillMode::Solid;
+                    submission.Material.StateOverrides.FillMode =
+                        *renderOverride.Wireframe ? RenderFillMode::SolidAndWireframe : RenderFillMode::Solid;
                 }
             }
 
@@ -145,16 +141,15 @@ namespace Wayfinder
             const Float4 worldPos = Float4(Float3(localToWorld[3]), 1.0f);
             const float cameraSpaceZ = (cameraView * worldPos).z;
 
-            submission.SortKey = SortKeyBuilder::Build(
-                MapLayer(submission.Layer),
-                MaterialIdBits(submission.Material.Ref.AssetId),
-                cameraSpaceZ,
-                static_cast<uint16_t>(submission.SortPriority));
+            submission.SortKey = SortKeyBuilder::Build(MapLayer(submission.Layer), MaterialIdBits(submission.Material.Ref.AssetId),
+                cameraSpaceZ, static_cast<uint16_t>(submission.SortPriority));
 
             RenderPass* owningPass = frame.FindScenePassForSubmission(submission, 0);
             if (!owningPass)
             {
-                WAYFINDER_WARNING(LogRenderer, "SceneRenderExtractor skipped mesh submission because no scene pass matched layer '{0}' in frame '{1}'.", submission.Layer, frame.SceneName);
+                WAYFINDER_WARNING(LogRenderer,
+                    "SceneRenderExtractor skipped mesh submission because no scene pass matched layer '{0}' in frame '{1}'.",
+                    submission.Layer, frame.SceneName);
                 return;
             }
 
@@ -197,10 +192,7 @@ namespace Wayfinder
                 debugBox.Material.Domain = RenderMaterialDomain::Debug;
                 debugBox.Material.Parameters.SetColour("base_colour", LinearColour::FromColour(light.Tint));
 
-                if (RenderPass* pass = frame.FindPass(RenderPassIds::Debug))
-                {
-                    pass->DebugDraw->Boxes.push_back(debugBox);
-                }
+                if (RenderPass* pass = frame.FindPass(RenderPassIds::Debug)) { pass->DebugDraw->Boxes.push_back(debugBox); }
 
                 if (light.Type == LightType::Directional)
                 {
@@ -210,10 +202,7 @@ namespace Wayfinder
                     debugLine.End = lineEnd;
                     debugLine.Tint = light.Tint;
 
-                    if (RenderPass* pass = frame.FindPass(RenderPassIds::Debug))
-                    {
-                        pass->DebugDraw->Lines.push_back(debugLine);
-                    }
+                    if (RenderPass* pass = frame.FindPass(RenderPassIds::Debug)) { pass->DebugDraw->Lines.push_back(debugLine); }
                 }
             }
         });
@@ -241,7 +230,8 @@ namespace Wayfinder
                 localToWorld = transform.GetLocalMatrix();
             }
 
-            volumeInstances.push_back({.Volume = &volume, .WorldPosition = position, .WorldScale = scale, .LocalToWorld = localToWorld});
+            volumeInstances.push_back(
+                {.Volume = &volume, .WorldPosition = position, .WorldScale = scale, .LocalToWorld = localToWorld});
         });
 
         // Blend post-process volumes per view using each view's camera position

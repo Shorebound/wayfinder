@@ -2,7 +2,6 @@
 #include "rendering/backend/RenderDevice.h"
 #include "rendering/pipeline/RenderContext.h"
 
-
 #include <doctest/doctest.h>
 
 namespace Wayfinder::Tests

@@ -1,7 +1,7 @@
 #pragma once
 
-#include "platform/KeyCodes.h"
 #include "Event.h"
+#include "platform/KeyCodes.h"
 #include <format>
 
 namespace Wayfinder
@@ -25,10 +25,7 @@ namespace Wayfinder
 
         bool IsRepeat() const { return m_repeating; }
 
-        std::string ToString() const override
-        {
-            return std::format("{}: {} (repeat = {})", GetName(), m_keyCode, m_repeating);
-        }
+        std::string ToString() const override { return std::format("{}: {} (repeat = {})", GetName(), m_keyCode, m_repeating); }
 
     private:
         bool m_repeating;
@@ -39,10 +36,7 @@ namespace Wayfinder
     public:
         KeyReleasedEvent(const KeyCode keycode) : EventImpl(keycode) {}
 
-        std::string ToString() const override
-        {
-            return std::format("{}: {}", GetName(), m_keyCode);
-        }
+        std::string ToString() const override { return std::format("{}: {}", GetName(), m_keyCode); }
     };
 
     class KeyTypedEvent : public EventImpl<KeyEvent, EventType::KeyTyped, EventCategory::Keyboard | EventCategory::Input>
@@ -50,9 +44,6 @@ namespace Wayfinder
     public:
         KeyTypedEvent(const KeyCode keycode) : EventImpl(keycode) {}
 
-        std::string ToString() const override
-        {
-            return std::format("{}: {}", GetName(), m_keyCode);
-        }
+        std::string ToString() const override { return std::format("{}: {}", GetName(), m_keyCode); }
     };
 }

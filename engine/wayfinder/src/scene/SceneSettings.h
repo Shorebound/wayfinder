@@ -22,29 +22,41 @@ namespace Wayfinder
     struct WAYFINDER_API SceneSettings
     {
         /// Get a typed scalar value by key. Returns nullopt if absent or wrong type.
-        template <typename T>
+        template<typename T>
         std::optional<T> Get(std::string_view key) const
         {
             const std::string k{key};
             auto it = m_data.find(k);
             if (it == m_data.end()) return std::nullopt;
-            try { return it->get<T>(); }
-            catch (...) { return std::nullopt; }
+            try
+            {
+                return it->get<T>();
+            }
+            catch (...)
+            {
+                return std::nullopt;
+            }
         }
 
         /// Get a typed scalar value or a default.
-        template <typename T>
+        template<typename T>
         T GetOr(std::string_view key, T defaultValue) const
         {
             const std::string k{key};
             auto it = m_data.find(k);
             if (it == m_data.end()) return defaultValue;
-            try { return it->get<T>(); }
-            catch (...) { return defaultValue; }
+            try
+            {
+                return it->get<T>();
+            }
+            catch (...)
+            {
+                return defaultValue;
+            }
         }
 
         /// Set or overwrite a scalar value at runtime (override).
-        template <typename T>
+        template<typename T>
         void Set(const std::string& key, T&& value) { m_data[key] = std::forward<T>(value); }
 
         /// Read-only access to the underlying data.

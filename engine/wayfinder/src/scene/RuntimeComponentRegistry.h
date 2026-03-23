@@ -60,6 +60,6 @@ namespace Wayfinder
         const Entry* Find(std::string_view key) const;
 
         std::vector<Entry> m_entries;
-        std::unordered_map<std::string, size_t> m_index;  ///< Key -> index into m_entries for O(1) lookup.
+        std::unordered_map<std::string, size_t> m_index; ///< Key -> index into m_entries for O(1) lookup.
     };
 } // namespace Wayfinder

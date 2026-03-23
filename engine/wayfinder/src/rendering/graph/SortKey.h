@@ -49,10 +49,7 @@ namespace Wayfinder
             uint32_t depthBits = DepthToUint32(cameraSpaceZ);
 
             // For transparent layer, flip depth so back-to-front sorts naturally as ascending key order
-            if (layer == SortLayer::Transparent)
-            {
-                depthBits = ~depthBits;
-            }
+            if (layer == SortLayer::Transparent) { depthBits = ~depthBits; }
 
             key |= static_cast<uint64_t>(depthBits) << 14;
 

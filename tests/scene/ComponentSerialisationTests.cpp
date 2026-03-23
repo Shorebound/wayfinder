@@ -4,7 +4,6 @@
 #include "scene/Scene.h"
 #include "scene/entity/Entity.h"
 
-
 #include <doctest/doctest.h>
 
 #include "ecs/Flecs.h"
@@ -41,10 +40,7 @@ namespace Wayfinder::Tests
     {
         TEST_CASE("Transform round-trip preserves values")
         {
-            nlohmann::json input = {
-                {"position", {1.0, 2.0, 3.0}},
-                {"rotation", {10.0, 20.0, 30.0}},
-                {"scale", {2.0, 2.0, 2.0}}};
+            nlohmann::json input = {{"position", {1.0, 2.0, 3.0}}, {"rotation", {10.0, 20.0, 30.0}}, {"scale", {2.0, 2.0, 2.0}}};
 
             auto output = RoundTrip("transform", input);
 
@@ -92,9 +88,7 @@ namespace Wayfinder::Tests
 
         TEST_CASE("Mesh round-trip preserves values")
         {
-            nlohmann::json input = {
-                {"primitive", "cube"},
-                {"dimensions", {2.0, 3.0, 4.0}}};
+            nlohmann::json input = {{"primitive", "cube"}, {"dimensions", {2.0, 3.0, 4.0}}};
 
             auto output = RoundTrip("mesh", input);
 
@@ -111,12 +105,9 @@ namespace Wayfinder::Tests
 
         TEST_CASE("Camera round-trip preserves values")
         {
-            nlohmann::json input = {
-                {"primary", true},
-                {"fov", 90.0},
-                {"projection", "orthographic"},
-                {"target", {1.0, 2.0, 3.0}},
-                {"up", {0.0, 1.0, 0.0}}};
+            nlohmann::json input =
+                {
+                    {"primary", true}, {"fov", 90.0}, {"projection", "orthographic"}, {"target", {1.0, 2.0, 3.0}}, {"up", {0.0, 1.0, 0.0}}};
 
             auto output = RoundTrip("camera", input);
 
@@ -130,10 +121,7 @@ namespace Wayfinder::Tests
 
         TEST_CASE("Light round-trip preserves values")
         {
-            nlohmann::json input = {
-                {"type", "directional"},
-                {"intensity", 2.5},
-                {"range", 15.0}};
+            nlohmann::json input = {{"type", "directional"}, {"intensity", 2.5}, {"range", 15.0}};
 
             auto output = RoundTrip("light", input);
 
@@ -147,9 +135,7 @@ namespace Wayfinder::Tests
 
         TEST_CASE("Renderable round-trip preserves values")
         {
-            nlohmann::json input = {
-                {"visible", false},
-                {"sort_priority", 200}};
+            nlohmann::json input = {{"visible", false}, {"sort_priority", 200}};
 
             auto output = RoundTrip("renderable", input);
 

@@ -11,15 +11,14 @@
  */
 
 #include "app/EngineConfig.h"
-#include "modules/ModuleRegistry.h"
-#include "project/ProjectDescriptor.h"
 #include "app/Subsystem.h"
+#include "modules/ModuleRegistry.h"
 #include "physics/PhysicsComponents.h"
 #include "physics/PhysicsPlugin.h"
 #include "physics/PhysicsSubsystem.h"
 #include "physics/PhysicsWorld.h"
+#include "project/ProjectDescriptor.h"
 #include "scene/Components.h"
-
 
 #include <doctest/doctest.h>
 
@@ -83,16 +82,10 @@ namespace Wayfinder::Tests
             Subsystems.Shutdown();
         }
 
-        PhysicsWorld& GetPhysicsWorld()
-        {
-            return Subsystems.Get<PhysicsSubsystem>()->GetWorld();
-        }
+        PhysicsWorld& GetPhysicsWorld() { return Subsystems.Get<PhysicsSubsystem>()->GetWorld(); }
 
         // Create a physics entity with the given body type, position, and collider.
-        flecs::entity CreatePhysicsEntity(const char* name,
-                                          BodyType type,
-                                          const Float3& position,
-                                          ColliderShape shape = ColliderShape::Box)
+        flecs::entity CreatePhysicsEntity(const char* name, BodyType type, const Float3& position, ColliderShape shape = ColliderShape::Box)
         {
             RigidBodyComponent rb;
             rb.Type = type;
@@ -108,7 +101,7 @@ namespace Wayfinder::Tests
             entity.set<ColliderComponent>(col);
             entity.set<RigidBodyComponent>(rb);
             EcsWorld.defer_end();
-            
+
             auto rigidbody = entity.get<RigidBodyComponent>();
             auto result = rigidbody.RuntimeBodyId;
             (void)result; // Avoid unused variable warning; observer will fill this in asynchronously.
@@ -271,8 +264,7 @@ namespace Wayfinder::Tests
             PhysicsIntegrationFixture fixture;
 
             const float startY = 15.0f;
-            auto entity = fixture.CreatePhysicsEntity(
-                "FallingSphere", BodyType::Dynamic, {0.0f, startY, 0.0f}, ColliderShape::Sphere);
+            auto entity = fixture.CreatePhysicsEntity("FallingSphere", BodyType::Dynamic, {0.0f, startY, 0.0f}, ColliderShape::Sphere);
 
             fixture.Simulate();
 

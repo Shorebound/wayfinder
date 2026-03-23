@@ -14,10 +14,7 @@ namespace Wayfinder
         uint32_t GetWidth() const { return m_width; }
         uint32_t GetHeight() const { return m_height; }
 
-        std::string ToString() const override
-        {
-            return std::format("{}: {}, {}", GetName(), m_width, m_height);
-        }
+        std::string ToString() const override { return std::format("{}: {}, {}", GetName(), m_width, m_height); }
 
     private:
         uint32_t m_width;

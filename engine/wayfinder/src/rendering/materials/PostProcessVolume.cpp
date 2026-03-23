@@ -8,12 +8,8 @@
 
 namespace Wayfinder
 {
-    float ComputeDistanceToVolume(
-        const Wayfinder::PostProcessVolumeComponent& volume,
-        const Wayfinder::Float3& worldPosition,
-        const Wayfinder::Float3& worldScale,
-        const Wayfinder::Matrix4& localToWorld,
-        const Wayfinder::Float3& cameraPosition)
+    float ComputeDistanceToVolume(const Wayfinder::PostProcessVolumeComponent& volume, const Wayfinder::Float3& worldPosition,
+        const Wayfinder::Float3& worldScale, const Wayfinder::Matrix4& localToWorld, const Wayfinder::Float3& cameraPosition)
     {
         using namespace Wayfinder;
 
@@ -50,25 +46,16 @@ namespace Wayfinder
 
     uint8_t LerpByte(uint8_t a, uint8_t b, float t)
     {
-        return static_cast<uint8_t>(Maths::Clamp(
-            static_cast<float>(a) + (static_cast<float>(b) - static_cast<float>(a)) * t,
-            0.0f, 255.0f));
+        return static_cast<uint8_t>(
+            Maths::Clamp(static_cast<float>(a) + (static_cast<float>(b) - static_cast<float>(a)) * t, 0.0f, 255.0f));
     }
 
     Wayfinder::Colour LerpColour(const Wayfinder::Colour& a, const Wayfinder::Colour& b, float t)
-    {
-        return {
-            .r = LerpByte(a.r, b.r, t),
-            .g = LerpByte(a.g, b.g, t),
-            .b = LerpByte(a.b, b.b, t),
-            .a = LerpByte(a.a, b.a, t)};
-    }
+    { return {.r = LerpByte(a.r, b.r, t), .g = LerpByte(a.g, b.g, t), .b = LerpByte(a.b, b.b, t), .a = LerpByte(a.a, b.a, t)}; }
 
     // Blend a single parameter value toward a target by weight.
     Wayfinder::PostProcessParamValue LerpParam(
-        const Wayfinder::PostProcessParamValue& current,
-        const Wayfinder::PostProcessParamValue& target,
-        float weight)
+        const Wayfinder::PostProcessParamValue& current, const Wayfinder::PostProcessParamValue& target, float weight)
     {
         // Both sides must hold the same type; if mismatched, take the target.
         if (current.index() != target.index()) { return target; }
@@ -88,7 +75,8 @@ namespace Wayfinder
                 return LerpColour(a, b, weight);
             else
                 return b;
-        }, current);
+        },
+            current);
     }
 
     Wayfinder::PostProcessParamValue ZeroValue(const Wayfinder::PostProcessParamValue& v)
@@ -96,26 +84,26 @@ namespace Wayfinder
         return std::visit([](const auto& val) -> Wayfinder::PostProcessParamValue
         {
             using T = std::decay_t<decltype(val)>;
-            if constexpr (std::is_same_v<T, float>) return 0.0f;
-            else if constexpr (std::is_same_v<T, int32_t>) return int32_t{0};
-            else if constexpr (std::is_same_v<T, Wayfinder::Float3>) return Wayfinder::Float3{0.0f, 0.0f, 0.0f};
-            else if constexpr (std::is_same_v<T, Wayfinder::Colour>) return Wayfinder::Colour{0, 0, 0, 0};
-            else return val;
-        }, v);
+            if constexpr (std::is_same_v<T, float>)
+                return 0.0f;
+            else if constexpr (std::is_same_v<T, int32_t>)
+                return int32_t{0};
+            else if constexpr (std::is_same_v<T, Wayfinder::Float3>)
+                return Wayfinder::Float3{0.0f, 0.0f, 0.0f};
+            else if constexpr (std::is_same_v<T, Wayfinder::Colour>)
+                return Wayfinder::Colour{0, 0, 0, 0};
+            else
+                return val;
+        },
+            v);
     }
 
-    void BlendEffectInto(
-        Wayfinder::PostProcessEffect& result,
-        const Wayfinder::PostProcessEffect& source,
-        float weight)
+    void BlendEffectInto(Wayfinder::PostProcessEffect& result, const Wayfinder::PostProcessEffect& source, float weight)
     {
         for (const auto& [key, value] : source.Parameters)
         {
             auto it = result.Parameters.find(key);
-            if (it != result.Parameters.end())
-            {
-                it->second = LerpParam(it->second, value, weight);
-            }
+            if (it != result.Parameters.end()) { it->second = LerpParam(it->second, value, weight); }
             else
             {
                 result.Parameters[key] = LerpParam(ZeroValue(value), value, weight);
@@ -170,16 +158,11 @@ namespace Wayfinder
         return it != Effects.end() ? &it->second : nullptr;
     }
 
-    bool PostProcessStack::HasEffect(const std::string& type) const
-    {
-        return Effects.contains(type);
-    }
+    bool PostProcessStack::HasEffect(const std::string& type) const { return Effects.contains(type); }
 
     // ── Blending ─────────────────────────────────────────────
 
-    PostProcessStack BlendPostProcessVolumes(
-        const Float3& cameraPosition,
-        std::span<const PostProcessVolumeInstance> volumes)
+    PostProcessStack BlendPostProcessVolumes(const Float3& cameraPosition, std::span<const PostProcessVolumeInstance> volumes)
     {
         PostProcessStack result;
 
@@ -194,16 +177,16 @@ namespace Wayfinder
             sorted.push_back(&instance);
         }
 
-        std::stable_sort(sorted.begin(), sorted.end(), [](const auto* a, const auto* b)
-        {
-            return a->Volume->Priority < b->Volume->Priority;
-        });
+        std::stable_sort(sorted.begin(), sorted.end(),
+            [](const auto* a, const auto* b)
+            {
+                return a->Volume->Priority < b->Volume->Priority;
+            });
 
         for (const auto* instance : sorted)
         {
-            const float distance = ComputeDistanceToVolume(  
-                *instance->Volume, instance->WorldPosition, instance->WorldScale,
-                instance->LocalToWorld, cameraPosition);
+            const float distance = ComputeDistanceToVolume(
+                *instance->Volume, instance->WorldPosition, instance->WorldScale, instance->LocalToWorld, cameraPosition);
             const float weight = ComputeBlendWeight(distance, instance->Volume->BlendDistance);
 
             if (weight <= 0.0f) { continue; }
@@ -213,10 +196,7 @@ namespace Wayfinder
                 if (!effect.Enabled) { continue; }
 
                 auto it = result.Effects.find(effect.Type);
-                if (it != result.Effects.end())
-                {
-                    BlendEffectInto(it->second, effect, weight);
-                }
+                if (it != result.Effects.end()) { BlendEffectInto(it->second, effect, weight); }
                 else
                 {
                     // First contribution — blend from zero baseline so weight is respected.

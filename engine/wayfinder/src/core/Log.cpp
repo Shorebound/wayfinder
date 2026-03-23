@@ -19,8 +19,7 @@ namespace Wayfinder
     LogCategory& LogGame = Log::CreateCategory("Game");
     LogCategory& LogScene = Log::CreateCategory("Scene");
 
-    LogCategory::LogCategory(const std::string& name, LogVerbosity defaultVerbosity)
-        : m_name(name), m_verbosity(defaultVerbosity)
+    LogCategory::LogCategory(const std::string& name, LogVerbosity defaultVerbosity) : m_name(name), m_verbosity(defaultVerbosity)
     {
         // Create logger with empty output list
         m_logger = CreateLogger(name, defaultVerbosity);
@@ -51,8 +50,6 @@ namespace Wayfinder
             output->SetPattern("[%Y-%m-%d %H:%M:%S.%e] [%l] %n: %v");
             m_logger->AddOutput(output);
         }
-
-
     }
 
     void LogCategory::SetVerbosity(LogVerbosity level)
@@ -99,10 +96,7 @@ namespace Wayfinder
         }
     }
 
-    bool Log::IsOutputEnabled(LogOutputType output)
-    {
-        return s_config.IsOutputEnabled(output);
-    }
+    bool Log::IsOutputEnabled(LogOutputType output) { return s_config.IsOutputEnabled(output); }
 
     void Log::SetLogFilePath(const std::string& path)
     {
@@ -140,10 +134,7 @@ namespace Wayfinder
     LogCategory& Log::CreateCategory(const std::string& name, LogVerbosity defaultVerbosity)
     {
         auto it = s_categories.find(name);
-        if (it != s_categories.end())
-        {
-            return *it->second;
-        }
+        if (it != s_categories.end()) { return *it->second; }
 
         auto category = std::make_unique<LogCategory>(name, defaultVerbosity);
         auto& ref = *category;
@@ -154,10 +145,7 @@ namespace Wayfinder
     LogCategory& Log::GetCategory(const std::string& name)
     {
         auto it = s_categories.find(name);
-        if (it != s_categories.end())
-        {
-            return *it->second;
-        }
+        if (it != s_categories.end()) { return *it->second; }
         return CreateCategory(name);
     }
 

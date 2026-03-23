@@ -23,12 +23,8 @@ namespace Wayfinder
         TransientResourcePool& operator=(const TransientResourcePool&) = delete;
 
         TransientResourcePool(TransientResourcePool&& other) noexcept
-            : m_device(other.m_device)
-            , m_available(std::move(other.m_available))
-            , m_allTextures(std::move(other.m_allTextures))
-        {
-            other.m_device = nullptr;
-        }
+            : m_device(other.m_device), m_available(std::move(other.m_available)), m_allTextures(std::move(other.m_allTextures))
+        { other.m_device = nullptr; }
 
         TransientResourcePool& operator=(TransientResourcePool&& other) noexcept
         {

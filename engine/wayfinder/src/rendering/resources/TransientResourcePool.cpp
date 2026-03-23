@@ -1,6 +1,6 @@
 #include "TransientResourcePool.h"
-#include "rendering/backend/RenderDevice.h"
 #include "core/Log.h"
+#include "rendering/backend/RenderDevice.h"
 
 namespace Wayfinder
 {
@@ -38,10 +38,7 @@ namespace Wayfinder
 
         // Create a new texture
         GPUTextureHandle tex = m_device->CreateTexture(desc);
-        if (tex)
-        {
-            m_allTextures.push_back(tex);
-        }
+        if (tex) { m_allTextures.push_back(tex); }
         return tex;
     }
 

@@ -18,10 +18,10 @@ namespace Wayfinder
      *
      * @tparam TTag A tag type that distinguishes handle domains at compile time.
      */
-    template <typename TTag>
+    template<typename TTag>
     struct Handle
     {
-        uint32_t Index      : 20 = 0;
+        uint32_t Index : 20 = 0;
         uint32_t Generation : 12 = 0;
 
         [[nodiscard]] constexpr bool IsValid() const noexcept { return Generation != 0; }
@@ -33,12 +33,9 @@ namespace Wayfinder
 
 } // namespace Wayfinder
 
-template <typename TTag>
+template<typename TTag>
 struct std::hash<Wayfinder::Handle<TTag>>
 {
     size_t operator()(const Wayfinder::Handle<TTag>& h) const noexcept
-    {
-        return std::hash<uint32_t>{}(
-            (static_cast<uint32_t>(h.Index) << 12) | h.Generation);
-    }
+    { return std::hash<uint32_t>{}((static_cast<uint32_t>(h.Index) << 12) | h.Generation); }
 };

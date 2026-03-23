@@ -7,7 +7,6 @@
 #include <string>
 #include <unordered_map>
 
-
 namespace Wayfinder
 {
 
@@ -75,8 +74,7 @@ namespace Wayfinder
 
 // Logging macros
 #define WAYFINDER_LOG(category, verbosity, ...) \
-    if (verbosity <= category.GetVerbosity())   \
-    category.GetLogger()->LogFormat(verbosity, __VA_ARGS__)
+    if (verbosity <= category.GetVerbosity()) category.GetLogger()->LogFormat(verbosity, __VA_ARGS__)
 
 #define WAYFINDER_VERBOSE(category, ...) WAYFINDER_LOG(category, Wayfinder::LogVerbosity::Verbose, __VA_ARGS__)
 #define WAYFINDER_INFO(category, ...) WAYFINDER_LOG(category, Wayfinder::LogVerbosity::Info, __VA_ARGS__)

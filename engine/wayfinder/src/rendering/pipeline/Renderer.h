@@ -1,8 +1,8 @@
 #pragma once
 
-#include "rendering/graph/RenderFeature.h"
 #include "rendering/RenderTypes.h"
 #include "rendering/backend/GPUPipeline.h"
+#include "rendering/graph/RenderFeature.h"
 #include "rendering/mesh/Mesh.h"
 
 #include <algorithm>
@@ -36,21 +36,28 @@ namespace Wayfinder
         // ── RenderFeature API ────────────────────────────────
         void AddFeature(std::unique_ptr<RenderFeature> feature);
 
-        template <typename T>
+        template<typename T>
         bool RemoveFeature()
         {
             auto it = std::find_if(m_features.begin(), m_features.end(),
-                [](const std::unique_ptr<RenderFeature>& f) { return dynamic_cast<T*>(f.get()) != nullptr; });
+                [](const std::unique_ptr<RenderFeature>& f)
+                {
+                    return dynamic_cast<T*>(f.get()) != nullptr;
+                });
             if (it != m_features.end())
             {
-                if (m_device) { auto ctx = MakeFeatureContext(); (*it)->OnDetach(ctx); }
+                if (m_device)
+                {
+                    auto ctx = MakeFeatureContext();
+                    (*it)->OnDetach(ctx);
+                }
                 m_features.erase(it);
                 return true;
             }
             return false;
         }
 
-        template <typename T>
+        template<typename T>
         const T* GetFeature() const
         {
             for (const auto& f : m_features)
@@ -60,7 +67,7 @@ namespace Wayfinder
             return nullptr;
         }
 
-        template <typename T>
+        template<typename T>
         T* GetFeature()
         {
             for (auto& f : m_features)

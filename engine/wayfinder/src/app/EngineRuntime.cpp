@@ -3,11 +3,11 @@
 #include "EngineConfig.h"
 #include "EngineContext.h"
 #include "core/Log.h"
-#include "project/ProjectDescriptor.h"
 #include "core/Result.h"
 #include "platform/Input.h"
 #include "platform/Time.h"
 #include "platform/Window.h"
+#include "project/ProjectDescriptor.h"
 #include "rendering/backend/RenderDevice.h"
 #include "rendering/pipeline/Renderer.h"
 #include "rendering/pipeline/SceneRenderExtractor.h"
@@ -17,17 +17,9 @@
 
 namespace Wayfinder
 {
-    EngineRuntime::EngineRuntime(const EngineConfig& config,
-                                 const ProjectDescriptor& project)
-        : m_config(config)
-        , m_project(project)
-    {
-    }
+    EngineRuntime::EngineRuntime(const EngineConfig& config, const ProjectDescriptor& project) : m_config(config), m_project(project) {}
 
-    EngineRuntime::~EngineRuntime()
-    {
-        Shutdown();
-    }
+    EngineRuntime::~EngineRuntime() { Shutdown(); }
 
     // ── Lifecycle ────────────────────────────────────────────
 
@@ -52,11 +44,8 @@ namespace Wayfinder
         }
 
         // Window — must exist before RenderDevice (swapchain needs a surface)
-        const auto windowConfig = Window::Config{
-            m_config.Window.Width,
-            m_config.Window.Height,
-            m_config.Window.Title,
-            m_config.Window.VSync};
+        const auto windowConfig =
+            Window::Config{m_config.Window.Width, m_config.Window.Height, m_config.Window.Title, m_config.Window.VSync};
 
         m_window = Window::Create(windowConfig, m_config.Backends.Platform);
         if (!m_window)
@@ -114,8 +103,7 @@ namespace Wayfinder
 
     void EngineRuntime::Shutdown()
     {
-        if (!m_renderer && !m_device && !m_window && !m_input && !m_time)
-            return; // already shut down or never initialised
+        if (!m_renderer && !m_device && !m_window && !m_input && !m_time) return; // already shut down or never initialised
 
         WAYFINDER_INFO(LogEngine, "Shutting down EngineRuntime");
 
@@ -161,45 +149,50 @@ namespace Wayfinder
 
     void EngineRuntime::RenderScene(const Scene& scene)
     {
-        if (m_renderer && m_extractor)
-        {
-            m_renderer->Render(m_extractor->Extract(scene));
-        }
+        if (m_renderer && m_extractor) { m_renderer->Render(m_extractor->Extract(scene)); }
     }
 
     void EngineRuntime::SetAssetService(const std::shared_ptr<AssetService>& assetService)
     {
-        if (m_renderer)
-        {
-            m_renderer->SetAssetService(assetService);
-        }
+        if (m_renderer) { m_renderer->SetAssetService(assetService); }
     }
 
     // ── Queries ──────────────────────────────────────────────
 
-    bool EngineRuntime::ShouldClose() const
-    {
-        return m_window && m_window->ShouldClose();
-    }
+    bool EngineRuntime::ShouldClose() const { return m_window && m_window->ShouldClose(); }
 
-    float EngineRuntime::GetDeltaTime() const
-    {
-        return m_time ? m_time->GetDeltaTime() : 0.0f;
-    }
+    float EngineRuntime::GetDeltaTime() const { return m_time ? m_time->GetDeltaTime() : 0.0f; }
 
     // ── Non-owning accessors ─────────────────────────────────
 
-    Window& EngineRuntime::GetWindow() { assert(m_window && "GetWindow called before Initialise or after Shutdown"); return *m_window; }
-    Input& EngineRuntime::GetInput() { assert(m_input && "GetInput called before Initialise or after Shutdown"); return *m_input; }
-    Time& EngineRuntime::GetTime() { assert(m_time && "GetTime called before Initialise or after Shutdown"); return *m_time; }
-    RenderDevice& EngineRuntime::GetDevice() { assert(m_device && "GetDevice called before Initialise or after Shutdown"); return *m_device; }
-    Renderer& EngineRuntime::GetRenderer() { assert(m_renderer && "GetRenderer called before Initialise or after Shutdown"); return *m_renderer; }
+    Window& EngineRuntime::GetWindow()
+    {
+        assert(m_window && "GetWindow called before Initialise or after Shutdown");
+        return *m_window;
+    }
+    Input& EngineRuntime::GetInput()
+    {
+        assert(m_input && "GetInput called before Initialise or after Shutdown");
+        return *m_input;
+    }
+    Time& EngineRuntime::GetTime()
+    {
+        assert(m_time && "GetTime called before Initialise or after Shutdown");
+        return *m_time;
+    }
+    RenderDevice& EngineRuntime::GetDevice()
+    {
+        assert(m_device && "GetDevice called before Initialise or after Shutdown");
+        return *m_device;
+    }
+    Renderer& EngineRuntime::GetRenderer()
+    {
+        assert(m_renderer && "GetRenderer called before Initialise or after Shutdown");
+        return *m_renderer;
+    }
 
     // ── Context bundle ───────────────────────────────────────
 
-    EngineContext EngineRuntime::BuildContext() const
-    {
-        return EngineContext{*m_window, *m_input, *m_time, m_config, m_project};
-    }
+    EngineContext EngineRuntime::BuildContext() const { return EngineContext{*m_window, *m_input, *m_time, m_config, m_project}; }
 
 } // namespace Wayfinder

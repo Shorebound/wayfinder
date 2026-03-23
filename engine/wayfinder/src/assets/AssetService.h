@@ -73,9 +73,7 @@ namespace Wayfinder
 
     template<>
     inline const MaterialAsset* AssetService::LoadAsset<MaterialAsset>(const AssetId& assetId, std::string& error)
-    {
-        return LoadMaterialAsset(assetId, error);
-    }
+    { return LoadMaterialAsset(assetId, error); }
 
     template<>
     inline const TextureAsset* AssetService::LoadAsset<TextureAsset>(const AssetId& assetId, std::string& error)
@@ -91,8 +89,6 @@ namespace Wayfinder
 
     template<>
     inline TextureAsset* AssetService::GetMutableAsset<TextureAsset>(const AssetId& assetId)
-    {
-        return m_textureCache.GetMutable(assetId);
-    }
+    { return m_textureCache.GetMutable(assetId); }
 
 } // namespace Wayfinder

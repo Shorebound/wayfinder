@@ -4,8 +4,8 @@
 #include "scene/Scene.h"
 #include "scene/entity/Entity.h"
 
-#include <doctest/doctest.h>
 #include "ecs/Flecs.h"
+#include <doctest/doctest.h>
 #include <nlohmann/json.hpp>
 
 /// ── MeshComponent ────────────────────────────────────────
@@ -304,18 +304,9 @@ namespace Wayfinder::Tests
         int countUnset = 0;
         for (const auto& mesh : mainPass->Meshes)
         {
-            if (!mesh.Material.StateOverrides.FillMode.has_value())
-            {
-                ++countUnset;
-            }
-            else if (mesh.Material.StateOverrides.FillMode == Wayfinder::RenderFillMode::Solid)
-            {
-                ++countSolid;
-            }
-            else if (mesh.Material.StateOverrides.FillMode == Wayfinder::RenderFillMode::SolidAndWireframe)
-            {
-                ++countSolidAndWireframe;
-            }
+            if (!mesh.Material.StateOverrides.FillMode.has_value()) { ++countUnset; }
+            else if (mesh.Material.StateOverrides.FillMode == Wayfinder::RenderFillMode::Solid) { ++countSolid; }
+            else if (mesh.Material.StateOverrides.FillMode == Wayfinder::RenderFillMode::SolidAndWireframe) { ++countSolidAndWireframe; }
         }
 
         CHECK(countSolidAndWireframe == 1);

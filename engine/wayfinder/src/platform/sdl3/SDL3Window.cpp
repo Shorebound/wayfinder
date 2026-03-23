@@ -23,33 +23,19 @@ namespace Wayfinder
     }
 
     SDL3Window::SDL3Window(const Window::Config& config)
-        : m_width(config.Width)
-        , m_height(config.Height)
-        , m_title(config.Title)
-        , m_vsync(config.VSync)
-    {
-    }
+        : m_width(config.Width), m_height(config.Height), m_title(config.Title), m_vsync(config.VSync)
+    {}
 
     SDL3Window::~SDL3Window()
     {
-        if (m_initialised)
-        {
-            Shutdown();
-        }
+        if (m_initialised) { Shutdown(); }
     }
 
     bool SDL3Window::Initialise()
     {
-        if (!SDL_Init(SDL_INIT_VIDEO | SDL_INIT_EVENTS))
-        {
-            return false;
-        }
+        if (!SDL_Init(SDL_INIT_VIDEO | SDL_INIT_EVENTS)) { return false; }
 
-        m_window = SDL_CreateWindow(
-            m_title.c_str(),
-            static_cast<int>(m_width),
-            static_cast<int>(m_height),
-            0);
+        m_window = SDL_CreateWindow(m_title.c_str(), static_cast<int>(m_width), static_cast<int>(m_height), 0);
 
         if (!m_window)
         {
@@ -80,8 +66,7 @@ namespace Wayfinder
         {
             switch (event.type)
             {
-            case SDL_EVENT_QUIT:
-            {
+            case SDL_EVENT_QUIT: {
                 m_shouldClose = true;
                 if (m_eventCallback)
                 {
@@ -90,8 +75,7 @@ namespace Wayfinder
                 }
                 break;
             }
-            case SDL_EVENT_WINDOW_CLOSE_REQUESTED:
-            {
+            case SDL_EVENT_WINDOW_CLOSE_REQUESTED: {
                 m_shouldClose = true;
                 if (m_eventCallback)
                 {
@@ -100,8 +84,7 @@ namespace Wayfinder
                 }
                 break;
             }
-            case SDL_EVENT_WINDOW_RESIZED:
-            {
+            case SDL_EVENT_WINDOW_RESIZED: {
                 m_width = static_cast<uint32_t>(event.window.data1);
                 m_height = static_cast<uint32_t>(event.window.data2);
                 if (m_eventCallback)
@@ -111,8 +94,7 @@ namespace Wayfinder
                 }
                 break;
             }
-            case SDL_EVENT_KEY_DOWN:
-            {
+            case SDL_EVENT_KEY_DOWN: {
                 if (m_eventCallback)
                 {
                     KeyCode key = static_cast<KeyCode>(event.key.scancode);
@@ -121,8 +103,7 @@ namespace Wayfinder
                 }
                 break;
             }
-            case SDL_EVENT_KEY_UP:
-            {
+            case SDL_EVENT_KEY_UP: {
                 if (m_eventCallback)
                 {
                     KeyCode key = static_cast<KeyCode>(event.key.scancode);
@@ -131,8 +112,7 @@ namespace Wayfinder
                 }
                 break;
             }
-            case SDL_EVENT_MOUSE_BUTTON_DOWN:
-            {
+            case SDL_EVENT_MOUSE_BUTTON_DOWN: {
                 if (m_eventCallback)
                 {
                     MouseCode button = static_cast<MouseCode>(event.button.button);
@@ -141,8 +121,7 @@ namespace Wayfinder
                 }
                 break;
             }
-            case SDL_EVENT_MOUSE_BUTTON_UP:
-            {
+            case SDL_EVENT_MOUSE_BUTTON_UP: {
                 if (m_eventCallback)
                 {
                     MouseCode button = static_cast<MouseCode>(event.button.button);
@@ -151,8 +130,7 @@ namespace Wayfinder
                 }
                 break;
             }
-            case SDL_EVENT_MOUSE_MOTION:
-            {
+            case SDL_EVENT_MOUSE_MOTION: {
                 if (m_eventCallback)
                 {
                     MouseMovedEvent e(event.motion.x, event.motion.y);
@@ -160,8 +138,7 @@ namespace Wayfinder
                 }
                 break;
             }
-            case SDL_EVENT_MOUSE_WHEEL:
-            {
+            case SDL_EVENT_MOUSE_WHEEL: {
                 if (m_eventCallback)
                 {
                     MouseScrolledEvent e(event.wheel.x, event.wheel.y);
@@ -175,37 +152,22 @@ namespace Wayfinder
         }
     }
 
-    bool SDL3Window::ShouldClose() const
-    {
-        return m_shouldClose;
-    }
+    bool SDL3Window::ShouldClose() const { return m_shouldClose; }
 
-    void SDL3Window::SetEventCallback(const EventCallbackFn& callback)
-    {
-        m_eventCallback = callback;
-    }
+    void SDL3Window::SetEventCallback(const EventCallbackFn& callback) { m_eventCallback = callback; }
 
-    void SDL3Window::SetVSync(bool enabled)
-    {
-        m_vsync = enabled;
-    }
+    void SDL3Window::SetVSync(bool enabled) { m_vsync = enabled; }
 
     void SDL3Window::SetTitle(const std::string& title)
     {
         m_title = title;
-        if (m_window)
-        {
-            SDL_SetWindowTitle(m_window, title.c_str());
-        }
+        if (m_window) { SDL_SetWindowTitle(m_window, title.c_str()); }
     }
 
     void SDL3Window::SetSize(uint32_t width, uint32_t height)
     {
         m_width = width;
         m_height = height;
-        if (m_window)
-        {
-            SDL_SetWindowSize(m_window, static_cast<int>(width), static_cast<int>(height));
-        }
+        if (m_window) { SDL_SetWindowSize(m_window, static_cast<int>(width), static_cast<int>(height)); }
     }
 }

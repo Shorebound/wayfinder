@@ -4,10 +4,10 @@
 #include <string>
 
 #include "core/Identifiers.h"
-#include "maths/Maths.h"
-#include "rendering/materials/PostProcessVolume.h"
-#include "rendering/graph/RenderIntent.h"
 #include "core/Types.h"
+#include "maths/Maths.h"
+#include "rendering/graph/RenderIntent.h"
+#include "rendering/materials/PostProcessVolume.h"
 
 namespace Wayfinder
 {
@@ -25,15 +25,11 @@ namespace Wayfinder
         Directional
     };
 
-    struct SceneEntityComponent
-    {
-    };
+    struct SceneEntityComponent {};
 
     /// Relationship tag for scene-entity ownership.
     /// Usage: entity.add<SceneOwnership>(sceneTag)
-    struct SceneOwnership
-    {
-    };
+    struct SceneOwnership {};
 
     struct NameComponent
     {
@@ -57,25 +53,22 @@ namespace Wayfinder
 
     struct TransformComponent
     {
-        Float3 Position = { 0.0f, 0.0f, 0.0f };
-        Float3 Rotation = { 0.0f, 0.0f, 0.0f };
-        Float3 Scale = { 1.0f, 1.0f, 1.0f };
+        Float3 Position = {0.0f, 0.0f, 0.0f};
+        Float3 Rotation = {0.0f, 0.0f, 0.0f};
+        Float3 Scale = {1.0f, 1.0f, 1.0f};
 
         TransformComponent() = default;
         TransformComponent(const TransformComponent&) = default;
         TransformComponent& operator=(const TransformComponent&) = default;
         TransformComponent(const Float3& position) : Position(position) {}
 
-        Matrix4 GetLocalMatrix() const
-        {
-            return Maths::ComposeTransform(Position, Rotation, Scale);
-        }
+        Matrix4 GetLocalMatrix() const { return Maths::ComposeTransform(Position, Rotation, Scale); }
     };
 
     struct WorldTransformComponent
     {
-        Float3 Position = { 0.0f, 0.0f, 0.0f };
-        Float3 Scale = { 1.0f, 1.0f, 1.0f };
+        Float3 Position = {0.0f, 0.0f, 0.0f};
+        Float3 Scale = {1.0f, 1.0f, 1.0f};
         Matrix4 LocalToWorld = Matrix4(1.0f);
 
         WorldTransformComponent() = default;
@@ -86,9 +79,9 @@ namespace Wayfinder
     struct ActiveCameraStateComponent
     {
         bool IsValid = false;
-        Float3 Position = { 0.0f, 0.0f, 0.0f };
-        Float3 Target = { 0.0f, 0.0f, 0.0f };
-        Float3 Up = { 0.0f, 1.0f, 0.0f };
+        Float3 Position = {0.0f, 0.0f, 0.0f};
+        Float3 Target = {0.0f, 0.0f, 0.0f};
+        Float3 Up = {0.0f, 1.0f, 0.0f};
         float FieldOfView = 45.0f;
         ProjectionMode Projection = ProjectionMode::Perspective;
 
@@ -105,7 +98,7 @@ namespace Wayfinder
     struct MeshComponent
     {
         MeshPrimitive Primitive = MeshPrimitive::Cube;
-        Float3 Dimensions = { 1.0f, 1.0f, 1.0f };
+        Float3 Dimensions = {1.0f, 1.0f, 1.0f};
 
         MeshComponent() = default;
         MeshComponent(const MeshComponent&) = default;
@@ -166,8 +159,8 @@ namespace Wayfinder
     struct CameraComponent
     {
         bool Primary = false;
-        Float3 Target = { 0.0f, 0.0f, 0.0f };
-        Float3 Up = { 0.0f, 1.0f, 0.0f };
+        Float3 Target = {0.0f, 0.0f, 0.0f};
+        Float3 Up = {0.0f, 1.0f, 0.0f};
         float FieldOfView = 45.0f;
         ProjectionMode Projection = ProjectionMode::Perspective;
 

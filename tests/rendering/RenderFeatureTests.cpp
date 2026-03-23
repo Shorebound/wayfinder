@@ -18,8 +18,7 @@ namespace Wayfinder::Tests
     class TestFeature : public Wayfinder::RenderFeature
     {
     public:
-        explicit TestFeature(std::string name, std::vector<std::string>& log)
-            : m_name(std::move(name)), m_log(log) {}
+        explicit TestFeature(std::string name, std::vector<std::string>& log) : m_name(std::move(name)), m_log(log) {}
 
         const std::string& GetName() const override { return m_name; }
 
@@ -28,22 +27,18 @@ namespace Wayfinder::Tests
             m_log.push_back(m_name + "::AddPasses");
 
             // Inject a simple pass that reads SceneColour and writes swapchain
-            graph.AddPass(m_name, [this](Wayfinder::RenderGraphBuilder& builder) {
-                auto colour = builder.CreateTransient({128, 128, Wayfinder::TextureFormat::RGBA8_UNORM, m_name.c_str()});
-                builder.WriteColour(colour);
-                return [](Wayfinder::RenderDevice&, const Wayfinder::RenderGraphResources&) {};
-            });
+            graph.AddPass(m_name,
+                [this](Wayfinder::RenderGraphBuilder& builder)
+                {
+                    auto colour = builder.CreateTransient({128, 128, Wayfinder::TextureFormat::RGBA8_UNORM, m_name.c_str()});
+                    builder.WriteColour(colour);
+                    return [](Wayfinder::RenderDevice&, const Wayfinder::RenderGraphResources&) {};
+                });
         }
 
-        void OnAttach(const Wayfinder::RenderFeatureContext&) override
-        {
-            m_log.push_back(m_name + "::OnAttach");
-        }
+        void OnAttach(const Wayfinder::RenderFeatureContext&) override { m_log.push_back(m_name + "::OnAttach"); }
 
-        void OnDetach(const Wayfinder::RenderFeatureContext&) override
-        {
-            m_log.push_back(m_name + "::OnDetach");
-        }
+        void OnDetach(const Wayfinder::RenderFeatureContext&) override { m_log.push_back(m_name + "::OnDetach"); }
 
     private:
         std::string m_name;
@@ -62,17 +57,17 @@ namespace Wayfinder::Tests
 
         void AddPasses(Wayfinder::RenderGraph& graph, const Wayfinder::RenderFrame&) override
         {
-            graph.AddPass("OverlayPass", [&](Wayfinder::RenderGraphBuilder& builder) {
-                auto colour = graph.FindHandle(Wayfinder::WellKnown::SceneColour);
-                if (colour.IsValid())
+            graph.AddPass("OverlayPass",
+                [&](Wayfinder::RenderGraphBuilder& builder)
                 {
-                    builder.ReadTexture(colour);
-                }
-                builder.SetSwapchainOutput();
-                return [this](Wayfinder::RenderDevice&, const Wayfinder::RenderGraphResources&) {
-                    m_executed = true;
-                };
-            });
+                    auto colour = graph.FindHandle(Wayfinder::WellKnown::SceneColour);
+                    if (colour.IsValid()) { builder.ReadTexture(colour); }
+                    builder.SetSwapchainOutput();
+                    return [this](Wayfinder::RenderDevice&, const Wayfinder::RenderGraphResources&)
+                    {
+                        m_executed = true;
+                    };
+                });
         }
 
         bool WasExecuted() const { return m_executed; }
@@ -122,10 +117,7 @@ namespace Wayfinder::Tests
 
         // The renderer checks IsEnabled() before calling AddPasses.
         // We simulate that pattern here.
-        if (feature.IsEnabled())
-        {
-            feature.AddPasses(graph, frame);
-        }
+        if (feature.IsEnabled()) { feature.AddPasses(graph, frame); }
 
         CHECK(log.empty());
     }
@@ -148,10 +140,7 @@ namespace Wayfinder::Tests
 
         for (auto& feature : features)
         {
-            if (feature->IsEnabled())
-            {
-                feature->AddPasses(graph, frame);
-            }
+            if (feature->IsEnabled()) { feature->AddPasses(graph, frame); }
         }
 
         REQUIRE(log.size() == 2);
@@ -178,11 +167,13 @@ namespace Wayfinder::Tests
         colourDesc.Format = Wayfinder::TextureFormat::RGBA8_UNORM;
         colourDesc.DebugName = Wayfinder::WellKnown::SceneColour;
 
-        graph.AddPass("MainScene", [&](Wayfinder::RenderGraphBuilder& builder) {
-            auto colour = builder.CreateTransient(colourDesc);
-            builder.WriteColour(colour);
-            return [](Wayfinder::RenderDevice&, const Wayfinder::RenderGraphResources&) {};
-        });
+        graph.AddPass("MainScene",
+            [&](Wayfinder::RenderGraphBuilder& builder)
+            {
+                auto colour = builder.CreateTransient(colourDesc);
+                builder.WriteColour(colour);
+                return [](Wayfinder::RenderDevice&, const Wayfinder::RenderGraphResources&) {};
+            });
 
         // Feature injects its pass
         overlay.AddPasses(graph, frame);
@@ -211,10 +202,7 @@ namespace Wayfinder::Tests
 
         for (auto& feature : features)
         {
-            if (feature->IsEnabled())
-            {
-                feature->AddPasses(graph, frame);
-            }
+            if (feature->IsEnabled()) { feature->AddPasses(graph, frame); }
         }
 
         REQUIRE(log.size() == 1);

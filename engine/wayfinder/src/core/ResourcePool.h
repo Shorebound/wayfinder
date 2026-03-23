@@ -17,7 +17,7 @@ namespace Wayfinder
      * @tparam TTag  The handle tag type (determines the Handle<TTag> domain).
      * @tparam TResource  The concrete resource type stored in each slot.
      */
-    template <typename TTag, typename TResource>
+    template<typename TTag, typename TResource>
     class ResourcePool
     {
     public:
@@ -122,15 +122,12 @@ namespace Wayfinder
         /**
          * @brief Returns the number of currently alive slots.
          */
-        [[nodiscard]] size_t ActiveCount() const
-        {
-            return m_activeCount;
-        }
+        [[nodiscard]] size_t ActiveCount() const { return m_activeCount; }
 
         /**
          * @brief Calls fn(TResource&) for each alive entry.
          */
-        template <typename TFn>
+        template<typename TFn>
         void ForEachAlive(TFn&& fn)
         {
             for (auto& entry : m_entries)
@@ -160,8 +157,8 @@ namespace Wayfinder
         }
 
     private:
-        static constexpr uint32_t MAX_INDEX      = (1u << 20);       // ~1M slots
-        static constexpr uint32_t MAX_GENERATION  = (1u << 12) - 1;  // 4095
+        static constexpr uint32_t MAX_INDEX = (1u << 20);          // ~1M slots
+        static constexpr uint32_t MAX_GENERATION = (1u << 12) - 1; // 4095
 
         struct Entry
         {

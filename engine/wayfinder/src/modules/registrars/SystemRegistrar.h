@@ -29,11 +29,8 @@ namespace Wayfinder
         };
 
         /// Register a named system descriptor.  Rejects duplicates.
-        void Register(std::string name,
-                      std::function<void(flecs::world&)> factory,
-                      RunCondition condition = {},
-                      std::vector<std::string> after = {},
-                      std::vector<std::string> before = {});
+        void Register(std::string name, std::function<void(flecs::world&)> factory, RunCondition condition = {},
+            std::vector<std::string> after = {}, std::vector<std::string> before = {});
 
         /// Topologically sort and apply all registered factories into the world.
         void ApplyToWorld(flecs::world& world) const;

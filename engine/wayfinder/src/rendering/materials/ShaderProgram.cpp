@@ -1,16 +1,13 @@
 #include "ShaderProgram.h"
 
-#include "rendering/backend/GPUPipeline.h"
-#include "rendering/pipeline/PipelineCache.h"
 #include "ShaderManager.h"
 #include "core/Log.h"
+#include "rendering/backend/GPUPipeline.h"
+#include "rendering/pipeline/PipelineCache.h"
 
 namespace Wayfinder
 {
-    ShaderProgramRegistry::~ShaderProgramRegistry()
-    {
-        Shutdown();
-    }
+    ShaderProgramRegistry::~ShaderProgramRegistry() { Shutdown(); }
 
     void ShaderProgramRegistry::Initialise(RenderDevice& device, ShaderManager& shaders, PipelineCache& cache)
     {

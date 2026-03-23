@@ -1,6 +1,6 @@
 #pragma once
-#include "core/logging/ILogger.h"
 #include "SpdLogOutput.h"
+#include "core/logging/ILogger.h"
 
 namespace Wayfinder
 {
@@ -9,12 +9,10 @@ namespace Wayfinder
     {
     public:
         SpdLogMessage(const spdlog::details::log_msg& msg)
-            : m_level(ConvertLevel(msg.level)),
-              m_loggerName(msg.logger_name.data(), msg.logger_name.size()),
+            : m_level(ConvertLevel(msg.level)), m_loggerName(msg.logger_name.data(), msg.logger_name.size()),
               m_payload(msg.payload.data(), msg.payload.size()),
               m_timestamp(msg.time.time_since_epoch().count() / 1000000000.0) // Convert to seconds
-        {
-        }
+        {}
 
         // ILogMessage implementation
         LogVerbosity GetVerbosity() const override { return m_level; }
@@ -116,15 +114,10 @@ namespace Wayfinder
             m_logger->sinks().clear();
         }
 
-        const std::vector<std::shared_ptr<ILogOutput>>& GetOutputs() const override
-        {
-            return m_outputs;
-        }
+        const std::vector<std::shared_ptr<ILogOutput>>& GetOutputs() const override { return m_outputs; }
 
         void Log(const LogVerbosity level, const std::string_view message) override
-        {
-            m_logger->log(SpdLogMessage::ConvertLevel(level), message);
-        }
+        { m_logger->log(SpdLogMessage::ConvertLevel(level), message); }
 
     protected:
         void LogFormatted(const LogVerbosity level, const std::string_view format, const std::format_args args) override

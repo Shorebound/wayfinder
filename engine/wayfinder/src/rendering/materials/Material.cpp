@@ -43,10 +43,7 @@ namespace Wayfinder
     /// Supports: arrays of 3–4 numbers as Colour, single numbers as Float, integers as Int.
     void ParseParametersTable(const nlohmann::json& params, Wayfinder::MaterialParameterBlock& block)
     {
-        if (!params.is_object())
-        {
-            return;
-        }
+        if (!params.is_object()) { return; }
 
         for (const auto& [key, node] : params.items())
         {
@@ -59,44 +56,28 @@ namespace Wayfinder
                     // Try Colour first (requires all-integer channels); fall through to vec3 on failure
                     Wayfinder::LinearColour colour = Wayfinder::LinearColour::White();
                     std::string unused;
-                    if (ParseLinearColour(node, colour, unused))
-                    {
-                        block.SetColour(name, colour);
-                    }
+                    if (ParseLinearColour(node, colour, unused)) { block.SetColour(name, colour); }
                     else if (node.size() == 3)
                     {
-                        Wayfinder::Float3 v{
-                            static_cast<float>(node[0].get<double>()),
-                            static_cast<float>(node[1].get<double>()),
+                        Wayfinder::Float3 v{static_cast<float>(node[0].get<double>()), static_cast<float>(node[1].get<double>()),
                             static_cast<float>(node[2].get<double>())};
                         block.SetVec3(name, v);
                     }
                     else if (node.size() == 4)
                     {
-                        Wayfinder::Float4 v{
-                            static_cast<float>(node[0].get<double>()),
-                            static_cast<float>(node[1].get<double>()),
-                            static_cast<float>(node[2].get<double>()),
-                            static_cast<float>(node[3].get<double>())};
+                        Wayfinder::Float4 v{static_cast<float>(node[0].get<double>()), static_cast<float>(node[1].get<double>()),
+                            static_cast<float>(node[2].get<double>()), static_cast<float>(node[3].get<double>())};
                         block.SetVec4(name, v);
                     }
                 }
                 else if (node.size() == 2)
                 {
-                    Wayfinder::Float2 v{
-                        static_cast<float>(node[0].get<double>()),
-                        static_cast<float>(node[1].get<double>())};
+                    Wayfinder::Float2 v{static_cast<float>(node[0].get<double>()), static_cast<float>(node[1].get<double>())};
                     block.SetVec2(name, v);
                 }
             }
-            else if (node.is_number_float())
-            {
-                block.SetFloat(name, static_cast<float>(node.get<double>()));
-            }
-            else if (node.is_number_integer())
-            {
-                block.SetInt(name, static_cast<int32_t>(node.get<int64_t>()));
-            }
+            else if (node.is_number_float()) { block.SetFloat(name, static_cast<float>(node.get<double>())); }
+            else if (node.is_number_integer()) { block.SetInt(name, static_cast<int32_t>(node.get<int64_t>())); }
         }
     }
 }
@@ -113,16 +94,10 @@ namespace Wayfinder
         return LinearColour::White();
     }
 
-    void MaterialAsset::SetBaseColour(const LinearColour& colour)
-    {
-        Parameters.SetColour("base_colour", colour);
-    }
+    void MaterialAsset::SetBaseColour(const LinearColour& colour) { Parameters.SetColour("base_colour", colour); }
 
     bool ParseMaterialAssetDocument(
-        const nlohmann::json& document,
-        const std::string& sourceLabel,
-        MaterialAsset& material,
-        std::string& error)
+        const nlohmann::json& document, const std::string& sourceLabel, MaterialAsset& material, std::string& error)
     {
         if (!document.contains(kAssetIdKey) || !document.at(kAssetIdKey).is_string())
         {
@@ -177,10 +152,7 @@ namespace Wayfinder
         }
 
         // Default base_colour to white if nothing was specified
-        if (!parsed.Parameters.Has("base_colour"))
-        {
-            parsed.Parameters.SetColour("base_colour", LinearColour::White());
-        }
+        if (!parsed.Parameters.Has("base_colour")) { parsed.Parameters.SetColour("base_colour", LinearColour::White()); }
 
         // Parse "textures" object: maps slot name → texture asset ID string
         if (document.contains(kTexturesKey) && !document.at(kTexturesKey).is_object())
@@ -224,10 +196,7 @@ namespace Wayfinder
         return true;
     }
 
-    bool LoadMaterialAssetFromFile(
-        const std::filesystem::path& filePath,
-        MaterialAsset& material,
-        std::string& error)
+    bool LoadMaterialAssetFromFile(const std::filesystem::path& filePath, MaterialAsset& material, std::string& error)
     {
         try
         {
@@ -253,12 +222,9 @@ namespace Wayfinder
         table["material_id"] = material.Id.ToString();
 
         LinearColour baseColour = material.GetBaseColour();
-        table["base_colour"] = nlohmann::json::array({
-            static_cast<int64_t>(baseColour.r * 255.0f),
-            static_cast<int64_t>(baseColour.g * 255.0f),
-            static_cast<int64_t>(baseColour.b * 255.0f),
-            static_cast<int64_t>(baseColour.a * 255.0f)
-        });
+        table["base_colour"] =
+            nlohmann::json::array({static_cast<int64_t>(baseColour.r * 255.0f), static_cast<int64_t>(baseColour.g * 255.0f),
+                static_cast<int64_t>(baseColour.b * 255.0f), static_cast<int64_t>(baseColour.a * 255.0f)});
 
         return table;
     }

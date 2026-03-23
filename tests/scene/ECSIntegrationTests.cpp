@@ -4,8 +4,8 @@
 #include "scene/Scene.h"
 #include "scene/entity/Entity.h"
 
-#include <doctest/doctest.h>
 #include "ecs/Flecs.h"
+#include <doctest/doctest.h>
 
 #include <type_traits>
 #include <vector>
@@ -406,8 +406,7 @@ namespace Wayfinder::Tests
             entity.AddComponent<TransformComponent>(TransformComponent{{1.0f, 2.0f, 3.0f}});
 
             // GetComponent on non-const Entity returns const T& (read-only)
-            static_assert(
-                std::is_same_v<decltype(entity.GetComponent<TransformComponent>()), const TransformComponent&>,
+            static_assert(std::is_same_v<decltype(entity.GetComponent<TransformComponent>()), const TransformComponent&>,
                 "GetComponent must return const T&");
             const auto& transform = entity.GetComponent<TransformComponent>();
             CHECK(transform.Position.x == doctest::Approx(1.0f));

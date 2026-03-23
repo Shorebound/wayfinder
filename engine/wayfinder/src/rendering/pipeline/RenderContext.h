@@ -32,8 +32,16 @@ namespace Wayfinder
         void Shutdown();
 
         // ── Accessors ────────────────────────────────────────
-        RenderDevice& GetDevice() { assert(m_device && "RenderContext::GetDevice called before Initialise"); return *m_device; }
-        const RenderDevice& GetDevice() const { assert(m_device && "RenderContext::GetDevice called before Initialise"); return *m_device; }
+        RenderDevice& GetDevice()
+        {
+            assert(m_device && "RenderContext::GetDevice called before Initialise");
+            return *m_device;
+        }
+        const RenderDevice& GetDevice() const
+        {
+            assert(m_device && "RenderContext::GetDevice called before Initialise");
+            return *m_device;
+        }
 
         ShaderManager& GetShaders() { return m_shaderManager; }
         const ShaderManager& GetShaders() const { return m_shaderManager; }

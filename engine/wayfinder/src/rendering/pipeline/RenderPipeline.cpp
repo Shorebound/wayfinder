@@ -1,16 +1,16 @@
 #include "RenderPipeline.h"
 
-#include "rendering/backend/GPUPipeline.h"
-#include "rendering/mesh/Mesh.h"
 #include "PipelineCache.h"
 #include "RenderContext.h"
+#include "rendering/backend/GPUPipeline.h"
 #include "rendering/backend/RenderDevice.h"
+#include "rendering/backend/VertexFormats.h"
 #include "rendering/graph/RenderFeature.h"
 #include "rendering/graph/RenderGraph.h"
-#include "rendering/resources/RenderResources.h"
 #include "rendering/materials/ShaderProgram.h"
+#include "rendering/mesh/Mesh.h"
+#include "rendering/resources/RenderResources.h"
 #include "rendering/resources/TransientBufferAllocator.h"
-#include "rendering/backend/VertexFormats.h"
 
 #include "core/Log.h"
 #include "maths/Maths.h"
@@ -43,8 +43,7 @@ namespace Wayfinder
 
         /// Builds a PipelineCreateDesc for the wireframe variant of a shader program.
         /// Returns std::nullopt if the shader handles cannot be resolved.
-        std::optional<PipelineCreateDesc> MakeWireframeVariant(
-            const ShaderProgramDesc& desc, ShaderManager& shaders)
+        std::optional<PipelineCreateDesc> MakeWireframeVariant(const ShaderProgramDesc& desc, ShaderManager& shaders)
         {
             GPUShaderHandle vs = shaders.GetShader(desc.VertexShaderName, ShaderStage::Vertex, desc.VertexResources);
             GPUShaderHandle fs = shaders.GetShader(desc.FragmentShaderName, ShaderStage::Fragment, desc.FragmentResources);
@@ -82,9 +81,10 @@ namespace Wayfinder
             desc.Cull = CullMode::Back;
             desc.DepthTest = true;
             desc.DepthWrite = true;
-            desc.MaterialParams = {
-                {"base_colour", MaterialParamType::Colour, 0, LinearColour::White()},
-            };
+            desc.MaterialParams =
+                {
+                    {"base_colour", MaterialParamType::Colour, 0, LinearColour::White()},
+                };
             desc.MaterialUBOSize = 16; // float4
             desc.VertexUBOSize = sizeof(UnlitTransformUBO);
             desc.NeedsSceneGlobals = false;
@@ -103,9 +103,10 @@ namespace Wayfinder
             desc.Cull = CullMode::Back;
             desc.DepthTest = true;
             desc.DepthWrite = true;
-            desc.MaterialParams = {
-                {"base_colour", MaterialParamType::Colour, 0, LinearColour::White()},
-            };
+            desc.MaterialParams =
+                {
+                    {"base_colour", MaterialParamType::Colour, 0, LinearColour::White()},
+                };
             desc.MaterialUBOSize = 16; // float4
             desc.VertexUBOSize = sizeof(TransformUBO);
             desc.NeedsSceneGlobals = true;
@@ -124,9 +125,10 @@ namespace Wayfinder
             desc.Cull = CullMode::Back;
             desc.DepthTest = true;
             desc.DepthWrite = true;
-            desc.MaterialParams = {
-                {"base_colour", MaterialParamType::Colour, 0, LinearColour::White()},
-            };
+            desc.MaterialParams =
+                {
+                    {"base_colour", MaterialParamType::Colour, 0, LinearColour::White()},
+                };
             desc.MaterialUBOSize = 16; // float4
             desc.VertexUBOSize = sizeof(TransformUBO);
             desc.NeedsSceneGlobals = true;
@@ -154,10 +156,7 @@ namespace Wayfinder
         }
     }
 
-    void RenderPipeline::Shutdown()
-    {
-        m_context = nullptr;
-    }
+    void RenderPipeline::Shutdown() { m_context = nullptr; }
 
     bool RenderPipeline::Prepare(RenderFrame& frame) const
     {
@@ -175,10 +174,7 @@ namespace Wayfinder
 
         for (RenderPass& pass : frame.Passes)
         {
-            if (!pass.Enabled || pass.Id.IsEmpty())
-            {
-                continue;
-            }
+            if (!pass.Enabled || pass.Id.IsEmpty()) { continue; }
 
             if (pass.ViewIndex >= frame.Views.size())
             {
@@ -220,10 +216,7 @@ namespace Wayfinder
             const float aspect = static_cast<float>(swapW) / static_cast<float>(swapH);
 
             view = Maths::LookAt(camera.Position, camera.Target, camera.Up);
-            if (camera.ProjectionType == 0)
-            {
-                projection = Maths::PerspectiveRH_ZO(Maths::ToRadians(camera.FOV), aspect, 0.1f, 1000.0f);
-            }
+            if (camera.ProjectionType == 0) { projection = Maths::PerspectiveRH_ZO(Maths::ToRadians(camera.FOV), aspect, 0.1f, 1000.0f); }
             else
             {
                 const float halfH = camera.FOV * 0.5f;
@@ -250,315 +243,313 @@ namespace Wayfinder
 
         // ── MainScene Pass ───────────────────────────────────
 #ifdef WAYFINDER_COMPILER_MSVC
-    #pragma warning(push)
-    #pragma warning(disable : 4324) // lambda closure padded due to captured alignas(16) matrices
+#pragma warning(push)
+#pragma warning(disable : 4324) // lambda closure padded due to captured alignas(16) matrices
 #endif
-        graph.AddPass("MainScene", [&, viewMat = view, projMat = projection, hasCamera](RenderGraphBuilder& builder) {
-            auto colour = builder.CreateTransient(colourDesc);
-            auto depth = builder.CreateTransient(depthDesc);
-            builder.WriteColour(colour, LoadOp::Clear, ClearValue::FromColour(clearColour));
-            builder.WriteDepth(depth, LoadOp::Clear, 1.0f);
+        graph.AddPass("MainScene",
+            [&, viewMat = view, projMat = projection, hasCamera](RenderGraphBuilder& builder)
+            {
+                auto colour = builder.CreateTransient(colourDesc);
+                auto depth = builder.CreateTransient(depthDesc);
+                builder.WriteColour(colour, LoadOp::Clear, ClearValue::FromColour(clearColour));
+                builder.WriteDepth(depth, LoadOp::Clear, 1.0f);
 
-            return [this, &preparedFrame, &params, viewMat, projMat, sceneGlobals, hasCamera]
-                   (RenderDevice& device, const RenderGraphResources& /*resources*/) {
-                if (!hasCamera) return;
+                return [this, &preparedFrame, &params, viewMat, projMat, sceneGlobals, hasCamera](
+                           RenderDevice& device, const RenderGraphResources& /*resources*/) {
+                    if (!hasCamera) return;
 
-                auto& registry = m_context->GetPrograms();
-                auto& pipelineCache = m_context->GetPipelines();
-                auto& shaderManager = m_context->GetShaders();
-                const ShaderProgram* lastBoundProgram = nullptr;
+                    auto& registry = m_context->GetPrograms();
+                    auto& pipelineCache = m_context->GetPipelines();
+                    auto& shaderManager = m_context->GetShaders();
+                    const ShaderProgram* lastBoundProgram = nullptr;
 
-                /// Scratch buffer for material UBO data — reused across draws to avoid
-                /// per-submission heap allocations.
-                std::vector<uint8_t> materialUBOData;
+                    /// Scratch buffer for material UBO data — reused across draws to avoid
+                    /// per-submission heap allocations.
+                    std::vector<uint8_t> materialUBOData;
 
-                for (const auto& pass : preparedFrame.Passes)
-                {
-                    if (!pass.Enabled || pass.Kind != RenderPassKind::Scene) continue;
-
-                    // Per-pass camera from the pass's own view
-                    Matrix4 passView = viewMat;
-                    Matrix4 passProj = projMat;
-
-                    if (pass.ViewIndex < preparedFrame.Views.size())
+                    for (const auto& pass : preparedFrame.Passes)
                     {
-                        const auto& pv = preparedFrame.Views[pass.ViewIndex];
-                        const auto& cam = pv.CameraState;
-                        const float aspect = (params.SwapchainHeight > 0)
-                            ? static_cast<float>(params.SwapchainWidth) / static_cast<float>(params.SwapchainHeight)
-                            : 1.0f;
+                        if (!pass.Enabled || pass.Kind != RenderPassKind::Scene) continue;
 
-                        passView = Maths::LookAt(cam.Position, cam.Target, cam.Up);
-                        if (cam.ProjectionType == 0)
+                        // Per-pass camera from the pass's own view
+                        Matrix4 passView = viewMat;
+                        Matrix4 passProj = projMat;
+
+                        if (pass.ViewIndex < preparedFrame.Views.size())
                         {
-                            passProj = Maths::PerspectiveRH_ZO(Maths::ToRadians(cam.FOV), aspect, 0.1f, 1000.0f);
-                        }
-                        else
-                        {
-                            const float halfH = cam.FOV * 0.5f;
-                            const float halfW = halfH * aspect;
-                            passProj = Maths::OrthoRH_ZO(-halfW, halfW, -halfH, halfH, 0.1f, 1000.0f);
-                        }
-                    }
+                            const auto& pv = preparedFrame.Views[pass.ViewIndex];
+                            const auto& cam = pv.CameraState;
+                            const float aspect = (params.SwapchainHeight > 0) ? static_cast<float>(params.SwapchainWidth) /
+                                                                                    static_cast<float>(params.SwapchainHeight)
+                                                                              : 1.0f;
 
-                    for (const auto& submission : pass.Meshes)
-                    {
-                        if (!submission.Visible) continue;
-
-                        const ShaderProgram* program = registry.FindOrDefault(submission.Material.ShaderName);
-                        if (!program || !program->Pipeline) continue;
-
-                        // Determine fill mode: use override if set, otherwise default solid
-                        const RenderFillMode fillMode = submission.Material.StateOverrides.FillMode
-                            .value_or(RenderFillMode::Solid);
-
-                        // Helper: push transform + material uniforms for this submission
-                        auto pushUniforms = [&]()
-                        {
-                            if (program->Desc.NeedsSceneGlobals)
+                            passView = Maths::LookAt(cam.Position, cam.Target, cam.Up);
+                            if (cam.ProjectionType == 0)
                             {
-                                TransformUBO transformUBO;
-                                transformUBO.mvp = passProj * passView * submission.LocalToWorld;
-                                transformUBO.model = submission.LocalToWorld;
-                                device.PushVertexUniform(0, &transformUBO, sizeof(TransformUBO));
+                                passProj = Maths::PerspectiveRH_ZO(Maths::ToRadians(cam.FOV), aspect, 0.1f, 1000.0f);
                             }
                             else
                             {
-                                UnlitTransformUBO transformUBO{passProj * passView * submission.LocalToWorld};
-                                device.PushVertexUniform(0, &transformUBO, sizeof(UnlitTransformUBO));
+                                const float halfH = cam.FOV * 0.5f;
+                                const float halfW = halfH * aspect;
+                                passProj = Maths::OrthoRH_ZO(-halfW, halfW, -halfH, halfH, 0.1f, 1000.0f);
                             }
-
-                            materialUBOData.assign(program->Desc.MaterialUBOSize, 0);
-
-                            MaterialParameterBlock mergedParams = submission.Material.Parameters;
-                            if (submission.Material.HasOverrides)
-                            {
-                                for (const auto& [name, value] : submission.Material.Overrides.Values)
-                                {
-                                    mergedParams.Values[name] = value;
-                                }
-                            }
-
-                            mergedParams.SerialiseToUBO(program->Desc.MaterialParams,
-                                                          materialUBOData.data(),
-                                                          static_cast<uint32_t>(materialUBOData.size()));
-                            device.PushFragmentUniform(0, materialUBOData.data(),
-                                                         static_cast<uint32_t>(materialUBOData.size()));
-
-                            if (program->Desc.NeedsSceneGlobals)
-                            {
-                                device.PushFragmentUniform(1, &sceneGlobals, sizeof(SceneGlobalsUBO));
-                            }
-                        };
-
-                        // Solid draw (for Solid and SolidAndWireframe modes)
-                        if (fillMode == RenderFillMode::Solid || fillMode == RenderFillMode::SolidAndWireframe)
-                        {
-                            // Look up the mesh for this program's vertex layout
-                            const auto meshIt = params.MeshesByStride.find(program->Desc.VertexLayout.stride);
-                            if (meshIt == params.MeshesByStride.end() || !meshIt->second)
-                            {
-                                continue;
-                            }
-                            const auto& mesh = *meshIt->second;
-
-                            if (program != lastBoundProgram)
-                            {
-                                program->Pipeline->Bind();
-                                mesh.Bind(device);
-                                lastBoundProgram = program;
-                            }
-
-                            pushUniforms();
-
-                            // Bind resolved textures for this submission
-                            for (const auto& texBinding : submission.Material.ResolvedTextures)
-                            {
-                                if (texBinding.Texture && texBinding.Sampler)
-                                {
-                                    device.BindFragmentSampler(texBinding.Slot, texBinding.Texture, texBinding.Sampler);
-                                }
-                            }
-
-                            mesh.Draw(device);
                         }
 
-                        // Wireframe draw (for Wireframe and SolidAndWireframe modes)
-                        if (fillMode == RenderFillMode::Wireframe || fillMode == RenderFillMode::SolidAndWireframe)
+                        for (const auto& submission : pass.Meshes)
                         {
-                            const auto wireframeDesc = MakeWireframeVariant(program->Desc, shaderManager);
-                            if (wireframeDesc)
+                            if (!submission.Visible) continue;
+
+                            const ShaderProgram* program = registry.FindOrDefault(submission.Material.ShaderName);
+                            if (!program || !program->Pipeline) continue;
+
+                            // Determine fill mode: use override if set, otherwise default solid
+                            const RenderFillMode fillMode = submission.Material.StateOverrides.FillMode.value_or(RenderFillMode::Solid);
+
+                            // Helper: push transform + material uniforms for this submission
+                            auto pushUniforms = [&]()
                             {
-                                GPUPipelineHandle wireframePipeline = pipelineCache.GetOrCreate(*wireframeDesc);
-                                if (wireframePipeline.IsValid())
+                                if (program->Desc.NeedsSceneGlobals)
                                 {
-                                    // Select the mesh matching the program's vertex layout
-                                    const auto wireframeMeshIt = params.MeshesByStride.find(program->Desc.VertexLayout.stride);
-                                    if (wireframeMeshIt != params.MeshesByStride.end() && wireframeMeshIt->second)
+                                    TransformUBO transformUBO;
+                                    transformUBO.mvp = passProj * passView * submission.LocalToWorld;
+                                    transformUBO.model = submission.LocalToWorld;
+                                    device.PushVertexUniform(0, &transformUBO, sizeof(TransformUBO));
+                                }
+                                else
+                                {
+                                    UnlitTransformUBO transformUBO{passProj * passView * submission.LocalToWorld};
+                                    device.PushVertexUniform(0, &transformUBO, sizeof(UnlitTransformUBO));
+                                }
+
+                                materialUBOData.assign(program->Desc.MaterialUBOSize, 0);
+
+                                MaterialParameterBlock mergedParams = submission.Material.Parameters;
+                                if (submission.Material.HasOverrides)
+                                {
+                                    for (const auto& [name, value] : submission.Material.Overrides.Values)
                                     {
-                                        auto& wireframeMesh = *wireframeMeshIt->second;
-                                        device.BindPipeline(wireframePipeline);
-                                        wireframeMesh.Bind(device);
-                                        lastBoundProgram = nullptr; // Force re-bind on next solid draw
+                                        mergedParams.Values[name] = value;
+                                    }
+                                }
 
-                                        // Bind textures so textured wireframe shaders have valid samplers
-                                        for (const auto& texBinding : submission.Material.ResolvedTextures)
+                                mergedParams.SerialiseToUBO(
+                                    program->Desc.MaterialParams, materialUBOData.data(), static_cast<uint32_t>(materialUBOData.size()));
+                                device.PushFragmentUniform(0, materialUBOData.data(), static_cast<uint32_t>(materialUBOData.size()));
+
+                                if (program->Desc.NeedsSceneGlobals)
+                                {
+                                    device.PushFragmentUniform(1, &sceneGlobals, sizeof(SceneGlobalsUBO));
+                                }
+                            };
+
+                            // Solid draw (for Solid and SolidAndWireframe modes)
+                            if (fillMode == RenderFillMode::Solid || fillMode == RenderFillMode::SolidAndWireframe)
+                            {
+                                // Look up the mesh for this program's vertex layout
+                                const auto meshIt = params.MeshesByStride.find(program->Desc.VertexLayout.stride);
+                                if (meshIt == params.MeshesByStride.end() || !meshIt->second) { continue; }
+                                const auto& mesh = *meshIt->second;
+
+                                if (program != lastBoundProgram)
+                                {
+                                    program->Pipeline->Bind();
+                                    mesh.Bind(device);
+                                    lastBoundProgram = program;
+                                }
+
+                                pushUniforms();
+
+                                // Bind resolved textures for this submission
+                                for (const auto& texBinding : submission.Material.ResolvedTextures)
+                                {
+                                    if (texBinding.Texture && texBinding.Sampler)
+                                    {
+                                        device.BindFragmentSampler(texBinding.Slot, texBinding.Texture, texBinding.Sampler);
+                                    }
+                                }
+
+                                mesh.Draw(device);
+                            }
+
+                            // Wireframe draw (for Wireframe and SolidAndWireframe modes)
+                            if (fillMode == RenderFillMode::Wireframe || fillMode == RenderFillMode::SolidAndWireframe)
+                            {
+                                const auto wireframeDesc = MakeWireframeVariant(program->Desc, shaderManager);
+                                if (wireframeDesc)
+                                {
+                                    GPUPipelineHandle wireframePipeline = pipelineCache.GetOrCreate(*wireframeDesc);
+                                    if (wireframePipeline.IsValid())
+                                    {
+                                        // Select the mesh matching the program's vertex layout
+                                        const auto wireframeMeshIt = params.MeshesByStride.find(program->Desc.VertexLayout.stride);
+                                        if (wireframeMeshIt != params.MeshesByStride.end() && wireframeMeshIt->second)
                                         {
-                                            if (texBinding.Texture && texBinding.Sampler)
-                                            {
-                                                device.BindFragmentSampler(texBinding.Slot, texBinding.Texture, texBinding.Sampler);
-                                            }
-                                        }
+                                            auto& wireframeMesh = *wireframeMeshIt->second;
+                                            device.BindPipeline(wireframePipeline);
+                                            wireframeMesh.Bind(device);
+                                            lastBoundProgram = nullptr; // Force re-bind on next solid draw
 
-                                        pushUniforms();
-                                        wireframeMesh.Draw(device);
+                                            // Bind textures so textured wireframe shaders have valid samplers
+                                            for (const auto& texBinding : submission.Material.ResolvedTextures)
+                                            {
+                                                if (texBinding.Texture && texBinding.Sampler)
+                                                {
+                                                    device.BindFragmentSampler(texBinding.Slot, texBinding.Texture, texBinding.Sampler);
+                                                }
+                                            }
+
+                                            pushUniforms();
+                                            wireframeMesh.Draw(device);
+                                        }
                                     }
                                 }
                             }
                         }
                     }
-                }
-            };
-        });
+                };
+            });
 
         // ── Debug Pass ───────────────────────────────────────
-        graph.AddPass("Debug", [&, viewMat = view, projMat = projection, hasCamera](RenderGraphBuilder& builder) {
-            auto colour = graph.FindHandle(WellKnown::SceneColour);
-            auto depth = graph.FindHandle(WellKnown::SceneDepth);
-            builder.WriteColour(colour, LoadOp::Load);
-            builder.WriteDepth(depth, LoadOp::Load);
+        graph.AddPass("Debug",
+            [&, viewMat = view, projMat = projection, hasCamera](RenderGraphBuilder& builder)
+            {
+                auto colour = graph.FindHandle(WellKnown::SceneColour);
+                auto depth = graph.FindHandle(WellKnown::SceneDepth);
+                builder.WriteColour(colour, LoadOp::Load);
+                builder.WriteDepth(depth, LoadOp::Load);
 
-            return [this, &preparedFrame, &params, viewMat, projMat, hasCamera]
-                   (RenderDevice& device, const RenderGraphResources& /*resources*/) {
-                if (!hasCamera) return;
+                return [this, &preparedFrame, &params, viewMat, projMat, hasCamera](
+                           RenderDevice& device, const RenderGraphResources& /*resources*/) {
+                    if (!hasCamera) return;
 
-                auto& debugLinePipeline = params.DebugLinePipeline;
-                auto& transientAllocator = m_context->GetTransientBuffers();
-                auto& registry = m_context->GetPrograms();
+                    auto& debugLinePipeline = params.DebugLinePipeline;
+                    auto& transientAllocator = m_context->GetTransientBuffers();
+                    auto& registry = m_context->GetPrograms();
 
-                // Resolve PosNormalColour mesh for debug boxes
-                const auto debugMeshIt = params.MeshesByStride.find(VertexLayouts::PosNormalColour.stride);
-                Mesh* primitiveMeshPtr = (debugMeshIt != params.MeshesByStride.end()) ? debugMeshIt->second : nullptr;
+                    // Resolve PosNormalColour mesh for debug boxes
+                    const auto debugMeshIt = params.MeshesByStride.find(VertexLayouts::PosNormalColour.stride);
+                    Mesh* primitiveMeshPtr = (debugMeshIt != params.MeshesByStride.end()) ? debugMeshIt->second : nullptr;
 
-                // ── Debug lines ──────────────────────────────
-                std::vector<VertexPosColour> lineVertices;
+                    // ── Debug lines ──────────────────────────────
+                    std::vector<VertexPosColour> lineVertices;
 
-                for (const auto& pass : preparedFrame.Passes)
-                {
-                    if (!pass.Enabled || !pass.DebugDraw) continue;
-
-                    if (pass.DebugDraw->ShowWorldGrid)
+                    for (const auto& pass : preparedFrame.Passes)
                     {
-                        const int slices = std::max(1, pass.DebugDraw->WorldGridSlices);
-                        const float spacing = pass.DebugDraw->WorldGridSpacing;
-                        const float extent = static_cast<float>(slices) * spacing;
-                        const Float3 majorColour{0.45f, 0.45f, 0.45f};
-                        const Float3 minorColour{0.25f, 0.25f, 0.25f};
+                        if (!pass.Enabled || !pass.DebugDraw) continue;
 
-                        for (int i = -slices; i <= slices; ++i)
+                        if (pass.DebugDraw->ShowWorldGrid)
                         {
-                            const float coord = static_cast<float>(i) * spacing;
-                            const Float3& gridColour = (i == 0) ? majorColour : minorColour;
+                            const int slices = std::max(1, pass.DebugDraw->WorldGridSlices);
+                            const float spacing = pass.DebugDraw->WorldGridSpacing;
+                            const float extent = static_cast<float>(slices) * spacing;
+                            const Float3 majorColour{0.45f, 0.45f, 0.45f};
+                            const Float3 minorColour{0.25f, 0.25f, 0.25f};
 
-                            lineVertices.push_back({Float3{-extent, 0.0f, coord}, gridColour});
-                            lineVertices.push_back({Float3{ extent, 0.0f, coord}, gridColour});
-                            lineVertices.push_back({Float3{coord, 0.0f, -extent}, gridColour});
-                            lineVertices.push_back({Float3{coord, 0.0f,  extent}, gridColour});
+                            for (int i = -slices; i <= slices; ++i)
+                            {
+                                const float coord = static_cast<float>(i) * spacing;
+                                const Float3& gridColour = (i == 0) ? majorColour : minorColour;
+
+                                lineVertices.push_back({Float3{-extent, 0.0f, coord}, gridColour});
+                                lineVertices.push_back({Float3{extent, 0.0f, coord}, gridColour});
+                                lineVertices.push_back({Float3{coord, 0.0f, -extent}, gridColour});
+                                lineVertices.push_back({Float3{coord, 0.0f, extent}, gridColour});
+                            }
+                        }
+
+                        for (const auto& line : pass.DebugDraw->Lines)
+                        {
+                            const Float3 lineColour = LinearColour::FromColour(line.Tint).ToFloat3();
+                            lineVertices.push_back({line.Start, lineColour});
+                            lineVertices.push_back({line.End, lineColour});
                         }
                     }
 
-                    for (const auto& line : pass.DebugDraw->Lines)
+                    if (!lineVertices.empty() && debugLinePipeline.IsValid())
                     {
-                        const Float3 lineColour = LinearColour::FromColour(line.Tint).ToFloat3();
-                        lineVertices.push_back({line.Start, lineColour});
-                        lineVertices.push_back({line.End, lineColour});
+                        const uint32_t dataSize = static_cast<uint32_t>(lineVertices.size() * sizeof(VertexPosColour));
+                        const TransientAllocation alloc = transientAllocator.AllocateVertices(lineVertices.data(), dataSize);
+
+                        if (alloc.IsValid())
+                        {
+                            const Matrix4 mvp = projMat * viewMat;
+                            const DebugMaterialUBO materialUBO{Float4(1.0f)};
+
+                            debugLinePipeline.Bind();
+                            device.BindVertexBuffer(alloc.Buffer, 0, alloc.Offset);
+                            device.PushVertexUniform(0, &mvp, sizeof(Matrix4));
+                            device.PushFragmentUniform(0, &materialUBO, sizeof(DebugMaterialUBO));
+                            device.DrawPrimitives(static_cast<uint32_t>(lineVertices.size()));
+                        }
                     }
-                }
 
-                if (!lineVertices.empty() && debugLinePipeline.IsValid())
-                {
-                    const uint32_t dataSize = static_cast<uint32_t>(lineVertices.size() * sizeof(VertexPosColour));
-                    const TransientAllocation alloc = transientAllocator.AllocateVertices(lineVertices.data(), dataSize);
+                    // ── Debug boxes ──────────────────────────────
+                    const ShaderProgram* unlitProgram = registry.Find("unlit");
+                    if (!unlitProgram || !unlitProgram->Pipeline || !primitiveMeshPtr || !primitiveMeshPtr->IsValid()) return;
 
-                    if (alloc.IsValid())
+                    bool hasPendingBoxes = false;
+                    for (const auto& pass : preparedFrame.Passes)
                     {
-                        const Matrix4 mvp = projMat * viewMat;
-                        const DebugMaterialUBO materialUBO{Float4(1.0f)};
-
-                        debugLinePipeline.Bind();
-                        device.BindVertexBuffer(alloc.Buffer, 0, alloc.Offset);
-                        device.PushVertexUniform(0, &mvp, sizeof(Matrix4));
-                        device.PushFragmentUniform(0, &materialUBO, sizeof(DebugMaterialUBO));
-                        device.DrawPrimitives(static_cast<uint32_t>(lineVertices.size()));
+                        if (pass.Enabled && pass.DebugDraw && !pass.DebugDraw->Boxes.empty())
+                        {
+                            hasPendingBoxes = true;
+                            break;
+                        }
                     }
-                }
 
-                // ── Debug boxes ──────────────────────────────
-                const ShaderProgram* unlitProgram = registry.Find("unlit");
-                if (!unlitProgram || !unlitProgram->Pipeline || !primitiveMeshPtr || !primitiveMeshPtr->IsValid()) return;
+                    if (!hasPendingBoxes) return;
 
-                bool hasPendingBoxes = false;
-                for (const auto& pass : preparedFrame.Passes)
-                {
-                    if (pass.Enabled && pass.DebugDraw && !pass.DebugDraw->Boxes.empty())
+                    unlitProgram->Pipeline->Bind();
+                    primitiveMeshPtr->Bind(device);
+
+                    for (const auto& pass : preparedFrame.Passes)
                     {
-                        hasPendingBoxes = true;
-                        break;
+                        if (!pass.Enabled || !pass.DebugDraw) continue;
+
+                        for (const auto& box : pass.DebugDraw->Boxes)
+                        {
+                            const UnlitTransformUBO transformUBO{projMat * viewMat * box.LocalToWorld};
+                            const DebugMaterialUBO materialUBO{Float4(1.0f)};
+
+                            device.PushVertexUniform(0, &transformUBO, sizeof(UnlitTransformUBO));
+                            device.PushFragmentUniform(0, &materialUBO, sizeof(DebugMaterialUBO));
+                            primitiveMeshPtr->Draw(device);
+                        }
                     }
-                }
-
-                if (!hasPendingBoxes) return;
-
-                unlitProgram->Pipeline->Bind();
-                primitiveMeshPtr->Bind(device);
-
-                for (const auto& pass : preparedFrame.Passes)
-                {
-                    if (!pass.Enabled || !pass.DebugDraw) continue;
-
-                    for (const auto& box : pass.DebugDraw->Boxes)
-                    {
-                        const UnlitTransformUBO transformUBO{projMat * viewMat * box.LocalToWorld};
-                        const DebugMaterialUBO materialUBO{Float4(1.0f)};
-
-                        device.PushVertexUniform(0, &transformUBO, sizeof(UnlitTransformUBO));
-                        device.PushFragmentUniform(0, &materialUBO, sizeof(DebugMaterialUBO));
-                        primitiveMeshPtr->Draw(device);
-                    }
-                }
-            };
-        });
+                };
+            });
 #ifdef WAYFINDER_COMPILER_MSVC
-    #pragma warning(pop)
+#pragma warning(pop)
 #endif
 
         // ── Feature passes ───────────────────────────────────
         for (const auto& feature : params.Features)
         {
-            if (feature->IsEnabled())
-            {
-                feature->AddPasses(graph, preparedFrame);
-            }
+            if (feature->IsEnabled()) { feature->AddPasses(graph, preparedFrame); }
         }
 
         // ── Composition Pass ─────────────────────────────────
-        graph.AddPass("Composition", [&](RenderGraphBuilder& builder) {
-            auto colour = graph.FindHandle(WellKnown::SceneColour);
-            builder.ReadTexture(colour);
-            builder.SetSwapchainOutput(LoadOp::DontCare);
+        graph.AddPass("Composition",
+            [&](RenderGraphBuilder& builder)
+            {
+                auto colour = graph.FindHandle(WellKnown::SceneColour);
+                builder.ReadTexture(colour);
+                builder.SetSwapchainOutput(LoadOp::DontCare);
 
-            return [this, colour](RenderDevice& device, const RenderGraphResources& resources) {
-                auto sceneColourTex = resources.GetTexture(colour);
+                return [this, colour](RenderDevice& device, const RenderGraphResources& resources)
+                {
+                    auto sceneColourTex = resources.GetTexture(colour);
 
-                const ShaderProgram* compProgram = m_context->GetPrograms().Find("composition");
-                const auto nearestSampler = m_context->GetNearestSampler();
-                if (!compProgram || !compProgram->Pipeline || !sceneColourTex || !nearestSampler) return;
+                    const ShaderProgram* compProgram = m_context->GetPrograms().Find("composition");
+                    const auto nearestSampler = m_context->GetNearestSampler();
+                    if (!compProgram || !compProgram->Pipeline || !sceneColourTex || !nearestSampler) return;
 
-                compProgram->Pipeline->Bind();
-                device.BindFragmentSampler(0, sceneColourTex, nearestSampler);
-                device.DrawPrimitives(3);
-            };
-        });
+                    compProgram->Pipeline->Bind();
+                    device.BindFragmentSampler(0, sceneColourTex, nearestSampler);
+                    device.DrawPrimitives(3);
+                };
+            });
     }
 
     SceneGlobalsUBO RenderPipeline::BuildSceneGlobals(const RenderFrame& frame) const

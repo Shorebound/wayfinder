@@ -8,7 +8,6 @@
 #include "physics/PhysicsPlugin.h"
 #include "scene/entity/Entity.h"
 
-
 #include "ecs/Flecs.h"
 
 namespace Wayfinder::Journey
@@ -28,20 +27,22 @@ namespace Wayfinder::Journey
             ModuleRegistry::ComponentDescriptor desc;
             desc.Key = "health";
 
-            desc.RegisterFn = [](flecs::world& world) {
+            desc.RegisterFn = [](flecs::world& world)
+            {
                 world.component<HealthComponent>();
             };
 
-            desc.ApplyFn = [](const nlohmann::json& table, Entity& entity) {
+            desc.ApplyFn = [](const nlohmann::json& table, Entity& entity)
+            {
                 HealthComponent health;
                 health.MaxHealth = table.value("max_health", 100.0f);
                 health.CurrentHealth = table.value("current_health", health.MaxHealth);
                 entity.AddComponent<HealthComponent>(health);
             };
 
-            desc.SerialiseFn = [](const Entity& entity, nlohmann::json& tables) {
-                if (!entity.HasComponent<HealthComponent>())
-                    return;
+            desc.SerialiseFn = [](const Entity& entity, nlohmann::json& tables)
+            {
+                if (!entity.HasComponent<HealthComponent>()) return;
 
                 const auto& health = entity.GetComponent<HealthComponent>();
                 nlohmann::json t;
@@ -50,7 +51,8 @@ namespace Wayfinder::Journey
                 tables["health"] = std::move(t);
             };
 
-            desc.ValidateFn = [](const nlohmann::json& table, std::string& error) -> bool {
+            desc.ValidateFn = [](const nlohmann::json& table, std::string& error) -> bool
+            {
                 if (table.contains("max_health") && !table["max_health"].is_number())
                 {
                     error = "'max_health' must be a number";
@@ -84,19 +86,21 @@ namespace Wayfinder::Journey
             // Convention: the flecs system name must match the descriptor name
             // so the engine can look it up and toggle it via enable/disable.
             // Runs after BurnDamage so regen applies after damage each frame.
-            registry.RegisterSystem("HealthRegen", [](flecs::world& world) {
-                world.system<HealthComponent>("HealthRegen")
-                    .kind(flecs::OnUpdate)
-                    .each([](HealthComponent& health) {
-                        if (health.CurrentHealth < health.MaxHealth)
+            registry.RegisterSystem("HealthRegen",
+                [](flecs::world& world)
+                {
+                    world.system<HealthComponent>("HealthRegen")
+                        .kind(flecs::OnUpdate)
+                        .each([](HealthComponent& health)
                         {
-                            health.CurrentHealth += 0.1f;
-                            if (health.CurrentHealth > health.MaxHealth)
-                                health.CurrentHealth = health.MaxHealth;
-                        }
-                    });
-            },
-                                    Wayfinder::InState("Playing"), {"BurnDamage"});
+                            if (health.CurrentHealth < health.MaxHealth)
+                            {
+                                health.CurrentHealth += 0.1f;
+                                if (health.CurrentHealth > health.MaxHealth) health.CurrentHealth = health.MaxHealth;
+                            }
+                        });
+                },
+                Wayfinder::InState("Playing"), {"BurnDamage"});
 
             registry.SetInitialState("Playing");
         }
@@ -121,23 +125,22 @@ namespace Wayfinder::Journey
             // when the tag is set, ALL entities with HealthComponent take burn
             // damage.  For per-entity burning, attach a GameplayTagContainer to
             // each entity and query it inside the lambda instead.
-            registry.RegisterSystem("BurnDamage", 
-            [](flecs::world& world) 
-            { 
-                world.system<HealthComponent>("BurnDamage")
-                .kind(flecs::OnUpdate)
-                .each([](HealthComponent& health) 
+            registry.RegisterSystem(
+                "BurnDamage",
+                [](flecs::world& world)
                 {
-                    if (health.CurrentHealth > 0.0f)
-                    {
-                        health.CurrentHealth -= 0.5f;
-                        if (health.CurrentHealth < 0.0f)
+                    world.system<HealthComponent>("BurnDamage")
+                        .kind(flecs::OnUpdate)
+                        .each([](HealthComponent& health)
                         {
-                            health.CurrentHealth = 0.0f;
-                        }
-                    }
-                }); 
-            }, HasTag(burning));
+                            if (health.CurrentHealth > 0.0f)
+                            {
+                                health.CurrentHealth -= 0.5f;
+                                if (health.CurrentHealth < 0.0f) { health.CurrentHealth = 0.0f; }
+                            }
+                        });
+                },
+                HasTag(burning));
         }
     };
 
@@ -153,10 +156,7 @@ namespace Wayfinder::Journey
     };
 } // namespace Wayfinder::Journey
 
-std::unique_ptr<Wayfinder::Module> Wayfinder::CreateModule()
-{
-    return std::make_unique<Journey::JourneyModule>();
-}
+std::unique_ptr<Wayfinder::Module> Wayfinder::CreateModule() { return std::make_unique<Journey::JourneyModule>(); }
 
 // Dynamic entry point for tools loading the module as a shared library.
 WAYFINDER_IMPLEMENT_MODULE(Wayfinder::Journey::JourneyModule)

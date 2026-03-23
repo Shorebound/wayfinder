@@ -1,11 +1,11 @@
 #include "Renderer.h"
 
 #include "RenderContext.h"
+#include "RenderPipeline.h"
 #include "rendering/backend/RenderDevice.h"
 #include "rendering/graph/RenderFeature.h"
 #include "rendering/graph/RenderFrame.h"
 #include "rendering/graph/RenderGraph.h"
-#include "RenderPipeline.h"
 #include "rendering/resources/RenderResources.h"
 
 #include "app/EngineConfig.h"
@@ -14,8 +14,7 @@
 
 namespace Wayfinder
 {
-    Renderer::Renderer()
-        : m_screenWidth(800), m_screenHeight(450), m_isInitialised(false)
+    Renderer::Renderer() : m_screenWidth(800), m_screenHeight(450), m_isInitialised(false)
     {
         m_renderPipeline = std::make_unique<RenderPipeline>();
         m_renderResources = std::make_unique<RenderResourceCache>();
@@ -23,10 +22,7 @@ namespace Wayfinder
 
     Renderer::~Renderer()
     {
-        if (m_isInitialised)
-        {
-            Shutdown();
-        }
+        if (m_isInitialised) { Shutdown(); }
     }
 
     bool Renderer::Initialise(RenderDevice& device, const EngineConfig& config)
@@ -81,8 +77,8 @@ namespace Wayfinder
             feature->OnAttach(ctx);
         }
 
-        WAYFINDER_INFO(LogRenderer, "Renderer initialised ({}x{}, backend: {})",
-            m_screenWidth, m_screenHeight, device.GetDeviceInfo().BackendName);
+        WAYFINDER_INFO(
+            LogRenderer, "Renderer initialised ({}x{}, backend: {})", m_screenWidth, m_screenHeight, device.GetDeviceInfo().BackendName);
 
         m_isInitialised = true;
         return true;
@@ -112,10 +108,7 @@ namespace Wayfinder
 
         m_renderPipeline = std::make_unique<RenderPipeline>();
         m_renderResources = std::make_unique<RenderResourceCache>();
-        if (m_assetService)
-        {
-            m_renderResources->SetAssetService(m_assetService);
-        }
+        if (m_assetService) { m_renderResources->SetAssetService(m_assetService); }
         m_device = nullptr;
         m_isInitialised = false;
     }
@@ -123,10 +116,7 @@ namespace Wayfinder
     void Renderer::SetAssetService(const std::shared_ptr<AssetService>& assetService)
     {
         m_assetService = assetService;
-        if (m_renderResources)
-        {
-            m_renderResources->SetAssetService(assetService);
-        }
+        if (m_renderResources) { m_renderResources->SetAssetService(assetService); }
     }
 
     RenderFeatureContext Renderer::MakeFeatureContext()
@@ -142,11 +132,13 @@ namespace Wayfinder
 
     void Renderer::AddFeature(std::unique_ptr<RenderFeature> feature)
     {
-        if (m_device) { auto ctx = MakeFeatureContext(); feature->OnAttach(ctx); }
+        if (m_device)
+        {
+            auto ctx = MakeFeatureContext();
+            feature->OnAttach(ctx);
+        }
         m_features.push_back(std::move(feature));
     }
-
-
 
     void Renderer::Render(const RenderFrame& frame)
     {
@@ -157,10 +149,7 @@ namespace Wayfinder
 
         // Resolve material bindings from asset data
         RenderFrame preparedFrame = frame;
-        if (m_renderResources)
-        {
-            m_renderResources->PrepareFrame(preparedFrame);
-        }
+        if (m_renderResources) { m_renderResources->PrepareFrame(preparedFrame); }
 
         // Validate and sort passes via RenderPipeline
         if (!m_renderPipeline->Prepare(preparedFrame))
@@ -181,10 +170,11 @@ namespace Wayfinder
         // ── Build and execute render graph ───────────────────
         RenderGraph graph;
 
-        std::unordered_map<uint32_t, Mesh*> meshesByStride = {
-            {VertexLayouts::PosNormalColour.stride, &m_primitiveMesh},
-            {VertexLayouts::PosNormalUV.stride, &m_texturedPrimitiveMesh},
-        };
+        std::unordered_map<uint32_t, Mesh*> meshesByStride =
+            {
+                {VertexLayouts::PosNormalColour.stride, &m_primitiveMesh},
+                {VertexLayouts::PosNormalUV.stride, &m_texturedPrimitiveMesh},
+            };
 
         RenderPipelineFrameParams params{
             .Frame = preparedFrame,
@@ -196,10 +186,7 @@ namespace Wayfinder
         };
         m_renderPipeline->BuildGraph(graph, params);
 
-        if (graph.Compile())
-        {
-            graph.Execute(*m_device, m_context->GetTransientPool());
-        }
+        if (graph.Compile()) { graph.Execute(*m_device, m_context->GetTransientPool()); }
 
         m_device->EndFrame();
     }

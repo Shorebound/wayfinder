@@ -5,8 +5,8 @@
 
 #include "assets/AssetService.h"
 #include "assets/TextureAsset.h"
-#include "rendering/backend/GPUHandles.h"
 #include "rendering/RenderTypes.h"
+#include "rendering/backend/GPUHandles.h"
 #include "wayfinder_exports.h"
 
 namespace Wayfinder

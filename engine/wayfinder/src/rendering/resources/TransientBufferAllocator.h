@@ -42,8 +42,8 @@ namespace Wayfinder
         TransientAllocation AllocateIndices(const void* data, uint32_t sizeInBytes);
 
     private:
-        TransientAllocation AllocateFromRing(GPUBufferHandle ring, uint32_t capacity,
-                                             uint32_t& cursor, const void* data, uint32_t sizeInBytes);
+        TransientAllocation AllocateFromRing(
+            GPUBufferHandle ring, uint32_t capacity, uint32_t& cursor, const void* data, uint32_t sizeInBytes);
 
         RenderDevice* m_device = nullptr;
 
