@@ -67,35 +67,10 @@ jobs:
       - name: Setup build environment
         uses: ./.github/actions/setup-linux-build
 
-      - name: Cache DXC shader compiler
-        id: cache-dxc-linux
-        uses: actions/cache@v4
+      - name: Setup DXC shader compiler
+        uses: ./.github/actions/setup-dxc
         with:
-          path: tools/shadercompiler/bin
-          key: dxc-linux-x64-v1.9.2602
-
-      - name: Download DXC shader compiler
-        if: steps.cache-dxc-linux.outputs.cache-hit != 'true'
-        run: |
-          # Pin to v1.9.2602 — matches local dev setup. Update tag + cache key together.
-          tag="v1.9.2602"
-          asset_url=$(curl -s \
-            -H "Accept: application/vnd.github+json" \
-            -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
-            "https://api.github.com/repos/microsoft/DirectXShaderCompiler/releases/tags/$tag" \
-            | jq -r '.assets[] | select(.name | test("^linux_dxc_.*x86_64\\.tar\\.gz$")) | .browser_download_url')
-          if [ -z "$asset_url" ]; then echo "No linux DXC asset found in $tag" && exit 1; fi
-          echo "Downloading from $asset_url"
-          curl -L "$asset_url" -o dxc.tar.gz
-          mkdir -p dxc-staging
-          tar -xzf dxc.tar.gz -C dxc-staging
-          # Linux archive has bin/dxc at the root
-          if [ ! -f dxc-staging/bin/dxc ]; then echo "bin/dxc not found in archive" && exit 1; fi
-          mkdir -p tools/shadercompiler/bin
-          cp dxc-staging/bin/dxc tools/shadercompiler/bin/
-          cp dxc-staging/lib/*.so tools/shadercompiler/bin/ 2>/dev/null || true
-          chmod +x tools/shadercompiler/bin/dxc
-          echo "DXC installed to tools/shadercompiler/bin/"
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Configure
         run: cmake --preset ci-linux
@@ -129,33 +104,10 @@ jobs:
           key: cpm-${{ runner.os }}-${{ hashFiles('cmake/WayfinderDependencies.cmake') }}
           restore-keys: cpm-${{ runner.os }}-
 
-      - name: Cache DXC shader compiler
-        id: cache-dxc
-        uses: actions/cache@v4
+      - name: Setup DXC shader compiler
+        uses: ./.github/actions/setup-dxc
         with:
-          path: tools/shadercompiler/bin
-          key: dxc-windows-x64-v1.9.2602
-
-      - name: Download DXC shader compiler
-        if: steps.cache-dxc.outputs.cache-hit != 'true'
-        shell: pwsh
-        run: |
-          # Pin to v1.9.2602 — matches local dev setup. Update tag + cache key together.
-          $tag = "v1.9.2602"
-          $release = Invoke-RestMethod `
-            -Uri "https://api.github.com/repos/microsoft/DirectXShaderCompiler/releases/tags/$tag" `
-            -Headers @{ "Accept" = "application/vnd.github+json"; "Authorization" = "Bearer ${{ secrets.GITHUB_TOKEN }}" }
-          $asset = $release.assets | Where-Object { $_.name -like "dxc_*.zip" } | Select-Object -First 1
-          if (-not $asset) { throw "No dxc_*.zip asset found in DXC release $tag" }
-          Write-Host "Downloading $($asset.name)"
-          Invoke-WebRequest -Uri $asset.browser_download_url -OutFile "dxc.zip"
-          Expand-Archive "dxc.zip" -DestinationPath "dxc-staging"
-          # Copy only the x64 binaries into the project's expected location
-          $x64Bin = Join-Path "dxc-staging" "bin" "x64"
-          if (-not (Test-Path "$x64Bin\dxc.exe")) { throw "bin/x64/dxc.exe not found in DXC archive" }
-          New-Item -ItemType Directory -Path "tools/shadercompiler/bin/x64" -Force | Out-Null
-          Copy-Item "$x64Bin\*" "tools/shadercompiler/bin/x64/" -Recurse
-          Write-Host "DXC installed to tools/shadercompiler/bin/x64/"
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Configure
         run: cmake --preset ci-windows
