@@ -622,9 +622,9 @@ namespace Wayfinder
     void ApplyTransform(const nlohmann::json& data, Wayfinder::Entity& entity)
     {
         Wayfinder::TransformComponent transform;
-        transform.Position = ReadVector3(data, "position", transform.Position);
-        transform.Rotation = ReadVector3(data, "rotation", transform.Rotation);
-        transform.Scale = ReadVector3(data, "scale", transform.Scale);
+        transform.Local.Position = ReadVector3(data, "position", transform.Local.Position);
+        transform.Local.RotationDegrees = ReadVector3(data, "rotation", transform.Local.RotationDegrees);
+        transform.Local.Scale = ReadVector3(data, "scale", transform.Local.Scale);
         entity.AddComponent<Wayfinder::TransformComponent>(transform);
     }
 
@@ -904,9 +904,9 @@ namespace Wayfinder
 
         const Wayfinder::TransformComponent& transform = entity.GetComponent<Wayfinder::TransformComponent>();
         nlohmann::json componentTable;
-        componentTable["position"] = WriteVector3(transform.Position);
-        componentTable["rotation"] = WriteVector3(transform.Rotation);
-        componentTable["scale"] = WriteVector3(transform.Scale);
+        componentTable["position"] = WriteVector3(transform.Local.Position);
+        componentTable["rotation"] = WriteVector3(transform.Local.RotationDegrees);
+        componentTable["scale"] = WriteVector3(transform.Local.Scale);
         componentTables["transform"] = std::move(componentTable);
     }
 

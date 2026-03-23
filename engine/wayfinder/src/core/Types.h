@@ -49,6 +49,13 @@ namespace Wayfinder
     using Degrees = float;
     using Radians = float;
 
+    struct Transform
+    {
+        Float3 Position = {0.0f, 0.0f, 0.0f};
+        Float3 RotationDegrees = {0.0f, 0.0f, 0.0f};
+        Float3 Scale = {1.0f, 1.0f, 1.0f};
+    };
+
     // ── Coordinate-system / convention enums ─────────────────
 
     enum class Axis
@@ -137,10 +144,10 @@ namespace Wayfinder
         static LinearColour FromColour(const Colour& c)
         {
             return {
-            .r = static_cast<float>(c.r) / 255.0f,
-            .g = static_cast<float>(c.g) / 255.0f,
-            .b = static_cast<float>(c.b) / 255.0f,
-            .a = static_cast<float>(c.a) / 255.0f,
+                .r = static_cast<float>(c.r) / 255.0f,
+                .g = static_cast<float>(c.g) / 255.0f,
+                .b = static_cast<float>(c.b) / 255.0f,
+                .a = static_cast<float>(c.a) / 255.0f,
             };
         }
 

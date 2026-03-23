@@ -7,7 +7,7 @@ namespace Wayfinder::Maths
 {
     Matrix4 Identity()
     {
-        return Matrix4(1.0f);
+        return {1.0f};
     }
 
     Matrix4 Multiply(const Matrix4& lhs, const Matrix4& rhs)
@@ -15,30 +15,38 @@ namespace Wayfinder::Maths
         return lhs * rhs;
     }
 
-    Matrix4 ComposeTransform(const Float3& position, const Float3& rotationDegrees, const Float3& scale)
+    Matrix4 ComposeTransform(const Transform& transform)
     {
+        const Radians rotationX = ToRadians(glm::dot(transform.RotationDegrees, Float3(1.0f, 0.0f, 0.0f)));
+        const Radians rotationY = ToRadians(glm::dot(transform.RotationDegrees, Float3(0.0f, 1.0f, 0.0f)));
+        const Radians rotationZ = ToRadians(glm::dot(transform.RotationDegrees, Float3(0.0f, 0.0f, 1.0f)));
+
         Matrix4 result(1.0f);
-        result = glm::translate(result, position);
-        result = glm::rotate(result, ToRadians(rotationDegrees.z), Float3(0.0f, 0.0f, 1.0f));
-        result = glm::rotate(result, ToRadians(rotationDegrees.y), Float3(0.0f, 1.0f, 0.0f));
-        result = glm::rotate(result, ToRadians(rotationDegrees.x), Float3(1.0f, 0.0f, 0.0f));
-        result = glm::scale(result, scale);
+        result = glm::translate(result, transform.Position);
+        result = glm::rotate(result, rotationZ, Float3(0.0f, 0.0f, 1.0f));
+        result = glm::rotate(result, rotationY, Float3(0.0f, 1.0f, 0.0f));
+        result = glm::rotate(result, rotationX, Float3(1.0f, 0.0f, 0.0f));
+        result = glm::scale(result, transform.Scale);
         return result;
     }
 
     Float3 TransformPoint(const Matrix4& matrix, const Float3& point)
     {
-        return Float3(matrix * Float4(point, 1.0f));
+        return {matrix * Float4(point, 1.0f)};
     }
 
     Float3 TransformDirection(const Matrix4& matrix, const Float3& direction)
     {
-        return Float3(matrix * Float4(direction, 0.0f));
+        return {matrix * Float4(direction, 0.0f)};
     }
 
     Float3 ExtractScale(const Matrix4& matrix)
     {
-        return Float3(glm::length(Float3(matrix[0])), glm::length(Float3(matrix[1])), glm::length(Float3(matrix[2])));
+        return {
+        Length(TransformDirection(matrix, {1.0f, 0.0f, 0.0f})),
+        Length(TransformDirection(matrix, {0.0f, 1.0f, 0.0f})),
+        Length(TransformDirection(matrix, {0.0f, 0.0f, 1.0f})),
+        };
     }
 
     // ── Matrix builders ──────────────────────────────────────

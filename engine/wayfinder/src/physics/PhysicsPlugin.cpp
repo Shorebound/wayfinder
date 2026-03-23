@@ -382,7 +382,7 @@ namespace Wayfinder::Physics
                 }
 
                 auto desc = MakeDescriptor(rb, col);
-                rb.RuntimeBodyId = physics->GetWorld().CreateBody(desc, transform.Position, transform.Rotation);
+                rb.RuntimeBodyId = physics->GetWorld().CreateBody(desc, transform.Local.Position, transform.Local.RotationDegrees);
             });
         });
 

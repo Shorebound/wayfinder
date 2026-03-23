@@ -176,7 +176,7 @@ namespace Wayfinder
                 }
                 else
                 {
-                    activeCamera.Position = transform.Position;
+                    activeCamera.Position = transform.Local.Position;
                     activeCamera.Target = camera.Target;
                     activeCamera.Up = camera.Up;
                 }

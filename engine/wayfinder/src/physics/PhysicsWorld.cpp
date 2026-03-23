@@ -298,7 +298,7 @@ namespace Wayfinder::Physics
 
         // Convert Euler ZYX degrees to Jolt quaternion.
         // Jolt's sEulerAngles applies rotations in X-Y-Z intrinsic order.
-        // TransformComponent.Rotation stores degrees in the same convention
+        // TransformComponent.Local.RotationDegrees stores degrees in the same convention
         // as Maths::ComposeTransform (Z-Y-X extrinsic = X-Y-Z intrinsic).
         float rx = Maths::ToRadians(rotationDegrees.x);
         float ry = Maths::ToRadians(rotationDegrees.y);

@@ -53,18 +53,17 @@ namespace Wayfinder
 
     struct TransformComponent
     {
-        Float3 Position = {0.0f, 0.0f, 0.0f};
-        Float3 Rotation = {0.0f, 0.0f, 0.0f};
-        Float3 Scale = {1.0f, 1.0f, 1.0f};
+        Transform Local;
 
         TransformComponent() = default;
         TransformComponent(const TransformComponent&) = default;
         TransformComponent& operator=(const TransformComponent&) = default;
-        TransformComponent(const Float3& position) : Position(position) {}
+        explicit TransformComponent(const Float3& position) : Local({.Position = position}) {}
+        explicit TransformComponent(const Transform& transform) : Local(transform) {}
 
         Matrix4 GetLocalMatrix() const
         {
-            return Maths::ComposeTransform(Position, Rotation, Scale);
+            return Maths::ComposeTransform(Local);
         }
     };
 

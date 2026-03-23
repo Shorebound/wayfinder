@@ -8,12 +8,14 @@ TabWidth: 4
 BreakBeforeBraces: Custom
 
 BraceWrapping:
+  AfterCaseLabel: true
   AfterClass: true
-  AfterStruct: true
-  AfterFunction: true
-  AfterControlStatement: true
+  AfterControlStatement: Always
   AfterEnum: true
+  AfterFunction: true
   AfterNamespace: true
+  AfterObjCDeclaration: true
+  AfterStruct: true
   AfterUnion: true
   AfterExternBlock: true
   BeforeCatch: true
@@ -23,6 +25,7 @@ BraceWrapping:
   SplitEmptyFunction: false
   SplitEmptyRecord: false
   SplitEmptyNamespace: false
+  IndentBraces: false
 
 AllowShortFunctionsOnASingleLine: Empty
 AllowShortBlocksOnASingleLine: Never
@@ -34,7 +37,7 @@ AlignAfterOpenBracket: DontAlign
 BreakTemplateDeclarations: Yes
 SpaceAfterTemplateKeyword: false
 
-ContinuationIndentWidth: 0
+ContinuationIndentWidth: 4
 IndentCaseLabels: false
 InsertBraces: true
 ColumnLimit: 220

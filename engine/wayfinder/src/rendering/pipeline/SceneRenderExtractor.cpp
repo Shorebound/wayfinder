@@ -164,7 +164,7 @@ namespace Wayfinder
         scene.GetWorld().each([&frame](flecs::entity entityHandle, const TransformComponent& transform, const LightComponent& light)
         {
             Matrix4 localToWorld = transform.GetLocalMatrix();
-            Float3 position = transform.Position;
+            Float3 position = transform.Local.Position;
             if (entityHandle.has<WorldTransformComponent>())
             {
                 const auto& worldTransform = entityHandle.get<WorldTransformComponent>();
@@ -187,7 +187,7 @@ namespace Wayfinder
             if (light.DebugDraw)
             {
                 const float debugSize = light.Type == LightType::Directional ? 0.6f : 0.3f;
-                const Matrix4 debugTransform = Maths::ComposeTransform(position, {0.0f, 0.0f, 0.0f}, {debugSize, debugSize, debugSize});
+                const Matrix4 debugTransform = Maths::ComposeTransform({.Position = position, .RotationDegrees = {0.0f, 0.0f, 0.0f}, .Scale = {debugSize, debugSize, debugSize},});
 
                 RenderDebugBox debugBox;
                 debugBox.LocalToWorld = debugTransform;
@@ -236,8 +236,8 @@ namespace Wayfinder
             else if (entityHandle.has<TransformComponent>())
             {
                 const auto& transform = entityHandle.get<TransformComponent>();
-                position = transform.Position;
-                scale = transform.Scale;
+                position = transform.Local.Position;
+                scale = transform.Local.Scale;
                 localToWorld = transform.GetLocalMatrix();
             }
 
