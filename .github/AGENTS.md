@@ -8,6 +8,7 @@ This file documents common mistakes, confusion points, and non-obvious behaviour
 
 - **Test executables are opt-in.** `WAYFINDER_BUILD_TESTS` defaults to `OFF`. Use the `dev` preset or pass `-DWAYFINDER_BUILD_TESTS=ON` explicitly.
 - **MSVC vs Clang differences.** The primary local dev compiler is MSVC; cloud agents use Clang with libc++. Code must compile on both. Watch for MSVC-specific pragmas (guard with `#ifdef WAYFINDER_COMPILER_MSVC`) and C++23 feature availability differences between compilers.
+- **Linux CI must force-select the right Clang via `update-alternatives --set`.** Installing `clang-22` and registering it with `--install` is not enough on GitHub runners — if alternatives is already in manual mode for an older version, higher priority alone won't switch it. The setup action uses `--set` to force selection and a verification step that fails the build if the resolved major version doesn't match. The CMake preset uses generic `clang`/`clang++` and trusts the environment.
 - **Local Clang builds.** Use `cmake --preset dev-clang` + `cmake --build --preset clang-debug` to build with Clang on Windows. This catches Clang-specific issues before CI. The build tree goes into `build/clang/`.
 - **`-Wmissing-field-initializers` is suppressed.** Designated initialisers that rely on default member initialisers for remaining fields are idiomatic C++20 — don't pad with `= {}`/`= 0`.
 - **clang-tidy naming style names are literal.** In `readability-identifier-naming`, `CamelCase` produces PascalCase. Use `camelBack` for the repo's `m_memberName` style.

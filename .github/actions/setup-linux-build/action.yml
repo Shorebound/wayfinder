@@ -38,3 +38,28 @@ runs:
         sudo update-alternatives --install /usr/bin/clang-tidy clang-tidy /usr/bin/clang-tidy-22 100
         sudo update-alternatives --install /usr/bin/clang-format clang-format /usr/bin/clang-format-22 100
         sudo update-alternatives --install /usr/bin/lld lld /usr/bin/lld-22 100
+        sudo update-alternatives --set clang /usr/bin/clang-22
+        sudo update-alternatives --set clang++ /usr/bin/clang++-22
+        sudo update-alternatives --set clang-tidy /usr/bin/clang-tidy-22
+        sudo update-alternatives --set clang-format /usr/bin/clang-format-22
+        sudo update-alternatives --set lld /usr/bin/lld-22
+
+    - name: Verify LLVM 22 toolchain
+      shell: bash
+      run: |
+        EXPECTED_MAJOR=22
+        echo "── Resolved tool paths ──"
+        echo "clang:        $(readlink -f "$(command -v clang)")"
+        echo "clang++:      $(readlink -f "$(command -v clang++)")"
+        echo "clang-tidy:   $(readlink -f "$(command -v clang-tidy)")"
+        echo "clang-format:  $(readlink -f "$(command -v clang-format)")"
+        echo "lld:          $(readlink -f "$(command -v lld)")"
+        echo ""
+        ACTUAL=$(clang++ --version | head -1 | grep -oP '\d+' | head -1)
+        echo "Expected Clang major version: $EXPECTED_MAJOR"
+        echo "Actual Clang major version:   $ACTUAL"
+        if [ "$ACTUAL" != "$EXPECTED_MAJOR" ]; then
+          echo "::error::Expected clang++ $EXPECTED_MAJOR but got $ACTUAL. Check update-alternatives setup."
+          exit 1
+        fi
+        echo "Toolchain OK."
