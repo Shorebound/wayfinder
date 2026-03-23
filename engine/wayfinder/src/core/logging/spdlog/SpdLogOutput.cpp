@@ -15,7 +15,6 @@ namespace Wayfinder
         return std::make_shared<SpdFileOutput>(config);
     }
 
-
     std::shared_ptr<ILogger> CreateLogger(const std::string& name, LogVerbosity defaultVerbosity)
     {
         return std::make_shared<SpdLogger>(name, defaultVerbosity);
@@ -41,24 +40,15 @@ namespace Wayfinder
         }
     }
 
-    SpdConsoleOutput::SpdConsoleOutput()
-        : SpdLogOutput(std::make_shared<spdlog::sinks::stdout_color_sink_mt>())
-    {
-    }
+    SpdConsoleOutput::SpdConsoleOutput() : SpdLogOutput(std::make_shared<spdlog::sinks::stdout_color_sink_mt>()) {}
 
-    SpdFileOutput::SpdFileOutput(const LogFileConfig& config)
-        : SpdLogOutput(nullptr)
+    SpdFileOutput::SpdFileOutput(const LogFileConfig& config) : SpdLogOutput(nullptr)
     {
         // Ensure directory exists
         const std::filesystem::path logPath(config.FilePath);
         std::filesystem::create_directories(logPath.parent_path());
 
-        m_sink = std::make_shared<spdlog::sinks::rotating_file_sink_mt>(
-            config.FilePath,
-            config.MaxFileSize,
-            config.MaxFiles);
+        m_sink = std::make_shared<spdlog::sinks::rotating_file_sink_mt>(config.FilePath, config.MaxFileSize, config.MaxFiles);
     }
 
-
 } // namespace Wayfinder
-

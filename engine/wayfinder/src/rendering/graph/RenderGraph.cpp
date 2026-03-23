@@ -1,18 +1,30 @@
 #include "RenderGraph.h"
+#include "core/Log.h"
 #include "rendering/backend/RenderDevice.h"
 #include "rendering/resources/TransientResourcePool.h"
-#include "core/Log.h"
 
 #include <algorithm>
+#include <cassert>
 #include <queue>
 #include <unordered_set>
 
 namespace Wayfinder
 {
+    namespace
+    {
+        template<typename TContainer, typename TIndex>
+        decltype(auto) CheckedAt(TContainer& container, TIndex index)
+        {
+            const auto checkedIndex = static_cast<size_t>(index);
+            assert(checkedIndex < container.size());
+            return container.at(checkedIndex);
+        }
+
+    } // namespace
+
     // ── Builder ──────────────────────────────────────────────
 
-    RenderGraphBuilder::RenderGraphBuilder(RenderGraph& graph, uint32_t passIndex)
-        : m_graph(graph), m_passIndex(passIndex) {}
+    RenderGraphBuilder::RenderGraphBuilder(RenderGraph& graph, uint32_t passIndex) : m_graph(graph), m_passIndex(passIndex) {}
 
     RenderGraphHandle RenderGraphBuilder::CreateTransient(const RenderGraphTextureDesc& desc)
     {
@@ -21,11 +33,14 @@ namespace Wayfinder
 
     void RenderGraphBuilder::ReadTexture(RenderGraphHandle handle)
     {
-        if (!handle.IsValid() || handle.Index >= m_graph.m_resources.size()) return;
-        auto& pass = m_graph.m_passes[m_passIndex];
+        if (!handle.IsValid() || handle.Index >= m_graph.m_resources.size())
+        {
+            return;
+        }
+        auto& pass = CheckedAt(m_graph.m_passes, m_passIndex);
         pass.Reads.push_back(handle);
 
-        auto& res = m_graph.m_resources[handle.Index];
+        auto& res = CheckedAt(m_graph.m_resources, handle.Index);
         // Record dependency on whoever last wrote this resource
         if (res.WrittenByPass != UINT32_MAX && res.WrittenByPass != m_passIndex)
         {
@@ -37,11 +52,14 @@ namespace Wayfinder
 
     void RenderGraphBuilder::WriteColour(RenderGraphHandle handle, LoadOp load, ClearValue clear)
     {
-        if (!handle.IsValid() || handle.Index >= m_graph.m_resources.size()) return;
-        auto& pass = m_graph.m_passes[m_passIndex];
-        pass.ColourWrite = RenderGraph::ColourWriteInfo{handle, load, clear};
+        if (!handle.IsValid() || handle.Index >= m_graph.m_resources.size())
+        {
+            return;
+        }
+        auto& pass = CheckedAt(m_graph.m_passes, m_passIndex);
+        pass.ColourWrite = RenderGraph::ColourWriteInfo{.Handle = handle, .Load = load, .Clear = clear};
 
-        auto& res = m_graph.m_resources[handle.Index];
+        auto& res = CheckedAt(m_graph.m_resources, handle.Index);
         // LoadOp::Load implies reading previous content
         if (load == LoadOp::Load && res.WrittenByPass != UINT32_MAX && res.WrittenByPass != m_passIndex)
         {
@@ -53,11 +71,14 @@ namespace Wayfinder
 
     void RenderGraphBuilder::WriteDepth(RenderGraphHandle handle, LoadOp load, float clearDepth)
     {
-        if (!handle.IsValid() || handle.Index >= m_graph.m_resources.size()) return;
-        auto& pass = m_graph.m_passes[m_passIndex];
-        pass.DepthWrite = RenderGraph::DepthWriteInfo{handle, load, clearDepth};
+        if (!handle.IsValid() || handle.Index >= m_graph.m_resources.size())
+        {
+            return;
+        }
+        auto& pass = CheckedAt(m_graph.m_passes, m_passIndex);
+        pass.DepthWrite = RenderGraph::DepthWriteInfo{.Handle = handle, .Load = load, .ClearDepth = clearDepth};
 
-        auto& res = m_graph.m_resources[handle.Index];
+        auto& res = CheckedAt(m_graph.m_resources, handle.Index);
         // LoadOp::Load implies reading previous content
         if (load == LoadOp::Load && res.WrittenByPass != UINT32_MAX && res.WrittenByPass != m_passIndex)
         {
@@ -69,8 +90,8 @@ namespace Wayfinder
 
     void RenderGraphBuilder::SetSwapchainOutput(LoadOp load, ClearValue clear)
     {
-        auto& pass = m_graph.m_passes[m_passIndex];
-        pass.SwapchainWrite = RenderGraph::SwapchainWriteInfo{load, clear};
+        auto& pass = CheckedAt(m_graph.m_passes, m_passIndex);
+        pass.SwapchainWrite = RenderGraph::SwapchainWriteInfo{.Load = load, .Clear = clear};
     }
 
     // ── Resources ────────────────────────────────────────────
@@ -79,11 +100,10 @@ namespace Wayfinder
     {
         if (!handle.IsValid() || handle.Index >= m_textures.size())
         {
-            WAYFINDER_VERBOSE(LogRenderer, "RenderGraphResources::GetTexture: invalid handle (index={}, valid={}, count={})",
-                            handle.Index, handle.IsValid(), m_textures.size());
+            WAYFINDER_VERBOSE(LogRenderer, "RenderGraphResources::GetTexture: invalid handle (index={}, valid={}, count={})", handle.Index, handle.IsValid(), m_textures.size());
             return GPUTextureHandle::Invalid();
         }
-        return m_textures[handle.Index];
+        return CheckedAt(m_textures, handle.Index);
     }
 
     // ── RenderGraph ──────────────────────────────────────────
@@ -96,7 +116,7 @@ namespace Wayfinder
         ResourceEntry entry;
         entry.Desc = desc;
         entry.Name = name;
-        m_resources.push_back(std::move(entry));
+        m_resources.push_back(entry);
 
         return handle;
     }
@@ -108,7 +128,7 @@ namespace Wayfinder
         // Check if already imported
         for (uint32_t i = 0; i < m_resources.size(); ++i)
         {
-            if (m_resources[i].Name == internedName)
+            if (CheckedAt(m_resources, i).Name == internedName)
             {
                 return {i};
             }
@@ -117,7 +137,7 @@ namespace Wayfinder
         // Imported/externally-provided textures use a default-constructed desc
         // (width/height == 0) so the transient allocation step skips them —
         // their GPU handles are supplied externally before Execute().
-        RenderGraphTextureDesc desc;
+        const RenderGraphTextureDesc desc;
         return AllocateResource(desc, internedName);
     }
 
@@ -127,7 +147,7 @@ namespace Wayfinder
 
         for (uint32_t i = 0; i < m_resources.size(); ++i)
         {
-            if (m_resources[i].Name == internedName)
+            if (CheckedAt(m_resources, i).Name == internedName)
             {
                 return {i};
             }
@@ -137,8 +157,11 @@ namespace Wayfinder
 
     bool RenderGraph::Compile()
     {
-        const uint32_t passCount = static_cast<uint32_t>(m_passes.size());
-        if (passCount == 0) return false;
+        const auto passCount = static_cast<uint32_t>(m_passes.size());
+        if (passCount == 0)
+        {
+            return false;
+        }
 
         // ── Build dependency graph ───────────────────────────
         // Dependencies are recorded during setup (ReadTexture, WriteColour+Load, WriteDepth+Load).
@@ -148,16 +171,16 @@ namespace Wayfinder
 
         for (uint32_t b = 0; b < passCount; ++b)
         {
-            auto& deps = m_passes[b].DependsOn;
-            std::sort(deps.begin(), deps.end());
-            deps.erase(std::unique(deps.begin(), deps.end()), deps.end());
+            auto& deps = CheckedAt(m_passes, b).DependsOn;
+            std::ranges::sort(deps);
+            deps.erase(std::ranges::unique(deps).begin(), deps.end());
 
-            for (uint32_t a : deps)
+            for (const uint32_t a : deps)
             {
                 if (a < passCount && a != b)
                 {
-                    adjacency[a].push_back(b);
-                    ++inDegree[b];
+                    CheckedAt(adjacency, a).push_back(b);
+                    ++CheckedAt(inDegree, b);
                 }
             }
         }
@@ -166,7 +189,10 @@ namespace Wayfinder
         std::queue<uint32_t> ready;
         for (uint32_t i = 0; i < passCount; ++i)
         {
-            if (inDegree[i] == 0) ready.push(i);
+            if (CheckedAt(inDegree, i) == 0)
+            {
+                ready.push(i);
+            }
         }
 
         m_executionOrder.clear();
@@ -174,13 +200,13 @@ namespace Wayfinder
 
         while (!ready.empty())
         {
-            uint32_t current = ready.front();
+            const uint32_t current = ready.front();
             ready.pop();
             m_executionOrder.push_back(current);
 
-            for (uint32_t next : adjacency[current])
+            for (const uint32_t next : CheckedAt(adjacency, current))
             {
-                if (--inDegree[next] == 0)
+                if (--CheckedAt(inDegree, next) == 0)
                 {
                     ready.push(next);
                 }
@@ -189,8 +215,7 @@ namespace Wayfinder
 
         if (m_executionOrder.size() != passCount)
         {
-            WAYFINDER_ERROR(LogRenderer, "RenderGraph: Cycle detected — {} of {} passes sorted",
-                m_executionOrder.size(), passCount);
+            WAYFINDER_ERROR(LogRenderer, "RenderGraph: Cycle detected — {} of {} passes sorted", m_executionOrder.size(), passCount);
             return false;
         }
 
@@ -202,9 +227,9 @@ namespace Wayfinder
         // Seed: passes that write to the swapchain are always alive
         for (uint32_t i = 0; i < passCount; ++i)
         {
-            if (m_passes[i].SwapchainWrite)
+            if (CheckedAt(m_passes, i).SwapchainWrite)
             {
-                alive[i] = true;
+                CheckedAt(alive, i) = true;
             }
         }
 
@@ -215,12 +240,15 @@ namespace Wayfinder
             changed = false;
             for (uint32_t i = 0; i < passCount; ++i)
             {
-                if (!alive[i]) continue;
-                for (uint32_t dep : m_passes[i].DependsOn)
+                if (!CheckedAt(alive, i))
                 {
-                    if (dep < passCount && !alive[dep])
+                    continue;
+                }
+                for (const uint32_t dep : CheckedAt(m_passes, i).DependsOn)
+                {
+                    if (dep < passCount && !CheckedAt(alive, dep))
                     {
-                        alive[dep] = true;
+                        CheckedAt(alive, dep) = true;
                         changed = true;
                     }
                 }
@@ -229,14 +257,14 @@ namespace Wayfinder
 
         for (uint32_t i = 0; i < passCount; ++i)
         {
-            m_passes[i].Culled = !alive[i];
+            CheckedAt(m_passes, i).Culled = !CheckedAt(alive, i);
         }
 
         // Assign sort order
         uint32_t order = 0;
-        for (uint32_t idx : m_executionOrder)
+        for (const uint32_t idx : m_executionOrder)
         {
-            m_passes[idx].SortOrder = order++;
+            CheckedAt(m_passes, idx).SortOrder = order++;
         }
 
         m_compiled = true;
@@ -245,17 +273,22 @@ namespace Wayfinder
 
     void RenderGraph::Execute(RenderDevice& device, TransientResourcePool& pool)
     {
-        if (!m_compiled) return;
+        if (!m_compiled)
+        {
+            return;
+        }
 
         auto deriveUsage = [](const ResourceEntry& res) -> TextureUsage
         {
             TextureUsage usage = TextureUsage::ColourTarget;
-            if (res.Desc.Format == TextureFormat::D32_FLOAT ||
-                res.Desc.Format == TextureFormat::D24_UNORM_S8)
+            if (res.Desc.Format == TextureFormat::D32_FLOAT || res.Desc.Format == TextureFormat::D24_UNORM_S8)
             {
                 usage = TextureUsage::DepthTarget;
             }
-            if (res.IsReadAsSampler) { usage |= TextureUsage::Sampler; }
+            if (res.IsReadAsSampler)
+            {
+                usage |= TextureUsage::Sampler;
+            }
             return usage;
         };
 
@@ -265,9 +298,15 @@ namespace Wayfinder
 
         for (uint32_t i = 0; i < m_resources.size(); ++i)
         {
-            auto& res = m_resources[i];
-            if (!res.IsTransient) continue;
-            if (res.Desc.Width == 0 || res.Desc.Height == 0) continue;
+            auto& res = CheckedAt(m_resources, i);
+            if (!res.IsTransient)
+            {
+                continue;
+            }
+            if (res.Desc.Width == 0 || res.Desc.Height == 0)
+            {
+                continue;
+            }
 
             TextureCreateDesc texDesc;
             texDesc.width = res.Desc.Width;
@@ -275,14 +314,17 @@ namespace Wayfinder
             texDesc.format = res.Desc.Format;
             texDesc.usage = deriveUsage(res);
 
-            resources.m_textures[i] = pool.Acquire(texDesc);
+            CheckedAt(resources.m_textures, i) = pool.Acquire(texDesc);
         }
 
         // ── Execute passes in sorted order ───────────────────
-        for (uint32_t passIdx : m_executionOrder)
+        for (const uint32_t passIdx : m_executionOrder)
         {
-            auto& pass = m_passes[passIdx];
-            if (pass.Culled || !pass.Execute) continue;
+            auto& pass = CheckedAt(m_passes, passIdx);
+            if (pass.Culled || !pass.Execute)
+            {
+                continue;
+            }
 
             if (pass.Type == RenderGraphPassType::Raster)
             {
@@ -330,8 +372,11 @@ namespace Wayfinder
         // ── Release transient textures back to pool ──────────
         for (uint32_t i = 0; i < m_resources.size(); ++i)
         {
-            auto& res = m_resources[i];
-            if (!res.IsTransient || !resources.m_textures[i]) continue;
+            auto& res = CheckedAt(m_resources, i);
+            if (!res.IsTransient || !CheckedAt(resources.m_textures, i))
+            {
+                continue;
+            }
 
             TextureCreateDesc texDesc;
             texDesc.width = res.Desc.Width;
@@ -339,7 +384,7 @@ namespace Wayfinder
             texDesc.format = res.Desc.Format;
             texDesc.usage = deriveUsage(res);
 
-            pool.Release(resources.m_textures[i], texDesc);
+            pool.Release(CheckedAt(resources.m_textures, i), texDesc);
         }
     }
 

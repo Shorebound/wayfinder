@@ -1,11 +1,12 @@
 #include "Renderer.h"
 
 #include "RenderContext.h"
+#include "RenderPipeline.h"
+#include "core/Result.h"
 #include "rendering/backend/RenderDevice.h"
 #include "rendering/graph/RenderFeature.h"
 #include "rendering/graph/RenderFrame.h"
 #include "rendering/graph/RenderGraph.h"
-#include "RenderPipeline.h"
 #include "rendering/resources/RenderResources.h"
 
 #include "app/EngineConfig.h"
@@ -14,32 +15,42 @@
 
 namespace Wayfinder
 {
-    Renderer::Renderer()
-        : m_screenWidth(800), m_screenHeight(450), m_isInitialised(false)
+    Renderer::Renderer() : m_screenWidth(800), m_screenHeight(450), m_isInitialised(false)
     {
         m_renderPipeline = std::make_unique<RenderPipeline>();
         m_renderResources = std::make_unique<RenderResourceCache>();
     }
 
-    Renderer::~Renderer()
+    Renderer::~Renderer() noexcept
     {
         if (m_isInitialised)
         {
-            Shutdown();
+            try
+            {
+                Shutdown();
+            }
+            catch (const std::exception& exception)
+            {
+                WAYFINDER_WARNING(LogRenderer, "Renderer shutdown suppressed exception during destruction: {}", exception.what());
+            }
+            catch (...)
+            {
+                WAYFINDER_WARNING(LogRenderer, "Renderer shutdown suppressed unknown exception during destruction.");
+            }
         }
     }
 
-    bool Renderer::Initialise(RenderDevice& device, const EngineConfig& config)
+    Result<void> Renderer::Initialise(RenderDevice& device, const EngineConfig& config)
     {
         m_device = &device;
         m_screenWidth = static_cast<int>(config.Window.Width);
         m_screenHeight = static_cast<int>(config.Window.Height);
         // ── GPU infrastructure ───────────────────────────────
         m_context = std::make_unique<RenderContext>();
-        if (!m_context->Initialise(device, config))
+        if (auto result = m_context->Initialise(device, config); !result)
         {
-            WAYFINDER_WARNING(LogRenderer, "Renderer: Failed to initialise RenderContext");
-            return false;
+            WAYFINDER_WARNING(LogRenderer, "Renderer: Failed to initialise RenderContext — {}", result.error().GetMessage());
+            return std::unexpected(result.error());
         }
 
         // ── Render pipeline (registers shader programs) ──────
@@ -81,11 +92,10 @@ namespace Wayfinder
             feature->OnAttach(ctx);
         }
 
-        WAYFINDER_INFO(LogRenderer, "Renderer initialised ({}x{}, backend: {})",
-            m_screenWidth, m_screenHeight, device.GetDeviceInfo().BackendName);
+        WAYFINDER_INFO(LogRenderer, "Renderer initialised ({}x{}, backend: {})", m_screenWidth, m_screenHeight, device.GetDeviceInfo().BackendName);
 
         m_isInitialised = true;
-        return true;
+        return {};
     }
 
     void Renderer::Shutdown()
@@ -132,26 +142,34 @@ namespace Wayfinder
     RenderFeatureContext Renderer::MakeFeatureContext()
     {
         return RenderFeatureContext{
-            .Device = m_context->GetDevice(),
-            .ProgramRegistry = m_context->GetPrograms(),
-            .ShaderManager = m_context->GetShaders(),
-            .PipelineCache = m_context->GetPipelines(),
-            .NearestSampler = m_context->GetNearestSampler(),
+        .Device = m_context->GetDevice(),
+        .ProgramRegistry = m_context->GetPrograms(),
+        .ShaderManager = m_context->GetShaders(),
+        .PipelineCache = m_context->GetPipelines(),
+        .NearestSampler = m_context->GetNearestSampler(),
         };
     }
 
     void Renderer::AddFeature(std::unique_ptr<RenderFeature> feature)
     {
-        if (m_device) { auto ctx = MakeFeatureContext(); feature->OnAttach(ctx); }
+        if (m_device)
+        {
+            auto ctx = MakeFeatureContext();
+            feature->OnAttach(ctx);
+        }
         m_features.push_back(std::move(feature));
     }
 
-
-
     void Renderer::Render(const RenderFrame& frame)
     {
-        if (!m_isInitialised || !m_device) return;
-        if (!m_device->BeginFrame()) return;
+        if (!m_isInitialised || !m_device)
+        {
+            return;
+        }
+        if (!m_device->BeginFrame())
+        {
+            return;
+        }
 
         m_context->GetTransientBuffers().BeginFrame();
 
@@ -170,8 +188,9 @@ namespace Wayfinder
         }
 
         // ── Query swapchain dimensions for transient targets ──
-        uint32_t swapW = 0, swapH = 0;
-        m_device->GetSwapchainDimensions(swapW, swapH);
+        const Extent2D swapchainDimensions = m_device->GetSwapchainDimensions();
+        const uint32_t swapW = swapchainDimensions.width;
+        const uint32_t swapH = swapchainDimensions.height;
         if (swapW == 0 || swapH == 0)
         {
             m_device->EndFrame();
@@ -181,12 +200,12 @@ namespace Wayfinder
         // ── Build and execute render graph ───────────────────
         RenderGraph graph;
 
-        std::unordered_map<uint32_t, Mesh*> meshesByStride = {
+        const std::unordered_map<uint32_t, Mesh*> meshesByStride = {
             {VertexLayouts::PosNormalColour.stride, &m_primitiveMesh},
             {VertexLayouts::PosNormalUV.stride, &m_texturedPrimitiveMesh},
         };
 
-        RenderPipelineFrameParams params{
+        const RenderPipelineFrameParams params{
             .Frame = preparedFrame,
             .SwapchainWidth = swapW,
             .SwapchainHeight = swapH,

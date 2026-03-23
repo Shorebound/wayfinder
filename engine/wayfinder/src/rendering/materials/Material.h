@@ -7,9 +7,9 @@
 
 #include <nlohmann/json.hpp>
 
+#include "MaterialParameter.h"
 #include "assets/AssetLoader.h"
 #include "core/Identifiers.h"
-#include "MaterialParameter.h"
 #include "core/Types.h"
 #include "wayfinder_exports.h"
 
@@ -36,16 +36,9 @@ namespace Wayfinder
         void SetBaseColour(const LinearColour& colour);
     };
 
-    WAYFINDER_API bool ParseMaterialAssetDocument(
-        const nlohmann::json& document,
-        const std::string& sourceLabel,
-        MaterialAsset& material,
-        std::string& error);
+    WAYFINDER_API bool ParseMaterialAssetDocument(const nlohmann::json& document, const std::string& sourceLabel, MaterialAsset& material, std::string& error);
 
-    WAYFINDER_API bool LoadMaterialAssetFromFile(
-        const std::filesystem::path& filePath,
-        MaterialAsset& material,
-        std::string& error);
+    WAYFINDER_API bool LoadMaterialAssetFromFile(const std::filesystem::path& filePath, MaterialAsset& material, std::string& error);
 
     WAYFINDER_API nlohmann::json CreateMaterialComponentTable(const MaterialAsset& material);
 
@@ -55,10 +48,7 @@ namespace Wayfinder
     template<>
     struct AssetLoader<MaterialAsset>
     {
-        static std::optional<MaterialAsset> Load(
-            const nlohmann::json& document,
-            const std::filesystem::path& filePath,
-            std::string& error)
+        static std::optional<MaterialAsset> Load(const nlohmann::json& document, const std::filesystem::path& filePath, std::string& error)
         {
             MaterialAsset material;
             if (!ParseMaterialAssetDocument(document, filePath.generic_string(), material, error))

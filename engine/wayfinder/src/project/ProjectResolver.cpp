@@ -46,7 +46,7 @@ namespace Wayfinder
 
         while (true)
         {
-            const auto candidate = searchDir / kProjectFileName;
+            auto candidate = searchDir / PROJECT_FILE_NAME;
 
             ec.clear();
             const bool exists = std::filesystem::exists(candidate, ec);
@@ -64,7 +64,9 @@ namespace Wayfinder
 
             const auto parent = searchDir.parent_path();
             if (parent == searchDir)
+            {
                 break; // reached filesystem root
+            }
 
             searchDir = parent;
         }
@@ -104,7 +106,9 @@ namespace Wayfinder
 
             const auto parent = searchDir.parent_path();
             if (parent == searchDir)
+            {
                 break;
+            }
 
             searchDir = parent;
         }

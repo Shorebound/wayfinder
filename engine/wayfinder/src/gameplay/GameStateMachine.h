@@ -1,7 +1,7 @@
 #pragma once
 
-#include "GameplayTag.h"
 #include "GameState.h"
+#include "GameplayTag.h"
 #include "app/Subsystem.h"
 #include "wayfinder_exports.h"
 
@@ -47,7 +47,10 @@ namespace Wayfinder
         std::string_view GetCurrentState() const;
 
         /// Mark run conditions as dirty so they are re-evaluated next Update().
-        void MarkDirty() { m_runConditionsDirty = true; }
+        void MarkDirty()
+        {
+            m_runConditionsDirty = true;
+        }
 
     private:
         struct ConditionedSystem

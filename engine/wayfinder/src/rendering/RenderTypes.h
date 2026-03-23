@@ -4,8 +4,8 @@
 #include <string>
 #include <string_view>
 
-#include "platform/BackendConfig.h"
 #include "core/Types.h"
+#include "platform/BackendConfig.h"
 #include "rendering/backend/GPUHandles.h"
 #include "wayfinder_exports.h"
 
@@ -37,9 +37,14 @@ namespace Wayfinder
 
     enum class TextureUsage : uint32_t
     {
-        Sampler      = 1u << 0,
+        None = 0,
+        Sampler = 1u << 0,
         ColourTarget = 1u << 1,
-        DepthTarget  = 1u << 2,
+        DepthTarget = 1u << 2,
+        SamplerColourTarget = Sampler | ColourTarget,
+        SamplerDepthTarget = Sampler | DepthTarget,
+        ColourTargetDepthTarget = ColourTarget | DepthTarget,
+        All = Sampler | ColourTarget | DepthTarget,
     };
 
     inline TextureUsage operator|(TextureUsage a, TextureUsage b)
@@ -75,6 +80,12 @@ namespace Wayfinder
         uint32_t height = 0;
         TextureFormat format = TextureFormat::RGBA8_UNORM;
         TextureUsage usage = TextureUsage::ColourTarget;
+    };
+
+    struct Extent2D
+    {
+        uint32_t width = 0;
+        uint32_t height = 0;
     };
 
     // ── Sampler ───────────────────────────────────────────────
@@ -127,10 +138,10 @@ namespace Wayfinder
         static ClearValue FromColour(const Colour& c)
         {
             return {
-                .r = static_cast<float>(c.r) / 255.0f,
-                .g = static_cast<float>(c.g) / 255.0f,
-                .b = static_cast<float>(c.b) / 255.0f,
-                .a = static_cast<float>(c.a) / 255.0f,
+            .r = static_cast<float>(c.r) / 255.0f,
+            .g = static_cast<float>(c.g) / 255.0f,
+            .b = static_cast<float>(c.b) / 255.0f,
+            .a = static_cast<float>(c.a) / 255.0f,
             };
         }
     };
@@ -158,7 +169,7 @@ namespace Wayfinder
         ColourAttachmentDescriptor colourAttachment{};
         DepthAttachmentDescriptor depthAttachment{};
         bool targetSwapchain = true;
-        GPUTextureHandle colourTarget{};  // If set and !targetSwapchain, render to this texture
+        GPUTextureHandle colourTarget{}; // If set and !targetSwapchain, render to this texture
         GPUTextureHandle depthTarget{};  // If set, use instead of auto-managed depth
     };
 

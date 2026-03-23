@@ -33,8 +33,7 @@ namespace Wayfinder
             return false;
         }
 
-        WAYFINDER_INFO(LogRenderer, "TransientBufferAllocator initialised (vertex: {} KB, index: {} KB)",
-            vertexCapacity / 1024, indexCapacity / 1024);
+        WAYFINDER_INFO(LogRenderer, "TransientBufferAllocator initialised (vertex: {} KB, index: {} KB)", vertexCapacity / 1024, indexCapacity / 1024);
 
         return true;
     }
@@ -43,8 +42,14 @@ namespace Wayfinder
     {
         if (m_device)
         {
-            if (m_vertexRing) m_device->DestroyBuffer(m_vertexRing);
-            if (m_indexRing) m_device->DestroyBuffer(m_indexRing);
+            if (m_vertexRing)
+            {
+                m_device->DestroyBuffer(m_vertexRing);
+            }
+            if (m_indexRing)
+            {
+                m_device->DestroyBuffer(m_indexRing);
+            }
         }
 
         m_vertexRing = {};
@@ -72,8 +77,7 @@ namespace Wayfinder
         return AllocateFromRing(m_indexRing, m_indexCapacity, m_indexCursor, data, sizeInBytes);
     }
 
-    TransientAllocation TransientBufferAllocator::AllocateFromRing(GPUBufferHandle ring, uint32_t capacity,
-                                                                    uint32_t& cursor, const void* data, uint32_t sizeInBytes)
+    TransientAllocation TransientBufferAllocator::AllocateFromRing(GPUBufferHandle ring, uint32_t capacity, uint32_t& cursor, const void* data, uint32_t sizeInBytes)
     {
         if (!m_device || !ring || !data || sizeInBytes == 0)
         {
@@ -81,21 +85,20 @@ namespace Wayfinder
         }
 
         // Align cursor to GPU minimum buffer offset alignment (256 bytes for Vulkan)
-        static constexpr uint32_t kMinAlignment = 256;
-        const uint32_t alignedCursor = (cursor + kMinAlignment - 1) & ~(kMinAlignment - 1);
+        static constexpr uint32_t K_MIN_ALIGNMENT = 256;
+        const uint32_t alignedCursor = (cursor + K_MIN_ALIGNMENT - 1) & ~(K_MIN_ALIGNMENT - 1);
 
         if (alignedCursor + sizeInBytes > capacity)
         {
-            WAYFINDER_WARNING(LogRenderer, "TransientBufferAllocator: Ring buffer overflow ({} + {} > {} bytes)",
-                alignedCursor, sizeInBytes, capacity);
+            WAYFINDER_WARNING(LogRenderer, "TransientBufferAllocator: Ring buffer overflow ({} + {} > {} bytes)", alignedCursor, sizeInBytes, capacity);
             return {};
         }
 
         const uint32_t offset = alignedCursor;
-        m_device->UploadToBuffer(ring, data, sizeInBytes, offset);
+        m_device->UploadToBuffer(ring, data, {.sizeInBytes = sizeInBytes, .dstOffsetInBytes = offset});
         cursor = alignedCursor + sizeInBytes;
 
-        return { ring, offset, sizeInBytes };
+        return {.Buffer = ring, .Offset = offset, .Size = sizeInBytes};
     }
 
 } // namespace Wayfinder

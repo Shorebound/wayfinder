@@ -1,10 +1,12 @@
 #include "TextureManager.h"
 
-#include "rendering/backend/RenderDevice.h"
 #include "core/Log.h"
+#include "rendering/backend/RenderDevice.h"
 
+#include <algorithm>
 #include <array>
 #include <cstdint>
+#include <span>
 
 namespace Wayfinder
 {
@@ -30,16 +32,15 @@ namespace Wayfinder
 
     void TextureManager::Shutdown()
     {
-        if (!m_device) return;
+        if (!m_device)
+        {
+            return;
+        }
 
         // Destroy cached asset textures (skip built-ins — they are destroyed below)
         for (auto& [id, handle] : m_textureCache)
         {
-            if (handle
-                && handle != m_fallbackTexture
-                && handle != m_whiteTexture
-                && handle != m_blackTexture
-                && handle != m_flatNormalTexture)
+            if (handle && handle != m_fallbackTexture && handle != m_whiteTexture && handle != m_blackTexture && handle != m_flatNormalTexture)
             {
                 m_device->DestroyTexture(handle);
             }
@@ -47,15 +48,34 @@ namespace Wayfinder
         m_textureCache.clear();
 
         // Destroy built-in textures
-        if (m_fallbackTexture)    { m_device->DestroyTexture(m_fallbackTexture);    m_fallbackTexture = {}; }
-        if (m_whiteTexture)       { m_device->DestroyTexture(m_whiteTexture);       m_whiteTexture = {}; }
-        if (m_blackTexture)       { m_device->DestroyTexture(m_blackTexture);       m_blackTexture = {}; }
-        if (m_flatNormalTexture)  { m_device->DestroyTexture(m_flatNormalTexture);  m_flatNormalTexture = {}; }
+        if (m_fallbackTexture)
+        {
+            m_device->DestroyTexture(m_fallbackTexture);
+            m_fallbackTexture = {};
+        }
+        if (m_whiteTexture)
+        {
+            m_device->DestroyTexture(m_whiteTexture);
+            m_whiteTexture = {};
+        }
+        if (m_blackTexture)
+        {
+            m_device->DestroyTexture(m_blackTexture);
+            m_blackTexture = {};
+        }
+        if (m_flatNormalTexture)
+        {
+            m_device->DestroyTexture(m_flatNormalTexture);
+            m_flatNormalTexture = {};
+        }
 
         // Destroy cached samplers
         for (auto& [hash, handle] : m_samplerCache)
         {
-            if (handle) m_device->DestroySampler(handle);
+            if (handle)
+            {
+                m_device->DestroySampler(handle);
+            }
         }
         m_samplerCache.clear();
 
@@ -81,8 +101,7 @@ namespace Wayfinder
         const TextureAsset* asset = assetService.LoadAsset<TextureAsset>(assetId, error);
         if (!asset)
         {
-            WAYFINDER_WARNING(LogRenderer, "TextureManager: Failed to load texture asset '{}': {}",
-                assetId.ToString(), error);
+            WAYFINDER_WARNING(LogRenderer, "TextureManager: Failed to load texture asset '{}': {}", assetId.ToString(), error);
             m_textureCache[assetId] = m_fallbackTexture;
             return m_fallbackTexture;
         }
@@ -94,8 +113,7 @@ namespace Wayfinder
             asset = assetService.LoadAsset<TextureAsset>(assetId, error);
             if (!asset || asset->PixelData.empty())
             {
-                WAYFINDER_WARNING(LogRenderer, "TextureManager: Failed to reload pixel data for texture '{}': {}",
-                    assetId.ToString(), error);
+                WAYFINDER_WARNING(LogRenderer, "TextureManager: Failed to reload pixel data for texture '{}': {}", assetId.ToString(), error);
                 m_textureCache[assetId] = m_fallbackTexture;
                 return m_fallbackTexture;
             }
@@ -105,15 +123,13 @@ namespace Wayfinder
         GPUTextureHandle gpuTexture = CreateAndUpload(*asset);
         if (!gpuTexture)
         {
-            WAYFINDER_WARNING(LogRenderer, "TextureManager: GPU upload failed for texture '{}', using fallback",
-                asset->Name);
+            WAYFINDER_WARNING(LogRenderer, "TextureManager: GPU upload failed for texture '{}', using fallback", asset->Name);
             m_textureCache[assetId] = m_fallbackTexture;
             return m_fallbackTexture;
         }
 
         m_textureCache[assetId] = gpuTexture;
-        WAYFINDER_INFO(LogRenderer, "TextureManager: Loaded '{}' ({}x{}) to GPU",
-            asset->Name, asset->Width, asset->Height);
+        WAYFINDER_INFO(LogRenderer, "TextureManager: Loaded '{}' ({}x{}) to GPU", asset->Name, asset->Width, asset->Height);
 
         // Release CPU-side pixel data now that it's on the GPU
         assetService.ReleaseTexturePixelData(assetId);
@@ -158,14 +174,12 @@ namespace Wayfinder
         desc.usage = TextureUsage::Sampler;
 
         GPUTextureHandle texture = m_device->CreateTexture(desc);
-        if (!texture) return GPUTextureHandle::Invalid();
+        if (!texture)
+        {
+            return GPUTextureHandle::Invalid();
+        }
 
-        m_device->UploadToTexture(
-            texture,
-            asset.PixelData.data(),
-            asset.Width,
-            asset.Height,
-            asset.Width * asset.Channels);
+        m_device->UploadToTexture(texture, asset.PixelData.data(), asset.Width, asset.Height, asset.Width * asset.Channels);
 
         return texture;
     }
@@ -179,7 +193,10 @@ namespace Wayfinder
         desc.usage = TextureUsage::Sampler;
 
         GPUTextureHandle texture = m_device->CreateTexture(desc);
-        if (!texture) return GPUTextureHandle::Invalid();
+        if (!texture)
+        {
+            return GPUTextureHandle::Invalid();
+        }
 
         const std::array<uint8_t, 4> pixel = {r, g, b, a};
         m_device->UploadToTexture(texture, pixel.data(), 1, 1, 4);
@@ -189,33 +206,43 @@ namespace Wayfinder
 
     GPUTextureHandle TextureManager::CreateCheckerboard()
     {
-        constexpr uint32_t kSize = 8;
-        constexpr uint32_t kChannels = 4;
-        std::array<uint8_t, kSize * kSize * kChannels> pixels{};
+        constexpr uint32_t K_SIZE = 8;
+        constexpr uint32_t K_CHANNELS = 4;
+        constexpr size_t K_PIXEL_COUNT = static_cast<size_t>(K_SIZE) * static_cast<size_t>(K_SIZE);
+        constexpr size_t K_BUFFER_SIZE = K_PIXEL_COUNT * static_cast<size_t>(K_CHANNELS);
+        std::array<uint8_t, K_BUFFER_SIZE> pixels{};
+        const std::span<uint8_t, K_BUFFER_SIZE> pixelSpan{pixels};
 
-        for (uint32_t y = 0; y < kSize; ++y)
+        for (uint32_t y = 0; y < K_SIZE; ++y)
         {
-            for (uint32_t x = 0; x < kSize; ++x)
+            for (uint32_t x = 0; x < K_SIZE; ++x)
             {
                 const bool isLight = ((x + y) % 2) == 0;
-                const size_t offset = (y * kSize + x) * kChannels;
-                pixels[offset + 0] = isLight ? 255 : 0;   // R: pink or black
-                pixels[offset + 1] = isLight ? 0   : 0;   // G
-                pixels[offset + 2] = isLight ? 200 : 0;    // B
-                pixels[offset + 3] = 255;                   // A
+                const size_t offset = ((static_cast<size_t>(y) * static_cast<size_t>(K_SIZE)) + static_cast<size_t>(x)) * static_cast<size_t>(K_CHANNELS);
+                auto texel = pixelSpan.subspan(offset, K_CHANNELS);
+                const std::array<uint8_t, 4> texelValues = {
+                    isLight ? static_cast<uint8_t>(255) : static_cast<uint8_t>(0),
+                    0,
+                    isLight ? static_cast<uint8_t>(200) : static_cast<uint8_t>(0),
+                    255,
+                };
+                std::ranges::copy(texelValues, texel.begin());
             }
         }
 
         TextureCreateDesc desc;
-        desc.width = kSize;
-        desc.height = kSize;
+        desc.width = K_SIZE;
+        desc.height = K_SIZE;
         desc.format = TextureFormat::RGBA8_UNORM;
         desc.usage = TextureUsage::Sampler;
 
         GPUTextureHandle texture = m_device->CreateTexture(desc);
-        if (!texture) return GPUTextureHandle::Invalid();
+        if (!texture)
+        {
+            return GPUTextureHandle::Invalid();
+        }
 
-        m_device->UploadToTexture(texture, pixels.data(), kSize, kSize, kSize * kChannels);
+        m_device->UploadToTexture(texture, pixels.data(), K_SIZE, K_SIZE, K_SIZE * K_CHANNELS);
 
         return texture;
     }
@@ -227,10 +254,7 @@ namespace Wayfinder
 
         // Pack 4 enum bytes into a 32-bit value, then hash via FNV-1a.
         const uint32_t packed =
-            (static_cast<uint32_t>(desc.minFilter) << 0)  |
-            (static_cast<uint32_t>(desc.magFilter) << 8)  |
-            (static_cast<uint32_t>(desc.addressModeU) << 16) |
-            (static_cast<uint32_t>(desc.addressModeV) << 24);
+        (static_cast<uint32_t>(desc.minFilter) << 0) | (static_cast<uint32_t>(desc.magFilter) << 8) | (static_cast<uint32_t>(desc.addressModeU) << 16) | (static_cast<uint32_t>(desc.addressModeV) << 24);
 
         // FNV-1a 64-bit
         uint64_t hash = 14695981039346656037ull;

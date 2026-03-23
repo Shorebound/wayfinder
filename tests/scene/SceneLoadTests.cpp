@@ -5,7 +5,6 @@
 #include "scene/SceneDocument.h"
 #include "scene/entity/Entity.h"
 
-
 #include <doctest/doctest.h>
 
 #include <filesystem>
@@ -15,7 +14,6 @@
 
 #include "ecs/Flecs.h"
 #include <nlohmann/json.hpp>
-
 
 namespace Wayfinder::Tests
 {
@@ -33,7 +31,7 @@ namespace Wayfinder::Tests
             Scene scene(world, registry, "Default");
 
             auto path = FixturesDir() / "test_scene.json";
-            bool result = scene.LoadFromFile(path.string());
+            auto result = scene.LoadFromFile(path.string());
 
             CHECK(result);
             CHECK(scene.GetName() == "Test Scene");
@@ -76,9 +74,9 @@ namespace Wayfinder::Tests
             REQUIRE(camera.HasComponent<TransformComponent>());
 
             const auto& transform = camera.GetComponent<TransformComponent>();
-            CHECK(transform.Position.x == doctest::Approx(0.0f));
-            CHECK(transform.Position.y == doctest::Approx(5.0f));
-            CHECK(transform.Position.z == doctest::Approx(-10.0f));
+            CHECK(transform.Local.Position.x == doctest::Approx(0.0f));
+            CHECK(transform.Local.Position.y == doctest::Approx(5.0f));
+            CHECK(transform.Local.Position.z == doctest::Approx(-10.0f));
         }
 
         TEST_CASE("LoadFromFile rebuilds hierarchy relationships")
@@ -113,7 +111,7 @@ namespace Wayfinder::Tests
             Scene scene(world, registry, "Default");
 
             auto path = FixturesDir() / "bad_scene.json";
-            bool result = scene.LoadFromFile(path.string());
+            auto result = scene.LoadFromFile(path.string());
 
             CHECK_FALSE(result);
         }
@@ -140,7 +138,7 @@ namespace Wayfinder::Tests
             Scene::RegisterCoreECS(world);
             Scene scene(world, registry, "Default");
 
-            bool result = scene.LoadFromFile("nonexistent_scene.json");
+            auto result = scene.LoadFromFile("nonexistent_scene.json");
             CHECK_FALSE(result);
         }
 
@@ -204,9 +202,7 @@ namespace Wayfinder::Tests
             bool foundDuplicateIdError = false;
             for (const std::string& error : result.Errors)
             {
-                if (error.find("duplicate entity id") != std::string::npos &&
-                    error.find(expectedEntityId) != std::string::npos &&
-                    error.find(expectedEntityName) != std::string::npos)
+                if (error.find("duplicate entity id") != std::string::npos && error.find(expectedEntityId) != std::string::npos && error.find(expectedEntityName) != std::string::npos)
                 {
                     foundDuplicateIdError = true;
                     break;

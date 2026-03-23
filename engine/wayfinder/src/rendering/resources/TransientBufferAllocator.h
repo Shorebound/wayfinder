@@ -13,7 +13,10 @@ namespace Wayfinder
         uint32_t Offset = 0;
         uint32_t Size = 0;
 
-        bool IsValid() const { return Buffer.IsValid() && Size > 0; }
+        bool IsValid() const
+        {
+            return Buffer.IsValid() && Size > 0;
+        }
     };
 
     // Per-frame ring-buffer allocator for dynamic vertex/index data.
@@ -42,8 +45,7 @@ namespace Wayfinder
         TransientAllocation AllocateIndices(const void* data, uint32_t sizeInBytes);
 
     private:
-        TransientAllocation AllocateFromRing(GPUBufferHandle ring, uint32_t capacity,
-                                             uint32_t& cursor, const void* data, uint32_t sizeInBytes);
+        TransientAllocation AllocateFromRing(GPUBufferHandle ring, uint32_t capacity, uint32_t& cursor, const void* data, uint32_t sizeInBytes);
 
         RenderDevice* m_device = nullptr;
 

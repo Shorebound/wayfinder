@@ -6,29 +6,29 @@
 
 namespace Wayfinder
 {
-    RunCondition InState(std::string stateName)
+    RunCondition InState(const std::string& stateName)
     {
         return [name = InternedString::Intern(stateName)](const flecs::world& world) -> bool
         {
-            const ActiveGameState* state = world.try_get<ActiveGameState>();
+            const auto* state = world.try_get<ActiveGameState>();
             return state && state->Current == name;
         };
     }
 
-    RunCondition NotInState(std::string stateName)
+    RunCondition NotInState(const std::string& stateName)
     {
         return [name = InternedString::Intern(stateName)](const flecs::world& world) -> bool
         {
-            const ActiveGameState* state = world.try_get<ActiveGameState>();
+            const auto* state = world.try_get<ActiveGameState>();
             return !state || state->Current != name;
         };
     }
 
     RunCondition HasTag(GameplayTag tag)
     {
-        return [t = std::move(tag)](const flecs::world& world) -> bool
+        return [t = tag](const flecs::world& world) -> bool
         {
-            const ActiveGameplayTags* tags = world.try_get<ActiveGameplayTags>();
+            const auto* tags = world.try_get<ActiveGameplayTags>();
             return tags && tags->Tags.HasTag(t);
         };
     }
@@ -37,13 +37,17 @@ namespace Wayfinder
     {
         return [ts = std::move(tags)](const flecs::world& world) -> bool
         {
-            const ActiveGameplayTags* activeTags = world.try_get<ActiveGameplayTags>();
+            const auto* activeTags = world.try_get<ActiveGameplayTags>();
             if (!activeTags)
+            {
                 return false;
+            }
             for (const auto& t : ts)
             {
                 if (activeTags->Tags.HasTag(t))
+                {
                     return true;
+                }
             }
             return false;
         };
@@ -56,7 +60,9 @@ namespace Wayfinder
             for (const auto& c : cs)
             {
                 if (!c(world))
+                {
                     return false;
+                }
             }
             return true;
         };
@@ -69,7 +75,9 @@ namespace Wayfinder
             for (const auto& c : cs)
             {
                 if (c(world))
+                {
                     return true;
+                }
             }
             return false;
         };

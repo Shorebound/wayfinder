@@ -1,7 +1,6 @@
 #include "TestHelpers.h"
 #include "app/EngineConfig.h"
 
-
 #include <doctest/doctest.h>
 
 #include <filesystem>

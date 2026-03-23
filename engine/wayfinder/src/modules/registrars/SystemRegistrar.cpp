@@ -9,11 +9,7 @@
 
 namespace Wayfinder
 {
-    void SystemRegistrar::Register(std::string name,
-                                   std::function<void(flecs::world&)> factory,
-                                   RunCondition condition,
-                                   std::vector<std::string> after,
-                                   std::vector<std::string> before)
+    void SystemRegistrar::Register(std::string name, std::function<void(flecs::world&)> factory, RunCondition condition, std::vector<std::string> after, std::vector<std::string> before)
     {
         if (!factory)
         {
@@ -30,70 +26,73 @@ namespace Wayfinder
             }
         }
 
-        WAYFINDER_INFO(LogEngine, "SystemRegistrar: registered system '{}'{}", name,
-                       condition ? " (conditioned)" : "");
-        m_descriptors.push_back({std::move(name), std::move(factory), std::move(condition),
-                                 std::move(after), std::move(before)});
+        WAYFINDER_INFO(LogEngine, "SystemRegistrar: registered system '{}'{}", name, condition ? " (conditioned)" : "");
+        m_descriptors.push_back({.Name = std::move(name), .Factory = std::move(factory), .Condition = std::move(condition), .After = std::move(after), .Before = std::move(before)});
     }
 
     void SystemRegistrar::ApplyToWorld(flecs::world& world) const
     {
         // Topological sort of systems based on After/Before declarations.
         std::unordered_map<std::string, size_t> nameToIdx;
-        for (size_t i = 0; i < m_descriptors.size(); ++i)
-            nameToIdx[m_descriptors[i].Name] = i;
+        nameToIdx.reserve(m_descriptors.size());
+
+        for (size_t descriptorIndex = 0; descriptorIndex < m_descriptors.size(); ++descriptorIndex)
+        {
+            const Descriptor& descriptor = m_descriptors.at(descriptorIndex);
+            nameToIdx.emplace(descriptor.Name, descriptorIndex);
+        }
 
         const size_t n = m_descriptors.size();
         std::vector<std::vector<size_t>> adj(n);
         std::vector<size_t> inDegree(n, 0);
 
-        for (size_t i = 0; i < n; ++i)
+        for (size_t descriptorIndex = 0; descriptorIndex < n; ++descriptorIndex)
         {
+            const Descriptor& descriptor = m_descriptors.at(descriptorIndex);
+
             // "i runs after j" means edge j -> i
-            for (const auto& dep : m_descriptors[i].After)
+            for (const auto& dep : descriptor.After)
             {
                 if (auto it = nameToIdx.find(dep); it != nameToIdx.end())
                 {
-                    adj[it->second].push_back(i);
-                    ++inDegree[i];
+                    adj.at(it->second).push_back(descriptorIndex);
+                    ++inDegree.at(descriptorIndex);
                 }
                 else
                 {
-                    WAYFINDER_WARNING(
-                        LogEngine,
+                    WAYFINDER_WARNING(LogEngine,
                         "SystemRegistrar: system '{}' declares After '{}' but no such "
                         "system is registered; ignoring ordering constraint.",
-                        m_descriptors[i].Name,
-                        dep);
+                        descriptor.Name, dep);
                 }
             }
 
             // "i runs before j" means edge i -> j
-            for (const auto& dep : m_descriptors[i].Before)
+            for (const auto& dep : descriptor.Before)
             {
                 if (auto it = nameToIdx.find(dep); it != nameToIdx.end())
                 {
-                    adj[i].push_back(it->second);
-                    ++inDegree[it->second];
+                    adj.at(descriptorIndex).push_back(it->second);
+                    ++inDegree.at(it->second);
                 }
                 else
                 {
-                    WAYFINDER_WARNING(
-                        LogEngine,
+                    WAYFINDER_WARNING(LogEngine,
                         "SystemRegistrar: system '{}' declares Before '{}' but no such "
                         "system is registered; ignoring ordering constraint.",
-                        m_descriptors[i].Name,
-                        dep);
+                        descriptor.Name, dep);
                 }
             }
         }
 
         // Kahn's algorithm
         std::queue<size_t> ready;
-        for (size_t i = 0; i < n; ++i)
+        for (size_t descriptorIndex = 0; descriptorIndex < n; ++descriptorIndex)
         {
-            if (inDegree[i] == 0)
-                ready.push(i);
+            if (inDegree.at(descriptorIndex) == 0)
+            {
+                ready.push(descriptorIndex);
+            }
         }
 
         std::vector<size_t> sorted;
@@ -104,10 +103,12 @@ namespace Wayfinder
             ready.pop();
             sorted.push_back(cur);
 
-            for (const size_t next : adj[cur])
+            for (const size_t next : adj.at(cur))
             {
-                if (--inDegree[next] == 0)
+                if (--inDegree.at(next) == 0)
+                {
                     ready.push(next);
+                }
             }
         }
 
@@ -115,25 +116,28 @@ namespace Wayfinder
         {
             // Identify systems that are part of the cycle (non-zero in-degree).
             std::string cycleMembers;
-            for (size_t i = 0; i < n; ++i)
+            for (size_t descriptorIndex = 0; descriptorIndex < n; ++descriptorIndex)
             {
-                if (inDegree[i] > 0)
+                if (inDegree.at(descriptorIndex) > 0)
                 {
                     if (!cycleMembers.empty())
+                    {
                         cycleMembers += ", ";
-                    cycleMembers += m_descriptors[i].Name;
+                    }
+                    cycleMembers += m_descriptors.at(descriptorIndex).Name;
                 }
             }
 
             WAYFINDER_ERROR(LogEngine,
                 "SystemRegistrar: cycle detected in system ordering constraints! "
                 "Cyclic systems skipped: {}. Initialising {} non-cyclic system(s) in topological order.",
-                cycleMembers,
-                sorted.size());
+                cycleMembers, sorted.size());
         }
 
         for (const size_t idx : sorted)
-            m_descriptors[idx].Factory(world);
+        {
+            m_descriptors.at(idx).Factory(world);
+        }
     }
 
 } // namespace Wayfinder

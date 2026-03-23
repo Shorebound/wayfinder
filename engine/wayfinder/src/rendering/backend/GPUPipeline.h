@@ -3,6 +3,7 @@
 #include "RenderDevice.h"
 #include "VertexFormats.h"
 
+#include <array>
 #include <string>
 
 namespace Wayfinder
@@ -24,7 +25,7 @@ namespace Wayfinder
         bool depthTestEnabled = false;
         bool depthWriteEnabled = false;
         uint32_t numColourTargets = 1;
-        BlendState colourTargetBlends[MAX_COLOUR_TARGETS]{};
+        std::array<BlendState, MAX_COLOUR_TARGETS> colourTargetBlends{};
     };
 
     class PipelineCache;
@@ -46,7 +47,10 @@ namespace Wayfinder
         void Destroy();
         void Bind();
 
-        bool IsValid() const { return m_pipeline.IsValid(); }
+        bool IsValid() const
+        {
+            return m_pipeline.IsValid();
+        }
 
     private:
         RenderDevice* m_device = nullptr;

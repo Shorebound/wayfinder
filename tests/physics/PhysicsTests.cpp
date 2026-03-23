@@ -5,11 +5,10 @@
 #include "physics/PhysicsWorld.h"
 #include "scene/Components.h"
 
-
 #include <doctest/doctest.h>
 
-#include <cmath>
 #include "ecs/Flecs.h"
+#include <cmath>
 #include <functional>
 
 namespace Wayfinder::Tests
@@ -19,6 +18,14 @@ namespace Wayfinder::Tests
     /// Number of simulation steps used by gravity/movement tests (≈ 1 second at 60 Hz).
     constexpr int SIMULATION_STEPS = 60;
     constexpr float FIXED_DT = 1.0f / 60.0f;
+
+    PhysicsBodyPose MakeBodyPose(const Float3& position, const Float3& rotationDegrees = {0.0f, 0.0f, 0.0f})
+    {
+        PhysicsBodyPose pose;
+        pose.Position = position;
+        pose.RotationDegrees = rotationDegrees;
+        return pose;
+    }
 
     /// RAII helper that binds a SubsystemCollection with PhysicsSubsystem to
     /// GameSubsystems for the lifetime of the guard.  Tests that need
@@ -56,12 +63,19 @@ namespace Wayfinder::Tests
     {
         world.observer<RigidBodyComponent, const ColliderComponent, const TransformComponent>("PhysicsCreateBodies")
         .event(flecs::OnAdd)
-        .each([onCreated = std::move(onCreated)](RigidBodyComponent& rb, const ColliderComponent& col, const TransformComponent& transform) 
+        .each([onCreated = std::move(onCreated)](RigidBodyComponent& rb, const ColliderComponent& col, const TransformComponent& transform)
         {
             if (rb.RuntimeBodyId != INVALID_PHYSICS_BODY)
+            {
                 return;
+            }
             auto* sub = GameSubsystems::Find<PhysicsSubsystem>();
-            if (!sub) return;
+
+            if (!sub)
+            {
+                return;
+            }
+
             PhysicsBodyDescriptor desc;
             desc.Type = rb.Type;
             desc.Mass = rb.Mass;
@@ -76,9 +90,12 @@ namespace Wayfinder::Tests
             desc.Height = col.Height;
             desc.Friction = col.Friction;
             desc.Restitution = col.Restitution;
-            rb.RuntimeBodyId = sub->GetWorld().CreateBody(desc, transform.Position, transform.Rotation);
+            rb.RuntimeBodyId = sub->GetWorld().CreateBody(desc, MakeBodyPose(transform.Local.Position, transform.Local.RotationDegrees));
+
             if (onCreated)
+            {
                 onCreated(rb.RuntimeBodyId);
+            }
         });
     }
 
@@ -88,17 +105,24 @@ namespace Wayfinder::Tests
     {
         world.observer<RigidBodyComponent>("PhysicsDestroyBodies")
         .event(flecs::OnRemove)
-        .each([onDestroyed = std::move(onDestroyed)](flecs::entity, RigidBodyComponent& rb) 
+        .each([onDestroyed = std::move(onDestroyed)](flecs::entity, RigidBodyComponent& rb)
         {
             if (rb.RuntimeBodyId == INVALID_PHYSICS_BODY)
+            {
                 return;
+            }
             auto* sub = GameSubsystems::Find<PhysicsSubsystem>();
-            if (!sub) return;
+            if (!sub)
+            {
+                return;
+            }
 
             sub->GetWorld().DestroyBody(rb.RuntimeBodyId);
             rb.RuntimeBodyId = INVALID_PHYSICS_BODY;
             if (onDestroyed)
+            {
                 onDestroyed();
+            }
         });
     }
 
@@ -173,7 +197,7 @@ namespace Wayfinder::Tests
             desc.Shape = ColliderShape::Box;
             desc.HalfExtents = {0.5f, 0.5f, 0.5f};
 
-            uint32_t id = world.CreateBody(desc, {0.0f, 10.0f, 0.0f});
+            uint32_t id = world.CreateBody(desc, MakeBodyPose(Float3{0.0f, 10.0f, 0.0f}));
             CHECK(id != INVALID_PHYSICS_BODY);
 
             Float3 pos = world.GetBodyPosition(id);
@@ -195,7 +219,7 @@ namespace Wayfinder::Tests
             desc.Shape = ColliderShape::Sphere;
             desc.Radius = 1.0f;
 
-            uint32_t id = world.CreateBody(desc, {5.0f, 0.0f, 0.0f});
+            uint32_t id = world.CreateBody(desc, MakeBodyPose(Float3{5.0f, 0.0f, 0.0f}));
             CHECK(id != INVALID_PHYSICS_BODY);
 
             Float3 pos = world.GetBodyPosition(id);
@@ -216,7 +240,7 @@ namespace Wayfinder::Tests
             desc.Radius = 0.5f;
             desc.Height = 2.0f;
 
-            uint32_t id = world.CreateBody(desc, {0.0f, 10.0f, 0.0f});
+            uint32_t id = world.CreateBody(desc, MakeBodyPose(Float3{0.0f, 10.0f, 0.0f}));
             CHECK(id != INVALID_PHYSICS_BODY);
 
             Float3 pos = world.GetBodyPosition(id);
@@ -238,7 +262,7 @@ namespace Wayfinder::Tests
             desc.Shape = ColliderShape::Box;
 
             // 90 degrees around Y axis
-            uint32_t id = world.CreateBody(desc, {0.0f, 0.0f, 0.0f}, {0.0f, 90.0f, 0.0f});
+            uint32_t id = world.CreateBody(desc, MakeBodyPose(Float3{0.0f, 0.0f, 0.0f}, Float3{0.0f, 90.0f, 0.0f}));
             REQUIRE(id != INVALID_PHYSICS_BODY);
 
             Float4 rot = world.GetBodyRotation(id);
@@ -262,7 +286,7 @@ namespace Wayfinder::Tests
             desc.Type = BodyType::Static;
             desc.Shape = ColliderShape::Box;
 
-            uint32_t id = world.CreateBody(desc, {0.0f, 0.0f, 0.0f});
+            uint32_t id = world.CreateBody(desc, MakeBodyPose(Float3{0.0f, 0.0f, 0.0f}));
             REQUIRE(id != INVALID_PHYSICS_BODY);
 
             Float4 rot = world.GetBodyRotation(id);
@@ -303,12 +327,14 @@ namespace Wayfinder::Tests
             desc.HalfExtents = {0.5f, 0.5f, 0.5f};
 
             const float startY = 10.0f;
-            uint32_t id = world.CreateBody(desc, {0.0f, startY, 0.0f});
+            uint32_t id = world.CreateBody(desc, MakeBodyPose(Float3{0.0f, startY, 0.0f}));
             REQUIRE(id != INVALID_PHYSICS_BODY);
 
             // Step several times to let gravity take effect
             for (int i = 0; i < SIMULATION_STEPS; ++i)
+            {
                 world.Step(FIXED_DT);
+            }
 
             Float3 pos = world.GetBodyPosition(id);
             CHECK(pos.y < startY);
@@ -329,11 +355,13 @@ namespace Wayfinder::Tests
             desc.Shape = ColliderShape::Box;
             desc.HalfExtents = {5.0f, 0.5f, 5.0f};
 
-            uint32_t id = world.CreateBody(desc, {0.0f, 0.0f, 0.0f});
+            uint32_t id = world.CreateBody(desc, MakeBodyPose(Float3{0.0f, 0.0f, 0.0f}));
             REQUIRE(id != INVALID_PHYSICS_BODY);
 
             for (int i = 0; i < SIMULATION_STEPS; ++i)
+            {
                 world.Step(FIXED_DT);
+            }
 
             Float3 pos = world.GetBodyPosition(id);
             CHECK(pos.x == doctest::Approx(0.0f));
@@ -359,12 +387,14 @@ namespace Wayfinder::Tests
 
             const float startY = 20.0f;
             RigidBodyComponent rb;
-            rb.RuntimeBodyId = physWorld.CreateBody(desc, {0.0f, startY, 0.0f});
+            rb.RuntimeBodyId = physWorld.CreateBody(desc, MakeBodyPose(Float3{0.0f, startY, 0.0f}));
             REQUIRE(rb.RuntimeBodyId != INVALID_PHYSICS_BODY);
 
             // Simulate
             for (int i = 0; i < SIMULATION_STEPS; ++i)
+            {
                 physWorld.Step(FIXED_DT);
+            }
 
             // Verify via position query
             Float3 pos = physWorld.GetBodyPosition(rb.RuntimeBodyId);
@@ -397,15 +427,17 @@ namespace Wayfinder::Tests
             statDesc.Type = BodyType::Static;
             statDesc.Shape = ColliderShape::Box;
 
-            uint32_t dynId = world.CreateBody(dynDesc, {0.0f, 10.0f, 0.0f});
-            uint32_t statId = world.CreateBody(statDesc, {0.0f, -1.0f, 0.0f});
+            uint32_t dynId = world.CreateBody(dynDesc, MakeBodyPose(Float3{0.0f, 10.0f, 0.0f}));
+            uint32_t statId = world.CreateBody(statDesc, MakeBodyPose(Float3{0.0f, -1.0f, 0.0f}));
 
             REQUIRE(dynId != INVALID_PHYSICS_BODY);
             REQUIRE(statId != INVALID_PHYSICS_BODY);
             CHECK(dynId != statId);
 
             for (int i = 0; i < SIMULATION_STEPS; ++i)
+            {
                 world.Step(FIXED_DT);
+            }
 
             // Dynamic body fell
             Float3 dynPos = world.GetBodyPosition(dynId);
@@ -444,7 +476,7 @@ namespace Wayfinder::Tests
             desc.Type = BodyType::Kinematic;
             desc.Shape = ColliderShape::Box;
 
-            uint32_t id = world.CreateBody(desc, {0.0f, 0.0f, 0.0f});
+            uint32_t id = world.CreateBody(desc, MakeBodyPose(Float3{0.0f, 0.0f, 0.0f}));
             REQUIRE(id != INVALID_PHYSICS_BODY);
 
             world.SetBodyPosition(id, {5.0f, 10.0f, 15.0f});
@@ -568,7 +600,7 @@ namespace Wayfinder::Tests
             desc.Shape = ColliderShape::Box;
 
             const float startY = 10.0f;
-            uint32_t id = world.CreateBody(desc, {0.0f, startY, 0.0f});
+            uint32_t id = world.CreateBody(desc, MakeBodyPose(Float3{0.0f, startY, 0.0f}));
             REQUIRE(id != INVALID_PHYSICS_BODY);
 
             // Simulate ~1 second via StepFixed with variable frame times
@@ -605,7 +637,7 @@ namespace Wayfinder::Tests
             auto entity = ecsWorld.entity("TestBox");
 
             ecsWorld.defer_begin();
-            entity.set<TransformComponent>({{0.0f, 5.0f, 0.0f}});
+            entity.set<TransformComponent>(Float3{0.0f, 5.0f, 0.0f});
             entity.set<ColliderComponent>({});
             entity.set<RigidBodyComponent>({});
             ecsWorld.defer_end();
@@ -632,19 +664,19 @@ namespace Wayfinder::Tests
             uint32_t createdBodyId = INVALID_PHYSICS_BODY;
             bool bodyDestroyed = false;
 
-            RegisterCreateBodiesObserver(ecsWorld, [&createdBodyId](uint32_t id) 
+            RegisterCreateBodiesObserver(ecsWorld, [&createdBodyId](uint32_t id)
             {
                 createdBodyId = id;
             });
 
-            RegisterDestroyBodiesObserver(ecsWorld, [&bodyDestroyed]() 
+            RegisterDestroyBodiesObserver(ecsWorld, [&bodyDestroyed]()
             {
                 bodyDestroyed = true;
             });
 
             auto entity = ecsWorld.entity("TestBox");
             ecsWorld.defer_begin();
-            entity.set<TransformComponent>({{0.0f, 5.0f, 0.0f}});
+            entity.set<TransformComponent>(Float3{0.0f, 5.0f, 0.0f});
             entity.set<ColliderComponent>({});
             entity.set<RigidBodyComponent>({});
             ecsWorld.defer_end();
@@ -674,13 +706,14 @@ namespace Wayfinder::Tests
 
             RegisterCreateBodiesObserver(ecsWorld);
 
-            RegisterDestroyBodiesObserver(ecsWorld, [&bodyDestroyed]() {
+            RegisterDestroyBodiesObserver(ecsWorld, [&bodyDestroyed]()
+            {
                 bodyDestroyed = true;
             });
 
             auto entity = ecsWorld.entity("TestBox");
             ecsWorld.defer_begin();
-            entity.set<TransformComponent>({{0.0f, 5.0f, 0.0f}});
+            entity.set<TransformComponent>(Float3{0.0f, 5.0f, 0.0f});
             entity.set<ColliderComponent>({});
             entity.set<RigidBodyComponent>({});
             ecsWorld.defer_end();
@@ -718,43 +751,57 @@ namespace Wayfinder::Tests
 
             // Register step system
             ecsWorld.system("PhysicsStep")
-                .kind(flecs::OnUpdate)
-                .run([](flecs::iter& it) {
-                    auto* sub = GameSubsystems::Find<PhysicsSubsystem>();
-                    if (sub) sub->GetWorld().StepFixed(it.delta_time());
-                });
+            .kind(flecs::OnUpdate)
+            .run([](flecs::iter& it)
+            {
+                auto* sub = GameSubsystems::Find<PhysicsSubsystem>();
+                if (sub)
+                {
+                    sub->GetWorld().StepFixed(it.delta_time());
+                }
+            });
 
             // Register sync system
             ecsWorld.system<const RigidBodyComponent, WorldTransformComponent>("PhysicsSyncTransforms")
-                .kind(flecs::OnValidate)
-                .each([](flecs::entity,
-                         const RigidBodyComponent& rb,
-                         WorldTransformComponent& wt) {
-                    if (rb.RuntimeBodyId == INVALID_PHYSICS_BODY) return;
-                    if (rb.Type == BodyType::Static) return;
-                    auto* sub = GameSubsystems::Find<PhysicsSubsystem>();
-                    if (!sub) return;
-                    Float3 pos = sub->GetWorld().GetBodyPosition(rb.RuntimeBodyId);
-                    Float4 rotQ = sub->GetWorld().GetBodyRotation(rb.RuntimeBodyId);
-                    wt.Position = pos;
-                    Quaternion q(rotQ.w, rotQ.x, rotQ.y, rotQ.z);
-                    Matrix4 rotMat = Maths::ToMatrix4(q);
-                    Matrix4 translateMat = Maths::Translate(Matrix4(1.0f), pos);
-                    Matrix4 scaleMat = Maths::ScaleMatrix(Matrix4(1.0f), wt.Scale);
-                    wt.LocalToWorld = translateMat * rotMat * scaleMat;
-                });
+            .kind(flecs::OnValidate)
+            .each([](flecs::entity, const RigidBodyComponent& rb, WorldTransformComponent& wt)
+            {
+                if (rb.RuntimeBodyId == INVALID_PHYSICS_BODY)
+                {
+                    return;
+                }
+                if (rb.Type == BodyType::Static)
+                {
+                    return;
+                }
+                auto* sub = GameSubsystems::Find<PhysicsSubsystem>();
+                if (!sub)
+                {
+                    return;
+                }
+                Float3 pos = sub->GetWorld().GetBodyPosition(rb.RuntimeBodyId);
+                Float4 rotQ = sub->GetWorld().GetBodyRotation(rb.RuntimeBodyId);
+                wt.Position = pos;
+                Quaternion q(rotQ.w, rotQ.x, rotQ.y, rotQ.z);
+                Matrix4 rotMat = Maths::ToMatrix4(q);
+                Matrix4 translateMat = Maths::Translate(Matrix4(1.0f), pos);
+                Matrix4 scaleMat = Maths::ScaleMatrix(Matrix4(1.0f), wt.Scale);
+                wt.LocalToWorld = translateMat * rotMat * scaleMat;
+            });
 
             // Create a dynamic entity at height 20
             const float startY = 20.0f;
             auto entity = ecsWorld.entity("FallingBox");
-            entity.set<TransformComponent>({{0.0f, startY, 0.0f}});
+            entity.set<TransformComponent>(Float3{0.0f, startY, 0.0f});
             entity.set<WorldTransformComponent>({});
             entity.set<RigidBodyComponent>({});
             entity.set<ColliderComponent>({});
 
             // Step the ECS world
             for (int i = 0; i < SIMULATION_STEPS; ++i)
+            {
                 ecsWorld.progress(FIXED_DT);
+            }
 
             // Verify: WorldTransformComponent was updated by the sync system
             const auto& wt = entity.get<WorldTransformComponent>();

@@ -1,16 +1,22 @@
 #include "TransientResourcePool.h"
-#include "rendering/backend/RenderDevice.h"
 #include "core/Log.h"
+#include "rendering/backend/RenderDevice.h"
 
 namespace Wayfinder
 {
-    void TransientResourcePool::Initialise(RenderDevice& device) { m_device = &device; }
+    void TransientResourcePool::Initialise(RenderDevice& device)
+    {
+        m_device = &device;
+    }
 
     void TransientResourcePool::Shutdown()
     {
-        if (!m_device) return;
+        if (!m_device)
+        {
+            return;
+        }
 
-        for (GPUTextureHandle tex : m_allTextures)
+        for (const GPUTextureHandle tex : m_allTextures)
         {
             m_device->DestroyTexture(tex);
         }
@@ -27,7 +33,7 @@ namespace Wayfinder
             return GPUTextureHandle::Invalid();
         }
 
-        PoolKey key{desc.width, desc.height, desc.format, desc.usage};
+        const PoolKey key{.Width = desc.width, .Height = desc.height, .Format = desc.format, .Usage = desc.usage};
         auto it = m_available.find(key);
         if (it != m_available.end() && !it->second.empty())
         {
@@ -47,10 +53,16 @@ namespace Wayfinder
 
     void TransientResourcePool::Release(GPUTextureHandle texture, const TextureCreateDesc& desc)
     {
-        if (!texture.IsValid()) return;
-        if (!m_device) return;
+        if (!texture.IsValid())
+        {
+            return;
+        }
+        if (!m_device)
+        {
+            return;
+        }
 
-        PoolKey key{desc.width, desc.height, desc.format, desc.usage};
+        const PoolKey key{.Width = desc.width, .Height = desc.height, .Format = desc.format, .Usage = desc.usage};
         m_available[key].push_back(texture);
     }
 

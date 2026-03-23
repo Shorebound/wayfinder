@@ -22,9 +22,18 @@ namespace Wayfinder
         void Upload(const void* data, uint32_t sizeInBytes);
         void Destroy();
 
-        GPUBufferHandle GetHandle() const { return m_handle; }
-        bool IsValid() const { return m_handle.IsValid(); }
-        uint32_t GetSize() const { return m_size; }
+        GPUBufferHandle GetHandle() const
+        {
+            return m_handle;
+        }
+        bool IsValid() const
+        {
+            return m_handle.IsValid();
+        }
+        uint32_t GetSize() const
+        {
+            return m_size;
+        }
 
     private:
         RenderDevice* m_device = nullptr;

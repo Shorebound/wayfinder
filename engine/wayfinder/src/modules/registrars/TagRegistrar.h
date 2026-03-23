@@ -25,10 +25,16 @@ namespace Wayfinder
         void AddFile(std::string relativePath);
 
         /// Read-only access to descriptors.
-        const std::vector<Descriptor>& GetDescriptors() const { return m_descriptors; }
+        const std::vector<Descriptor>& GetDescriptors() const
+        {
+            return m_descriptors;
+        }
 
         /// Read-only access to registered tag-file paths.
-        const std::vector<std::string>& GetFiles() const { return m_files; }
+        const std::vector<std::string>& GetFiles() const
+        {
+            return m_files;
+        }
 
     private:
         std::vector<Descriptor> m_descriptors;

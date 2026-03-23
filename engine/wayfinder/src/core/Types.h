@@ -49,6 +49,66 @@ namespace Wayfinder
     using Degrees = float;
     using Radians = float;
 
+    inline constexpr Float3 Up{0.f, 1.f, 0.f};
+    inline constexpr Float3 Down{0.f, -1.f, 0.f};
+    inline constexpr Float3 Right{1.f, 0.f, 0.f};
+    inline constexpr Float3 Left{-1.f, 0.f, 0.f};
+    inline constexpr Float3 Forward{0.f, 0.f, -1.f};
+    inline constexpr Float3 Back{0.f, 0.f, 1.f};
+    inline constexpr Float3 One{1.f, 1.f, 1.f};
+    inline constexpr Float3 Zero{0.f, 0.f, 0.f};
+
+    // ============ Unity-style (Y-up, left-handed) ============
+    namespace Unity
+    {
+        inline constexpr Float3 Up{0.f, 1.f, 0.f};
+        inline constexpr Float3 Down{0.f, -1.f, 0.f};
+        inline constexpr Float3 Right{1.f, 0.f, 0.f};
+        inline constexpr Float3 Left{-1.f, 0.f, 0.f};
+        inline constexpr Float3 Forward{0.f, 0.f, 1.f};
+        inline constexpr Float3 Back{0.f, 0.f, -1.f};
+    }
+
+    // ============ Unreal-style (Z-up, left-handed) ============
+    namespace Unreal
+    {
+        inline constexpr Float3 Up{0.f, 0.f, 1.f};
+        inline constexpr Float3 Down{0.f, 0.f, -1.f};
+        inline constexpr Float3 Right{0.f, 1.f, 0.f};
+        inline constexpr Float3 Left{0.f, -1.f, 0.f};
+        inline constexpr Float3 Forward{1.f, 0.f, 0.f};
+        inline constexpr Float3 Back{-1.f, 0.f, 0.f};
+    }
+
+    // ============ Godot / OpenGL (Y-up, right-handed) ============
+    namespace Godot
+    {
+        inline constexpr Float3 Up{0.f, 1.f, 0.f};
+        inline constexpr Float3 Down{0.f, -1.f, 0.f};
+        inline constexpr Float3 Right{1.f, 0.f, 0.f};
+        inline constexpr Float3 Left{-1.f, 0.f, 0.f};
+        inline constexpr Float3 Forward{0.f, 0.f, -1.f};
+        inline constexpr Float3 Back{0.f, 0.f, 1.f};
+    }
+
+    // ============ Source / Blender (Z-up, right-handed) ============
+    namespace Source
+    {
+        inline constexpr Float3 Up{0.f, 0.f, 1.f};
+        inline constexpr Float3 Down{0.f, 0.f, -1.f};
+        inline constexpr Float3 Right{1.f, 0.f, 0.f};
+        inline constexpr Float3 Left{-1.f, 0.f, 0.f};
+        inline constexpr Float3 Forward{0.f, 1.f, 0.f};
+        inline constexpr Float3 Back{0.f, -1.f, 0.f};
+    }
+
+    struct Transform
+    {
+        Float3 Position = {0.0f, 0.0f, 0.0f};
+        Float3 RotationDegrees = {0.0f, 0.0f, 0.0f};
+        Float3 Scale = {1.0f, 1.0f, 1.0f};
+    };
+
     // ── Coordinate-system / convention enums ─────────────────
 
     enum class Axis
@@ -81,14 +141,38 @@ namespace Wayfinder
     {
         uint8_t r, g, b, a;
 
-        static Colour White() { return {.r = 255, .g = 255, .b = 255, .a = 255}; }
-        static Colour Black() { return {.r = 0, .g = 0, .b = 0, .a = 255}; }
-        static Colour Red() { return {.r = 255, .g = 0, .b = 0, .a = 255}; }
-        static Colour Green() { return {.r = 0, .g = 255, .b = 0, .a = 255}; }
-        static Colour Blue() { return {.r = 0, .g = 0, .b = 255, .a = 255}; }
-        static Colour Yellow() { return {.r = 255, .g = 255, .b = 0, .a = 255}; }
-        static Colour Gray() { return {.r = 128, .g = 128, .b = 128, .a = 255}; }
-        static Colour DarkGray() { return {.r = 80, .g = 80, .b = 80, .a = 255}; }
+        static Colour White()
+        {
+            return {.r = 255, .g = 255, .b = 255, .a = 255};
+        }
+        static Colour Black()
+        {
+            return {.r = 0, .g = 0, .b = 0, .a = 255};
+        }
+        static Colour Red()
+        {
+            return {.r = 255, .g = 0, .b = 0, .a = 255};
+        }
+        static Colour Green()
+        {
+            return {.r = 0, .g = 255, .b = 0, .a = 255};
+        }
+        static Colour Blue()
+        {
+            return {.r = 0, .g = 0, .b = 255, .a = 255};
+        }
+        static Colour Yellow()
+        {
+            return {.r = 255, .g = 255, .b = 0, .a = 255};
+        }
+        static Colour Gray()
+        {
+            return {.r = 128, .g = 128, .b = 128, .a = 255};
+        }
+        static Colour DarkGray()
+        {
+            return {.r = 80, .g = 80, .b = 80, .a = 255};
+        }
     };
 
     // ── LinearColour ─────────────────────────────────────────
@@ -101,8 +185,14 @@ namespace Wayfinder
     {
         float r = 1.0f, g = 1.0f, b = 1.0f, a = 1.0f;
 
-        static LinearColour White() { return {1.0f, 1.0f, 1.0f, 1.0f}; }
-        static LinearColour Black() { return {0.0f, 0.0f, 0.0f, 1.0f}; }
+        static LinearColour White()
+        {
+            return {1.0f, 1.0f, 1.0f, 1.0f};
+        }
+        static LinearColour Black()
+        {
+            return {0.0f, 0.0f, 0.0f, 1.0f};
+        }
 
         static LinearColour FromColour(const Colour& c)
         {
@@ -114,8 +204,14 @@ namespace Wayfinder
             };
         }
 
-        Float4 ToFloat4() const { return {r, g, b, a}; }
-        Float3 ToFloat3() const { return {r, g, b}; }
+        Float4 ToFloat4() const
+        {
+            return {r, g, b, a};
+        }
+        Float3 ToFloat3() const
+        {
+            return {r, g, b};
+        }
     };
 
 } // namespace Wayfinder

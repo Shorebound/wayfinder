@@ -6,6 +6,13 @@
 
 namespace Wayfinder
 {
+    namespace
+    {
+        constexpr std::string_view NAME_KEY = "name";
+        constexpr std::string_view ASSET_ID_KEY = "asset_id";
+        constexpr std::string_view ASSET_TYPE_KEY = "asset_type";
+    }
+
     bool AssetSchemaRegistry::IsRegisteredType(std::string_view typeName)
     {
         return Find(typeName) != nullptr;
@@ -22,11 +29,7 @@ namespace Wayfinder
         return entry->BuiltinKind;
     }
 
-    bool AssetSchemaRegistry::ValidateDocument(
-        std::string_view typeName,
-        const nlohmann::json& document,
-        const std::filesystem::path& filePath,
-        std::string& error)
+    bool AssetSchemaRegistry::ValidateDocument(std::string_view typeName, const nlohmann::json& document, const std::filesystem::path& filePath, std::string& error)
     {
         const Entry* entry = Find(typeName);
         if (!entry)
@@ -53,22 +56,20 @@ namespace Wayfinder
 
     const std::array<AssetSchemaRegistry::Entry, 3>& AssetSchemaRegistry::GetEntries()
     {
-        static const std::array<Entry, 3> entries = {{
-            {"prefab", AssetKind::Prefab, &ValidatePrefabDocument},
-            {"material", AssetKind::Material, &ValidateMaterialDocument},
-            {"texture", AssetKind::Texture, &ValidateTextureDocument},
+        static const std::array<Entry, 3> ENTRIES = 
+        {{
+            {.TypeName = "prefab", .BuiltinKind = AssetKind::Prefab, .ValidateFn = &ValidatePrefabDocument},
+            {.TypeName = "material", .BuiltinKind = AssetKind::Material, .ValidateFn = &ValidateMaterialDocument},
+            {.TypeName = "texture", .BuiltinKind = AssetKind::Texture, .ValidateFn = &ValidateTextureDocument},
         }};
-        return entries;
+        return ENTRIES;
     }
 
-    bool AssetSchemaRegistry::ValidatePrefabDocument(
-        const nlohmann::json& document,
-        const std::filesystem::path& filePath,
-        std::string& error)
+    bool AssetSchemaRegistry::ValidatePrefabDocument(const nlohmann::json& document, const std::filesystem::path& filePath, std::string& error)
     {
         const SceneComponentRegistry& registry = SceneComponentRegistry::Get();
 
-        if (document.contains("name") && !document["name"].is_string())
+        if (const auto nameIt = document.find(NAME_KEY); nameIt != document.end() && !nameIt->is_string())
         {
             error = "Prefab asset '" + filePath.generic_string() + "' field 'name' must be a string";
             return false;
@@ -76,15 +77,14 @@ namespace Wayfinder
 
         for (const auto& [key, node] : document.items())
         {
-            if (key == "asset_id" || key == "asset_type" || key == "name")
+            if (key == ASSET_ID_KEY || key == ASSET_TYPE_KEY || key == NAME_KEY)
             {
                 continue;
             }
 
             if (!node.is_object())
             {
-                error = "Prefab asset '" + filePath.generic_string() + "' field '" + key
-                    + "' must be a JSON object. Prefab payload is defined by component objects.";
+                error = "Prefab asset '" + filePath.generic_string() + "' field '" + key + "' must be a JSON object. Prefab payload is defined by component objects.";
                 return false;
             }
 
@@ -97,8 +97,12 @@ namespace Wayfinder
             std::string validationError;
             if (!registry.ValidateComponent(key, node, validationError))
             {
-                error = "Prefab asset '" + filePath.generic_string() + "' component '" + key
-                    + "' is invalid: " + validationError;
+                error = "Prefab asset '";
+                error.append(filePath.generic_string());
+                error.append("' component '");
+                error.append(key);
+                error.append("' is invalid: ");
+                error.append(validationError);
                 return false;
             }
         }
@@ -106,19 +110,13 @@ namespace Wayfinder
         return true;
     }
 
-    bool AssetSchemaRegistry::ValidateMaterialDocument(
-        const nlohmann::json& document,
-        const std::filesystem::path& filePath,
-        std::string& error)
+    bool AssetSchemaRegistry::ValidateMaterialDocument(const nlohmann::json& document, const std::filesystem::path& filePath, std::string& error)
     {
         MaterialAsset material;
         return ParseMaterialAssetDocument(document, filePath.generic_string(), material, error);
     }
 
-    bool AssetSchemaRegistry::ValidateTextureDocument(
-        const nlohmann::json& document,
-        const std::filesystem::path& filePath,
-        std::string& error)
+    bool AssetSchemaRegistry::ValidateTextureDocument(const nlohmann::json& document, const std::filesystem::path& filePath, std::string& error)
     {
         return ValidateTextureAssetDocument(document, filePath, error);
     }

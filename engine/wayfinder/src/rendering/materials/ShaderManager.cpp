@@ -1,8 +1,8 @@
 #include "ShaderManager.h"
 #include "core/Log.h"
 
-#include <fstream>
 #include <filesystem>
+#include <fstream>
 
 namespace Wayfinder
 {
@@ -26,11 +26,9 @@ namespace Wayfinder
         m_device = nullptr;
     }
 
-    GPUShaderHandle ShaderManager::GetShader(const std::string& name, ShaderStage stage,
-                                              const ShaderResourceCounts& resources,
-                                              ShaderVariantKey variant)
+    GPUShaderHandle ShaderManager::GetShader(const std::string& name, ShaderStage stage, const ShaderResourceCounts& resources, ShaderVariantKey variant)
     {
-        ShaderKey key{name, stage, variant};
+        const ShaderKey key{.name = name, .stage = stage, .variant = variant};
         auto it = m_cache.find(key);
         if (it != m_cache.end())
         {
@@ -79,7 +77,7 @@ namespace Wayfinder
             return {};
         }
 
-        std::streamsize size = file.tellg();
+        const std::streamsize size = file.tellg();
         if (size <= 0)
         {
             return {};

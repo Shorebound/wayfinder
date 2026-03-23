@@ -45,11 +45,10 @@ namespace Wayfinder
      *
      * @tparam TEvent  Concrete event type (must derive from Event).
      */
-    template <typename TEvent>
+    template<typename TEvent>
     class TypedEventBuffer final : public IEventBuffer
     {
-        static_assert(std::is_base_of_v<Event, TEvent>,
-                      "TEvent must derive from Event");
+        static_assert(std::is_base_of_v<Event, TEvent>, "TEvent must derive from Event");
 
     public:
         /** @brief Push an event by copy into active storage. */
@@ -65,7 +64,7 @@ namespace Wayfinder
         }
 
         /** @brief Construct an event in-place in active storage. */
-        template <typename... TArgs>
+        template<typename... TArgs>
         TEvent& Emplace(TArgs&&... args)
         {
             return m_active.emplace_back(std::forward<TArgs>(args)...);

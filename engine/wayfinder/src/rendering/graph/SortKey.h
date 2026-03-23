@@ -26,7 +26,10 @@ namespace Wayfinder
         {
             // Camera-space Z is negative (in front of camera). Negate to get positive distance.
             float depth = -cameraSpaceZ;
-            if (depth < 0.0f) depth = 0.0f;
+            if (depth < 0.0f)
+            {
+                depth = 0.0f;
+            }
 
             // Reinterpret as uint32 for bitwise sorting.
             // IEEE 754 floats sort correctly when positive (same bit ordering).

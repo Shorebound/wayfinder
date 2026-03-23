@@ -41,30 +41,25 @@ namespace Wayfinder
         std::vector<uint8_t> PixelData;
 
         /// Release CPU-side pixel data after GPU upload to reclaim memory.
-        void ReleasePixelData() { PixelData.clear(); PixelData.shrink_to_fit(); }
+        void ReleasePixelData()
+        {
+            PixelData.clear();
+            PixelData.shrink_to_fit();
+        }
     };
 
     /// Parse and validate a texture asset JSON document (schema check only, no image load).
-    WAYFINDER_API bool ValidateTextureAssetDocument(
-        const nlohmann::json& document,
-        const std::filesystem::path& filePath,
-        std::string& error);
+    WAYFINDER_API bool ValidateTextureAssetDocument(const nlohmann::json& document, const std::filesystem::path& filePath, std::string& error);
 
     /// Parse a texture JSON and load the referenced image from disk via SDL_image.
-    WAYFINDER_API std::optional<TextureAsset> LoadTextureAssetFromDocument(
-        const nlohmann::json& document,
-        const std::filesystem::path& filePath,
-        std::string& error);
+    WAYFINDER_API std::optional<TextureAsset> LoadTextureAssetFromDocument(const nlohmann::json& document, const std::filesystem::path& filePath, std::string& error);
 
     // ── AssetLoader specialisation ───────────────────────────
 
     template<>
     struct AssetLoader<TextureAsset>
     {
-        static std::optional<TextureAsset> Load(
-            const nlohmann::json& document,
-            const std::filesystem::path& filePath,
-            std::string& error)
+        static std::optional<TextureAsset> Load(const nlohmann::json& document, const std::filesystem::path& filePath, std::string& error)
         {
             return LoadTextureAssetFromDocument(document, filePath, error);
         }

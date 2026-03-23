@@ -1,7 +1,7 @@
 #pragma once
 
-#include "platform/KeyCodes.h"
 #include "Event.h"
+#include "platform/KeyCodes.h"
 #include <format>
 
 namespace Wayfinder
@@ -10,7 +10,10 @@ namespace Wayfinder
     class KeyEvent : public Event
     {
     public:
-        KeyCode GetKeyCode() const { return m_keyCode; }
+        KeyCode GetKeyCode() const
+        {
+            return m_keyCode;
+        }
 
     protected:
         KeyEvent(const KeyCode keycode) : m_keyCode(keycode) {}
@@ -23,7 +26,10 @@ namespace Wayfinder
     public:
         KeyPressedEvent(const KeyCode keycode, bool isRepeat = false) : EventImpl(keycode), m_repeating(isRepeat) {}
 
-        bool IsRepeat() const { return m_repeating; }
+        bool IsRepeat() const
+        {
+            return m_repeating;
+        }
 
         std::string ToString() const override
         {

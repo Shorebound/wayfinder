@@ -1,81 +1,87 @@
 #include "TextureAsset.h"
 #include "core/Log.h"
 
-#include <SDL3_image/SDL_image.h>
 #include <SDL3/SDL_surface.h>
+#include <SDL3_image/SDL_image.h>
 
 namespace Wayfinder
 {
-    constexpr std::string_view kTextureAssetIdKey = "asset_id";
-    constexpr std::string_view kTextureAssetTypeKey = "asset_type";
-    constexpr std::string_view kTextureNameKey = "name";
-    constexpr std::string_view kTextureSourceKey = "source";
-    constexpr std::string_view kTextureFilterKey = "filter";
-    constexpr std::string_view kTextureAddressModeKey = "address_mode";
-
-    static SamplerFilter ParseFilter(const std::string& text)
+    namespace
     {
-        if (text == "nearest") return SamplerFilter::Nearest;
-        return SamplerFilter::Linear; // default
+        constexpr std::string_view TEXTURE_ASSET_ID_KEY = "asset_id";
+        constexpr std::string_view TEXTURE_ASSET_TYPE_KEY = "asset_type";
+        constexpr std::string_view TEXTURE_NAME_KEY = "name";
+        constexpr std::string_view TEXTURE_SOURCE_KEY = "source";
+        constexpr std::string_view TEXTURE_FILTER_KEY = "filter";
+        constexpr std::string_view TEXTURE_ADDRESS_MODE_KEY = "address_mode";
+
+        SamplerFilter ParseFilter(const std::string& text)
+        {
+            if (text == "nearest")
+            {
+                return SamplerFilter::Nearest;
+            }
+            return SamplerFilter::Linear; // default
+        }
+
+        SamplerAddressMode ParseAddressMode(const std::string& text)
+        {
+            if (text == "clamp" || text == "clamp_to_edge")
+            {
+                return SamplerAddressMode::ClampToEdge;
+            }
+            if (text == "mirrored_repeat")
+            {
+                return SamplerAddressMode::MirroredRepeat;
+            }
+            return SamplerAddressMode::Repeat; // default
+        }
     }
 
-    static SamplerAddressMode ParseAddressMode(const std::string& text)
-    {
-        if (text == "clamp" || text == "clamp_to_edge") return SamplerAddressMode::ClampToEdge;
-        if (text == "mirrored_repeat") return SamplerAddressMode::MirroredRepeat;
-        return SamplerAddressMode::Repeat; // default
-    }
-
-    bool ValidateTextureAssetDocument(
-        const nlohmann::json& document,
-        const std::filesystem::path& filePath,
-        std::string& error)
+    bool ValidateTextureAssetDocument(const nlohmann::json& document, const std::filesystem::path& filePath, std::string& error)
     {
         const std::string label = filePath.generic_string();
 
-        if (!document.contains(kTextureAssetIdKey) || !document.at(kTextureAssetIdKey).is_string())
+        if (!document.contains(TEXTURE_ASSET_ID_KEY) || !document.at(TEXTURE_ASSET_ID_KEY).is_string())
         {
             error = "Texture asset '" + label + "' is missing asset_id";
             return false;
         }
 
-        if (!document.contains(kTextureAssetTypeKey) || !document.at(kTextureAssetTypeKey).is_string())
+        if (!document.contains(TEXTURE_ASSET_TYPE_KEY) || !document.at(TEXTURE_ASSET_TYPE_KEY).is_string())
         {
             error = "Texture asset '" + label + "' is missing asset_type";
             return false;
         }
 
-        if (document.at(kTextureAssetTypeKey).get<std::string>() != "texture")
+        if (document.at(TEXTURE_ASSET_TYPE_KEY).get<std::string>() != "texture")
         {
             error = "Texture asset '" + label + "' must declare asset_type = 'texture'";
             return false;
         }
 
-        if (!document.contains(kTextureSourceKey) || !document.at(kTextureSourceKey).is_string())
+        if (!document.contains(TEXTURE_SOURCE_KEY) || !document.at(TEXTURE_SOURCE_KEY).is_string())
         {
             error = "Texture asset '" + label + "' is missing 'source' — the path to the image file";
             return false;
         }
 
-        if (document.contains(kTextureFilterKey) && !document.at(kTextureFilterKey).is_string())
+        if (document.contains(TEXTURE_FILTER_KEY) && !document.at(TEXTURE_FILTER_KEY).is_string())
         {
-            error = "Texture asset '" + label + "' field 'filter' must be a string (\"nearest\" or \"linear\")";
+            error = "Texture asset '" + label + R"(' field 'filter' must be a string ("nearest" or "linear"))";
             return false;
         }
 
-        if (document.contains(kTextureAddressModeKey) && !document.at(kTextureAddressModeKey).is_string())
+        if (document.contains(TEXTURE_ADDRESS_MODE_KEY) && !document.at(TEXTURE_ADDRESS_MODE_KEY).is_string())
         {
-            error = "Texture asset '" + label + "' field 'address_mode' must be a string (\"repeat\", \"clamp\", \"mirrored_repeat\")";
+            error = "Texture asset '" + label + R"(' field 'address_mode' must be a string ("repeat", "clamp", "mirrored_repeat"))";
             return false;
         }
 
         return true;
     }
 
-    std::optional<TextureAsset> LoadTextureAssetFromDocument(
-        const nlohmann::json& document,
-        const std::filesystem::path& filePath,
-        std::string& error)
+    std::optional<TextureAsset> LoadTextureAssetFromDocument(const nlohmann::json& document, const std::filesystem::path& filePath, std::string& error)
     {
         const std::string label = filePath.generic_string();
 
@@ -86,7 +92,7 @@ namespace Wayfinder
         }
 
         // Parse asset ID
-        const std::string assetIdText = document.at(kTextureAssetIdKey).get<std::string>();
+        const std::string assetIdText = document.at(TEXTURE_ASSET_ID_KEY).get<std::string>();
         const std::optional<AssetId> assetId = AssetId::Parse(assetIdText);
         if (!assetId)
         {
@@ -96,10 +102,10 @@ namespace Wayfinder
 
         TextureAsset texture;
         texture.Id = *assetId;
-        texture.Name = document.value(std::string{kTextureNameKey}, filePath.stem().string());
-        texture.SourcePath = document.at(kTextureSourceKey).get<std::string>();
-        texture.Filter = ParseFilter(document.value(std::string{kTextureFilterKey}, std::string("linear")));
-        texture.AddressMode = ParseAddressMode(document.value(std::string{kTextureAddressModeKey}, std::string("repeat")));
+        texture.Name = document.value(std::string{TEXTURE_NAME_KEY}, filePath.stem().string());
+        texture.SourcePath = document.at(TEXTURE_SOURCE_KEY).get<std::string>();
+        texture.Filter = ParseFilter(document.value(std::string{TEXTURE_FILTER_KEY}, std::string("linear")));
+        texture.AddressMode = ParseAddressMode(document.value(std::string{TEXTURE_ADDRESS_MODE_KEY}, std::string("repeat")));
 
         // Resolve image path relative to the JSON descriptor's directory
         const std::filesystem::path imageDir = filePath.parent_path();
@@ -137,20 +143,18 @@ namespace Wayfinder
         texture.PixelData.resize(pixelBytes);
 
         // Copy row-by-row to handle potential pitch differences
-        const uint8_t* src = static_cast<const uint8_t*>(rgbaSurface->pixels);
+        const auto* src = static_cast<const uint8_t*>(rgbaSurface->pixels);
         const uint32_t dstPitch = texture.Width * texture.Channels;
         for (uint32_t row = 0; row < texture.Height; ++row)
         {
-            std::memcpy(
-                texture.PixelData.data() + row * dstPitch,
-                src + row * rgbaSurface->pitch,
-                dstPitch);
+            const size_t dstOffset = static_cast<size_t>(row) * static_cast<size_t>(dstPitch);
+            const size_t srcOffset = static_cast<size_t>(row) * static_cast<size_t>(rgbaSurface->pitch);
+            std::memcpy(texture.PixelData.data() + dstOffset, src + srcOffset, dstPitch);
         }
 
         SDL_DestroySurface(rgbaSurface);
 
-        WAYFINDER_INFO(LogAssets, "Loaded texture '{}' ({}x{}, RGBA8) from '{}'",
-            texture.Name, texture.Width, texture.Height, imagePath.generic_string());
+        WAYFINDER_INFO(LogAssets, "Loaded texture '{}' ({}x{}, RGBA8) from '{}'", texture.Name, texture.Width, texture.Height, imagePath.generic_string());
 
         return texture;
     }

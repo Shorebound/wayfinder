@@ -11,15 +11,14 @@
  */
 
 #include "app/EngineConfig.h"
-#include "modules/ModuleRegistry.h"
-#include "project/ProjectDescriptor.h"
 #include "app/Subsystem.h"
+#include "modules/ModuleRegistry.h"
 #include "physics/PhysicsComponents.h"
 #include "physics/PhysicsPlugin.h"
 #include "physics/PhysicsSubsystem.h"
 #include "physics/PhysicsWorld.h"
+#include "project/ProjectDescriptor.h"
 #include "scene/Components.h"
-
 
 #include <doctest/doctest.h>
 
@@ -62,7 +61,9 @@ namespace Wayfinder::Tests
 
             // Stand up the subsystem from the plugin's registration.
             for (const auto& entry : registry.GetSubsystemFactories())
+            {
                 Subsystems.Register(entry.Type, entry.Factory, entry.Predicate);
+            }
 
             Subsystems.Initialise();
             GameSubsystems::Bind(&Subsystems);
@@ -89,10 +90,7 @@ namespace Wayfinder::Tests
         }
 
         // Create a physics entity with the given body type, position, and collider.
-        flecs::entity CreatePhysicsEntity(const char* name,
-                                          BodyType type,
-                                          const Float3& position,
-                                          ColliderShape shape = ColliderShape::Box)
+        flecs::entity CreatePhysicsEntity(const char* name, BodyType type, const Float3& position, ColliderShape shape = ColliderShape::Box)
         {
             RigidBodyComponent rb;
             rb.Type = type;
@@ -103,12 +101,12 @@ namespace Wayfinder::Tests
             auto entity = EcsWorld.entity(name);
 
             EcsWorld.defer_begin();
-            entity.set<TransformComponent>({position});
+            entity.set<TransformComponent>(position);
             entity.set<WorldTransformComponent>({});
             entity.set<ColliderComponent>(col);
             entity.set<RigidBodyComponent>(rb);
             EcsWorld.defer_end();
-            
+
             auto rigidbody = entity.get<RigidBodyComponent>();
             auto result = rigidbody.RuntimeBodyId;
             (void)result; // Avoid unused variable warning; observer will fill this in asynchronously.
@@ -120,7 +118,9 @@ namespace Wayfinder::Tests
         void Simulate(int ticks = SIMULATION_STEPS)
         {
             for (int i = 0; i < ticks; ++i)
+            {
                 EcsWorld.progress(FIXED_DT);
+            }
         }
     };
 
@@ -271,8 +271,7 @@ namespace Wayfinder::Tests
             PhysicsIntegrationFixture fixture;
 
             const float startY = 15.0f;
-            auto entity = fixture.CreatePhysicsEntity(
-                "FallingSphere", BodyType::Dynamic, {0.0f, startY, 0.0f}, ColliderShape::Sphere);
+            auto entity = fixture.CreatePhysicsEntity("FallingSphere", BodyType::Dynamic, {0.0f, startY, 0.0f}, ColliderShape::Sphere);
 
             fixture.Simulate();
 

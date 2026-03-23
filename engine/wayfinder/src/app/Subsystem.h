@@ -4,8 +4,8 @@
 #include "wayfinder_exports.h"
 
 #include <memory>
-#include <typeindex>
 #include <type_traits>
+#include <typeindex>
 #include <unordered_map>
 #include <vector>
 
@@ -52,7 +52,10 @@ namespace Wayfinder
 
         /// Return false to skip creation for this run. Checked once before
         /// Initialise(). Default is true (always create).
-        virtual bool ShouldCreate() const { return true; }
+        virtual bool ShouldCreate() const
+        {
+            return true;
+        }
     };
 
     // -----------------------------------------------------------------
@@ -88,7 +91,7 @@ namespace Wayfinder
      *
      * @tparam TBase The scope base class (e.g. GameSubsystem).
      */
-    template <typename TBase>
+    template<typename TBase>
     class SubsystemCollection
     {
     public:
@@ -99,7 +102,7 @@ namespace Wayfinder
         /// An optional static predicate is checked before construction;
         /// if it returns false the subsystem is skipped without allocating.
         /// Returns false if the type is already registered.
-        template <typename T>
+        template<typename T>
         bool Register(PredicateFn predicate = nullptr)
         {
             static_assert(std::is_base_of_v<TBase, T>, "T must derive from the collection's scope base");
@@ -107,11 +110,14 @@ namespace Wayfinder
             for (const auto& entry : m_factories)
             {
                 if (entry.Type == type)
+                {
                     return false;
+                }
             }
-            m_factories.push_back({type,
-                                   []() -> std::unique_ptr<TBase> { return std::make_unique<T>(); },
-                                   predicate});
+            m_factories.push_back({type, []() -> std::unique_ptr<TBase>
+            {
+                return std::make_unique<T>();
+            }, predicate});
             return true;
         }
 
@@ -122,7 +128,9 @@ namespace Wayfinder
             for (const auto& entry : m_factories)
             {
                 if (entry.Type == type)
+                {
                     return false;
+                }
             }
             m_factories.push_back({type, factory, predicate});
             return true;
@@ -137,11 +145,15 @@ namespace Wayfinder
             for (auto& [type, factory, predicate] : m_factories)
             {
                 if (predicate && !predicate())
+                {
                     continue;
+                }
 
                 auto subsystem = factory();
                 if (!subsystem->ShouldCreate())
+                {
                     continue;
+                }
 
                 subsystem->Initialise();
                 m_lookup[type] = subsystem.get();
@@ -153,27 +165,33 @@ namespace Wayfinder
         void Shutdown()
         {
             for (auto it = m_subsystems.rbegin(); it != m_subsystems.rend(); ++it)
+            {
                 (*it)->Shutdown();
+            }
 
             m_lookup.clear();
             m_subsystems.clear();
         }
 
         /// Retrieve a live subsystem by type. Returns nullptr if not present.
-        template <typename T>
+        template<typename T>
         T* Get()
         {
             if (auto it = m_lookup.find(std::type_index(typeid(T))); it != m_lookup.end())
+            {
                 return static_cast<T*>(it->second);
+            }
             return nullptr;
         }
 
         /// Retrieve a live subsystem by type (const). Returns nullptr if not present.
-        template <typename T>
+        template<typename T>
         const T* Get() const
         {
             if (auto it = m_lookup.find(std::type_index(typeid(T))); it != m_lookup.end())
+            {
                 return static_cast<const T*>(it->second);
+            }
             return nullptr;
         }
 
@@ -212,7 +230,7 @@ namespace Wayfinder
     public:
         /// Retrieve a live game subsystem by type.
         /// Asserts if the collection has not been bound (Game not initialised).
-        template <typename T>
+        template<typename T>
         static T& Get()
         {
             WAYFINDER_ASSERT(s_collection, "GameSubsystems::Get() called before Game initialisation or after shutdown");
@@ -222,7 +240,7 @@ namespace Wayfinder
         }
 
         /// Retrieve a live game subsystem, or nullptr if not registered.
-        template <typename T>
+        template<typename T>
         static T* Find()
         {
             return s_collection ? s_collection->Get<T>() : nullptr;
@@ -237,7 +255,10 @@ namespace Wayfinder
         /// Bind the active SubsystemCollection.  Called by Game during init;
         /// also available for integration tests that stand up subsystems
         /// outside of the full Game lifecycle.
-        static void Bind(SubsystemCollection<GameSubsystem>* collection) { s_collection = collection; }
+        static void Bind(SubsystemCollection<GameSubsystem>* collection)
+        {
+            s_collection = collection;
+        }
 
         /// Detach the SubsystemCollection.  Callers should prefer this over
         /// Bind(nullptr) so intent is explicit.

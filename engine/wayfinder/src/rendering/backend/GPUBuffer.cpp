@@ -3,8 +3,7 @@
 
 namespace Wayfinder
 {
-    GPUBuffer::GPUBuffer(GPUBuffer&& other) noexcept
-        : m_device(other.m_device), m_handle(other.m_handle), m_size(other.m_size)
+    GPUBuffer::GPUBuffer(GPUBuffer&& other) noexcept : m_device(other.m_device), m_handle(other.m_handle), m_size(other.m_size)
     {
         other.m_device = nullptr;
         other.m_handle = {};
@@ -52,7 +51,7 @@ namespace Wayfinder
             return;
         }
 
-        m_device->UploadToBuffer(m_handle, data, sizeInBytes);
+        m_device->UploadToBuffer(m_handle, data, {.sizeInBytes = sizeInBytes});
     }
 
     void GPUBuffer::Destroy()

@@ -3,11 +3,11 @@
 #include "EngineConfig.h"
 #include "EngineContext.h"
 #include "core/Log.h"
-#include "project/ProjectDescriptor.h"
 #include "core/Result.h"
 #include "platform/Input.h"
 #include "platform/Time.h"
 #include "platform/Window.h"
+#include "project/ProjectDescriptor.h"
 #include "rendering/backend/RenderDevice.h"
 #include "rendering/pipeline/Renderer.h"
 #include "rendering/pipeline/SceneRenderExtractor.h"
@@ -17,12 +17,7 @@
 
 namespace Wayfinder
 {
-    EngineRuntime::EngineRuntime(const EngineConfig& config,
-                                 const ProjectDescriptor& project)
-        : m_config(config)
-        , m_project(project)
-    {
-    }
+    EngineRuntime::EngineRuntime(const EngineConfig& config, const ProjectDescriptor& project) : m_config(config), m_project(project) {}
 
     EngineRuntime::~EngineRuntime()
     {
@@ -40,6 +35,7 @@ namespace Wayfinder
         if (!m_input)
         {
             WAYFINDER_ERROR(LogEngine, "EngineRuntime: Failed to create Input");
+            Shutdown();
             return MakeError("Failed to create Input");
         }
 
@@ -47,65 +43,53 @@ namespace Wayfinder
         if (!m_time)
         {
             WAYFINDER_ERROR(LogEngine, "EngineRuntime: Failed to create Time");
-            m_input = nullptr;
+            Shutdown();
             return MakeError("Failed to create Time");
         }
 
         // Window — must exist before RenderDevice (swapchain needs a surface)
-        const auto windowConfig = Window::Config{
-            m_config.Window.Width,
-            m_config.Window.Height,
-            m_config.Window.Title,
-            m_config.Window.VSync};
+        const auto windowConfig = Window::Config{.Width = m_config.Window.Width, .Height = m_config.Window.Height, .Title = m_config.Window.Title, .VSync = m_config.Window.VSync};
 
         m_window = Window::Create(windowConfig, m_config.Backends.Platform);
         if (!m_window)
         {
             WAYFINDER_ERROR(LogEngine, "EngineRuntime: Failed to create Window");
-            m_time = nullptr;
-            m_input = nullptr;
+            Shutdown();
             return MakeError("Failed to create Window");
         }
 
-        if (!m_window->Initialise())
+        if (auto result = m_window->Initialise(); !result)
         {
-            WAYFINDER_ERROR(LogEngine, "EngineRuntime: Failed to initialise Window");
-            m_window = nullptr;
-            m_time = nullptr;
-            m_input = nullptr;
-            return MakeError("Failed to initialise Window");
+            WAYFINDER_ERROR(LogEngine, "EngineRuntime: Failed to initialise Window — {}", result.error().GetMessage());
+            Shutdown();
+            return std::unexpected(result.error());
         }
 
         // GPU device — needs window handle for swapchain
         m_device = RenderDevice::Create(m_config.Backends.Rendering);
-
-        if (!m_device || !m_device->Initialise(*m_window))
+        if (!m_device)
         {
-            WAYFINDER_ERROR(LogEngine, "EngineRuntime: Failed to initialise RenderDevice");
-            m_device = nullptr;
-            m_window->Shutdown();
-            m_window = nullptr;
-            m_time = nullptr;
-            m_input = nullptr;
-            return MakeError("Failed to initialise RenderDevice");
+            WAYFINDER_ERROR(LogEngine, "EngineRuntime: Failed to create RenderDevice");
+            Shutdown();
+            return MakeError("Failed to create RenderDevice");
+        }
+
+        if (auto result = m_device->Initialise(*m_window); !result)
+        {
+            WAYFINDER_ERROR(LogEngine, "EngineRuntime: Failed to initialise RenderDevice — {}", result.error().GetMessage());
+            Shutdown();
+            return std::unexpected(result.error());
         }
 
         // Rendering
         m_renderer = std::make_unique<Renderer>();
         m_extractor = std::make_unique<SceneRenderExtractor>();
 
-        if (!m_renderer->Initialise(*m_device, m_config))
+        if (auto result = m_renderer->Initialise(*m_device, m_config); !result)
         {
-            WAYFINDER_ERROR(LogEngine, "EngineRuntime: Failed to initialise Renderer");
-            m_renderer = nullptr;
-            m_extractor = nullptr;
-            m_device->Shutdown();
-            m_device = nullptr;
-            m_window->Shutdown();
-            m_window = nullptr;
-            m_time = nullptr;
-            m_input = nullptr;
-            return MakeError("Failed to initialise Renderer");
+            WAYFINDER_ERROR(LogEngine, "EngineRuntime: Failed to initialise Renderer — {}", result.error().GetMessage());
+            Shutdown();
+            return std::unexpected(result.error());
         }
 
         WAYFINDER_INFO(LogEngine, "EngineRuntime initialised");
@@ -115,7 +99,9 @@ namespace Wayfinder
     void EngineRuntime::Shutdown()
     {
         if (!m_renderer && !m_device && !m_window && !m_input && !m_time)
+        {
             return; // already shut down or never initialised
+        }
 
         WAYFINDER_INFO(LogEngine, "Shutting down EngineRuntime");
 
@@ -189,17 +175,37 @@ namespace Wayfinder
 
     // ── Non-owning accessors ─────────────────────────────────
 
-    Window& EngineRuntime::GetWindow() { assert(m_window && "GetWindow called before Initialise or after Shutdown"); return *m_window; }
-    Input& EngineRuntime::GetInput() { assert(m_input && "GetInput called before Initialise or after Shutdown"); return *m_input; }
-    Time& EngineRuntime::GetTime() { assert(m_time && "GetTime called before Initialise or after Shutdown"); return *m_time; }
-    RenderDevice& EngineRuntime::GetDevice() { assert(m_device && "GetDevice called before Initialise or after Shutdown"); return *m_device; }
-    Renderer& EngineRuntime::GetRenderer() { assert(m_renderer && "GetRenderer called before Initialise or after Shutdown"); return *m_renderer; }
+    Window& EngineRuntime::GetWindow()
+    {
+        assert(m_window && "GetWindow called before Initialise or after Shutdown");
+        return *m_window;
+    }
+    Input& EngineRuntime::GetInput()
+    {
+        assert(m_input && "GetInput called before Initialise or after Shutdown");
+        return *m_input;
+    }
+    Time& EngineRuntime::GetTime()
+    {
+        assert(m_time && "GetTime called before Initialise or after Shutdown");
+        return *m_time;
+    }
+    RenderDevice& EngineRuntime::GetDevice()
+    {
+        assert(m_device && "GetDevice called before Initialise or after Shutdown");
+        return *m_device;
+    }
+    Renderer& EngineRuntime::GetRenderer()
+    {
+        assert(m_renderer && "GetRenderer called before Initialise or after Shutdown");
+        return *m_renderer;
+    }
 
     // ── Context bundle ───────────────────────────────────────
 
     EngineContext EngineRuntime::BuildContext() const
     {
-        return EngineContext{*m_window, *m_input, *m_time, m_config, m_project};
+        return EngineContext{.window = *m_window, .input = *m_input, .time = *m_time, .config = m_config, .project = m_project};
     }
 
 } // namespace Wayfinder

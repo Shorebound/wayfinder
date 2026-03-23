@@ -6,6 +6,7 @@
 #include "core/events/MouseEvent.h"
 
 #include <SDL3/SDL.h>
+#include <format>
 
 namespace Wayfinder
 {
@@ -22,46 +23,39 @@ namespace Wayfinder
         return nullptr;
     }
 
-    SDL3Window::SDL3Window(const Window::Config& config)
-        : m_width(config.Width)
-        , m_height(config.Height)
-        , m_title(config.Title)
-        , m_vsync(config.VSync)
-    {
-    }
+    SDL3Window::SDL3Window(const Window::Config& config) : m_width(config.Width), m_height(config.Height), m_title(config.Title), m_vsync(config.VSync) {}
 
     SDL3Window::~SDL3Window()
     {
-        if (m_initialised)
-        {
-            Shutdown();
-        }
+        ReleaseResources();
     }
 
-    bool SDL3Window::Initialise()
+    Result<void> SDL3Window::Initialise()
     {
         if (!SDL_Init(SDL_INIT_VIDEO | SDL_INIT_EVENTS))
         {
-            return false;
+            return MakeError(std::format("SDL_Init failed: {}", SDL_GetError()));
         }
 
-        m_window = SDL_CreateWindow(
-            m_title.c_str(),
-            static_cast<int>(m_width),
-            static_cast<int>(m_height),
-            0);
+        m_window = SDL_CreateWindow(m_title.c_str(), static_cast<int>(m_width), static_cast<int>(m_height), 0);
 
         if (!m_window)
         {
+            auto error = MakeError(std::format("SDL_CreateWindow failed: {}", SDL_GetError()));
             SDL_Quit();
-            return false;
+            return error;
         }
 
         m_initialised = true;
-        return true;
+        return {};
     }
 
     void SDL3Window::Shutdown()
+    {
+        ReleaseResources();
+    }
+
+    void SDL3Window::ReleaseResources()
     {
         if (m_window)
         {
@@ -69,7 +63,11 @@ namespace Wayfinder
             m_window = nullptr;
         }
 
-        SDL_Quit();
+        if (m_initialised)
+        {
+            SDL_Quit();
+        }
+
         m_initialised = false;
     }
 
@@ -115,7 +113,7 @@ namespace Wayfinder
             {
                 if (m_eventCallback)
                 {
-                    KeyCode key = static_cast<KeyCode>(event.key.scancode);
+                    const auto key = static_cast<KeyCode>(event.key.scancode);
                     KeyPressedEvent e(key, event.key.repeat);
                     m_eventCallback(e);
                 }
@@ -125,7 +123,7 @@ namespace Wayfinder
             {
                 if (m_eventCallback)
                 {
-                    KeyCode key = static_cast<KeyCode>(event.key.scancode);
+                    const auto key = static_cast<KeyCode>(event.key.scancode);
                     KeyReleasedEvent e(key);
                     m_eventCallback(e);
                 }
@@ -135,7 +133,7 @@ namespace Wayfinder
             {
                 if (m_eventCallback)
                 {
-                    MouseCode button = static_cast<MouseCode>(event.button.button);
+                    const auto button = static_cast<MouseCode>(event.button.button);
                     MouseButtonPressedEvent e(button);
                     m_eventCallback(e);
                 }
@@ -145,7 +143,7 @@ namespace Wayfinder
             {
                 if (m_eventCallback)
                 {
-                    MouseCode button = static_cast<MouseCode>(event.button.button);
+                    const auto button = static_cast<MouseCode>(event.button.button);
                     MouseButtonReleasedEvent e(button);
                     m_eventCallback(e);
                 }

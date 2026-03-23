@@ -36,8 +36,7 @@ namespace Wayfinder
          *                Application.  May be null for a bare engine run.
          * @param args    Command-line arguments forwarded from main().
          */
-        explicit Application(std::unique_ptr<Module> module,
-                             const CommandLineArgs& args);
+        explicit Application(std::unique_ptr<Module> module, const CommandLineArgs& args);
         ~Application();
 
         void Run();

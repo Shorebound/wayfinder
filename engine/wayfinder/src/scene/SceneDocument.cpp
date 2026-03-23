@@ -7,42 +7,42 @@
 
 #include <algorithm>
 #include <filesystem>
+#include <format>
 #include <fstream>
+#include <string_view>
 #include <unordered_map>
 #include <unordered_set>
 
 namespace Wayfinder
 {
-    const std::string kSceneNameKey = "scene_name";
-    const std::string kVersionKey = "version";
-    const std::string kSettingsKey = "settings";
-    const std::string kEntitiesKey = "entities";
-    const std::string kIdKey = "id";
-    const std::string kNameKey = "name";
-    const std::string kParentIdKey = "parent_id";
-    const std::string kPrefabIdKey = "prefab_id";
-    const std::string kAssetIdKey = "asset_id";
-    const std::string kAssetTypeKey = "asset_type";
-    const std::string kMeshComponentKey = "mesh";
-    const std::string kMaterialComponentKey = "material";
-    const std::string kRenderableComponentKey = "renderable";
+namespace
+{
+    constexpr std::string_view SCENE_NAME_KEY = "scene_name";
+    constexpr std::string_view VERSION_KEY = "version";
+    constexpr std::string_view SETTINGS_KEY = "settings";
+    constexpr std::string_view ENTITIES_KEY = "entities";
+    constexpr std::string_view ID_KEY = "id";
+    constexpr std::string_view NAME_KEY = "name";
+    constexpr std::string_view PARENT_ID_KEY = "parent_id";
+    constexpr std::string_view PREFAB_ID_KEY = "prefab_id";
+    constexpr std::string_view ASSET_ID_KEY = "asset_id";
+    constexpr std::string_view ASSET_TYPE_KEY = "asset_type";
+    constexpr std::string_view MESH_COMPONENT_KEY = "mesh";
+    constexpr std::string_view MATERIAL_COMPONENT_KEY = "material";
+    constexpr std::string_view RENDERABLE_COMPONENT_KEY = "renderable";
 
-    template <typename TId>
-    std::optional<TId> ParseTypedId(
-        const nlohmann::json& data,
-        const std::string& key,
-        const std::string& sourceLabel,
-        std::vector<std::string>& errors)
+    template<typename TId>
+    std::optional<TId> ParseTypedId(const nlohmann::json& data, std::string_view key, const std::string& sourceLabel, std::vector<std::string>& errors)
     {
         if (!data.contains(key))
         {
             return std::nullopt;
         }
 
-        const auto& node = data[key];
+        const auto& node = data.at(key);
         if (!node.is_string())
         {
-            errors.push_back(sourceLabel + " field '" + key + "' must be a string");
+            errors.push_back(std::format("{} field '{}' must be a string", sourceLabel, key));
             return std::nullopt;
         }
 
@@ -50,13 +50,14 @@ namespace Wayfinder
         const std::optional<TId> parsed = TId::Parse(text);
         if (!parsed)
         {
-            errors.push_back(sourceLabel + " field '" + key + "' must be a valid UUID");
+            errors.push_back(std::format("{} field '{}' must be a valid UUID", sourceLabel, key));
             return std::nullopt;
         }
 
         return parsed;
     }
 
+    // NOLINTBEGIN(misc-no-recursion, cppcoreguidelines-pro-bounds-avoid-unchecked-container-access)
     void MergeObjects(nlohmann::json& destination, const nlohmann::json& overrides)
     {
         for (const auto& [key, value] : overrides.items())
@@ -71,16 +72,13 @@ namespace Wayfinder
             }
         }
     }
+    // NOLINTEND(misc-no-recursion, cppcoreguidelines-pro-bounds-avoid-unchecked-container-access)
 
     Wayfinder::SceneDocumentEntity ParseEntityDefinition(
-        const nlohmann::json& data,
-        const Wayfinder::RuntimeComponentRegistry& registry,
-        const std::string& fallbackName,
-        const std::string& sourceLabel,
-        std::vector<std::string>& errors)
+        const nlohmann::json& data, const Wayfinder::RuntimeComponentRegistry& registry, const std::string& fallbackName, const std::string& sourceLabel, std::vector<std::string>& errors) // NOLINT(bugprone-easily-swappable-parameters)
     {
         Wayfinder::SceneDocumentEntity definition;
-        if (const auto parsedId = ParseTypedId<Wayfinder::SceneObjectId>(data, kIdKey, sourceLabel, errors))
+        if (const auto parsedId = ParseTypedId<Wayfinder::SceneObjectId>(data, ID_KEY, sourceLabel, errors))
         {
             definition.Id = *parsedId;
         }
@@ -89,47 +87,44 @@ namespace Wayfinder
             definition.Id = Wayfinder::SceneObjectId::Generate();
         }
 
-        definition.Name = data.value(kNameKey, fallbackName);
-        definition.ParentId = ParseTypedId<Wayfinder::SceneObjectId>(data, kParentIdKey, sourceLabel, errors);
-        definition.PrefabAssetId = ParseTypedId<Wayfinder::AssetId>(data, kPrefabIdKey, sourceLabel, errors);
+        definition.Name = data.value(NAME_KEY, fallbackName);
+        definition.ParentId = ParseTypedId<Wayfinder::SceneObjectId>(data, PARENT_ID_KEY, sourceLabel, errors);
+        definition.PrefabAssetId = ParseTypedId<Wayfinder::AssetId>(data, PREFAB_ID_KEY, sourceLabel, errors);
 
         for (const auto& [key, node] : data.items())
         {
-            if (key == kIdKey || key == kNameKey || key == kParentIdKey || key == kPrefabIdKey || key == kAssetIdKey || key == kAssetTypeKey)
+            if (key == ID_KEY || key == NAME_KEY || key == PARENT_ID_KEY || key == PREFAB_ID_KEY || key == ASSET_ID_KEY || key == ASSET_TYPE_KEY)
             {
                 continue;
             }
 
             if (!registry.IsRegistered(key))
             {
-                errors.push_back(sourceLabel + " has unknown component table '" + key + "'");
+                errors.push_back(std::format("{} has unknown component table '{}'", sourceLabel, key));
                 continue;
             }
 
             if (!node.is_object())
             {
-                errors.push_back(sourceLabel + " component '" + key + "' must be a JSON object");
+                errors.push_back(std::format("{} component '{}' must be a JSON object", sourceLabel, key));
                 continue;
             }
 
             std::string validationError;
             if (!registry.ValidateComponent(key, node, validationError))
             {
-                errors.push_back(sourceLabel + " component '" + key + "' is invalid: " + validationError);
+                errors.push_back(std::format("{} component '{}' is invalid: {}", sourceLabel, key, validationError));
                 continue;
             }
 
-            definition.ComponentData[key] = node;
+            definition.ComponentData[key] = node; // NOLINT(cppcoreguidelines-pro-bounds-avoid-unchecked-container-access)
         }
 
         return definition;
     }
 
     std::optional<Wayfinder::SceneDocumentEntity> ParsePrefabDefinition(
-        const std::filesystem::path& prefabPath,
-        const Wayfinder::RuntimeComponentRegistry& registry,
-        std::unordered_map<std::string, Wayfinder::SceneDocumentEntity>& prefabCache,
-        std::vector<std::string>& errors)
+        const std::filesystem::path& prefabPath, const Wayfinder::RuntimeComponentRegistry& registry, std::unordered_map<std::string, Wayfinder::SceneDocumentEntity>& prefabCache, std::vector<std::string>& errors)
     {
         const std::string key = std::filesystem::weakly_canonical(prefabPath).string();
         if (const auto cached = prefabCache.find(key); cached != prefabCache.end())
@@ -140,19 +135,14 @@ namespace Wayfinder
         try
         {
             std::ifstream file(key);
-            nlohmann::json prefabData = nlohmann::json::parse(file);
-            Wayfinder::SceneDocumentEntity definition = ParseEntityDefinition(
-                prefabData,
-                registry,
-                prefabPath.stem().string(),
-                "Prefab '" + prefabPath.generic_string() + "'",
-                errors);
+            const nlohmann::json prefabData = nlohmann::json::parse(file);
+            Wayfinder::SceneDocumentEntity definition = ParseEntityDefinition(prefabData, registry, prefabPath.stem().string(), std::format("Prefab '{}'", prefabPath.generic_string()), errors);
             prefabCache.emplace(key, definition);
             return definition;
         }
         catch (const nlohmann::json::exception& error)
         {
-            errors.push_back("Failed to parse prefab '" + prefabPath.generic_string() + "': " + error.what());
+            errors.push_back(std::format("Failed to parse prefab '{}': {}", prefabPath.generic_string(), error.what()));
             return std::nullopt;
         }
     }
@@ -179,25 +169,16 @@ namespace Wayfinder
         MergeObjects(destination.ComponentData, overrideData.ComponentData);
     }
 
-    bool ResolveMaterialComponentData(
-        Wayfinder::SceneDocumentEntity& definition,
-        Wayfinder::AssetService& assetService,
-        const std::string& sourceLabel,
-        std::vector<std::string>& errors)
+    bool ResolveMaterialComponentData(Wayfinder::SceneDocumentEntity& definition, Wayfinder::AssetService& assetService, const std::string& sourceLabel, std::vector<std::string>& errors)
     {
-        if (!definition.ComponentData.contains(kMaterialComponentKey)
-            || !definition.ComponentData[kMaterialComponentKey].is_object())
+        if (!definition.ComponentData.contains(MATERIAL_COMPONENT_KEY) || !definition.ComponentData.at(MATERIAL_COMPONENT_KEY).is_object())
         {
             return true;
         }
 
-        nlohmann::json& materialData = definition.ComponentData[kMaterialComponentKey];
+        nlohmann::json& materialData = definition.ComponentData.at(MATERIAL_COMPONENT_KEY);
         const std::string materialLabel = sourceLabel + " material";
-        const std::optional<Wayfinder::AssetId> materialAssetId = ParseTypedId<Wayfinder::AssetId>(
-            materialData,
-            "material_id",
-            materialLabel,
-            errors);
+        const std::optional<Wayfinder::AssetId> materialAssetId = ParseTypedId<Wayfinder::AssetId>(materialData, "material_id", materialLabel, errors);
         if (!materialAssetId)
         {
             return true;
@@ -206,15 +187,13 @@ namespace Wayfinder
         const Wayfinder::AssetRecord* materialRecord = assetService.ResolveRecord(*materialAssetId);
         if (!materialRecord)
         {
-            errors.push_back(sourceLabel + " references missing material asset id '" + materialAssetId->ToString() + "'");
+            errors.push_back(std::format("{} references missing material asset id '{}'", sourceLabel, materialAssetId->ToString()));
             return false;
         }
 
         if (materialRecord->Kind != Wayfinder::AssetKind::Material)
         {
-            errors.push_back(
-                sourceLabel + " references asset id '" + materialAssetId->ToString() + "' as a material, but it is registered as '"
-                + materialRecord->TypeName + "'");
+            errors.push_back(std::format("{} references asset id '{}' as a material, but it is registered as '{}'", sourceLabel, materialAssetId->ToString(), materialRecord->TypeName));
             return false;
         }
 
@@ -232,21 +211,18 @@ namespace Wayfinder
         return true;
     }
 
-    bool ValidateRenderableRequirements(
-        const Wayfinder::SceneDocumentEntity& definition,
-        const std::string& sourceLabel,
-        std::vector<std::string>& errors)
+    bool ValidateRenderableRequirements(const Wayfinder::SceneDocumentEntity& definition, const std::string& sourceLabel, std::vector<std::string>& errors)
     {
-        if (definition.ComponentData.contains(kMeshComponentKey)
-            && !definition.ComponentData.contains(kRenderableComponentKey))
+        if (definition.ComponentData.contains(MESH_COMPONENT_KEY) && !definition.ComponentData.contains(RENDERABLE_COMPONENT_KEY))
         {
-            errors.push_back(sourceLabel + " has mesh data but no renderable component; renderability must now be explicit");
+            errors.push_back(std::format("{} has mesh data but no renderable component; renderability must now be explicit", sourceLabel));
             return false;
         }
 
         return true;
     }
-}
+} // anonymous namespace
+} // namespace Wayfinder
 
 namespace Wayfinder
 {
@@ -257,35 +233,33 @@ namespace Wayfinder
         try
         {
             const std::filesystem::path scenePath = std::filesystem::weakly_canonical(std::filesystem::path(filePath));
-            const std::filesystem::path assetRoot = Wayfinder::FindAssetRoot(scenePath).value_or(std::filesystem::path{});
+            const std::filesystem::path assetRoot = FindAssetRoot(scenePath).value_or(std::filesystem::path{});
 
             std::ifstream file(filePath);
             if (!file.is_open())
             {
-                result.Errors.push_back("Failed to open scene file '" + filePath + "'");
+                result.Errors.push_back(std::format("Failed to open scene file '{}'", filePath));
                 return result;
             }
 
             nlohmann::json sceneData = nlohmann::json::parse(file);
 
-            if (!sceneData.contains(kVersionKey))
+            if (!sceneData.contains(VERSION_KEY))
             {
-                result.Errors.push_back("Scene file is missing required '" + kVersionKey + "' field");
+                result.Errors.push_back(std::format("Scene file is missing required '{}' field", VERSION_KEY));
                 return result;
             }
 
-            if (!sceneData[kVersionKey].is_number_integer())
+            if (!sceneData.at(VERSION_KEY).is_number_integer())
             {
-                result.Errors.push_back("Scene '" + kVersionKey + "' must be an integer");
+                result.Errors.push_back(std::format("Scene '{}' must be an integer", VERSION_KEY));
                 return result;
             }
 
-            const int version = sceneData[kVersionKey].get<int>();
+            const int version = sceneData.at(VERSION_KEY).get<int>();
             if (version != SCENE_FORMAT_VERSION)
             {
-                result.Errors.push_back(
-                    "Unsupported scene format version " + std::to_string(version)
-                    + " (expected " + std::to_string(SCENE_FORMAT_VERSION) + ")");
+                result.Errors.push_back(std::format("Unsupported scene format version {} (expected {})", version, SCENE_FORMAT_VERSION));
                 return result;
             }
 
@@ -303,59 +277,52 @@ namespace Wayfinder
                 return result;
             }
 
-            document.Name = sceneData.value(kSceneNameKey, std::string{"Default Scene"});
+            document.Name = sceneData.value(SCENE_NAME_KEY, std::string{"Default Scene"});
 
-            if (sceneData.contains(kSettingsKey))
+            if (sceneData.contains(SETTINGS_KEY))
             {
-                if (!sceneData[kSettingsKey].is_object())
+                if (!sceneData.at(SETTINGS_KEY).is_object())
                 {
-                    result.Errors.push_back("'" + std::string{kSettingsKey} + "' must be an object");
+                    result.Errors.push_back(std::format("'{}' must be an object", SETTINGS_KEY));
                     return result;
                 }
-                document.Settings = sceneData[kSettingsKey];
+                document.Settings = sceneData.at(SETTINGS_KEY);
             }
 
-            if (!sceneData.contains(kEntitiesKey) || !sceneData[kEntitiesKey].is_array())
+            if (!sceneData.contains(ENTITIES_KEY) || !sceneData.at(ENTITIES_KEY).is_array())
             {
-                result.Errors.push_back("Scene file does not contain an entity list");
+                result.Errors.emplace_back("Scene file does not contain an entity list");
                 return result;
             }
 
-            const auto& entities = sceneData[kEntitiesKey];
+            const auto& entities = sceneData.at(ENTITIES_KEY);
 
             size_t index = 0;
             for (const auto& entityNode : entities)
             {
                 if (!entityNode.is_object())
                 {
-                    result.Errors.push_back("Entity #" + std::to_string(index) + " must be a JSON object");
+                    result.Errors.push_back(std::format("Entity #{} must be a JSON object", index));
                     ++index;
                     continue;
                 }
 
-                const std::string entityLabel = "Entity #" + std::to_string(index);
-                SceneDocumentEntity definition = ParseEntityDefinition(
-                    entityNode,
-                    registry,
-                    "Entity" + std::to_string(index),
-                    entityLabel,
-                    result.Errors);
+                const std::string entityLabel = std::format("Entity #{}", index);
+                SceneDocumentEntity definition = ParseEntityDefinition(entityNode, registry, std::format("Entity{}", index), entityLabel, result.Errors);
 
                 if (definition.PrefabAssetId)
                 {
                     const AssetRecord* prefabRecord = activeAssetService.ResolveRecord(*definition.PrefabAssetId);
                     if (!prefabRecord)
                     {
-                        result.Errors.push_back(entityLabel + " references missing prefab asset id '" + definition.PrefabAssetId->ToString() + "'");
+                        result.Errors.push_back(std::format("{} references missing prefab asset id '{}'", entityLabel, definition.PrefabAssetId->ToString()));
                         ++index;
                         continue;
                     }
 
                     if (prefabRecord->Kind != AssetKind::Prefab)
                     {
-                        result.Errors.push_back(
-                            entityLabel + " references asset id '" + definition.PrefabAssetId->ToString() + "' as a prefab, but it is registered as '"
-                            + prefabRecord->TypeName + "'");
+                        result.Errors.push_back(std::format("{} references asset id '{}' as a prefab, but it is registered as '{}'", entityLabel, definition.PrefabAssetId->ToString(), prefabRecord->TypeName));
                         ++index;
                         continue;
                     }
@@ -386,12 +353,12 @@ namespace Wayfinder
 
                 if (!entityNames.insert(definition.Name).second)
                 {
-                    result.Errors.push_back(entityLabel + " resolves to duplicate entity name '" + definition.Name + "'");
+                    result.Errors.push_back(std::format("{} resolves to duplicate entity name '{}'", entityLabel, definition.Name));
                 }
 
                 if (!entityIds.insert(definition.Id).second)
                 {
-                    result.Errors.push_back(entityLabel + " '" + definition.Name + "' resolves to duplicate entity id '" + definition.Id.ToString() + "'");
+                    result.Errors.push_back(std::format("{} '{}' resolves to duplicate entity id '{}'", entityLabel, definition.Name, definition.Id.ToString()));
                 }
 
                 document.Entities.push_back(std::move(definition));
@@ -402,7 +369,7 @@ namespace Wayfinder
             {
                 if (definition.ParentId && entityIds.find(*definition.ParentId) == entityIds.end())
                 {
-                    result.Errors.push_back("Entity '" + definition.Name + "' references missing parent id '" + definition.ParentId->ToString() + "'");
+                    result.Errors.push_back(std::format("Entity '{}' references missing parent id '{}'", definition.Name, definition.ParentId->ToString()));
                 }
             }
 
@@ -413,7 +380,7 @@ namespace Wayfinder
         }
         catch (const nlohmann::json::exception& error)
         {
-            result.Errors.push_back("Failed to parse scene file '" + filePath + "': " + error.what());
+            result.Errors.push_back(std::format("Failed to parse scene file '{}': {}", filePath, error.what()));
         }
 
         return result;
@@ -428,16 +395,17 @@ namespace Wayfinder
             nlohmann::json sceneData = nlohmann::json::object();
             nlohmann::json entitiesArray = nlohmann::json::array();
 
-            sceneData[kVersionKey] = document.Version;
-            sceneData[kSceneNameKey] = document.Name;
+            // NOLINTBEGIN(cppcoreguidelines-pro-bounds-avoid-unchecked-container-access)
+            sceneData[VERSION_KEY] = document.Version;
+            sceneData[SCENE_NAME_KEY] = document.Name;
 
             if (!document.Settings.empty())
             {
-                sceneData[kSettingsKey] = document.Settings;
+                sceneData[SETTINGS_KEY] = document.Settings;
             }
 
             std::vector<SceneDocumentEntity> sortedEntities = document.Entities;
-            std::sort(sortedEntities.begin(), sortedEntities.end(), [](const SceneDocumentEntity& left, const SceneDocumentEntity& right)
+            std::ranges::sort(sortedEntities, [](const SceneDocumentEntity& left, const SceneDocumentEntity& right)
             {
                 return left.Name < right.Name;
             });
@@ -445,17 +413,17 @@ namespace Wayfinder
             for (const SceneDocumentEntity& entityRecord : sortedEntities)
             {
                 nlohmann::json entityObj = nlohmann::json::object();
-                entityObj[kIdKey] = entityRecord.Id.ToString();
-                entityObj[kNameKey] = entityRecord.Name;
+                entityObj[ID_KEY] = entityRecord.Id.ToString();
+                entityObj[NAME_KEY] = entityRecord.Name;
 
                 if (entityRecord.ParentId)
                 {
-                    entityObj[kParentIdKey] = entityRecord.ParentId->ToString();
+                    entityObj[PARENT_ID_KEY] = entityRecord.ParentId->ToString();
                 }
 
                 if (entityRecord.PrefabAssetId)
                 {
-                    entityObj[kPrefabIdKey] = entityRecord.PrefabAssetId->ToString();
+                    entityObj[PREFAB_ID_KEY] = entityRecord.PrefabAssetId->ToString();
                 }
 
                 for (const auto& [key, value] : entityRecord.ComponentData.items())
@@ -466,13 +434,14 @@ namespace Wayfinder
                 entitiesArray.push_back(std::move(entityObj));
             }
 
-            sceneData[kEntitiesKey] = std::move(entitiesArray);
+            sceneData[ENTITIES_KEY] = std::move(entitiesArray);
+            // NOLINTEND(cppcoreguidelines-pro-bounds-avoid-unchecked-container-access)
 
             std::filesystem::create_directories(outputDirectory);
             std::ofstream stream(outputPath, std::ios::out | std::ios::trunc | std::ios::binary);
             if (!stream.is_open())
             {
-                error = "Failed to open scene output file for writing: " + filePath;
+                error = std::format("Failed to open scene output file for writing: {}", filePath);
                 return false;
             }
 
@@ -481,7 +450,7 @@ namespace Wayfinder
 
             if (!stream.good())
             {
-                error = "Failed while writing scene data to: " + filePath;
+                error = std::format("Failed while writing scene data to: {}", filePath);
                 return false;
             }
 
@@ -489,7 +458,7 @@ namespace Wayfinder
         }
         catch (const std::exception& exception)
         {
-            error = "Failed to save scene file '" + filePath + "': " + exception.what();
+            error = std::format("Failed to save scene file '{}': {}", filePath, exception.what());
             return false;
         }
     }

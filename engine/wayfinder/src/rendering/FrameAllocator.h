@@ -57,7 +57,7 @@ namespace Wayfinder
          * @param  args   Arguments forwarded to T's constructor.
          * @return Pointer to the constructed object. The arena owns the memory.
          */
-        template <typename T, typename... TArgs>
+        template<typename T, typename... TArgs>
         T* Create(TArgs&&... args);
 
         /**
@@ -85,12 +85,11 @@ namespace Wayfinder
 
         struct Page
         {
-            std::unique_ptr<std::byte[]> Memory;
+            std::vector<std::byte> Memory;
             size_t Capacity;
         };
 
         void AddPage(size_t minCapacity);
-        static size_t AlignUp(size_t value, size_t alignment);
 
         std::vector<Page> m_pages;
         size_t m_pageSize;
@@ -101,7 +100,7 @@ namespace Wayfinder
 
     // ── Template Implementation ──────────────────────────────
 
-    template <typename T, typename... TArgs>
+    template<typename T, typename... TArgs>
     T* FrameAllocator::Create(TArgs&&... args)
     {
         void* storage = Allocate(sizeof(T), alignof(T));
@@ -110,11 +109,10 @@ namespace Wayfinder
         if constexpr (!std::is_trivially_destructible_v<T>)
         {
             void* entryStorage = Allocate(sizeof(DestructorEntry), alignof(DestructorEntry));
-            m_destructorHead = ::new (entryStorage) DestructorEntry{
-                [](void* ptr) { static_cast<T*>(ptr)->~T(); },
-                object,
-                m_destructorHead
-            };
+            m_destructorHead = ::new (entryStorage) DestructorEntry{[](void* ptr)
+            {
+                static_cast<T*>(ptr)->~T();
+            }, object, m_destructorHead};
         }
 
         return object;

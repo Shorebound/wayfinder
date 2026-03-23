@@ -12,20 +12,21 @@ namespace Wayfinder
         {
             // Update existing definition (code overrides data comment if non-empty).
             if (!comment.empty())
-                m_definitions[it->second].Comment = comment;
+            {
+                m_definitions.at(it->second).Comment = comment;
+            }
             // Mark as code-owned so UnloadTagFile() won't remove it.
-            m_definitions[it->second].SourceFile = "(code)";
+            m_definitions.at(it->second).SourceFile = "(code)";
             return GameplayTag::FromName(name);
         }
 
-        EnsureAncestors(name, "(code)");
+        EnsureAncestors(name, GameplayTagSourceKind::Code);
 
         const size_t idx = m_definitions.size();
-        m_definitions.push_back({name, comment, "(code)"});
+        m_definitions.push_back({.Name = name, .Comment = comment, .SourceFile = "(code)"});
         m_index[name] = idx;
 
-        WAYFINDER_INFO(LogEngine, "GameplayTagRegistry: registered tag '{}'{}", name,
-                       comment.empty() ? "" : " — " + comment);
+        WAYFINDER_INFO(LogEngine, "GameplayTagRegistry: registered tag '{}'{}", name, comment.empty() ? "" : " — " + comment);
 
         return GameplayTag::FromName(name);
     }
@@ -37,7 +38,7 @@ namespace Wayfinder
         try
         {
             const toml::table data = toml::parse_file(canonical);
-            const toml::array* tags = data["tags"].as_array();
+            const toml::array* tags = data.get_as<toml::array>("tags");
             if (!tags)
             {
                 WAYFINDER_WARNING(LogEngine, "Tag file '{}' contains no [[tags]] array", canonical);
@@ -49,33 +50,41 @@ namespace Wayfinder
             {
                 const toml::table* entry = node.as_table();
                 if (!entry)
+                {
                     continue;
+                }
 
-                const auto name = (*entry)["name"].value<std::string>();
+                const auto* nameNode = entry->get("name");
+                const auto name = nameNode != nullptr ? nameNode->value<std::string>() : std::optional<std::string>{};
                 if (!name || name->empty())
                 {
                     WAYFINDER_WARNING(LogEngine, "Tag file '{}': skipping entry without 'name'", canonical);
                     continue;
                 }
 
-                const auto comment = (*entry)["comment"].value_or(std::string{});
+                const auto* commentNode = entry->get("comment");
+                const std::string comment = commentNode != nullptr ? commentNode->value_or(std::string{}) : std::string{};
 
-                EnsureAncestors(*name, canonical);
+                EnsureAncestors(*name, GameplayTagSourceKind::File, canonical);
 
                 if (auto it = m_index.find(*name); it != m_index.end())
                 {
-                    auto& def = m_definitions[it->second];
+                    auto& def = m_definitions.at(it->second);
                     if (!comment.empty())
+                    {
                         def.Comment = comment;
+                    }
                     // Only overwrite SourceFile for definitions that were not
                     // registered from code, so UnloadTagFile won't erase them.
                     if (def.SourceFile != "(code)")
+                    {
                         def.SourceFile = canonical;
+                    }
                 }
                 else
                 {
                     const size_t idx = m_definitions.size();
-                    m_definitions.push_back({*name, comment, canonical});
+                    m_definitions.push_back({.Name = *name, .Comment = comment, .SourceFile = canonical});
                     m_index[*name] = idx;
                 }
 
@@ -106,7 +115,10 @@ namespace Wayfinder
         // Rebuild index
         m_index.clear();
         for (size_t i = 0; i < m_definitions.size(); ++i)
-            m_index[m_definitions[i].Name] = i;
+        {
+            const auto& definition = m_definitions.at(i);
+            m_index[definition.Name] = i;
+        }
 
         // Remove from loaded file list
         std::erase(m_loadedFiles, canonical);
@@ -119,9 +131,9 @@ namespace Wayfinder
         if (!IsRegistered(name))
         {
             WAYFINDER_WARNING(LogEngine,
-                "GameplayTagRegistry: requested unregistered tag '{}'. "
-                "Register it in a tag file or via ModuleRegistry::RegisterTag().",
-                name);
+            "GameplayTagRegistry: requested unregistered tag '{}'. "
+            "Register it in a tag file or via ModuleRegistry::RegisterTag().",
+            name);
         }
 
         return GameplayTag::FromName(name);
@@ -135,20 +147,23 @@ namespace Wayfinder
     const GameplayTagDefinition* GameplayTagRegistry::FindDefinition(const std::string& name) const
     {
         if (const auto it = m_index.find(name); it != m_index.end())
-            return &m_definitions[it->second];
+        {
+            return &m_definitions.at(it->second);
+        }
         return nullptr;
     }
 
-    void GameplayTagRegistry::EnsureAncestors(const std::string& name, const std::string& sourceFile)
+    void GameplayTagRegistry::EnsureAncestors(std::string_view name, GameplayTagSourceKind sourceKind, std::string_view sourceFile)
     {
+        const std::string_view resolvedSourceFile = sourceKind == GameplayTagSourceKind::Code ? std::string_view{"(code)"} : sourceFile;
         std::string::size_type pos = 0;
         while ((pos = name.find('.', pos)) != std::string::npos)
         {
-            std::string ancestor = name.substr(0, pos);
+            const std::string ancestor = std::string{name.substr(0, pos)};
             if (!m_index.contains(ancestor))
             {
                 const size_t idx = m_definitions.size();
-                m_definitions.push_back({ancestor, {}, sourceFile});
+                m_definitions.push_back({.Name = ancestor, .Comment = {}, .SourceFile = std::string{resolvedSourceFile}});
                 m_index[ancestor] = idx;
             }
             ++pos;

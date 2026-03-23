@@ -1,16 +1,16 @@
 #include "RenderPipeline.h"
 
-#include "rendering/backend/GPUPipeline.h"
-#include "rendering/mesh/Mesh.h"
 #include "PipelineCache.h"
 #include "RenderContext.h"
+#include "rendering/backend/GPUPipeline.h"
 #include "rendering/backend/RenderDevice.h"
+#include "rendering/backend/VertexFormats.h"
 #include "rendering/graph/RenderFeature.h"
 #include "rendering/graph/RenderGraph.h"
-#include "rendering/resources/RenderResources.h"
 #include "rendering/materials/ShaderProgram.h"
+#include "rendering/mesh/Mesh.h"
+#include "rendering/resources/RenderResources.h"
 #include "rendering/resources/TransientBufferAllocator.h"
-#include "rendering/backend/VertexFormats.h"
 
 #include "core/Log.h"
 #include "maths/Maths.h"
@@ -25,30 +25,32 @@ namespace Wayfinder
         // Vertex UBO shared by all scene shaders: MVP + Model (128 bytes)
         struct TransformUBO
         {
-            Matrix4 mvp;
-            Matrix4 model;
+            Matrix4 Mvp;
+            Matrix4 Model;
         };
 
         // Unlit shaders only need MVP (64 bytes)
         struct UnlitTransformUBO
         {
-            Matrix4 mvp;
+            Matrix4 Mvp;
         };
 
         // Fragment material UBO for the debug pipeline (16 bytes)
         struct DebugMaterialUBO
         {
-            Float4 baseColour;
+            Float4 BaseColour;
         };
 
         /// Builds a PipelineCreateDesc for the wireframe variant of a shader program.
         /// Returns std::nullopt if the shader handles cannot be resolved.
-        std::optional<PipelineCreateDesc> MakeWireframeVariant(
-            const ShaderProgramDesc& desc, ShaderManager& shaders)
+        std::optional<PipelineCreateDesc> MakeWireframeVariant(const ShaderProgramDesc& desc, ShaderManager& shaders)
         {
-            GPUShaderHandle vs = shaders.GetShader(desc.VertexShaderName, ShaderStage::Vertex, desc.VertexResources);
-            GPUShaderHandle fs = shaders.GetShader(desc.FragmentShaderName, ShaderStage::Fragment, desc.FragmentResources);
-            if (!vs || !fs) return std::nullopt;
+            const GPUShaderHandle vs = shaders.GetShader(desc.VertexShaderName, ShaderStage::Vertex, desc.VertexResources);
+            const GPUShaderHandle fs = shaders.GetShader(desc.FragmentShaderName, ShaderStage::Fragment, desc.FragmentResources);
+            if (!vs || !fs)
+            {
+                return std::nullopt;
+            }
 
             PipelineCreateDesc pipeDesc{};
             pipeDesc.vertexShader = vs;
@@ -83,7 +85,7 @@ namespace Wayfinder
             desc.DepthTest = true;
             desc.DepthWrite = true;
             desc.MaterialParams = {
-                {"base_colour", MaterialParamType::Colour, 0, LinearColour::White()},
+                {.Name = "base_colour", .Type = MaterialParamType::Colour, .Offset = 0, .Default = LinearColour::White()},
             };
             desc.MaterialUBOSize = 16; // float4
             desc.VertexUBOSize = sizeof(UnlitTransformUBO);
@@ -104,7 +106,7 @@ namespace Wayfinder
             desc.DepthTest = true;
             desc.DepthWrite = true;
             desc.MaterialParams = {
-                {"base_colour", MaterialParamType::Colour, 0, LinearColour::White()},
+                {.Name = "base_colour", .Type = MaterialParamType::Colour, .Offset = 0, .Default = LinearColour::White()},
             };
             desc.MaterialUBOSize = 16; // float4
             desc.VertexUBOSize = sizeof(TransformUBO);
@@ -125,12 +127,12 @@ namespace Wayfinder
             desc.DepthTest = true;
             desc.DepthWrite = true;
             desc.MaterialParams = {
-                {"base_colour", MaterialParamType::Colour, 0, LinearColour::White()},
+                {.Name = "base_colour", .Type = MaterialParamType::Colour, .Offset = 0, .Default = LinearColour::White()},
             };
             desc.MaterialUBOSize = 16; // float4
             desc.VertexUBOSize = sizeof(TransformUBO);
             desc.NeedsSceneGlobals = true;
-            desc.TextureSlots = {{"diffuse", 0}};
+            desc.TextureSlots = {{.Name = "diffuse", .BindingSlot = 0}};
 
             registry.Register(desc);
         }
@@ -190,11 +192,10 @@ namespace Wayfinder
             // Sort scene pass submissions by sort key (front-to-back for opaque)
             if (pass.Kind == RenderPassKind::Scene)
             {
-                std::sort(pass.Meshes.begin(), pass.Meshes.end(),
-                    [](const RenderMeshSubmission& a, const RenderMeshSubmission& b)
-                    {
-                        return a.SortKey < b.SortKey;
-                    });
+                std::ranges::sort(pass.Meshes, [](const RenderMeshSubmission& a, const RenderMeshSubmission& b)
+                {
+                    return a.SortKey < b.SortKey;
+                });
             }
         }
 
@@ -209,8 +210,8 @@ namespace Wayfinder
 
         // ── Camera / Projection (from primary view) ──────────
         Colour clearColour = Colour::White();
-        Matrix4 view = Matrix4(1.0f);
-        Matrix4 projection = Matrix4(1.0f);
+        auto view = Matrix4(1.0f);
+        auto projection = Matrix4(1.0f);
         bool hasCamera = false;
 
         if (!preparedFrame.Views.empty() && swapW > 0 && swapH > 0)
@@ -250,18 +251,22 @@ namespace Wayfinder
 
         // ── MainScene Pass ───────────────────────────────────
 #ifdef WAYFINDER_COMPILER_MSVC
-    #pragma warning(push)
-    #pragma warning(disable : 4324) // lambda closure padded due to captured alignas(16) matrices
+#pragma warning(push)
+#pragma warning(disable : 4324) // lambda closure padded due to captured alignas(16) matrices
 #endif
-        graph.AddPass("MainScene", [&, viewMat = view, projMat = projection, hasCamera](RenderGraphBuilder& builder) {
+        graph.AddPass("MainScene", [&, viewMat = view, projMat = projection, hasCamera](RenderGraphBuilder& builder)
+        {
             auto colour = builder.CreateTransient(colourDesc);
             auto depth = builder.CreateTransient(depthDesc);
             builder.WriteColour(colour, LoadOp::Clear, ClearValue::FromColour(clearColour));
             builder.WriteDepth(depth, LoadOp::Clear, 1.0f);
 
-            return [this, &preparedFrame, &params, viewMat, projMat, sceneGlobals, hasCamera]
-                   (RenderDevice& device, const RenderGraphResources& /*resources*/) {
-                if (!hasCamera) return;
+            return [this, &preparedFrame, &params, viewMat, projMat, sceneGlobals, hasCamera](RenderDevice& device, const RenderGraphResources& /*resources*/)
+            {
+                if (!hasCamera)
+                {
+                    return;
+                }
 
                 auto& registry = m_context->GetPrograms();
                 auto& pipelineCache = m_context->GetPipelines();
@@ -274,7 +279,10 @@ namespace Wayfinder
 
                 for (const auto& pass : preparedFrame.Passes)
                 {
-                    if (!pass.Enabled || pass.Kind != RenderPassKind::Scene) continue;
+                    if (!pass.Enabled || pass.Kind != RenderPassKind::Scene)
+                    {
+                        continue;
+                    }
 
                     // Per-pass camera from the pass's own view
                     Matrix4 passView = viewMat;
@@ -282,11 +290,9 @@ namespace Wayfinder
 
                     if (pass.ViewIndex < preparedFrame.Views.size())
                     {
-                        const auto& pv = preparedFrame.Views[pass.ViewIndex];
+                        const auto& pv = preparedFrame.Views.at(pass.ViewIndex);
                         const auto& cam = pv.CameraState;
-                        const float aspect = (params.SwapchainHeight > 0)
-                            ? static_cast<float>(params.SwapchainWidth) / static_cast<float>(params.SwapchainHeight)
-                            : 1.0f;
+                        const float aspect = (params.SwapchainHeight > 0) ? static_cast<float>(params.SwapchainWidth) / static_cast<float>(params.SwapchainHeight) : 1.0f;
 
                         passView = Maths::LookAt(cam.Position, cam.Target, cam.Up);
                         if (cam.ProjectionType == 0)
@@ -303,23 +309,28 @@ namespace Wayfinder
 
                     for (const auto& submission : pass.Meshes)
                     {
-                        if (!submission.Visible) continue;
+                        if (!submission.Visible)
+                        {
+                            continue;
+                        }
 
                         const ShaderProgram* program = registry.FindOrDefault(submission.Material.ShaderName);
-                        if (!program || !program->Pipeline) continue;
+                        if (!program || !program->Pipeline)
+                        {
+                            continue;
+                        }
 
                         // Determine fill mode: use override if set, otherwise default solid
-                        const RenderFillMode fillMode = submission.Material.StateOverrides.FillMode
-                            .value_or(RenderFillMode::Solid);
+                        const RenderFillMode fillMode = submission.Material.StateOverrides.FillMode.value_or(RenderFillMode::Solid);
 
                         // Helper: push transform + material uniforms for this submission
                         auto pushUniforms = [&]()
                         {
                             if (program->Desc.NeedsSceneGlobals)
                             {
-                                TransformUBO transformUBO;
-                                transformUBO.mvp = passProj * passView * submission.LocalToWorld;
-                                transformUBO.model = submission.LocalToWorld;
+                                TransformUBO transformUBO{};
+                                transformUBO.Mvp = passProj * passView * submission.LocalToWorld;
+                                transformUBO.Model = submission.LocalToWorld;
                                 device.PushVertexUniform(0, &transformUBO, sizeof(TransformUBO));
                             }
                             else
@@ -339,11 +350,8 @@ namespace Wayfinder
                                 }
                             }
 
-                            mergedParams.SerialiseToUBO(program->Desc.MaterialParams,
-                                                          materialUBOData.data(),
-                                                          static_cast<uint32_t>(materialUBOData.size()));
-                            device.PushFragmentUniform(0, materialUBOData.data(),
-                                                         static_cast<uint32_t>(materialUBOData.size()));
+                            mergedParams.SerialiseToUBO(program->Desc.MaterialParams, materialUBOData.data(), static_cast<uint32_t>(materialUBOData.size()));
+                            device.PushFragmentUniform(0, materialUBOData.data(), static_cast<uint32_t>(materialUBOData.size()));
 
                             if (program->Desc.NeedsSceneGlobals)
                             {
@@ -389,7 +397,7 @@ namespace Wayfinder
                             const auto wireframeDesc = MakeWireframeVariant(program->Desc, shaderManager);
                             if (wireframeDesc)
                             {
-                                GPUPipelineHandle wireframePipeline = pipelineCache.GetOrCreate(*wireframeDesc);
+                                const GPUPipelineHandle wireframePipeline = pipelineCache.GetOrCreate(*wireframeDesc);
                                 if (wireframePipeline.IsValid())
                                 {
                                     // Select the mesh matching the program's vertex layout
@@ -422,15 +430,19 @@ namespace Wayfinder
         });
 
         // ── Debug Pass ───────────────────────────────────────
-        graph.AddPass("Debug", [&, viewMat = view, projMat = projection, hasCamera](RenderGraphBuilder& builder) {
+        graph.AddPass("Debug", [&, viewMat = view, projMat = projection, hasCamera](RenderGraphBuilder& builder)
+        {
             auto colour = graph.FindHandle(WellKnown::SceneColour);
             auto depth = graph.FindHandle(WellKnown::SceneDepth);
             builder.WriteColour(colour, LoadOp::Load);
             builder.WriteDepth(depth, LoadOp::Load);
 
-            return [this, &preparedFrame, &params, viewMat, projMat, hasCamera]
-                   (RenderDevice& device, const RenderGraphResources& /*resources*/) {
-                if (!hasCamera) return;
+            return [this, &preparedFrame, &params, viewMat, projMat, hasCamera](RenderDevice& device, const RenderGraphResources& /*resources*/)
+            {
+                if (!hasCamera)
+                {
+                    return;
+                }
 
                 auto& debugLinePipeline = params.DebugLinePipeline;
                 auto& transientAllocator = m_context->GetTransientBuffers();
@@ -438,14 +450,17 @@ namespace Wayfinder
 
                 // Resolve PosNormalColour mesh for debug boxes
                 const auto debugMeshIt = params.MeshesByStride.find(VertexLayouts::PosNormalColour.stride);
-                Mesh* primitiveMeshPtr = (debugMeshIt != params.MeshesByStride.end()) ? debugMeshIt->second : nullptr;
+                const Mesh* primitiveMeshPtr = (debugMeshIt != params.MeshesByStride.end()) ? debugMeshIt->second : nullptr;
 
                 // ── Debug lines ──────────────────────────────
                 std::vector<VertexPosColour> lineVertices;
 
                 for (const auto& pass : preparedFrame.Passes)
                 {
-                    if (!pass.Enabled || !pass.DebugDraw) continue;
+                    if (!pass.Enabled || !pass.DebugDraw)
+                    {
+                        continue;
+                    }
 
                     if (pass.DebugDraw->ShowWorldGrid)
                     {
@@ -460,24 +475,24 @@ namespace Wayfinder
                             const float coord = static_cast<float>(i) * spacing;
                             const Float3& gridColour = (i == 0) ? majorColour : minorColour;
 
-                            lineVertices.push_back({Float3{-extent, 0.0f, coord}, gridColour});
-                            lineVertices.push_back({Float3{ extent, 0.0f, coord}, gridColour});
-                            lineVertices.push_back({Float3{coord, 0.0f, -extent}, gridColour});
-                            lineVertices.push_back({Float3{coord, 0.0f,  extent}, gridColour});
+                            lineVertices.push_back({.Position = Float3{-extent, 0.0f, coord}, .Colour = gridColour});
+                            lineVertices.push_back({.Position = Float3{extent, 0.0f, coord}, .Colour = gridColour});
+                            lineVertices.push_back({.Position = Float3{coord, 0.0f, -extent}, .Colour = gridColour});
+                            lineVertices.push_back({.Position = Float3{coord, 0.0f, extent}, .Colour = gridColour});
                         }
                     }
 
                     for (const auto& line : pass.DebugDraw->Lines)
                     {
                         const Float3 lineColour = LinearColour::FromColour(line.Tint).ToFloat3();
-                        lineVertices.push_back({line.Start, lineColour});
-                        lineVertices.push_back({line.End, lineColour});
+                        lineVertices.push_back({.Position = line.Start, .Colour = lineColour});
+                        lineVertices.push_back({.Position = line.End, .Colour = lineColour});
                     }
                 }
 
                 if (!lineVertices.empty() && debugLinePipeline.IsValid())
                 {
-                    const uint32_t dataSize = static_cast<uint32_t>(lineVertices.size() * sizeof(VertexPosColour));
+                    const auto dataSize = static_cast<uint32_t>(lineVertices.size() * sizeof(VertexPosColour));
                     const TransientAllocation alloc = transientAllocator.AllocateVertices(lineVertices.data(), dataSize);
 
                     if (alloc.IsValid())
@@ -486,7 +501,7 @@ namespace Wayfinder
                         const DebugMaterialUBO materialUBO{Float4(1.0f)};
 
                         debugLinePipeline.Bind();
-                        device.BindVertexBuffer(alloc.Buffer, 0, alloc.Offset);
+                        device.BindVertexBuffer(alloc.Buffer, {.offsetInBytes = alloc.Offset});
                         device.PushVertexUniform(0, &mvp, sizeof(Matrix4));
                         device.PushFragmentUniform(0, &materialUBO, sizeof(DebugMaterialUBO));
                         device.DrawPrimitives(static_cast<uint32_t>(lineVertices.size()));
@@ -495,7 +510,10 @@ namespace Wayfinder
 
                 // ── Debug boxes ──────────────────────────────
                 const ShaderProgram* unlitProgram = registry.Find("unlit");
-                if (!unlitProgram || !unlitProgram->Pipeline || !primitiveMeshPtr || !primitiveMeshPtr->IsValid()) return;
+                if (!unlitProgram || !unlitProgram->Pipeline || !primitiveMeshPtr || !primitiveMeshPtr->IsValid())
+                {
+                    return;
+                }
 
                 bool hasPendingBoxes = false;
                 for (const auto& pass : preparedFrame.Passes)
@@ -507,14 +525,20 @@ namespace Wayfinder
                     }
                 }
 
-                if (!hasPendingBoxes) return;
+                if (!hasPendingBoxes)
+                {
+                    return;
+                }
 
                 unlitProgram->Pipeline->Bind();
                 primitiveMeshPtr->Bind(device);
 
                 for (const auto& pass : preparedFrame.Passes)
                 {
-                    if (!pass.Enabled || !pass.DebugDraw) continue;
+                    if (!pass.Enabled || !pass.DebugDraw)
+                    {
+                        continue;
+                    }
 
                     for (const auto& box : pass.DebugDraw->Boxes)
                     {
@@ -529,7 +553,7 @@ namespace Wayfinder
             };
         });
 #ifdef WAYFINDER_COMPILER_MSVC
-    #pragma warning(pop)
+#pragma warning(pop)
 #endif
 
         // ── Feature passes ───────────────────────────────────
@@ -542,17 +566,22 @@ namespace Wayfinder
         }
 
         // ── Composition Pass ─────────────────────────────────
-        graph.AddPass("Composition", [&](RenderGraphBuilder& builder) {
+        graph.AddPass("Composition", [&](RenderGraphBuilder& builder)
+        {
             auto colour = graph.FindHandle(WellKnown::SceneColour);
             builder.ReadTexture(colour);
             builder.SetSwapchainOutput(LoadOp::DontCare);
 
-            return [this, colour](RenderDevice& device, const RenderGraphResources& resources) {
+            return [this, colour](RenderDevice& device, const RenderGraphResources& resources)
+            {
                 auto sceneColourTex = resources.GetTexture(colour);
 
                 const ShaderProgram* compProgram = m_context->GetPrograms().Find("composition");
                 const auto nearestSampler = m_context->GetNearestSampler();
-                if (!compProgram || !compProgram->Pipeline || !sceneColourTex || !nearestSampler) return;
+                if (!compProgram || !compProgram->Pipeline || !sceneColourTex || !nearestSampler)
+                {
+                    return;
+                }
 
                 compProgram->Pipeline->Bind();
                 device.BindFragmentSampler(0, sceneColourTex, nearestSampler);

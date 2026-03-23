@@ -1,7 +1,7 @@
 #pragma once
 
-#include "platform/MouseCodes.h"
 #include "Event.h"
+#include "platform/MouseCodes.h"
 #include <format>
 
 namespace Wayfinder
@@ -12,8 +12,14 @@ namespace Wayfinder
     public:
         MouseMovedEvent(const float x, const float y) : m_mouseX(x), m_mouseY(y) {}
 
-        float GetX() const { return m_mouseX; }
-        float GetY() const { return m_mouseY; }
+        float GetX() const
+        {
+            return m_mouseX;
+        }
+        float GetY() const
+        {
+            return m_mouseY;
+        }
 
         std::string ToString() const override
         {
@@ -30,8 +36,14 @@ namespace Wayfinder
     public:
         MouseScrolledEvent(const float xOffset, const float yOffset) : m_xOffset(xOffset), m_yOffset(yOffset) {}
 
-        float GetXOffset() const { return m_xOffset; }
-        float GetYOffset() const { return m_yOffset; }
+        float GetXOffset() const
+        {
+            return m_xOffset;
+        }
+        float GetYOffset() const
+        {
+            return m_yOffset;
+        }
 
         std::string ToString() const override
         {
@@ -46,7 +58,10 @@ namespace Wayfinder
     class MouseButtonEvent : public Event
     {
     public:
-        MouseCode GetMouseButton() const { return m_button; }
+        MouseCode GetMouseButton() const
+        {
+            return m_button;
+        }
 
     protected:
         MouseButtonEvent(const MouseCode button) : m_button(button) {}

@@ -18,20 +18,25 @@ namespace Wayfinder::Tests
     class TestFeature : public Wayfinder::RenderFeature
     {
     public:
-        explicit TestFeature(std::string name, std::vector<std::string>& log)
-            : m_name(std::move(name)), m_log(log) {}
+        explicit TestFeature(std::string name, std::vector<std::string>& log) : m_name(std::move(name)), m_log(log) {}
 
-        const std::string& GetName() const override { return m_name; }
+        const std::string& GetName() const override
+        {
+            return m_name;
+        }
 
         void AddPasses(Wayfinder::RenderGraph& graph, const Wayfinder::RenderFrame&) override
         {
             m_log.push_back(m_name + "::AddPasses");
 
             // Inject a simple pass that reads SceneColour and writes swapchain
-            graph.AddPass(m_name, [this](Wayfinder::RenderGraphBuilder& builder) {
+            graph.AddPass(m_name, [this](Wayfinder::RenderGraphBuilder& builder)
+            {
                 auto colour = builder.CreateTransient({128, 128, Wayfinder::TextureFormat::RGBA8_UNORM, m_name.c_str()});
                 builder.WriteColour(colour);
-                return [](Wayfinder::RenderDevice&, const Wayfinder::RenderGraphResources&) {};
+                return [](Wayfinder::RenderDevice&, const Wayfinder::RenderGraphResources&)
+                {
+                };
             });
         }
 
@@ -62,21 +67,29 @@ namespace Wayfinder::Tests
 
         void AddPasses(Wayfinder::RenderGraph& graph, const Wayfinder::RenderFrame&) override
         {
-            graph.AddPass("OverlayPass", [&](Wayfinder::RenderGraphBuilder& builder) {
+            graph.AddPass("OverlayPass", [&](Wayfinder::RenderGraphBuilder& builder)
+            {
                 auto colour = graph.FindHandle(Wayfinder::WellKnown::SceneColour);
                 if (colour.IsValid())
                 {
                     builder.ReadTexture(colour);
                 }
                 builder.SetSwapchainOutput();
-                return [this](Wayfinder::RenderDevice&, const Wayfinder::RenderGraphResources&) {
+                return [this](Wayfinder::RenderDevice&, const Wayfinder::RenderGraphResources&)
+                {
                     m_executed = true;
                 };
             });
         }
 
-        bool WasExecuted() const { return m_executed; }
-        void Reset() { m_executed = false; }
+        bool WasExecuted() const
+        {
+            return m_executed;
+        }
+        void Reset()
+        {
+            m_executed = false;
+        }
 
     private:
         bool m_executed = false;
@@ -178,10 +191,13 @@ namespace Wayfinder::Tests
         colourDesc.Format = Wayfinder::TextureFormat::RGBA8_UNORM;
         colourDesc.DebugName = Wayfinder::WellKnown::SceneColour;
 
-        graph.AddPass("MainScene", [&](Wayfinder::RenderGraphBuilder& builder) {
+        graph.AddPass("MainScene", [&](Wayfinder::RenderGraphBuilder& builder)
+        {
             auto colour = builder.CreateTransient(colourDesc);
             builder.WriteColour(colour);
-            return [](Wayfinder::RenderDevice&, const Wayfinder::RenderGraphResources&) {};
+            return [](Wayfinder::RenderDevice&, const Wayfinder::RenderGraphResources&)
+            {
+            };
         });
 
         // Feature injects its pass
@@ -246,7 +262,7 @@ namespace Wayfinder::Tests
 
         // Upload some data — should be a no-op on NullDevice
         uint8_t data[64] = {};
-        device->UploadToBuffer(buffer, data, sizeof(data));
+        device->UploadToBuffer(buffer, data, {.sizeInBytes = sizeof(data)});
 
         device->DestroyBuffer(buffer);
     }
@@ -270,8 +286,7 @@ namespace Wayfinder::Tests
     {
         Wayfinder::RenderFrame frame;
         const size_t viewIndex = frame.AddView(Wayfinder::RenderView{});
-        Wayfinder::RenderPass& scenePass =
-            frame.AddScenePass(Wayfinder::RenderPassIds::MainScene, viewIndex, Wayfinder::RenderLayers::Main);
+        Wayfinder::RenderPass& scenePass = frame.AddScenePass(Wayfinder::RenderPassIds::MainScene, viewIndex, Wayfinder::RenderLayers::Main);
 
         Wayfinder::RenderMeshSubmission submission;
         submission.Mesh.Origin = Wayfinder::RenderResourceOrigin::BuiltIn;

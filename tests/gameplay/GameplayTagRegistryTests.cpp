@@ -1,7 +1,6 @@
 #include "TestHelpers.h"
 #include "gameplay/GameplayTagRegistry.h"
 
-
 #include <doctest/doctest.h>
 
 #include <filesystem>

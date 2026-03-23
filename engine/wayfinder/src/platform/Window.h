@@ -1,7 +1,8 @@
 #pragma once
 
-#include "platform/BackendConfig.h"
+#include "core/Result.h"
 #include "core/events/Event.h"
+#include "platform/BackendConfig.h"
 
 #include <functional>
 
@@ -22,7 +23,7 @@ namespace Wayfinder
 
         virtual ~Window() = default;
 
-        virtual bool Initialise() = 0;
+        virtual Result<void> Initialise() = 0;
         virtual void Shutdown() = 0;
         virtual void Update() = 0;
 
@@ -47,9 +48,7 @@ namespace Wayfinder
          * @param backend  Platform backend to use (defaults to PlatformBackend::SDL3).
          * @return A std::unique_ptr<Window> owning the platform window.
          */
-        static std::unique_ptr<Window> Create(
-            const Window::Config& config,
-            PlatformBackend backend = PlatformBackend::SDL3);
+        static std::unique_ptr<Window> Create(const Window::Config& config, PlatformBackend backend = PlatformBackend::SDL3);
 
         /**
          * @brief Create a Window with default configuration.
@@ -64,4 +63,3 @@ namespace Wayfinder
     };
 
 }
-

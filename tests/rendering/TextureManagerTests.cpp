@@ -1,6 +1,6 @@
-#include "rendering/resources/TextureManager.h"
-#include "rendering/backend/RenderDevice.h"
 #include "rendering/RenderTypes.h"
+#include "rendering/backend/RenderDevice.h"
+#include "rendering/resources/TextureManager.h"
 
 #include <doctest/doctest.h>
 

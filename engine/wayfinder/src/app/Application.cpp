@@ -1,31 +1,26 @@
 #include "Application.h"
 
-#include "core/Assert.h"
 #include "EngineConfig.h"
 #include "EngineRuntime.h"
+#include "LayerStack.h"
+#include "core/Assert.h"
+#include "core/Log.h"
+#include "core/events/ApplicationEvent.h"
+#include "core/events/KeyEvent.h"
+#include "core/events/MouseEvent.h"
 #include "gameplay/Game.h"
 #include "gameplay/GameContext.h"
 #include "modules/Module.h"
 #include "modules/ModuleRegistry.h"
-#include "LayerStack.h"
-#include "core/Log.h"
-#include "project/ProjectDescriptor.h"
-#include "project/ProjectResolver.h"
-#include "core/events/ApplicationEvent.h"
-#include "core/events/KeyEvent.h"
-#include "core/events/MouseEvent.h"
 #include "platform/Input.h"
 #include "platform/Window.h"
+#include "project/ProjectDescriptor.h"
+#include "project/ProjectResolver.h"
 #include "scene/Scene.h"
 
 namespace Wayfinder
 {
-    Application::Application(std::unique_ptr<Module> module,
-                             const CommandLineArgs& args)
-        : m_module(std::move(module))
-        , m_args(args)
-    {
-    }
+    Application::Application(std::unique_ptr<Module> module, const CommandLineArgs& args) : m_module(std::move(module)), m_args(args) {}
 
     Application::~Application()
     {
@@ -55,11 +50,15 @@ namespace Wayfinder
         // 1. Discover project descriptor from CWD
         auto projectFile = FindProjectFile();
         if (!projectFile)
+        {
             return std::unexpected(projectFile.error());
+        }
 
         auto loadResult = ProjectDescriptor::LoadFromFile(*projectFile);
         if (!loadResult)
+        {
             return std::unexpected(loadResult.error());
+        }
 
         for (const auto& warning : loadResult->Warnings)
         {
@@ -69,8 +68,7 @@ namespace Wayfinder
         m_project = std::make_unique<ProjectDescriptor>(std::move(loadResult->Descriptor));
 
         // 2. Load engine config
-        m_config = std::make_unique<EngineConfig>(
-            EngineConfig::LoadFromFile(m_project->ResolveEngineConfigPath()));
+        m_config = std::make_unique<EngineConfig>(EngineConfig::LoadFromFile(m_project->ResolveEngineConfigPath()));
 
         // 3. Module registration (before Game so scene creation can use factories)
         if (m_module)
@@ -82,21 +80,27 @@ namespace Wayfinder
         // 4. Platform + rendering services
         m_runtime = std::make_unique<EngineRuntime>(*m_config, *m_project);
         if (auto runtimeResult = m_runtime->Initialise(); !runtimeResult)
+        {
             return std::unexpected(runtimeResult.error());
+        }
 
         // Wire window events → Application::OnEvent
-        m_runtime->GetWindow().SetEventCallback(
-            [this](Event& e) { OnEvent(e); });
+        m_runtime->GetWindow().SetEventCallback([this](Event& e)
+        {
+            OnEvent(e);
+        });
 
         // 5. Layer stack
         m_layerStack = std::make_unique<LayerStack>();
 
         // 6. Game
-        GameContext gameCtx{*m_project, m_moduleRegistry.get()};
+        const GameContext gameCtx{.project = *m_project, .moduleRegistry = m_moduleRegistry.get()};
         m_game = std::make_unique<Game>();
 
         if (auto gameResult = m_game->Initialise(gameCtx); !gameResult)
+        {
             return std::unexpected(gameResult.error());
+        }
 
         m_runtime->SetAssetService(m_game->GetAssetService());
 
@@ -150,21 +154,30 @@ namespace Wayfinder
     {
         // Latency-sensitive events: dispatch immediately
         EventDispatcher dispatcher(event);
-        dispatcher.Dispatch<WindowCloseEvent>(
-            [this](WindowCloseEvent& e) { return OnWindowClose(e); });
-        dispatcher.Dispatch<WindowResizeEvent>(
-            [this](WindowResizeEvent& e) { return OnWindowResize(e); });
+        dispatcher.Dispatch<WindowCloseEvent>([this](WindowCloseEvent& e)
+        {
+            return OnWindowClose(e);
+        });
+
+        dispatcher.Dispatch<WindowResizeEvent>([this](WindowResizeEvent& e)
+        {
+            return OnWindowResize(e);
+        });
 
         // Feed scroll events into input accumulator immediately
-        dispatcher.Dispatch<MouseScrolledEvent>(
-            [this](MouseScrolledEvent& e)
-            {
-                m_runtime->GetInput().AccumulateScroll(e.GetXOffset(), e.GetYOffset());
-                return true;
+        dispatcher.Dispatch<MouseScrolledEvent>([this](MouseScrolledEvent& e)
+        {
+            m_runtime->GetInput().AccumulateScroll(Input::ScrollDelta{
+                .X = e.GetXOffset(),
+                .Y = e.GetYOffset(),
             });
+            return true;
+        });
 
         if (event.Handled)
+        {
             return;
+        }
 
         // Defer input events to typed buffers for batched dispatch
         if (event.IsInCategory(EventCategory::Input))
@@ -182,7 +195,9 @@ namespace Wayfinder
         for (auto it = m_layerStack->rbegin(); it != m_layerStack->rend(); ++it)
         {
             if (event.Handled)
+            {
                 break;
+            }
             (*it)->OnEvent(event);
         }
     }
@@ -210,9 +225,7 @@ namespace Wayfinder
             m_eventQueue.Push(static_cast<const MouseButtonReleasedEvent&>(event));
             break;
         default:
-            WAYFINDER_ASSERT(false,
-                             "Unhandled input event type for deferral: {}",
-                             event.GetName());
+            WAYFINDER_ASSERT(false, "Unhandled input event type for deferral: {}", event.GetName());
             break;
         }
     }

@@ -126,7 +126,10 @@ namespace Wayfinder
         }
 
         /// Number of successfully cached assets.
-        size_t Size() const { return m_assets.size(); }
+        size_t Size() const
+        {
+            return m_assets.size();
+        }
 
     private:
         std::unordered_map<AssetId, TAsset> m_assets;

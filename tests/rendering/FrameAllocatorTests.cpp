@@ -98,7 +98,10 @@ namespace Wayfinder::Tests
         {
             std::vector<int>& Log;
             int Id;
-            ~Tracker() { Log.push_back(Id); }
+            ~Tracker()
+            {
+                Log.push_back(Id);
+            }
         };
 
         {
@@ -157,7 +160,10 @@ namespace Wayfinder::Tests
         FrameAllocator allocator;
         bool called = false;
 
-        ArenaFunction<void()> fn(allocator, [&called]() { called = true; });
+        ArenaFunction<void()> fn(allocator, [&called]()
+        {
+            called = true;
+        });
         CHECK(static_cast<bool>(fn));
 
         fn();
@@ -169,7 +175,10 @@ namespace Wayfinder::Tests
         FrameAllocator allocator;
 
         int base = 10;
-        ArenaFunction<int(int)> fn(allocator, [base](int x) { return base + x; });
+        ArenaFunction<int(int)> fn(allocator, [base](int x)
+        {
+            return base + x;
+        });
 
         CHECK(fn(5) == 15);
         CHECK(fn(0) == 10);
@@ -179,7 +188,10 @@ namespace Wayfinder::Tests
     {
         FrameAllocator allocator;
 
-        ArenaFunction<void(int&)> fn(allocator, [](int& x) { x += 100; });
+        ArenaFunction<void(int&)> fn(allocator, [](int& x)
+        {
+            x += 100;
+        });
 
         int value = 42;
         fn(value);
@@ -190,7 +202,10 @@ namespace Wayfinder::Tests
     {
         FrameAllocator allocator;
 
-        ArenaFunction<int()> original(allocator, []() { return 99; });
+        ArenaFunction<int()> original(allocator, []()
+        {
+            return 99;
+        });
         CHECK(static_cast<bool>(original));
 
         ArenaFunction<int()> moved(std::move(original));
@@ -204,8 +219,14 @@ namespace Wayfinder::Tests
     {
         FrameAllocator allocator;
 
-        ArenaFunction<int()> a(allocator, []() { return 1; });
-        ArenaFunction<int()> b(allocator, []() { return 2; });
+        ArenaFunction<int()> a(allocator, []()
+        {
+            return 1;
+        });
+        ArenaFunction<int()> b(allocator, []()
+        {
+            return 2;
+        });
 
         b = std::move(a);
         CHECK(static_cast<bool>(b));
@@ -222,14 +243,19 @@ namespace Wayfinder::Tests
         struct Counter
         {
             int& Count;
-            ~Counter() { ++Count; }
+            ~Counter()
+            {
+                ++Count;
+            }
         };
 
         {
             // The arena stores a moved/copied lambda. Between construction and
             // Reset(), the arena-held destructor should NOT have fired. We track
             // how many destructor calls happen at each stage.
-            ArenaFunction<void()> fn(allocator, [c = Counter{destructorCount}]() {});
+            ArenaFunction<void()> fn(allocator, [c = Counter{destructorCount}]()
+            {
+            });
 
             // The temporary lambda (+ any intermediate copies) may have been destroyed,
             // so destructorCount may be > 0. Record the baseline.
@@ -248,16 +274,19 @@ namespace Wayfinder::Tests
         // Simulate a large capture (~256 bytes) typical of render passes
         struct LargeCapture
         {
-            float Matrix[16]{}; // 64 bytes
+            float Matrix[16]{};  // 64 bytes
             float Matrix2[16]{}; // 64 bytes
-            int Values[32]{}; // 128 bytes
+            int Values[32]{};    // 128 bytes
         };
 
         LargeCapture data;
         data.Values[0] = 42;
         data.Matrix[0] = 1.0f;
 
-        ArenaFunction<int()> fn(allocator, [data]() { return data.Values[0]; });
+        ArenaFunction<int()> fn(allocator, [data]()
+        {
+            return data.Values[0];
+        });
 
         CHECK(fn() == 42);
     }

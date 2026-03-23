@@ -32,10 +32,16 @@ namespace Wayfinder
         void SetInitial(std::string stateName);
 
         /// Read-only access to descriptors.
-        const std::vector<Descriptor>& GetDescriptors() const { return m_descriptors; }
+        const std::vector<Descriptor>& GetDescriptors() const
+        {
+            return m_descriptors;
+        }
 
         /// Returns the initial state name (empty if none was set).
-        const std::string& GetInitial() const { return m_initialState; }
+        const std::string& GetInitial() const
+        {
+            return m_initialState;
+        }
 
     private:
         std::vector<Descriptor> m_descriptors;

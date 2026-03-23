@@ -1,8 +1,8 @@
 #pragma once
 
-#include "gameplay/GameState.h"
 #include "Plugin.h"
 #include "app/Subsystem.h"
+#include "gameplay/GameState.h"
 #include "modules/registrars/StateRegistrar.h"
 #include "modules/registrars/SystemRegistrar.h"
 #include "modules/registrars/TagRegistrar.h"
@@ -43,10 +43,10 @@ namespace Wayfinder
     {
     public:
         using SystemFactory = std::function<void(flecs::world&)>;
-        using ComponentRegisterFn = void(*)(flecs::world& world);
-        using ComponentApplyFn = void(*)(const nlohmann::json& componentData, Entity& entity);
-        using ComponentSerialiseFn = void(*)(const Entity& entity, nlohmann::json& componentTables);
-        using ComponentValidateFn = bool(*)(const nlohmann::json& componentData, std::string& error);
+        using ComponentRegisterFn = void (*)(flecs::world& world);
+        using ComponentApplyFn = void (*)(const nlohmann::json& componentData, Entity& entity);
+        using ComponentSerialiseFn = void (*)(const Entity& entity, nlohmann::json& componentTables);
+        using ComponentValidateFn = bool (*)(const nlohmann::json& componentData, std::string& error);
         using GlobalFactory = std::function<void(flecs::world&)>;
 
         /// Type aliases that keep external consumers working unchanged.
@@ -75,11 +75,10 @@ namespace Wayfinder
             GlobalFactory Factory;
         };
 
-        ModuleRegistry(const ProjectDescriptor& project,
-                       const EngineConfig& config);
+        ModuleRegistry(const ProjectDescriptor& project, const EngineConfig& config);
 
         /// Add a plugin. The plugin's Build() is called immediately.
-        template <typename T>
+        template<typename T>
         void AddPlugin()
         {
             auto plugin = std::make_unique<T>();
@@ -91,10 +90,7 @@ namespace Wayfinder
         /// once when the engine creates its persistent flecs::world.
         /// An optional RunCondition controls whether the system is active.
         /// Optional After/Before lists declare ordering relative to other systems.
-        void RegisterSystem(std::string name, SystemFactory factory,
-                            RunCondition condition = {},
-                            std::vector<std::string> after = {},
-                            std::vector<std::string> before = {});
+        void RegisterSystem(std::string name, SystemFactory factory, RunCondition condition = {}, std::vector<std::string> after = {}, std::vector<std::string> before = {});
 
         /// Register a serialisable component for scene authoring.
         void RegisterComponent(ComponentDescriptor descriptor);
@@ -120,15 +116,14 @@ namespace Wayfinder
         /// Register a game subsystem type. It will be created automatically
         /// during Game initialisation alongside engine-core subsystems.
         /// An optional static predicate is checked before construction.
-        template <typename T>
+        template<typename T>
         void RegisterSubsystem(SubsystemCollection<GameSubsystem>::PredicateFn predicate = nullptr)
         {
-            static_assert(std::is_base_of_v<GameSubsystem, T>,
-                          "T must derive from GameSubsystem");
-            m_subsystemFactories.push_back(
-                {std::type_index(typeid(T)),
-                 []() -> std::unique_ptr<GameSubsystem> { return std::make_unique<T>(); },
-                 predicate});
+            static_assert(std::is_base_of_v<GameSubsystem, T>, "T must derive from GameSubsystem");
+            m_subsystemFactories.push_back({std::type_index(typeid(T)), []() -> std::unique_ptr<GameSubsystem>
+            {
+                return std::make_unique<T>();
+            }, predicate});
         }
 
         /// Apply all registered system factories into the given world.
@@ -136,22 +131,40 @@ namespace Wayfinder
         void ApplyToWorld(flecs::world& world) const;
 
         /// Read-only access to registered component descriptors.
-        const std::vector<ComponentDescriptor>& GetComponentDescriptors() const { return m_components; }
+        const std::vector<ComponentDescriptor>& GetComponentDescriptors() const
+        {
+            return m_components;
+        }
 
         /// Read-only access to registered system descriptors.
-        const std::vector<SystemDescriptor>& GetSystems() const { return m_systems.GetDescriptors(); }
+        const std::vector<SystemDescriptor>& GetSystems() const
+        {
+            return m_systems.GetDescriptors();
+        }
 
         /// Read-only access to registered state descriptors.
-        const std::vector<StateDescriptor>& GetStateDescriptors() const { return m_states.GetDescriptors(); }
+        const std::vector<StateDescriptor>& GetStateDescriptors() const
+        {
+            return m_states.GetDescriptors();
+        }
 
         /// Returns the initial state name (empty if none was set).
-        const std::string& GetInitialState() const { return m_states.GetInitial(); }
+        const std::string& GetInitialState() const
+        {
+            return m_states.GetInitial();
+        }
 
         /// Read-only access to registered tag descriptors.
-        const std::vector<TagDescriptor>& GetRegisteredTags() const { return m_tags.GetDescriptors(); }
+        const std::vector<TagDescriptor>& GetRegisteredTags() const
+        {
+            return m_tags.GetDescriptors();
+        }
 
         /// Read-only access to registered tag file paths.
-        const std::vector<std::string>& GetTagFiles() const { return m_tags.GetFiles(); }
+        const std::vector<std::string>& GetTagFiles() const
+        {
+            return m_tags.GetFiles();
+        }
 
         /// Subsystem factory entry for SubsystemCollection integration.
         struct SubsystemFactoryEntry
@@ -162,7 +175,10 @@ namespace Wayfinder
         };
 
         /// Read-only access to module-registered subsystem factories.
-        const std::vector<SubsystemFactoryEntry>& GetSubsystemFactories() const { return m_subsystemFactories; }
+        const std::vector<SubsystemFactoryEntry>& GetSubsystemFactories() const
+        {
+            return m_subsystemFactories;
+        }
 
         /// Read-only access to the project descriptor.
         const ProjectDescriptor& GetProject() const;

@@ -11,8 +11,14 @@ namespace Wayfinder
     public:
         WindowResizeEvent(const uint32_t width, const uint32_t height) : m_width(width), m_height(height) {}
 
-        uint32_t GetWidth() const { return m_width; }
-        uint32_t GetHeight() const { return m_height; }
+        uint32_t GetWidth() const
+        {
+            return m_width;
+        }
+        uint32_t GetHeight() const
+        {
+            return m_height;
+        }
 
         std::string ToString() const override
         {

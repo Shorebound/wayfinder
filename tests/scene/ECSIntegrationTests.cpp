@@ -4,8 +4,8 @@
 #include "scene/Scene.h"
 #include "scene/entity/Entity.h"
 
-#include <doctest/doctest.h>
 #include "ecs/Flecs.h"
+#include <doctest/doctest.h>
 
 #include <type_traits>
 #include <vector>
@@ -90,9 +90,9 @@ namespace Wayfinder::Tests
 
             CHECK(entity.HasComponent<TransformComponent>());
             const auto& transform = entity.GetComponent<TransformComponent>();
-            CHECK(transform.Position.x == doctest::Approx(1.0f));
-            CHECK(transform.Position.y == doctest::Approx(2.0f));
-            CHECK(transform.Position.z == doctest::Approx(3.0f));
+            CHECK(transform.Local.Position.x == doctest::Approx(1.0f));
+            CHECK(transform.Local.Position.y == doctest::Approx(2.0f));
+            CHECK(transform.Local.Position.z == doctest::Approx(3.0f));
         }
 
         TEST_CASE("RemoveComponent removes the component")
@@ -406,13 +406,11 @@ namespace Wayfinder::Tests
             entity.AddComponent<TransformComponent>(TransformComponent{{1.0f, 2.0f, 3.0f}});
 
             // GetComponent on non-const Entity returns const T& (read-only)
-            static_assert(
-                std::is_same_v<decltype(entity.GetComponent<TransformComponent>()), const TransformComponent&>,
-                "GetComponent must return const T&");
+            static_assert(std::is_same_v<decltype(entity.GetComponent<TransformComponent>()), const TransformComponent&>, "GetComponent must return const T&");
             const auto& transform = entity.GetComponent<TransformComponent>();
-            CHECK(transform.Position.x == doctest::Approx(1.0f));
-            CHECK(transform.Position.y == doctest::Approx(2.0f));
-            CHECK(transform.Position.z == doctest::Approx(3.0f));
+            CHECK(transform.Local.Position.x == doctest::Approx(1.0f));
+            CHECK(transform.Local.Position.y == doctest::Approx(2.0f));
+            CHECK(transform.Local.Position.z == doctest::Approx(3.0f));
         }
 
         TEST_CASE("GetMutableComponent returns mutable reference for write access")
@@ -428,11 +426,11 @@ namespace Wayfinder::Tests
 
             // GetMutableComponent returns T& (mutable)
             auto& transform = entity.GetMutableComponent<TransformComponent>();
-            transform.Position.x = 99.0f;
+            transform.Local.Position.x = 99.0f;
 
             // Verify mutation persisted
             const auto& readBack = entity.GetComponent<TransformComponent>();
-            CHECK(readBack.Position.x == doctest::Approx(99.0f));
+            CHECK(readBack.Local.Position.x == doctest::Approx(99.0f));
         }
     }
 }

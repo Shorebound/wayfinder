@@ -1,20 +1,20 @@
 #pragma once
 
-#include <filesystem>
 #include <cstddef>
+#include <filesystem>
 #include <optional>
 #include <string>
 #include <string_view>
 #include <unordered_map>
 #include <vector>
 
+#include "RenderIntent.h"
 #include "core/Identifiers.h"
 #include "core/Types.h"
+#include "rendering/RenderTypes.h"
 #include "rendering/backend/GPUHandles.h"
 #include "rendering/materials/MaterialParameter.h"
 #include "rendering/materials/PostProcessVolume.h"
-#include "RenderIntent.h"
-#include "rendering/RenderTypes.h"
 
 namespace Wayfinder
 {
@@ -103,7 +103,10 @@ namespace Wayfinder
     {
         std::unordered_map<std::string, AssetId> Slots;
 
-        bool HasSlot(const std::string& name) const { return Slots.contains(name); }
+        bool HasSlot(const std::string& name) const
+        {
+            return Slots.contains(name);
+        }
     };
 
     /// Resolved GPU handles for texture bindings (filled by RenderResourceCache).

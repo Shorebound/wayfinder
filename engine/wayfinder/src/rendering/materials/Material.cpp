@@ -1,104 +1,110 @@
 #include "Material.h"
 #include "core/Types.h"
+
+#include <format>
 #include <fstream>
 
 namespace Wayfinder
 {
-    constexpr std::string_view kAssetIdKey = "asset_id";
-    constexpr std::string_view kAssetTypeKey = "asset_type";
-    constexpr std::string_view kNameKey = "name";
-    constexpr std::string_view kShaderKey = "shader";
-    constexpr std::string_view kBaseColourKey = "base_colour";
-    constexpr std::string_view kWireframeKey = "wireframe";
-    constexpr std::string_view kParametersKey = "parameters";
-    constexpr std::string_view kTexturesKey = "textures";
-
-    /// Parse a JSON array of 3 or 4 integers into a LinearColour.
-    /// Returns false if any channel is not an integer.
-    bool ParseLinearColour(const nlohmann::json& values, Wayfinder::LinearColour& colour, std::string& error)
+    namespace
     {
-        if (!values.is_array() || (values.size() != 3 && values.size() != 4))
-        {
-            error = "must be an array of 3 or 4 integers";
-            return false;
-        }
+        constexpr std::string_view ASSET_ID_KEY = "asset_id";
+        constexpr std::string_view ASSET_TYPE_KEY = "asset_type";
+        constexpr std::string_view NAME_KEY = "name";
+        constexpr std::string_view SHADER_KEY = "shader";
+        constexpr std::string_view BASE_COLOUR_KEY = "base_colour";
+        constexpr std::string_view WIREFRAME_KEY = "wireframe";
+        constexpr std::string_view PARAMETERS_KEY = "parameters";
+        constexpr std::string_view TEXTURES_KEY = "textures";
 
-        for (size_t i = 0; i < values.size(); ++i)
+        /// Parse a JSON array of 3 or 4 integers into a LinearColour.
+        /// Returns false if any channel is not an integer.
+        bool ParseLinearColour(const nlohmann::json& values, Wayfinder::LinearColour& colour, std::string& error)
         {
-            if (!values[i].is_number_integer())
+            if (!values.is_array() || (values.size() != 3 && values.size() != 4))
             {
                 error = "must be an array of 3 or 4 integers";
                 return false;
             }
-        }
 
-        colour.r = static_cast<float>(values[0].get<int64_t>()) / 255.0f;
-        colour.g = static_cast<float>(values[1].get<int64_t>()) / 255.0f;
-        colour.b = static_cast<float>(values[2].get<int64_t>()) / 255.0f;
-        colour.a = values.size() == 4 ? static_cast<float>(values[3].get<int64_t>()) / 255.0f : colour.a;
-        return true;
-    }
-
-    /// Parse a JSON "parameters" object into a MaterialParameterBlock.
-    /// Supports: arrays of 3–4 numbers as Colour, single numbers as Float, integers as Int.
-    void ParseParametersTable(const nlohmann::json& params, Wayfinder::MaterialParameterBlock& block)
-    {
-        if (!params.is_object())
-        {
-            return;
-        }
-
-        for (const auto& [key, node] : params.items())
-        {
-            const std::string name{key};
-
-            if (node.is_array())
+            for (const auto& value : values)
             {
-                if (node.size() >= 3 && node.size() <= 4)
+                if (!value.is_number_integer())
                 {
-                    // Try Colour first (requires all-integer channels); fall through to vec3 on failure
-                    Wayfinder::LinearColour colour = Wayfinder::LinearColour::White();
-                    std::string unused;
-                    if (ParseLinearColour(node, colour, unused))
-                    {
-                        block.SetColour(name, colour);
-                    }
-                    else if (node.size() == 3)
-                    {
-                        Wayfinder::Float3 v{
-                            static_cast<float>(node[0].get<double>()),
-                            static_cast<float>(node[1].get<double>()),
-                            static_cast<float>(node[2].get<double>())};
-                        block.SetVec3(name, v);
-                    }
-                    else if (node.size() == 4)
-                    {
-                        Wayfinder::Float4 v{
-                            static_cast<float>(node[0].get<double>()),
-                            static_cast<float>(node[1].get<double>()),
-                            static_cast<float>(node[2].get<double>()),
-                            static_cast<float>(node[3].get<double>())};
-                        block.SetVec4(name, v);
-                    }
-                }
-                else if (node.size() == 2)
-                {
-                    Wayfinder::Float2 v{
-                        static_cast<float>(node[0].get<double>()),
-                        static_cast<float>(node[1].get<double>())};
-                    block.SetVec2(name, v);
+                    error = "must be an array of 3 or 4 integers";
+                    return false;
                 }
             }
-            else if (node.is_number_float())
+
+            // NOLINTBEGIN(cppcoreguidelines-pro-bounds-avoid-unchecked-container-access)
+            colour.r = static_cast<float>(values[0].get<int64_t>()) / 255.0f;
+            colour.g = static_cast<float>(values[1].get<int64_t>()) / 255.0f;
+            colour.b = static_cast<float>(values[2].get<int64_t>()) / 255.0f;
+            colour.a = values.size() == 4 ? static_cast<float>(values[3].get<int64_t>()) / 255.0f : colour.a;
+            // NOLINTEND(cppcoreguidelines-pro-bounds-avoid-unchecked-container-access)
+            return true;
+        }
+
+        /// Parse a JSON "parameters" object into a MaterialParameterBlock.
+        /// Supports: arrays of 3–4 numbers as Colour, single numbers as Float, integers as Int.
+        void ParseParametersTable(const nlohmann::json& params, Wayfinder::MaterialParameterBlock& block)
+        {
+            if (!params.is_object())
             {
-                block.SetFloat(name, static_cast<float>(node.get<double>()));
+                return;
             }
-            else if (node.is_number_integer())
+
+            for (const auto& [key, node] : params.items())
             {
-                block.SetInt(name, static_cast<int32_t>(node.get<int64_t>()));
+                const std::string name{key};
+
+                if (node.is_array())
+                {
+                    if (node.size() >= 3 && node.size() <= 4)
+                    {
+                        // Try Colour first (requires all-integer channels); fall through to vec3 on failure
+                        Wayfinder::LinearColour colour = Wayfinder::LinearColour::White();
+                        std::string unused;
+                        if (ParseLinearColour(node, colour, unused))
+                        {
+                            block.SetColour(name, colour);
+                        }
+                        else if (node.size() == 3)
+                        {
+                            // NOLINTBEGIN(cppcoreguidelines-pro-bounds-avoid-unchecked-container-access)
+                            const Wayfinder::Float3 v{static_cast<float>(node[0].get<double>()), static_cast<float>(node[1].get<double>()), static_cast<float>(node[2].get<double>())};
+                            // NOLINTEND(cppcoreguidelines-pro-bounds-avoid-unchecked-container-access)
+                            block.SetVec3(name, v);
+                        }
+                        else if (node.size() == 4)
+                        {
+                            // NOLINTBEGIN(cppcoreguidelines-pro-bounds-avoid-unchecked-container-access)
+                            const Wayfinder::Float4 v{
+                                static_cast<float>(node[0].get<double>()), static_cast<float>(node[1].get<double>()), static_cast<float>(node[2].get<double>()), static_cast<float>(node[3].get<double>())};
+                            // NOLINTEND(cppcoreguidelines-pro-bounds-avoid-unchecked-container-access)
+                            block.SetVec4(name, v);
+                        }
+                    }
+                    else if (node.size() == 2)
+                    {
+                        // NOLINTBEGIN(cppcoreguidelines-pro-bounds-avoid-unchecked-container-access)
+                        const Wayfinder::Float2 v{static_cast<float>(node[0].get<double>()), static_cast<float>(node[1].get<double>())};
+                        // NOLINTEND(cppcoreguidelines-pro-bounds-avoid-unchecked-container-access)
+                        block.SetVec2(name, v);
+                    }
+                }
+                else if (node.is_number_float())
+                {
+                    block.SetFloat(name, static_cast<float>(node.get<double>()));
+                }
+                else if (node.is_number_integer())
+                {
+                    block.SetInt(name, static_cast<int32_t>(node.get<int64_t>()));
+                }
             }
         }
-    }
+
+    } // namespace
 }
 
 namespace Wayfinder
@@ -108,7 +114,10 @@ namespace Wayfinder
         auto it = Parameters.Values.find("base_colour");
         if (it != Parameters.Values.end())
         {
-            if (const auto* c = std::get_if<LinearColour>(&it->second)) return *c;
+            if (const auto* c = std::get_if<LinearColour>(&it->second))
+            {
+                return *c;
+            }
         }
         return LinearColour::White();
     }
@@ -118,19 +127,15 @@ namespace Wayfinder
         Parameters.SetColour("base_colour", colour);
     }
 
-    bool ParseMaterialAssetDocument(
-        const nlohmann::json& document,
-        const std::string& sourceLabel,
-        MaterialAsset& material,
-        std::string& error)
+    bool ParseMaterialAssetDocument(const nlohmann::json& document, const std::string& sourceLabel, MaterialAsset& material, std::string& error)
     {
-        if (!document.contains(kAssetIdKey) || !document.at(kAssetIdKey).is_string())
+        if (!document.contains(ASSET_ID_KEY) || !document.at(ASSET_ID_KEY).is_string())
         {
             error = "Material asset '" + sourceLabel + "' is missing asset_id";
             return false;
         }
 
-        const std::string assetIdText = document.at(kAssetIdKey).get<std::string>();
+        const std::string assetIdText = document.at(ASSET_ID_KEY).get<std::string>();
         const std::optional<AssetId> assetId = AssetId::Parse(assetIdText);
         if (!assetId)
         {
@@ -138,13 +143,13 @@ namespace Wayfinder
             return false;
         }
 
-        if (!document.contains(kAssetTypeKey) || !document.at(kAssetTypeKey).is_string())
+        if (!document.contains(ASSET_TYPE_KEY) || !document.at(ASSET_TYPE_KEY).is_string())
         {
             error = "Material asset '" + sourceLabel + "' is missing asset_type";
             return false;
         }
 
-        const std::string assetType = document.at(kAssetTypeKey).get<std::string>();
+        const std::string assetType = document.at(ASSET_TYPE_KEY).get<std::string>();
         if (assetType != "material")
         {
             error = "Material asset '" + sourceLabel + "' must declare asset_type = 'material'";
@@ -153,22 +158,22 @@ namespace Wayfinder
 
         MaterialAsset parsed;
         parsed.Id = *assetId;
-        parsed.Name = document.value(std::string{kNameKey}, std::filesystem::path(sourceLabel).stem().string());
-        parsed.ShaderName = document.value(std::string{kShaderKey}, std::string("unlit"));
+        parsed.Name = document.value(std::string{NAME_KEY}, std::filesystem::path(sourceLabel).stem().string());
+        parsed.ShaderName = document.value(std::string{SHADER_KEY}, std::string("unlit"));
 
         // Parse "parameters" object if present
-        if (document.contains(kParametersKey) && document.at(kParametersKey).is_object())
+        if (document.contains(PARAMETERS_KEY) && document.at(PARAMETERS_KEY).is_object())
         {
-            ParseParametersTable(document.at(kParametersKey), parsed.Parameters);
+            ParseParametersTable(document.at(PARAMETERS_KEY), parsed.Parameters);
         }
 
         // Legacy support: top-level base_colour → parameters["base_colour"]
         // Only applied if parameters didn't already set it.
-        if (!parsed.Parameters.Has("base_colour") && document.contains(kBaseColourKey))
+        if (!parsed.Parameters.Has("base_colour") && document.contains(BASE_COLOUR_KEY))
         {
             LinearColour baseColour = LinearColour::White();
             std::string colourError;
-            if (!ParseLinearColour(document.at(kBaseColourKey), baseColour, colourError))
+            if (!ParseLinearColour(document.at(BASE_COLOUR_KEY), baseColour, colourError))
             {
                 error = "Material asset '" + sourceLabel + "' field 'base_colour' " + colourError;
                 return false;
@@ -183,19 +188,19 @@ namespace Wayfinder
         }
 
         // Parse "textures" object: maps slot name → texture asset ID string
-        if (document.contains(kTexturesKey) && !document.at(kTexturesKey).is_object())
+        if (document.contains(TEXTURES_KEY) && !document.at(TEXTURES_KEY).is_object())
         {
             error = "Material asset '" + sourceLabel + "' has invalid 'textures' block: must be an object";
             return false;
         }
 
-        if (document.contains(kTexturesKey) && document.at(kTexturesKey).is_object())
+        if (document.contains(TEXTURES_KEY) && document.at(TEXTURES_KEY).is_object())
         {
-            for (const auto& [slotName, idNode] : document.at(kTexturesKey).items())
+            for (const auto& [slotName, idNode] : document.at(TEXTURES_KEY).items())
             {
                 if (!idNode.is_string())
                 {
-                    error = "Material asset '" + sourceLabel + "' textures['" + slotName + "'] must be a string (asset ID)";
+                    error = std::format("Material asset '{}' textures['{}'] must be a string (asset ID)", sourceLabel, slotName);
                     return false;
                 }
 
@@ -203,7 +208,7 @@ namespace Wayfinder
                 const std::optional<AssetId> texAssetId = AssetId::Parse(idText);
                 if (!texAssetId)
                 {
-                    error = "Material asset '" + sourceLabel + "' textures['" + slotName + "'] has an invalid asset ID: " + idText;
+                    error = std::format("Material asset '{}' textures['{}'] has an invalid asset ID: {}", sourceLabel, slotName, idText);
                     return false;
                 }
 
@@ -211,9 +216,9 @@ namespace Wayfinder
             }
         }
 
-        if (document.contains(kWireframeKey))
+        if (document.contains(WIREFRAME_KEY))
         {
-            if (!document.at(kWireframeKey).is_boolean())
+            if (!document.at(WIREFRAME_KEY).is_boolean())
             {
                 error = "Material asset '" + sourceLabel + "' field 'wireframe' must be a boolean";
                 return false;
@@ -224,10 +229,7 @@ namespace Wayfinder
         return true;
     }
 
-    bool LoadMaterialAssetFromFile(
-        const std::filesystem::path& filePath,
-        MaterialAsset& material,
-        std::string& error)
+    bool LoadMaterialAssetFromFile(const std::filesystem::path& filePath, MaterialAsset& material, std::string& error)
     {
         try
         {
@@ -250,15 +252,13 @@ namespace Wayfinder
     nlohmann::json CreateMaterialComponentTable(const MaterialAsset& material)
     {
         nlohmann::json table = nlohmann::json::object();
+        // NOLINTBEGIN(cppcoreguidelines-pro-bounds-avoid-unchecked-container-access)
         table["material_id"] = material.Id.ToString();
 
-        LinearColour baseColour = material.GetBaseColour();
-        table["base_colour"] = nlohmann::json::array({
-            static_cast<int64_t>(baseColour.r * 255.0f),
-            static_cast<int64_t>(baseColour.g * 255.0f),
-            static_cast<int64_t>(baseColour.b * 255.0f),
-            static_cast<int64_t>(baseColour.a * 255.0f)
-        });
+        const LinearColour baseColour = material.GetBaseColour();
+        table["base_colour"] =
+        nlohmann::json::array({static_cast<int64_t>(baseColour.r * 255.0f), static_cast<int64_t>(baseColour.g * 255.0f), static_cast<int64_t>(baseColour.b * 255.0f), static_cast<int64_t>(baseColour.a * 255.0f)});
+        // NOLINTEND(cppcoreguidelines-pro-bounds-avoid-unchecked-container-access)
 
         return table;
     }

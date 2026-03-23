@@ -1,7 +1,9 @@
 #include "GPUPipeline.h"
-#include "rendering/pipeline/PipelineCache.h"
-#include "rendering/materials/ShaderManager.h"
 #include "core/Log.h"
+#include "rendering/materials/ShaderManager.h"
+#include "rendering/pipeline/PipelineCache.h"
+
+#include <algorithm>
 
 namespace Wayfinder
 {
@@ -9,19 +11,17 @@ namespace Wayfinder
     {
         m_device = &device;
 
-        GPUShaderHandle vs = shaders.GetShader(desc.vertexShaderName, ShaderStage::Vertex, desc.vertexResources);
-        GPUShaderHandle fs = shaders.GetShader(desc.fragmentShaderName, ShaderStage::Fragment, desc.fragmentResources);
+        const GPUShaderHandle vs = shaders.GetShader(desc.vertexShaderName, ShaderStage::Vertex, desc.vertexResources);
+        const GPUShaderHandle fs = shaders.GetShader(desc.fragmentShaderName, ShaderStage::Fragment, desc.fragmentResources);
         if (!vs || !fs)
         {
-            WAYFINDER_ERROR(LogRenderer, "GPUPipeline: Failed to resolve shaders '{}' / '{}'",
-                desc.vertexShaderName, desc.fragmentShaderName);
+            WAYFINDER_ERROR(LogRenderer, "GPUPipeline: Failed to resolve shaders '{}' / '{}'", desc.vertexShaderName, desc.fragmentShaderName);
             return false;
         }
 
         if (desc.numColourTargets == 0 || desc.numColourTargets > MAX_COLOUR_TARGETS)
         {
-            WAYFINDER_ERROR(LogRenderer, "GPUPipeline: numColourTargets={} is out of range [1, {}]",
-                desc.numColourTargets, MAX_COLOUR_TARGETS);
+            WAYFINDER_ERROR(LogRenderer, "GPUPipeline: numColourTargets={} is out of range [1, {}]", desc.numColourTargets, MAX_COLOUR_TARGETS);
             return false;
         }
 
@@ -36,10 +36,7 @@ namespace Wayfinder
         pipeDesc.depthTestEnabled = desc.depthTestEnabled;
         pipeDesc.depthWriteEnabled = desc.depthWriteEnabled;
         pipeDesc.numColourTargets = desc.numColourTargets;
-        for (uint32_t i = 0; i < desc.numColourTargets; ++i)
-        {
-            pipeDesc.colourTargetBlends[i] = desc.colourTargetBlends[i];
-        }
+        std::copy_n(desc.colourTargetBlends.begin(), desc.numColourTargets, pipeDesc.colourTargetBlends.begin());
 
         if (cache)
         {
@@ -57,8 +54,7 @@ namespace Wayfinder
             return false;
         }
 
-        WAYFINDER_INFO(LogRenderer, "GPUPipeline: Created pipeline (vs='{}', fs='{}')",
-            desc.vertexShaderName, desc.fragmentShaderName);
+        WAYFINDER_INFO(LogRenderer, "GPUPipeline: Created pipeline (vs='{}', fs='{}')", desc.vertexShaderName, desc.fragmentShaderName);
         return true;
     }
 

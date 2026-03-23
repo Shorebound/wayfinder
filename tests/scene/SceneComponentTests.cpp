@@ -4,8 +4,8 @@
 #include "scene/Scene.h"
 #include "scene/entity/Entity.h"
 
-#include <doctest/doctest.h>
 #include "ecs/Flecs.h"
+#include <doctest/doctest.h>
 #include <nlohmann/json.hpp>
 
 /// ── MeshComponent ────────────────────────────────────────

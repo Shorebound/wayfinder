@@ -1,7 +1,6 @@
 #include "TestHelpers.h"
 #include "scene/RuntimeComponentRegistry.h"
 
-
 #include <doctest/doctest.h>
 
 #include <nlohmann/json.hpp>
@@ -18,10 +17,7 @@ namespace Wayfinder::Tests
         TEST_CASE("Transform validates correctly with valid data")
         {
             auto registry = MakeTestRegistry();
-            nlohmann::json input = {
-                {"position", {1.0, 2.0, 3.0}},
-                {"rotation", {0.0, 0.0, 0.0}},
-                {"scale", {1.0, 1.0, 1.0}}};
+            nlohmann::json input = {{"position", {1.0, 2.0, 3.0}}, {"rotation", {0.0, 0.0, 0.0}}, {"scale", {1.0, 1.0, 1.0}}};
 
             std::string error;
             CHECK(registry.ValidateComponent("transform", input, error));
@@ -52,9 +48,7 @@ namespace Wayfinder::Tests
         TEST_CASE("Mesh validates correctly with valid data")
         {
             auto registry = MakeTestRegistry();
-            nlohmann::json input = {
-                {"primitive", "cube"},
-                {"dimensions", {1.0, 1.0, 1.0}}};
+            nlohmann::json input = {{"primitive", "cube"}, {"dimensions", {1.0, 1.0, 1.0}}};
 
             std::string error;
             CHECK(registry.ValidateComponent("mesh", input, error));
@@ -74,10 +68,7 @@ namespace Wayfinder::Tests
         TEST_CASE("Camera validates correctly with valid data")
         {
             auto registry = MakeTestRegistry();
-            nlohmann::json input = {
-                {"primary", true},
-                {"projection", "perspective"},
-                {"fov", 45.0}};
+            nlohmann::json input = {{"primary", true}, {"projection", "perspective"}, {"fov", 45.0}};
 
             std::string error;
             CHECK(registry.ValidateComponent("camera", input, error));
@@ -106,10 +97,7 @@ namespace Wayfinder::Tests
         TEST_CASE("Light validates correctly with valid data")
         {
             auto registry = MakeTestRegistry();
-            nlohmann::json input = {
-                {"type", "point"},
-                {"intensity", 1.0},
-                {"range", 10.0}};
+            nlohmann::json input = {{"type", "point"}, {"intensity", 1.0}, {"range", 10.0}};
 
             std::string error;
             CHECK(registry.ValidateComponent("light", input, error));
@@ -158,9 +146,7 @@ namespace Wayfinder::Tests
         TEST_CASE("Renderable validates correctly with valid data")
         {
             auto registry = MakeTestRegistry();
-            nlohmann::json input = {
-                {"visible", true},
-                {"sort_priority", 128}};
+            nlohmann::json input = {{"visible", true}, {"sort_priority", 128}};
 
             std::string error;
             CHECK(registry.ValidateComponent("renderable", input, error));

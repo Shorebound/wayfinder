@@ -6,9 +6,9 @@
 #include <unordered_map>
 
 #include "assets/AssetService.h"
+#include "rendering/graph/RenderFrame.h"
 #include "rendering/materials/Material.h"
 #include "rendering/materials/ShaderProgram.h"
-#include "rendering/graph/RenderFrame.h"
 #include "wayfinder_exports.h"
 
 namespace Wayfinder

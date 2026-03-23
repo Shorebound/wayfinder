@@ -25,13 +25,7 @@ namespace Wayfinder
         Int,
     };
 
-    using MaterialParamValue = std::variant<
-        float,
-        Float2,
-        Float3,
-        Float4,
-        LinearColour,
-        int32_t>;
+    using MaterialParamValue = std::variant<float, Float2, Float3, Float4, LinearColour, int32_t>;
 
     // ── Material Parameter Declaration ───────────────────────
     // Declared by a ShaderProgram to describe what parameters it expects.
@@ -54,14 +48,35 @@ namespace Wayfinder
     {
         std::unordered_map<std::string, MaterialParamValue> Values;
 
-        void SetFloat(const std::string& name, float v) { Values[name] = v; }
-        void SetVec2(const std::string& name, const Float2& v) { Values[name] = v; }
-        void SetVec3(const std::string& name, const Float3& v) { Values[name] = v; }
-        void SetVec4(const std::string& name, const Float4& v) { Values[name] = v; }
-        void SetColour(const std::string& name, const LinearColour& v) { Values[name] = v; }
-        void SetInt(const std::string& name, int32_t v) { Values[name] = v; }
+        void SetFloat(const std::string& name, float v)
+        {
+            Values[name] = v;
+        }
+        void SetVec2(const std::string& name, const Float2& v)
+        {
+            Values[name] = v;
+        }
+        void SetVec3(const std::string& name, const Float3& v)
+        {
+            Values[name] = v;
+        }
+        void SetVec4(const std::string& name, const Float4& v)
+        {
+            Values[name] = v;
+        }
+        void SetColour(const std::string& name, const LinearColour& v)
+        {
+            Values[name] = v;
+        }
+        void SetInt(const std::string& name, int32_t v)
+        {
+            Values[name] = v;
+        }
 
-        bool Has(const std::string& name) const { return Values.contains(name); }
+        bool Has(const std::string& name) const
+        {
+            return Values.contains(name);
+        }
 
         // Write all parameters into a byte buffer using the given declarations.
         // Unknown parameters are skipped; missing parameters use the declaration's default.

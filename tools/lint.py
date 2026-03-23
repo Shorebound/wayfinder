@@ -81,8 +81,8 @@ def _bold(text: str) -> str:
 
 
 def _find_tool(name: str) -> str | None:
-    """Find a tool, preferring the versioned -20 variant."""
-    versioned = f'{name}-20'
+    """Find a tool, preferring the versioned -22 variant."""
+    versioned = f'{name}-22'
     if shutil.which(versioned):
         return versioned
     if shutil.which(name):
@@ -136,87 +136,115 @@ def _discover_changed_files(staged_only: bool = False) -> list[Path]:
     return files
 
 
-def _run_clang_format(files: list[Path], *, fix: bool, tool: str) -> bool:
-    """Run clang-format. Returns True if issues were found."""
+def _run_format_fix(files: list[Path], *, tool: str) -> bool:
+    """Fix mode: run clang-format -i then format-fixup in-place.
+
+    Returns True if any file was changed.
+    """
     if not files:
         return False
 
-    print(_bold(f'\n-- clang-format ({len(files)} files) --'))
+    # Snapshot file contents to detect changes.
+    originals: dict[Path, str] = {}
+    for path in files:
+        try:
+            originals[path] = path.read_text(encoding='utf-8')
+        except (UnicodeDecodeError, OSError):
+            pass
 
-    cmd = [tool]
-    if fix:
-        cmd.append('-i')
-    else:
-        cmd.extend(['--dry-run', '--Werror'])
+    print(_bold(f'\n-- formatting ({len(files)} files) --'))
 
+    cmd = [tool, '-i']
     cmd.extend(str(f) for f in files)
-
-    result = subprocess.run(cmd, cwd=REPO_ROOT)
-    if result.returncode != 0:
-        if fix:
-            print(_yellow('  Formatted files.'))
-        else:
-            print(_red('  Format issues found.'))
-        return True
-
-    print(_green('  Clean.'))
-    return False
-
-
-def _run_format_fixup(files: list[Path], *, fix: bool) -> bool:
-    """Run format-fixup.py. Returns True if issues were found."""
-    if not files:
-        return False
-
-    print(_bold(f'\n-- format-fixup ({len(files)} files) --'))
+    subprocess.run(cmd, cwd=REPO_ROOT)
 
     cmd = [sys.executable, str(FIXUP_SCRIPT)]
-    if not fix:
-        cmd.append('--check')
     cmd.extend(str(f) for f in files)
+    subprocess.run(cmd, cwd=REPO_ROOT)
 
-    result = subprocess.run(cmd, cwd=REPO_ROOT)
-    if result.returncode != 0:
-        if fix:
-            print(_yellow('  Applied fixups.'))
-        else:
-            print(_red('  Fixup issues found.'))
+    any_changed = False
+    for path, before in originals.items():
+        try:
+            if path.read_text(encoding='utf-8') != before:
+                any_changed = True
+                break
+        except (UnicodeDecodeError, OSError):
+            pass
+
+    if any_changed:
+        print(_yellow('  Applied fixes.'))
+    else:
+        print(_green('  Clean.'))
+
+    return any_changed
+
+
+def _run_format_check(files: list[Path], *, tool: str) -> bool:
+    """Check mode: verify clang-format + format-fixup produce no changes.
+
+    Returns True if issues were found.
+    """
+    if not files:
+        return False
+
+    print(_bold(f'\n-- formatting ({len(files)} files) --'))
+
+    dirty: list[Path] = []
+    for path in files:
+        try:
+            original_text = path.read_text(encoding='utf-8')
+        except (UnicodeDecodeError, OSError):
+            continue
+
+        result = subprocess.run(
+            [tool, f'--assume-filename={path}'],
+            input=path.read_bytes(), capture_output=True, cwd=REPO_ROOT,
+        )
+        if result.returncode != 0:
+            dirty.append(path)
+            continue
+
+        cf_text = result.stdout.decode('utf-8', errors='replace')
+        if '\r\n' not in original_text and '\r\n' in cf_text:
+            cf_text = cf_text.replace('\r\n', '\n')
+
+        formatted_text = _apply_fixup(cf_text)
+
+        if formatted_text != original_text:
+            dirty.append(path)
+
+    if dirty:
+        for path in dirty:
+            print(_red(f'  {path.relative_to(REPO_ROOT)}: needs formatting'))
+        print(_red(f'\n  {len(dirty)} file(s) need formatting.'))
         return True
 
     print(_green('  Clean.'))
     return False
+
+
+# Cache the fixup function so we only import the module once.
+_fixup_fn = None
+
+
+def _apply_fixup(text: str) -> str:
+    """Apply format-fixup.py transformations to *text* in-memory."""
+    global _fixup_fn
+    if _fixup_fn is None:
+        from importlib.util import spec_from_file_location, module_from_spec
+        spec = spec_from_file_location('format_fixup', FIXUP_SCRIPT)
+        mod = module_from_spec(spec)
+        spec.loader.exec_module(mod)
+        _fixup_fn = mod.fixup
+    return _fixup_fn(text)
 
 
 def _run_clang_tidy(files: list[Path], *, build_dir: Path, tool: str) -> bool:
-    """Run clang-tidy. Returns True if issues were found."""
-    if not files:
-        return False
+    """Run clang-tidy via the shared tidy module. Returns True if issues were found."""
+    from tidy import run_tidy
 
-    compile_commands = build_dir / 'compile_commands.json'
-    if not compile_commands.exists():
-        print(_red(f'\n  compile_commands.json not found at {compile_commands}'), file=sys.stderr)
-        print(_yellow('  Generate it with: cmake --preset dev-clang'), file=sys.stderr)
-        sys.exit(2)
-
-    # Filter to .cpp files only — headers are analysed via includes.
-    cpp_files = [f for f in files if f.suffix == '.cpp']
-    if not cpp_files:
-        print(_bold('\n-- clang-tidy --'))
-        print(_yellow('  No .cpp files to analyse.'))
-        return False
-
-    print(_bold(f'\n-- clang-tidy ({len(cpp_files)} files) --'))
-
-    cmd = [tool, '-p', str(build_dir)]
-    cmd.extend(str(f) for f in cpp_files)
-
-    result = subprocess.run(cmd, cwd=REPO_ROOT)
-    if result.returncode != 0:
-        print(_red('  clang-tidy reported issues.'))
-        return True
-
-    print(_green('  Clean.'))
-    return False
+    print(_bold(f'\n-- clang-tidy --'))
+    return run_tidy(files, build_dir=build_dir, tool=tool)
 
 
 def _check_banned_includes(files: list[Path]) -> bool:
@@ -282,14 +310,14 @@ def main() -> int:
     # Find tools.
     clang_format = _find_tool('clang-format')
     if not clang_format:
-        print(_red('clang-format not found. Install clang-format-20.'), file=sys.stderr)
+        print(_red('clang-format not found. Install clang-format-22.'), file=sys.stderr)
         return 2
 
     clang_tidy = None
     if args.tidy:
         clang_tidy = _find_tool('clang-tidy')
         if not clang_tidy:
-            print(_red('clang-tidy not found. Install clang-tidy-20.'), file=sys.stderr)
+            print(_red('clang-tidy not found. Install clang-tidy-22.'), file=sys.stderr)
             return 2
 
     # Discover files.
@@ -308,8 +336,10 @@ def main() -> int:
 
     issues = False
     issues |= _check_banned_includes(files)
-    issues |= _run_clang_format(files, fix=args.fix, tool=clang_format)
-    issues |= _run_format_fixup(files, fix=args.fix)
+    if args.fix:
+        issues |= _run_format_fix(files, tool=clang_format)
+    else:
+        issues |= _run_format_check(files, tool=clang_format)
 
     if args.tidy and clang_tidy:
         issues |= _run_clang_tidy(files, build_dir=args.build_dir, tool=clang_tidy)

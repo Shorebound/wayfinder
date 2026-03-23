@@ -18,13 +18,7 @@ namespace Wayfinder
         return nullptr;
     }
 
-    SDL3Time::SDL3Time()
-        : m_lastTicks(SDL_GetPerformanceCounter())
-        , m_startTicks(m_lastTicks)
-        , m_deltaTime(0.0f)
-        , m_elapsedTime(0.0f)
-    {
-    }
+    SDL3Time::SDL3Time() : m_lastTicks(SDL_GetPerformanceCounter()), m_startTicks(m_lastTicks), m_deltaTime(0.0f), m_elapsedTime(0.0f) {}
 
     void SDL3Time::Update()
     {

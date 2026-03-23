@@ -9,8 +9,8 @@
 #include "scene/Scene.h"
 #include "scene/entity/Entity.h"
 
-#include <doctest/doctest.h>
 #include "ecs/Flecs.h"
+#include <doctest/doctest.h>
 #include <string>
 
 namespace Wayfinder::Tests
@@ -142,8 +142,7 @@ namespace Wayfinder::Tests
     {
         Wayfinder::RenderFrame frame;
         const size_t viewIndex = frame.AddView(Wayfinder::RenderView{});
-        Wayfinder::RenderPass& scenePass =
-            frame.AddScenePass(Wayfinder::RenderPassIds::MainScene, viewIndex, Wayfinder::RenderLayers::Main);
+        Wayfinder::RenderPass& scenePass = frame.AddScenePass(Wayfinder::RenderPassIds::MainScene, viewIndex, Wayfinder::RenderLayers::Main);
         scenePass.Meshes.push_back(MakeSolidMesh(100, Wayfinder::Colour::Red()));
         scenePass.Meshes.push_back(MakeSolidMesh(10, Wayfinder::Colour::Blue()));
 

@@ -10,15 +10,24 @@ namespace Wayfinder
     {
         PlatformBackend ParsePlatformBackend(std::string_view value)
         {
-            if (value == "sdl3") return PlatformBackend::SDL3;
+            if (value == "sdl3")
+            {
+                return PlatformBackend::SDL3;
+            }
             WAYFINDER_WARNING(LogEngine, "Unknown platform backend '{}', defaulting to SDL3", value);
             return PlatformBackend::SDL3;
         }
 
         RenderBackend ParseRenderBackend(std::string_view value)
         {
-            if (value == "sdl_gpu") return RenderBackend::SDL_GPU;
-            if (value == "null") return RenderBackend::Null;
+            if (value == "sdl_gpu")
+            {
+                return RenderBackend::SDL_GPU;
+            }
+            if (value == "null")
+            {
+                return RenderBackend::Null;
+            }
             WAYFINDER_WARNING(LogEngine, "Unknown render backend '{}', defaulting to SDL_GPU", value);
             return RenderBackend::SDL_GPU;
         }
@@ -43,31 +52,76 @@ namespace Wayfinder
         {
             const toml::table tbl = toml::parse_file(path.string());
 
-            if (const auto* window = tbl["window"].as_table())
+            if (const auto* window = tbl.get_as<toml::table>("window"))
             {
-                if (auto v = (*window)["width"].value<uint32_t>()) config.Window.Width = *v;
-                if (auto v = (*window)["height"].value<uint32_t>()) config.Window.Height = *v;
-                if (auto v = (*window)["title"].value<std::string>()) config.Window.Title = *v;
-                if (auto v = (*window)["vsync"].value<bool>()) config.Window.VSync = *v;
+                if (const auto* width = window->get("width"); width != nullptr)
+                {
+                    if (auto v = width->value<uint32_t>())
+                    {
+                        config.Window.Width = *v;
+                    }
+                }
+                if (const auto* height = window->get("height"); height != nullptr)
+                {
+                    if (auto v = height->value<uint32_t>())
+                    {
+                        config.Window.Height = *v;
+                    }
+                }
+                if (const auto* title = window->get("title"); title != nullptr)
+                {
+                    if (auto v = title->value<std::string>())
+                    {
+                        config.Window.Title = *v;
+                    }
+                }
+                if (const auto* vSync = window->get("vsync"); vSync != nullptr)
+                {
+                    if (auto v = vSync->value<bool>())
+                    {
+                        config.Window.VSync = *v;
+                    }
+                }
             }
 
-            if (const auto* backends = tbl["backends"].as_table())
+            if (const auto* backends = tbl.get_as<toml::table>("backends"))
             {
-                if (auto v = (*backends)["platform"].value<std::string>())
-                    config.Backends.Platform = ParsePlatformBackend(*v);
-                if (auto v = (*backends)["rendering"].value<std::string>())
-                    config.Backends.Rendering = ParseRenderBackend(*v);
+                if (const auto* platform = backends->get("platform"); platform != nullptr)
+                {
+                    if (auto v = platform->value<std::string>())
+                    {
+                        config.Backends.Platform = ParsePlatformBackend(*v);
+                    }
+                }
+                if (const auto* rendering = backends->get("rendering"); rendering != nullptr)
+                {
+                    if (auto v = rendering->value<std::string>())
+                    {
+                        config.Backends.Rendering = ParseRenderBackend(*v);
+                    }
+                }
             }
 
-            if (const auto* shaders = tbl["shaders"].as_table())
+            if (const auto* shaders = tbl.get_as<toml::table>("shaders"))
             {
-                if (auto v = (*shaders)["directory"].value<std::string>()) config.Shaders.Directory = *v;
+                if (const auto* directory = shaders->get("directory"); directory != nullptr)
+                {
+                    if (auto v = directory->value<std::string>())
+                    {
+                        config.Shaders.Directory = *v;
+                    }
+                }
             }
 
-            if (const auto* physics = tbl["physics"].as_table())
+            if (const auto* physics = tbl.get_as<toml::table>("physics"))
             {
-                if (auto v = (*physics)["fixed_timestep"].value<double>())
-                    config.Physics.FixedTimestep = static_cast<float>(*v);
+                if (const auto* fixedTimestep = physics->get("fixed_timestep"); fixedTimestep != nullptr)
+                {
+                    if (auto v = fixedTimestep->value<double>())
+                    {
+                        config.Physics.FixedTimestep = static_cast<float>(*v);
+                    }
+                }
             }
 
             WAYFINDER_INFO(LogEngine, "Loaded config from: {}", path.string());

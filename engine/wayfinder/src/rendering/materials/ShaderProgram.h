@@ -65,8 +65,8 @@ namespace Wayfinder
         // Each slot maps to a fragment sampler binding index.
         struct TextureSlotDecl
         {
-            std::string Name;       // e.g. "diffuse", "normal"
-            uint32_t BindingSlot;   // Fragment sampler binding index
+            std::string Name;     // e.g. "diffuse", "normal"
+            uint32_t BindingSlot; // Fragment sampler binding index
         };
         std::vector<TextureSlotDecl> TextureSlots;
     };

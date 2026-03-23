@@ -24,18 +24,17 @@ namespace Wayfinder
 /// @endcode
 
 #ifdef _WIN32
-#   define WAYFINDER_MODULE_API __declspec(dllexport)
+#define WAYFINDER_MODULE_API __declspec(dllexport)
 #else
-#   define WAYFINDER_MODULE_API __attribute__((visibility("default")))
+#define WAYFINDER_MODULE_API __attribute__((visibility("default")))
 #endif
 
-#define WAYFINDER_IMPLEMENT_MODULE(ModuleClass)                                      \
-    extern "C" WAYFINDER_MODULE_API Wayfinder::Module* WayfinderCreateModule()       \
-    {                                                                                \
-        return new ModuleClass();                                                    \
-    }                                                                                \
-    extern "C" WAYFINDER_MODULE_API void WayfinderDestroyModule(                     \
-        Wayfinder::Module* m)                                                        \
-    {                                                                                \
-        delete m;                                                                    \
+#define WAYFINDER_IMPLEMENT_MODULE(ModuleClass)                                                                                                                                                                            \
+    extern "C" WAYFINDER_MODULE_API Wayfinder::Module* WayfinderCreateModule()                                                                                                                                             \
+    {                                                                                                                                                                                                                      \
+        return new ModuleClass();                                                                                                                                                                                          \
+    }                                                                                                                                                                                                                      \
+    extern "C" WAYFINDER_MODULE_API void WayfinderDestroyModule(Wayfinder::Module* m)                                                                                                                                      \
+    {                                                                                                                                                                                                                      \
+        delete m;                                                                                                                                                                                                          \
     }

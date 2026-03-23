@@ -24,15 +24,39 @@ namespace Wayfinder
         using ReverseIterator = std::vector<std::unique_ptr<Layer>>::reverse_iterator;
         using ConstReverseIterator = std::vector<std::unique_ptr<Layer>>::const_reverse_iterator;
 
-        Iterator begin() { return m_layers.begin(); }
-        Iterator end() { return m_layers.end(); }
-        ReverseIterator rbegin() { return m_layers.rbegin(); }
-        ReverseIterator rend() { return m_layers.rend(); }
+        Iterator begin()
+        {
+            return m_layers.begin();
+        }
+        Iterator end()
+        {
+            return m_layers.end();
+        }
+        ReverseIterator rbegin()
+        {
+            return m_layers.rbegin();
+        }
+        ReverseIterator rend()
+        {
+            return m_layers.rend();
+        }
 
-        ConstIterator begin() const { return m_layers.begin(); }
-        ConstIterator end() const { return m_layers.end(); }
-        ConstReverseIterator rbegin() const { return m_layers.rbegin(); }
-        ConstReverseIterator rend() const { return m_layers.rend(); }
+        ConstIterator begin() const
+        {
+            return m_layers.begin();
+        }
+        ConstIterator end() const
+        {
+            return m_layers.end();
+        }
+        ConstReverseIterator rbegin() const
+        {
+            return m_layers.rbegin();
+        }
+        ConstReverseIterator rend() const
+        {
+            return m_layers.rend();
+        }
 
     private:
         std::vector<std::unique_ptr<Layer>> m_layers;

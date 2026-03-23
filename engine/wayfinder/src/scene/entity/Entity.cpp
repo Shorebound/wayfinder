@@ -1,14 +1,11 @@
-#include "WayfinderPCH.h"
 #include "Entity.h"
+#include "WayfinderPCH.h"
 #include "scene/Components.h"
 #include "scene/Scene.h"
 
 namespace Wayfinder
 {
-    Entity::Entity(flecs::entity handle, const Scene* scene)
-        : m_entityHandle(handle), m_scene(scene)
-    {
-    }
+    Entity::Entity(flecs::entity handle, const Scene* scene) : m_entityHandle(handle), m_scene(scene) {}
 
     std::string Entity::GetName() const
     {
@@ -23,13 +20,9 @@ namespace Wayfinder
     void Entity::SetName(const std::string& name)
     {
         const bool hadPreviousName = m_entityHandle.has<NameComponent>();
-        const std::string previousName = hadPreviousName
-            ? m_entityHandle.get<NameComponent>().Value
-            : std::string{};
+        const std::string previousName = hadPreviousName ? m_entityHandle.get<NameComponent>().Value : std::string{};
 
-        std::string finalName = (m_scene != nullptr)
-            ? m_scene->GenerateUniqueName(name, m_entityHandle.id())
-            : name;
+        const std::string finalName = (m_scene != nullptr) ? m_scene->GenerateUniqueName(name, m_entityHandle.id()) : name;
 
         if (m_entityHandle.has<NameComponent>())
         {

@@ -23,7 +23,10 @@ namespace Wayfinder
     struct RenderGraphHandle
     {
         uint32_t Index = UINT32_MAX;
-        bool IsValid() const { return Index != UINT32_MAX; }
+        bool IsValid() const
+        {
+            return Index != UINT32_MAX;
+        }
         bool operator==(const RenderGraphHandle&) const = default;
     };
 
@@ -119,11 +122,11 @@ namespace Wayfinder
         /// Add a raster pass. The setup callable declares dependencies via
         /// the builder and returns an execute callback (any invocable matching
         /// void(RenderDevice&, const RenderGraphResources&)).
-        template <typename TSetup>
+        template<typename TSetup>
         void AddPass(std::string_view name, TSetup&& setup);
 
         /// Add a compute pass (same interface — dependencies determine ordering).
-        template <typename TSetup>
+        template<typename TSetup>
         void AddComputePass(std::string_view name, TSetup&& setup);
 
         // Import a named resource handle so passes can reference it by name.
@@ -147,7 +150,7 @@ namespace Wayfinder
             InternedString Name;
             bool IsTransient = true;
             bool IsReadAsSampler = false;
-            uint32_t WrittenByPass = UINT32_MAX;  // Last pass that writes this
+            uint32_t WrittenByPass = UINT32_MAX; // Last pass that writes this
             uint32_t LastReadByPass = UINT32_MAX;
         };
 
@@ -199,7 +202,7 @@ namespace Wayfinder
 
     // ── Template Implementations ─────────────────────────────
 
-    template <typename TSetup>
+    template<typename TSetup>
     void RenderGraph::AddPass(std::string_view name, TSetup&& setup)
     {
         uint32_t passIndex = static_cast<uint32_t>(m_passes.size());
@@ -210,17 +213,12 @@ namespace Wayfinder
         RenderGraphBuilder builder(*this, passIndex);
         auto executeFn = std::forward<TSetup>(setup)(builder);
 
-        static_assert(
-            std::is_invocable_r_v<void,
-                decltype(executeFn),
-                RenderDevice&,
-                const RenderGraphResources&>,
-            "AddPass: setup must return a callable matching void(RenderDevice&, const RenderGraphResources&)");
+        static_assert(std::is_invocable_r_v<void, decltype(executeFn), RenderDevice&, const RenderGraphResources&>, "AddPass: setup must return a callable matching void(RenderDevice&, const RenderGraphResources&)");
 
         m_passes.back().Execute = RenderGraphExecuteFn(m_allocator, std::move(executeFn));
     }
 
-    template <typename TSetup>
+    template<typename TSetup>
     void RenderGraph::AddComputePass(std::string_view name, TSetup&& setup)
     {
         uint32_t passIndex = static_cast<uint32_t>(m_passes.size());
@@ -232,11 +230,7 @@ namespace Wayfinder
         auto executeFn = std::forward<TSetup>(setup)(builder);
 
         static_assert(
-            std::is_invocable_r_v<void,
-                decltype(executeFn),
-                RenderDevice&,
-                const RenderGraphResources&>,
-            "AddComputePass: setup must return a callable matching void(RenderDevice&, const RenderGraphResources&)");
+        std::is_invocable_r_v<void, decltype(executeFn), RenderDevice&, const RenderGraphResources&>, "AddComputePass: setup must return a callable matching void(RenderDevice&, const RenderGraphResources&)");
 
         m_passes.back().Execute = RenderGraphExecuteFn(m_allocator, std::move(executeFn));
     }

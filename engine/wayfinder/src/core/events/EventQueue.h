@@ -34,7 +34,7 @@ namespace Wayfinder
          * The event is copy/move-constructed into contiguous storage.
          * No heap allocation per event; no Clone() required.
          */
-        template <typename TEvent>
+        template<typename TEvent>
         void Push(TEvent event)
         {
             auto& buffer = GetOrCreateBuffer<TEvent>();
@@ -53,7 +53,7 @@ namespace Wayfinder
          * If Clear is called during a drain (e.g. from a handler), the clear
          * is deferred and applied automatically once the drain completes.
          */
-        template <typename THandler>
+        template<typename THandler>
         void Drain(THandler&& handler)
         {
             assert(!m_isDraining && "EventQueue::Drain cannot be called re-entrantly");
@@ -107,7 +107,7 @@ namespace Wayfinder
          * events — it is only empty if no TEvent instances were pushed
          * during the drain.
          */
-        template <typename TEvent>
+        template<typename TEvent>
         [[nodiscard]] std::span<const TEvent> Read() const
         {
             auto it = m_buffers.find(std::type_index(typeid(TEvent)));
@@ -137,7 +137,7 @@ namespace Wayfinder
             size_t m_index;
         };
 
-        template <typename TEvent>
+        template<typename TEvent>
         TypedEventBuffer<TEvent>& GetOrCreateBuffer()
         {
             auto key = std::type_index(typeid(TEvent));
@@ -146,8 +146,7 @@ namespace Wayfinder
             {
                 return static_cast<TypedEventBuffer<TEvent>&>(*it->second);
             }
-            auto [inserted, success] = m_buffers.emplace(
-                key, std::make_unique<TypedEventBuffer<TEvent>>());
+            auto [inserted, success] = m_buffers.emplace(key, std::make_unique<TypedEventBuffer<TEvent>>());
             return static_cast<TypedEventBuffer<TEvent>&>(*inserted->second);
         }
 

@@ -283,7 +283,9 @@ namespace Wayfinder::Tests
 
         int count = 0;
         for ([[maybe_unused]] const auto& tag : container)
+        {
             ++count;
+        }
 
         CHECK(count == 3);
     }

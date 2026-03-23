@@ -24,11 +24,11 @@ namespace Wayfinder
 
     // ── GPU Handle Aliases ────────────────────────────────────
 
-    using GPUShaderHandle          = Handle<GPUShaderTag>;
-    using GPUPipelineHandle        = Handle<GPUPipelineTag>;
-    using GPUBufferHandle          = Handle<GPUBufferTag>;
-    using GPUTextureHandle         = Handle<GPUTextureTag>;
-    using GPUSamplerHandle         = Handle<GPUSamplerTag>;
+    using GPUShaderHandle = Handle<GPUShaderTag>;
+    using GPUPipelineHandle = Handle<GPUPipelineTag>;
+    using GPUBufferHandle = Handle<GPUBufferTag>;
+    using GPUTextureHandle = Handle<GPUTextureTag>;
+    using GPUSamplerHandle = Handle<GPUSamplerTag>;
     using GPUComputePipelineHandle = Handle<GPUComputePipelineTag>;
 
     // ── Render Resource Handle Aliases ────────────────────────

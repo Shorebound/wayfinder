@@ -17,9 +17,9 @@ namespace Wayfinder
 
     enum class ShaderFeature : uint32_t
     {
-        None       = 0,
+        None = 0,
         VertexColour = 1 << 0,
-        AlphaTest   = 1 << 1,
+        AlphaTest = 1 << 1,
     };
 
     inline ShaderVariantKey operator|(ShaderFeature a, ShaderFeature b)
@@ -45,9 +45,7 @@ namespace Wayfinder
         // creates a GPU shader, and caches it. Returns nullptr on failure.
         // Resource counts describe the shader's bindings — passed through to ShaderCreateDesc.
         // Variant key selects a pre-compiled permutation (0 = base variant).
-        GPUShaderHandle GetShader(const std::string& name, ShaderStage stage,
-                                   const ShaderResourceCounts& resources = {},
-                                   ShaderVariantKey variant = 0);
+        GPUShaderHandle GetShader(const std::string& name, ShaderStage stage, const ShaderResourceCounts& resources = {}, ShaderVariantKey variant = 0);
 
         // Loads compute shader bytecode from "<shaderDirectory>/<name>.comp.spv".
         // Returns the raw bytecode for use with RenderDevice::CreateComputePipeline.

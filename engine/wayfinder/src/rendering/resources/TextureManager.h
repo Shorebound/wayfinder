@@ -5,8 +5,8 @@
 
 #include "assets/AssetService.h"
 #include "assets/TextureAsset.h"
-#include "rendering/backend/GPUHandles.h"
 #include "rendering/RenderTypes.h"
+#include "rendering/backend/GPUHandles.h"
 #include "wayfinder_exports.h"
 
 namespace Wayfinder
@@ -52,16 +52,28 @@ namespace Wayfinder
         // ── Built-in Textures ────────────────────────────────
 
         /** @brief 8x8 pink-black checkerboard for missing textures. */
-        GPUTextureHandle GetFallback() const { return m_fallbackTexture; }
+        GPUTextureHandle GetFallback() const
+        {
+            return m_fallbackTexture;
+        }
 
         /** @brief 1x1 white (RGBA 255,255,255,255). */
-        GPUTextureHandle GetWhite() const { return m_whiteTexture; }
+        GPUTextureHandle GetWhite() const
+        {
+            return m_whiteTexture;
+        }
 
         /** @brief 1x1 black (RGBA 0,0,0,255). */
-        GPUTextureHandle GetBlack() const { return m_blackTexture; }
+        GPUTextureHandle GetBlack() const
+        {
+            return m_blackTexture;
+        }
 
         /** @brief 1x1 flat normal (RGBA 128,128,255,255 — tangent-space up). */
-        GPUTextureHandle GetFlatNormal() const { return m_flatNormalTexture; }
+        GPUTextureHandle GetFlatNormal() const
+        {
+            return m_flatNormalTexture;
+        }
 
         // ── Sampler Cache ────────────────────────────────────
 

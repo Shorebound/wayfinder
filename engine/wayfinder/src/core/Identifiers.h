@@ -35,15 +35,21 @@ namespace Wayfinder
         constexpr explicit StringHash(uint64_t v) : Value(v) {}
         constexpr explicit StringHash(std::string_view str) : Value(Fnv1a64(str)) {}
 
-        constexpr bool IsValid() const { return Value != 0; }
-        constexpr explicit operator bool() const { return IsValid(); }
+        constexpr bool IsValid() const
+        {
+            return Value != 0;
+        }
+        constexpr explicit operator bool() const
+        {
+            return IsValid();
+        }
 
         constexpr auto operator==(const StringHash&) const -> bool = default;
         constexpr auto operator<=>(const StringHash&) const = default;
     };
 }
 
-template <>
+template<>
 struct std::hash<Wayfinder::StringHash>
 {
     auto operator()(Wayfinder::StringHash h) const noexcept -> size_t
@@ -52,7 +58,7 @@ struct std::hash<Wayfinder::StringHash>
     }
 };
 
-template <>
+template<>
 struct std::formatter<Wayfinder::StringHash> : std::formatter<uint64_t>
 {
     auto format(Wayfinder::StringHash h, auto& ctx) const
@@ -100,7 +106,7 @@ namespace Wayfinder
                 return std::nullopt;
             }
 
-            constexpr size_t kDashPositions[] = { 8, 13, 18, 23 };
+            constexpr size_t kDashPositions[] = {8, 13, 18, 23};
             for (auto pos : kDashPositions)
             {
                 if (text[pos] != '-')
@@ -111,9 +117,18 @@ namespace Wayfinder
 
             auto hexVal = [](char c) -> int
             {
-                if (c >= '0' && c <= '9') return c - '0';
-                if (c >= 'a' && c <= 'f') return 10 + (c - 'a');
-                if (c >= 'A' && c <= 'F') return 10 + (c - 'A');
+                if (c >= '0' && c <= '9')
+                {
+                    return c - '0';
+                }
+                if (c >= 'a' && c <= 'f')
+                {
+                    return 10 + (c - 'a');
+                }
+                if (c >= 'A' && c <= 'F')
+                {
+                    return 10 + (c - 'A');
+                }
                 return -1;
             };
 
@@ -174,12 +189,21 @@ namespace Wayfinder
 
         constexpr bool IsNil() const
         {
-            return std::all_of(m_bytes.begin(), m_bytes.end(), [](uint8_t b) { return b == 0; });
+            return std::all_of(m_bytes.begin(), m_bytes.end(), [](uint8_t b)
+            {
+                return b == 0;
+            });
         }
 
-        constexpr explicit operator bool() const { return !IsNil(); }
+        constexpr explicit operator bool() const
+        {
+            return !IsNil();
+        }
 
-        constexpr auto GetBytes() const -> const std::array<uint8_t, 16>& { return m_bytes; }
+        constexpr auto GetBytes() const -> const std::array<uint8_t, 16>&
+        {
+            return m_bytes;
+        }
 
         constexpr auto operator==(const Uuid&) const -> bool = default;
         constexpr auto operator<=>(const Uuid&) const = default;
@@ -189,7 +213,7 @@ namespace Wayfinder
     };
 }
 
-template <>
+template<>
 struct std::hash<Wayfinder::Uuid>
 {
     auto operator()(const Wayfinder::Uuid& id) const noexcept -> size_t
@@ -203,7 +227,7 @@ struct std::hash<Wayfinder::Uuid>
     }
 };
 
-template <>
+template<>
 struct std::formatter<Wayfinder::Uuid> : std::formatter<std::string>
 {
     auto format(const Wayfinder::Uuid& id, auto& ctx) const
@@ -216,7 +240,7 @@ namespace Wayfinder
 {
     /// Zero-cost typed wrapper over Uuid. Prevents mixing SceneObjectId and AssetId at compile time.
     /// New ID domains are a single `using` alias away — no boilerplate.
-    template <typename Tag>
+    template<typename Tag>
     struct TypedId
     {
         Uuid Value{};
@@ -224,7 +248,10 @@ namespace Wayfinder
         TypedId() = default;
         explicit TypedId(Uuid id) : Value(id) {}
 
-        static auto Generate() -> TypedId { return TypedId(Uuid::Generate()); }
+        static auto Generate() -> TypedId
+        {
+            return TypedId(Uuid::Generate());
+        }
 
         static auto Parse(std::string_view text) -> std::optional<TypedId>
         {
@@ -235,17 +262,26 @@ namespace Wayfinder
             return std::nullopt;
         }
 
-        bool IsNil() const { return Value.IsNil(); }
-        auto ToString() const -> std::string { return Value.ToString(); }
+        bool IsNil() const
+        {
+            return Value.IsNil();
+        }
+        auto ToString() const -> std::string
+        {
+            return Value.ToString();
+        }
 
-        explicit operator bool() const { return !IsNil(); }
+        explicit operator bool() const
+        {
+            return !IsNil();
+        }
 
         auto operator==(const TypedId&) const -> bool = default;
         auto operator<=>(const TypedId&) const = default;
     };
 }
 
-template <typename Tag>
+template<typename Tag>
 struct std::hash<Wayfinder::TypedId<Tag>>
 {
     auto operator()(const Wayfinder::TypedId<Tag>& id) const noexcept -> size_t
@@ -254,7 +290,7 @@ struct std::hash<Wayfinder::TypedId<Tag>>
     }
 };
 
-template <typename Tag>
+template<typename Tag>
 struct std::formatter<Wayfinder::TypedId<Tag>> : std::formatter<Wayfinder::Uuid>
 {
     auto format(const Wayfinder::TypedId<Tag>& id, auto& ctx) const
@@ -266,8 +302,10 @@ struct std::formatter<Wayfinder::TypedId<Tag>> : std::formatter<Wayfinder::Uuid>
 namespace Wayfinder
 {
     // Tag types — add new ID domains trivially by adding a tag + using alias.
-    struct SceneObjectIdTag {};
-    struct AssetIdTag {};
+    struct SceneObjectIdTag
+    {};
+    struct AssetIdTag
+    {};
 
     using SceneObjectId = TypedId<SceneObjectIdTag>;
     using AssetId = TypedId<AssetIdTag>;

@@ -19,10 +19,10 @@ namespace Wayfinder
      *
      * @tparam TSignature  Function signature, e.g. void(RenderDevice&, const RenderGraphResources&).
      */
-    template <typename TSignature>
+    template<typename TSignature>
     class ArenaFunction;
 
-    template <typename TReturn, typename... TArgs>
+    template<typename TReturn, typename... TArgs>
     class ArenaFunction<TReturn(TArgs...)>
     {
     public:
@@ -35,7 +35,7 @@ namespace Wayfinder
          * destructor, that destructor is registered with the allocator and called
          * during FrameAllocator::Reset().
          */
-        template <typename TCallable>
+        template<typename TCallable>
             requires(!std::is_same_v<std::decay_t<TCallable>, ArenaFunction>)
         ArenaFunction(FrameAllocator& allocator, TCallable&& callable)
         {
@@ -54,8 +54,7 @@ namespace Wayfinder
         ArenaFunction& operator=(const ArenaFunction&) = delete;
 
         // Movable
-        ArenaFunction(ArenaFunction&& other) noexcept
-            : m_invoke(other.m_invoke), m_data(other.m_data)
+        ArenaFunction(ArenaFunction&& other) noexcept : m_invoke(other.m_invoke), m_data(other.m_data)
         {
             other.m_invoke = nullptr;
             other.m_data = nullptr;
@@ -82,7 +81,10 @@ namespace Wayfinder
             return m_invoke(m_data, std::forward<TArgs>(args)...);
         }
 
-        explicit operator bool() const { return m_invoke != nullptr; }
+        explicit operator bool() const
+        {
+            return m_invoke != nullptr;
+        }
 
     private:
         using InvokeFn = TReturn (*)(void*, TArgs...);

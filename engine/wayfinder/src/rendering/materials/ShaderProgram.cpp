@@ -1,9 +1,9 @@
 #include "ShaderProgram.h"
 
-#include "rendering/backend/GPUPipeline.h"
-#include "rendering/pipeline/PipelineCache.h"
 #include "ShaderManager.h"
 #include "core/Log.h"
+#include "rendering/backend/GPUPipeline.h"
+#include "rendering/pipeline/PipelineCache.h"
 
 namespace Wayfinder
 {
@@ -56,7 +56,7 @@ namespace Wayfinder
         pipelineDesc.cullMode = desc.Cull;
         pipelineDesc.depthTestEnabled = desc.DepthTest;
         pipelineDesc.depthWriteEnabled = desc.DepthWrite;
-        pipelineDesc.colourTargetBlends[0] = desc.Blend;
+        pipelineDesc.colourTargetBlends.front() = desc.Blend;
 
         auto* pipeline = new GPUPipeline();
         if (!pipeline->Create(*m_device, *m_shaders, pipelineDesc, m_cache))
@@ -85,8 +85,14 @@ namespace Wayfinder
 
     const ShaderProgram* ShaderProgramRegistry::FindOrDefault(const std::string& name, const std::string& fallback) const
     {
-        if (const auto* program = Find(name)) return program;
-        if (const auto* fb = Find(fallback)) return fb;
+        if (const auto* program = Find(name))
+        {
+            return program;
+        }
+        if (const auto* fb = Find(fallback))
+        {
+            return fb;
+        }
         return nullptr;
     }
 

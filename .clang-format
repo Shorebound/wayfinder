@@ -1,18 +1,21 @@
 # .clang-format
 BasedOnStyle: LLVM
 PointerAlignment: Left
+QualifierAlignment: Left
 UseTab: Never
 IndentWidth: 4
 TabWidth: 4
 BreakBeforeBraces: Custom
 
 BraceWrapping:
+  AfterCaseLabel: true
   AfterClass: true
-  AfterStruct: true
-  AfterFunction: true
-  AfterControlStatement: true
+  AfterControlStatement: Always
   AfterEnum: true
+  AfterFunction: true
   AfterNamespace: true
+  AfterObjCDeclaration: true
+  AfterStruct: true
   AfterUnion: true
   AfterExternBlock: true
   BeforeCatch: true
@@ -22,15 +25,25 @@ BraceWrapping:
   SplitEmptyFunction: false
   SplitEmptyRecord: false
   SplitEmptyNamespace: false
+  IndentBraces: false
 
-AllowShortFunctionsOnASingleLine: All
-AllowShortBlocksOnASingleLine: Always
-AllowShortIfStatementsOnASingleLine: WithoutElse
-AllowShortLambdasOnASingleLine: All
+AllowShortFunctionsOnASingleLine: Empty
+AllowShortBlocksOnASingleLine: Never
+AllowShortIfStatementsOnASingleLine: Never
+AllowShortLambdasOnASingleLine: None
+AllowShortEnumsOnASingleLine: true
+
+AlignAfterOpenBracket: DontAlign
+BreakTemplateDeclarations: Yes
+SpaceAfterTemplateKeyword: false
 
 ContinuationIndentWidth: 4
 IndentCaseLabels: false
-ColumnLimit: 0
+InsertBraces: true
+ColumnLimit: 220
 AccessModifierOffset: -4
 NamespaceIndentation: All
 FixNamespaceComments: false
+LambdaBodyIndentation: OuterScope
+# BinPackArguments: true
+# BinPackParameters: OnePerLine

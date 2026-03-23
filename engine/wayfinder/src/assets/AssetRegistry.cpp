@@ -2,16 +2,16 @@
 
 #include "AssetSchemaRegistry.h"
 
-#include <nlohmann/json.hpp>
 #include <fstream>
+#include <nlohmann/json.hpp>
 
 namespace Wayfinder
 {
     namespace
     {
-        const std::string kAssetIdKey = "asset_id";
-        const std::string kAssetTypeKey = "asset_type";
-        const std::string kNameKey = "name";
+        constexpr std::string_view ASSET_ID_KEY = "asset_id";
+        constexpr std::string_view ASSET_TYPE_KEY = "asset_type";
+        constexpr std::string_view NAME_KEY = "name";
     }
 
     bool AssetRegistry::BuildFromDirectory(const std::filesystem::path& rootDirectory, std::string& error)
@@ -39,12 +39,13 @@ namespace Wayfinder
                 }
                 nlohmann::json document = nlohmann::json::parse(file);
 
-                if (!document.contains(kAssetIdKey) || !document[kAssetIdKey].is_string())
+                const auto assetIdIt = document.find(ASSET_ID_KEY);
+                if (assetIdIt == document.end() || !assetIdIt->is_string())
                 {
                     continue;
                 }
 
-                const std::string assetIdText = document[kAssetIdKey].get<std::string>();
+                const std::string assetIdText = assetIdIt->get<std::string>();
                 const std::optional<AssetId> assetId = AssetId::Parse(assetIdText);
                 if (!assetId)
                 {
@@ -52,13 +53,14 @@ namespace Wayfinder
                     return false;
                 }
 
-                if (!document.contains(kAssetTypeKey) || !document[kAssetTypeKey].is_string())
+                const auto assetTypeIt = document.find(ASSET_TYPE_KEY);
+                if (assetTypeIt == document.end() || !assetTypeIt->is_string())
                 {
                     error = "Asset '" + entry.path().generic_string() + "' is missing required field 'asset_type'.";
                     return false;
                 }
 
-                const std::string assetTypeText = document[kAssetTypeKey].get<std::string>();
+                const std::string assetTypeText = assetTypeIt->get<std::string>();
 
                 if (!AssetSchemaRegistry::ValidateDocument(assetTypeText, document, entry.path(), error))
                 {
@@ -79,7 +81,7 @@ namespace Wayfinder
                 record.TypeName = assetTypeText;
                 record.Kind = parsedAssetKind.value_or(AssetKind::Unknown);
                 record.Path = canonicalPath;
-                record.Name = document.value(std::string{kNameKey}, entry.path().stem().string());
+                record.Name = document.value(std::string(NAME_KEY), entry.path().stem().string());
                 m_assetRecordsById.emplace(*assetId, std::move(record));
             }
             catch (const nlohmann::json::exception&)

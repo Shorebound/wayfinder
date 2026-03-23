@@ -11,8 +11,7 @@ namespace Wayfinder
         {
             if (Find(coreEntry.Key))
             {
-                WAYFINDER_LOG(LogScene, LogVerbosity::Warning,
-                    "Duplicate component key '{}' in core entries, skipping", coreEntry.Key);
+                WAYFINDER_LOG(LogScene, LogVerbosity::Warning, "Duplicate component key '{}' in core entries, skipping", coreEntry.Key);
                 continue;
             }
 
@@ -33,8 +32,7 @@ namespace Wayfinder
         {
             if (Find(desc.Key))
             {
-                WAYFINDER_LOG(LogScene, LogVerbosity::Warning,
-                    "Duplicate component key '{}' from game module, skipping", desc.Key);
+                WAYFINDER_LOG(LogScene, LogVerbosity::Warning, "Duplicate component key '{}' from game module, skipping", desc.Key);
                 continue;
             }
 
@@ -54,7 +52,9 @@ namespace Wayfinder
         for (const Entry& entry : m_entries)
         {
             if (entry.RegisterFn)
+            {
                 entry.RegisterFn(world);
+            }
         }
     }
 
@@ -64,10 +64,14 @@ namespace Wayfinder
         {
             const Entry* entry = Find(key);
             if (!entry || !entry->ApplyFn)
+            {
                 continue;
+            }
 
             if (!node.is_object())
+            {
                 continue;
+            }
 
             entry->ApplyFn(node, entity);
         }
@@ -78,7 +82,9 @@ namespace Wayfinder
         for (const Entry& entry : m_entries)
         {
             if (entry.SerialiseFn)
+            {
                 entry.SerialiseFn(entity, componentTables);
+            }
         }
     }
 
@@ -103,7 +109,9 @@ namespace Wayfinder
     const RuntimeComponentRegistry::Entry* RuntimeComponentRegistry::Find(std::string_view key) const
     {
         if (auto it = m_index.find(std::string(key)); it != m_index.end())
-            return &m_entries[it->second];
+        {
+            return &m_entries.at(it->second);
+        }
         return nullptr;
     }
 } // namespace Wayfinder

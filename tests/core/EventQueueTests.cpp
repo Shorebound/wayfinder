@@ -1,8 +1,8 @@
-#include "platform/KeyCodes.h"
 #include "core/events/ApplicationEvent.h"
 #include "core/events/EventQueue.h"
 #include "core/events/KeyEvent.h"
 #include "core/events/MouseEvent.h"
+#include "platform/KeyCodes.h"
 
 #include <doctest/doctest.h>
 
@@ -39,7 +39,8 @@ namespace Wayfinder::Tests
         queue.Push(Wayfinder::MouseMovedEvent{10.0f, 20.0f});
 
         std::vector<Wayfinder::EventType> received;
-        queue.Drain([&](Wayfinder::Event& e) {
+        queue.Drain([&](Wayfinder::Event& e)
+        {
             received.push_back(e.GetEventType());
         });
 
@@ -55,7 +56,9 @@ namespace Wayfinder::Tests
         queue.Push(Wayfinder::WindowCloseEvent{});
         queue.Push(Wayfinder::WindowCloseEvent{});
 
-        queue.Drain([](Wayfinder::Event&) {});
+        queue.Drain([](Wayfinder::Event&)
+        {
+        });
 
         CHECK(queue.IsEmpty());
         CHECK(queue.Size() == 0);
@@ -67,7 +70,8 @@ namespace Wayfinder::Tests
         queue.Push(Wayfinder::KeyPressedEvent{Wayfinder::Key::A});
 
         std::vector<Wayfinder::KeyCode> received;
-        queue.Drain([&](Wayfinder::Event& e) {
+        queue.Drain([&](Wayfinder::Event& e)
+        {
             auto& typed = static_cast<Wayfinder::KeyPressedEvent&>(e);
             received.push_back(typed.GetKeyCode());
 
@@ -81,7 +85,8 @@ namespace Wayfinder::Tests
         CHECK(received[0] == Wayfinder::Key::A);
         CHECK(queue.Size() == 1);
 
-        queue.Drain([&](Wayfinder::Event& e) {
+        queue.Drain([&](Wayfinder::Event& e)
+        {
             auto& typed = static_cast<Wayfinder::KeyPressedEvent&>(e);
             received.push_back(typed.GetKeyCode());
         });
@@ -95,7 +100,10 @@ namespace Wayfinder::Tests
     {
         Wayfinder::EventQueue queue;
         int callCount = 0;
-        queue.Drain([&](Wayfinder::Event&) { ++callCount; });
+        queue.Drain([&](Wayfinder::Event&)
+        {
+            ++callCount;
+        });
         CHECK(callCount == 0);
     }
 
@@ -112,7 +120,10 @@ namespace Wayfinder::Tests
         CHECK(queue.IsEmpty());
 
         int callCount = 0;
-        queue.Drain([&](Wayfinder::Event&) { ++callCount; });
+        queue.Drain([&](Wayfinder::Event&)
+        {
+            ++callCount;
+        });
         CHECK(callCount == 0);
     }
 
@@ -124,7 +135,8 @@ namespace Wayfinder::Tests
         queue.Push(Wayfinder::KeyPressedEvent{Wayfinder::Key::A});
 
         bool wasHandled = false;
-        queue.Drain([&](Wayfinder::Event& e) {
+        queue.Drain([&](Wayfinder::Event& e)
+        {
             e.Handled = true;
             wasHandled = e.Handled;
         });
@@ -140,14 +152,20 @@ namespace Wayfinder::Tests
 
         queue.Push(Wayfinder::KeyPressedEvent{Wayfinder::Key::A});
         int count1 = 0;
-        queue.Drain([&](Wayfinder::Event&) { ++count1; });
+        queue.Drain([&](Wayfinder::Event&)
+        {
+            ++count1;
+        });
         CHECK(count1 == 1);
         CHECK(queue.IsEmpty());
 
         queue.Push(Wayfinder::KeyPressedEvent{Wayfinder::Key::B});
         queue.Push(Wayfinder::KeyPressedEvent{Wayfinder::Key::C});
         int count2 = 0;
-        queue.Drain([&](Wayfinder::Event&) { ++count2; });
+        queue.Drain([&](Wayfinder::Event&)
+        {
+            ++count2;
+        });
         CHECK(count2 == 2);
         CHECK(queue.IsEmpty());
     }
@@ -186,7 +204,9 @@ namespace Wayfinder::Tests
     {
         Wayfinder::EventQueue queue;
         queue.Push(Wayfinder::KeyPressedEvent{Wayfinder::Key::A});
-        queue.Drain([](Wayfinder::Event&) {});
+        queue.Drain([](Wayfinder::Event&)
+        {
+        });
 
         auto keys = queue.Read<Wayfinder::KeyPressedEvent>();
         CHECK(keys.empty());
@@ -218,7 +238,8 @@ namespace Wayfinder::Tests
         queue.Push(Wayfinder::KeyPressedEvent{Wayfinder::Key::B});
 
         std::vector<Wayfinder::EventType> order;
-        queue.Drain([&](Wayfinder::Event& e) {
+        queue.Drain([&](Wayfinder::Event& e)
+        {
             order.push_back(e.GetEventType());
         });
 
@@ -239,7 +260,8 @@ namespace Wayfinder::Tests
         // Frame 1: push and drain
         queue.Push(Wayfinder::KeyPressedEvent{Wayfinder::Key::A});
         std::vector<Wayfinder::EventType> frame1;
-        queue.Drain([&](Wayfinder::Event& e) {
+        queue.Drain([&](Wayfinder::Event& e)
+        {
             frame1.push_back(e.GetEventType());
         });
         CHECK(frame1.size() == 1);
@@ -249,7 +271,8 @@ namespace Wayfinder::Tests
         queue.Push(Wayfinder::MouseMovedEvent{1.0f, 2.0f});
         queue.Push(Wayfinder::KeyReleasedEvent{Wayfinder::Key::B});
         std::vector<Wayfinder::EventType> frame2;
-        queue.Drain([&](Wayfinder::Event& e) {
+        queue.Drain([&](Wayfinder::Event& e)
+        {
             frame2.push_back(e.GetEventType());
         });
         REQUIRE(frame2.size() == 2);
@@ -259,7 +282,8 @@ namespace Wayfinder::Tests
 
         // Frame 3: empty frame
         std::vector<Wayfinder::EventType> frame3;
-        queue.Drain([&](Wayfinder::Event& e) {
+        queue.Drain([&](Wayfinder::Event& e)
+        {
             frame3.push_back(e.GetEventType());
         });
         CHECK(frame3.empty());
@@ -274,11 +298,13 @@ namespace Wayfinder::Tests
         for (int cycle = 0; cycle < 100; ++cycle)
         {
             queue.Push(Wayfinder::KeyPressedEvent{Wayfinder::Key::A});
-            queue.Push(Wayfinder::MouseMovedEvent{
-                static_cast<float>(cycle), static_cast<float>(cycle)});
+            queue.Push(Wayfinder::MouseMovedEvent{static_cast<float>(cycle), static_cast<float>(cycle)});
 
             int count = 0;
-            queue.Drain([&](Wayfinder::Event&) { ++count; });
+            queue.Drain([&](Wayfinder::Event&)
+            {
+                ++count;
+            });
             CHECK(count == 2);
             CHECK(queue.IsEmpty());
         }

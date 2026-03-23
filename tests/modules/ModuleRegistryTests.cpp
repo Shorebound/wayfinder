@@ -3,13 +3,13 @@
 #include "gameplay/GameplayTag.h"
 #include "modules/ModuleRegistry.h"
 #include "modules/Plugin.h"
-#include "project/ProjectDescriptor.h"
 #include "modules/registrars/StateRegistrar.h"
 #include "modules/registrars/SystemRegistrar.h"
 #include "modules/registrars/TagRegistrar.h"
+#include "project/ProjectDescriptor.h"
 
-#include <doctest/doctest.h>
 #include "ecs/Flecs.h"
+#include <doctest/doctest.h>
 #include <string>
 #include <vector>
 
@@ -82,7 +82,9 @@ namespace Wayfinder::Tests
         TEST_CASE("Register adds a system descriptor")
         {
             SystemRegistrar registrar;
-            registrar.Register("TestSystem", [](flecs::world&) {});
+            registrar.Register("TestSystem", [](flecs::world&)
+            {
+            });
 
             CHECK(registrar.GetDescriptors().size() == 1);
             CHECK(registrar.GetDescriptors()[0].Name == "TestSystem");
@@ -91,8 +93,12 @@ namespace Wayfinder::Tests
         TEST_CASE("Duplicate system registration is rejected")
         {
             SystemRegistrar registrar;
-            registrar.Register("TestSystem", [](flecs::world&) {});
-            registrar.Register("TestSystem", [](flecs::world&) {}); // duplicate
+            registrar.Register("TestSystem", [](flecs::world&)
+            {
+            });
+            registrar.Register("TestSystem", [](flecs::world&)
+            {
+            }); // duplicate
 
             CHECK(registrar.GetDescriptors().size() == 1);
         }
@@ -110,14 +116,18 @@ namespace Wayfinder::Tests
             SystemRegistrar registrar;
             std::vector<std::string> callOrder;
 
-            registrar.Register("SystemA",
-                               [&](flecs::world&) { callOrder.push_back("A"); });
-            registrar.Register("SystemB",
-                               [&](flecs::world&) { callOrder.push_back("B"); },
-                               {}, {"SystemA"}, {}); // B runs after A
-            registrar.Register("SystemC",
-                               [&](flecs::world&) { callOrder.push_back("C"); },
-                               {}, {"SystemB"}, {}); // C runs after B
+            registrar.Register("SystemA", [&](flecs::world&)
+            {
+                callOrder.push_back("A");
+            });
+            registrar.Register("SystemB", [&](flecs::world&)
+            {
+                callOrder.push_back("B");
+            }, {}, {"SystemA"}, {}); // B runs after A
+            registrar.Register("SystemC", [&](flecs::world&)
+            {
+                callOrder.push_back("C");
+            }, {}, {"SystemB"}, {}); // C runs after B
 
             flecs::world world;
             registrar.ApplyToWorld(world);
@@ -127,9 +137,18 @@ namespace Wayfinder::Tests
             size_t posA = 0, posB = 0, posC = 0;
             for (size_t i = 0; i < callOrder.size(); ++i)
             {
-                if (callOrder[i] == "A") posA = i;
-                if (callOrder[i] == "B") posB = i;
-                if (callOrder[i] == "C") posC = i;
+                if (callOrder[i] == "A")
+                {
+                    posA = i;
+                }
+                if (callOrder[i] == "B")
+                {
+                    posB = i;
+                }
+                if (callOrder[i] == "C")
+                {
+                    posC = i;
+                }
             }
             CHECK(posA < posB);
             CHECK(posB < posC);
@@ -140,11 +159,14 @@ namespace Wayfinder::Tests
             SystemRegistrar registrar;
             std::vector<std::string> callOrder;
 
-            registrar.Register("SystemA",
-                               [&](flecs::world&) { callOrder.push_back("A"); },
-                               {}, {}, {"SystemB"}); // A runs before B
-            registrar.Register("SystemB",
-                               [&](flecs::world&) { callOrder.push_back("B"); });
+            registrar.Register("SystemA", [&](flecs::world&)
+            {
+                callOrder.push_back("A");
+            }, {}, {}, {"SystemB"}); // A runs before B
+            registrar.Register("SystemB", [&](flecs::world&)
+            {
+                callOrder.push_back("B");
+            });
 
             flecs::world world;
             registrar.ApplyToWorld(world);
@@ -153,8 +175,14 @@ namespace Wayfinder::Tests
             size_t posA = 0, posB = 0;
             for (size_t i = 0; i < callOrder.size(); ++i)
             {
-                if (callOrder[i] == "A") posA = i;
-                if (callOrder[i] == "B") posB = i;
+                if (callOrder[i] == "A")
+                {
+                    posA = i;
+                }
+                if (callOrder[i] == "B")
+                {
+                    posB = i;
+                }
             }
             CHECK(posA < posB);
         }
@@ -165,12 +193,14 @@ namespace Wayfinder::Tests
             std::vector<std::string> callOrder;
 
             // A -> B -> A (cycle)
-            registrar.Register("SystemA",
-                               [&](flecs::world&) { callOrder.push_back("A"); },
-                               {}, {"SystemB"}, {}); // A after B
-            registrar.Register("SystemB",
-                               [&](flecs::world&) { callOrder.push_back("B"); },
-                               {}, {"SystemA"}, {}); // B after A
+            registrar.Register("SystemA", [&](flecs::world&)
+            {
+                callOrder.push_back("A");
+            }, {}, {"SystemB"}, {}); // A after B
+            registrar.Register("SystemB", [&](flecs::world&)
+            {
+                callOrder.push_back("B");
+            }, {}, {"SystemA"}, {}); // B after A
 
             flecs::world world;
             registrar.ApplyToWorld(world);
@@ -184,14 +214,18 @@ namespace Wayfinder::Tests
             SystemRegistrar registrar;
             std::vector<std::string> callOrder;
 
-            registrar.Register("Independent",
-                               [&](flecs::world&) { callOrder.push_back("I"); });
-            registrar.Register("SystemA",
-                               [&](flecs::world&) { callOrder.push_back("A"); },
-                               {}, {"SystemB"}, {});
-            registrar.Register("SystemB",
-                               [&](flecs::world&) { callOrder.push_back("B"); },
-                               {}, {"SystemA"}, {});
+            registrar.Register("Independent", [&](flecs::world&)
+            {
+                callOrder.push_back("I");
+            });
+            registrar.Register("SystemA", [&](flecs::world&)
+            {
+                callOrder.push_back("A");
+            }, {}, {"SystemB"}, {});
+            registrar.Register("SystemB", [&](flecs::world&)
+            {
+                callOrder.push_back("B");
+            }, {}, {"SystemA"}, {});
 
             flecs::world world;
             registrar.ApplyToWorld(world);
@@ -205,9 +239,10 @@ namespace Wayfinder::Tests
             SystemRegistrar registrar;
             std::vector<std::string> callOrder;
 
-            registrar.Register("SystemA",
-                               [&](flecs::world&) { callOrder.push_back("A"); },
-                               {}, {"NonExistent"}, {});
+            registrar.Register("SystemA", [&](flecs::world&)
+            {
+                callOrder.push_back("A");
+            }, {}, {"NonExistent"}, {});
 
             flecs::world world;
             registrar.ApplyToWorld(world);
@@ -269,7 +304,9 @@ namespace Wayfinder::Tests
             auto config = MakeTestConfig();
             ModuleRegistry registry(project, config);
 
-            registry.RegisterSystem("TestSystem", [](flecs::world&) {});
+            registry.RegisterSystem("TestSystem", [](flecs::world&)
+            {
+            });
 
             CHECK(registry.GetSystems().size() == 1);
             CHECK(registry.GetSystems()[0].Name == "TestSystem");
@@ -333,7 +370,10 @@ namespace Wayfinder::Tests
             ModuleRegistry registry(project, config);
 
             bool called = false;
-            registry.RegisterGlobal("TestGlobal", [&](flecs::world&) { called = true; });
+            registry.RegisterGlobal("TestGlobal", [&](flecs::world&)
+            {
+                called = true;
+            });
 
             flecs::world world;
             registry.ApplyToWorld(world);
@@ -348,7 +388,10 @@ namespace Wayfinder::Tests
             ModuleRegistry registry(project, config);
 
             bool called = false;
-            registry.RegisterSystem("TestSystem", [&](flecs::world&) { called = true; });
+            registry.RegisterSystem("TestSystem", [&](flecs::world&)
+            {
+                called = true;
+            });
 
             flecs::world world;
             registry.ApplyToWorld(world);
@@ -380,7 +423,10 @@ namespace Wayfinder::Tests
         {
             struct TestPlugin : Plugin
             {
-                void Build(ModuleRegistry&) override { g_TestPluginBuildCalled = true; }
+                void Build(ModuleRegistry&) override
+                {
+                    g_TestPluginBuildCalled = true;
+                }
             };
 
             auto project = MakeTestProject();

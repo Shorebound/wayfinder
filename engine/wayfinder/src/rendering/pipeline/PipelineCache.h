@@ -29,7 +29,6 @@ namespace Wayfinder
         static size_t HashDesc(const PipelineCreateDesc& desc);
 
     private:
-
         RenderDevice* m_device = nullptr;
         std::unordered_map<size_t, GPUPipelineHandle> m_cache;
     };

@@ -5,17 +5,11 @@
 
 namespace Wayfinder
 {
-    ModuleRegistry::ModuleRegistry(const ProjectDescriptor& project,
-                                   const EngineConfig& config)
-        : m_project(project), m_config(config) {}
+    ModuleRegistry::ModuleRegistry(const ProjectDescriptor& project, const EngineConfig& config) : m_project(project), m_config(config) {}
 
-    void ModuleRegistry::RegisterSystem(std::string name, SystemFactory factory,
-                                         RunCondition condition,
-                                         std::vector<std::string> after,
-                                         std::vector<std::string> before)
+    void ModuleRegistry::RegisterSystem(std::string name, SystemFactory factory, RunCondition condition, std::vector<std::string> after, std::vector<std::string> before)
     {
-        m_systems.Register(std::move(name), std::move(factory), std::move(condition),
-                           std::move(after), std::move(before));
+        m_systems.Register(std::move(name), std::move(factory), std::move(condition), std::move(after), std::move(before));
     }
 
     void ModuleRegistry::RegisterComponent(ComponentDescriptor descriptor)
@@ -27,7 +21,7 @@ namespace Wayfinder
     void ModuleRegistry::RegisterGlobal(std::string name, GlobalFactory factory)
     {
         WAYFINDER_INFO(LogEngine, "ModuleRegistry: registered global '{}'", name);
-        m_globals.push_back({std::move(name), std::move(factory)});
+        m_globals.push_back({.Name = std::move(name), .Factory = std::move(factory)});
     }
 
     void ModuleRegistry::RegisterState(StateDescriptor descriptor)
@@ -43,7 +37,7 @@ namespace Wayfinder
     GameplayTag ModuleRegistry::RegisterTag(std::string tagName, std::string comment)
     {
         GameplayTag tag = GameplayTag::FromName(tagName);
-        m_tags.Register({std::move(tagName), std::move(comment)});
+        m_tags.Register({.Name = std::move(tagName), .Comment = std::move(comment)});
         return tag;
     }
 
@@ -64,8 +58,14 @@ namespace Wayfinder
         m_systems.ApplyToWorld(world);
     }
 
-    const ProjectDescriptor& ModuleRegistry::GetProject() const { return m_project; }
+    const ProjectDescriptor& ModuleRegistry::GetProject() const
+    {
+        return m_project;
+    }
 
-    const EngineConfig& ModuleRegistry::GetConfig() const { return m_config; }
+    const EngineConfig& ModuleRegistry::GetConfig() const
+    {
+        return m_config;
+    }
 
 } // namespace Wayfinder

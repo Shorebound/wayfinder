@@ -111,7 +111,10 @@ namespace Wayfinder
         virtual EventType GetEventType() const = 0;
         virtual const char* GetName() const = 0;
         virtual EventCategory GetCategoryFlags() const = 0;
-        virtual std::string ToString() const { return GetName(); }
+        virtual std::string ToString() const
+        {
+            return GetName();
+        }
 
         bool IsInCategory(const EventCategory category) const
         {
@@ -122,10 +125,10 @@ namespace Wayfinder
     class EventDispatcher
     {
     public:
-        EventDispatcher(Event& event) : m_event(event) { }
+        EventDispatcher(Event& event) : m_event(event) {}
 
         // F will be deduced by the compiler
-        template <typename T, typename F>
+        template<typename T, typename F>
         bool Dispatch(const F& func)
         {
             if (m_event.GetEventType() == T::GetStaticType())
@@ -145,7 +148,7 @@ namespace Wayfinder
         return os << e.ToString();
     }
 
-    template <typename Base, EventType TTypeValue, EventCategory TCategoryValue>
+    template<typename Base, EventType TTypeValue, EventCategory TCategoryValue>
     class EventImpl : public Base
     {
         static_assert(std::is_base_of_v<Event, Base>, "Base must inherit from Event");
@@ -153,12 +156,27 @@ namespace Wayfinder
     public:
         using Base::Base; // Inherit constructors
 
-        static constexpr EventType GetStaticType() noexcept { return TTypeValue; }
-        static constexpr EventCategory GetStaticCategory() noexcept { return TCategoryValue; }
+        static constexpr EventType GetStaticType() noexcept
+        {
+            return TTypeValue;
+        }
+        static constexpr EventCategory GetStaticCategory() noexcept
+        {
+            return TCategoryValue;
+        }
 
-        virtual EventType GetEventType() const override { return GetStaticType(); }
-        virtual const char* GetName() const override { return EventTypeToString(GetStaticType()); }
-        virtual EventCategory GetCategoryFlags() const override { return GetStaticCategory(); }
+        virtual EventType GetEventType() const override
+        {
+            return GetStaticType();
+        }
+        virtual const char* GetName() const override
+        {
+            return EventTypeToString(GetStaticType());
+        }
+        virtual EventCategory GetCategoryFlags() const override
+        {
+            return GetStaticCategory();
+        }
     };
 
 }

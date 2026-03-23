@@ -17,7 +17,10 @@ namespace Wayfinder
     public:
         bool SetAssetRoot(const std::filesystem::path& assetRoot, std::string& error);
 
-        const std::filesystem::path& GetAssetRoot() const { return m_assetRoot; }
+        const std::filesystem::path& GetAssetRoot() const
+        {
+            return m_assetRoot;
+        }
         const AssetRecord* ResolveRecord(const AssetId& assetId) const;
         const std::filesystem::path* ResolvePath(const AssetId& assetId) const;
         const MaterialAsset* LoadMaterialAsset(const AssetId& assetId, std::string& error);
@@ -54,7 +57,10 @@ namespace Wayfinder
         void InvalidateTextureAsset(const AssetId& assetId);
 
         /** @brief Return the active asset registry. */
-        const AssetRegistry& GetRegistry() const { return m_assetRegistry; }
+        const AssetRegistry& GetRegistry() const
+        {
+            return m_assetRegistry;
+        }
 
     private:
         /// Mutable access to a cached asset — restricted to internal use.
