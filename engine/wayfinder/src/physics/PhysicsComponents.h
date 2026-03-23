@@ -68,10 +68,6 @@ namespace Wayfinder::Physics
         float Height = 1.0f;
         float Friction = 0.2f;
         float Restitution = 0.0f;
-
-        ColliderComponent() = default;
-        ColliderComponent(const ColliderComponent&) = default;
-        ColliderComponent& operator=(const ColliderComponent&) = default;
     };
 
 } // namespace Wayfinder::Physics

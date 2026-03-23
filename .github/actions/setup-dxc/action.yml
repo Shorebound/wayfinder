@@ -50,6 +50,8 @@ runs:
         $release = Invoke-RestMethod `
           -Uri "https://api.github.com/repos/microsoft/DirectXShaderCompiler/releases/tags/${{ inputs.version }}" `
           -Headers @{ "Accept" = "application/vnd.github+json"; "Authorization" = "Bearer ${{ inputs.token }}" }
+        # DXC ships one unified Windows zip (dxc_YYYY_MM_DD.zip) containing bin/x64/ and bin/arm64/;
+        # the x64 binary is selected during extraction below.
         $asset = $release.assets | Where-Object { $_.name -like "dxc_*.zip" } | Select-Object -First 1
         if (-not $asset) { throw "No dxc_*.zip asset in DXC release ${{ inputs.version }}" }
         Write-Host "Downloading DXC ${{ inputs.version }} for Windows"
@@ -78,4 +80,4 @@ runs:
         fi
         if [ ! -f "$dxc" ]; then echo "::error::DXC not found at $dxc" && exit 1; fi
         echo "DXC ready at $dxc"
-        "$dxc" --help > /dev/null 2>&1 || true
+        "$dxc" --help > /dev/null 2>&1
