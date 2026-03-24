@@ -21,11 +21,17 @@ namespace Wayfinder
 
     void* FrameAllocator::Allocate(size_t bytes, size_t alignment)
     {
-        ++m_allocationCount;
+        WAYFINDER_PROFILE_SCOPE_NAMED("FrameAllocator::Allocate");
 
         WAYFINDER_ASSERT(bytes > 0, "FrameAllocator::Allocate: zero-byte allocation");
         const bool hasValidAlignment = alignment != 0 && std::has_single_bit(alignment);
         WAYFINDER_ASSERT(hasValidAlignment, "FrameAllocator::Allocate: alignment must be a non-zero power of two (got {})", alignment);
+
+        auto completeAllocation = [this](void* allocation) -> void*
+        {
+            ++m_allocationCount;
+            return allocation;
+        };
 
         auto tryAllocateFromPage = [bytes, alignment](Page& page, size_t& currentOffset) -> void*
         {
@@ -44,7 +50,7 @@ namespace Wayfinder
 
         if (void* allocation = tryAllocateFromPage(m_pages.at(m_currentPage), m_currentOffset))
         {
-            return allocation;
+            return completeAllocation(allocation);
         }
 
         // Current page exhausted — try next existing page or allocate a new one
@@ -56,7 +62,7 @@ namespace Wayfinder
             m_currentOffset = 0;
             if (void* allocation = tryAllocateFromPage(m_pages.at(m_currentPage), m_currentOffset))
             {
-                return allocation;
+                return completeAllocation(allocation);
             }
         }
 
@@ -67,7 +73,7 @@ namespace Wayfinder
         m_currentOffset = 0;
         void* allocation = tryAllocateFromPage(m_pages.back(), m_currentOffset);
         WAYFINDER_ASSERT(allocation != nullptr, "FrameAllocator::Allocate: failed to allocate {} bytes from a fresh page of size {}", bytes, newPageSize);
-        return allocation;
+        return completeAllocation(allocation);
     }
 
     void FrameAllocator::Reset()
