@@ -1,5 +1,5 @@
 name: 'Setup Windows Build Environment'
-description: 'Install CMake + Ninja and ensure MSVC headers/libs are discoverable for Clang'
+description: 'Install CMake and initialise the MSVC toolchain for Windows CI'
 
 runs:
   using: composite

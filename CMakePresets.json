@@ -114,17 +114,27 @@
                 "CMAKE_CXX_COMPILER": "clang++",
                 "CMAKE_CXX_FLAGS": "-stdlib=libc++",
                 "CMAKE_EXE_LINKER_FLAGS": "-stdlib=libc++ -lc++abi",
-                "WAYFINDER_WARNINGS_AS_ERRORS": "ON"
+                "WAYFINDER_WARNINGS_AS_ERRORS": "ON",
+                "WAYFINDER_ENABLE_PROFILING": "OFF"
             }
         },
         {
             "name": "ci-windows",
             "displayName": "CI (Windows)",
-            "description": "Windows CI — Clang with warnings-as-errors",
-            "inherits": "dev",
+            "description": "Windows CI — MSVC with warnings-as-errors",
+            "inherits": "_base",
+            "generator": "Ninja Multi-Config",
             "binaryDir": "${sourceDir}/build",
+            "condition": {
+                "type": "equals",
+                "lhs": "${hostSystemName}",
+                "rhs": "Windows"
+            },
             "cacheVariables": {
-                "WAYFINDER_WARNINGS_AS_ERRORS": "ON"
+                "CMAKE_C_COMPILER": "cl",
+                "CMAKE_CXX_COMPILER": "cl",
+                "WAYFINDER_WARNINGS_AS_ERRORS": "ON",
+                "WAYFINDER_ENABLE_PROFILING": "OFF"
             }
         }
     ],
