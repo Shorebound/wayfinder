@@ -91,8 +91,7 @@ namespace Wayfinder::Plugins
             return MakeError("Failed to load shared library");
         }
 
-        auto createFn = reinterpret_cast<WayfinderCreateGamePluginFn>(GetProcAddress(handle, "WayfinderCreateGamePlugin"));
-        auto destroyFn = reinterpret_cast<WayfinderDestroyGamePluginFn>(GetProcAddress(handle, "WayfinderDestroyGamePlugin"));
+        auto versionFn = reinterpret_cast<WayfinderGetPluginAPIVersionFn>(GetProcAddress(handle, "WayfinderGetPluginAPIVersion"));
 #else
         void* handle = dlopen(libraryPath.c_str(), RTLD_NOW | RTLD_LOCAL);
         if (!handle)
@@ -101,6 +100,36 @@ namespace Wayfinder::Plugins
             return MakeError("Failed to load shared library");
         }
 
+        auto versionFn = reinterpret_cast<WayfinderGetPluginAPIVersionFn>(dlsym(handle, "WayfinderGetPluginAPIVersion"));
+#endif
+
+        if (!versionFn)
+        {
+            WAYFINDER_ERROR(LogEngine, "PluginLoader: '{}' missing WayfinderGetPluginAPIVersion export", libraryPath.string());
+#ifdef _WIN32
+            FreeLibrary(handle);
+#else
+            dlclose(handle);
+#endif
+            return MakeError("Plugin ABI mismatch");
+        }
+
+        const uint32_t pluginAbi = versionFn();
+        if (pluginAbi != WAYFINDER_PLUGIN_ABI_VERSION)
+        {
+            WAYFINDER_ERROR(LogEngine, "PluginLoader: '{}' ABI mismatch (plugin {}, engine {})", libraryPath.string(), pluginAbi, WAYFINDER_PLUGIN_ABI_VERSION);
+#ifdef _WIN32
+            FreeLibrary(handle);
+#else
+            dlclose(handle);
+#endif
+            return MakeError("Plugin ABI mismatch");
+        }
+
+#ifdef _WIN32
+        auto createFn = reinterpret_cast<WayfinderCreateGamePluginFn>(GetProcAddress(handle, "WayfinderCreateGamePlugin"));
+        auto destroyFn = reinterpret_cast<WayfinderDestroyGamePluginFn>(GetProcAddress(handle, "WayfinderDestroyGamePlugin"));
+#else
         auto createFn = reinterpret_cast<WayfinderCreateGamePluginFn>(dlsym(handle, "WayfinderCreateGamePlugin"));
         auto destroyFn = reinterpret_cast<WayfinderDestroyGamePluginFn>(dlsym(handle, "WayfinderDestroyGamePlugin"));
 #endif

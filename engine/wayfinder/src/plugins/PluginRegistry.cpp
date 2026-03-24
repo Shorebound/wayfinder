@@ -14,8 +14,8 @@ namespace Wayfinder::Plugins
             WAYFINDER_ERROR(LogEngine, "PluginRegistry: AddPlugin received null plugin");
             return;
         }
-        plugin->Build(*this);
         m_plugins.push_back(std::move(plugin));
+        m_plugins.back()->Build(*this);
     }
 
     void PluginRegistry::NotifyStartup()

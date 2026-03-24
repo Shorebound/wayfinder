@@ -8,10 +8,10 @@
 #include "plugins/registrars/TagRegistrar.h"
 #include "wayfinder_exports.h"
 
+#include <concepts>
 #include <functional>
 #include <memory>
 #include <string>
-#include <string_view>
 #include <typeindex>
 #include <utility>
 #include <vector>
@@ -134,9 +134,9 @@ namespace Wayfinder::Plugins
         /// during Game initialisation alongside engine-core subsystems.
         /// An optional static predicate is checked before construction.
         template<typename T>
+            requires std::derived_from<T, ::Wayfinder::GameSubsystem>
         void RegisterSubsystem(::Wayfinder::SubsystemCollection<::Wayfinder::GameSubsystem>::PredicateFn predicate = nullptr)
         {
-            static_assert(std::is_base_of_v<::Wayfinder::GameSubsystem, T>, "T must derive from GameSubsystem");
             m_subsystemFactories.push_back({std::type_index(typeid(T)), []() -> std::unique_ptr<::Wayfinder::GameSubsystem>
             {
                 return std::make_unique<T>();

@@ -9,14 +9,19 @@
 
 namespace Wayfinder
 {
+    void PopulateDefaultScenePlugins(Plugins::PluginRegistry& registry)
+    {
+        registry.AddPlugin<TransformPlugin>();
+        registry.AddPlugin<CameraPlugin>();
+    }
+
     void SceneWorldBootstrap::RegisterDefaultScenePlugins(flecs::world& world)
     {
         ProjectDescriptor project{};
         project.Name = "HeadlessTest";
         const EngineConfig config = EngineConfig::LoadDefaults();
         Plugins::PluginRegistry registry(project, config);
-        registry.AddPlugin<TransformPlugin>();
-        registry.AddPlugin<CameraPlugin>();
+        PopulateDefaultScenePlugins(registry);
         registry.ApplyComponentRegisterFns(world);
         registry.ApplyToWorld(world);
     }

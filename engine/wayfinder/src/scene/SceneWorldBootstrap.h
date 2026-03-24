@@ -7,8 +7,19 @@ namespace flecs
     struct world;
 }
 
+namespace Wayfinder::Plugins
+{
+    class PluginRegistry;
+}
+
 namespace Wayfinder
 {
+    /**
+     * @brief Registers the default transform and camera scene plugins (single source of truth for
+     *        headless bootstrap and sandbox game roots).
+     */
+    void PopulateDefaultScenePlugins(Plugins::PluginRegistry& registry);
+
     /**
      * @brief Headless world bootstrap: applies the default scene plugins (transform propagation,
      *        active camera extraction) that a typical game root plugin would add.

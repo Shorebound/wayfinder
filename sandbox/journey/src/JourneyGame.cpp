@@ -5,9 +5,8 @@
 #include "plugins/Plugin.h"
 #include "plugins/PluginExport.h"
 #include "plugins/PluginRegistry.h"
+#include "scene/SceneWorldBootstrap.h"
 #include "scene/entity/Entity.h"
-#include "scene/plugins/CameraPlugin.h"
-#include "scene/plugins/TransformPlugin.h"
 
 #include "ecs/Flecs.h"
 
@@ -186,8 +185,7 @@ namespace Wayfinder::Journey
     {
         void Build(Plugins::PluginRegistry& registry) override
         {
-            registry.AddPlugin<TransformPlugin>();
-            registry.AddPlugin<CameraPlugin>();
+            Wayfinder::PopulateDefaultScenePlugins(registry);
             registry.AddPlugin<Physics::PhysicsPlugin>();
             registry.AddPlugin<HealthPlugin>();
             registry.AddPlugin<GameplayPlugin>();
