@@ -16,7 +16,7 @@
 /// RAII zone covering the enclosing scope with a static display name.
 #define WAYFINDER_PROFILE_SCOPE_NAMED(name) ZoneScopedN(name)
 /// Alias for WAYFINDER_PROFILE_SCOPE() — reads well at function level.
-#define WAYFINDER_PROFILE_FUNCTION() ZoneScoped
+#define WAYFINDER_PROFILE_FUNCTION() WAYFINDER_PROFILE_SCOPE()
 
 /// Mark the end of a logical frame (drives Tracy's frame-time graph).
 #define WAYFINDER_PROFILE_FRAME_MARK() FrameMark
@@ -26,7 +26,7 @@
 #else
 #define WAYFINDER_PROFILE_SCOPE() ((void)0)
 #define WAYFINDER_PROFILE_SCOPE_NAMED(name) ((void)0)
-#define WAYFINDER_PROFILE_FUNCTION() ((void)0)
+#define WAYFINDER_PROFILE_FUNCTION() WAYFINDER_PROFILE_SCOPE()
 
 #define WAYFINDER_PROFILE_FRAME_MARK() ((void)0)
 #define WAYFINDER_PROFILE_PLOT(name, value) ((void)0)

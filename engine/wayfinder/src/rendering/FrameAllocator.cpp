@@ -21,7 +21,6 @@ namespace Wayfinder
 
     void* FrameAllocator::Allocate(size_t bytes, size_t alignment)
     {
-        WAYFINDER_PROFILE_SCOPE();
         ++m_allocationCount;
 
         WAYFINDER_ASSERT(bytes > 0, "FrameAllocator::Allocate: zero-byte allocation");
