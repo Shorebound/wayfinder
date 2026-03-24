@@ -73,6 +73,12 @@ namespace Wayfinder
         /** @brief Total capacity across all allocated pages. */
         size_t GetCapacity() const;
 
+        /** @brief Number of Allocate() calls since last Reset(). */
+        size_t GetAllocationCount() const
+        {
+            return m_allocationCount;
+        }
+
     private:
         using DestroyFn = void (*)(void*);
 
@@ -96,6 +102,7 @@ namespace Wayfinder
         size_t m_currentPage = 0;
         size_t m_currentOffset = 0;
         DestructorEntry* m_destructorHead = nullptr;
+        size_t m_allocationCount = 0;
     };
 
     // ── Template Implementation ──────────────────────────────

@@ -22,6 +22,7 @@ target_compile_definitions(wayfinder_common INTERFACE
     # Debug/Feature Flags (controlled by options)
     $<$<NOT:$<CONFIG:Shipping>>:WAYFINDER_ENABLE_ASSERTS>
     $<$<BOOL:${WAYFINDER_ENABLE_LOGGING}>:WAYFINDER_LOGGING_ENABLED>
+    $<$<BOOL:${WAYFINDER_ENABLE_PROFILING}>:WAYFINDER_PROFILING_ENABLED>
     $<$<BOOL:${WAYFINDER_PHYSICS}>:WAYFINDER_PHYSICS>
 
     # Platform-specific (Public controls #ifdef)

@@ -96,6 +96,7 @@ option(WAYFINDER_ENABLE_EXCEPTIONS "Enable C++ Exceptions" ON)
 option(WAYFINDER_ENABLE_LOGGING "Enable the logging system" ON) 
 
 option(WAYFINDER_PHYSICS "Enable physics support" ON)
+option(WAYFINDER_ENABLE_PROFILING "Enable Tracy profiling instrumentation" OFF)
 option(WAYFINDER_ENABLE_CLANG_TIDY "Run clang-tidy during Clang builds" OFF)
 
 message(STATUS "Wayfinder Project Configuration:")
@@ -112,7 +113,7 @@ include(WayfinderCommon)
 
 # --- Output Directories ---
 # Binaries go to a root-level bin/ folder (outside the build tree) for easy access.
-# Build intermediates stay in build/msvc/ or build/clang/.
+# Build intermediates stay in the per-preset build/ subdirectory (dev/, msvc/, etc.).
 set(OUTPUT_DIR_BASE "${CMAKE_SOURCE_DIR}/bin")
 
 function(wayfinder_set_output_directories target_name)

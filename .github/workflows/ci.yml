@@ -73,7 +73,7 @@ jobs:
           check_name: Test Results (Linux)
           fail_on_failure: true
 
-  # ── Build & Test (Windows / MSVC) ──────────────────────────────
+  # ── Build & Test (Windows / MSVC) ───────────────────────────────
   build-test-windows:
     name: Windows (MSVC)
     runs-on: windows-latest

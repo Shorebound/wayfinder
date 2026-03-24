@@ -1,5 +1,5 @@
 name: 'Setup Windows Build Environment'
-description: 'Install CMake, Ninja, and configure MSVC environment for Windows CI'
+description: 'Install CMake and initialise the MSVC toolchain for Windows CI'
 
 runs:
   using: composite

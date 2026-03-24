@@ -7,25 +7,38 @@
     },
     "configurePresets": [
         {
-            "name": "dev",
-            "displayName": "Development (Sandbox + Tools + Tests)",
-            "description": "Daily-driver preset: builds sandbox, tools, and tests",
-            "generator": "Visual Studio 17 2022",
-            "binaryDir": "${sourceDir}/build/msvc",
+            "name": "_base",
+            "hidden": true,
+            "description": "Shared options — not used directly",
             "cacheVariables": {
                 "CPM_SOURCE_CACHE": "${sourceDir}/thirdparty",
+                "CMAKE_COLOR_DIAGNOSTICS": "ON",
                 "WAYFINDER_BUILD_SANDBOX": "ON",
                 "WAYFINDER_BUILD_TOOLS": "ON",
                 "WAYFINDER_BUILD_TESTS": "ON",
                 "WAYFINDER_BUILD_EDITOR": "OFF",
                 "WAYFINDER_BUILD_RUNTIME": "OFF",
-                "WAYFINDER_BUILD_SAMPLES": "OFF"
+                "WAYFINDER_BUILD_SAMPLES": "OFF",
+                "WAYFINDER_ENABLE_PROFILING": "ON"
+            }
+        },
+        {
+            "name": "dev",
+            "displayName": "Development (Ninja + Clang)",
+            "description": "Ninja + Clang with LLD linker.",
+            "inherits": "_base",
+            "generator": "Ninja Multi-Config",
+            "binaryDir": "${sourceDir}/build/dev",
+            "cacheVariables": {
+                "CMAKE_C_COMPILER": "clang",
+                "CMAKE_CXX_COMPILER": "clang++",
+                "CMAKE_LINKER_TYPE": "LLD"
             }
         },
         {
             "name": "dev-all",
             "displayName": "Development (Everything)",
-            "description": "Builds all targets including editor, runtime, and samples",
+            "description": "All targets: sandbox, tools, tests, editor, runtime, and samples",
             "inherits": "dev",
             "cacheVariables": {
                 "WAYFINDER_BUILD_EDITOR": "ON",
@@ -34,67 +47,61 @@
             }
         },
         {
-            "name": "dev-clang",
-            "displayName": "Development (Clang on Windows)",
-            "description": "Local Clang builds — catches warnings that MSVC misses, provides compile_commands.json",
+            "name": "dev-tidy",
+            "displayName": "Development (clang-tidy)",
+            "description": "Clang build with clang-tidy static analysis on every compile",
+            "inherits": "dev",
+            "cacheVariables": {
+                "WAYFINDER_ENABLE_CLANG_TIDY": "ON"
+            }
+        },
+        {
+            "name": "dev-msvc",
+            "displayName": "Development (Ninja + MSVC)",
+            "description": "MSVC compiler validation.",
+            "inherits": "_base",
             "generator": "Ninja Multi-Config",
-            "binaryDir": "${sourceDir}/build/clang",
+            "binaryDir": "${sourceDir}/build/msvc",
             "condition": {
                 "type": "equals",
                 "lhs": "${hostSystemName}",
                 "rhs": "Windows"
             },
             "cacheVariables": {
-                "CPM_SOURCE_CACHE": "${sourceDir}/thirdparty",
-                "CMAKE_C_COMPILER": "clang",
-                "CMAKE_CXX_COMPILER": "clang++",
-                "WAYFINDER_BUILD_SANDBOX": "ON",
-                "WAYFINDER_BUILD_TOOLS": "ON",
-                "WAYFINDER_BUILD_TESTS": "ON",
-                "WAYFINDER_BUILD_EDITOR": "OFF",
-                "WAYFINDER_BUILD_RUNTIME": "OFF",
-                "WAYFINDER_BUILD_SAMPLES": "OFF",
-                "WAYFINDER_WARNINGS_AS_ERRORS": "ON"
+                "CMAKE_C_COMPILER": "cl",
+                "CMAKE_CXX_COMPILER": "cl"
             }
         },
         {
-            "name": "dev-clang-tidy",
-            "displayName": "Development (Clang + clang-tidy)",
-            "description": "Clang build with clang-tidy enabled — runs static analysis on every compile",
-            "inherits": "dev-clang",
-            "cacheVariables": {
-                "WAYFINDER_ENABLE_CLANG_TIDY": "ON"
-            }
-        },
-        {
-            "name": "ci",
-            "displayName": "CI",
-            "description": "Continuous integration preset with warnings-as-errors",
-            "inherits": "dev",
-            "cacheVariables": {
-                "WAYFINDER_WARNINGS_AS_ERRORS": "ON"
+            "name": "dev-vs",
+            "displayName": "Development (Visual Studio IDE)",
+            "description": "VS 2022 generator for opening in Visual Studio",
+            "inherits": "_base",
+            "generator": "Visual Studio 17 2022",
+            "binaryDir": "${sourceDir}/build/vs",
+            "condition": {
+                "type": "equals",
+                "lhs": "${hostSystemName}",
+                "rhs": "Windows"
             }
         },
         {
             "name": "shipping",
             "displayName": "Shipping",
-            "description": "Sandbox only, no dev tooling",
-            "generator": "Visual Studio 17 2022",
-            "binaryDir": "${sourceDir}/build/msvc",
+            "description": "Sandbox only, no dev tooling or profiling",
+            "inherits": "dev",
+            "binaryDir": "${sourceDir}/build/shipping",
             "cacheVariables": {
-                "CPM_SOURCE_CACHE": "${sourceDir}/thirdparty",
-                "WAYFINDER_BUILD_SANDBOX": "ON",
                 "WAYFINDER_BUILD_TOOLS": "OFF",
                 "WAYFINDER_BUILD_TESTS": "OFF",
-                "WAYFINDER_BUILD_EDITOR": "OFF",
-                "WAYFINDER_BUILD_RUNTIME": "OFF",
-                "WAYFINDER_BUILD_SAMPLES": "OFF"
+                "WAYFINDER_ENABLE_PROFILING": "OFF"
             }
         },
         {
             "name": "ci-linux",
-            "displayName": "CI (Linux / Clang)",
-            "description": "For Linux-based CI and cloud agents (Ninja + Clang)",
+            "displayName": "CI (Linux)",
+            "description": "Linux CI — Clang with libc++ and warnings-as-errors",
+            "inherits": "_base",
             "generator": "Ninja Multi-Config",
             "binaryDir": "${sourceDir}/build",
             "condition": {
@@ -103,27 +110,32 @@
                 "rhs": "Linux"
             },
             "cacheVariables": {
-                "CPM_SOURCE_CACHE": "${sourceDir}/thirdparty",
                 "CMAKE_C_COMPILER": "clang",
                 "CMAKE_CXX_COMPILER": "clang++",
                 "CMAKE_CXX_FLAGS": "-stdlib=libc++",
                 "CMAKE_EXE_LINKER_FLAGS": "-stdlib=libc++ -lc++abi",
-                "WAYFINDER_BUILD_SANDBOX": "ON",
-                "WAYFINDER_BUILD_TOOLS": "ON",
-                "WAYFINDER_BUILD_TESTS": "ON",
-                "WAYFINDER_BUILD_EDITOR": "OFF",
-                "WAYFINDER_BUILD_RUNTIME": "OFF",
-                "WAYFINDER_BUILD_SAMPLES": "OFF",
-                "WAYFINDER_WARNINGS_AS_ERRORS": "ON"
+                "WAYFINDER_WARNINGS_AS_ERRORS": "ON",
+                "WAYFINDER_ENABLE_PROFILING": "OFF"
             }
         },
         {
             "name": "ci-windows",
-            "displayName": "CI (Windows / MSVC)",
-            "description": "Windows CI — Ninja for speed, MSVC for compatibility",
+            "displayName": "CI (Windows)",
+            "description": "Windows CI — MSVC with warnings-as-errors",
+            "inherits": "_base",
             "generator": "Ninja Multi-Config",
             "binaryDir": "${sourceDir}/build",
-            "inherits": "ci"
+            "condition": {
+                "type": "equals",
+                "lhs": "${hostSystemName}",
+                "rhs": "Windows"
+            },
+            "cacheVariables": {
+                "CMAKE_C_COMPILER": "cl",
+                "CMAKE_CXX_COMPILER": "cl",
+                "WAYFINDER_WARNINGS_AS_ERRORS": "ON",
+                "WAYFINDER_ENABLE_PROFILING": "OFF"
+            }
         }
     ],
     "buildPresets": [
@@ -146,21 +158,21 @@
             "configuration": "Shipping"
         },
         {
+            "name": "msvc-debug",
+            "displayName": "MSVC (Debug)",
+            "configurePreset": "dev-msvc",
+            "configuration": "Debug"
+        },
+        {
+            "name": "tidy-debug",
+            "displayName": "clang-tidy (Debug)",
+            "configurePreset": "dev-tidy",
+            "configuration": "Debug"
+        },
+        {
             "name": "ci-linux-debug",
             "displayName": "CI Linux (Debug)",
             "configurePreset": "ci-linux",
-            "configuration": "Debug"
-        },
-        {
-            "name": "clang-debug",
-            "displayName": "Clang (Debug)",
-            "configurePreset": "dev-clang",
-            "configuration": "Debug"
-        },
-        {
-            "name": "clang-tidy-debug",
-            "displayName": "Clang + Tidy (Debug)",
-            "configurePreset": "dev-clang-tidy",
             "configuration": "Debug"
         },
         {
@@ -173,8 +185,17 @@
     "testPresets": [
         {
             "name": "test",
-            "displayName": "Run Tests (Debug)",
+            "displayName": "Run Tests",
             "configurePreset": "dev",
+            "configuration": "Debug",
+            "output": {
+                "outputJUnitFile": "test-results.xml"
+            }
+        },
+        {
+            "name": "msvc-test",
+            "displayName": "Run Tests (MSVC)",
+            "configurePreset": "dev-msvc",
             "configuration": "Debug",
             "output": {
                 "outputJUnitFile": "test-results.xml"
@@ -193,15 +214,6 @@
             "name": "ci-windows-test",
             "displayName": "Run Tests (CI Windows)",
             "configurePreset": "ci-windows",
-            "configuration": "Debug",
-            "output": {
-                "outputJUnitFile": "test-results.xml"
-            }
-        },
-        {
-            "name": "clang-test",
-            "displayName": "Run Tests (Clang)",
-            "configurePreset": "dev-clang",
             "configuration": "Debug",
             "output": {
                 "outputJUnitFile": "test-results.xml"
