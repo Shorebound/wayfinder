@@ -18,7 +18,7 @@ namespace Wayfinder
         }
     } // namespace
 
-    void TransformPlugin::Build(PluginRegistry& registry)
+    void TransformPlugin::Build(Plugins::PluginRegistry& registry)
     {
         registry.RegisterComponent({.Key = "world_transform", .RegisterFn = RegisterWorldTransformType});
         registry.RegisterSystem("UpdateWorldTransforms", [](flecs::world& world)

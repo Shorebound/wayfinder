@@ -1,7 +1,7 @@
 #include "TagRegistrar.h"
 #include "core/Log.h"
 
-namespace Wayfinder
+namespace Wayfinder::Plugins
 {
     void TagRegistrar::Register(Descriptor descriptor)
     {
@@ -33,4 +33,4 @@ namespace Wayfinder
         m_files.push_back(std::move(relativePath));
     }
 
-} // namespace Wayfinder
+} // namespace Wayfinder::Plugins

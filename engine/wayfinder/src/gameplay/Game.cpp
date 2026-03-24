@@ -18,7 +18,7 @@
 
 namespace Wayfinder
 {
-    Game::Game(const PluginRegistry& pluginRegistry) : m_pluginRegistry(pluginRegistry) {}
+    Game::Game(const Plugins::PluginRegistry& pluginRegistry) : m_pluginRegistry(pluginRegistry) {}
 
     Game::~Game()
     {

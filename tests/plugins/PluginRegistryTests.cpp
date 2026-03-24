@@ -15,6 +15,8 @@
 
 namespace Wayfinder::Tests
 {
+    using namespace Wayfinder::Plugins;
+
     static bool g_TestPluginBuildCalled = false;
 
     static ProjectDescriptor MakeTestProject()

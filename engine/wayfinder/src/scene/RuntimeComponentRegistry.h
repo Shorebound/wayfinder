@@ -10,10 +10,14 @@
 
 #include "wayfinder_exports.h"
 
+namespace Wayfinder::Plugins
+{
+    class PluginRegistry;
+}
+
 namespace Wayfinder
 {
     class Entity;
-    class PluginRegistry;
 
     /**
      * @brief Unified registry of serialisable ECS components, merging engine-core
@@ -47,7 +51,7 @@ namespace Wayfinder
         void AddCoreEntries();
 
         /// Merge game entries from a PluginRegistry's component descriptors.
-        void AddGameEntries(const class PluginRegistry& registry);
+        void AddGameEntries(const Plugins::PluginRegistry& registry);
 
         /// Register all components into a flecs world.
         void RegisterComponents(flecs::world& world) const;

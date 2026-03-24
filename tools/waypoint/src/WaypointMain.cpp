@@ -47,8 +47,8 @@ namespace
     {
         flecs::world World;
         Wayfinder::RuntimeComponentRegistry Registry;
-        std::optional<Wayfinder::LoadedPlugin> GamePlugin;
-        std::unique_ptr<Wayfinder::PluginRegistry> PluginReg;
+        std::optional<Wayfinder::Plugins::LoadedPlugin> GamePlugin;
+        std::unique_ptr<Wayfinder::Plugins::PluginRegistry> PluginReg;
 
         explicit WaypointContext(const Wayfinder::ProjectDescriptor* project = nullptr, const std::filesystem::path& toolDir = {})
         {
@@ -71,7 +71,7 @@ namespace
                 {
                     GamePlugin = std::move(*loadResult);
                     auto defaultConfig = Wayfinder::EngineConfig::LoadDefaults();
-                    PluginReg = std::make_unique<Wayfinder::PluginRegistry>(*project, defaultConfig);
+                    PluginReg = std::make_unique<Wayfinder::Plugins::PluginRegistry>(*project, defaultConfig);
                     GamePlugin->Instance->Build(*PluginReg);
                     Registry.AddGameEntries(*PluginReg);
                 }

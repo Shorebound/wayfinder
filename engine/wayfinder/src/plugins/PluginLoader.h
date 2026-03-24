@@ -7,7 +7,7 @@
 #include <filesystem>
 #include <memory>
 
-namespace Wayfinder
+namespace Wayfinder::Plugins
 {
 
     /// RAII wrapper for a dynamically loaded game plugin library.
@@ -50,4 +50,4 @@ namespace Wayfinder
         static Result<LoadedPlugin> Load(const std::filesystem::path& libraryPath);
     };
 
-} // namespace Wayfinder
+} // namespace Wayfinder::Plugins

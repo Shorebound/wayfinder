@@ -7,10 +7,10 @@ namespace Wayfinder
     /**
      * @brief Registers the active primary camera extraction system (OnUpdate).
      */
-    class WAYFINDER_API CameraPlugin : public Plugin
+    class WAYFINDER_API CameraPlugin : public Plugins::Plugin
     {
     public:
-        void Build(PluginRegistry& registry) override;
+        void Build(Plugins::PluginRegistry& registry) override;
     };
 
 } // namespace Wayfinder

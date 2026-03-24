@@ -17,17 +17,21 @@
 #include "scene/SceneSettings.h"
 #include "wayfinder_exports.h"
 
+namespace Wayfinder::Plugins
+{
+    class PluginRegistry;
+}
+
 namespace Wayfinder
 {
     class AssetService;
-    class PluginRegistry;
     class Scene;
     struct GameContext;
 
     class WAYFINDER_API Game
     {
     public:
-        explicit Game(const PluginRegistry& pluginRegistry);
+        explicit Game(const Plugins::PluginRegistry& pluginRegistry);
         ~Game();
 
         /**
@@ -113,7 +117,7 @@ namespace Wayfinder
         RuntimeComponentRegistry m_componentRegistry;
         std::unique_ptr<Scene> m_currentScene;
         std::shared_ptr<AssetService> m_assetService;
-        const PluginRegistry& m_pluginRegistry;
+        const Plugins::PluginRegistry& m_pluginRegistry;
         GameStateMachine* m_stateMachine = nullptr; ///< Non-owning; owned by m_subsystems.
         bool m_running = false;
         bool m_initialised = false;

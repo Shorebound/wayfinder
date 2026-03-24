@@ -1,8 +1,12 @@
 #pragma once
 
-namespace Wayfinder
+namespace Wayfinder::Plugins
 {
     class PluginRegistry;
+}
+
+namespace Wayfinder
+{
     struct ProjectDescriptor;
 
     /**
@@ -16,7 +20,7 @@ namespace Wayfinder
     struct GameContext
     {
         const ProjectDescriptor& project;
-        const PluginRegistry& pluginRegistry;
+        const Plugins::PluginRegistry& pluginRegistry;
     };
 
 } // namespace Wayfinder

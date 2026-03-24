@@ -5,7 +5,7 @@
 #include <string>
 #include <vector>
 
-namespace Wayfinder
+namespace Wayfinder::Plugins
 {
     /// Internal storage for gameplay-tag descriptors and tag-file paths.
     /// Owned by PluginRegistry — not a subsystem.
@@ -41,4 +41,4 @@ namespace Wayfinder
         std::vector<std::string> m_files;
     };
 
-} // namespace Wayfinder
+} // namespace Wayfinder::Plugins

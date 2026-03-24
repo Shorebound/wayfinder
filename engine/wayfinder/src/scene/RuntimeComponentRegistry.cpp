@@ -26,7 +26,7 @@ namespace Wayfinder
         }
     }
 
-    void RuntimeComponentRegistry::AddGameEntries(const PluginRegistry& registry)
+    void RuntimeComponentRegistry::AddGameEntries(const Plugins::PluginRegistry& registry)
     {
         for (const auto& desc : registry.GetComponentDescriptors())
         {

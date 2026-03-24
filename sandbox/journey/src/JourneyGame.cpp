@@ -22,12 +22,12 @@ namespace Wayfinder::Journey
     };
 
     /// Example plugin that registers a custom HealthComponent for scene authoring.
-    class HealthPlugin : public Plugin
+    class HealthPlugin : public Plugins::Plugin
     {
     public:
-        void Build(PluginRegistry& registry) override
+        void Build(Plugins::PluginRegistry& registry) override
         {
-            PluginRegistry::ComponentDescriptor desc;
+            Plugins::PluginRegistry::ComponentDescriptor desc;
             desc.Key = "health";
 
             desc.RegisterFn = [](flecs::world& world)
@@ -35,7 +35,7 @@ namespace Wayfinder::Journey
                 world.component<HealthComponent>();
             };
 
-            desc.ApplyFn = [](const nlohmann::json& table, Entity& entity)
+            desc.ApplyFn = [](const nlohmann::json& table, Wayfinder::Entity& entity)
             {
                 HealthComponent health;
                 health.MaxHealth = table.value("max_health", 100.0f);
@@ -43,7 +43,7 @@ namespace Wayfinder::Journey
                 entity.AddComponent<HealthComponent>(health);
             };
 
-            desc.SerialiseFn = [](const Entity& entity, nlohmann::json& tables)
+            desc.SerialiseFn = [](const Wayfinder::Entity& entity, nlohmann::json& tables)
             {
                 if (!entity.HasComponent<HealthComponent>())
                 {
@@ -110,10 +110,10 @@ namespace Wayfinder::Journey
     };
 
     /// Example plugin that registers game states and conditioned systems.
-    class GameplayPlugin : public Plugin
+    class GameplayPlugin : public Plugins::Plugin
     {
     public:
-        void Build(PluginRegistry& registry) override
+        void Build(Plugins::PluginRegistry& registry) override
         {
             // Register game states with lifecycle callbacks
             registry.RegisterState({"Playing", nullptr, nullptr});
@@ -145,10 +145,10 @@ namespace Wayfinder::Journey
     };
 
     /// Example plugin demonstrating gameplay tag registration.
-    class TagDemoPlugin : public Plugin
+    class TagDemoPlugin : public Plugins::Plugin
     {
     public:
-        void Build(PluginRegistry& registry) override
+        void Build(Plugins::PluginRegistry& registry) override
         {
             // Load data-driven tag files from config/tags/
             registry.RegisterTagFile("tags/status.tags.toml");
@@ -182,9 +182,9 @@ namespace Wayfinder::Journey
         }
     };
 
-    class JourneyGame : public Plugin
+    class JourneyGame : public Plugins::Plugin
     {
-        void Build(PluginRegistry& registry) override
+        void Build(Plugins::PluginRegistry& registry) override
         {
             registry.AddPlugin<TransformPlugin>();
             registry.AddPlugin<CameraPlugin>();
@@ -196,9 +196,12 @@ namespace Wayfinder::Journey
     };
 } // namespace Wayfinder::Journey
 
-std::unique_ptr<Wayfinder::Plugin> Wayfinder::CreateGamePlugin()
+namespace Wayfinder::Plugins
 {
-    return std::make_unique<Journey::JourneyGame>();
+    std::unique_ptr<Plugin> CreateGamePlugin()
+    {
+        return std::make_unique<Journey::JourneyGame>();
+    }
 }
 
 // Dynamic entry point for tools loading the plugin as a shared library.

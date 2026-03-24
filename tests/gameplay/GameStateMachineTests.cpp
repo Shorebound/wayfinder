@@ -14,6 +14,8 @@
 
 namespace Wayfinder::Tests
 {
+    using namespace Wayfinder::Plugins;
+
     /// Minimal helpers for headless testing.
     ProjectDescriptor MakeTestProject()
     {

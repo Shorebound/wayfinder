@@ -14,7 +14,7 @@ namespace Wayfinder
         ProjectDescriptor project{};
         project.Name = "HeadlessTest";
         const EngineConfig config = EngineConfig::LoadDefaults();
-        PluginRegistry registry(project, config);
+        Plugins::PluginRegistry registry(project, config);
         registry.AddPlugin<TransformPlugin>();
         registry.AddPlugin<CameraPlugin>();
         registry.ApplyComponentRegisterFns(world);

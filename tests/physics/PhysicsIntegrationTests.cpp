@@ -27,6 +27,7 @@
 namespace Wayfinder::Tests
 {
     using namespace Wayfinder::Physics;
+    using namespace Wayfinder::Plugins;
 
     /// Number of simulation steps (≈ 1 second at 60 Hz).
     constexpr int SIMULATION_STEPS = 60;

@@ -3,9 +3,9 @@
 
 #include "ecs/Flecs.h"
 
-namespace Wayfinder
+namespace Wayfinder::Plugins
 {
-    PluginRegistry::PluginRegistry(const ProjectDescriptor& project, const EngineConfig& config) : m_project(project), m_config(config) {}
+    PluginRegistry::PluginRegistry(const ::Wayfinder::ProjectDescriptor& project, const ::Wayfinder::EngineConfig& config) : m_project(project), m_config(config) {}
 
     void PluginRegistry::AddPlugin(std::unique_ptr<Plugin> plugin)
     {
@@ -34,7 +34,7 @@ namespace Wayfinder
         }
     }
 
-    void PluginRegistry::RegisterSystem(std::string name, SystemFactory factory, RunCondition condition, std::vector<std::string> after, std::vector<std::string> before)
+    void PluginRegistry::RegisterSystem(std::string name, SystemFactory factory, ::Wayfinder::RunCondition condition, std::vector<std::string> after, std::vector<std::string> before)
     {
         m_systems.Register(std::move(name), std::move(factory), std::move(condition), std::move(after), std::move(before));
     }
@@ -67,9 +67,9 @@ namespace Wayfinder
         m_states.SetInitial(std::move(stateName));
     }
 
-    GameplayTag PluginRegistry::RegisterTag(std::string tagName, std::string comment)
+    ::Wayfinder::GameplayTag PluginRegistry::RegisterTag(std::string tagName, std::string comment)
     {
-        GameplayTag tag = GameplayTag::FromName(tagName);
+        ::Wayfinder::GameplayTag tag = ::Wayfinder::GameplayTag::FromName(tagName);
         m_tags.Register({.Name = std::move(tagName), .Comment = std::move(comment)});
         return tag;
     }
@@ -102,14 +102,14 @@ namespace Wayfinder
         m_systems.ApplyToWorld(world);
     }
 
-    const ProjectDescriptor& PluginRegistry::GetProject() const
+    const ::Wayfinder::ProjectDescriptor& PluginRegistry::GetProject() const
     {
         return m_project;
     }
 
-    const EngineConfig& PluginRegistry::GetConfig() const
+    const ::Wayfinder::EngineConfig& PluginRegistry::GetConfig() const
     {
         return m_config;
     }
 
-} // namespace Wayfinder
+} // namespace Wayfinder::Plugins

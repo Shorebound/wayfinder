@@ -4,7 +4,7 @@
 
 #include <memory>
 
-namespace Wayfinder
+namespace Wayfinder::Plugins
 {
     class PluginRegistry;
 
@@ -38,4 +38,4 @@ namespace Wayfinder
      */
     extern std::unique_ptr<Plugin> CreateGamePlugin();
 
-} // namespace Wayfinder
+} // namespace Wayfinder::Plugins

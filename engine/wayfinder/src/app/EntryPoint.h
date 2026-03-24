@@ -6,7 +6,7 @@
 
 int main(int argc, char* argv[])
 {
-    auto gamePlugin = Wayfinder::CreateGamePlugin();
+    auto gamePlugin = Wayfinder::Plugins::CreateGamePlugin();
     Wayfinder::Application app(std::move(gamePlugin), {argc, argv});
     app.Run();
     return 0;

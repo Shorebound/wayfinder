@@ -7,10 +7,10 @@ namespace Wayfinder
     /**
      * @brief Registers the world-space transform propagation system (PreUpdate).
      */
-    class WAYFINDER_API TransformPlugin : public Plugin
+    class WAYFINDER_API TransformPlugin : public Plugins::Plugin
     {
     public:
-        void Build(PluginRegistry& registry) override;
+        void Build(Plugins::PluginRegistry& registry) override;
     };
 
 } // namespace Wayfinder

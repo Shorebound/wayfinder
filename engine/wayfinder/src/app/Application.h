@@ -6,12 +6,16 @@
 #include <memory>
 #include <string>
 
+namespace Wayfinder::Plugins
+{
+    class Plugin;
+    class PluginRegistry;
+}
+
 namespace Wayfinder
 {
     class EngineRuntime;
     class Game;
-    class Plugin;
-    class PluginRegistry;
     class LayerStack;
     struct EngineConfig;
     struct ProjectDescriptor;
@@ -36,7 +40,7 @@ namespace Wayfinder
          *                    Application.  May be null for a bare engine run.
          * @param args    Command-line arguments forwarded from main().
          */
-        explicit Application(std::unique_ptr<Plugin> gamePlugin, const CommandLineArgs& args);
+        explicit Application(std::unique_ptr<Plugins::Plugin> gamePlugin, const CommandLineArgs& args);
         ~Application();
 
         void Run();
@@ -54,8 +58,8 @@ namespace Wayfinder
         bool OnWindowClose(class WindowCloseEvent& e);
         bool OnWindowResize(class WindowResizeEvent& e);
 
-        std::unique_ptr<Plugin> m_gamePlugin;
-        std::unique_ptr<PluginRegistry> m_pluginRegistry;
+        std::unique_ptr<Plugins::Plugin> m_gamePlugin;
+        std::unique_ptr<Plugins::PluginRegistry> m_pluginRegistry;
         std::unique_ptr<ProjectDescriptor> m_project;
         std::unique_ptr<EngineConfig> m_config;
         CommandLineArgs m_args{};

@@ -11,7 +11,7 @@
 #include <dlfcn.h>
 #endif
 
-namespace Wayfinder
+namespace Wayfinder::Plugins
 {
 
     // ---------------------------------------------------------------
@@ -132,4 +132,4 @@ namespace Wayfinder
         return result;
     }
 
-} // namespace Wayfinder
+} // namespace Wayfinder::Plugins

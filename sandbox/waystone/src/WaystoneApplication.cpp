@@ -4,16 +4,19 @@
 #include "scene/plugins/CameraPlugin.h"
 #include "scene/plugins/TransformPlugin.h"
 
-class WaystoneGame : public Wayfinder::Plugin
+class WaystoneGame : public Wayfinder::Plugins::Plugin
 {
-    void Build(Wayfinder::PluginRegistry& registry) override
+    void Build(Wayfinder::Plugins::PluginRegistry& registry) override
     {
         registry.AddPlugin<Wayfinder::TransformPlugin>();
         registry.AddPlugin<Wayfinder::CameraPlugin>();
     }
 };
 
-std::unique_ptr<Wayfinder::Plugin> Wayfinder::CreateGamePlugin()
+namespace Wayfinder::Plugins
 {
-    return std::make_unique<WaystoneGame>();
+    std::unique_ptr<Plugin> CreateGamePlugin()
+    {
+        return std::make_unique<WaystoneGame>();
+    }
 }

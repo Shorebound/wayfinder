@@ -19,7 +19,7 @@
 
 namespace Wayfinder
 {
-    Application::Application(std::unique_ptr<Plugin> gamePlugin, const CommandLineArgs& args) : m_gamePlugin(std::move(gamePlugin)), m_args(args) {}
+    Application::Application(std::unique_ptr<Plugins::Plugin> gamePlugin, const CommandLineArgs& args) : m_gamePlugin(std::move(gamePlugin)), m_args(args) {}
 
     Application::~Application()
     {
@@ -70,7 +70,7 @@ namespace Wayfinder
         m_config = std::make_unique<EngineConfig>(EngineConfig::LoadFromFile(m_project->ResolveEngineConfigPath()));
 
         // 3. Plugin registration (before Game so scene creation can use factories)
-        m_pluginRegistry = std::make_unique<PluginRegistry>(*m_project, *m_config);
+        m_pluginRegistry = std::make_unique<Plugins::PluginRegistry>(*m_project, *m_config);
         if (m_gamePlugin)
         {
             m_pluginRegistry->AddPlugin(std::move(m_gamePlugin));

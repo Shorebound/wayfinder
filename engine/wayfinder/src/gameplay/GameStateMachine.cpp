@@ -9,7 +9,7 @@
 
 namespace Wayfinder
 {
-    void GameStateMachine::Configure(flecs::world& world, const PluginRegistry& pluginRegistry)
+    void GameStateMachine::Configure(flecs::world& world, const Plugins::PluginRegistry& pluginRegistry)
     {
         m_world = &world;
         m_pluginRegistry = &pluginRegistry;
@@ -54,8 +54,8 @@ namespace Wayfinder
             }
         }
 
-        const PluginRegistry::StateDescriptor* targetDesc = nullptr;
-        const PluginRegistry::StateDescriptor* exitDesc = nullptr;
+        const Plugins::PluginRegistry::StateDescriptor* targetDesc = nullptr;
+        const Plugins::PluginRegistry::StateDescriptor* exitDesc = nullptr;
         {
             const auto& state = m_world->get<ActiveGameState>();
             for (const auto& desc : m_pluginRegistry->GetStateDescriptors())
