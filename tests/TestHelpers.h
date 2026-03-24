@@ -14,7 +14,7 @@ namespace Wayfinder::Tests::Helpers
         return std::filesystem::path(__FILE__).parent_path() / "fixtures";
     }
 
-    /// Creates a RuntimeComponentRegistry seeded with core entries.
+    /// Creates a \ref RuntimeComponentRegistry with core scene entries only (no \ref Plugins::PluginRegistry merge).
     inline RuntimeComponentRegistry MakeTestRegistry()
     {
         RuntimeComponentRegistry registry;

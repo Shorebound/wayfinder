@@ -6,6 +6,7 @@ This file documents common mistakes, confusion points, and non-obvious behaviour
 
 ## Build System
 
+- **Stale build trees after engine source moves.** If Ninja still tries to compile paths under `engine/wayfinder/src/modules/...` after the plugin migration, the build directory predates the current `CMakeLists.txt`. Reconfigure from scratch: `cmake --preset dev` (or wipe `build/<preset>` and configure again).
 - **Test executables are opt-in.** `WAYFINDER_BUILD_TESTS` defaults to `OFF`. Use the `dev` preset or pass `-DWAYFINDER_BUILD_TESTS=ON` explicitly.
 - **MSVC vs Clang differences.** The primary local dev compiler is MSVC; cloud agents use Clang with libc++. Code must compile on both. Watch for MSVC-specific pragmas (guard with `#ifdef WAYFINDER_COMPILER_MSVC`) and C++23 feature availability differences between compilers.
 - **Linux CI must force-select the right Clang via `update-alternatives --set`.** Installing `clang-22` and registering it with `--install` is not enough on GitHub runners — if alternatives is already in manual mode for an older version, higher priority alone won't switch it. The setup action uses `--set` to force selection and a verification step that fails the build if the resolved major version doesn't match. The CMake preset uses generic `clang`/`clang++` and trusts the environment.
@@ -35,7 +36,7 @@ This file documents common mistakes, confusion points, and non-obvious behaviour
 
 ## Plugin System
 
-- **Shared game modules must export `WayfinderGetPluginAPIVersion` (included in `WAYFINDER_IMPLEMENT_GAME_PLUGIN`).** The loader compares the returned value to `Wayfinder::Plugins::WAYFINDER_PLUGIN_ABI_VERSION` before calling create/destroy; bump the constant when the plugin ABI changes.
+- **Shared game plugins must export `WayfinderGetPluginAPIVersion` (included in `WAYFINDER_IMPLEMENT_GAME_PLUGIN`).** The loader compares the returned value to `Wayfinder::Plugins::WAYFINDER_PLUGIN_ABI_VERSION` before calling create/destroy; bump the constant when the plugin ABI changes.
 - **`Plugin::Build()` stores factories, not live registrations.** `PluginRegistry` collects descriptors that are applied once via `ApplyToWorld(flecs::world&)` at startup.
 - **Runtime-only vs scene JSON components.** Use a single `RegisterComponent(ComponentDescriptor)` entry: set Apply/Serialise/Validate for authoring; for runtime-only Flecs types, only `Key` + `RegisterFn` (e.g. `world.component<T>()`). `RuntimeComponentRegistry::RegisterComponents` applies all `RegisterFn`s; headless paths without a merged registry call `PluginRegistry::ApplyComponentRegisterFns` instead.
 - **Scene plugins are opt-in on the game root plugin.** `Application` does not register transform/camera (or any engine scene plugins). The game’s root `Plugin::Build()` adds `TransformPlugin`, `CameraPlugin`, etc., like Bevy’s explicit `add_plugins(DefaultPlugins)` — a `DefaultPlugins` bundle can wrap that later.

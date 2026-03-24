@@ -16,7 +16,8 @@ namespace Wayfinder
         /// Path to the boot scene, relative to AssetRoot.
         std::string BootScene = "scenes/default_scene.json";
         std::string ConfigDir = "config";
-        std::string Module; ///< Shared library name for game module (empty = none).
+        /// Base name of the game plugin shared library (no prefix/suffix; empty = none).
+        std::string Plugin;
     };
 
     inline constexpr const char* DEFAULT_PROJECT_NAME = "Untitled";
@@ -56,10 +57,10 @@ namespace Wayfinder
             return ResolveConfigDir() / "engine.toml";
         }
 
-        /// Resolve the absolute path to the game module shared library.
+        /// Resolve the absolute path to the game plugin shared library.
         /// Applies platform-specific prefix/suffix (e.g. .dll on Windows, lib*.so on Linux).
-        /// Returns empty path if no module is configured.
-        std::filesystem::path ResolveModulePath() const;
+        /// Returns empty path if no plugin library is configured.
+        std::filesystem::path ResolvePluginLibraryPath() const;
 
         /**
          * @brief Load a project descriptor from a TOML file with validation.

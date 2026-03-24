@@ -33,6 +33,7 @@ namespace Wayfinder
     Scene::Scene(flecs::world& world, const RuntimeComponentRegistry& componentRegistry, std::string name) : m_world(world), m_componentRegistry(componentRegistry), m_name(std::move(name))
     {
         m_sceneTag = m_world.entity();
+        m_ownedEntitiesQuery = m_world.query_builder<>().with<SceneOwnership>(m_sceneTag).build();
     }
 
     void Scene::RegisterEntityId(flecs::entity entityHandle, const SceneObjectId& id) const
@@ -112,29 +113,24 @@ namespace Wayfinder
         world.component<PrefabInstanceComponent>();
     }
 
-    void Scene::ClearEntities()
+    void Scene::ClearEntities(const bool rebuildOwnedEntitiesQuery)
     {
-        for (const auto& [id, entityId] : m_entitiesById)
+        /// Cached query must not outlive deletes — and must not be rebuilt on shutdown while \ref m_sceneTag
+        /// still exists, or Flecs keeps the tag entity delete-locked for queries.
+        m_ownedEntitiesQuery = flecs::query<>{};
+
+        flecs::query<> collectQuery = m_world.query_builder<>().with<SceneOwnership>(m_sceneTag).build();
+        std::vector<flecs::entity> owned;
+        collectQuery.each([&](flecs::entity entityHandle)
         {
-            const flecs::entity entityHandle = m_world.entity(entityId);
             if (entityHandle.is_valid())
             {
-                entityHandle.destruct();
-            }
-        }
-
-        /// Fallback sweep: catch any scene-owned entities that lost their
-        /// map entry (e.g. after SetSceneObjectId({}) removed them from
-        /// m_entitiesById but left the flecs entity alive).
-        std::vector<flecs::entity> orphans;
-        m_world.each([&](flecs::entity entityHandle)
-        {
-            if (entityHandle.is_valid() && entityHandle.has<SceneOwnership>(m_sceneTag))
-            {
-                orphans.push_back(entityHandle);
+                owned.push_back(entityHandle);
             }
         });
-        for (auto& entityHandle : orphans)
+        collectQuery = flecs::query<>{};
+
+        for (flecs::entity entityHandle : owned)
         {
             entityHandle.destruct();
         }
@@ -144,6 +140,11 @@ namespace Wayfinder
 
         // Reset scene-scoped settings
         m_world.set<SceneSettings>({});
+
+        if (rebuildOwnedEntitiesQuery && m_sceneTag.is_valid())
+        {
+            m_ownedEntitiesQuery = m_world.query_builder<>().with<SceneOwnership>(m_sceneTag).build();
+        }
     }
 
     void Scene::Shutdown()
@@ -155,12 +156,12 @@ namespace Wayfinder
 
         WAYFINDER_INFO(LogScene, "Shutting down scene: {0}", m_name);
 
-        ClearEntities();
+        ClearEntities(false);
 
-        if (m_sceneTag.is_valid())
-        {
-            m_sceneTag.destruct();
-        }
+        /// Do not \c ecs_delete the scene tag entity: Flecs may keep query/relationship bookkeeping
+        /// that references the tag as a pair target until \c ecs_fini. The tag is inert once all
+        /// scene-owned entities are cleared; abandon our handle so we never dereference it again.
+        m_sceneTag = flecs::entity{};
 
         m_active = false;
     }
@@ -264,7 +265,10 @@ namespace Wayfinder
             for (const SceneDocumentEntity& definition : loadResult.Document->Entities)
             {
                 Entity entity = CreateEntity(definition.Name);
-                entity.SetSceneObjectId(definition.Id);
+                if (const auto idResult = entity.SetSceneObjectId(definition.Id); !idResult)
+                {
+                    return MakeError(std::format("Failed to set scene object id for '{}': {}", definition.Name, idResult.error().GetMessage()));
+                }
 
                 m_componentRegistry.ApplyComponents(definition.ComponentData, entity);
 
@@ -328,13 +332,8 @@ namespace Wayfinder
                 document.Settings = m_world.get<SceneSettings>().GetData();
             }
 
-            m_world.each([&](flecs::entity entityHandle)
+            m_ownedEntitiesQuery.each([&](flecs::entity entityHandle)
             {
-                if (!entityHandle.has<SceneOwnership>(m_sceneTag))
-                {
-                    return;
-                }
-
                 const Entity entity{entityHandle, this};
                 if (!entity.HasSceneObjectId())
                 {

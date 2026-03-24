@@ -7,7 +7,7 @@ namespace Wayfinder::Physics
     /**
      * @brief Registers the Jolt physics subsystem, components, and ECS systems.
      *
-     * Add to a game module via:
+     * Add to a game plugin via:
      * @code
      *   registry.AddPlugin<PhysicsPlugin>();
      * @endcode

@@ -26,7 +26,7 @@ Implemented and usable now:
 - authored TOML scenes and prefabs
 - typed prefab and material asset scanning
 - scene validation and roundtrip save through `waypoint`
-- explicit runtime module registration for scene systems such as world-transform propagation and active camera extraction
+- explicit scene plugin registration for systems such as world-transform propagation and active camera extraction
 
 Present but not yet full products:
 

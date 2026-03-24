@@ -89,7 +89,9 @@ namespace Wayfinder
     private:
         friend class Entity;
 
-        void ClearEntities();
+        /// Clears scene entities. When \p rebuildOwnedEntitiesQuery is false (shutdown path), the cached
+        /// ownership query is not rebuilt so \ref m_sceneTag can be destroyed without Flecs query locks.
+        void ClearEntities(bool rebuildOwnedEntitiesQuery = true);
         void RegisterEntityId(flecs::entity entityHandle, const SceneObjectId& id) const;
         void UnregisterEntityId(const SceneObjectId& id) const;
         void UpdateEntityId(flecs::entity entityHandle, const SceneObjectId& previousId, const SceneObjectId& newId) const;
@@ -97,9 +99,16 @@ namespace Wayfinder
         void UnregisterEntityName(const std::string& name) const;
         void UpdateEntityName(flecs::entity entityHandle, const std::string& previousName, const std::string& newName) const;
 
+        flecs::entity GetSceneTag() const
+        {
+            return m_sceneTag;
+        }
+
         flecs::world& m_world;
         const RuntimeComponentRegistry& m_componentRegistry;
         flecs::entity m_sceneTag;
+        /// Cached query: entities with \ref SceneOwnership for this scene (single source of truth for scene membership).
+        mutable flecs::query<> m_ownedEntitiesQuery;
         mutable std::unordered_map<SceneObjectId, flecs::entity_t> m_entitiesById;
         mutable std::unordered_map<std::string, flecs::entity_t> m_entitiesByName;
         std::string m_name;

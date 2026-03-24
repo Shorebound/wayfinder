@@ -7,6 +7,7 @@
 #include "ecs/Flecs.h"
 
 #include "core/Identifiers.h"
+#include "core/Result.h"
 #include "wayfinder_exports.h"
 
 namespace Wayfinder
@@ -91,7 +92,7 @@ namespace Wayfinder
         void SetName(const std::string& name);
         bool HasSceneObjectId() const;
         SceneObjectId GetSceneObjectId() const;
-        void SetSceneObjectId(const SceneObjectId& id);
+        Result<void> SetSceneObjectId(const SceneObjectId& id);
         bool HasPrefabAssetId() const;
         AssetId GetPrefabAssetId() const;
         void SetPrefabAssetId(const AssetId& id);
