@@ -20,6 +20,7 @@ Exit codes:
 import argparse
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -115,6 +116,9 @@ def _filter_compile_db(compile_commands: Path, *, config: str) -> Path:
     Ninja Multi-Config emits entries for every configuration.  Each entry's
     command contains -DCMAKE_INTDIR=\\"<Config>\\" which we use to filter.
     Returns a temp directory containing the filtered compile_commands.json.
+
+    Also strips PCH includes and module-map response files that won't exist
+    when running without a build (e.g. in CI static-analysis jobs).
     """
     with open(compile_commands, 'r', encoding='utf-8') as f:
         entries = json.load(f)
@@ -130,6 +134,17 @@ def _filter_compile_db(compile_commands: Path, *, config: str) -> Path:
             if src not in seen:
                 seen.add(src)
                 filtered.append(entry)
+
+    # Strip flags that reference build artefacts which may not exist:
+    #  - "-include /path/to/cmake_pch.hxx" triggers a missing-PCH error
+    #  - "@...modmap" response files for C++20 modules
+    pch_re = re.compile(r'\s-include\s+\S*cmake_pch[^\s]*')
+    modmap_re = re.compile(r'\s@\S*\.modmap')
+    for entry in filtered:
+        cmd = entry.get('command', '')
+        cmd = pch_re.sub('', cmd)
+        cmd = modmap_re.sub('', cmd)
+        entry['command'] = cmd
 
     tmp_dir = Path(tempfile.mkdtemp(prefix='wayfinder-tidy-'))
     out_path = tmp_dir / 'compile_commands.json'
@@ -180,7 +195,8 @@ def run_tidy(
         return False
 
     # Filter to .cpp — headers are analysed via includes.
-    cpp_files = [f for f in files if f.suffix == '.cpp']
+    # Also drop files that no longer exist (e.g. deleted in the current branch).
+    cpp_files = [f for f in files if f.suffix == '.cpp' and f.exists()]
     if not cpp_files:
         print(_yellow('No .cpp files to analyse.'))
         return False
