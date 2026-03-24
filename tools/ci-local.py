@@ -22,11 +22,10 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 LINT_SCRIPT = ROOT / 'tools' / 'lint.py'
 
-# The dev-clang preset mirrors CI's Clang + Ninja setup on Windows.
-# On Linux/macOS, "dev" would also work — but dev-clang catches more warnings.
-CONFIGURE_PRESET = 'dev-clang'
-BUILD_PRESET = 'clang-debug'
-TEST_PRESET = 'clang-test'
+# The normal dev preset is now the primary Clang + Ninja workflow.
+CONFIGURE_PRESET = 'dev'
+BUILD_PRESET = 'debug'
+TEST_PRESET = 'test'
 
 
 def _banner(msg: str) -> None:

@@ -237,7 +237,7 @@ python tools/lint.py --changed
 python tools/lint.py --tidy
 
 # Override compile_commands.json location
-python tools/lint.py --tidy --build-dir build/clang
+python tools/lint.py --tidy --build-dir build
 ```
 
 `tools/tidy.py` is a dedicated clang-tidy runner with better ergonomics:
@@ -259,7 +259,7 @@ python tools/tidy.py --fix
 To generate `compile_commands.json` for clang-tidy:
 
 ```powershell
-cmake --preset dev-clang
+cmake --preset dev
 ```
 
 ### Pre-commit Hooks
