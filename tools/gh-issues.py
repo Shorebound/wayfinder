@@ -15,6 +15,7 @@ import os
 import subprocess
 import sys
 import tempfile
+from collections.abc import Callable
 from dataclasses import dataclass, field
 
 # --- Constants ---
@@ -212,7 +213,7 @@ def _do_relationship_action(
     primary_label: str,
     target_label: str,
     mutation_name: str,
-    build_mutation: callable,
+    build_mutation: Callable[[str, str], str],
     ok_verb: str,
 ) -> None:
     """Generic helper for relationship add/remove actions."""
@@ -840,7 +841,7 @@ def show_orphans() -> None:
         )
     else:
         print(
-            f"{c(Colour.YELLOW)}  Orphaned issues ({len(orphans)} — no parent, no milestone):{c(Colour.RESET)}\n"
+            f"{c(Colour.YELLOW)}  Orphaned issues ({len(orphans)} -- no parent, no milestone):{c(Colour.RESET)}\n"
         )
         for o in orphans:
             label_suffix = f" [{o['labels']}]" if o["labels"] else ""
