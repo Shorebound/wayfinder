@@ -23,6 +23,7 @@ from dataclasses import dataclass, field
 OWNER = "Shorebound"
 REPO = "wayfinder"
 MAX_RECURSION_DEPTH = 25
+GH_PAGE_LIMIT = 200
 
 # --- ANSI Colours ---
 
@@ -134,6 +135,16 @@ def run_mutation(mutation: str) -> GhResult:
     return run_graphql(mutation, "GraphQL mutation")
 
 
+def _warn_if_truncated(issues: list, context: str) -> None:
+    """Warn if the result set may have been truncated by the page limit."""
+    if len(issues) >= GH_PAGE_LIMIT:
+        print(
+            f"{c(Colour.YELLOW)}  Warning: {context} returned {GH_PAGE_LIMIT} results \u2014 "
+            f"list may be truncated.{c(Colour.RESET)}",
+            file=sys.stderr,
+        )
+
+
 # --- Data Types ---
 
 
@@ -149,6 +160,7 @@ class TreeNode:
     title: str = ""
     state: str = ""
     children: list[TreeNode] = field(default_factory=list)
+    fetch_failed: bool = False
 
 
 @dataclass
@@ -592,10 +604,16 @@ def show_batch_summary(issue_numbers: list[int]) -> bool:
     )
     print(f"{c(Colour.GRAY)}  {'-' * 75}{c(Colour.RESET)}")
 
+    had_missing = False
     for num in unique:
         key = f"i{num}"
         iss = data["data"]["repository"][key]
         if iss is None:
+            print(
+                f"Issue #{num} not found or inaccessible — skipping.",
+                file=sys.stderr,
+            )
+            had_missing = True
             continue
 
         iss_state = iss["state"]
@@ -630,13 +648,13 @@ def show_batch_summary(issue_numbers: list[int]) -> bool:
             f"{state_colour}{pad_right(sub_str, 12)}{iss_title}{c(Colour.RESET)}"
         )
     print()
-    return True
+    return not had_missing
 
 
 def show_ready() -> bool:
     gh_result = run_gh(
         ["issue", "list", "--repo", f"{OWNER}/{REPO}", "--state", "open",
-         "--limit", "200", "--json", "number,title,state,labels"],
+         "--limit", str(GH_PAGE_LIMIT), "--json", "number,title,state,labels"],
         "ShowReady",
     )
     if not gh_result.ok:
@@ -644,6 +662,7 @@ def show_ready() -> bool:
         return False
 
     issues = gh_result.data
+    _warn_if_truncated(issues, "ShowReady")
     if not issues:
         print(
             f"\n{c(Colour.YELLOW)}  No open issues found.{c(Colour.RESET)}\n"
@@ -734,7 +753,7 @@ def show_ready() -> bool:
 def show_milestone_status(milestone_title: str) -> bool:
     gh_result = run_gh(
         ["issue", "list", "--repo", f"{OWNER}/{REPO}", "--milestone", milestone_title,
-         "--state", "all", "--limit", "200", "--json", "number,title,state,labels"],
+         "--state", "all", "--limit", str(GH_PAGE_LIMIT), "--json", "number,title,state,labels"],
         "ShowMilestoneStatus",
     )
     if not gh_result.ok:
@@ -742,6 +761,7 @@ def show_milestone_status(milestone_title: str) -> bool:
         return False
 
     issues = gh_result.data
+    _warn_if_truncated(issues, "ShowMilestoneStatus")
     if not issues:
         print(
             f"{c(Colour.YELLOW)}No issues found for milestone '{milestone_title}'.{c(Colour.RESET)}"
@@ -798,7 +818,7 @@ def show_milestone_status(milestone_title: str) -> bool:
 def show_orphans() -> bool:
     gh_result = run_gh(
         ["issue", "list", "--repo", f"{OWNER}/{REPO}", "--state", "open",
-         "--limit", "200", "--search", "no:milestone",
+         "--limit", str(GH_PAGE_LIMIT), "--search", "no:milestone",
          "--json", "number,title,labels"],
         "ShowOrphans",
     )
@@ -807,6 +827,7 @@ def show_orphans() -> bool:
         return False
 
     issues = gh_result.data
+    _warn_if_truncated(issues, "ShowOrphans")
     if not issues:
         print(
             f"\n{c(Colour.GREEN)}  No open issues without a milestone.{c(Colour.RESET)}\n"
@@ -896,33 +917,30 @@ def show_chain(issue_number: int) -> bool:
 
         result = run_graphql(query, "ShowChain")
         if not result.ok:
-            if depth == 0:
-                print(
-                    f"ShowChain: error for root issue #{num}: {result.error}",
-                    file=sys.stderr,
-                )
-                root_failed = True
+            print(
+                f"ShowChain: error for issue #{num} (depth {depth}): {result.error}",
+                file=sys.stderr,
+            )
+            root_failed = True
             return
 
         data = result.data
         if "errors" in data:
-            if depth == 0:
-                print(
-                    f"ShowChain: GraphQL error for root issue #{num}: "
-                    f"{data['errors'][0]['message']}",
-                    file=sys.stderr,
-                )
-                root_failed = True
+            print(
+                f"ShowChain: GraphQL error for issue #{num} (depth {depth}): "
+                f"{data['errors'][0]['message']}",
+                file=sys.stderr,
+            )
+            root_failed = True
             return
 
         issue = data["data"]["repository"]["issue"]
         if issue is None:
-            if depth == 0:
-                print(
-                    f"ShowChain: Issue not found or inaccessible: #{num}",
-                    file=sys.stderr,
-                )
-                root_failed = True
+            print(
+                f"ShowChain: Issue not found or inaccessible: #{num} (depth {depth})",
+                file=sys.stderr,
+            )
+            root_failed = True
             return
 
         chain.append(
@@ -1012,8 +1030,19 @@ def _get_tree_counts(nodes: list[TreeNode]) -> tuple[int, int]:
     return done, total
 
 
-def _fetch_sub_issue_tree(num: int, depth: int) -> TreeNode | None:
-    """Recursively fetch the sub-issue tree."""
+class _FetchError:
+    """Sentinel indicating a network/query failure (distinct from depth-cap)."""
+    def __init__(self, message: str) -> None:
+        self.message = message
+
+
+def _fetch_sub_issue_tree(num: int, depth: int) -> TreeNode | _FetchError | None:
+    """Recursively fetch the sub-issue tree.
+
+    Returns:
+        TreeNode on success, None when depth cap is reached,
+        _FetchError on network/query failure.
+    """
     if depth > MAX_RECURSION_DEPTH:
         print(
             f"{c(Colour.YELLOW)}  ShowTree: depth cap reached at #{num} — stopping{c(Colour.RESET)}"
@@ -1034,19 +1063,20 @@ def _fetch_sub_issue_tree(num: int, depth: int) -> TreeNode | None:
     result = run_graphql(query, "ShowTree")
     if not result.ok:
         print(result.error, file=sys.stderr)
-        return None
+        return _FetchError(result.error)
 
     data = result.data
     if "errors" in data:
+        msg = data["errors"][0]["message"]
         print(
             f"{c(Colour.YELLOW)}Note: Some fields may not be available on your GitHub plan.{c(Colour.RESET)}"
         )
-        print(data["errors"][0]["message"], file=sys.stderr)
-        return None
+        print(msg, file=sys.stderr)
+        return _FetchError(msg)
 
     issue = data["data"]["repository"]["issue"]
     if issue is None:
-        return None
+        return _FetchError(f"Issue #{num} not found or inaccessible")
 
     node = TreeNode(
         number=issue["number"],
@@ -1054,12 +1084,24 @@ def _fetch_sub_issue_tree(num: int, depth: int) -> TreeNode | None:
         state=issue["state"],
     )
 
+    had_fetch_error = False
     for child in issue["subIssues"]["nodes"]:
-        child_tree = _fetch_sub_issue_tree(child["number"], depth + 1)
-        if child_tree is not None:
-            node.children.append(child_tree)
+        child_result = _fetch_sub_issue_tree(child["number"], depth + 1)
+        if isinstance(child_result, _FetchError):
+            # Propagate that the tree is incomplete
+            had_fetch_error = True
+            node.children.append(
+                TreeNode(
+                    number=child["number"],
+                    title=child["title"],
+                    state=child["state"],
+                    fetch_failed=True,
+                )
+            )
+        elif child_result is not None:
+            node.children.append(child_result)
         else:
-            # Leaf node or fetch failed
+            # Depth-cap leaf — represent as a plain leaf node
             node.children.append(
                 TreeNode(
                     number=child["number"],
@@ -1067,6 +1109,9 @@ def _fetch_sub_issue_tree(num: int, depth: int) -> TreeNode | None:
                     state=child["state"],
                 )
             )
+
+    if had_fetch_error:
+        node.fetch_failed = True
 
     return node
 
@@ -1086,8 +1131,10 @@ def _print_tree_node(node: TreeNode, depth: int) -> None:
         done, total = _get_tree_counts(node.children)
         child_progress = f" ({done}/{total})"
 
+    fetch_marker = f" {c(Colour.RED)}[FETCH FAILED]{c(Colour.RESET)}" if node.fetch_failed and not node.children else ""
+
     print(
-        f"{colour}  {indent}{icon} #{node.number} - {node.title}{child_progress}{c(Colour.RESET)}"
+        f"{colour}  {indent}{icon} #{node.number} - {node.title}{child_progress}{c(Colour.RESET)}{fetch_marker}"
     )
 
     for child in node.children:
@@ -1096,6 +1143,12 @@ def _print_tree_node(node: TreeNode, depth: int) -> None:
 
 def show_tree(issue_number: int) -> bool:
     tree = _fetch_sub_issue_tree(issue_number, 0)
+    if isinstance(tree, _FetchError):
+        print(
+            f"Failed to fetch issue tree for #{issue_number}: {tree.message}",
+            file=sys.stderr,
+        )
+        return False
     if tree is None:
         print(
             f"Issue not found or inaccessible: #{issue_number}", file=sys.stderr
@@ -1104,8 +1157,15 @@ def show_tree(issue_number: int) -> bool:
 
     print()
     _print_tree_node(tree, 0)
+
+    if tree.fetch_failed:
+        print(
+            f"\n{c(Colour.YELLOW)}  Warning: Some sub-issues could not be fetched. "
+            f"Counts may be incomplete.{c(Colour.RESET)}"
+        )
+
     print()
-    return True
+    return not tree.fetch_failed
 
 
 # --- Argument Parsing ---
