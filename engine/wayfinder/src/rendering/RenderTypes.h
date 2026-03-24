@@ -80,7 +80,30 @@ namespace Wayfinder
         uint32_t height = 0;
         TextureFormat format = TextureFormat::RGBA8_UNORM;
         TextureUsage usage = TextureUsage::ColourTarget;
+
+        /** @brief Number of mip levels. 1 = base level only (no mipmaps). */
+        uint32_t mipLevels = 1;
     };
+
+    /**
+     * @brief Calculate the full mip chain level count for a 2D texture.
+     * @return floor(log2(max(width, height))) + 1, or 1 if either dimension is zero.
+     */
+    inline constexpr uint32_t CalculateMipLevels(uint32_t width, uint32_t height)
+    {
+        if (width == 0 || height == 0)
+        {
+            return 1;
+        }
+        uint32_t levels = 1;
+        uint32_t dim = (width > height) ? width : height;
+        while (dim > 1)
+        {
+            dim >>= 1;
+            ++levels;
+        }
+        return levels;
+    }
 
     struct Extent2D
     {
@@ -91,6 +114,12 @@ namespace Wayfinder
     // ── Sampler ───────────────────────────────────────────────
 
     enum class SamplerFilter : uint8_t
+    {
+        Nearest,
+        Linear,
+    };
+
+    enum class SamplerMipmapMode : uint8_t
     {
         Nearest,
         Linear,
@@ -109,6 +138,13 @@ namespace Wayfinder
         SamplerFilter magFilter = SamplerFilter::Nearest;
         SamplerAddressMode addressModeU = SamplerAddressMode::ClampToEdge;
         SamplerAddressMode addressModeV = SamplerAddressMode::ClampToEdge;
+        SamplerMipmapMode mipmapMode = SamplerMipmapMode::Nearest;
+
+        /** @brief Minimum mip LOD clamp. 0 = use base level. */
+        float minLod = 0.0f;
+
+        /** @brief Maximum mip LOD clamp. Large value = allow all mips. */
+        float maxLod = 1000.0f;
     };
 
     // ── GPU Enums ────────────────────────────────────────────

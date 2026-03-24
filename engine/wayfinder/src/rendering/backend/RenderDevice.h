@@ -305,6 +305,31 @@ namespace Wayfinder
          */
         virtual void UploadToTexture(GPUTextureHandle texture, const void* pixelData, uint32_t width, uint32_t height, uint32_t bytesPerRow) = 0;
 
+        /**
+         * @brief Upload pixel data to a specific mip level of a GPU texture.
+         * @param texture  GPU texture handle to upload to.
+         * @param pixelData  Pointer to the source pixel data for this mip level.
+         * @param width  Width of this mip level in pixels.
+         * @param height  Height of this mip level in pixels.
+         * @param bytesPerRow  Bytes per row.
+         * @param mipLevel  Target mip level (0 = base).
+         */
+        virtual void UploadToTexture(GPUTextureHandle texture, const void* pixelData, uint32_t width, uint32_t height, uint32_t bytesPerRow, uint32_t mipLevel) = 0;
+
+        /**
+         * @brief Generate mipmaps for a texture using GPU blit operations.
+         *
+         * Downsamples from mip level 0 to all subsequent levels using bilinear
+         * filtering. The texture must have been created with mipLevels > 1 and
+         * appropriate usage flags (Sampler + ColourTarget for blit support).
+         *
+         * @param texture  GPU texture handle.
+         * @param mipLevels  Total number of mip levels in the texture.
+         * @param baseWidth  Width of the base mip level (level 0).
+         * @param baseHeight  Height of the base mip level (level 0).
+         */
+        virtual void GenerateMipmaps(GPUTextureHandle texture, uint32_t mipLevels, uint32_t baseWidth, uint32_t baseHeight) = 0;
+
         // ── Samplers ─────────────────────────────────────────────
 
         virtual GPUSamplerHandle CreateSampler(const SamplerCreateDesc& desc) = 0;

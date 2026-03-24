@@ -1007,13 +1007,13 @@ namespace Wayfinder
         info.width = desc.width;
         info.height = desc.height;
         info.layer_count_or_depth = 1;
-        info.num_levels = 1;
+        info.num_levels = (desc.mipLevels > 0) ? desc.mipLevels : 1;
         info.usage = ToSDLTextureUsage(desc.usage);
 
         SDL_GPUTexture* texture = SDL_CreateGPUTexture(m_device, &info);
         if (!texture)
         {
-            WAYFINDER_ERROR(LogRenderer, "SDLGPUDevice::CreateTexture: Failed ({}x{}) — {}", desc.width, desc.height, SDL_GetError());
+            WAYFINDER_ERROR(LogRenderer, "SDLGPUDevice::CreateTexture: Failed ({}x{}, {} mips) — {}", desc.width, desc.height, info.num_levels, SDL_GetError());
             return GPUTextureHandle::Invalid();
         }
 
@@ -1035,6 +1035,11 @@ namespace Wayfinder
     }
 
     void SDLGPUDevice::UploadToTexture(GPUTextureHandle texture, const void* pixelData, uint32_t width, uint32_t height, uint32_t bytesPerRow)
+    {
+        UploadToTexture(texture, pixelData, width, height, bytesPerRow, 0);
+    }
+
+    void SDLGPUDevice::UploadToTexture(GPUTextureHandle texture, const void* pixelData, uint32_t width, uint32_t height, uint32_t bytesPerRow, uint32_t mipLevel)
     {
         auto* pTexture = m_texturePool.Get(texture);
         if (!m_device || !pTexture || !pixelData || width == 0 || height == 0)
@@ -1087,6 +1092,7 @@ namespace Wayfinder
 
         SDL_GPUTextureRegion dst{};
         dst.texture = *pTexture;
+        dst.mip_level = mipLevel;
         dst.w = width;
         dst.h = height;
         dst.d = 1;
@@ -1096,6 +1102,63 @@ namespace Wayfinder
 
         SDL_SubmitGPUCommandBuffer(cmdBuf);
         SDL_ReleaseGPUTransferBuffer(m_device, transferBuffer);
+    }
+
+    void SDLGPUDevice::GenerateMipmaps(GPUTextureHandle texture, uint32_t mipLevels, uint32_t baseWidth, uint32_t baseHeight)
+    {
+        auto* pTexture = m_texturePool.Get(texture);
+        if (!m_device || !pTexture || mipLevels <= 1)
+        {
+            return;
+        }
+
+        SDL_GPUCommandBuffer* cmdBuf = SDL_AcquireGPUCommandBuffer(m_device);
+        if (!cmdBuf)
+        {
+            WAYFINDER_ERROR(LogRenderer, "SDLGPUDevice::GenerateMipmaps: Failed to acquire command buffer — {}", SDL_GetError());
+            return;
+        }
+
+        SDL_GPUTexture* sdlTexture = *pTexture;
+
+        uint32_t srcWidth = baseWidth;
+        uint32_t srcHeight = baseHeight;
+
+        for (uint32_t i = 1; i < mipLevels; ++i)
+        {
+            const uint32_t dstWidth = (srcWidth > 1) ? (srcWidth / 2) : 1;
+            const uint32_t dstHeight = (srcHeight > 1) ? (srcHeight / 2) : 1;
+
+            SDL_GPUBlitInfo blitInfo{};
+
+            blitInfo.source.texture = sdlTexture;
+            blitInfo.source.mip_level = i - 1;
+            blitInfo.source.layer_or_depth_plane = 0;
+            blitInfo.source.x = 0;
+            blitInfo.source.y = 0;
+            blitInfo.source.w = srcWidth;
+            blitInfo.source.h = srcHeight;
+
+            blitInfo.destination.texture = sdlTexture;
+            blitInfo.destination.mip_level = i;
+            blitInfo.destination.layer_or_depth_plane = 0;
+            blitInfo.destination.x = 0;
+            blitInfo.destination.y = 0;
+            blitInfo.destination.w = dstWidth;
+            blitInfo.destination.h = dstHeight;
+
+            blitInfo.load_op = SDL_GPU_LOADOP_DONT_CARE;
+            blitInfo.filter = SDL_GPU_FILTER_LINEAR;
+            blitInfo.cycle = false;
+            blitInfo.flip_mode = SDL_FLIP_NONE;
+
+            SDL_BlitGPUTexture(cmdBuf, &blitInfo);
+
+            srcWidth = dstWidth;
+            srcHeight = dstHeight;
+        }
+
+        SDL_SubmitGPUCommandBuffer(cmdBuf);
     }
 
     // ── Samplers ─────────────────────────────────────────────
@@ -1111,7 +1174,9 @@ namespace Wayfinder
         SDL_GPUSamplerCreateInfo info{};
         info.min_filter = (desc.minFilter == SamplerFilter::Nearest) ? SDL_GPU_FILTER_NEAREST : SDL_GPU_FILTER_LINEAR;
         info.mag_filter = (desc.magFilter == SamplerFilter::Nearest) ? SDL_GPU_FILTER_NEAREST : SDL_GPU_FILTER_LINEAR;
-        info.mipmap_mode = SDL_GPU_SAMPLERMIPMAPMODE_NEAREST;
+        info.mipmap_mode = (desc.mipmapMode == SamplerMipmapMode::Linear) ? SDL_GPU_SAMPLERMIPMAPMODE_LINEAR : SDL_GPU_SAMPLERMIPMAPMODE_NEAREST;
+        info.min_lod = desc.minLod;
+        info.max_lod = desc.maxLod;
 
         auto toAddressMode = [](SamplerAddressMode mode) -> SDL_GPUSamplerAddressMode
         {

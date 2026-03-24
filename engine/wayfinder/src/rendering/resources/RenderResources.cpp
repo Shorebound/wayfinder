@@ -184,6 +184,13 @@ namespace Wayfinder
                 samplerDesc.magFilter = texAsset->Filter;
                 samplerDesc.addressModeU = texAsset->AddressMode;
                 samplerDesc.addressModeV = texAsset->AddressMode;
+
+                // Enable trilinear filtering when the texture has mipmaps
+                const bool hasMips = (texAsset->MipLevels != 1);
+                if (hasMips && texAsset->Filter == SamplerFilter::Linear)
+                {
+                    samplerDesc.mipmapMode = SamplerMipmapMode::Linear;
+                }
             }
             resolved.Sampler = m_textureManager->GetOrCreateSampler(samplerDesc);
 

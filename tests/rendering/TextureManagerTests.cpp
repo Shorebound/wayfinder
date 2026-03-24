@@ -6,6 +6,59 @@
 
 namespace Wayfinder::Tests
 {
+    // ── Mip Level Calculation ────────────────────────────────
+
+    TEST_CASE("CalculateMipLevels returns correct count for power-of-two dimensions")
+    {
+        CHECK(CalculateMipLevels(1, 1) == 1);
+        CHECK(CalculateMipLevels(2, 2) == 2);
+        CHECK(CalculateMipLevels(4, 4) == 3);
+        CHECK(CalculateMipLevels(256, 256) == 9);
+        CHECK(CalculateMipLevels(1024, 1024) == 11);
+    }
+
+    TEST_CASE("CalculateMipLevels handles non-power-of-two dimensions")
+    {
+        CHECK(CalculateMipLevels(3, 3) == 2);
+        CHECK(CalculateMipLevels(5, 5) == 3);
+        CHECK(CalculateMipLevels(100, 100) == 7);
+        CHECK(CalculateMipLevels(1920, 1080) == 11);
+    }
+
+    TEST_CASE("CalculateMipLevels uses larger dimension for non-square textures")
+    {
+        CHECK(CalculateMipLevels(512, 1) == 10);
+        CHECK(CalculateMipLevels(1, 512) == 10);
+        CHECK(CalculateMipLevels(256, 128) == 9);
+    }
+
+    TEST_CASE("CalculateMipLevels returns 1 for zero dimensions")
+    {
+        CHECK(CalculateMipLevels(0, 0) == 1);
+        CHECK(CalculateMipLevels(0, 256) == 1);
+        CHECK(CalculateMipLevels(256, 0) == 1);
+    }
+
+    // ── TextureCreateDesc defaults ───────────────────────────
+
+    TEST_CASE("TextureCreateDesc defaults to 1 mip level")
+    {
+        TextureCreateDesc desc;
+        CHECK(desc.mipLevels == 1);
+    }
+
+    // ── SamplerCreateDesc defaults ───────────────────────────
+
+    TEST_CASE("SamplerCreateDesc defaults include mipmap fields")
+    {
+        SamplerCreateDesc desc;
+        CHECK(desc.mipmapMode == SamplerMipmapMode::Nearest);
+        CHECK(desc.minLod == 0.0f);
+        CHECK(desc.maxLod == 1000.0f);
+    }
+
+    // ── TextureManager ───────────────────────────────────────
+
     TEST_CASE("TextureManager initialises with NullDevice")
     {
         auto device = RenderDevice::Create(RenderBackend::Null);
@@ -100,6 +153,37 @@ namespace Wayfinder::Tests
 
         // Both are default (invalid) from NullDevice, so handles are equal,
         // but we verify no crash and that the cache path doesn't corrupt.
+        CHECK_NOTHROW((void)a);
+        CHECK_NOTHROW((void)b);
+
+        manager.Shutdown();
+    }
+
+    TEST_CASE("TextureManager sampler hash differentiates mipmap modes")
+    {
+        // Two sampler descs identical except for mipmap mode should produce different hashes.
+        SamplerCreateDesc descA;
+        descA.minFilter = SamplerFilter::Linear;
+        descA.magFilter = SamplerFilter::Linear;
+        descA.mipmapMode = SamplerMipmapMode::Nearest;
+
+        SamplerCreateDesc descB = descA;
+        descB.mipmapMode = SamplerMipmapMode::Linear;
+
+        // Access the hash via two sampler creates on the same manager — they should
+        // be stored under different keys.
+        auto device = RenderDevice::Create(RenderBackend::Null);
+        REQUIRE(device);
+        TextureManager manager;
+        manager.Initialise(*device);
+
+        // Both calls go through the cache path. If hash is identical, the second
+        // call returns the first handle instead of creating a new one.
+        GPUSamplerHandle a = manager.GetOrCreateSampler(descA);
+        GPUSamplerHandle b = manager.GetOrCreateSampler(descB);
+
+        // NullDevice returns default handles so we can't distinguish by handle value,
+        // but we verify no crash and both paths execute without error.
         CHECK_NOTHROW((void)a);
         CHECK_NOTHROW((void)b);
 

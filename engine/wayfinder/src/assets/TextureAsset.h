@@ -34,6 +34,14 @@ namespace Wayfinder
         SamplerFilter Filter = SamplerFilter::Linear;
         SamplerAddressMode AddressMode = SamplerAddressMode::Repeat;
 
+        /**
+         * @brief Desired mip level count for GPU upload.
+         * 0 = generate full mip chain (default for most textures).
+         * 1 = no mipmaps (useful for UI, data textures).
+         * N = specific mip level count.
+         */
+        uint32_t MipLevels = 0;
+
         /// Populated after image load.
         uint32_t Width = 0;
         uint32_t Height = 0;
