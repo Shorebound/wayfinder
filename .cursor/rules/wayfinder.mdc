@@ -2,6 +2,8 @@
 alwaysApply: true
 ---
 
+# Wayfinder
+
 A C++23 game engine and toolchain targeting a "fantasy console" — sixth-gen aesthetics with modern compute, architecture, and tooling. 
 See `docs/project_vision.md` for the full rationale and `docs/workspace_guide.md` for repo navigation.
 
@@ -30,10 +32,12 @@ This project is greenfield. Breaking changes, rewrites, and architectural pivots
 
 ## Build
 
-CMake 4.0+, MSVC (Visual Studio 17 2022). Presets are the workflow:
+CMake 4.0+, Ninja Multi-Config, Clang. Presets are the workflow.
+MSVC Build Tools + Windows SDK must be installed (for headers and libraries) but no special shell is needed — `dev` works from any terminal.
 
 ```powershell
-cmake --preset dev              # sandbox + tools + tests
+cmake --preset dev              # sandbox + tools + tests (Ninja + Clang)
+cmake --preset dev-msvc         # MSVC validation (needs Developer Shell)
 cmake --build --preset debug    # Debug build
 ctest --preset test             # run all tests
 ```
@@ -57,35 +61,26 @@ Use doctest. Follow existing patterns in `tests/`.
 
 ## Code Style
 
-Formatting is enforced by `.clang-format` (Allman braces, 4-space indent, no column limit).
+Formatting is enforced by `.clang-format`.
 
 ### Naming
 
-| Element | Convention | Example |
-|---------|-----------|---------|
-| Types | PascalCase | `TransformComponent`, `RenderGraph` |
-| Components | `…Component` suffix | `RenderableComponent`, `CameraComponent` |
-| Systems | `…System` suffix | `RenderSystem`, `PhysicsSystem` |
-| Interfaces | `I` prefix | `ILogger`, `IUpdatable` |
-| Functions | PascalCase | `Initialise()`, `GetPosition()` |
-| Members | `m_` prefix | `m_window`, `m_entries` |
-| Constants | SCREAMING_SNAKE_CASE | `MAX_ENTITIES`, `DEFAULT_WIDTH` |
-| Aliases | PascalCase | `using MeshId = uint32_t;` |
-| Template params | `T` prefix | `template<typename TResource>` |
-
-### Function verbs
-
-`IsX` / `HasX` / `WasX` (bool queries), `GetX` / `SetX` (accessors), `CreateX` / `DestroyX` (lifecycle), `LoadX` / `SaveX` (serialisation), `ValidateX` (validation), `OnX` (event handlers), `SubscribeX` / `UnsubscribeX` (event registration).
+- Types: PascalCase with suffixes for components/systems, and `I` prefix for interfaces.
+- Functions: PascalCase with verb prefixes. `IsX` / `HasX` / `WasX` (bool queries), `GetX` / `SetX`, `CreateX` / `DestroyX`, `LoadX` / `SaveX`, `ValidateX`, `SubscribeX` / `UnsubscribeX`, `OnX`.
+- Members: `m_` prefix, camelCase. 
+- Constants: SCREAMING_SNAKE_CASE. 
+- Aliases: PascalCase. 
+- Template params: `T` prefix.
 
 ### Language
 
-- British/Australian spelling throughout: `Initialise`, `Colour`, `Serialise`, `Behaviour`, etc.
+- British/Australian spelling: `Initialise`, `Colour`, `Serialise`, `Behaviour`, etc.
 - Prefer full words over abbreviations unless widely unambiguous: `Config`, `Params`, etc. Avoid `Cfg`, `Prms`, etc.
 - Use `auto` / `auto*` / `auto&` when the type is obvious from the RHS; be explicit otherwise.
 - Use `using` aliases for complex types, especially function signatures and template instantiations.
-- Prefer value semantics and RAII over raw pointers and manual resource management. Use smart pointers (`std::unique_ptr`, `std::shared_ptr`) where ownership is shared or non-trivial.
+- Prefer value semantics and RAII over raw pointers and manual resource management. Use smart pointers where ownership is shared or non-trivial.
 - Concepts and `requires` clauses for template constraints, not SFINAE or `static_assert` checks inside the body.
-- Prefer C++23 standard library: `std::span`, `std::optional`, `std::variant`, `std::string_view`, `std::format`, `std::filesystem`, etc. Avoid third-party utilities unless they provide significant value.
+- Prefer C++23 standard library: `std::span`, `std::optional`, `std::variant`, `std::string_view`, `std::format`, `std::filesystem`, `std::ranges`, etc.
 - Prefer `constexpr`, `inline`, or templates over macros if they can achieve the same goal with better type safety and scoping.
 - Where it makes sense, use structured bindings, designated initializers, and aggregate initialization for clarity and brevity.
 - For error handling, prefer `Result<T, E>` as the return type. See `engine\wayfinder\src\core\Result.h`.
@@ -99,12 +94,6 @@ All engine code lives in `Wayfinder`. Subdirectories under `engine/wayfinder/src
 
 - `/** … */` Javadoc-style (with `@brief`, `@param`, `@return`, `@todo`, etc.) for public API and types.
 - `///` for inline implementation notes.
-
-### Data Files
-
-- **TOML** for hand-authored content: configuration, input mappings, etc. It's more readable and forgiving for humans, and supports comments.
-- **JSON** for interchange formats, generated data, and anything benefiting from schema validation such as assets, scene descriptions, render graph definitions, etc. The strictness and tooling support help catch errors early.
-- Validate data files at load time with clear error messages for authors.
 
 ## Commits, Branches & Issues
 
