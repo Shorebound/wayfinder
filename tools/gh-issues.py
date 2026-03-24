@@ -93,12 +93,11 @@ class GhResult:
         return not self.error
 
 
-def run_gh(args: str, context: str = "gh") -> GhResult:
+def run_gh(args: list[str], context: str = "gh") -> GhResult:
     """Run a gh CLI command and parse the output as JSON."""
     try:
         proc = subprocess.run(
-            f"gh {args}",
-            shell=True,
+            ["gh", *args],
             capture_output=True,
             text=True,
         )
@@ -124,7 +123,7 @@ def run_graphql(query: str, context: str = "GraphQL") -> GhResult:
         temp_path = f.name
 
     try:
-        result = run_gh(f"api graphql -F query=@{temp_path}", context)
+        result = run_gh(["api", "graphql", "-F", f"query=@{temp_path}"], context)
     finally:
         os.unlink(temp_path)
     return result
@@ -215,18 +214,19 @@ def _do_relationship_action(
     mutation_name: str,
     build_mutation: Callable[[str, str], str],
     ok_verb: str,
-) -> None:
+) -> bool:
     """Generic helper for relationship add/remove actions."""
     all_nums = {primary_issue} | set(target_issues)
     ids = get_issue_node_ids(all_nums)
     if ids is None:
-        return
+        return False
 
     primary_info = ids[primary_issue]
     print(
         f"{c(Colour.CYAN)}{primary_label} #{primary_issue} ({primary_info.title}){c(Colour.RESET)}"
     )
 
+    had_failure = False
     for target in target_issues:
         target_info = ids[target]
         mutation = build_mutation(primary_info.node_id, target_info.node_id)
@@ -236,6 +236,7 @@ def _do_relationship_action(
             print(
                 f"{c(Colour.RED)}  FAIL  {target_label} #{target} ({target_info.title}) - {result.error}{c(Colour.RESET)}"
             )
+            had_failure = True
             continue
 
         if "errors" in result.data:
@@ -248,14 +249,16 @@ def _do_relationship_action(
                 print(
                     f"{c(Colour.RED)}  FAIL  {target_label} #{target} ({target_info.title}) - {msg}{c(Colour.RESET)}"
                 )
+                had_failure = True
         else:
             print(
                 f"{c(Colour.GREEN)}  OK    {ok_verb} #{target} ({target_info.title}){c(Colour.RESET)}"
             )
+    return not had_failure
 
 
-def add_blocked_by(blocked_issue: int, blocking_issues: list[int]) -> None:
-    _do_relationship_action(
+def add_blocked_by(blocked_issue: int, blocking_issues: list[int]) -> bool:
+    return _do_relationship_action(
         action_name="blocked-by",
         primary_issue=blocked_issue,
         target_issues=blocking_issues,
@@ -270,17 +273,18 @@ def add_blocked_by(blocked_issue: int, blocking_issues: list[int]) -> None:
     )
 
 
-def add_blocking(blocking_issue: int, blocked_issues: list[int]) -> None:
+def add_blocking(blocking_issue: int, blocked_issues: list[int]) -> bool:
     all_nums = {blocking_issue} | set(blocked_issues)
     ids = get_issue_node_ids(all_nums)
     if ids is None:
-        return
+        return False
 
     blocking_info = ids[blocking_issue]
     print(
         f"{c(Colour.CYAN)}Issue #{blocking_issue} ({blocking_info.title}) now blocking:{c(Colour.RESET)}"
     )
 
+    had_failure = False
     for blocked in blocked_issues:
         blocked_info = ids[blocked]
         mutation = (
@@ -293,6 +297,7 @@ def add_blocking(blocking_issue: int, blocked_issues: list[int]) -> None:
             print(
                 f"{c(Colour.RED)}  FAIL  #{blocked} ({blocked_info.title}) - {result.error}{c(Colour.RESET)}"
             )
+            had_failure = True
             continue
 
         if "errors" in result.data:
@@ -305,14 +310,16 @@ def add_blocking(blocking_issue: int, blocked_issues: list[int]) -> None:
                 print(
                     f"{c(Colour.RED)}  FAIL  #{blocked} ({blocked_info.title}) - {msg}{c(Colour.RESET)}"
                 )
+                had_failure = True
         else:
             print(
                 f"{c(Colour.GREEN)}  OK    #{blocked} ({blocked_info.title}){c(Colour.RESET)}"
             )
+    return not had_failure
 
 
-def add_sub_issue(parent_issue: int, child_issues: list[int]) -> None:
-    _do_relationship_action(
+def add_sub_issue(parent_issue: int, child_issues: list[int]) -> bool:
+    return _do_relationship_action(
         action_name="sub-issue",
         primary_issue=parent_issue,
         target_issues=child_issues,
@@ -327,8 +334,8 @@ def add_sub_issue(parent_issue: int, child_issues: list[int]) -> None:
     )
 
 
-def remove_blocked_by(blocked_issue: int, blocking_issues: list[int]) -> None:
-    _do_relationship_action(
+def remove_blocked_by(blocked_issue: int, blocking_issues: list[int]) -> bool:
+    return _do_relationship_action(
         action_name="remove-blocked-by",
         primary_issue=blocked_issue,
         target_issues=blocking_issues,
@@ -343,17 +350,18 @@ def remove_blocked_by(blocked_issue: int, blocking_issues: list[int]) -> None:
     )
 
 
-def remove_blocking(blocking_issue: int, blocked_issues: list[int]) -> None:
+def remove_blocking(blocking_issue: int, blocked_issues: list[int]) -> bool:
     all_nums = {blocking_issue} | set(blocked_issues)
     ids = get_issue_node_ids(all_nums)
     if ids is None:
-        return
+        return False
 
     blocking_info = ids[blocking_issue]
     print(
         f"{c(Colour.CYAN)}Issue #{blocking_issue} ({blocking_info.title}) removing blocking:{c(Colour.RESET)}"
     )
 
+    had_failure = False
     for blocked in blocked_issues:
         blocked_info = ids[blocked]
         mutation = (
@@ -366,6 +374,7 @@ def remove_blocking(blocking_issue: int, blocked_issues: list[int]) -> None:
             print(
                 f"{c(Colour.RED)}  FAIL  remove blocking #{blocked} ({blocked_info.title}) - {result.error}{c(Colour.RESET)}"
             )
+            had_failure = True
             continue
 
         if "errors" in result.data:
@@ -373,14 +382,16 @@ def remove_blocking(blocking_issue: int, blocked_issues: list[int]) -> None:
             print(
                 f"{c(Colour.RED)}  FAIL  remove blocking #{blocked} ({blocked_info.title}) - {msg}{c(Colour.RESET)}"
             )
+            had_failure = True
         else:
             print(
                 f"{c(Colour.GREEN)}  OK    removed blocking #{blocked} ({blocked_info.title}){c(Colour.RESET)}"
             )
+    return not had_failure
 
 
-def remove_sub_issue(parent_issue: int, child_issues: list[int]) -> None:
-    _do_relationship_action(
+def remove_sub_issue(parent_issue: int, child_issues: list[int]) -> bool:
+    return _do_relationship_action(
         action_name="remove-sub-issue",
         primary_issue=parent_issue,
         target_issues=child_issues,
@@ -398,7 +409,7 @@ def remove_sub_issue(parent_issue: int, child_issues: list[int]) -> None:
 # --- Query Commands ---
 
 
-def show_relationships(issue_number: int) -> None:
+def show_relationships(issue_number: int) -> bool:
     query = f'''query {{
   repository(owner: "{OWNER}", name: "{REPO}") {{
     issue(number: {issue_number}) {{
@@ -416,7 +427,7 @@ def show_relationships(issue_number: int) -> None:
     result = run_graphql(query, "ShowRelationships")
     if not result.ok:
         print(result.error, file=sys.stderr)
-        return
+        return False
 
     data = result.data
     if "errors" in data:
@@ -424,12 +435,12 @@ def show_relationships(issue_number: int) -> None:
             f"{c(Colour.YELLOW)}Note: Some relationship fields may not be available on your GitHub plan.{c(Colour.RESET)}"
         )
         print(data["errors"][0]["message"], file=sys.stderr)
-        return
+        return False
 
     issue = data["data"]["repository"]["issue"]
     if issue is None:
         print(f"Issue not found or inaccessible: #{issue_number}", file=sys.stderr)
-        return
+        return False
 
     state = issue["state"]
     title = issue["title"]
@@ -550,9 +561,10 @@ def show_relationships(issue_number: int) -> None:
     else:
         print(f"{c(Colour.GREEN)}  Status: READY{c(Colour.RESET)}")
     print()
+    return True
 
 
-def show_batch_summary(issue_numbers: list[int]) -> None:
+def show_batch_summary(issue_numbers: list[int]) -> bool:
     unique = sorted(set(issue_numbers))
 
     fields = " ".join(
@@ -568,12 +580,12 @@ def show_batch_summary(issue_numbers: list[int]) -> None:
     result = run_graphql(query, "ShowBatchSummary")
     if not result.ok:
         print(result.error, file=sys.stderr)
-        return
+        return False
 
     data = result.data
     if "errors" in data:
         print(f"GraphQL error: {data['errors'][0]['message']}", file=sys.stderr)
-        return
+        return False
 
     print(
         f"\n{c(Colour.CYAN)}  {'#':<8}{'State':<9}{'Status':<11}{'Sub-issues':<12}Title{c(Colour.RESET)}"
@@ -618,24 +630,25 @@ def show_batch_summary(issue_numbers: list[int]) -> None:
             f"{state_colour}{pad_right(sub_str, 12)}{iss_title}{c(Colour.RESET)}"
         )
     print()
+    return True
 
 
-def show_ready() -> None:
+def show_ready() -> bool:
     gh_result = run_gh(
-        f'issue list --repo {OWNER}/{REPO} --state open --limit 200 '
-        f'--json number,title,state,labels',
+        ["issue", "list", "--repo", f"{OWNER}/{REPO}", "--state", "open",
+         "--limit", "200", "--json", "number,title,state,labels"],
         "ShowReady",
     )
     if not gh_result.ok:
         print(gh_result.error, file=sys.stderr)
-        return
+        return False
 
     issues = gh_result.data
     if not issues:
         print(
             f"\n{c(Colour.YELLOW)}  No open issues found.{c(Colour.RESET)}\n"
         )
-        return
+        return True
 
     # Build GraphQL query for blocker/label/assignee info
     fields = " ".join(
@@ -649,12 +662,12 @@ def show_ready() -> None:
     gql_result = run_graphql(query, "ShowReady")
     if not gql_result.ok:
         print(gql_result.error, file=sys.stderr)
-        return
+        return False
 
     data = gql_result.data
     if "errors" in data:
         print(f"GraphQL error: {data['errors'][0]['message']}", file=sys.stderr)
-        return
+        return False
 
     # Filter to ready issues (no unresolved blockers)
     ready_issues: list[dict] = []
@@ -715,24 +728,25 @@ def show_ready() -> None:
                 f"{c(Colour.WHITE)}{r['title']}{c(Colour.RESET)}"
             )
     print()
+    return True
 
 
-def show_milestone_status(milestone_title: str) -> None:
+def show_milestone_status(milestone_title: str) -> bool:
     gh_result = run_gh(
-        f'issue list --repo {OWNER}/{REPO} --milestone "{milestone_title}" '
-        f'--state all --limit 200 --json number,title,state,labels',
+        ["issue", "list", "--repo", f"{OWNER}/{REPO}", "--milestone", milestone_title,
+         "--state", "all", "--limit", "200", "--json", "number,title,state,labels"],
         "ShowMilestoneStatus",
     )
     if not gh_result.ok:
         print(gh_result.error, file=sys.stderr)
-        return
+        return False
 
     issues = gh_result.data
     if not issues:
         print(
             f"{c(Colour.YELLOW)}No issues found for milestone '{milestone_title}'.{c(Colour.RESET)}"
         )
-        return
+        return True
 
     open_issues = [i for i in issues if i["state"] in ("OPEN", "open")]
     closed_issues = [i for i in issues if i["state"] not in ("OPEN", "open")]
@@ -778,24 +792,26 @@ def show_milestone_status(milestone_title: str) -> None:
                 f"{c(Colour.GRAY)}    [x] #{iss['number']} - {iss['title']}{c(Colour.RESET)}"
             )
     print()
+    return True
 
 
-def show_orphans() -> None:
+def show_orphans() -> bool:
     gh_result = run_gh(
-        f'issue list --repo {OWNER}/{REPO} --state open --limit 200 '
-        f'--no-milestone --json number,title,labels',
+        ["issue", "list", "--repo", f"{OWNER}/{REPO}", "--state", "open",
+         "--limit", "200", "--search", "no:milestone",
+         "--json", "number,title,labels"],
         "ShowOrphans",
     )
     if not gh_result.ok:
         print(gh_result.error, file=sys.stderr)
-        return
+        return False
 
     issues = gh_result.data
     if not issues:
         print(
             f"\n{c(Colour.GREEN)}  No open issues without a milestone.{c(Colour.RESET)}\n"
         )
-        return
+        return True
 
     # Check which have no parent
     fields = " ".join(
@@ -807,12 +823,12 @@ def show_orphans() -> None:
     gql_result = run_graphql(query, "ShowOrphans")
     if not gql_result.ok:
         print(gql_result.error, file=sys.stderr)
-        return
+        return False
 
     data = gql_result.data
     if "errors" in data:
         print(f"GraphQL error: {data['errors'][0]['message']}", file=sys.stderr)
-        return
+        return False
 
     orphans: list[dict] = []
     for iss in issues:
@@ -849,13 +865,16 @@ def show_orphans() -> None:
                 f"{c(Colour.WHITE)}    [ ] #{o['number']} - {o['title']}{label_suffix}{c(Colour.RESET)}"
             )
     print()
+    return True
 
 
-def show_chain(issue_number: int) -> None:
+def show_chain(issue_number: int) -> bool:
     visited: set[int] = set()
     chain: list[ChainEntry] = []
+    root_failed = False
 
     def walk_blockers(num: int, depth: int) -> None:
+        nonlocal root_failed
         if num in visited:
             return
         if depth >= MAX_RECURSION_DEPTH:
@@ -882,6 +901,7 @@ def show_chain(issue_number: int) -> None:
                     f"ShowChain: error for root issue #{num}: {result.error}",
                     file=sys.stderr,
                 )
+                root_failed = True
             return
 
         data = result.data
@@ -892,6 +912,7 @@ def show_chain(issue_number: int) -> None:
                     f"{data['errors'][0]['message']}",
                     file=sys.stderr,
                 )
+                root_failed = True
             return
 
         issue = data["data"]["repository"]["issue"]
@@ -901,6 +922,7 @@ def show_chain(issue_number: int) -> None:
                     f"ShowChain: Issue not found or inaccessible: #{num}",
                     file=sys.stderr,
                 )
+                root_failed = True
             return
 
         chain.append(
@@ -917,6 +939,9 @@ def show_chain(issue_number: int) -> None:
 
     walk_blockers(issue_number, 0)
 
+    if root_failed:
+        return False
+
     print(
         f"\n{c(Colour.CYAN)}  Dependency chain for #{issue_number}:{c(Colour.RESET)}\n"
     )
@@ -925,7 +950,7 @@ def show_chain(issue_number: int) -> None:
         print(
             f"{c(Colour.GREEN)}  No blockers in the chain. Issue is independent.{c(Colour.RESET)}\n"
         )
-        return
+        return True
 
     max_depth = max(e.depth for e in chain) if chain else 0
 
@@ -966,6 +991,7 @@ def show_chain(issue_number: int) -> None:
                 f"{c(Colour.RED)}  Start here: {leaf_nums}{c(Colour.RESET)}"
             )
     print()
+    return True
 
 
 # --- Tree ---
@@ -1068,17 +1094,18 @@ def _print_tree_node(node: TreeNode, depth: int) -> None:
         _print_tree_node(child, depth + 1)
 
 
-def show_tree(issue_number: int) -> None:
+def show_tree(issue_number: int) -> bool:
     tree = _fetch_sub_issue_tree(issue_number, 0)
     if tree is None:
         print(
             f"Issue not found or inaccessible: #{issue_number}", file=sys.stderr
         )
-        return
+        return False
 
     print()
     _print_tree_node(tree, 0)
     print()
+    return True
 
 
 # --- Argument Parsing ---
@@ -1092,10 +1119,14 @@ def parse_int_list(s: str) -> list[int]:
         if not token:
             continue
         try:
-            result.append(int(token))
+            value = int(token)
         except ValueError:
             print(f"Invalid issue number: '{token}'", file=sys.stderr)
             return []
+        if value <= 0:
+            print(f"Invalid issue number: '{token}' (must be positive)", file=sys.stderr)
+            return []
+        result.append(value)
     return result
 
 
@@ -1202,16 +1233,13 @@ def main() -> int:
 
     # Commands that don't need issue numbers
     if action == "ready":
-        show_ready()
-        return 0
+        return 0 if show_ready() else 1
 
     if action == "orphans":
-        show_orphans()
-        return 0
+        return 0 if show_orphans() else 1
 
     if action == "status":
-        show_milestone_status(args.milestone)
-        return 0
+        return 0 if show_milestone_status(args.milestone) else 1
 
     # Commands that need at least an issue number
     issues = parse_int_list(args.issue)
@@ -1220,24 +1248,22 @@ def main() -> int:
 
     if action == "show":
         if len(issues) > 1:
-            show_batch_summary(issues)
+            ok = show_batch_summary(issues)
         else:
-            show_relationships(issues[0])
-        return 0
+            ok = show_relationships(issues[0])
+        return 0 if ok else 1
 
     if action == "tree":
         if len(issues) > 1:
             print("tree accepts only a single issue number.", file=sys.stderr)
             return 1
-        show_tree(issues[0])
-        return 0
+        return 0 if show_tree(issues[0]) else 1
 
     if action == "chain":
         if len(issues) > 1:
             print("chain accepts only a single issue number.", file=sys.stderr)
             return 1
-        show_chain(issues[0])
-        return 0
+        return 0 if show_chain(issues[0]) else 1
 
     # Commands that need issue + target
     targets = parse_int_list(args.targets)
@@ -1260,13 +1286,11 @@ def main() -> int:
 
     handler = dispatch.get(action)
     if handler:
-        handler()
-    else:
-        print(f"Unknown action: {action}", file=sys.stderr)
-        parser.print_help()
-        return 1
+        return 0 if handler() else 1
 
-    return 0
+    print(f"Unknown action: {action}", file=sys.stderr)
+    parser.print_help()
+    return 1
 
 
 if __name__ == "__main__":
