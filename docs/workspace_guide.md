@@ -114,18 +114,17 @@ Typical local setup for runtime and asset work:
 cmake --preset dev              # Ninja + Clang, sandbox + tools + tests
 cmake --build --preset debug
 
-cmake --preset dev-msvc         # Ninja + MSVC (needs Developer Shell)
+cmake --preset dev-msvc         # Ninja + MSVC
 cmake --build --preset msvc-debug
 ```
 
-MSVC Build Tools and Windows SDK must be installed (Clang uses their headers and libraries),
-but no special shell environment is needed for the `dev` preset.
+MSVC Build Tools and Windows SDK must be installed (Clang uses their headers and libraries), but no special shell environment is needed for the `dev` preset.
 
 See `CMakePresets.json` at the repo root for available presets:
 
 | Preset | Generator | What it enables |
 |--------|-----------|----------------|
-| `dev` | Ninja + Clang | Sandbox + Tools + Tests (daily driver) |
+| `dev` | Ninja + Clang | Sandbox + Tools + Tests + Profiling (daily driver) |
 | `dev-all` | Ninja + Clang | Everything (sandbox, tools, tests, editor, runtime, samples) |
 | `dev-tidy` | Ninja + Clang | Same as `dev` plus clang-tidy on every compile |
 | `dev-msvc` | Ninja + MSVC | MSVC cross-compiler validation (needs Developer Shell) |
@@ -175,7 +174,8 @@ Current dependencies:
 - `spdlog` for logging
 - `JoltPhysics` as the intended near-term 3D physics path
 - `ImGui` for immediate-mode UI (editor integration ready)
-- `Box2D` and `Tracy` as available dependencies that are not yet part of the main checked-in workflow
+- `Tracy` for profiling (only used in rendering for now)
+- `Box2D` as an available dependency, but not currently in use.
 - `doctest` for unit testing (linked only when `WAYFINDER_BUILD_TESTS=ON`)
 
 ## Running Tests
