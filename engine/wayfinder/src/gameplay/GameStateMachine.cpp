@@ -1,17 +1,18 @@
 #include "GameStateMachine.h"
 #include "GameState.h"
+#include "core/Assert.h"
 #include "core/InternedString.h"
 #include "core/Log.h"
-#include "modules/ModuleRegistry.h"
+#include "plugins/PluginRegistry.h"
 
 #include "ecs/Flecs.h"
 
 namespace Wayfinder
 {
-    void GameStateMachine::Configure(flecs::world& world, const ModuleRegistry* moduleRegistry)
+    void GameStateMachine::Configure(flecs::world& world, const Plugins::PluginRegistry& pluginRegistry)
     {
         m_world = &world;
-        m_moduleRegistry = moduleRegistry;
+        m_pluginRegistry = &pluginRegistry;
         m_conditionedSystems.clear();
         m_runConditionsDirty = false;
     }
@@ -20,17 +21,14 @@ namespace Wayfinder
     {
         BindConditionedSystems();
 
-        if (m_moduleRegistry)
+        const auto& initialState = m_pluginRegistry->GetInitialState();
+        if (!initialState.empty())
         {
-            const auto& initialState = m_moduleRegistry->GetInitialState();
-            if (!initialState.empty())
-            {
-                TransitionTo(initialState);
-            }
-            else
-            {
-                EvaluateRunConditions();
-            }
+            TransitionTo(initialState);
+        }
+        else
+        {
+            EvaluateRunConditions();
         }
     }
 
@@ -56,12 +54,11 @@ namespace Wayfinder
             }
         }
 
-        const ModuleRegistry::StateDescriptor* targetDesc = nullptr;
-        const ModuleRegistry::StateDescriptor* exitDesc = nullptr;
-        if (m_moduleRegistry)
+        const Plugins::PluginRegistry::StateDescriptor* targetDesc = nullptr;
+        const Plugins::PluginRegistry::StateDescriptor* exitDesc = nullptr;
         {
             const auto& state = m_world->get<ActiveGameState>();
-            for (const auto& desc : m_moduleRegistry->GetStateDescriptors())
+            for (const auto& desc : m_pluginRegistry->GetStateDescriptors())
             {
                 if (desc.Name == stateName)
                 {
@@ -114,12 +111,9 @@ namespace Wayfinder
 
     void GameStateMachine::BindConditionedSystems()
     {
-        if (!m_moduleRegistry)
-        {
-            return;
-        }
+        WAYFINDER_ASSERT(m_pluginRegistry, "BindConditionedSystems() called before Configure()");
 
-        for (const auto& desc : m_moduleRegistry->GetSystems())
+        for (const auto& desc : m_pluginRegistry->GetSystems())
         {
             if (!desc.Condition)
             {

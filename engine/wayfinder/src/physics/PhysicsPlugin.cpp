@@ -5,7 +5,7 @@
 #include "app/Subsystem.h"
 #include "core/Log.h"
 #include "maths/Maths.h"
-#include "modules/ModuleRegistry.h"
+#include "plugins/PluginRegistry.h"
 #include "scene/Components.h"
 #include "scene/entity/Entity.h"
 
@@ -370,7 +370,7 @@ namespace Wayfinder::Physics
 
     // ── Plugin build ────────────────────────────────────────────
 
-    void PhysicsPlugin::Build(ModuleRegistry& registry)
+    void PhysicsPlugin::Build(Plugins::PluginRegistry& registry)
     {
         // --- Subsystem ---
         registry.RegisterSubsystem<PhysicsSubsystem>();
@@ -380,7 +380,7 @@ namespace Wayfinder::Physics
 
         // --- Components ---
         {
-            ModuleRegistry::ComponentDescriptor desc;
+            Plugins::PluginRegistry::ComponentDescriptor desc;
             desc.Key = "rigid_body";
             desc.RegisterFn = &RegisterRigidBody;
             desc.ApplyFn = &ApplyRigidBody;
@@ -389,7 +389,7 @@ namespace Wayfinder::Physics
             registry.RegisterComponent(std::move(desc));
         }
         {
-            ModuleRegistry::ComponentDescriptor desc;
+            Plugins::PluginRegistry::ComponentDescriptor desc;
             desc.Key = "collider";
             desc.RegisterFn = &RegisterCollider;
             desc.ApplyFn = &ApplyCollider;

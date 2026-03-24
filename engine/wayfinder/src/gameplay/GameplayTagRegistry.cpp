@@ -132,7 +132,7 @@ namespace Wayfinder
         {
             WAYFINDER_WARNING(LogEngine,
                 "GameplayTagRegistry: requested unregistered tag '{}'. "
-                "Register it in a tag file or via ModuleRegistry::RegisterTag().",
+                "Register it in a tag file or via PluginRegistry::RegisterTag().",
                 name);
         }
 

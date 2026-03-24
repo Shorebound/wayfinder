@@ -6,12 +6,16 @@
 #include <memory>
 #include <string>
 
+namespace Wayfinder::Plugins
+{
+    class Plugin;
+    class PluginRegistry;
+}
+
 namespace Wayfinder
 {
     class EngineRuntime;
     class Game;
-    class Module;
-    class ModuleRegistry;
     class LayerStack;
     struct EngineConfig;
     struct ProjectDescriptor;
@@ -32,11 +36,11 @@ namespace Wayfinder
 
         /**
          * @brief Construct an Application.
-         * @param module  Game module whose ownership is transferred to the
-         *                Application.  May be null for a bare engine run.
+         * @param gamePlugin  Game root plugin whose ownership is transferred to the
+         *                    Application.  May be null for a bare engine run.
          * @param args    Command-line arguments forwarded from main().
          */
-        explicit Application(std::unique_ptr<Module> module, const CommandLineArgs& args);
+        explicit Application(std::unique_ptr<Plugins::Plugin> gamePlugin, const CommandLineArgs& args);
         ~Application();
 
         void Run();
@@ -54,13 +58,13 @@ namespace Wayfinder
         bool OnWindowClose(class WindowCloseEvent& e);
         bool OnWindowResize(class WindowResizeEvent& e);
 
-        std::unique_ptr<Module> m_module;
-        std::unique_ptr<ModuleRegistry> m_moduleRegistry;
+        std::unique_ptr<Plugins::Plugin> m_gamePlugin;
+        std::unique_ptr<Plugins::PluginRegistry> m_pluginRegistry;
         std::unique_ptr<ProjectDescriptor> m_project;
         std::unique_ptr<EngineConfig> m_config;
         CommandLineArgs m_args{};
         bool m_running = false;
-        bool m_moduleStarted = false;
+        bool m_pluginsStarted = false;
         bool m_logInitialised = false;
 
         std::unique_ptr<EngineRuntime> m_runtime;

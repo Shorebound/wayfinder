@@ -1,6 +1,6 @@
 #pragma once
 
-#include "modules/Plugin.h"
+#include "plugins/Plugin.h"
 
 namespace Wayfinder::Physics
 {
@@ -23,10 +23,10 @@ namespace Wayfinder::Physics
      * - **PhysicsSyncTransforms** (OnValidate) — copies Jolt position and rotation
      *   back into WorldTransformComponent with full LocalToWorld matrix rebuild.
      */
-    class WAYFINDER_API PhysicsPlugin : public Plugin
+    class WAYFINDER_API PhysicsPlugin : public Plugins::Plugin
     {
     public:
-        void Build(ModuleRegistry& registry) override;
+        void Build(Plugins::PluginRegistry& registry) override;
     };
 
 } // namespace Wayfinder::Physics

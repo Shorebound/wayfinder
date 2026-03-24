@@ -119,6 +119,17 @@ CPMAddPackage(
         "INTERPROCEDURAL_OPTIMIZATION OFF"
 )
 
+# MSVC C5045: informational note about Spectre mitigation inserts. It is often promoted to an
+# error (C2220) when warnings-as-errors or strict security switches are in play. Jolt hits this
+# in several translation units; suppress only for the third-party target.
+if(MSVC)
+    foreach(_wayfinder_jolt_target IN ITEMS Jolt JoltPhysics)
+        if(TARGET ${_wayfinder_jolt_target})
+            target_compile_options(${_wayfinder_jolt_target} PRIVATE /wd5045)
+        endif()
+    endforeach()
+endif()
+
 # --- Flecs ---
 CPMAddPackage(
     NAME flecs

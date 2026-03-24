@@ -27,7 +27,7 @@ namespace Wayfinder::Tests
             flecs::world world;
             auto registry = MakeTestRegistry();
             registry.RegisterComponents(world);
-            Scene::RegisterCoreECS(world);
+            Scene::RegisterCoreComponents(world);
             Scene scene(world, registry, "Default");
 
             auto path = FixturesDir() / "test_scene.json";
@@ -42,7 +42,7 @@ namespace Wayfinder::Tests
             flecs::world world;
             auto registry = MakeTestRegistry();
             registry.RegisterComponents(world);
-            Scene::RegisterCoreECS(world);
+            Scene::RegisterCoreComponents(world);
             Scene scene(world, registry, "Default");
 
             auto path = FixturesDir() / "test_scene.json";
@@ -63,7 +63,7 @@ namespace Wayfinder::Tests
             flecs::world world;
             auto registry = MakeTestRegistry();
             registry.RegisterComponents(world);
-            Scene::RegisterCoreECS(world);
+            Scene::RegisterCoreComponents(world);
             Scene scene(world, registry, "Default");
 
             auto path = FixturesDir() / "test_scene.json";
@@ -84,7 +84,7 @@ namespace Wayfinder::Tests
             flecs::world world;
             auto registry = MakeTestRegistry();
             registry.RegisterComponents(world);
-            Scene::RegisterCoreECS(world);
+            Scene::RegisterCoreComponents(world);
             Scene scene(world, registry, "Default");
 
             auto path = FixturesDir() / "hierarchy_scene.json";
@@ -107,7 +107,7 @@ namespace Wayfinder::Tests
             flecs::world world;
             auto registry = MakeTestRegistry();
             registry.RegisterComponents(world);
-            Scene::RegisterCoreECS(world);
+            Scene::RegisterCoreComponents(world);
             Scene scene(world, registry, "Default");
 
             auto path = FixturesDir() / "bad_scene.json";
@@ -121,7 +121,7 @@ namespace Wayfinder::Tests
             flecs::world world;
             auto registry = MakeTestRegistry();
             registry.RegisterComponents(world);
-            Scene::RegisterCoreECS(world);
+            Scene::RegisterCoreComponents(world);
             Scene scene(world, registry, "Default");
 
             auto path = FixturesDir() / "duplicate_scene_object_ids.json";
@@ -135,7 +135,7 @@ namespace Wayfinder::Tests
             flecs::world world;
             auto registry = MakeTestRegistry();
             registry.RegisterComponents(world);
-            Scene::RegisterCoreECS(world);
+            Scene::RegisterCoreComponents(world);
             Scene scene(world, registry, "Default");
 
             auto result = scene.LoadFromFile("nonexistent_scene.json");
@@ -147,7 +147,7 @@ namespace Wayfinder::Tests
             flecs::world world;
             auto registry = MakeTestRegistry();
             registry.RegisterComponents(world);
-            Scene::RegisterCoreECS(world);
+            Scene::RegisterCoreComponents(world);
             Scene scene(world, registry, "Default");
 
             // Create an entity before loading

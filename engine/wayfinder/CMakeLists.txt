@@ -119,20 +119,19 @@ set(ENGINE_ALL_SOURCES
   src/maths/Maths.cpp
   src/maths/Maths.h
 
-  # Modules
-  src/modules/Module.h
-  src/modules/ModuleExport.h
-  src/modules/ModuleLoader.cpp
-  src/modules/ModuleLoader.h
-  src/modules/ModuleRegistry.cpp
-  src/modules/ModuleRegistry.h
-  src/modules/Plugin.h
-  src/modules/registrars/StateRegistrar.cpp
-  src/modules/registrars/StateRegistrar.h
-  src/modules/registrars/SystemRegistrar.cpp
-  src/modules/registrars/SystemRegistrar.h
-  src/modules/registrars/TagRegistrar.cpp
-  src/modules/registrars/TagRegistrar.h
+  # Plugins
+  src/plugins/Plugin.h
+  src/plugins/PluginExport.h
+  src/plugins/PluginLoader.cpp
+  src/plugins/PluginLoader.h
+  src/plugins/PluginRegistry.cpp
+  src/plugins/PluginRegistry.h
+  src/plugins/registrars/StateRegistrar.cpp
+  src/plugins/registrars/StateRegistrar.h
+  src/plugins/registrars/SystemRegistrar.cpp
+  src/plugins/registrars/SystemRegistrar.h
+  src/plugins/registrars/TagRegistrar.cpp
+  src/plugins/registrars/TagRegistrar.h
 
   # Physics
   src/physics/PhysicsComponents.h
@@ -239,6 +238,12 @@ set(ENGINE_ALL_SOURCES
   src/scene/RuntimeComponentRegistry.h
   src/scene/Scene.cpp
   src/scene/Scene.h
+  src/scene/SceneWorldBootstrap.cpp
+  src/scene/SceneWorldBootstrap.h
+  src/scene/plugins/CameraPlugin.cpp
+  src/scene/plugins/CameraPlugin.h
+  src/scene/plugins/TransformPlugin.cpp
+  src/scene/plugins/TransformPlugin.h
   src/scene/SceneDocument.cpp
   src/scene/SceneDocument.h
   src/scene/SceneSettings.h

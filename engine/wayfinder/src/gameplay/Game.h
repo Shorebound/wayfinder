@@ -17,23 +17,26 @@
 #include "scene/SceneSettings.h"
 #include "wayfinder_exports.h"
 
+namespace Wayfinder::Plugins
+{
+    class PluginRegistry;
+}
+
 namespace Wayfinder
 {
     class AssetService;
-    class ModuleRegistry;
     class Scene;
     struct GameContext;
 
     class WAYFINDER_API Game
     {
     public:
-        Game();
+        explicit Game(const Plugins::PluginRegistry& pluginRegistry);
         ~Game();
 
         /**
          * @brief Initialise the game: subsystems, ECS world, and boot scene.
-         * @param ctx  GameContext providing the project descriptor and optional
-         *             module registry.
+         * @param ctx  GameContext providing the project descriptor and plugin registry.
          * @return A successful Result on success, or an Error if the boot
          *         scene cannot be found, resolved, or loaded.
          */
@@ -114,7 +117,7 @@ namespace Wayfinder
         RuntimeComponentRegistry m_componentRegistry;
         std::unique_ptr<Scene> m_currentScene;
         std::shared_ptr<AssetService> m_assetService;
-        const ModuleRegistry* m_moduleRegistry = nullptr;
+        const Plugins::PluginRegistry& m_pluginRegistry;
         GameStateMachine* m_stateMachine = nullptr; ///< Non-owning; owned by m_subsystems.
         bool m_running = false;
         bool m_initialised = false;

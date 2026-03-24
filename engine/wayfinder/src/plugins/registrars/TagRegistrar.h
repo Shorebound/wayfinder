@@ -5,10 +5,10 @@
 #include <string>
 #include <vector>
 
-namespace Wayfinder
+namespace Wayfinder::Plugins
 {
     /// Internal storage for gameplay-tag descriptors and tag-file paths.
-    /// Owned by ModuleRegistry — not a subsystem.
+    /// Owned by PluginRegistry — not a subsystem.
     class WAYFINDER_API TagRegistrar
     {
     public:
@@ -41,4 +41,4 @@ namespace Wayfinder
         std::vector<std::string> m_files;
     };
 
-} // namespace Wayfinder
+} // namespace Wayfinder::Plugins

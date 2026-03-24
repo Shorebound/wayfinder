@@ -2,7 +2,7 @@
 #include "core/InternedString.h"
 #include "gameplay/GameState.h"
 #include "gameplay/GameStateMachine.h"
-#include "modules/ModuleRegistry.h"
+#include "plugins/PluginRegistry.h"
 #include "project/ProjectDescriptor.h"
 
 #include <doctest/doctest.h>
@@ -14,6 +14,8 @@
 
 namespace Wayfinder::Tests
 {
+    using namespace Wayfinder::Plugins;
+
     /// Minimal helpers for headless testing.
     ProjectDescriptor MakeTestProject()
     {
@@ -43,10 +45,10 @@ namespace Wayfinder::Tests
 
             auto project = MakeTestProject();
             auto config = MakeTestConfig();
-            ModuleRegistry registry(project, config);
+            PluginRegistry registry(project, config);
 
             GameStateMachine sm;
-            sm.Configure(world, &registry);
+            sm.Configure(world, registry);
             CHECK_NOTHROW(sm.Setup());
         }
 
@@ -57,14 +59,14 @@ namespace Wayfinder::Tests
 
             auto project = MakeTestProject();
             auto config = MakeTestConfig();
-            ModuleRegistry registry(project, config);
+            PluginRegistry registry(project, config);
 
             registry.RegisterState({"MainMenu", nullptr, nullptr});
             registry.RegisterState({"InGame", nullptr, nullptr});
             registry.SetInitialState("MainMenu");
 
             GameStateMachine sm;
-            sm.Configure(world, &registry);
+            sm.Configure(world, registry);
             sm.Setup();
 
             CHECK(sm.GetCurrentState() == "MainMenu");
@@ -80,11 +82,11 @@ namespace Wayfinder::Tests
 
             auto project = MakeTestProject();
             auto config = MakeTestConfig();
-            ModuleRegistry registry(project, config);
+            PluginRegistry registry(project, config);
 
             std::vector<std::string> callLog;
 
-            ModuleRegistry::StateDescriptor menuState;
+            PluginRegistry::StateDescriptor menuState;
             menuState.Name = "MainMenu";
             menuState.OnEnter = [&](flecs::world&)
             {
@@ -95,7 +97,7 @@ namespace Wayfinder::Tests
                 callLog.push_back("MainMenu.OnExit");
             };
 
-            ModuleRegistry::StateDescriptor gameState;
+            PluginRegistry::StateDescriptor gameState;
             gameState.Name = "InGame";
             gameState.OnEnter = [&](flecs::world&)
             {
@@ -111,7 +113,7 @@ namespace Wayfinder::Tests
             registry.SetInitialState("MainMenu");
 
             GameStateMachine sm;
-            sm.Configure(world, &registry);
+            sm.Configure(world, registry);
             sm.Setup();
 
             callLog.clear(); // Clear initial transition log
@@ -130,11 +132,11 @@ namespace Wayfinder::Tests
 
             auto project = MakeTestProject();
             auto config = MakeTestConfig();
-            ModuleRegistry registry(project, config);
+            PluginRegistry registry(project, config);
 
             std::vector<std::string> callLog;
 
-            ModuleRegistry::StateDescriptor menuState;
+            PluginRegistry::StateDescriptor menuState;
             menuState.Name = "MainMenu";
             menuState.OnEnter = [&](flecs::world&)
             {
@@ -145,7 +147,7 @@ namespace Wayfinder::Tests
             registry.SetInitialState("MainMenu");
 
             GameStateMachine sm;
-            sm.Configure(world, &registry);
+            sm.Configure(world, registry);
             sm.Setup();
 
             callLog.clear();
@@ -161,13 +163,13 @@ namespace Wayfinder::Tests
 
             auto project = MakeTestProject();
             auto config = MakeTestConfig();
-            ModuleRegistry registry(project, config);
+            PluginRegistry registry(project, config);
 
             registry.RegisterState({"MainMenu", nullptr, nullptr});
             registry.SetInitialState("MainMenu");
 
             GameStateMachine sm;
-            sm.Configure(world, &registry);
+            sm.Configure(world, registry);
             sm.Setup();
 
             sm.TransitionTo("NonExistentState");
@@ -181,14 +183,14 @@ namespace Wayfinder::Tests
 
             auto project = MakeTestProject();
             auto config = MakeTestConfig();
-            ModuleRegistry registry(project, config);
+            PluginRegistry registry(project, config);
 
             registry.RegisterState({"MainMenu", nullptr, nullptr});
             registry.RegisterState({"InGame", nullptr, nullptr});
             registry.SetInitialState("MainMenu");
 
             GameStateMachine sm;
-            sm.Configure(world, &registry);
+            sm.Configure(world, registry);
             sm.Setup();
 
             sm.TransitionTo("InGame");
@@ -205,10 +207,10 @@ namespace Wayfinder::Tests
 
             auto project = MakeTestProject();
             auto config = MakeTestConfig();
-            ModuleRegistry registry(project, config);
+            PluginRegistry registry(project, config);
 
             GameStateMachine sm;
-            sm.Configure(world, &registry);
+            sm.Configure(world, registry);
             sm.Setup();
 
             // Should not crash or do anything
@@ -222,10 +224,10 @@ namespace Wayfinder::Tests
 
             auto project = MakeTestProject();
             auto config = MakeTestConfig();
-            ModuleRegistry registry(project, config);
+            PluginRegistry registry(project, config);
 
             GameStateMachine sm;
-            sm.Configure(world, &registry);
+            sm.Configure(world, registry);
             sm.Setup();
 
             sm.MarkDirty();

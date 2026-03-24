@@ -28,9 +28,15 @@ namespace Wayfinder
         Scene(Scene&&) = delete;
         Scene& operator=(Scene&&) = delete;
 
-        /// Registers all core ECS components and modules into the given world.
-        /// Call once per world before creating any scenes.
-        static void RegisterCoreECS(flecs::world& world);
+        /**
+         * @brief Registers core scene infrastructure Flecs component types (identity, ownership, names, prefab links, etc.).
+         *
+         * Runtime components owned by scene plugins (e.g. world transform, active camera) are
+         * registered via \ref PluginRegistry::RegisterComponent (RegisterFn only).
+         *
+         * @param world  Flecs world to register types on.
+         */
+        static void RegisterCoreComponents(flecs::world& world);
 
         void Shutdown();
 

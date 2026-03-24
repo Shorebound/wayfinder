@@ -33,7 +33,7 @@ namespace Wayfinder::Tests
             flecs::world world;
             auto registry = MakeTestRegistry();
             registry.RegisterComponents(world);
-            Scene::RegisterCoreECS(world);
+            Scene::RegisterCoreComponents(world);
             Scene scene(world, registry, "SaveTest");
 
             auto entity = scene.CreateEntity("TestEntity");
@@ -58,7 +58,7 @@ namespace Wayfinder::Tests
             {
                 flecs::world world;
                 registry.RegisterComponents(world);
-                Scene::RegisterCoreECS(world);
+                Scene::RegisterCoreComponents(world);
                 Scene scene(world, registry, "RoundTrip");
 
                 scene.CreateEntity("Alpha");
@@ -72,7 +72,7 @@ namespace Wayfinder::Tests
             {
                 flecs::world reloadWorld;
                 registry.RegisterComponents(reloadWorld);
-                Scene::RegisterCoreECS(reloadWorld);
+                Scene::RegisterCoreComponents(reloadWorld);
                 Scene reloaded(reloadWorld, registry, "Reloaded");
                 REQUIRE(reloaded.LoadFromFile(path.string()));
 
@@ -97,7 +97,7 @@ namespace Wayfinder::Tests
             {
                 flecs::world world;
                 registry.RegisterComponents(world);
-                Scene::RegisterCoreECS(world);
+                Scene::RegisterCoreComponents(world);
 
                 auto path = FixturesDir() / "test_scene.json";
                 Scene scene(world, registry, "Default");
@@ -109,7 +109,7 @@ namespace Wayfinder::Tests
             {
                 flecs::world reloadWorld;
                 registry.RegisterComponents(reloadWorld);
-                Scene::RegisterCoreECS(reloadWorld);
+                Scene::RegisterCoreComponents(reloadWorld);
 
                 Scene reloaded(reloadWorld, registry, "Reloaded");
                 REQUIRE(reloaded.LoadFromFile(savePath.string()));
@@ -130,7 +130,7 @@ namespace Wayfinder::Tests
             {
                 flecs::world world;
                 registry.RegisterComponents(world);
-                Scene::RegisterCoreECS(world);
+                Scene::RegisterCoreComponents(world);
                 Scene scene(world, registry, "IdTest");
 
                 auto entity = scene.CreateEntity("Tracked");
@@ -143,7 +143,7 @@ namespace Wayfinder::Tests
             {
                 flecs::world reloadWorld;
                 registry.RegisterComponents(reloadWorld);
-                Scene::RegisterCoreECS(reloadWorld);
+                Scene::RegisterCoreComponents(reloadWorld);
 
                 Scene reloaded(reloadWorld, registry, "Reloaded");
                 REQUIRE(reloaded.LoadFromFile(path.string()));

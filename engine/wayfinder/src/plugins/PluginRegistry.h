@@ -3,15 +3,15 @@
 #include "Plugin.h"
 #include "app/Subsystem.h"
 #include "gameplay/GameState.h"
-#include "modules/registrars/StateRegistrar.h"
-#include "modules/registrars/SystemRegistrar.h"
-#include "modules/registrars/TagRegistrar.h"
+#include "plugins/registrars/StateRegistrar.h"
+#include "plugins/registrars/SystemRegistrar.h"
+#include "plugins/registrars/TagRegistrar.h"
 #include "wayfinder_exports.h"
 
+#include <concepts>
 #include <functional>
 #include <memory>
 #include <string>
-#include <string_view>
 #include <typeindex>
 #include <utility>
 #include <vector>
@@ -28,24 +28,27 @@ namespace Wayfinder
     class Entity;
     struct EngineConfig;
     struct ProjectDescriptor;
+}
 
+namespace Wayfinder::Plugins
+{
     /**
-     * @brief Collects game-specific ECS registrations during Module::Register().
+     * @brief Collects ECS registrations from plugins during Plugin::Build().
      *
-     * This is a descriptor store, not a live world facade. Game modules
-     * declare their systems/components here, and the engine applies those
+     * This is a descriptor store, not a live world facade. Plugins declare
+     * their systems and components here, and the engine applies those
      * declarations once into the persistent flecs::world at startup.
      *
      * Internally delegates system, state, and tag storage to focused
      * sub-registries (SystemRegistrar, StateRegistrar, TagRegistrar).
      */
-    class WAYFINDER_API ModuleRegistry
+    class WAYFINDER_API PluginRegistry
     {
     public:
         using SystemFactory = std::function<void(flecs::world&)>;
         using ComponentRegisterFn = void (*)(flecs::world& world);
-        using ComponentApplyFn = void (*)(const nlohmann::json& componentData, Entity& entity);
-        using ComponentSerialiseFn = void (*)(const Entity& entity, nlohmann::json& componentTables);
+        using ComponentApplyFn = void (*)(const nlohmann::json& componentData, ::Wayfinder::Entity& entity);
+        using ComponentSerialiseFn = void (*)(const ::Wayfinder::Entity& entity, nlohmann::json& componentTables);
         using ComponentValidateFn = bool (*)(const nlohmann::json& componentData, std::string& error);
         using GlobalFactory = std::function<void(flecs::world&)>;
 
@@ -55,7 +58,10 @@ namespace Wayfinder
         using TagDescriptor = TagRegistrar::Descriptor;
 
         /**
-         * @brief Describes a serialisable ECS component for scene authoring.
+         * @brief Describes an ECS component registration for the runtime world.
+         *
+         * For scene authoring, set Apply/Serialise/Validate. For runtime-only types
+         * (e.g. cached world transforms), only \ref Key and \ref RegisterFn are required.
          */
         struct ComponentDescriptor
         {
@@ -75,27 +81,38 @@ namespace Wayfinder
             GlobalFactory Factory;
         };
 
-        ModuleRegistry(const ProjectDescriptor& project, const EngineConfig& config);
+        PluginRegistry(const ::Wayfinder::ProjectDescriptor& project, const ::Wayfinder::EngineConfig& config);
 
         /// Add a plugin. The plugin's Build() is called immediately.
         template<typename T>
         void AddPlugin()
         {
-            auto plugin = std::make_unique<T>();
-            plugin->Build(*this);
-            m_plugins.push_back(std::move(plugin));
+            AddPlugin(std::make_unique<T>());
         }
+
+        /// Add an externally-created plugin (e.g. the game's root plugin from CreateGamePlugin()).
+        void AddPlugin(std::unique_ptr<Plugin> plugin);
+
+        /// Call OnStartup() on all plugins in registration order.
+        void NotifyStartup();
+
+        /// Call OnShutdown() on all plugins in reverse registration order.
+        void NotifyShutdown();
+
+        /// Call every \ref ComponentDescriptor::RegisterFn from \ref RegisterComponent entries.
+        /// Used when applying plugins without a \ref RuntimeComponentRegistry (e.g. headless tests).
+        void ApplyComponentRegisterFns(flecs::world& world) const;
 
         /// Register a named ECS system factory.  The factory will be called
         /// once when the engine creates its persistent flecs::world.
         /// An optional RunCondition controls whether the system is active.
         /// Optional After/Before lists declare ordering relative to other systems.
-        void RegisterSystem(std::string name, SystemFactory factory, RunCondition condition = {}, std::vector<std::string> after = {}, std::vector<std::string> before = {});
+        void RegisterSystem(std::string name, SystemFactory factory, ::Wayfinder::RunCondition condition = {}, std::vector<std::string> after = {}, std::vector<std::string> before = {});
 
         /// Register a serialisable component for scene authoring.
         void RegisterComponent(ComponentDescriptor descriptor);
 
-        /// Register a typed world singleton (global data).
+        /// Register a typed world singleton (global data). An empty \p factory is rejected (logged, no-op), matching \ref RegisterSystem.
         void RegisterGlobal(std::string name, GlobalFactory factory);
 
         /// Register a named game state with optional enter/exit callbacks.
@@ -107,7 +124,7 @@ namespace Wayfinder
 
         /// Register a gameplay tag name. Returns a GameplayTag that can be
         /// captured and used immediately (e.g. passed to HasTag run conditions).
-        GameplayTag RegisterTag(std::string tagName, std::string comment = {});
+        ::Wayfinder::GameplayTag RegisterTag(std::string tagName, std::string comment = {});
 
         /// Register a tag definition file to be loaded at startup.
         /// Path is relative to the project's config directory.
@@ -117,10 +134,10 @@ namespace Wayfinder
         /// during Game initialisation alongside engine-core subsystems.
         /// An optional static predicate is checked before construction.
         template<typename T>
-        void RegisterSubsystem(SubsystemCollection<GameSubsystem>::PredicateFn predicate = nullptr)
+            requires std::derived_from<T, ::Wayfinder::GameSubsystem>
+        void RegisterSubsystem(::Wayfinder::SubsystemCollection<::Wayfinder::GameSubsystem>::PredicateFn predicate = nullptr)
         {
-            static_assert(std::is_base_of_v<GameSubsystem, T>, "T must derive from GameSubsystem");
-            m_subsystemFactories.push_back({std::type_index(typeid(T)), []() -> std::unique_ptr<GameSubsystem>
+            m_subsystemFactories.push_back({std::type_index(typeid(T)), []() -> std::unique_ptr<::Wayfinder::GameSubsystem>
             {
                 return std::make_unique<T>();
             }, predicate});
@@ -170,28 +187,28 @@ namespace Wayfinder
         struct SubsystemFactoryEntry
         {
             std::type_index Type;
-            SubsystemCollection<GameSubsystem>::FactoryFn Factory;
-            SubsystemCollection<GameSubsystem>::PredicateFn Predicate = nullptr;
+            ::Wayfinder::SubsystemCollection<::Wayfinder::GameSubsystem>::FactoryFn Factory;
+            ::Wayfinder::SubsystemCollection<::Wayfinder::GameSubsystem>::PredicateFn Predicate = nullptr;
         };
 
-        /// Read-only access to module-registered subsystem factories.
+        /// Read-only access to plugin-registered subsystem factories.
         const std::vector<SubsystemFactoryEntry>& GetSubsystemFactories() const
         {
             return m_subsystemFactories;
         }
 
         /// Read-only access to the project descriptor.
-        const ProjectDescriptor& GetProject() const;
+        const ::Wayfinder::ProjectDescriptor& GetProject() const;
 
         /**
          * @brief Read-only access to the engine configuration.
          * @return A const reference to the EngineConfig.
          */
-        const EngineConfig& GetConfig() const;
+        const ::Wayfinder::EngineConfig& GetConfig() const;
 
     private:
-        const ProjectDescriptor& m_project;
-        const EngineConfig& m_config;
+        const ::Wayfinder::ProjectDescriptor& m_project;
+        const ::Wayfinder::EngineConfig& m_config;
         std::vector<std::unique_ptr<Plugin>> m_plugins;
         SystemRegistrar m_systems;
         StateRegistrar m_states;
@@ -201,4 +218,4 @@ namespace Wayfinder
         std::vector<SubsystemFactoryEntry> m_subsystemFactories;
     };
 
-} // namespace Wayfinder
+} // namespace Wayfinder::Plugins

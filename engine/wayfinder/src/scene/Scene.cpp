@@ -103,92 +103,13 @@ namespace Wayfinder
         Shutdown();
     }
 
-    void Scene::RegisterCoreECS(flecs::world& world)
+    void Scene::RegisterCoreComponents(flecs::world& world)
     {
         world.component<SceneEntityComponent>();
         world.component<SceneOwnership>();
         world.component<NameComponent>();
         world.component<SceneObjectIdComponent>();
         world.component<PrefabInstanceComponent>();
-
-        // Transform module
-        world.component<WorldTransformComponent>();
-        // NOLINTNEXTLINE(clang-analyzer-core.StackAddressEscape)
-        world.system<>("UpdateWorldTransforms")
-            .kind(flecs::PreUpdate)
-            .run([&world](flecs::iter&)
-        {
-            world.children([&](flecs::entity child)
-            {
-                struct TransformPropagation
-                {
-                    static void UpdateRecursive(flecs::entity entityHandle, const Matrix4& parentMatrix)
-                    {
-                        if (!entityHandle.has<TransformComponent>())
-                        {
-                            entityHandle.children([&](flecs::entity child)
-                            {
-                                UpdateRecursive(child, parentMatrix);
-                            });
-                            return;
-                        }
-
-                        const auto& localTransform = entityHandle.get<TransformComponent>();
-                        const Matrix4 localMatrix = localTransform.GetLocalMatrix();
-                        const Matrix4 worldMatrix = Maths::Multiply(localMatrix, parentMatrix);
-
-                        WorldTransformComponent cachedWorldTransform;
-                        cachedWorldTransform.LocalToWorld = worldMatrix;
-                        cachedWorldTransform.Position = Maths::TransformPoint(worldMatrix, {0.0f, 0.0f, 0.0f});
-                        cachedWorldTransform.Scale = Maths::ExtractScale(worldMatrix);
-
-                        entityHandle.set<WorldTransformComponent>(cachedWorldTransform);
-                        entityHandle.children([&](flecs::entity child)
-                        {
-                            UpdateRecursive(child, worldMatrix);
-                        });
-                    }
-                };
-                TransformPropagation::UpdateRecursive(child, Maths::Identity());
-            });
-        });
-
-        // Camera module
-        world.component<ActiveCameraStateComponent>();
-        world.system<>("ExtractActiveCamera")
-            .kind(flecs::OnUpdate)
-            .run([&world](flecs::iter&)
-        {
-            ActiveCameraStateComponent activeCamera;
-
-            world.each([&](flecs::entity entityHandle, const TransformComponent& transform, const CameraComponent& camera)
-            {
-                if (activeCamera.IsValid || !camera.Primary)
-                {
-                    return;
-                }
-
-                activeCamera.IsValid = true;
-                activeCamera.FieldOfView = camera.FieldOfView;
-                activeCamera.Projection = camera.Projection;
-
-                if (entityHandle.has<WorldTransformComponent>())
-                {
-                    const auto& worldTransform = entityHandle.get<WorldTransformComponent>();
-                    activeCamera.Position = worldTransform.Position;
-                    activeCamera.Target = camera.Target;
-                    activeCamera.Up = Maths::Normalize(Maths::TransformDirection(worldTransform.LocalToWorld, camera.Up));
-                }
-                else
-                {
-                    activeCamera.Position = transform.Local.Position;
-                    activeCamera.Target = camera.Target;
-                    activeCamera.Up = camera.Up;
-                }
-            });
-
-            world.set<ActiveCameraStateComponent>(activeCamera);
-        });
     }
 
     void Scene::ClearEntities()

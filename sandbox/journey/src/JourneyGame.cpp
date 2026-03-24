@@ -1,14 +1,16 @@
 #include "app/EntryPoint.h"
 #include "gameplay/GameState.h"
 #include "gameplay/GameplayTag.h"
-#include "modules/Module.h"
-#include "modules/ModuleExport.h"
-#include "modules/ModuleRegistry.h"
-#include "modules/Plugin.h"
 #include "physics/PhysicsPlugin.h"
+#include "plugins/Plugin.h"
+#include "plugins/PluginExport.h"
+#include "plugins/PluginRegistry.h"
+#include "scene/SceneWorldBootstrap.h"
 #include "scene/entity/Entity.h"
 
 #include "ecs/Flecs.h"
+
+#include <nlohmann/json.hpp>
 
 namespace Wayfinder::Journey
 {
@@ -19,12 +21,12 @@ namespace Wayfinder::Journey
     };
 
     /// Example plugin that registers a custom HealthComponent for scene authoring.
-    class HealthPlugin : public Plugin
+    class HealthPlugin : public Plugins::Plugin
     {
     public:
-        void Build(ModuleRegistry& registry) override
+        void Build(Plugins::PluginRegistry& registry) override
         {
-            ModuleRegistry::ComponentDescriptor desc;
+            Plugins::PluginRegistry::ComponentDescriptor desc;
             desc.Key = "health";
 
             desc.RegisterFn = [](flecs::world& world)
@@ -32,7 +34,7 @@ namespace Wayfinder::Journey
                 world.component<HealthComponent>();
             };
 
-            desc.ApplyFn = [](const nlohmann::json& table, Entity& entity)
+            desc.ApplyFn = [](const nlohmann::json& table, Wayfinder::Entity& entity)
             {
                 HealthComponent health;
                 health.MaxHealth = table.value("max_health", 100.0f);
@@ -40,7 +42,7 @@ namespace Wayfinder::Journey
                 entity.AddComponent<HealthComponent>(health);
             };
 
-            desc.SerialiseFn = [](const Entity& entity, nlohmann::json& tables)
+            desc.SerialiseFn = [](const Wayfinder::Entity& entity, nlohmann::json& tables)
             {
                 if (!entity.HasComponent<HealthComponent>())
                 {
@@ -68,6 +70,37 @@ namespace Wayfinder::Journey
                     return false;
                 }
 
+                if (table.contains("max_health") && table["max_health"].is_number())
+                {
+                    const float maxHealth = table["max_health"].get<float>();
+                    if (maxHealth < 0.0f)
+                    {
+                        error = "'max_health' must be non-negative";
+                        return false;
+                    }
+                }
+
+                if (table.contains("current_health") && table["current_health"].is_number())
+                {
+                    const float currentHealth = table["current_health"].get<float>();
+                    if (currentHealth < 0.0f)
+                    {
+                        error = "'current_health' must be non-negative";
+                        return false;
+                    }
+                }
+
+                if (table.contains("max_health") && table["max_health"].is_number() && table.contains("current_health") && table["current_health"].is_number())
+                {
+                    const float maxHealth = table["max_health"].get<float>();
+                    const float currentHealth = table["current_health"].get<float>();
+                    if (currentHealth > maxHealth)
+                    {
+                        error = "'current_health' cannot exceed 'max_health'";
+                        return false;
+                    }
+                }
+
                 return true;
             };
 
@@ -76,10 +109,10 @@ namespace Wayfinder::Journey
     };
 
     /// Example plugin that registers game states and conditioned systems.
-    class GameplayPlugin : public Plugin
+    class GameplayPlugin : public Plugins::Plugin
     {
     public:
-        void Build(ModuleRegistry& registry) override
+        void Build(Plugins::PluginRegistry& registry) override
         {
             // Register game states with lifecycle callbacks
             registry.RegisterState({"Playing", nullptr, nullptr});
@@ -111,10 +144,10 @@ namespace Wayfinder::Journey
     };
 
     /// Example plugin demonstrating gameplay tag registration.
-    class TagDemoPlugin : public Plugin
+    class TagDemoPlugin : public Plugins::Plugin
     {
     public:
-        void Build(ModuleRegistry& registry) override
+        void Build(Plugins::PluginRegistry& registry) override
         {
             // Load data-driven tag files from config/tags/
             registry.RegisterTagFile("tags/status.tags.toml");
@@ -148,10 +181,11 @@ namespace Wayfinder::Journey
         }
     };
 
-    class JourneyModule : public Module
+    class JourneyGame : public Plugins::Plugin
     {
-        void Register(ModuleRegistry& registry) override
+        void Build(Plugins::PluginRegistry& registry) override
         {
+            Wayfinder::PopulateDefaultScenePlugins(registry);
             registry.AddPlugin<Physics::PhysicsPlugin>();
             registry.AddPlugin<HealthPlugin>();
             registry.AddPlugin<GameplayPlugin>();
@@ -160,10 +194,13 @@ namespace Wayfinder::Journey
     };
 } // namespace Wayfinder::Journey
 
-std::unique_ptr<Wayfinder::Module> Wayfinder::CreateModule()
+namespace Wayfinder::Plugins
 {
-    return std::make_unique<Journey::JourneyModule>();
+    std::unique_ptr<Plugin> CreateGamePlugin()
+    {
+        return std::make_unique<Journey::JourneyGame>();
+    }
 }
 
-// Dynamic entry point for tools loading the module as a shared library.
-WAYFINDER_IMPLEMENT_MODULE(Wayfinder::Journey::JourneyModule)
+// Dynamic entry point for tools loading the plugin as a shared library.
+WAYFINDER_IMPLEMENT_GAME_PLUGIN(Wayfinder::Journey::JourneyGame)

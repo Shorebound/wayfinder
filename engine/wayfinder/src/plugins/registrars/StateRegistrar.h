@@ -11,10 +11,10 @@ namespace flecs
     struct world;
 }
 
-namespace Wayfinder
+namespace Wayfinder::Plugins
 {
     /// Internal storage for game-state descriptors.
-    /// Owned by ModuleRegistry — not a subsystem.
+    /// Owned by PluginRegistry — not a subsystem.
     class WAYFINDER_API StateRegistrar
     {
     public:
@@ -48,4 +48,4 @@ namespace Wayfinder
         std::string m_initialState;
     };
 
-} // namespace Wayfinder
+} // namespace Wayfinder::Plugins

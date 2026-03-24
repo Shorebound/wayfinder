@@ -7,9 +7,9 @@
 
 #include "ecs/Flecs.h"
 
-namespace Wayfinder
+namespace Wayfinder::Plugins
 {
-    void SystemRegistrar::Register(std::string name, std::function<void(flecs::world&)> factory, RunCondition condition, std::vector<std::string> after, std::vector<std::string> before)
+    void SystemRegistrar::Register(std::string name, std::function<void(flecs::world&)> factory, Wayfinder::RunCondition condition, std::vector<std::string> after, std::vector<std::string> before)
     {
         if (!factory)
         {
@@ -140,4 +140,4 @@ namespace Wayfinder
         }
     }
 
-} // namespace Wayfinder
+} // namespace Wayfinder::Plugins

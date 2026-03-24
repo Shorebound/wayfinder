@@ -32,7 +32,7 @@ Engine source lives under `engine/wayfinder/src/` and is organised by domain:
 | `core/` | Foundational primitives — types, identifiers, handles, interned strings, result type, logging, events |
 | `app/` | Application lifecycle — `Application`, `EngineRuntime`, `EngineConfig`, layers, subsystem management |
 | `gameplay/` | Game framework — `Game`, game states, state machine, gameplay tags |
-| `modules/` | Module and plugin system — module loading, registration, registrars |
+| `plugins/` | Plugin system — plugin loading, registration, registrars |
 | `project/` | Project metadata — `ProjectDescriptor`, project file discovery and resolution |
 | `assets/` | Asset registry and service layer |
 | `maths/` | 3D math utilities |

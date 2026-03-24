@@ -19,7 +19,7 @@ namespace Wayfinder::Tests
         flecs::world world;
         auto registry = MakeTestRegistry();
         registry.RegisterComponents(world);
-        Scene::RegisterCoreECS(world);
+        Scene::RegisterCoreComponents(world);
         Scene scene(world, registry, "SerialiseTest");
 
         auto entity = scene.CreateEntity("TestEntity");

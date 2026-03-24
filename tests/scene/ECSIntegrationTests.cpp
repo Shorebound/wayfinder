@@ -22,7 +22,7 @@ namespace Wayfinder::Tests
             flecs::world world;
             auto registry = MakeTestRegistry();
             registry.RegisterComponents(world);
-            Scene::RegisterCoreECS(world);
+            Scene::RegisterCoreComponents(world);
             Scene scene(world, registry, "TestScene");
 
             auto entity = scene.CreateEntity("Player");
@@ -36,7 +36,7 @@ namespace Wayfinder::Tests
             flecs::world world;
             auto registry = MakeTestRegistry();
             registry.RegisterComponents(world);
-            Scene::RegisterCoreECS(world);
+            Scene::RegisterCoreComponents(world);
             Scene scene(world, registry, "TestScene");
 
             auto entity = scene.CreateEntity("Player");
@@ -51,7 +51,7 @@ namespace Wayfinder::Tests
             flecs::world world;
             auto registry = MakeTestRegistry();
             registry.RegisterComponents(world);
-            Scene::RegisterCoreECS(world);
+            Scene::RegisterCoreComponents(world);
             Scene scene(world, registry, "TestScene");
 
             auto e1 = scene.CreateEntity("A");
@@ -65,7 +65,7 @@ namespace Wayfinder::Tests
             flecs::world world;
             auto registry = MakeTestRegistry();
             registry.RegisterComponents(world);
-            Scene::RegisterCoreECS(world);
+            Scene::RegisterCoreComponents(world);
             Scene scene(world, registry, "TestScene");
 
             auto e1 = scene.CreateEntity("Entity");
@@ -82,7 +82,7 @@ namespace Wayfinder::Tests
             flecs::world world;
             auto registry = MakeTestRegistry();
             registry.RegisterComponents(world);
-            Scene::RegisterCoreECS(world);
+            Scene::RegisterCoreComponents(world);
             Scene scene(world, registry, "TestScene");
 
             auto entity = scene.CreateEntity("Player");
@@ -100,7 +100,7 @@ namespace Wayfinder::Tests
             flecs::world world;
             auto registry = MakeTestRegistry();
             registry.RegisterComponents(world);
-            Scene::RegisterCoreECS(world);
+            Scene::RegisterCoreComponents(world);
             Scene scene(world, registry, "TestScene");
 
             auto entity = scene.CreateEntity("Player");
@@ -118,7 +118,7 @@ namespace Wayfinder::Tests
             flecs::world world;
             auto registry = MakeTestRegistry();
             registry.RegisterComponents(world);
-            Scene::RegisterCoreECS(world);
+            Scene::RegisterCoreComponents(world);
             Scene scene(world, registry, "TestScene");
 
             auto created = scene.CreateEntity("Player");
@@ -133,7 +133,7 @@ namespace Wayfinder::Tests
             flecs::world world;
             auto registry = MakeTestRegistry();
             registry.RegisterComponents(world);
-            Scene::RegisterCoreECS(world);
+            Scene::RegisterCoreComponents(world);
             Scene scene(world, registry, "TestScene");
 
             auto found = scene.GetEntityByName("NonExistent");
@@ -145,7 +145,7 @@ namespace Wayfinder::Tests
             flecs::world world;
             auto registry = MakeTestRegistry();
             registry.RegisterComponents(world);
-            Scene::RegisterCoreECS(world);
+            Scene::RegisterCoreComponents(world);
             Scene scene(world, registry, "TestScene");
 
             auto created = scene.CreateEntity("Player");
@@ -161,7 +161,7 @@ namespace Wayfinder::Tests
             flecs::world world;
             auto registry = MakeTestRegistry();
             registry.RegisterComponents(world);
-            Scene::RegisterCoreECS(world);
+            Scene::RegisterCoreComponents(world);
             Scene scene(world, registry, "TestScene");
 
             std::vector<Entity> createdEntities;
@@ -185,7 +185,7 @@ namespace Wayfinder::Tests
             flecs::world world;
             auto registry = MakeTestRegistry();
             registry.RegisterComponents(world);
-            Scene::RegisterCoreECS(world);
+            Scene::RegisterCoreComponents(world);
             Scene scene(world, registry, "TestScene");
 
             auto entity = scene.CreateEntity("Player");
@@ -206,7 +206,7 @@ namespace Wayfinder::Tests
             flecs::world world;
             auto registry = MakeTestRegistry();
             registry.RegisterComponents(world);
-            Scene::RegisterCoreECS(world);
+            Scene::RegisterCoreComponents(world);
             Scene scene(world, registry, "TestScene");
 
             auto found = scene.GetEntityById(SceneObjectId::Generate());
@@ -220,7 +220,7 @@ namespace Wayfinder::Tests
             flecs::world world;
             auto registry = MakeTestRegistry();
             registry.RegisterComponents(world);
-            Scene::RegisterCoreECS(world);
+            Scene::RegisterCoreComponents(world);
 
             // Create an entity not owned by any scene
             auto unownedEntity = world.entity("GlobalEntity");
@@ -242,7 +242,7 @@ namespace Wayfinder::Tests
             flecs::world world;
             auto registry = MakeTestRegistry();
             registry.RegisterComponents(world);
-            Scene::RegisterCoreECS(world);
+            Scene::RegisterCoreComponents(world);
 
             Scene sceneA(world, registry, "SceneA");
             Scene sceneB(world, registry, "SceneB");
@@ -274,7 +274,7 @@ namespace Wayfinder::Tests
             flecs::world world;
             auto registry = MakeTestRegistry();
             registry.RegisterComponents(world);
-            Scene::RegisterCoreECS(world);
+            Scene::RegisterCoreComponents(world);
             Scene scene(world, registry, "MyScene");
 
             CHECK(scene.GetName() == "MyScene");
@@ -285,7 +285,7 @@ namespace Wayfinder::Tests
             flecs::world world;
             auto registry = MakeTestRegistry();
             registry.RegisterComponents(world);
-            Scene::RegisterCoreECS(world);
+            Scene::RegisterCoreComponents(world);
             Scene scene(world, registry, "TestScene");
 
             CHECK(&scene.GetWorld() == &world);
@@ -298,7 +298,7 @@ namespace Wayfinder::Tests
             flecs::world world;
             auto registry = MakeTestRegistry();
             registry.RegisterComponents(world);
-            Scene::RegisterCoreECS(world);
+            Scene::RegisterCoreComponents(world);
             Scene scene(world, registry, "TestScene");
 
             std::vector<Entity> created;
@@ -322,7 +322,7 @@ namespace Wayfinder::Tests
             flecs::world world;
             auto registry = MakeTestRegistry();
             registry.RegisterComponents(world);
-            Scene::RegisterCoreECS(world);
+            Scene::RegisterCoreComponents(world);
             Scene scene(world, registry, "TestScene");
 
             auto entity = scene.CreateEntity("OldName");
@@ -339,7 +339,7 @@ namespace Wayfinder::Tests
             flecs::world world;
             auto registry = MakeTestRegistry();
             registry.RegisterComponents(world);
-            Scene::RegisterCoreECS(world);
+            Scene::RegisterCoreComponents(world);
             Scene scene(world, registry, "TestScene");
 
             auto entity = scene.CreateEntity("Player");
@@ -355,7 +355,7 @@ namespace Wayfinder::Tests
             flecs::world world;
             auto registry = MakeTestRegistry();
             registry.RegisterComponents(world);
-            Scene::RegisterCoreECS(world);
+            Scene::RegisterCoreComponents(world);
             Scene scene(world, registry, "TestScene");
 
             auto first = scene.CreateEntity("Hero");
@@ -378,7 +378,7 @@ namespace Wayfinder::Tests
             flecs::world world;
             auto registry = MakeTestRegistry();
             registry.RegisterComponents(world);
-            Scene::RegisterCoreECS(world);
+            Scene::RegisterCoreComponents(world);
             Scene scene(world, registry, "TestScene");
 
             // Create normally, then strip the NameComponent to simulate the
@@ -399,7 +399,7 @@ namespace Wayfinder::Tests
             flecs::world world;
             auto registry = MakeTestRegistry();
             registry.RegisterComponents(world);
-            Scene::RegisterCoreECS(world);
+            Scene::RegisterCoreComponents(world);
             Scene scene(world, registry, "TestScene");
 
             auto entity = scene.CreateEntity("Player");
@@ -418,7 +418,7 @@ namespace Wayfinder::Tests
             flecs::world world;
             auto registry = MakeTestRegistry();
             registry.RegisterComponents(world);
-            Scene::RegisterCoreECS(world);
+            Scene::RegisterCoreComponents(world);
             Scene scene(world, registry, "TestScene");
 
             auto entity = scene.CreateEntity("Player");

@@ -121,7 +121,7 @@ namespace Wayfinder
             return true;
         }
 
-        /// Register a subsystem from an external factory (e.g. from ModuleRegistry).
+        /// Register a subsystem from an external factory (e.g. from PluginRegistry).
         /// Returns false if the type is already registered.
         bool Register(std::type_index type, FactoryFn factory, PredicateFn predicate = nullptr)
         {

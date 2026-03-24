@@ -2,6 +2,7 @@
 #include "scene/Components.h"
 #include "scene/RuntimeComponentRegistry.h"
 #include "scene/Scene.h"
+#include "scene/SceneWorldBootstrap.h"
 #include "scene/entity/Entity.h"
 
 #include "ecs/Flecs.h"
@@ -11,6 +12,8 @@
 /// ── MeshComponent ────────────────────────────────────────
 namespace Wayfinder::Tests
 {
+    // GLM / nlohmann::json patterns in tests trigger cppcoreguidelines noise.
+    // NOLINTBEGIN(cppcoreguidelines-pro-type-union-access, cppcoreguidelines-pro-bounds-avoid-unchecked-container-access)
 
     TEST_CASE("MeshComponent stores primitive and dimensions")
     {
@@ -40,14 +43,14 @@ namespace Wayfinder::Tests
 
     TEST_CASE("RenderOverrideComponent defaults to no overrides")
     {
-        Wayfinder::RenderOverrideComponent renderOverride;
+        const Wayfinder::RenderOverrideComponent renderOverride;
         CHECK_FALSE(renderOverride.Wireframe.has_value());
     }
 
     TEST_CASE("RenderOverrideComponent is an opt-in override")
     {
         flecs::world world;
-        Wayfinder::Scene::RegisterCoreECS(world);
+        Wayfinder::Scene::RegisterCoreComponents(world);
         Wayfinder::RuntimeComponentRegistry registry;
         registry.AddCoreEntries();
         registry.RegisterComponents(world);
@@ -96,7 +99,7 @@ namespace Wayfinder::Tests
     TEST_CASE("RenderOverrideComponent serialisation round-trip with wireframe=true")
     {
         flecs::world world;
-        Wayfinder::Scene::RegisterCoreECS(world);
+        Wayfinder::Scene::RegisterCoreComponents(world);
         Wayfinder::RuntimeComponentRegistry registry;
         registry.AddCoreEntries();
         registry.RegisterComponents(world);
@@ -133,7 +136,7 @@ namespace Wayfinder::Tests
     TEST_CASE("RenderOverrideComponent serialisation round-trip with wireframe=false")
     {
         flecs::world world;
-        Wayfinder::Scene::RegisterCoreECS(world);
+        Wayfinder::Scene::RegisterCoreComponents(world);
         Wayfinder::RuntimeComponentRegistry registry;
         registry.AddCoreEntries();
         registry.RegisterComponents(world);
@@ -171,7 +174,7 @@ namespace Wayfinder::Tests
     TEST_CASE("RenderOverrideComponent serialisation skips empty component")
     {
         flecs::world world;
-        Wayfinder::Scene::RegisterCoreECS(world);
+        Wayfinder::Scene::RegisterCoreComponents(world);
         Wayfinder::RuntimeComponentRegistry registry;
         registry.AddCoreEntries();
         registry.RegisterComponents(world);
@@ -193,7 +196,7 @@ namespace Wayfinder::Tests
     TEST_CASE("MaterialComponent serialisation has no wireframe field")
     {
         flecs::world world;
-        Wayfinder::Scene::RegisterCoreECS(world);
+        Wayfinder::Scene::RegisterCoreComponents(world);
         Wayfinder::RuntimeComponentRegistry registry;
         registry.AddCoreEntries();
         registry.RegisterComponents(world);
@@ -240,10 +243,11 @@ namespace Wayfinder::Tests
     TEST_CASE("Extractor uses RenderOverrideComponent for wireframe")
     {
         flecs::world world;
-        Wayfinder::Scene::RegisterCoreECS(world);
+        Wayfinder::Scene::RegisterCoreComponents(world);
         Wayfinder::RuntimeComponentRegistry registry;
         registry.AddCoreEntries();
         registry.RegisterComponents(world);
+        Wayfinder::SceneWorldBootstrap::RegisterDefaultScenePlugins(world);
         Wayfinder::Scene scene(world, registry, "Extractor Override Test");
 
         Wayfinder::Entity camera = scene.CreateEntity("Camera");
@@ -286,7 +290,7 @@ namespace Wayfinder::Tests
 
         world.progress(0.016f);
 
-        Wayfinder::SceneRenderExtractor extractor;
+        const Wayfinder::SceneRenderExtractor extractor;
         const Wayfinder::RenderFrame frame = extractor.Extract(scene);
         const Wayfinder::RenderPass* mainPass = frame.FindPass(Wayfinder::RenderPassIds::MainScene);
 
@@ -322,4 +326,6 @@ namespace Wayfinder::Tests
         CHECK(countSolid == 1);
         CHECK(countUnset == 2);
     }
+
+    // NOLINTEND(cppcoreguidelines-pro-type-union-access, cppcoreguidelines-pro-bounds-avoid-unchecked-container-access)
 }

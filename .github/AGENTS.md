@@ -33,9 +33,12 @@ This file documents common mistakes, confusion points, and non-obvious behaviour
 - **SDL_GPU SPIR-V binding convention:** Vertex samplers = set 0, vertex UBOs = set 1, fragment samplers = set 2, fragment UBOs = set 3. Combined image samplers need `[[vk::combinedImageSampler]]` + `[[vk::binding(N, SET)]]` on both `Texture2D` and `SamplerState`.
 - **`NullDevice` is real.** It's used for headless testing and tools. All `Create*()` methods return `{}` (invalid handles). Code that runs in tests must handle null-device gracefully.
 
-## Module System
+## Plugin System
 
-- **`Module::Register()` stores factories, not live registrations.** `ModuleRegistry` collects descriptors that are applied once via `ApplyToWorld(flecs::world&)` at startup.
+- **Shared game modules must export `WayfinderGetPluginAPIVersion` (included in `WAYFINDER_IMPLEMENT_GAME_PLUGIN`).** The loader compares the returned value to `Wayfinder::Plugins::WAYFINDER_PLUGIN_ABI_VERSION` before calling create/destroy; bump the constant when the plugin ABI changes.
+- **`Plugin::Build()` stores factories, not live registrations.** `PluginRegistry` collects descriptors that are applied once via `ApplyToWorld(flecs::world&)` at startup.
+- **Runtime-only vs scene JSON components.** Use a single `RegisterComponent(ComponentDescriptor)` entry: set Apply/Serialise/Validate for authoring; for runtime-only Flecs types, only `Key` + `RegisterFn` (e.g. `world.component<T>()`). `RuntimeComponentRegistry::RegisterComponents` applies all `RegisterFn`s; headless paths without a merged registry call `PluginRegistry::ApplyComponentRegisterFns` instead.
+- **Scene plugins are opt-in on the game root plugin.** `Application` does not register transform/camera (or any engine scene plugins). The game’s root `Plugin::Build()` adds `TransformPlugin`, `CameraPlugin`, etc., like Bevy’s explicit `add_plugins(DefaultPlugins)` — a `DefaultPlugins` bundle can wrap that later.
 
 ## gh-issues
 

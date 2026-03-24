@@ -38,7 +38,7 @@ add_executable(${WAYFINDER_CORE_TEST_NAME}
   gameplay/GameplayTagTests.cpp
   gameplay/GameplayTagRegistryTests.cpp
   gameplay/GameStateMachineTests.cpp
-  modules/ModuleRegistryTests.cpp
+  plugins/PluginRegistryTests.cpp
 )
 
 wayfinder_set_output_directories(${WAYFINDER_CORE_TEST_NAME})

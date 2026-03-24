@@ -1,13 +1,13 @@
 #pragma once
 #include "Application.h"
-#include "modules/Module.h"
+#include "plugins/Plugin.h"
 
 #include <memory>
 
 int main(int argc, char* argv[])
 {
-    auto module = Wayfinder::CreateModule();
-    Wayfinder::Application app(std::move(module), {argc, argv});
+    auto gamePlugin = Wayfinder::Plugins::CreateGamePlugin();
+    Wayfinder::Application app(std::move(gamePlugin), {argc, argv});
     app.Run();
     return 0;
 }

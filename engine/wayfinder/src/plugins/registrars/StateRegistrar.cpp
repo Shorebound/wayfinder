@@ -1,7 +1,7 @@
 #include "StateRegistrar.h"
 #include "core/Log.h"
 
-namespace Wayfinder
+namespace Wayfinder::Plugins
 {
     void StateRegistrar::Register(Descriptor descriptor)
     {
@@ -32,4 +32,4 @@ namespace Wayfinder
         WAYFINDER_ERROR(LogEngine, "StateRegistrar: SetInitial '{}' — state not registered; ignoring", stateName);
     }
 
-} // namespace Wayfinder
+} // namespace Wayfinder::Plugins
