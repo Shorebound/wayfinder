@@ -1,5 +1,5 @@
 {
   "solution": {
-    "path": "build\\msvc\\wayfinder_project.sln"
+    "path": "build\\vs\\wayfinder_project.sln"
   }
 }

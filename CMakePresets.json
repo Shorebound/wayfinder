@@ -9,9 +9,10 @@
         {
             "name": "_base",
             "hidden": true,
-            "description": "Shared options inherited by all presets — not used directly",
+            "description": "Shared options — not used directly",
             "cacheVariables": {
                 "CPM_SOURCE_CACHE": "${sourceDir}/thirdparty",
+                "CMAKE_COLOR_DIAGNOSTICS": "ON",
                 "WAYFINDER_BUILD_SANDBOX": "ON",
                 "WAYFINDER_BUILD_TOOLS": "ON",
                 "WAYFINDER_BUILD_TESTS": "ON",
@@ -23,20 +24,21 @@
         },
         {
             "name": "dev",
-            "displayName": "Development (Ninja + MSVC)",
-            "description": "Daily-driver preset. Ninja + MSVC for fast builds and native compile_commands.json. Requires cl.exe in PATH (use VS Developer Shell).",
+            "displayName": "Development (Ninja + Clang)",
+            "description": "Ninja + Clang with LLD linker.",
             "inherits": "_base",
             "generator": "Ninja Multi-Config",
             "binaryDir": "${sourceDir}/build/dev",
             "cacheVariables": {
-                "CMAKE_C_COMPILER": "cl",
-                "CMAKE_CXX_COMPILER": "cl"
+                "CMAKE_C_COMPILER": "clang",
+                "CMAKE_CXX_COMPILER": "clang++",
+                "CMAKE_LINKER_TYPE": "LLD"
             }
         },
         {
             "name": "dev-all",
             "displayName": "Development (Everything)",
-            "description": "Builds all targets including editor, runtime, and samples",
+            "description": "All targets: sandbox, tools, tests, editor, runtime, and samples",
             "inherits": "dev",
             "cacheVariables": {
                 "WAYFINDER_BUILD_EDITOR": "ON",
@@ -45,38 +47,42 @@
             }
         },
         {
-            "name": "dev-vs",
-            "displayName": "Development (Visual Studio IDE)",
-            "description": "VS 2022 generator for opening in Visual Studio. Use 'dev' for VS Code.",
-            "inherits": "_base",
-            "generator": "Visual Studio 17 2022",
-            "binaryDir": "${sourceDir}/build/msvc"
+            "name": "dev-tidy",
+            "displayName": "Development (clang-tidy)",
+            "description": "Clang build with clang-tidy static analysis on every compile",
+            "inherits": "dev",
+            "cacheVariables": {
+                "WAYFINDER_ENABLE_CLANG_TIDY": "ON"
+            }
         },
         {
-            "name": "dev-clang",
-            "displayName": "Development (Clang on Windows)",
-            "description": "Clang catches warnings MSVC misses. Useful for cross-compiler validation and static analysis.",
+            "name": "dev-msvc",
+            "displayName": "Development (Ninja + MSVC)",
+            "description": "MSVC compiler validation.",
             "inherits": "_base",
             "generator": "Ninja Multi-Config",
-            "binaryDir": "${sourceDir}/build/clang",
+            "binaryDir": "${sourceDir}/build/msvc",
             "condition": {
                 "type": "equals",
                 "lhs": "${hostSystemName}",
                 "rhs": "Windows"
             },
             "cacheVariables": {
-                "CMAKE_C_COMPILER": "clang",
-                "CMAKE_CXX_COMPILER": "clang++",
-                "WAYFINDER_WARNINGS_AS_ERRORS": "ON"
+                "CMAKE_C_COMPILER": "cl",
+                "CMAKE_CXX_COMPILER": "cl"
             }
         },
         {
-            "name": "dev-clang-tidy",
-            "displayName": "Development (Clang + clang-tidy)",
-            "description": "Clang build with clang-tidy static analysis on every compile",
-            "inherits": "dev-clang",
-            "cacheVariables": {
-                "WAYFINDER_ENABLE_CLANG_TIDY": "ON"
+            "name": "dev-vs",
+            "displayName": "Development (Visual Studio IDE)",
+            "description": "VS 2022 generator for opening in Visual Studio",
+            "inherits": "_base",
+            "generator": "Visual Studio 17 2022",
+            "binaryDir": "${sourceDir}/build/vs",
+            "condition": {
+                "type": "equals",
+                "lhs": "${hostSystemName}",
+                "rhs": "Windows"
             }
         },
         {
@@ -93,8 +99,8 @@
         },
         {
             "name": "ci-linux",
-            "displayName": "CI (Linux / Clang)",
-            "description": "Linux CI — Ninja + Clang with libc++",
+            "displayName": "CI (Linux)",
+            "description": "Linux CI — Clang with libc++ and warnings-as-errors",
             "inherits": "_base",
             "generator": "Ninja Multi-Config",
             "binaryDir": "${sourceDir}/build",
@@ -113,8 +119,8 @@
         },
         {
             "name": "ci-windows",
-            "displayName": "CI (Windows / MSVC)",
-            "description": "Windows CI — Ninja + MSVC with warnings-as-errors",
+            "displayName": "CI (Windows)",
+            "description": "Windows CI — Clang with warnings-as-errors",
             "inherits": "dev",
             "binaryDir": "${sourceDir}/build",
             "cacheVariables": {
@@ -142,15 +148,15 @@
             "configuration": "Shipping"
         },
         {
-            "name": "clang-debug",
-            "displayName": "Clang (Debug)",
-            "configurePreset": "dev-clang",
+            "name": "msvc-debug",
+            "displayName": "MSVC (Debug)",
+            "configurePreset": "dev-msvc",
             "configuration": "Debug"
         },
         {
-            "name": "clang-tidy-debug",
-            "displayName": "Clang + Tidy (Debug)",
-            "configurePreset": "dev-clang-tidy",
+            "name": "tidy-debug",
+            "displayName": "clang-tidy (Debug)",
+            "configurePreset": "dev-tidy",
             "configuration": "Debug"
         },
         {
@@ -169,7 +175,7 @@
     "testPresets": [
         {
             "name": "test",
-            "displayName": "Run Tests (Debug)",
+            "displayName": "Run Tests",
             "configurePreset": "dev",
             "configuration": "Debug",
             "output": {
@@ -177,9 +183,9 @@
             }
         },
         {
-            "name": "clang-test",
-            "displayName": "Run Tests (Clang)",
-            "configurePreset": "dev-clang",
+            "name": "msvc-test",
+            "displayName": "Run Tests (MSVC)",
+            "configurePreset": "dev-msvc",
             "configuration": "Debug",
             "output": {
                 "outputJUnitFile": "test-results.xml"

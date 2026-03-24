@@ -73,9 +73,9 @@ jobs:
           check_name: Test Results (Linux)
           fail_on_failure: true
 
-  # ── Build & Test (Windows / MSVC) ──────────────────────────────
+  # ── Build & Test (Windows / Clang) ──────────────────────────────
   build-test-windows:
-    name: Windows (MSVC)
+    name: Windows (Clang)
     runs-on: windows-latest
     timeout-minutes: 20
     steps:

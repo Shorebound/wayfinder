@@ -110,23 +110,27 @@ Important CMake options:
 Typical local setup for runtime and asset work:
 
 ```powershell
-# Using presets (recommended — run from a VS Developer Shell)
-cmake --preset dev              # Ninja + MSVC, sandbox + tools + tests
+# Using presets (recommended — works from any terminal)
+cmake --preset dev              # Ninja + Clang, sandbox + tools + tests
 cmake --build --preset debug
 
-cmake --preset dev-clang        # Ninja + Clang, cross-compiler checks
-cmake --build --preset clang-debug
+cmake --preset dev-msvc         # Ninja + MSVC (needs Developer Shell)
+cmake --build --preset msvc-debug
 ```
+
+MSVC Build Tools and Windows SDK must be installed (Clang uses their headers and libraries),
+but no special shell environment is needed for the `dev` preset.
 
 See `CMakePresets.json` at the repo root for available presets:
 
 | Preset | Generator | What it enables |
 |--------|-----------|----------------|
-| `dev` | Ninja + MSVC | Sandbox + Tools + Tests (daily driver) |
-| `dev-all` | Ninja + MSVC | Everything (sandbox, tools, tests, editor, runtime, samples) |
-| `dev-vs` | Visual Studio 2022 | Same as `dev`, for opening in VS IDE |
-| `dev-clang` | Ninja + Clang | Cross-compiler validation, warnings-as-errors |
-| `shipping` | Ninja + MSVC | Sandbox only, no dev tooling |
+| `dev` | Ninja + Clang | Sandbox + Tools + Tests (daily driver) |
+| `dev-all` | Ninja + Clang | Everything (sandbox, tools, tests, editor, runtime, samples) |
+| `dev-tidy` | Ninja + Clang | Same as `dev` plus clang-tidy on every compile |
+| `dev-msvc` | Ninja + MSVC | MSVC cross-compiler validation (needs Developer Shell) |
+| `dev-vs` | Visual Studio 2022 | Same as `_base`, for opening in VS IDE |
+| `shipping` | Ninja + Clang | Sandbox only, no dev tooling |
 
 ## Current Working Workflow
 

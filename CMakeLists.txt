@@ -113,7 +113,7 @@ include(WayfinderCommon)
 
 # --- Output Directories ---
 # Binaries go to a root-level bin/ folder (outside the build tree) for easy access.
-# Build intermediates stay in the per-preset build/ subdirectory (dev/, clang/, etc.).
+# Build intermediates stay in the per-preset build/ subdirectory (dev/, msvc/, etc.).
 set(OUTPUT_DIR_BASE "${CMAKE_SOURCE_DIR}/bin")
 
 function(wayfinder_set_output_directories target_name)
