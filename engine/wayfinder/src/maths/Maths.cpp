@@ -90,6 +90,16 @@ namespace Wayfinder::Maths
         return glm::normalize(value);
     }
 
+    float Dot(const Float3& a, const Float3& b)
+    {
+        return glm::dot(a, b);
+    }
+
+    Float3 Cross(const Float3& a, const Float3& b)
+    {
+        return glm::cross(a, b);
+    }
+
     Float3 Add(const Float3& lhs, const Float3& rhs)
     {
         return lhs + rhs;
@@ -110,9 +120,19 @@ namespace Wayfinder::Maths
         return glm::abs(value);
     }
 
+    float Min(float a, float b)
+    {
+        return glm::min(a, b);
+    }
+
     float Max(float a, float b)
     {
         return glm::max(a, b);
+    }
+
+    Float3 Min(const Float3& a, const Float3& b)
+    {
+        return glm::min(a, b);
     }
 
     Float3 Max(const Float3& a, const Float3& b)

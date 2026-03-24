@@ -1,0 +1,16 @@
+{
+    "asset_id": "404067d6-4f28-4f2d-8fba-cd7852dcc500",
+    "asset_type": "mesh",
+    "name": "wall_1_plain",
+    "source": "wall_1_plain.wfmesh",
+    "submeshes": [
+        {
+            "material_slot": 0,
+            "name": "wall_1_plain_0"
+        },
+        {
+            "material_slot": 0,
+            "name": "wall_1_plain_1"
+        }
+    ]
+}

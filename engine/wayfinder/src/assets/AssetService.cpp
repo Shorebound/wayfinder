@@ -14,6 +14,7 @@ namespace Wayfinder
         m_hasAssetRegistry = false;
         m_materialCache.Clear();
         m_textureCache.Clear();
+        m_meshCache.Clear();
 
         if (m_assetRoot.empty())
         {
@@ -55,5 +56,13 @@ namespace Wayfinder
     void AssetService::InvalidateTextureAsset(const AssetId& assetId)
     {
         m_textureCache.Invalidate(assetId);
+    }
+
+    void AssetService::ReleaseMeshGeometryData(const AssetId& assetId)
+    {
+        if (MeshAsset* mesh = GetMutableAsset<MeshAsset>(assetId))
+        {
+            mesh->ReleaseGeometryData();
+        }
     }
 } // namespace Wayfinder

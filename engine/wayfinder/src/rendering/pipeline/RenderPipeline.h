@@ -13,6 +13,8 @@ namespace Wayfinder
 {
     class GPUPipeline;
     class Mesh;
+    class AssetService;
+    class MeshManager;
     class RenderContext;
     class RenderDevice;
     class RenderFeature;
@@ -42,6 +44,10 @@ namespace Wayfinder
         /// Mesh lookup by vertex layout stride. The draw loop selects
         /// the correct mesh for each shader program's declared vertex format.
         const std::unordered_map<uint32_t, Mesh*>& MeshesByStride;
+
+        /// Used when `RenderMeshRef::Origin` is `Asset` — loads GPU meshes from `MeshAsset` data.
+        MeshManager* MeshResources = nullptr;
+        AssetService* Assets = nullptr;
 
         GPUPipeline& DebugLinePipeline;
         std::span<const std::unique_ptr<RenderFeature>> Features;

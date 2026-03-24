@@ -66,6 +66,10 @@ set(ENGINE_ALL_SOURCES
   src/assets/AssetSchemaRegistry.h
   src/assets/AssetService.cpp
   src/assets/AssetService.h
+  src/assets/MeshAsset.cpp
+  src/assets/MeshAsset.h
+  src/assets/MeshFormat.cpp
+  src/assets/MeshFormat.h
   src/assets/TextureAsset.cpp
   src/assets/TextureAsset.h
 
@@ -223,6 +227,8 @@ set(ENGINE_ALL_SOURCES
   # Rendering — Resources
   src/rendering/resources/RenderResources.cpp
   src/rendering/resources/RenderResources.h
+  src/rendering/resources/MeshManager.cpp
+  src/rendering/resources/MeshManager.h
   src/rendering/resources/TextureManager.cpp
   src/rendering/resources/TextureManager.h
   src/rendering/resources/TransientBufferAllocator.cpp

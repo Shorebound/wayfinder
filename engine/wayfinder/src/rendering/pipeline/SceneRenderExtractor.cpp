@@ -117,8 +117,17 @@ namespace Wayfinder
             const auto& renderable = entityHandle.get<RenderableComponent>();
 
             RenderMeshSubmission submission;
-            submission.Mesh.Origin = RenderResourceOrigin::BuiltIn;
-            submission.Mesh.StableKey = K_BUILT_IN_BOX_MESH_KEY;
+            if (mesh.MeshAssetId)
+            {
+                submission.Mesh.Origin = RenderResourceOrigin::Asset;
+                submission.Mesh.AssetId = mesh.MeshAssetId;
+                submission.Mesh.StableKey = MakeStableKey(*mesh.MeshAssetId);
+            }
+            else
+            {
+                submission.Mesh.Origin = RenderResourceOrigin::BuiltIn;
+                submission.Mesh.StableKey = K_BUILT_IN_BOX_MESH_KEY;
+            }
             submission.Geometry.Type = RenderGeometryType::Box;
             submission.Geometry.Dimensions = mesh.Dimensions;
             submission.Material.Ref.Origin = RenderResourceOrigin::BuiltIn;

@@ -43,6 +43,7 @@ namespace Wayfinder::Tests
         CHECK_NOTHROW(context.GetPrograms());
         CHECK_NOTHROW(context.GetTransientBuffers());
         CHECK_NOTHROW(context.GetTransientPool());
+        CHECK_NOTHROW(context.GetMeshes());
 
         context.Shutdown();
     }

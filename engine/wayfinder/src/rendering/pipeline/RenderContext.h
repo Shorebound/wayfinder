@@ -4,6 +4,7 @@
 #include "core/Result.h"
 #include "rendering/materials/ShaderManager.h"
 #include "rendering/materials/ShaderProgram.h"
+#include "rendering/resources/MeshManager.h"
 #include "rendering/resources/TextureManager.h"
 #include "rendering/resources/TransientBufferAllocator.h"
 #include "rendering/resources/TransientResourcePool.h"
@@ -98,6 +99,15 @@ namespace Wayfinder
             return m_textureManager;
         }
 
+        MeshManager& GetMeshes()
+        {
+            return m_meshManager;
+        }
+        const MeshManager& GetMeshes() const
+        {
+            return m_meshManager;
+        }
+
         GPUSamplerHandle GetNearestSampler() const
         {
             return m_nearestSampler;
@@ -112,6 +122,7 @@ namespace Wayfinder
         TransientBufferAllocator m_transientAllocator;
         TransientResourcePool m_transientPool;
         TextureManager m_textureManager;
+        MeshManager m_meshManager;
         GPUSamplerHandle m_nearestSampler{};
     };
 

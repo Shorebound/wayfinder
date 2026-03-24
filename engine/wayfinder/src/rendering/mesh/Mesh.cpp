@@ -1,7 +1,9 @@
 #include "Mesh.h"
 #include "core/Log.h"
+#include "maths/Maths.h"
 
 #include <array>
+#include <cmath>
 
 namespace Wayfinder
 {
@@ -109,6 +111,17 @@ namespace Wayfinder
             return mesh;
         }
 
+        Float4 ApproxTangentForNormal(const Float3& normal)
+        {
+            Float3 tangent = Maths::Normalize(Maths::Cross(Up, normal));
+            if (std::abs(Maths::Dot(normal, Up)) > 0.99f)
+            {
+                tangent = Maths::Normalize(Maths::Cross(Right, normal));
+            }
+
+            return Float4{tangent, 1.0f};
+        }
+
         Mesh CreateTexturedCube(RenderDevice& device, float size)
         {
             const float h = size * 0.5f;
@@ -125,31 +138,31 @@ namespace Wayfinder
             constexpr Float2 UV11 = {1.0f, 0.0f};
             constexpr Float2 UV01 = {0.0f, 0.0f};
 
-            const std::array<VertexPosNormalUV, 24> vertices = {{
-                {.Position = {-h, -h, h}, .Normal = N_FRONT, .UV = UV00},
-                {.Position = {h, -h, h}, .Normal = N_FRONT, .UV = UV10},
-                {.Position = {h, h, h}, .Normal = N_FRONT, .UV = UV11},
-                {.Position = {-h, h, h}, .Normal = N_FRONT, .UV = UV01},
-                {.Position = {h, -h, -h}, .Normal = N_BACK, .UV = UV00},
-                {.Position = {-h, -h, -h}, .Normal = N_BACK, .UV = UV10},
-                {.Position = {-h, h, -h}, .Normal = N_BACK, .UV = UV11},
-                {.Position = {h, h, -h}, .Normal = N_BACK, .UV = UV01},
-                {.Position = {-h, h, h}, .Normal = N_TOP, .UV = UV00},
-                {.Position = {h, h, h}, .Normal = N_TOP, .UV = UV10},
-                {.Position = {h, h, -h}, .Normal = N_TOP, .UV = UV11},
-                {.Position = {-h, h, -h}, .Normal = N_TOP, .UV = UV01},
-                {.Position = {-h, -h, -h}, .Normal = N_BOTTOM, .UV = UV00},
-                {.Position = {h, -h, -h}, .Normal = N_BOTTOM, .UV = UV10},
-                {.Position = {h, -h, h}, .Normal = N_BOTTOM, .UV = UV11},
-                {.Position = {-h, -h, h}, .Normal = N_BOTTOM, .UV = UV01},
-                {.Position = {h, -h, h}, .Normal = N_RIGHT, .UV = UV00},
-                {.Position = {h, -h, -h}, .Normal = N_RIGHT, .UV = UV10},
-                {.Position = {h, h, -h}, .Normal = N_RIGHT, .UV = UV11},
-                {.Position = {h, h, h}, .Normal = N_RIGHT, .UV = UV01},
-                {.Position = {-h, -h, -h}, .Normal = N_LEFT, .UV = UV00},
-                {.Position = {-h, -h, h}, .Normal = N_LEFT, .UV = UV10},
-                {.Position = {-h, h, h}, .Normal = N_LEFT, .UV = UV11},
-                {.Position = {-h, h, -h}, .Normal = N_LEFT, .UV = UV01},
+            const std::array<VertexPosNormalUVTangent, 24> vertices = {{
+                {.Position = {-h, -h, h}, .Normal = N_FRONT, .UV = UV00, .Tangent = ApproxTangentForNormal(N_FRONT)},
+                {.Position = {h, -h, h}, .Normal = N_FRONT, .UV = UV10, .Tangent = ApproxTangentForNormal(N_FRONT)},
+                {.Position = {h, h, h}, .Normal = N_FRONT, .UV = UV11, .Tangent = ApproxTangentForNormal(N_FRONT)},
+                {.Position = {-h, h, h}, .Normal = N_FRONT, .UV = UV01, .Tangent = ApproxTangentForNormal(N_FRONT)},
+                {.Position = {h, -h, -h}, .Normal = N_BACK, .UV = UV00, .Tangent = ApproxTangentForNormal(N_BACK)},
+                {.Position = {-h, -h, -h}, .Normal = N_BACK, .UV = UV10, .Tangent = ApproxTangentForNormal(N_BACK)},
+                {.Position = {-h, h, -h}, .Normal = N_BACK, .UV = UV11, .Tangent = ApproxTangentForNormal(N_BACK)},
+                {.Position = {h, h, -h}, .Normal = N_BACK, .UV = UV01, .Tangent = ApproxTangentForNormal(N_BACK)},
+                {.Position = {-h, h, h}, .Normal = N_TOP, .UV = UV00, .Tangent = ApproxTangentForNormal(N_TOP)},
+                {.Position = {h, h, h}, .Normal = N_TOP, .UV = UV10, .Tangent = ApproxTangentForNormal(N_TOP)},
+                {.Position = {h, h, -h}, .Normal = N_TOP, .UV = UV11, .Tangent = ApproxTangentForNormal(N_TOP)},
+                {.Position = {-h, h, -h}, .Normal = N_TOP, .UV = UV01, .Tangent = ApproxTangentForNormal(N_TOP)},
+                {.Position = {-h, -h, -h}, .Normal = N_BOTTOM, .UV = UV00, .Tangent = ApproxTangentForNormal(N_BOTTOM)},
+                {.Position = {h, -h, -h}, .Normal = N_BOTTOM, .UV = UV10, .Tangent = ApproxTangentForNormal(N_BOTTOM)},
+                {.Position = {h, -h, h}, .Normal = N_BOTTOM, .UV = UV11, .Tangent = ApproxTangentForNormal(N_BOTTOM)},
+                {.Position = {-h, -h, h}, .Normal = N_BOTTOM, .UV = UV01, .Tangent = ApproxTangentForNormal(N_BOTTOM)},
+                {.Position = {h, -h, h}, .Normal = N_RIGHT, .UV = UV00, .Tangent = ApproxTangentForNormal(N_RIGHT)},
+                {.Position = {h, -h, -h}, .Normal = N_RIGHT, .UV = UV10, .Tangent = ApproxTangentForNormal(N_RIGHT)},
+                {.Position = {h, h, -h}, .Normal = N_RIGHT, .UV = UV11, .Tangent = ApproxTangentForNormal(N_RIGHT)},
+                {.Position = {h, h, h}, .Normal = N_RIGHT, .UV = UV01, .Tangent = ApproxTangentForNormal(N_RIGHT)},
+                {.Position = {-h, -h, -h}, .Normal = N_LEFT, .UV = UV00, .Tangent = ApproxTangentForNormal(N_LEFT)},
+                {.Position = {-h, -h, h}, .Normal = N_LEFT, .UV = UV10, .Tangent = ApproxTangentForNormal(N_LEFT)},
+                {.Position = {-h, h, h}, .Normal = N_LEFT, .UV = UV11, .Tangent = ApproxTangentForNormal(N_LEFT)},
+                {.Position = {-h, h, -h}, .Normal = N_LEFT, .UV = UV01, .Tangent = ApproxTangentForNormal(N_LEFT)},
             }};
 
             const std::array<uint16_t, 36> indices = {{
@@ -194,7 +207,7 @@ namespace Wayfinder
             Mesh mesh;
             if (!mesh.Create(device, {
                                          .VertexData = vertices.data(),
-                                         .VertexDataSize = static_cast<uint32_t>(vertices.size() * sizeof(VertexPosNormalUV)),
+                                         .VertexDataSize = static_cast<uint32_t>(vertices.size() * sizeof(VertexPosNormalUVTangent)),
                                          .VertexCount = static_cast<uint32_t>(vertices.size()),
                                          .IndexData = indices.data(),
                                          .IndexDataSize = static_cast<uint32_t>(indices.size() * sizeof(uint16_t)),

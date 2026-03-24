@@ -58,6 +58,7 @@ namespace Wayfinder
 
         // Wire texture manager and program registry into resource cache
         m_renderResources->SetTextureManager(&m_context->GetTextures());
+        m_renderResources->SetMeshManager(&m_context->GetMeshes());
         m_renderResources->SetProgramRegistry(&m_context->GetPrograms());
 
         // ── Debug line pipeline (PosColour, uses debug_unlit shaders) ──
@@ -203,7 +204,7 @@ namespace Wayfinder
         const std::unordered_map<uint32_t, Mesh*> meshesByStride =
         {
             {VertexLayouts::PosNormalColour.stride, &m_primitiveMesh},
-            {VertexLayouts::PosNormalUV.stride, &m_texturedPrimitiveMesh},
+            {VertexLayouts::PosNormalUVTangent.stride, &m_texturedPrimitiveMesh},
         };
 
         const RenderPipelineFrameParams params{
@@ -211,6 +212,8 @@ namespace Wayfinder
             .SwapchainWidth = swapW,
             .SwapchainHeight = swapH,
             .MeshesByStride = meshesByStride,
+            .MeshResources = &m_context->GetMeshes(),
+            .Assets = m_assetService.get(),
             .DebugLinePipeline = m_debugLinePipeline,
             .Features = m_features,
         };

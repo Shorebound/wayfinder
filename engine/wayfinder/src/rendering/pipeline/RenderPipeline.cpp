@@ -9,6 +9,7 @@
 #include "rendering/graph/RenderGraph.h"
 #include "rendering/materials/ShaderProgram.h"
 #include "rendering/mesh/Mesh.h"
+#include "rendering/resources/MeshManager.h"
 #include "rendering/resources/RenderResources.h"
 #include "rendering/resources/TransientBufferAllocator.h"
 
@@ -124,7 +125,7 @@ namespace Wayfinder
             desc.FragmentShaderName = "textured_lit";
             desc.VertexResources = {.numUniformBuffers = 1};
             desc.FragmentResources = {.numUniformBuffers = 2, .numSamplers = 1}; // material + scene globals + diffuse sampler
-            desc.VertexLayout = VertexLayouts::PosNormalUV;
+            desc.VertexLayout = VertexLayouts::PosNormalUVTangent;
             desc.Cull = CullMode::Back;
             desc.DepthTest = true;
             desc.DepthWrite = true;
@@ -365,20 +366,34 @@ namespace Wayfinder
                         // Solid draw (for Solid and SolidAndWireframe modes)
                         if (fillMode == RenderFillMode::Solid || fillMode == RenderFillMode::SolidAndWireframe)
                         {
-                            // Look up the mesh for this program's vertex layout
-                            const auto meshIt = params.MeshesByStride.find(program->Desc.VertexLayout.stride);
-                            if (meshIt == params.MeshesByStride.end() || !meshIt->second)
+                            const Mesh* meshPtr = nullptr;
+                            if (submission.Mesh.Origin == RenderResourceOrigin::Asset && submission.Mesh.AssetId && params.MeshResources && params.Assets)
+                            {
+                                meshPtr = params.MeshResources->GetOrLoad(*submission.Mesh.AssetId, *params.Assets);
+                            }
+                            else
+                            {
+                                const auto meshIt = params.MeshesByStride.find(program->Desc.VertexLayout.stride);
+                                if (meshIt != params.MeshesByStride.end())
+                                {
+                                    meshPtr = meshIt->second;
+                                }
+                            }
+
+                            if (!meshPtr || !meshPtr->IsValid())
                             {
                                 continue;
                             }
-                            const auto& mesh = *meshIt->second;
 
                             if (program != lastBoundProgram)
                             {
                                 program->Pipeline->Bind();
-                                mesh.Bind(device);
                                 lastBoundProgram = program;
                             }
+
+                            /// Per-draw mesh bind: several submissions can share the same shader program
+                            /// (e.g. textured_lit) but use different GPU vertex buffers (built-in vs asset mesh).
+                            meshPtr->Bind(device);
 
                             pushUniforms();
 
@@ -391,7 +406,7 @@ namespace Wayfinder
                                 }
                             }
 
-                            mesh.Draw(device);
+                            meshPtr->Draw(device);
                         }
 
                         // Wireframe draw (for Wireframe and SolidAndWireframe modes)
@@ -403,13 +418,24 @@ namespace Wayfinder
                                 const GPUPipelineHandle wireframePipeline = pipelineCache.GetOrCreate(*wireframeDesc);
                                 if (wireframePipeline.IsValid())
                                 {
-                                    // Select the mesh matching the program's vertex layout
-                                    const auto wireframeMeshIt = params.MeshesByStride.find(program->Desc.VertexLayout.stride);
-                                    if (wireframeMeshIt != params.MeshesByStride.end() && wireframeMeshIt->second)
+                                    const Mesh* wireMeshPtr = nullptr;
+                                    if (submission.Mesh.Origin == RenderResourceOrigin::Asset && submission.Mesh.AssetId && params.MeshResources && params.Assets)
                                     {
-                                        auto& wireframeMesh = *wireframeMeshIt->second;
+                                        wireMeshPtr = params.MeshResources->GetOrLoad(*submission.Mesh.AssetId, *params.Assets);
+                                    }
+                                    else
+                                    {
+                                        const auto wireframeMeshIt = params.MeshesByStride.find(program->Desc.VertexLayout.stride);
+                                        if (wireframeMeshIt != params.MeshesByStride.end())
+                                        {
+                                            wireMeshPtr = wireframeMeshIt->second;
+                                        }
+                                    }
+
+                                    if (wireMeshPtr && wireMeshPtr->IsValid())
+                                    {
                                         device.BindPipeline(wireframePipeline);
-                                        wireframeMesh.Bind(device);
+                                        wireMeshPtr->Bind(device);
                                         lastBoundProgram = nullptr; // Force re-bind on next solid draw
 
                                         // Bind textures so textured wireframe shaders have valid samplers
@@ -422,7 +448,7 @@ namespace Wayfinder
                                         }
 
                                         pushUniforms();
-                                        wireframeMesh.Draw(device);
+                                        wireMeshPtr->Draw(device);
                                     }
                                 }
                             }

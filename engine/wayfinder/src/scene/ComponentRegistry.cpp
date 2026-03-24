@@ -634,6 +634,7 @@ namespace Wayfinder
             Wayfinder::MeshComponent mesh;
             mesh.Primitive = ReadPrimitive(data, "primitive", mesh.Primitive);
             mesh.Dimensions = ReadVector3(data, "dimensions", mesh.Dimensions);
+            mesh.MeshAssetId = ReadOptionalAssetId(data, "mesh_id");
             entity.AddComponent<Wayfinder::MeshComponent>(mesh);
         }
 
@@ -925,6 +926,10 @@ namespace Wayfinder
             nlohmann::json componentTable;
             componentTable["primitive"] = std::string{ToString(mesh.Primitive)};
             componentTable["dimensions"] = WriteVector3(mesh.Dimensions);
+            if (mesh.MeshAssetId)
+            {
+                componentTable["mesh_id"] = mesh.MeshAssetId->ToString();
+            }
             componentTables["mesh"] = std::move(componentTable);
         }
 

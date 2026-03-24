@@ -11,6 +11,8 @@
 #include "scene/Scene.h"
 #include "scene/SceneWorldBootstrap.h"
 
+#include "MeshImporter.h"
+
 #include "ecs/Flecs.h"
 #include <filesystem>
 #include <iostream>
@@ -23,6 +25,7 @@ namespace
     {
         std::cout << "Usage:\n";
         std::cout << "  waypoint validate-assets <asset-root>\n";
+        std::cout << "  waypoint import-mesh <gltf-path> <output-dir> [--name <stem>]\n";
         std::cout << "  waypoint validate <scene-path>\n";
         std::cout << "  waypoint roundtrip-save <scene-path> <output-path>\n";
         std::cout << "  waypoint --project [<path>]  validate-assets\n";
@@ -118,6 +121,17 @@ namespace
         return result ? 0 : 1;
     }
 
+    int RunImportMesh(const std::filesystem::path& gltfPath, const std::filesystem::path& outputDir, std::string_view nameStem)
+    {
+        if (const auto result = Wayfinder::Waypoint::ImportMesh(gltfPath, outputDir, nameStem); !result)
+        {
+            std::cerr << result.error().GetMessage() << '\n';
+            return 1;
+        }
+
+        return 0;
+    }
+
     int RunRoundtripSave(const std::filesystem::path& scenePath, const std::filesystem::path& outputPath, const Wayfinder::ProjectDescriptor* project = nullptr, const std::filesystem::path& toolDir = {})
     {
         WaypointContext ctx(project, toolDir);
@@ -159,7 +173,8 @@ int main(int argc, char** argv)
         std::filesystem::path startPath = std::filesystem::current_path();
 
         // If the next arg exists and isn't a known command, treat it as a path
-        if (argIndex < argc && argv[argIndex][0] != '-' && std::string(argv[argIndex]) != "validate" && std::string(argv[argIndex]) != "validate-assets" && std::string(argv[argIndex]) != "roundtrip-save")
+        if (argIndex < argc && argv[argIndex][0] != '-' && std::string(argv[argIndex]) != "validate" && std::string(argv[argIndex]) != "validate-assets" && std::string(argv[argIndex]) != "import-mesh" &&
+            std::string(argv[argIndex]) != "roundtrip-save")
         {
             startPath = std::filesystem::path(argv[argIndex]);
             ++argIndex;
@@ -242,6 +257,34 @@ int main(int argc, char** argv)
         }
 
         exitCode = RunValidateAssets(assetRoot);
+    }
+    else if (command == "import-mesh")
+    {
+        if (argIndex + 1 >= argc)
+        {
+            PrintUsage();
+            Wayfinder::Log::Shutdown();
+            return 1;
+        }
+
+        const std::filesystem::path gltfPath = std::filesystem::path(argv[argIndex]);
+        const std::filesystem::path outputDir = std::filesystem::path(argv[argIndex + 1]);
+        argIndex += 2;
+
+        std::string nameStem;
+        if (argIndex < argc && std::string(argv[argIndex]) == "--name")
+        {
+            if (argIndex + 1 >= argc)
+            {
+                PrintUsage();
+                Wayfinder::Log::Shutdown();
+                return 1;
+            }
+            nameStem = argv[argIndex + 1];
+            argIndex += 2;
+        }
+
+        exitCode = RunImportMesh(gltfPath, outputDir, nameStem);
     }
     else if (command == "roundtrip-save")
     {

@@ -103,6 +103,18 @@ namespace Wayfinder::Tests
             CHECK(dims[0].get<double>() == doctest::Approx(2.0));
         }
 
+        TEST_CASE("Mesh round-trip preserves mesh_id")
+        {
+            nlohmann::json input = {{"primitive", "cube"}, {"dimensions", {1.0, 1.0, 1.0}}, {"mesh_id", "a0000000-0000-0000-0000-000000000099"}};
+
+            auto output = RoundTrip("mesh", input);
+
+            REQUIRE(output.contains("mesh"));
+            const auto& mesh = output["mesh"];
+            REQUIRE(mesh.contains("mesh_id"));
+            CHECK(mesh["mesh_id"].get<std::string>() == "a0000000-0000-0000-0000-000000000099");
+        }
+
         TEST_CASE("Camera round-trip preserves values")
         {
             nlohmann::json input = {{"primary", true}, {"fov", 90.0}, {"projection", "orthographic"}, {"target", {1.0, 2.0, 3.0}}, {"up", {0.0, 1.0, 0.0}}};

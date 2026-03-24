@@ -1,0 +1,12 @@
+{
+    "asset_id": "6e3f3ed5-59c5-4fd1-b849-a2cc0a0c6b5d",
+    "asset_type": "mesh",
+    "name": "pipe_1_corner",
+    "source": "pipe_1_corner.wfmesh",
+    "submeshes": [
+        {
+            "material_slot": 0,
+            "name": "pipe_1_corner_0"
+        }
+    ]
+}

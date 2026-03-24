@@ -28,6 +28,15 @@ namespace Wayfinder
         Float2 UV;
     };
 
+    /// Tangent.xyz + handedness sign in w (MikkTSpace convention).
+    struct VertexPosNormalUVTangent
+    {
+        Float3 Position;
+        Float3 Normal;
+        Float2 UV;
+        Float4 Tangent;
+    };
+
     struct VertexPosNormalColour
     {
         Float3 Position;
@@ -107,6 +116,20 @@ namespace Wayfinder
             .stride = sizeof(VertexPosNormalUV),
             .attribs = PosNormalUVAttribs.data(),
             .attribCount = static_cast<uint32_t>(PosNormalUVAttribs.size()),
+        };
+
+        inline constexpr std::array<VertexAttrib, 4> PosNormalUVTangentAttribs = {{
+            {0, offsetof(VertexPosNormalUVTangent, Position), VertexAttribFormat::Float3},
+            {1, offsetof(VertexPosNormalUVTangent, Normal), VertexAttribFormat::Float3},
+            {2, offsetof(VertexPosNormalUVTangent, UV), VertexAttribFormat::Float2},
+            {3, offsetof(VertexPosNormalUVTangent, Tangent), VertexAttribFormat::Float4},
+        }};
+
+        inline constexpr VertexLayout PosNormalUVTangent =
+        {
+            .stride = sizeof(VertexPosNormalUVTangent),
+            .attribs = PosNormalUVTangentAttribs.data(),
+            .attribCount = static_cast<uint32_t>(PosNormalUVTangentAttribs.size()),
         };
 
         inline constexpr std::array<VertexAttrib, 3> PosNormalColourAttribs = {{

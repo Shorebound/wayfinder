@@ -102,6 +102,9 @@ namespace Wayfinder
         MeshPrimitive Primitive = MeshPrimitive::Cube;
         Float3 Dimensions = {1.0f, 1.0f, 1.0f};
 
+        /// When set, the entity renders this mesh asset (submesh 0) instead of a built-in primitive.
+        std::optional<AssetId> MeshAssetId;
+
         MeshComponent() = default;
         MeshComponent(const MeshComponent&) = default;
         MeshComponent& operator=(const MeshComponent&) = default;

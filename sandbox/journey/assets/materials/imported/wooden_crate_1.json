@@ -1,0 +1,12 @@
+{
+  "asset_id": "f1a2b3c4-d5e6-4789-a012-bcdef0220004",
+  "asset_type": "material",
+  "name": "ImportedWoodenCrate1",
+  "shader": "textured_lit",
+  "parameters": {
+    "base_colour": [1.0, 1.0, 1.0, 1.0]
+  },
+  "textures": {
+    "diffuse": "f1a2b3c4-d5e6-4789-a012-bcdef0110004"
+  }
+}
