@@ -42,5 +42,5 @@ This file documents common mistakes, confusion points, and non-obvious behaviour
 
 ## gh-issues
 
-- **gh-issues is a compiled C++ tool** (source: `tools/gh-issues/src/Main.cpp`). It is built via CMake when `WAYFINDER_BUILD_TOOLS=ON` and output to `bin/<config>/gh-issues.exe`.
-- **`ready`, `status`, and `orphans` take no issue number.** Just run `gh-issues ready`, `gh-issues orphans`, or `gh-issues status --milestone "..."` directly.
+- **gh-issues is a Python script** (`tools/gh-issues.py`). No build step required — just needs Python 3.10+ and `gh` CLI authenticated with repo scope.
+- **`ready`, `status`, and `orphans` take no issue number.** Just run `python tools/gh-issues.py ready`, `python tools/gh-issues.py orphans`, or `python tools/gh-issues.py status --milestone "..."` directly.
