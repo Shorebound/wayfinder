@@ -286,14 +286,13 @@ namespace Wayfinder
             hash *= 1099511628211ull;
         };
 
-        auto feedFloat = [&hash](float value)
+        auto feedFloat = [&feedByte](float value)
         {
             uint32_t bits = 0;
             std::memcpy(&bits, &value, sizeof(bits));
             for (int i = 0; i < 4; ++i)
             {
-                hash ^= static_cast<uint64_t>((bits >> (i * 8)) & 0xFF);
-                hash *= 1099511628211ull;
+                feedByte(static_cast<uint8_t>((bits >> (i * 8)) & 0xFF));
             }
         };
 

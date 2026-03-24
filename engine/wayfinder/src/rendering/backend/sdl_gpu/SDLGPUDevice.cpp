@@ -5,6 +5,7 @@
 #include "core/Log.h"
 
 #include <SDL3/SDL.h>
+#include <algorithm>
 #include <array>
 #include <cstring>
 #include <format>
@@ -1126,8 +1127,8 @@ namespace Wayfinder
 
         for (uint32_t i = 1; i < mipLevels; ++i)
         {
-            const uint32_t dstWidth = (srcWidth > 1) ? (srcWidth / 2) : 1;
-            const uint32_t dstHeight = (srcHeight > 1) ? (srcHeight / 2) : 1;
+            const uint32_t dstWidth = std::max(1u, srcWidth / 2);
+            const uint32_t dstHeight = std::max(1u, srcHeight / 2);
 
             SDL_GPUBlitInfo blitInfo{};
 
