@@ -86,11 +86,19 @@ namespace Wayfinder
             return m_world;
         }
 
+        /// Flecs entity id used as the \ref SceneOwnership pair target (scene identity). Stable for this
+        /// \ref Scene instance until \ref Shutdown (then the id may be recycled for another \ref Scene).
+        flecs::entity_t GetSceneTagEntityId() const noexcept
+        {
+            return m_sceneTag.id();
+        }
+
     private:
         friend class Entity;
 
         /// Clears scene entities. When \p rebuildOwnedEntitiesQuery is false (shutdown path), the cached
-        /// ownership query is not rebuilt so \ref m_sceneTag can be destroyed without Flecs query locks.
+        /// ownership query is not rebuilt so the scene tag can be released to the per-world pool without
+        /// Flecs query locks on the pair target.
         void ClearEntities(bool rebuildOwnedEntitiesQuery = true);
         void RegisterEntityId(flecs::entity entityHandle, const SceneObjectId& id) const;
         void UnregisterEntityId(const SceneObjectId& id) const;

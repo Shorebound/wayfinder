@@ -4,16 +4,16 @@ overview: Try the minimal Flecs-correct teardown (flush deferred work, then expl
 todos:
   - id: spike-flush-destruct
     content: Implement progress(0) + m_sceneTag.destruct() in Scene::Shutdown after ClearEntities(false); adjust comments in Scene.h
-    status: in_progress
+    status: completed
   - id: verify-tests
     content: Run scene/ECS tests; add optional test that tag entity is destroyed after Scene scope if API allows
-    status: pending
+    status: completed
   - id: fallback-pool
     content: "If Flecs still asserts: add world-scoped SceneTagPool (Acquire/Release, no ecs_delete on release) and wire Scene ctor/Shutdown"
-    status: pending
+    status: completed
   - id: agents-note
     content: Document Flecs pair-target + query lock pitfall in .github/AGENTS.md if fallback used
-    status: pending
+    status: completed
 isProject: false
 ---
 

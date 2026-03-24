@@ -10,6 +10,7 @@
 #include <filesystem>
 #include <format>
 #include <unordered_map>
+#include <unordered_set>
 #include <utility>
 #include <vector>
 
@@ -25,6 +26,55 @@ namespace Wayfinder
                 Wayfinder::LogScene.GetLogger()->LogFormat(Wayfinder::LogVerbosity::Error, "  - {0}", error);
             }
         }
+
+        /// Flecs debug-build locks pair **second** ids while queries reference them; \c ecs_delete on the
+        /// scene tag can assert. We never delete tag entities; we \c ecs_clear and recycle them per
+        /// \c flecs::world. We do **not** call \c world.progress() on shutdown — that would advance the
+        /// whole pipeline one frame (systems, timers, etc.) for unrelated work.
+        std::unordered_map<flecs::world_t*, std::vector<flecs::entity_t>> s_sceneTagFreeListByWorld;
+        std::unordered_set<flecs::world_t*> s_sceneTagPoolFiniRegistered;
+
+        void OnWorldFiniSceneTagPool(ecs_world_t* world, void* ctx)
+        {
+            (void)ctx;
+            s_sceneTagFreeListByWorld.erase(world);
+            s_sceneTagPoolFiniRegistered.erase(world);
+        }
+
+        void EnsureSceneTagPoolTracksWorldLifetime(flecs::world& world)
+        {
+            flecs::world_t* w = world.c_ptr();
+            if (s_sceneTagPoolFiniRegistered.insert(w).second)
+            {
+                ecs_atfini(w, OnWorldFiniSceneTagPool, nullptr);
+            }
+        }
+
+        flecs::entity AcquireSceneTag(flecs::world& world)
+        {
+            EnsureSceneTagPoolTracksWorldLifetime(world);
+            flecs::world_t* w = world.c_ptr();
+            auto& list = s_sceneTagFreeListByWorld[w];
+            if (!list.empty())
+            {
+                const flecs::entity_t id = list.back();
+                list.pop_back();
+                return world.entity(id);
+            }
+
+            return world.entity();
+        }
+
+        void ReleaseSceneTag(flecs::world& world, flecs::entity tag)
+        {
+            if (!tag.is_valid())
+            {
+                return;
+            }
+
+            ecs_clear(world.c_ptr(), tag.id());
+            s_sceneTagFreeListByWorld[world.c_ptr()].push_back(tag.id());
+        }
     } // anonymous namespace
 }
 
@@ -32,7 +82,7 @@ namespace Wayfinder
 {
     Scene::Scene(flecs::world& world, const RuntimeComponentRegistry& componentRegistry, std::string name) : m_world(world), m_componentRegistry(componentRegistry), m_name(std::move(name))
     {
-        m_sceneTag = m_world.entity();
+        m_sceneTag = AcquireSceneTag(m_world);
         m_ownedEntitiesQuery = m_world.query_builder<>().with<SceneOwnership>(m_sceneTag).build();
     }
 
@@ -158,9 +208,12 @@ namespace Wayfinder
 
         ClearEntities(false);
 
-        /// Do not \c ecs_delete the scene tag entity: Flecs may keep query/relationship bookkeeping
-        /// that references the tag as a pair target until \c ecs_fini. The tag is inert once all
-        /// scene-owned entities are cleared; abandon our handle so we never dereference it again.
+        /// Pair queries lock the tag id as a pair second (Flecs debug). \c ClearEntities destroys those
+        /// queries. We do not \c ecs_delete the tag; we return it to the pool via \c ReleaseSceneTag.
+        if (m_sceneTag.is_valid())
+        {
+            ReleaseSceneTag(m_world, m_sceneTag);
+        }
         m_sceneTag = flecs::entity{};
 
         m_active = false;

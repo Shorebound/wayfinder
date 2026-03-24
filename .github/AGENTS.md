@@ -22,6 +22,7 @@ This file documents common mistakes, confusion points, and non-obvious behaviour
 
 ## Flecs (ECS)
 
+- **Pair targets used in queries are delete-locked (Flecs debug).** In debug builds, Flecs records pair **second** entity ids (e.g. `SceneOwnership(sceneTag)`) while those queries exist; `ecs_delete` on that id asserts if still locked. Wayfinder **does not** `ecs_delete` scene tag entities: after clearing scene-owned entities, tags are `ecs_clear`d and **recycled** per `flecs::world` (see `Scene.cpp`). Do **not** call `world.progress()` from scene shutdown to “flush” Flecs — that advances the whole pipeline one frame. Do not add a second long-lived query on the scene tag without extending the same lifecycle rules.
 - **Flecs defers mutations inside system callbacks.** `.set<>()` calls inside a system aren't visible to other systems in the same phase. Use different phases (e.g., `PreUpdate` → `OnUpdate`) for producer/consumer pairs.
 - **Systems with empty queries must use `.run()`/`iter` callbacks**, not `.each(flecs::entity ...)`. Flecs asserts because `$this` is unavailable on empty queries.
 - **Typed `world.each(...)` can trip clang-analyzer false positives.** We hit `clang-analyzer-core.StackAddressEscape` in Flecs' query-builder internals from a normal typed `world.each` call. If tidy reports that in engine code, prefer iterating entities and fetching components explicitly before considering broader suppression.

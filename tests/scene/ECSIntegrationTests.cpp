@@ -260,6 +260,29 @@ namespace Wayfinder::Tests
             CHECK_FALSE(world.entity(handle).is_valid());
         }
 
+        TEST_CASE("Shutdown recycles scene tag for a second Scene on the same world")
+        {
+            flecs::world world;
+            auto registry = MakeTestRegistry();
+            registry.RegisterComponents(world);
+            Scene::RegisterCoreComponents(world);
+
+            flecs::entity_t tagId = 0;
+            {
+                Scene scene(world, registry, "SceneA");
+                scene.CreateEntity("One");
+                tagId = scene.GetSceneTagEntityId();
+                CHECK(tagId != 0);
+            }
+
+            CHECK(world.entity(tagId).is_valid());
+
+            {
+                Scene scene2(world, registry, "SceneB");
+                CHECK(scene2.GetSceneTagEntityId() == tagId);
+            }
+        }
+
         TEST_CASE("GetEntityById returns invalid for unknown ID")
         {
             flecs::world world;
