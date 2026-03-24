@@ -110,22 +110,23 @@ Important CMake options:
 Typical local setup for runtime and asset work:
 
 ```powershell
-# Using presets (recommended)
-`cmake --preset dev`          # configures sandbox + tools + tests
-`cmake --build --preset debug`
+# Using presets (recommended — run from a VS Developer Shell)
+cmake --preset dev              # Ninja + MSVC, sandbox + tools + tests
+cmake --build --preset debug
 
-`cmake --preset dev-clang` 
-`cmake --build --preset clang-debug`
+cmake --preset dev-clang        # Ninja + Clang, cross-compiler checks
+cmake --build --preset clang-debug
 ```
 
 See `CMakePresets.json` at the repo root for available presets:
 
-| Preset | What it enables |
-|--------|----------------|
-| `dev` | Sandbox + Tools + Tests |
-| `dev-all` | Everything (sandbox, tools, tests, editor, runtime, samples) |
-| `ci` | Same as dev-all, plus warnings-as-errors |
-| `shipping` | Sandbox only, optimised |
+| Preset | Generator | What it enables |
+|--------|-----------|----------------|
+| `dev` | Ninja + MSVC | Sandbox + Tools + Tests (daily driver) |
+| `dev-all` | Ninja + MSVC | Everything (sandbox, tools, tests, editor, runtime, samples) |
+| `dev-vs` | Visual Studio 2022 | Same as `dev`, for opening in VS IDE |
+| `dev-clang` | Ninja + Clang | Cross-compiler validation, warnings-as-errors |
+| `shipping` | Ninja + MSVC | Sandbox only, no dev tooling |
 
 ## Current Working Workflow
 

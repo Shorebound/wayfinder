@@ -28,10 +28,12 @@ This project is greenfield. Breaking changes, rewrites, and architectural pivots
 
 ## Build
 
-CMake 4.0+, MSVC (Visual Studio 17 2022). Presets are the workflow:
+CMake 4.0+, Ninja Multi-Config, MSVC. Presets are the workflow.
+`dev` requires `cl.exe` in PATH — run from a **VS Developer Shell**.
 
 ```powershell
-cmake --preset dev              # sandbox + tools + tests
+cmake --preset dev              # sandbox + tools + tests (Ninja + MSVC)
+cmake --preset dev-clang        # sandbox + tools + tests (Ninja + Clang)
 cmake --build --preset debug    # Debug build
 ctest --preset test             # run all tests
 ```

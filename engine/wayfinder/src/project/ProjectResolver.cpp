@@ -74,7 +74,7 @@ namespace Wayfinder
         return MakeError("No project.wayfinder found");
     }
 
-    std::optional<std::filesystem::path> FindAssetRoot(const std::filesystem::path& startPath)
+    Result<std::filesystem::path> FindAssetRoot(const std::filesystem::path& startPath)
     {
         std::error_code ec;
         std::filesystem::path searchDir = startPath;
@@ -85,14 +85,14 @@ namespace Wayfinder
         }
         else if (ec)
         {
-            return std::nullopt;
+            return MakeError("Failed to determine if path is regular file");
         }
 
         ec.clear();
         const auto canonical = std::filesystem::weakly_canonical(searchDir, ec);
         if (ec)
         {
-            return std::nullopt;
+            return MakeError("Failed to canonicalize path");
         }
 
         searchDir = canonical;
@@ -113,7 +113,7 @@ namespace Wayfinder
             searchDir = parent;
         }
 
-        return std::nullopt;
+        return MakeError("No 'assets' directory found in path hierarchy");
     }
 
 } // namespace Wayfinder

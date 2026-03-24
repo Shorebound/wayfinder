@@ -7,11 +7,9 @@
     },
     "configurePresets": [
         {
-            "name": "dev",
-            "displayName": "Development (Sandbox + Tools + Tests)",
-            "description": "Daily-driver preset: builds sandbox, tools, and tests",
-            "generator": "Visual Studio 17 2022",
-            "binaryDir": "${sourceDir}/build/msvc",
+            "name": "_base",
+            "hidden": true,
+            "description": "Shared options inherited by all presets — not used directly",
             "cacheVariables": {
                 "CPM_SOURCE_CACHE": "${sourceDir}/thirdparty",
                 "WAYFINDER_BUILD_SANDBOX": "ON",
@@ -21,6 +19,18 @@
                 "WAYFINDER_BUILD_RUNTIME": "OFF",
                 "WAYFINDER_BUILD_SAMPLES": "OFF",
                 "WAYFINDER_ENABLE_PROFILING": "ON"
+            }
+        },
+        {
+            "name": "dev",
+            "displayName": "Development (Ninja + MSVC)",
+            "description": "Daily-driver preset. Ninja + MSVC for fast builds and native compile_commands.json. Requires cl.exe in PATH (use VS Developer Shell).",
+            "inherits": "_base",
+            "generator": "Ninja Multi-Config",
+            "binaryDir": "${sourceDir}/build/dev",
+            "cacheVariables": {
+                "CMAKE_C_COMPILER": "cl",
+                "CMAKE_CXX_COMPILER": "cl"
             }
         },
         {
@@ -35,9 +45,18 @@
             }
         },
         {
+            "name": "dev-vs",
+            "displayName": "Development (Visual Studio IDE)",
+            "description": "VS 2022 generator for opening in Visual Studio. Use 'dev' for VS Code.",
+            "inherits": "_base",
+            "generator": "Visual Studio 17 2022",
+            "binaryDir": "${sourceDir}/build/msvc"
+        },
+        {
             "name": "dev-clang",
             "displayName": "Development (Clang on Windows)",
-            "description": "Local Clang builds — catches warnings that MSVC misses, provides compile_commands.json",
+            "description": "Clang catches warnings MSVC misses. Useful for cross-compiler validation and static analysis.",
+            "inherits": "_base",
             "generator": "Ninja Multi-Config",
             "binaryDir": "${sourceDir}/build/clang",
             "condition": {
@@ -46,56 +65,37 @@
                 "rhs": "Windows"
             },
             "cacheVariables": {
-                "CPM_SOURCE_CACHE": "${sourceDir}/thirdparty",
                 "CMAKE_C_COMPILER": "clang",
                 "CMAKE_CXX_COMPILER": "clang++",
-                "WAYFINDER_BUILD_SANDBOX": "ON",
-                "WAYFINDER_BUILD_TOOLS": "ON",
-                "WAYFINDER_BUILD_TESTS": "ON",
-                "WAYFINDER_BUILD_EDITOR": "OFF",
-                "WAYFINDER_BUILD_RUNTIME": "OFF",
-                "WAYFINDER_BUILD_SAMPLES": "OFF",
                 "WAYFINDER_WARNINGS_AS_ERRORS": "ON"
             }
         },
         {
             "name": "dev-clang-tidy",
             "displayName": "Development (Clang + clang-tidy)",
-            "description": "Clang build with clang-tidy enabled — runs static analysis on every compile",
+            "description": "Clang build with clang-tidy static analysis on every compile",
             "inherits": "dev-clang",
             "cacheVariables": {
                 "WAYFINDER_ENABLE_CLANG_TIDY": "ON"
             }
         },
         {
-            "name": "ci",
-            "displayName": "CI",
-            "description": "Continuous integration preset with warnings-as-errors",
-            "inherits": "dev",
-            "cacheVariables": {
-                "WAYFINDER_WARNINGS_AS_ERRORS": "ON"
-            }
-        },
-        {
             "name": "shipping",
             "displayName": "Shipping",
-            "description": "Sandbox only, no dev tooling",
-            "generator": "Visual Studio 17 2022",
-            "binaryDir": "${sourceDir}/build/msvc",
+            "description": "Sandbox only, no dev tooling or profiling",
+            "inherits": "dev",
+            "binaryDir": "${sourceDir}/build/shipping",
             "cacheVariables": {
-                "CPM_SOURCE_CACHE": "${sourceDir}/thirdparty",
-                "WAYFINDER_BUILD_SANDBOX": "ON",
                 "WAYFINDER_BUILD_TOOLS": "OFF",
                 "WAYFINDER_BUILD_TESTS": "OFF",
-                "WAYFINDER_BUILD_EDITOR": "OFF",
-                "WAYFINDER_BUILD_RUNTIME": "OFF",
-                "WAYFINDER_BUILD_SAMPLES": "OFF"
+                "WAYFINDER_ENABLE_PROFILING": "OFF"
             }
         },
         {
             "name": "ci-linux",
             "displayName": "CI (Linux / Clang)",
-            "description": "For Linux-based CI and cloud agents (Ninja + Clang)",
+            "description": "Linux CI — Ninja + Clang with libc++",
+            "inherits": "_base",
             "generator": "Ninja Multi-Config",
             "binaryDir": "${sourceDir}/build",
             "condition": {
@@ -104,27 +104,22 @@
                 "rhs": "Linux"
             },
             "cacheVariables": {
-                "CPM_SOURCE_CACHE": "${sourceDir}/thirdparty",
                 "CMAKE_C_COMPILER": "clang",
                 "CMAKE_CXX_COMPILER": "clang++",
                 "CMAKE_CXX_FLAGS": "-stdlib=libc++",
                 "CMAKE_EXE_LINKER_FLAGS": "-stdlib=libc++ -lc++abi",
-                "WAYFINDER_BUILD_SANDBOX": "ON",
-                "WAYFINDER_BUILD_TOOLS": "ON",
-                "WAYFINDER_BUILD_TESTS": "ON",
-                "WAYFINDER_BUILD_EDITOR": "OFF",
-                "WAYFINDER_BUILD_RUNTIME": "OFF",
-                "WAYFINDER_BUILD_SAMPLES": "OFF",
                 "WAYFINDER_WARNINGS_AS_ERRORS": "ON"
             }
         },
         {
             "name": "ci-windows",
             "displayName": "CI (Windows / MSVC)",
-            "description": "Windows CI — Ninja for speed, MSVC for compatibility",
-            "generator": "Ninja Multi-Config",
+            "description": "Windows CI — Ninja + MSVC with warnings-as-errors",
+            "inherits": "dev",
             "binaryDir": "${sourceDir}/build",
-            "inherits": "ci"
+            "cacheVariables": {
+                "WAYFINDER_WARNINGS_AS_ERRORS": "ON"
+            }
         }
     ],
     "buildPresets": [
@@ -147,12 +142,6 @@
             "configuration": "Shipping"
         },
         {
-            "name": "ci-linux-debug",
-            "displayName": "CI Linux (Debug)",
-            "configurePreset": "ci-linux",
-            "configuration": "Debug"
-        },
-        {
             "name": "clang-debug",
             "displayName": "Clang (Debug)",
             "configurePreset": "dev-clang",
@@ -162,6 +151,12 @@
             "name": "clang-tidy-debug",
             "displayName": "Clang + Tidy (Debug)",
             "configurePreset": "dev-clang-tidy",
+            "configuration": "Debug"
+        },
+        {
+            "name": "ci-linux-debug",
+            "displayName": "CI Linux (Debug)",
+            "configurePreset": "ci-linux",
             "configuration": "Debug"
         },
         {
@@ -182,6 +177,15 @@
             }
         },
         {
+            "name": "clang-test",
+            "displayName": "Run Tests (Clang)",
+            "configurePreset": "dev-clang",
+            "configuration": "Debug",
+            "output": {
+                "outputJUnitFile": "test-results.xml"
+            }
+        },
+        {
             "name": "ci-linux-test",
             "displayName": "Run Tests (CI Linux)",
             "configurePreset": "ci-linux",
@@ -194,15 +198,6 @@
             "name": "ci-windows-test",
             "displayName": "Run Tests (CI Windows)",
             "configurePreset": "ci-windows",
-            "configuration": "Debug",
-            "output": {
-                "outputJUnitFile": "test-results.xml"
-            }
-        },
-        {
-            "name": "clang-test",
-            "displayName": "Run Tests (Clang)",
-            "configurePreset": "dev-clang",
             "configuration": "Debug",
             "output": {
                 "outputJUnitFile": "test-results.xml"
