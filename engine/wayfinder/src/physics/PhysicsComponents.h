@@ -1,8 +1,11 @@
 #pragma once
 
 #include "core/Types.h"
+#include "wayfinder_exports.h"
 
 #include <cstdint>
+#include <format>
+#include <functional>
 
 namespace Wayfinder::Physics
 {
@@ -22,8 +25,35 @@ namespace Wayfinder::Physics
         Capsule
     };
 
-    /// Sentinel value matching Jolt's invalid BodyID.
-    inline constexpr uint32_t INVALID_PHYSICS_BODY = 0xFFFFFFFF;
+    /**
+     * @brief Typed handle for a Jolt physics body.
+     *
+     * Zero-cost wrapper over a raw @c uint32_t that prevents accidentally
+     * passing an unrelated integer where a body handle is expected.
+     * A default-constructed handle is invalid (sentinel = @c 0xFFFFFFFF,
+     * matching Jolt's @c BodyID::cInvalidBodyID).
+     */
+    struct WAYFINDER_API PhysicsBodyId
+    {
+        /// Sentinel matching Jolt's invalid BodyID.
+        static constexpr uint32_t INVALID_VALUE = 0xFFFFFFFF;
+
+        /// Raw Jolt BodyID value. Public for interop with Jolt internals.
+        uint32_t Value = INVALID_VALUE;
+
+        constexpr PhysicsBodyId() = default;
+        constexpr explicit PhysicsBodyId(uint32_t value) : Value(value) {}
+
+        /// @return true if this handle refers to a valid Jolt body.
+        [[nodiscard]] constexpr bool IsValid() const { return Value != INVALID_VALUE; }
+        constexpr explicit operator bool() const { return IsValid(); }
+
+        constexpr auto operator==(const PhysicsBodyId&) const -> bool = default;
+        constexpr auto operator<=>(const PhysicsBodyId&) const = default;
+    };
+
+    /// Sentinel constant for an invalid physics body handle.
+    inline constexpr PhysicsBodyId INVALID_PHYSICS_BODY{};
 
     /**
      * @brief Describes the motion behaviour of a physics body.
@@ -49,7 +79,7 @@ namespace Wayfinder::Physics
         /// here would silently orphan the Jolt body.  Duplicate-creation
         /// is prevented by the PhysicsCreateBodies observer guard, and
         /// cleanup is handled by PhysicsDestroyBodies on remove/destruct.
-        uint32_t RuntimeBodyId = INVALID_PHYSICS_BODY;
+        PhysicsBodyId RuntimeBodyId;
     };
 
     /**
@@ -71,3 +101,21 @@ namespace Wayfinder::Physics
     };
 
 } // namespace Wayfinder::Physics
+
+template<>
+struct std::hash<Wayfinder::Physics::PhysicsBodyId>
+{
+    auto operator()(const Wayfinder::Physics::PhysicsBodyId& id) const noexcept -> size_t
+    {
+        return std::hash<uint32_t>{}(id.Value);
+    }
+};
+
+template<>
+struct std::formatter<Wayfinder::Physics::PhysicsBodyId> : std::formatter<uint32_t>
+{
+    auto format(const Wayfinder::Physics::PhysicsBodyId& id, auto& ctx) const
+    {
+        return std::formatter<uint32_t>::format(id.Value, ctx);
+    }
+};

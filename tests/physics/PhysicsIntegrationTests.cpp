@@ -212,7 +212,7 @@ namespace Wayfinder::Tests
 
             const auto& rb = entity.get<RigidBodyComponent>();
             REQUIRE(rb.RuntimeBodyId != INVALID_PHYSICS_BODY);
-            const uint32_t bodyId = rb.RuntimeBodyId;
+            const auto bodyId = rb.RuntimeBodyId;
 
             // Remove the component — the destruction observer should fire.
             entity.remove<RigidBodyComponent>();
@@ -237,7 +237,7 @@ namespace Wayfinder::Tests
 
             const auto& rb = entity.get<RigidBodyComponent>();
             REQUIRE(rb.RuntimeBodyId != INVALID_PHYSICS_BODY);
-            const uint32_t bodyId = rb.RuntimeBodyId;
+            const auto bodyId = rb.RuntimeBodyId;
 
             // Delete the entire entity.
             entity.destruct();
