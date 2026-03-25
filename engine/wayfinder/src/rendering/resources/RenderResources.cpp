@@ -190,6 +190,8 @@ namespace Wayfinder
                 if (hasMips && texAsset->Filter == SamplerFilter::Linear)
                 {
                     samplerDesc.mipmapMode = SamplerMipmapMode::Linear;
+                    samplerDesc.enableAnisotropy = true;
+                    samplerDesc.maxAnisotropy = 4.0f;
                 }
             }
             resolved.Sampler = m_textureManager->GetOrCreateSampler(samplerDesc);

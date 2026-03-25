@@ -65,13 +65,10 @@ namespace Wayfinder::Tests
         REQUIRE(device);
 
         TextureManager manager;
-        // NullDevice returns default (invalid) handles, so Initialise will fail
-        // with its validity check. This verifies it handles that gracefully.
+        // NullDevice now returns distinguishable handles, so Initialise should succeed.
         const bool result = manager.Initialise(*device);
-
-        // NullDevice returns GPUTextureHandle{} which is invalid (Generation == 0),
-        // so built-in texture creation fails—expected with the null backend.
-        CHECK_FALSE(result);
+        CHECK(result);
+        manager.Shutdown();
     }
 
     TEST_CASE("TextureManager Shutdown is safe on uninitialised manager")
@@ -97,11 +94,7 @@ namespace Wayfinder::Tests
         REQUIRE(device);
 
         TextureManager manager;
-        if (!manager.Initialise(*device))
-        {
-            MESSAGE("NullDevice does not support built-in textures — skipping sampler test");
-            return;
-        }
+        REQUIRE(manager.Initialise(*device));
 
         SamplerCreateDesc desc;
         desc.minFilter = SamplerFilter::Linear;
@@ -109,8 +102,6 @@ namespace Wayfinder::Tests
         desc.addressModeU = SamplerAddressMode::Repeat;
         desc.addressModeV = SamplerAddressMode::Repeat;
 
-        // NullDevice returns default handles, but the caching logic should still
-        // return the same handle for the same desc.
         GPUSamplerHandle first = manager.GetOrCreateSampler(desc);
         GPUSamplerHandle second = manager.GetOrCreateSampler(desc);
         CHECK(first == second);
@@ -124,11 +115,7 @@ namespace Wayfinder::Tests
         REQUIRE(device);
 
         TextureManager manager;
-        if (!manager.Initialise(*device))
-        {
-            MESSAGE("NullDevice does not support built-in textures — skipping sampler test");
-            return;
-        }
+        REQUIRE(manager.Initialise(*device));
 
         SamplerCreateDesc nearestRepeat;
         nearestRepeat.minFilter = SamplerFilter::Nearest;
@@ -142,26 +129,26 @@ namespace Wayfinder::Tests
         linearClamp.addressModeU = SamplerAddressMode::ClampToEdge;
         linearClamp.addressModeV = SamplerAddressMode::ClampToEdge;
 
-        // With NullDevice both return default handle, but the cache stores them
-        // under different keys. Verify the hash produces different entries.
-        manager.GetOrCreateSampler(nearestRepeat);
-        manager.GetOrCreateSampler(linearClamp);
-
-        // Re-fetch should hit cache
         GPUSamplerHandle a = manager.GetOrCreateSampler(nearestRepeat);
         GPUSamplerHandle b = manager.GetOrCreateSampler(linearClamp);
 
-        // Both are default (invalid) from NullDevice, so handles are equal,
-        // but we verify no crash and that the cache path doesn't corrupt.
-        CHECK_NOTHROW((void)a);
-        CHECK_NOTHROW((void)b);
+        // NullDevice now returns distinguishable handles — verify they differ.
+        CHECK(a != b);
+
+        // Re-fetch should hit cache and return the same handles.
+        CHECK(manager.GetOrCreateSampler(nearestRepeat) == a);
+        CHECK(manager.GetOrCreateSampler(linearClamp) == b);
 
         manager.Shutdown();
     }
 
     TEST_CASE("TextureManager sampler hash differentiates mipmap modes")
     {
-        // Two sampler descs identical except for mipmap mode should produce different hashes.
+        auto device = RenderDevice::Create(RenderBackend::Null);
+        REQUIRE(device);
+        TextureManager manager;
+        REQUIRE(manager.Initialise(*device));
+
         SamplerCreateDesc descA;
         descA.minFilter = SamplerFilter::Linear;
         descA.magFilter = SamplerFilter::Linear;
@@ -170,22 +157,44 @@ namespace Wayfinder::Tests
         SamplerCreateDesc descB = descA;
         descB.mipmapMode = SamplerMipmapMode::Linear;
 
-        // Access the hash via two sampler creates on the same manager — they should
-        // be stored under different keys.
-        auto device = RenderDevice::Create(RenderBackend::Null);
-        REQUIRE(device);
-        TextureManager manager;
-        manager.Initialise(*device);
-
-        // Both calls go through the cache path. If hash is identical, the second
-        // call returns the first handle instead of creating a new one.
         GPUSamplerHandle a = manager.GetOrCreateSampler(descA);
         GPUSamplerHandle b = manager.GetOrCreateSampler(descB);
 
-        // NullDevice returns default handles so we can't distinguish by handle value,
-        // but we verify no crash and both paths execute without error.
-        CHECK_NOTHROW((void)a);
-        CHECK_NOTHROW((void)b);
+        // Distinct mipmap modes must produce distinct handles.
+        CHECK(a != b);
+
+        manager.Shutdown();
+    }
+
+    TEST_CASE("SamplerCreateDesc defaults include anisotropy fields")
+    {
+        SamplerCreateDesc desc;
+        CHECK(desc.mipLodBias == 0.0f);
+        CHECK_FALSE(desc.enableAnisotropy);
+        CHECK(desc.maxAnisotropy == 1.0f);
+    }
+
+    TEST_CASE("TextureManager sampler hash differentiates anisotropy")
+    {
+        auto device = RenderDevice::Create(RenderBackend::Null);
+        REQUIRE(device);
+        TextureManager manager;
+        REQUIRE(manager.Initialise(*device));
+
+        SamplerCreateDesc descA;
+        descA.minFilter = SamplerFilter::Linear;
+        descA.magFilter = SamplerFilter::Linear;
+        descA.mipmapMode = SamplerMipmapMode::Linear;
+        descA.enableAnisotropy = false;
+
+        SamplerCreateDesc descB = descA;
+        descB.enableAnisotropy = true;
+        descB.maxAnisotropy = 4.0f;
+
+        GPUSamplerHandle a = manager.GetOrCreateSampler(descA);
+        GPUSamplerHandle b = manager.GetOrCreateSampler(descB);
+
+        CHECK(a != b);
 
         manager.Shutdown();
     }

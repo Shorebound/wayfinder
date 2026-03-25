@@ -1,4 +1,5 @@
 #include "SDLGPUDevice.h"
+#include "BlitMipGenerator.h"
 #include "platform/Window.h"
 #include "rendering/backend/null/NullDevice.h"
 
@@ -193,6 +194,9 @@ namespace Wayfinder
         m_info.DriverInfo = driver ? driver : "unknown";
 
         WAYFINDER_INFO(LogRenderer, "SDLGPUDevice: Initialised (driver: {})", m_info.DriverInfo);
+
+        m_mipGenerator = std::make_unique<BlitMipGenerator>();
+
         return {};
     }
 
@@ -231,9 +235,9 @@ namespace Wayfinder
             });
             m_samplerPool.Clear();
 
-            m_texturePool.ForEachAlive([&](SDL_GPUTexture* t)
+            m_texturePool.ForEachAlive([&](TextureEntry& entry)
             {
-                SDL_ReleaseGPUTexture(m_device, t);
+                SDL_ReleaseGPUTexture(m_device, entry.texture);
             });
             m_texturePool.Clear();
 
@@ -352,7 +356,7 @@ namespace Wayfinder
         else if (descriptor.colourTarget.IsValid())
         {
             auto* pTex = m_texturePool.Get(descriptor.colourTarget);
-            colourTexture = pTex ? *pTex : nullptr;
+            colourTexture = pTex ? pTex->texture : nullptr;
         }
 
         if (!colourTexture)
@@ -396,7 +400,7 @@ namespace Wayfinder
             if (descriptor.depthTarget.IsValid())
             {
                 auto* pTex = m_texturePool.Get(descriptor.depthTarget);
-                depthTexture = pTex ? *pTex : nullptr;
+                depthTexture = pTex ? pTex->texture : nullptr;
             }
             else if (m_depthTexture)
             {
@@ -1002,23 +1006,32 @@ namespace Wayfinder
             return GPUTextureHandle::Invalid();
         }
 
+        const uint32_t resolvedMips = (desc.mipLevels == 0) ? CalculateMipLevels(desc.width, desc.height) : desc.mipLevels;
+
         SDL_GPUTextureCreateInfo info{};
         info.type = SDL_GPU_TEXTURETYPE_2D;
         info.format = ToSDLTextureFormat(desc.format);
         info.width = desc.width;
         info.height = desc.height;
         info.layer_count_or_depth = 1;
-        info.num_levels = (desc.mipLevels > 0) ? desc.mipLevels : 1;
-        info.usage = ToSDLTextureUsage(desc.usage);
+        info.num_levels = resolvedMips;
+
+        auto usage = desc.usage;
+        if (resolvedMips > 1)
+        {
+            /// Blit-based mip generation requires ColourTarget usage.
+            usage = usage | TextureUsage::ColourTarget;
+        }
+        info.usage = ToSDLTextureUsage(usage);
 
         SDL_GPUTexture* texture = SDL_CreateGPUTexture(m_device, &info);
         if (!texture)
         {
-            WAYFINDER_ERROR(LogRenderer, "SDLGPUDevice::CreateTexture: Failed ({}x{}, {} mips) — {}", desc.width, desc.height, info.num_levels, SDL_GetError());
+            WAYFINDER_ERROR(LogRenderer, "SDLGPUDevice::CreateTexture: Failed ({}x{}, {} mips) — {}", desc.width, desc.height, resolvedMips, SDL_GetError());
             return GPUTextureHandle::Invalid();
         }
 
-        return m_texturePool.Acquire(texture);
+        return m_texturePool.Acquire({texture, desc.width, desc.height, resolvedMips});
     }
 
     void SDLGPUDevice::DestroyTexture(GPUTextureHandle texture)
@@ -1027,23 +1040,18 @@ namespace Wayfinder
         {
             return;
         }
-        auto* pTexture = m_texturePool.Get(texture);
-        if (pTexture)
+        auto* pEntry = m_texturePool.Get(texture);
+        if (pEntry)
         {
-            SDL_ReleaseGPUTexture(m_device, *pTexture);
+            SDL_ReleaseGPUTexture(m_device, pEntry->texture);
             m_texturePool.Release(texture);
         }
     }
 
-    void SDLGPUDevice::UploadToTexture(GPUTextureHandle texture, const void* pixelData, uint32_t width, uint32_t height, uint32_t bytesPerRow)
-    {
-        UploadToTexture(texture, pixelData, width, height, bytesPerRow, 0);
-    }
-
     void SDLGPUDevice::UploadToTexture(GPUTextureHandle texture, const void* pixelData, uint32_t width, uint32_t height, uint32_t bytesPerRow, uint32_t mipLevel)
     {
-        auto* pTexture = m_texturePool.Get(texture);
-        if (!m_device || !pTexture || !pixelData || width == 0 || height == 0)
+        auto* pEntry = m_texturePool.Get(texture);
+        if (!m_device || !pEntry || !pixelData || width == 0 || height == 0)
         {
             return;
         }
@@ -1092,7 +1100,7 @@ namespace Wayfinder
         src.rows_per_layer = height;
 
         SDL_GPUTextureRegion dst{};
-        dst.texture = *pTexture;
+        dst.texture = pEntry->texture;
         dst.mip_level = mipLevel;
         dst.w = width;
         dst.h = height;
@@ -1105,61 +1113,18 @@ namespace Wayfinder
         SDL_ReleaseGPUTransferBuffer(m_device, transferBuffer);
     }
 
-    void SDLGPUDevice::GenerateMipmaps(GPUTextureHandle texture, uint32_t mipLevels, uint32_t baseWidth, uint32_t baseHeight)
+    void SDLGPUDevice::GenerateMipmaps(GPUTextureHandle texture)
     {
-        auto* pTexture = m_texturePool.Get(texture);
-        if (!m_device || !pTexture || mipLevels <= 1)
+        auto* pEntry = m_texturePool.Get(texture);
+        if (!m_device || !pEntry || pEntry->mipLevels <= 1)
         {
             return;
         }
 
-        SDL_GPUCommandBuffer* cmdBuf = SDL_AcquireGPUCommandBuffer(m_device);
-        if (!cmdBuf)
+        if (m_mipGenerator)
         {
-            WAYFINDER_ERROR(LogRenderer, "SDLGPUDevice::GenerateMipmaps: Failed to acquire command buffer — {}", SDL_GetError());
-            return;
+            m_mipGenerator->Generate(m_device, pEntry->texture, pEntry->mipLevels, pEntry->width, pEntry->height);
         }
-
-        SDL_GPUTexture* sdlTexture = *pTexture;
-
-        uint32_t srcWidth = baseWidth;
-        uint32_t srcHeight = baseHeight;
-
-        for (uint32_t i = 1; i < mipLevels; ++i)
-        {
-            const uint32_t dstWidth = std::max(1u, srcWidth / 2);
-            const uint32_t dstHeight = std::max(1u, srcHeight / 2);
-
-            SDL_GPUBlitInfo blitInfo{};
-
-            blitInfo.source.texture = sdlTexture;
-            blitInfo.source.mip_level = i - 1;
-            blitInfo.source.layer_or_depth_plane = 0;
-            blitInfo.source.x = 0;
-            blitInfo.source.y = 0;
-            blitInfo.source.w = srcWidth;
-            blitInfo.source.h = srcHeight;
-
-            blitInfo.destination.texture = sdlTexture;
-            blitInfo.destination.mip_level = i;
-            blitInfo.destination.layer_or_depth_plane = 0;
-            blitInfo.destination.x = 0;
-            blitInfo.destination.y = 0;
-            blitInfo.destination.w = dstWidth;
-            blitInfo.destination.h = dstHeight;
-
-            blitInfo.load_op = SDL_GPU_LOADOP_DONT_CARE;
-            blitInfo.filter = SDL_GPU_FILTER_LINEAR;
-            blitInfo.cycle = false;
-            blitInfo.flip_mode = SDL_FLIP_NONE;
-
-            SDL_BlitGPUTexture(cmdBuf, &blitInfo);
-
-            srcWidth = dstWidth;
-            srcHeight = dstHeight;
-        }
-
-        SDL_SubmitGPUCommandBuffer(cmdBuf);
     }
 
     // ── Samplers ─────────────────────────────────────────────
@@ -1178,6 +1143,9 @@ namespace Wayfinder
         info.mipmap_mode = (desc.mipmapMode == SamplerMipmapMode::Linear) ? SDL_GPU_SAMPLERMIPMAPMODE_LINEAR : SDL_GPU_SAMPLERMIPMAPMODE_NEAREST;
         info.min_lod = desc.minLod;
         info.max_lod = desc.maxLod;
+        info.mip_lod_bias = desc.mipLodBias;
+        info.enable_anisotropy = desc.enableAnisotropy;
+        info.max_anisotropy = desc.maxAnisotropy;
 
         auto toAddressMode = [](SamplerAddressMode mode) -> SDL_GPUSamplerAddressMode
         {
@@ -1227,15 +1195,15 @@ namespace Wayfinder
         {
             return;
         }
-        auto* pTexture = m_texturePool.Get(texture);
+        auto* pEntry = m_texturePool.Get(texture);
         auto* pSampler = m_samplerPool.Get(sampler);
-        if (!pTexture || !pSampler)
+        if (!pEntry || !pSampler)
         {
             return;
         }
 
         SDL_GPUTextureSamplerBinding binding{};
-        binding.texture = *pTexture;
+        binding.texture = pEntry->texture;
         binding.sampler = *pSampler;
 
         SDL_BindGPUFragmentSamplers(m_renderPass, slot, &binding, 1);

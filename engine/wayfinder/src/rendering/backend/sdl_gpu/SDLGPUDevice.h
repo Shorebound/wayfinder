@@ -17,6 +17,17 @@ struct SDL_GPUComputePipeline;
 
 namespace Wayfinder
 {
+    class IMipGenerator;
+
+    /** @brief Metadata stored alongside each SDL texture in the resource pool. */
+    struct TextureEntry
+    {
+        SDL_GPUTexture* texture = nullptr;
+        uint32_t width = 0;
+        uint32_t height = 0;
+        uint32_t mipLevels = 1;
+    };
+
     class SDLGPUDevice final : public RenderDevice
     {
     public:
@@ -60,9 +71,8 @@ namespace Wayfinder
 
         GPUTextureHandle CreateTexture(const TextureCreateDesc& desc) override;
         void DestroyTexture(GPUTextureHandle texture) override;
-        void UploadToTexture(GPUTextureHandle texture, const void* pixelData, uint32_t width, uint32_t height, uint32_t bytesPerRow) override;
-        void UploadToTexture(GPUTextureHandle texture, const void* pixelData, uint32_t width, uint32_t height, uint32_t bytesPerRow, uint32_t mipLevel) override;
-        void GenerateMipmaps(GPUTextureHandle texture, uint32_t mipLevels, uint32_t baseWidth, uint32_t baseHeight) override;
+        void UploadToTexture(GPUTextureHandle texture, const void* pixelData, uint32_t width, uint32_t height, uint32_t bytesPerRow, uint32_t mipLevel = 0) override;
+        void GenerateMipmaps(GPUTextureHandle texture) override;
 
         GPUSamplerHandle CreateSampler(const SamplerCreateDesc& desc) override;
         void DestroySampler(GPUSamplerHandle sampler) override;
@@ -112,9 +122,11 @@ namespace Wayfinder
         ResourcePool<GPUShaderTag, SDL_GPUShader*> m_shaderPool;
         ResourcePool<GPUPipelineTag, SDL_GPUGraphicsPipeline*> m_pipelinePool;
         ResourcePool<GPUBufferTag, SDL_GPUBuffer*> m_bufferPool;
-        ResourcePool<GPUTextureTag, SDL_GPUTexture*> m_texturePool;
+        ResourcePool<GPUTextureTag, TextureEntry> m_texturePool;
         ResourcePool<GPUSamplerTag, SDL_GPUSampler*> m_samplerPool;
         ResourcePool<GPUComputePipelineTag, SDL_GPUComputePipeline*> m_computePipelinePool;
+
+        std::unique_ptr<IMipGenerator> m_mipGenerator;
     };
 
 } // namespace Wayfinder

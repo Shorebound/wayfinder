@@ -131,8 +131,7 @@ namespace Wayfinder
 
         m_textureCache[assetId] = gpuTexture;
 
-        const uint32_t mipLevels = (asset->MipLevels == 0) ? CalculateMipLevels(asset->Width, asset->Height) : asset->MipLevels;
-        WAYFINDER_INFO(LogRenderer, "TextureManager: Loaded '{}' ({}x{}, {} mips) to GPU", asset->Name, asset->Width, asset->Height, mipLevels);
+        WAYFINDER_INFO(LogRenderer, "TextureManager: Loaded '{}' ({}x{}, mipLevels={}) to GPU", asset->Name, asset->Width, asset->Height, asset->MipLevels);
 
         // Release CPU-side pixel data now that it's on the GPU
         assetService.ReleaseTexturePixelData(assetId);
@@ -170,24 +169,12 @@ namespace Wayfinder
             return GPUTextureHandle::Invalid();
         }
 
-        // Resolve mip level count: 0 = auto full chain, 1 = no mips, N = explicit
-        const uint32_t mipLevels = (asset.MipLevels == 0) ? CalculateMipLevels(asset.Width, asset.Height) : asset.MipLevels;
-
         TextureCreateDesc desc;
         desc.width = asset.Width;
         desc.height = asset.Height;
         desc.format = TextureFormat::RGBA8_UNORM;
-        desc.mipLevels = mipLevels;
-
-        // Mipmap generation via blit requires both Sampler (read) and ColourTarget (write) usage.
-        if (mipLevels > 1)
-        {
-            desc.usage = TextureUsage::Sampler | TextureUsage::ColourTarget;
-        }
-        else
-        {
-            desc.usage = TextureUsage::Sampler;
-        }
+        desc.usage = TextureUsage::Sampler;
+        desc.mipLevels = asset.MipLevels; // 0 = auto, device resolves
 
         GPUTextureHandle texture = m_device->CreateTexture(desc);
         if (!texture)
@@ -195,13 +182,11 @@ namespace Wayfinder
             return GPUTextureHandle::Invalid();
         }
 
-        // Upload base mip level (level 0)
         m_device->UploadToTexture(texture, asset.PixelData.data(), asset.Width, asset.Height, asset.Width * asset.Channels);
 
-        // Generate remaining mip levels on the GPU
-        if (mipLevels > 1)
+        if (asset.MipLevels != 1)
         {
-            m_device->GenerateMipmaps(texture, mipLevels, asset.Width, asset.Height);
+            m_device->GenerateMipmaps(texture);
         }
 
         return texture;
@@ -303,6 +288,9 @@ namespace Wayfinder
         feedByte(static_cast<uint8_t>(desc.mipmapMode));
         feedFloat(desc.minLod);
         feedFloat(desc.maxLod);
+        feedFloat(desc.mipLodBias);
+        feedByte(desc.enableAnisotropy ? 1 : 0);
+        feedFloat(desc.maxAnisotropy);
 
         return hash;
     }

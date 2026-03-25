@@ -183,6 +183,8 @@ set(ENGINE_ALL_SOURCES
   src/rendering/backend/null/NullDevice.h
   src/rendering/backend/sdl_gpu/SDLGPUDevice.cpp
   src/rendering/backend/sdl_gpu/SDLGPUDevice.h
+  src/rendering/backend/sdl_gpu/MipGenerator.h
+  src/rendering/backend/sdl_gpu/BlitMipGenerator.h
 
   # Rendering — Graph
   src/rendering/graph/RenderFeature.h

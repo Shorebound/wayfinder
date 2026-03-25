@@ -81,7 +81,12 @@ namespace Wayfinder
         TextureFormat format = TextureFormat::RGBA8_UNORM;
         TextureUsage usage = TextureUsage::ColourTarget;
 
-        /** @brief Number of mip levels. 1 = base level only (no mipmaps). */
+        /**
+         * @brief Mip level count.
+         * 0 = generate full mip chain (floor(log2(max(w,h))) + 1).
+         * 1 = base level only (no mipmaps).
+         * N = explicit mip level count.
+         */
         uint32_t mipLevels = 1;
     };
 
@@ -145,6 +150,15 @@ namespace Wayfinder
 
         /** @brief Maximum mip LOD clamp. Large value = allow all mips. */
         float maxLod = 1000.0f;
+
+        /** @brief Bias applied to the computed mip LOD. Negative = sharper. */
+        float mipLodBias = 0.0f;
+
+        /** @brief Enable anisotropic filtering. */
+        bool enableAnisotropy = false;
+
+        /** @brief Maximum anisotropy level (1–16). Only used when enableAnisotropy is true. */
+        float maxAnisotropy = 1.0f;
     };
 
     // ── GPU Enums ────────────────────────────────────────────

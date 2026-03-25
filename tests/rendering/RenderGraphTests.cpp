@@ -349,16 +349,14 @@ namespace Wayfinder::Tests
         desc.format = Wayfinder::TextureFormat::RGBA8_UNORM;
         desc.usage = Wayfinder::TextureUsage::ColourTarget;
 
-        // NullDevice returns invalid handles for textures. This test verifies that
-        // the acquire/release cycle doesn't crash with a null backend.  The reuse
-        // assertion is vacuous here because Release is a no-op for invalid handles.
-        // A real reuse test requires a device that produces valid texture handles.
+        // NullDevice returns distinguishable handles for textures. This test
+        // verifies that the acquire/release cycle works with a null backend.
         auto tex = pool.Acquire(desc);
-        CHECK_FALSE(tex.IsValid()); // NullDevice yields invalid handles
+        CHECK(tex.IsValid());
         pool.Release(tex, desc);
 
         auto tex2 = pool.Acquire(desc);
-        CHECK_FALSE(tex2.IsValid());
+        CHECK(tex2.IsValid());
 
         pool.Shutdown();
     }
