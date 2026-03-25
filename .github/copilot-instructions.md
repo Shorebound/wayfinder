@@ -70,7 +70,8 @@ Formatting is enforced by `.clang-format`.
 
 - Types: PascalCase with suffixes for components/systems, and `I` prefix for interfaces.
 - Functions: PascalCase with verb prefixes. `IsX` / `HasX` / `WasX` (bool queries), `GetX` / `SetX`, `CreateX` / `DestroyX`, `LoadX` / `SaveX`, `ValidateX`, `SubscribeX` / `UnsubscribeX`, `OnX`.
-- Members: `m_` prefix, camelCase. 
+- Members: `m_` prefix, camelCase.
+- Public members: PascalCase
 - Constants: SCREAMING_SNAKE_CASE. 
 - Aliases: PascalCase. 
 - Template params: `T` prefix.
@@ -97,6 +98,10 @@ All engine code lives in `Wayfinder`. Subdirectories under `engine/wayfinder/src
 
 - `/** … */` Javadoc-style (with `@brief`, `@param`, `@return`, `@todo`, etc.) for public API and types.
 - `///` for inline implementation notes.
+
+## Validation
+- Code must pass `tools/lint.py` and `tools/tidy.py` to be valid.
+- `//NOLINTBEGIN`/`//NOLINTEND` blocks are fine for all test code or if solutions are not obvious or solvable (such as inescapable third-party issues).
 
 ## Commits, Branches & Issues
 
