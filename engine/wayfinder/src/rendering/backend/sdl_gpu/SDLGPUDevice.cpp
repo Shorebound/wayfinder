@@ -1016,7 +1016,7 @@ namespace Wayfinder
         info.num_levels = resolvedMips;
 
         auto usage = desc.usage;
-        if (resolvedMips > 1)
+        if (resolvedMips > 1 && !HasFlag(usage, TextureUsage::DepthTarget))
         {
             /// Blit-based mip generation requires ColourTarget usage.
             usage = usage | TextureUsage::ColourTarget;
