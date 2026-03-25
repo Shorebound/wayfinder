@@ -11,15 +11,15 @@ namespace Wayfinder
         constexpr uint32_t K_STRIDE_POS_NORMAL_UV = 32u;         // 3+3+2 floats
         constexpr uint32_t K_STRIDE_POS_NORMAL_UV_TANGENT = 48u; // 3+3+2+4 floats
 
-        template<typename T>
-        bool ReadPod(std::span<const std::byte>& remaining, T& out)
+        template<typename TPod>
+        bool ReadPod(std::span<const std::byte>& remaining, TPod& out)
         {
-            if (remaining.size() < sizeof(T))
+            if (remaining.size() < sizeof(TPod))
             {
                 return false;
             }
-            std::memcpy(&out, remaining.data(), sizeof(T));
-            remaining = remaining.subspan(sizeof(T));
+            std::memcpy(&out, remaining.data(), sizeof(TPod));
+            remaining = remaining.subspan(sizeof(TPod));
             return true;
         }
     } // namespace
@@ -77,7 +77,7 @@ namespace Wayfinder
         out.SubmeshTable.resize(header.SubmeshCount);
         for (uint32_t i = 0; i < header.SubmeshCount; ++i)
         {
-            if (!ReadPod(cursor, out.SubmeshTable[i]))
+            if (!ReadPod(cursor, out.SubmeshTable.at(i)))
             {
                 error = "Mesh file: truncated submesh table";
                 return false;
@@ -88,8 +88,8 @@ namespace Wayfinder
 
         for (uint32_t i = 0; i < header.SubmeshCount; ++i)
         {
-            const SubmeshTableEntry& entry = out.SubmeshTable[i];
-            SubmeshCpuData& sm = out.Submeshes[i];
+            const SubmeshTableEntry& entry = out.SubmeshTable.at(i);
+            SubmeshCpuData& sm = out.Submeshes.at(i);
 
             sm.VertexFormat = entry.VertexFormat;
             sm.IndexFormat = entry.IndexFormat;
@@ -148,12 +148,12 @@ namespace Wayfinder
             return false;
         }
 
-        uint32_t vertexOffset = static_cast<uint32_t>(sizeof(MeshFileHeader) + static_cast<size_t>(data.Header.SubmeshCount) * sizeof(SubmeshTableEntry));
+        const auto vertexOffset = static_cast<uint32_t>(sizeof(MeshFileHeader) + static_cast<size_t>(data.Header.SubmeshCount) * sizeof(SubmeshTableEntry));
         uint32_t indexOffset = vertexOffset;
 
         for (uint32_t i = 0; i < data.Header.SubmeshCount; ++i)
         {
-            indexOffset += static_cast<uint32_t>(data.Submeshes[i].VertexBytes.size());
+            indexOffset += static_cast<uint32_t>(data.Submeshes.at(i).VertexBytes.size());
         }
 
         std::vector<SubmeshTableEntry> table = data.SubmeshTable;
@@ -163,7 +163,8 @@ namespace Wayfinder
 
         for (uint32_t i = 0; i < data.Header.SubmeshCount; ++i)
         {
-            const SubmeshCpuData& sm = data.Submeshes[i];
+            const SubmeshCpuData& sm = data.Submeshes.at(i);
+            SubmeshTableEntry& tableEntry = table.at(i);
             const uint32_t stride = GetVertexStride(sm.VertexFormat);
 
             if (sm.VertexBytes.size() != static_cast<size_t>(sm.VertexCount) * stride)
@@ -179,20 +180,20 @@ namespace Wayfinder
                 return false;
             }
 
-            table[i].VertexFormat = sm.VertexFormat;
-            table[i].IndexFormat = sm.IndexFormat;
-            table[i].Padding = 0;
-            table[i].VertexCount = sm.VertexCount;
-            table[i].IndexCount = sm.IndexCount;
-            table[i].VertexDataOffset = runningVertex;
-            table[i].VertexDataSize = static_cast<uint32_t>(sm.VertexBytes.size());
-            table[i].IndexDataOffset = runningIndex;
-            table[i].IndexDataSize = static_cast<uint32_t>(sm.IndexBytes.size());
-            table[i].Bounds = sm.Bounds;
-            table[i].MaterialSlot = sm.MaterialSlot;
+            tableEntry.VertexFormat = sm.VertexFormat;
+            tableEntry.IndexFormat = sm.IndexFormat;
+            tableEntry.Padding = 0;
+            tableEntry.VertexCount = sm.VertexCount;
+            tableEntry.IndexCount = sm.IndexCount;
+            tableEntry.VertexDataOffset = runningVertex;
+            tableEntry.VertexDataSize = static_cast<uint32_t>(sm.VertexBytes.size());
+            tableEntry.IndexDataOffset = runningIndex;
+            tableEntry.IndexDataSize = static_cast<uint32_t>(sm.IndexBytes.size());
+            tableEntry.Bounds = sm.Bounds;
+            tableEntry.MaterialSlot = sm.MaterialSlot;
 
-            runningVertex += table[i].VertexDataSize;
-            runningIndex += table[i].IndexDataSize;
+            runningVertex += tableEntry.VertexDataSize;
+            runningIndex += tableEntry.IndexDataSize;
         }
 
         outBytes.clear();
@@ -204,20 +205,23 @@ namespace Wayfinder
         std::byte* dst = outBytes.data() + sizeof(MeshFileHeader);
         for (uint32_t i = 0; i < data.Header.SubmeshCount; ++i)
         {
-            std::memcpy(dst, &table[i], sizeof(SubmeshTableEntry));
+            const SubmeshTableEntry& tableEntry = table.at(i);
+            std::memcpy(dst, &tableEntry, sizeof(SubmeshTableEntry));
             dst += sizeof(SubmeshTableEntry);
         }
 
         for (uint32_t i = 0; i < data.Header.SubmeshCount; ++i)
         {
-            const auto& sm = data.Submeshes[i];
-            std::memcpy(outBytes.data() + table[i].VertexDataOffset, sm.VertexBytes.data(), sm.VertexBytes.size());
+            const SubmeshCpuData& sm = data.Submeshes.at(i);
+            const SubmeshTableEntry& tableEntry = table.at(i);
+            std::memcpy(outBytes.data() + tableEntry.VertexDataOffset, sm.VertexBytes.data(), sm.VertexBytes.size());
         }
 
         for (uint32_t i = 0; i < data.Header.SubmeshCount; ++i)
         {
-            const auto& sm = data.Submeshes[i];
-            std::memcpy(outBytes.data() + table[i].IndexDataOffset, sm.IndexBytes.data(), sm.IndexBytes.size());
+            const SubmeshCpuData& sm = data.Submeshes.at(i);
+            const SubmeshTableEntry& tableEntry = table.at(i);
+            std::memcpy(outBytes.data() + tableEntry.IndexDataOffset, sm.IndexBytes.data(), sm.IndexBytes.size());
         }
 
         return true;

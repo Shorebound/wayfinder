@@ -210,13 +210,13 @@ namespace Wayfinder::Tests
 
     TEST_CASE("AssetCache starts empty")
     {
-        AssetCache<MaterialAsset> cache;
+        const AssetCache<MaterialAsset> cache;
         CHECK(cache.Size() == 0);
     }
 
     TEST_CASE("AssetCache Get returns nullptr on miss")
     {
-        AssetCache<MaterialAsset> cache;
+        const AssetCache<MaterialAsset> cache;
         const AssetId id = AssetId::Generate();
         CHECK(cache.Get(id) == nullptr);
     }
@@ -234,7 +234,9 @@ namespace Wayfinder::Tests
         std::filesystem::create_directories(tempDir);
 
         const std::string assetIdText = "f0000000-0000-0000-0000-000000000099";
-        const auto assetId = AssetId::Parse(assetIdText).value();
+        const auto parsedAssetId = AssetId::Parse(assetIdText);
+        REQUIRE(parsedAssetId.has_value());
+        const AssetId assetId = *parsedAssetId;
 
         {
             std::ofstream file(tempDir / "clear_material.json");
@@ -269,7 +271,9 @@ namespace Wayfinder::Tests
         std::filesystem::create_directories(tempDir);
 
         const std::string assetIdText = "f0000000-0000-0000-0000-000000000001";
-        const auto assetId = AssetId::Parse(assetIdText).value();
+        const auto parsedAssetId = AssetId::Parse(assetIdText);
+        REQUIRE(parsedAssetId.has_value());
+        const AssetId assetId = *parsedAssetId;
 
         {
             std::ofstream file(tempDir / "test_material.json");
@@ -378,8 +382,9 @@ namespace Wayfinder::Tests
         std::string error;
         const auto loaded = LoadMeshAssetFromDocument(doc, tempDir / "unit_mesh.json", error);
         REQUIRE(loaded.has_value());
-        CHECK(loaded->Submeshes.size() == 1);
-        CHECK(loaded->Submeshes[0].VertexCount == 3u);
+        const MeshAsset& loadedAsset = *loaded;
+        CHECK(loadedAsset.Submeshes.size() == 1);
+        CHECK(loadedAsset.Submeshes.at(0).VertexCount == 3u);
 
         std::filesystem::remove_all(tempDir);
     }

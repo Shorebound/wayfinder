@@ -22,7 +22,7 @@ namespace Wayfinder
             return false;
         }
 
-        const SubmeshCpuData& sm = asset.Submeshes[K_SUBMESH_INDEX];
+        const SubmeshCpuData& sm = asset.Submeshes.at(K_SUBMESH_INDEX);
         if (sm.VertexBytes.empty() || sm.IndexBytes.empty() || sm.VertexCount == 0 || sm.IndexCount == 0)
         {
             return false;

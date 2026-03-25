@@ -153,6 +153,75 @@ def _sanitise_compile_command(command: str) -> str:
     return sanitised
 
 
+def _path_regex(path: Path) -> str:
+    escaped = re.escape(str(path.resolve()))
+    return escaped.replace(r'\\', r'[/\\]')
+
+
+def _header_filters() -> tuple[str, str]:
+    root = _path_regex(REPO_ROOT)
+    source_dirs = '|'.join(SOURCE_DIRS)
+    exclude_dirs = '|'.join(sorted(EXCLUDE_DIRS))
+    include_filter = rf'^{root}[/\\](?:{source_dirs})[/\\]'
+    exclude_filter = rf'^{root}[/\\](?:{exclude_dirs})[/\\]'
+    return include_filter, exclude_filter
+
+
+def _is_repo_owned_path(path_text: str) -> bool:
+    normalised = Path(path_text.replace('\\', '/'))
+    if not normalised.is_absolute():
+        normalised = (REPO_ROOT / normalised).resolve()
+    else:
+        normalised = normalised.resolve()
+
+    try:
+        relative = normalised.relative_to(REPO_ROOT.resolve())
+    except ValueError:
+        return False
+
+    if not relative.parts:
+        return False
+    return relative.parts[0] in SOURCE_DIRS and not any(part in EXCLUDE_DIRS for part in relative.parts)
+
+
+def _filter_tidy_output(output: str) -> tuple[bool, str]:
+    primary_diag = re.compile(r'^(?P<path>(?:[A-Za-z]:)?[^:]+):\d+:\d+: (?P<kind>warning|error|remark): ')
+    note_diag = re.compile(r'^(?P<path>(?:[A-Za-z]:)?[^:]+):\d+:\d+: note: ')
+
+    kept_lines: list[str] = []
+    block_lines: list[str] = []
+    keep_block = False
+    saw_issue = False
+
+    def flush_block() -> None:
+        nonlocal block_lines, keep_block
+        if keep_block and block_lines:
+            kept_lines.extend(block_lines)
+        block_lines = []
+        keep_block = False
+
+    for line in output.splitlines(keepends=True):
+        primary_match = primary_diag.match(line)
+        if primary_match:
+            flush_block()
+            keep_block = _is_repo_owned_path(primary_match.group('path'))
+            saw_issue = saw_issue or keep_block
+            block_lines = [line]
+            continue
+
+        if block_lines:
+            if note_diag.match(line) or line.startswith(' ') or line.startswith('\t') or not line.strip() or line.startswith('Error while processing '):
+                block_lines.append(line)
+                continue
+
+            flush_block()
+
+        kept_lines.append(line)
+
+    flush_block()
+    return saw_issue, ''.join(kept_lines)
+
+
 def _sanitise_compile_entry(entry: dict[str, object]) -> None:
     command = entry.get('command')
     if isinstance(command, str):
@@ -242,7 +311,8 @@ def _run_one(cmd_base: list[str], filepath: str, cwd: str) -> tuple[str, int, st
     result = subprocess.run(cmd, cwd=cwd, capture_output=True, text=True)
     # clang-tidy prints diagnostics to stdout.
     output = result.stdout + result.stderr
-    return filepath, result.returncode, output
+    had_issue, filtered_output = _filter_tidy_output(output)
+    return filepath, 1 if had_issue else 0, filtered_output
 
 
 def run_tidy(
@@ -298,6 +368,8 @@ def run_tidy(
     print(_bold(f'Running clang-tidy on {len(cpp_files)} file(s) ({jobs} parallel)...'))
 
     cmd_base = [tool, '-p', str(filtered_dir), '--quiet']
+    header_filter, exclude_filter = _header_filters()
+    cmd_base.extend(['--header-filter', header_filter, '--exclude-header-filter', exclude_filter])
     # Suppress stale-PCH errors when running standalone (PCH might be from
     # a previous build and the source has since been modified).
     cmd_base.extend(['--extra-arg=-Xclang', '--extra-arg=-fno-validate-pch'])

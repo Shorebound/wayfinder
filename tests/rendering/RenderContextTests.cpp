@@ -6,14 +6,17 @@
 
 namespace Wayfinder::Tests
 {
-    Wayfinder::EngineConfig MakeTestConfig()
+    namespace
     {
-        Wayfinder::EngineConfig config;
-        config.Window.Width = 320;
-        config.Window.Height = 240;
-        config.Shaders.Directory = ""; // NullDevice doesn't load files
-        return config;
-    }
+        Wayfinder::EngineConfig MakeTestConfig()
+        {
+            Wayfinder::EngineConfig config;
+            config.Window.Width = 320;
+            config.Window.Height = 240;
+            config.Shaders.Directory = ""; // NullDevice doesn't load files
+            return config;
+        }
+    } // namespace
 
     TEST_CASE("RenderContext initialises and shuts down with NullDevice")
     {

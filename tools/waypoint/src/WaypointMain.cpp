@@ -53,17 +53,17 @@ namespace
         std::optional<Wayfinder::Plugins::LoadedPlugin> GamePlugin;
         std::unique_ptr<Wayfinder::Plugins::PluginRegistry> PluginReg;
         /// Owned config; \ref PluginRegistry stores a reference — must outlive \ref PluginReg.
-        Wayfinder::EngineConfig m_engineConfig;
+        Wayfinder::EngineConfig EngineConfig;
 
         explicit WaypointContext(const Wayfinder::ProjectDescriptor* project = nullptr, const std::filesystem::path& toolDir = {})
         {
             if (project)
             {
-                m_engineConfig = Wayfinder::EngineConfig::LoadFromFile(project->ResolveEngineConfigPath());
+                EngineConfig = Wayfinder::EngineConfig::LoadFromFile(project->ResolveEngineConfigPath());
             }
             else
             {
-                m_engineConfig = Wayfinder::EngineConfig::LoadDefaults();
+                EngineConfig = Wayfinder::EngineConfig::LoadDefaults();
             }
 
             Wayfinder::Scene::RegisterCoreComponents(World);
@@ -84,7 +84,7 @@ namespace
                 if (loadResult && loadResult->Instance)
                 {
                     GamePlugin = std::move(*loadResult);
-                    PluginReg = std::make_unique<Wayfinder::Plugins::PluginRegistry>(*project, m_engineConfig);
+                    PluginReg = std::make_unique<Wayfinder::Plugins::PluginRegistry>(*project, EngineConfig);
                     GamePlugin->Instance->Build(*PluginReg);
                     Registry.AddGameEntries(*PluginReg);
                 }
@@ -121,9 +121,9 @@ namespace
         return result ? 0 : 1;
     }
 
-    int RunImportMesh(const std::filesystem::path& gltfPath, const std::filesystem::path& outputDir, std::string_view nameStem)
+    int RunImportMesh(const Wayfinder::Waypoint::MeshImportRequest& request)
     {
-        if (const auto result = Wayfinder::Waypoint::ImportMesh(gltfPath, outputDir, nameStem); !result)
+        if (const auto result = Wayfinder::Waypoint::ImportMesh(request); !result)
         {
             std::cerr << result.error().GetMessage() << '\n';
             return 1;
@@ -281,10 +281,9 @@ int main(int argc, char** argv)
                 return 1;
             }
             nameStem = argv[argIndex + 1];
-            argIndex += 2;
         }
 
-        exitCode = RunImportMesh(gltfPath, outputDir, nameStem);
+        exitCode = RunImportMesh({.SourcePath = gltfPath, .OutputDirectory = outputDir, .NameStem = nameStem});
     }
     else if (command == "roundtrip-save")
     {

@@ -27,6 +27,18 @@ namespace Wayfinder::Waypoint
 {
     namespace
     {
+        struct PrimitiveBuildInput
+        {
+            const fastgltf::Asset* Asset = nullptr;
+            const fastgltf::Primitive* Primitive = nullptr;
+        };
+
+        struct BuiltSubmesh
+        {
+            SubmeshCpuData Mesh;
+            AxisAlignedBounds Bounds;
+        };
+
         Float4 ComputeFallbackTangent(const Float3& normal)
         {
             Float3 tangent = Maths::Normalize(Maths::Cross(Up, normal));
@@ -40,7 +52,7 @@ namespace Wayfinder::Waypoint
 
         Result<void> ReadVec3(const fastgltf::Asset& asset, const std::size_t accessorIndex, std::vector<Float3>& out)
         {
-            const auto& acc = asset.accessors[accessorIndex];
+            const auto& acc = asset.accessors.at(accessorIndex);
             if (acc.type != fastgltf::AccessorType::Vec3)
             {
                 return MakeError("Accessor is not VEC3");
@@ -53,7 +65,7 @@ namespace Wayfinder::Waypoint
 
         Result<void> ReadVec2(const fastgltf::Asset& asset, const std::size_t accessorIndex, std::vector<Float2>& out)
         {
-            const auto& acc = asset.accessors[accessorIndex];
+            const auto& acc = asset.accessors.at(accessorIndex);
             if (acc.type != fastgltf::AccessorType::Vec2)
             {
                 return MakeError("Accessor is not VEC2");
@@ -66,7 +78,7 @@ namespace Wayfinder::Waypoint
 
         Result<void> ReadVec4(const fastgltf::Asset& asset, const std::size_t accessorIndex, std::vector<Float4>& out)
         {
-            const auto& acc = asset.accessors[accessorIndex];
+            const auto& acc = asset.accessors.at(accessorIndex);
             if (acc.type != fastgltf::AccessorType::Vec4)
             {
                 return MakeError("Accessor is not VEC4");
@@ -79,7 +91,7 @@ namespace Wayfinder::Waypoint
 
         Result<void> ReadIndices(const fastgltf::Asset& asset, const std::size_t accessorIndex, std::vector<std::uint32_t>& out)
         {
-            const auto& acc = asset.accessors[accessorIndex];
+            const auto& acc = asset.accessors.at(accessorIndex);
             if (acc.type != fastgltf::AccessorType::Scalar)
             {
                 return MakeError("Index accessor is not scalar");
@@ -93,7 +105,7 @@ namespace Wayfinder::Waypoint
                 fastgltf::copyFromAccessor<std::uint16_t>(asset, acc, tmp.data());
                 for (std::size_t i = 0; i < acc.count; ++i)
                 {
-                    out[i] = tmp[i];
+                    out.at(i) = tmp.at(i);
                 }
             }
             else if (acc.componentType == fastgltf::ComponentType::UnsignedInt)
@@ -116,8 +128,8 @@ namespace Wayfinder::Waypoint
                 return b;
             }
 
-            Float3 mn = positions[0];
-            Float3 mx = positions[0];
+            Float3 mn = positions.front();
+            Float3 mx = positions.front();
             for (const Float3& p : positions)
             {
                 mn = Maths::Min(mn, p);
@@ -129,15 +141,18 @@ namespace Wayfinder::Waypoint
             return b;
         }
 
-        Result<void> BuildSubmeshFromPrimitive(const fastgltf::Asset& asset, const fastgltf::Primitive& prim, SubmeshCpuData& outMesh, AxisAlignedBounds& outBounds)
+        Result<BuiltSubmesh> BuildSubmeshFromPrimitive(const PrimitiveBuildInput& input)
         {
-            if (prim.type != fastgltf::PrimitiveType::Triangles)
+            const fastgltf::Asset& asset = *input.Asset;
+            const fastgltf::Primitive& primitive = *input.Primitive;
+
+            if (primitive.type != fastgltf::PrimitiveType::Triangles)
             {
                 return MakeError("Only triangle primitives are supported");
             }
 
-            const auto* posAttr = prim.findAttribute("POSITION");
-            if (posAttr == prim.attributes.end())
+            const auto* posAttr = primitive.findAttribute("POSITION");
+            if (posAttr == primitive.attributes.end())
             {
                 return MakeError("Primitive missing POSITION attribute");
             }
@@ -145,18 +160,18 @@ namespace Wayfinder::Waypoint
             std::vector<Float3> positions;
             if (const auto r = ReadVec3(asset, posAttr->accessorIndex, positions); !r)
             {
-                return r;
+                return MakeError(r.error().GetMessage());
             }
 
             const std::size_t vertexCount = positions.size();
 
             std::vector<Float3> normals(vertexCount, Float3{0.0f, 1.0f, 0.0f});
-            const auto* nrmAttr = prim.findAttribute("NORMAL");
-            if (nrmAttr != prim.attributes.end())
+            const auto* nrmAttr = primitive.findAttribute("NORMAL");
+            if (nrmAttr != primitive.attributes.end())
             {
                 if (const auto r = ReadVec3(asset, nrmAttr->accessorIndex, normals); !r)
                 {
-                    return r;
+                    return MakeError(r.error().GetMessage());
                 }
                 if (normals.size() != vertexCount)
                 {
@@ -165,12 +180,12 @@ namespace Wayfinder::Waypoint
             }
 
             std::vector<Float2> uvs(vertexCount, Float2{0.0f});
-            const auto* uvAttr = prim.findAttribute("TEXCOORD_0");
-            if (uvAttr != prim.attributes.end())
+            const auto* uvAttr = primitive.findAttribute("TEXCOORD_0");
+            if (uvAttr != primitive.attributes.end())
             {
                 if (const auto r = ReadVec2(asset, uvAttr->accessorIndex, uvs); !r)
                 {
-                    return r;
+                    return MakeError(r.error().GetMessage());
                 }
                 if (uvs.size() != vertexCount)
                 {
@@ -179,12 +194,12 @@ namespace Wayfinder::Waypoint
             }
 
             std::vector<Float4> tangents(vertexCount);
-            const auto* tanAttr = prim.findAttribute("TANGENT");
-            if (tanAttr != prim.attributes.end())
+            const auto* tanAttr = primitive.findAttribute("TANGENT");
+            if (tanAttr != primitive.attributes.end())
             {
                 if (const auto r = ReadVec4(asset, tanAttr->accessorIndex, tangents); !r)
                 {
-                    return r;
+                    return MakeError(r.error().GetMessage());
                 }
                 if (tangents.size() != vertexCount)
                 {
@@ -195,25 +210,26 @@ namespace Wayfinder::Waypoint
             {
                 for (std::size_t i = 0; i < vertexCount; ++i)
                 {
-                    tangents[i] = ComputeFallbackTangent(Maths::Normalize(normals[i]));
+                    tangents.at(i) = ComputeFallbackTangent(Maths::Normalize(normals.at(i)));
                 }
             }
 
             std::vector<VertexPosNormalUVTangent> vertices(vertexCount);
             for (std::size_t i = 0; i < vertexCount; ++i)
             {
-                vertices[i].Position = positions[i];
-                vertices[i].Normal = normals[i];
-                vertices[i].UV = uvs[i];
-                vertices[i].Tangent = tangents[i];
+                auto& vertex = vertices.at(i);
+                vertex.Position = positions.at(i);
+                vertex.Normal = normals.at(i);
+                vertex.UV = uvs.at(i);
+                vertex.Tangent = tangents.at(i);
             }
 
             std::vector<std::uint32_t> indices;
-            if (prim.indicesAccessor)
+            if (primitive.indicesAccessor)
             {
-                if (const auto r = ReadIndices(asset, *prim.indicesAccessor, indices); !r)
+                if (const auto r = ReadIndices(asset, *primitive.indicesAccessor, indices); !r)
                 {
-                    return r;
+                    return MakeError(r.error().GetMessage());
                 }
             }
             else
@@ -221,7 +237,7 @@ namespace Wayfinder::Waypoint
                 indices.resize(vertexCount);
                 for (std::size_t i = 0; i < vertexCount; ++i)
                 {
-                    indices[static_cast<std::size_t>(i)] = static_cast<std::uint32_t>(i);
+                    indices.at(i) = static_cast<std::uint32_t>(i);
                 }
             }
 
@@ -232,45 +248,49 @@ namespace Wayfinder::Waypoint
 
             meshopt_optimizeVertexCache(indices.data(), indices.data(), indices.size(), vertexCount);
 
-            const float* posBase = reinterpret_cast<const float*>(vertices.data());
+            const auto* posBase = reinterpret_cast<const float*>(vertices.data());
             meshopt_optimizeOverdraw(indices.data(), indices.data(), indices.size(), posBase, vertexCount, sizeof(VertexPosNormalUVTangent), 1.05f);
 
-            outBounds = BoundsFromPositions(positions);
+            BuiltSubmesh builtSubmesh{};
+            builtSubmesh.Bounds = BoundsFromPositions(positions);
 
-            outMesh.VertexFormat = MeshVertexFormat::PosNormalUVTangent;
-            outMesh.VertexCount = static_cast<std::uint32_t>(vertexCount);
-            outMesh.IndexCount = static_cast<std::uint32_t>(indices.size());
-            outMesh.MaterialSlot = prim.materialIndex ? static_cast<std::uint32_t>(*prim.materialIndex) : 0u;
-            outMesh.Bounds = outBounds;
+            builtSubmesh.Mesh.VertexFormat = MeshVertexFormat::PosNormalUVTangent;
+            builtSubmesh.Mesh.VertexCount = static_cast<std::uint32_t>(vertexCount);
+            builtSubmesh.Mesh.IndexCount = static_cast<std::uint32_t>(indices.size());
+            builtSubmesh.Mesh.MaterialSlot = primitive.materialIndex ? static_cast<std::uint32_t>(*primitive.materialIndex) : 0u;
+            builtSubmesh.Mesh.Bounds = builtSubmesh.Bounds;
 
-            outMesh.VertexBytes.resize(vertices.size() * sizeof(VertexPosNormalUVTangent));
-            std::memcpy(outMesh.VertexBytes.data(), vertices.data(), outMesh.VertexBytes.size());
+            builtSubmesh.Mesh.VertexBytes.resize(vertices.size() * sizeof(VertexPosNormalUVTangent));
+            std::memcpy(builtSubmesh.Mesh.VertexBytes.data(), vertices.data(), builtSubmesh.Mesh.VertexBytes.size());
 
             const bool use32 = vertexCount > 65535u;
-            outMesh.IndexFormat = use32 ? MeshIndexFormat::Uint32 : MeshIndexFormat::Uint16;
+            builtSubmesh.Mesh.IndexFormat = use32 ? MeshIndexFormat::Uint32 : MeshIndexFormat::Uint16;
 
             if (use32)
             {
-                outMesh.IndexBytes.resize(indices.size() * sizeof(std::uint32_t));
-                std::memcpy(outMesh.IndexBytes.data(), indices.data(), outMesh.IndexBytes.size());
+                builtSubmesh.Mesh.IndexBytes.resize(indices.size() * sizeof(std::uint32_t));
+                std::memcpy(builtSubmesh.Mesh.IndexBytes.data(), indices.data(), builtSubmesh.Mesh.IndexBytes.size());
             }
             else
             {
                 std::vector<std::uint16_t> idx16(indices.size());
                 for (std::size_t i = 0; i < indices.size(); ++i)
                 {
-                    idx16[i] = static_cast<std::uint16_t>(indices[i]);
+                    idx16.at(i) = static_cast<std::uint16_t>(indices.at(i));
                 }
-                outMesh.IndexBytes.resize(idx16.size() * sizeof(std::uint16_t));
-                std::memcpy(outMesh.IndexBytes.data(), idx16.data(), outMesh.IndexBytes.size());
+                builtSubmesh.Mesh.IndexBytes.resize(idx16.size() * sizeof(std::uint16_t));
+                std::memcpy(builtSubmesh.Mesh.IndexBytes.data(), idx16.data(), builtSubmesh.Mesh.IndexBytes.size());
             }
 
-            return {};
+            return builtSubmesh;
         }
     } // namespace
 
-    Result<void> ImportMesh(const std::filesystem::path& gltfPath, const std::filesystem::path& outputDir, const std::string_view nameStem)
+    Result<void> ImportMesh(const MeshImportRequest& request)
     {
+        const std::filesystem::path& gltfPath = request.SourcePath;
+        const std::filesystem::path& outputDir = request.OutputDirectory;
+
         if (!std::filesystem::exists(gltfPath))
         {
             return MakeError("Input file does not exist: " + gltfPath.generic_string());
@@ -293,7 +313,7 @@ namespace Wayfinder::Waypoint
             return MakeError("Failed to parse glTF: " + std::string{fastgltf::getErrorMessage(assetExpected.error())});
         }
 
-        fastgltf::Asset& asset = assetExpected.get();
+        const fastgltf::Asset& asset = assetExpected.get();
         if (asset.meshes.empty())
         {
             return MakeError("glTF file contains no meshes");
@@ -313,18 +333,19 @@ namespace Wayfinder::Waypoint
         {
             for (std::size_t p = 0; p < mesh.primitives.size(); ++p)
             {
-                const fastgltf::Primitive& prim = mesh.primitives[p];
+                const fastgltf::Primitive& prim = mesh.primitives.at(p);
                 if (prim.type != fastgltf::PrimitiveType::Triangles)
                 {
                     continue;
                 }
 
-                SubmeshCpuData sm{};
-                AxisAlignedBounds subBounds{};
-                if (const auto r = BuildSubmeshFromPrimitive(asset, prim, sm, subBounds); !r)
+                auto builtSubmesh = BuildSubmeshFromPrimitive({.Asset = &asset, .Primitive = &prim});
+                if (!builtSubmesh)
                 {
-                    return r;
+                    return MakeError(builtSubmesh.error().GetMessage());
                 }
+
+                const AxisAlignedBounds& subBounds = builtSubmesh->Bounds;
 
                 if (!haveBounds)
                 {
@@ -337,13 +358,13 @@ namespace Wayfinder::Waypoint
                     wholeBounds.Max = Maths::Max(wholeBounds.Max, subBounds.Max);
                 }
 
-                parsed.Submeshes.push_back(std::move(sm));
+                parsed.Submeshes.push_back(std::move(builtSubmesh->Mesh));
 
                 const std::string name = mesh.name.empty() ? ("submesh_" + std::to_string(submeshJsonEntries.size())) : (std::string{mesh.name} + "_" + std::to_string(p));
 
                 nlohmann::json entry;
-                entry["name"] = name;
-                entry["material_slot"] = prim.materialIndex ? static_cast<std::uint32_t>(*prim.materialIndex) : 0u;
+                entry.emplace("name", name);
+                entry.emplace("material_slot", prim.materialIndex ? static_cast<std::uint32_t>(*prim.materialIndex) : 0u);
                 submeshJsonEntries.push_back(std::move(entry));
             }
         }
@@ -359,12 +380,14 @@ namespace Wayfinder::Waypoint
         parsed.SubmeshTable.assign(parsed.Header.SubmeshCount, SubmeshTableEntry{});
         for (std::uint32_t i = 0; i < parsed.Header.SubmeshCount; ++i)
         {
-            parsed.SubmeshTable[i].VertexFormat = parsed.Submeshes[i].VertexFormat;
-            parsed.SubmeshTable[i].IndexFormat = parsed.Submeshes[i].IndexFormat;
-            parsed.SubmeshTable[i].VertexCount = parsed.Submeshes[i].VertexCount;
-            parsed.SubmeshTable[i].IndexCount = parsed.Submeshes[i].IndexCount;
-            parsed.SubmeshTable[i].Bounds = parsed.Submeshes[i].Bounds;
-            parsed.SubmeshTable[i].MaterialSlot = parsed.Submeshes[i].MaterialSlot;
+            SubmeshTableEntry& tableEntry = parsed.SubmeshTable.at(i);
+            const SubmeshCpuData& submesh = parsed.Submeshes.at(i);
+            tableEntry.VertexFormat = submesh.VertexFormat;
+            tableEntry.IndexFormat = submesh.IndexFormat;
+            tableEntry.VertexCount = submesh.VertexCount;
+            tableEntry.IndexCount = submesh.IndexCount;
+            tableEntry.Bounds = submesh.Bounds;
+            tableEntry.MaterialSlot = submesh.MaterialSlot;
         }
 
         std::vector<std::byte> binary;
@@ -374,7 +397,7 @@ namespace Wayfinder::Waypoint
             return MakeError(std::move(writeErr));
         }
 
-        const std::string stem = std::string{nameStem.empty() ? gltfPath.stem().string() : std::string{nameStem}};
+        const std::string stem = std::string{request.NameStem.empty() ? gltfPath.stem().string() : std::string{request.NameStem}};
         const std::filesystem::path wfmeshName = stem + ".wfmesh";
         const std::filesystem::path jsonName = stem + ".json";
         const std::filesystem::path wfmeshPath = outputDir / wfmeshName;
@@ -391,17 +414,17 @@ namespace Wayfinder::Waypoint
         const AssetId newId = AssetId::Generate();
 
         nlohmann::json json;
-        json["asset_id"] = newId.ToString();
-        json["asset_type"] = "mesh";
-        json["name"] = stem;
-        json["source"] = wfmeshName.generic_string();
+        json.emplace("asset_id", newId.ToString());
+        json.emplace("asset_type", "mesh");
+        json.emplace("name", stem);
+        json.emplace("source", wfmeshName.generic_string());
 
         nlohmann::json submeshesJson = nlohmann::json::array();
         for (const auto& entry : submeshJsonEntries)
         {
             submeshesJson.push_back(entry);
         }
-        json["submeshes"] = std::move(submeshesJson);
+        json.emplace("submeshes", std::move(submeshesJson));
 
         const std::filesystem::path jsonPath = outputDir / jsonName;
         {

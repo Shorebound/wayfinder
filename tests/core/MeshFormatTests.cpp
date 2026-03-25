@@ -41,12 +41,12 @@ namespace Wayfinder::Tests
         CHECK(err.empty());
 
         ParsedMeshFile dst;
-        std::span<const std::byte> span(bytes.data(), bytes.size());
+        const std::span<const std::byte> span(bytes.data(), bytes.size());
         REQUIRE(ParseMeshFile(span, dst, err));
         CHECK(err.empty());
         REQUIRE(dst.Submeshes.size() == 1);
-        CHECK(dst.Submeshes[0].VertexBytes == src.Submeshes[0].VertexBytes);
-        CHECK(dst.Submeshes[0].IndexBytes == src.Submeshes[0].IndexBytes);
+        CHECK(dst.Submeshes.at(0).VertexBytes == src.Submeshes.at(0).VertexBytes);
+        CHECK(dst.Submeshes.at(0).IndexBytes == src.Submeshes.at(0).IndexBytes);
     }
 
     TEST_CASE("ValidateMeshBinaryLayout rejects truncated file")
