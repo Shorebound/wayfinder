@@ -1,0 +1,8 @@
+{
+  "asset_id": "f1a2b3c4-d5e6-4789-a012-bcdef0110004",
+  "asset_type": "texture",
+  "name": "ImportedWoodenCrate1",
+  "source": "wooden_crate_1.png",
+  "filter": "nearest",
+  "address_mode": "repeat"
+}

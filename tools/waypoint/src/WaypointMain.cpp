@@ -11,6 +11,8 @@
 #include "scene/Scene.h"
 #include "scene/SceneWorldBootstrap.h"
 
+#include "MeshImporter.h"
+
 #include "ecs/Flecs.h"
 #include <filesystem>
 #include <iostream>
@@ -23,6 +25,7 @@ namespace
     {
         std::cout << "Usage:\n";
         std::cout << "  waypoint validate-assets <asset-root>\n";
+        std::cout << "  waypoint import-mesh <gltf-path> <output-dir> [--name <stem>]\n";
         std::cout << "  waypoint validate <scene-path>\n";
         std::cout << "  waypoint roundtrip-save <scene-path> <output-path>\n";
         std::cout << "  waypoint --project [<path>]  validate-assets\n";
@@ -50,17 +53,17 @@ namespace
         std::optional<Wayfinder::Plugins::LoadedPlugin> GamePlugin;
         std::unique_ptr<Wayfinder::Plugins::PluginRegistry> PluginReg;
         /// Owned config; \ref PluginRegistry stores a reference — must outlive \ref PluginReg.
-        Wayfinder::EngineConfig m_engineConfig;
+        Wayfinder::EngineConfig EngineConfig;
 
         explicit WaypointContext(const Wayfinder::ProjectDescriptor* project = nullptr, const std::filesystem::path& toolDir = {})
         {
             if (project)
             {
-                m_engineConfig = Wayfinder::EngineConfig::LoadFromFile(project->ResolveEngineConfigPath());
+                EngineConfig = Wayfinder::EngineConfig::LoadFromFile(project->ResolveEngineConfigPath());
             }
             else
             {
-                m_engineConfig = Wayfinder::EngineConfig::LoadDefaults();
+                EngineConfig = Wayfinder::EngineConfig::LoadDefaults();
             }
 
             Wayfinder::Scene::RegisterCoreComponents(World);
@@ -81,7 +84,7 @@ namespace
                 if (loadResult && loadResult->Instance)
                 {
                     GamePlugin = std::move(*loadResult);
-                    PluginReg = std::make_unique<Wayfinder::Plugins::PluginRegistry>(*project, m_engineConfig);
+                    PluginReg = std::make_unique<Wayfinder::Plugins::PluginRegistry>(*project, EngineConfig);
                     GamePlugin->Instance->Build(*PluginReg);
                     Registry.AddGameEntries(*PluginReg);
                 }
@@ -116,6 +119,17 @@ namespace
         const auto result = scene.LoadFromFile(scenePath.string());
         scene.Shutdown();
         return result ? 0 : 1;
+    }
+
+    int RunImportMesh(const Wayfinder::Waypoint::MeshImportRequest& request)
+    {
+        if (const auto result = Wayfinder::Waypoint::ImportMesh(request); !result)
+        {
+            std::cerr << result.error().GetMessage() << '\n';
+            return 1;
+        }
+
+        return 0;
     }
 
     int RunRoundtripSave(const std::filesystem::path& scenePath, const std::filesystem::path& outputPath, const Wayfinder::ProjectDescriptor* project = nullptr, const std::filesystem::path& toolDir = {})
@@ -159,7 +173,8 @@ int main(int argc, char** argv)
         std::filesystem::path startPath = std::filesystem::current_path();
 
         // If the next arg exists and isn't a known command, treat it as a path
-        if (argIndex < argc && argv[argIndex][0] != '-' && std::string(argv[argIndex]) != "validate" && std::string(argv[argIndex]) != "validate-assets" && std::string(argv[argIndex]) != "roundtrip-save")
+        if (argIndex < argc && argv[argIndex][0] != '-' && std::string(argv[argIndex]) != "validate" && std::string(argv[argIndex]) != "validate-assets" && std::string(argv[argIndex]) != "import-mesh" &&
+            std::string(argv[argIndex]) != "roundtrip-save")
         {
             startPath = std::filesystem::path(argv[argIndex]);
             ++argIndex;
@@ -242,6 +257,42 @@ int main(int argc, char** argv)
         }
 
         exitCode = RunValidateAssets(assetRoot);
+    }
+    else if (command == "import-mesh")
+    {
+        if (argIndex + 1 >= argc)
+        {
+            PrintUsage();
+            Wayfinder::Log::Shutdown();
+            return 1;
+        }
+
+        const std::filesystem::path gltfPath = std::filesystem::path(argv[argIndex]);
+        const std::filesystem::path outputDir = std::filesystem::path(argv[argIndex + 1]);
+        argIndex += 2;
+
+        std::string nameStem;
+        if (argIndex < argc && std::string(argv[argIndex]) == "--name")
+        {
+            if (argIndex + 1 >= argc)
+            {
+                PrintUsage();
+                Wayfinder::Log::Shutdown();
+                return 1;
+            }
+            nameStem = argv[argIndex + 1];
+            argIndex += 2;
+        }
+
+        if (argIndex < argc)
+        {
+            std::cerr << "Unknown trailing argument: " << argv[argIndex] << "\n";
+            PrintUsage();
+            Wayfinder::Log::Shutdown();
+            return 1;
+        }
+
+        exitCode = RunImportMesh({.SourcePath = gltfPath, .OutputDirectory = outputDir, .NameStem = nameStem});
     }
     else if (command == "roundtrip-save")
     {

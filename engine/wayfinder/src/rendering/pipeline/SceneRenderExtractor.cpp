@@ -2,7 +2,9 @@
 #include "rendering/graph/SortKey.h"
 #include "rendering/materials/PostProcessVolume.h"
 
+#include "assets/AssetService.h"
 #include "core/Log.h"
+#include "maths/Bounds.h"
 #include "maths/Maths.h"
 #include "scene/Components.h"
 #include "scene/Scene.h"
@@ -20,7 +22,7 @@ namespace Wayfinder
         constexpr uint64_t K_BUILT_IN_BOX_MESH_KEY = 1;
         constexpr uint64_t K_BUILT_IN_SURFACE_MATERIAL_KEY = 1;
 
-        uint64_t MakeStableKey(const Wayfinder::AssetId& assetId)
+        uint64_t MakeStableKey(const Wayfinder::AssetId& assetId, uint32_t submeshIndex = 0)
         {
             const std::array<std::uint8_t, 16>& bytes = assetId.Value.GetBytes();
             uint64_t result = 0;
@@ -28,6 +30,12 @@ namespace Wayfinder
             for (size_t index = 0; index < 8; ++index, ++iterator)
             {
                 result = (result << 8) | static_cast<uint64_t>(*iterator);
+            }
+
+            /// Mix submesh index into the key to guarantee distinct entries per submesh.
+            if (submeshIndex > 0)
+            {
+                result ^= static_cast<uint64_t>(submeshIndex) * 2654435761ull;
             }
 
             return result;
@@ -105,7 +113,7 @@ namespace Wayfinder
             }
         }
 
-        scene.GetWorld().each([&frame, &cameraView](flecs::entity entityHandle)
+        scene.GetWorld().each([&frame, &cameraView, &scene](flecs::entity entityHandle)
         {
             if (!entityHandle.has<TransformComponent>() || !entityHandle.has<MeshComponent>() || !entityHandle.has<RenderableComponent>())
             {
@@ -116,16 +124,6 @@ namespace Wayfinder
             const auto& mesh = entityHandle.get<MeshComponent>();
             const auto& renderable = entityHandle.get<RenderableComponent>();
 
-            RenderMeshSubmission submission;
-            submission.Mesh.Origin = RenderResourceOrigin::BuiltIn;
-            submission.Mesh.StableKey = K_BUILT_IN_BOX_MESH_KEY;
-            submission.Geometry.Type = RenderGeometryType::Box;
-            submission.Geometry.Dimensions = mesh.Dimensions;
-            submission.Material.Ref.Origin = RenderResourceOrigin::BuiltIn;
-            submission.Material.Ref.StableKey = K_BUILT_IN_SURFACE_MATERIAL_KEY;
-            submission.Material.Domain = RenderMaterialDomain::Surface;
-            submission.Material.Parameters.SetColour("base_colour", LinearColour::White());
-
             Matrix4 localToWorld = transform.GetLocalMatrix();
 
             if (entityHandle.has<WorldTransformComponent>())
@@ -134,53 +132,130 @@ namespace Wayfinder
                 localToWorld = worldTransform.LocalToWorld;
             }
 
+            // Compute camera-space Z for depth sorting (shared by all submesh submissions)
+            const Float3 worldPosition = Maths::TransformPoint(localToWorld, {0.0f, 0.0f, 0.0f});
+            const Float3 cameraSpacePosition = Maths::TransformPoint(cameraView, worldPosition);
+            const float cameraSpaceZ = cameraSpacePosition.z; // NOLINT(cppcoreguidelines-pro-type-union-access)
+
+            // Resolve entity-level material (fallback for all submeshes)
+            RenderMaterialBinding entityMaterial{};
+            entityMaterial.Ref.Origin = RenderResourceOrigin::BuiltIn;
+            entityMaterial.Ref.StableKey = K_BUILT_IN_SURFACE_MATERIAL_KEY;
+            entityMaterial.Domain = RenderMaterialDomain::Surface;
+            entityMaterial.Parameters.SetColour("base_colour", LinearColour::White());
+
             if (entityHandle.has<MaterialComponent>())
             {
                 const auto& material = entityHandle.get<MaterialComponent>();
                 if (material.MaterialAssetId)
                 {
-                    submission.Material.Ref.Origin = RenderResourceOrigin::Asset;
-                    submission.Material.Ref.AssetId = material.MaterialAssetId;
-                    submission.Material.Ref.StableKey = MakeStableKey(*material.MaterialAssetId);
+                    entityMaterial.Ref.Origin = RenderResourceOrigin::Asset;
+                    entityMaterial.Ref.AssetId = material.MaterialAssetId;
+                    entityMaterial.Ref.StableKey = MakeStableKey(*material.MaterialAssetId);
                 }
 
                 if (material.HasBaseColourOverride || !material.MaterialAssetId)
                 {
-                    submission.Material.HasOverrides = true;
-                    submission.Material.Overrides.SetColour("base_colour", LinearColour::FromColour(material.BaseColour));
+                    entityMaterial.HasOverrides = true;
+                    entityMaterial.Overrides.SetColour("base_colour", LinearColour::FromColour(material.BaseColour));
                 }
             }
 
+            // Resolve render-state overrides
+            RenderStateOverrides stateOverrides{};
             if (entityHandle.has<RenderOverrideComponent>())
             {
                 const auto& renderOverride = entityHandle.get<RenderOverrideComponent>();
                 if (renderOverride.Wireframe.has_value())
                 {
-                    submission.Material.StateOverrides.FillMode = *renderOverride.Wireframe ? RenderFillMode::SolidAndWireframe : RenderFillMode::Solid;
+                    stateOverrides.FillMode = *renderOverride.Wireframe ? RenderFillMode::SolidAndWireframe : RenderFillMode::Solid;
                 }
             }
 
-            submission.Visible = renderable.Visible;
-            submission.Layer = renderable.Layer;
-            submission.SortPriority = renderable.SortPriority;
-
-            submission.LocalToWorld = localToWorld;
-
-            // Compute camera-space Z for depth sorting
-            const Float3 worldPosition = Maths::TransformPoint(localToWorld, {0.0f, 0.0f, 0.0f});
-            const Float3 cameraSpacePosition = Maths::TransformPoint(cameraView, worldPosition);
-            const float cameraSpaceZ = cameraSpacePosition.z; // NOLINT(cppcoreguidelines-pro-type-union-access)
-
-            submission.SortKey = SortKeyBuilder::Build(MapLayer(submission.Layer), MaterialIdBits(submission.Material.Ref.AssetId), cameraSpaceZ, static_cast<uint16_t>(submission.SortPriority));
-
-            RenderPass* owningPass = frame.FindScenePassForSubmission(submission, 0);
-            if (!owningPass)
+            /// Emit a single submission with the given mesh ref, material, and world-space bounds.
+            auto emitSubmission = [&](const RenderMeshRef& meshRef, const RenderMaterialBinding& material, const AxisAlignedBounds& worldBounds)
             {
-                WAYFINDER_WARNING(LogRenderer, "SceneRenderExtractor skipped mesh submission because no scene pass matched layer '{0}' in frame '{1}'.", submission.Layer, frame.SceneName);
-                return;
-            }
+                RenderMeshSubmission submission;
+                submission.Mesh = meshRef;
+                submission.Geometry.Type = RenderGeometryType::Box;
+                submission.Geometry.Dimensions = mesh.Dimensions;
+                submission.Material = material;
+                submission.Material.StateOverrides = stateOverrides;
+                submission.Visible = renderable.Visible;
+                submission.Layer = renderable.Layer;
+                submission.SortPriority = renderable.SortPriority;
+                submission.LocalToWorld = localToWorld;
+                submission.WorldBounds = worldBounds;
+                submission.WorldSphere = ComputeBoundingSphere(worldBounds);
+                submission.SortKey = SortKeyBuilder::Build(MapLayer(submission.Layer), MaterialIdBits(submission.Material.Ref.AssetId), cameraSpaceZ, static_cast<uint16_t>(submission.SortPriority));
 
-            owningPass->Meshes.push_back(std::move(submission));
+                RenderPass* owningPass = frame.FindScenePassForSubmission(submission, 0);
+                if (!owningPass)
+                {
+                    WAYFINDER_WARNING(LogRenderer, "SceneRenderExtractor skipped mesh submission because no scene pass matched layer '{0}' in frame '{1}'.", submission.Layer, frame.SceneName);
+                    return;
+                }
+
+                owningPass->Meshes.push_back(std::move(submission));
+            };
+
+            if (mesh.MeshAssetId)
+            {
+                // Asset mesh — load metadata once, emit one submission per submesh
+                const MeshAsset* meshAsset = nullptr;
+                const auto& assetService = scene.GetAssetService();
+                if (assetService)
+                {
+                    std::string error;
+                    meshAsset = assetService->LoadAsset<MeshAsset>(*mesh.MeshAssetId, error);
+                }
+
+                const uint32_t submeshCount = meshAsset ? static_cast<uint32_t>(meshAsset->Submeshes.size()) : 1u;
+
+                for (uint32_t submeshIdx = 0; submeshIdx < submeshCount; ++submeshIdx)
+                {
+                    RenderMeshRef meshRef;
+                    meshRef.Origin = RenderResourceOrigin::Asset;
+                    meshRef.AssetId = mesh.MeshAssetId;
+                    meshRef.StableKey = MakeStableKey(*mesh.MeshAssetId, submeshIdx);
+                    meshRef.SubmeshIndex = submeshIdx;
+
+                    // Resolve per-submesh material: slot binding → entity material → built-in
+                    RenderMaterialBinding submeshMaterial = entityMaterial;
+
+                    uint32_t materialSlot = submeshIdx;
+                    AxisAlignedBounds localBounds{};
+                    if (meshAsset && submeshIdx < meshAsset->Submeshes.size())
+                    {
+                        materialSlot = meshAsset->Submeshes.at(submeshIdx).MaterialSlot;
+                        localBounds = meshAsset->Submeshes.at(submeshIdx).Bounds;
+                    }
+
+                    if (const auto slotIt = mesh.MaterialSlotBindings.find(materialSlot); slotIt != mesh.MaterialSlotBindings.end())
+                    {
+                        submeshMaterial.Ref.Origin = RenderResourceOrigin::Asset;
+                        submeshMaterial.Ref.AssetId = slotIt->second;
+                        submeshMaterial.Ref.StableKey = MakeStableKey(slotIt->second);
+                        submeshMaterial.HasOverrides = false;
+                    }
+
+                    const AxisAlignedBounds worldBounds = TransformBounds(localBounds, localToWorld);
+                    emitSubmission(meshRef, submeshMaterial, worldBounds);
+                }
+            }
+            else
+            {
+                // Built-in primitive — single submission with bounds derived from dimensions
+                RenderMeshRef meshRef;
+                meshRef.Origin = RenderResourceOrigin::BuiltIn;
+                meshRef.StableKey = K_BUILT_IN_BOX_MESH_KEY;
+
+                const Float3 halfDim = mesh.Dimensions * 0.5f;
+                const AxisAlignedBounds localBounds{.Min = -halfDim, .Max = halfDim};
+                const AxisAlignedBounds worldBounds = TransformBounds(localBounds, localToWorld);
+
+                emitSubmission(meshRef, entityMaterial, worldBounds);
+            }
         });
 
         scene.GetWorld().each([&frame](flecs::entity entityHandle)

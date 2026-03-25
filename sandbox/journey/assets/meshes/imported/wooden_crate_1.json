@@ -1,0 +1,12 @@
+{
+    "asset_id": "fd278319-88d3-4883-be92-99feeee84f86",
+    "asset_type": "mesh",
+    "name": "wooden_crate_1",
+    "source": "wooden_crate_1.wfmesh",
+    "submeshes": [
+        {
+            "material_slot": 0,
+            "name": "wooden_crate_1_0"
+        }
+    ]
+}

@@ -11,6 +11,8 @@
 #include "RenderIntent.h"
 #include "core/Identifiers.h"
 #include "core/Types.h"
+#include "maths/Bounds.h"
+#include "maths/Frustum.h"
 #include "rendering/RenderTypes.h"
 #include "rendering/backend/GPUHandles.h"
 #include "rendering/materials/MaterialParameter.h"
@@ -70,6 +72,8 @@ namespace Wayfinder
         RenderResourceOrigin Origin = RenderResourceOrigin::BuiltIn;
         std::optional<AssetId> AssetId;
         uint64_t StableKey = 0;
+        /// Index of the submesh within the mesh asset. Only meaningful for asset meshes.
+        uint32_t SubmeshIndex = 0;
     };
 
     /**
@@ -145,6 +149,8 @@ namespace Wayfinder
         Matrix4 LocalToWorld = Matrix4(1.0f);
         RenderGeometry Geometry{};
         RenderMaterialBinding Material{};
+        AxisAlignedBounds WorldBounds{};
+        BoundingSphere WorldSphere{};
         bool Visible = true;
         RenderLayerId Layer = RenderLayers::Main;
         uint8_t SortPriority = 128;
@@ -191,6 +197,12 @@ namespace Wayfinder
         Colour ClearColour = Colour::White();
         bool IsPrimary = true;
         PostProcessStack PostProcess;
+
+        /// Pre-computed matrices and frustum. Populated by RenderPipeline::Prepare().
+        Matrix4 ViewMatrix = Matrix4(1.0f);
+        Matrix4 ProjectionMatrix = Matrix4(1.0f);
+        Frustum ViewFrustum{};
+        bool Prepared = false;
     };
 
     enum class RenderPassKind

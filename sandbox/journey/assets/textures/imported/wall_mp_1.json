@@ -1,0 +1,8 @@
+{
+  "asset_id": "f1a2b3c4-d5e6-4789-a012-bcdef0110003",
+  "asset_type": "texture",
+  "name": "ImportedModularWall",
+  "source": "wall_mp_1.png",
+  "filter": "nearest",
+  "address_mode": "repeat"
+}

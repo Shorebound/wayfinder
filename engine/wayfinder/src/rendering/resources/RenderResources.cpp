@@ -1,6 +1,7 @@
 #include "RenderResources.h"
 
 #include "rendering/materials/Material.h"
+#include "rendering/resources/MeshManager.h"
 #include "rendering/resources/TextureManager.h"
 
 #include <filesystem>
@@ -17,12 +18,19 @@ namespace Wayfinder
 
         m_assetService = assetService;
         m_materialsByKey.clear();
+        m_meshesByKey.clear();
     }
 
     void RenderResourceCache::SetTextureManager(TextureManager* textureManager)
     {
         m_textureManager = textureManager;
         m_materialsByKey.clear();
+    }
+
+    void RenderResourceCache::SetMeshManager(MeshManager* meshManager)
+    {
+        m_meshManager = meshManager;
+        m_meshesByKey.clear();
     }
 
     void RenderResourceCache::SetProgramRegistry(const ShaderProgramRegistry* programs)
@@ -70,6 +78,30 @@ namespace Wayfinder
         RenderMeshResource resource;
         resource.Ref = submission.Mesh;
         resource.Geometry = submission.Geometry;
+
+        if (submission.Mesh.Origin == RenderResourceOrigin::Asset && submission.Mesh.AssetId && m_meshManager && m_assetService)
+        {
+            auto result = m_meshManager->GetOrLoad(*submission.Mesh.AssetId, *m_assetService);
+            if (result)
+            {
+                const MeshAssetGPU* gpuAsset = *result;
+                if (submission.Mesh.SubmeshIndex < gpuAsset->Submeshes.size())
+                {
+                    resource.GpuMesh = &gpuAsset->Submeshes.at(submission.Mesh.SubmeshIndex);
+                }
+                else
+                {
+                    WAYFINDER_WARNING(LogRenderer, "RenderResourceCache: SubmeshIndex {} out of range (asset has {} submeshes)", submission.Mesh.SubmeshIndex, gpuAsset->Submeshes.size());
+                    resource.GpuMesh = &m_meshManager->GetFallbackMesh();
+                }
+            }
+            else
+            {
+                WAYFINDER_WARNING(LogRenderer, "RenderResourceCache: {}", result.error().GetMessage());
+                resource.GpuMesh = &m_meshManager->GetFallbackMesh();
+            }
+        }
+
         const auto [it, inserted] = m_meshesByKey.emplace(submission.Mesh.StableKey, resource);
         return it->second;
     }
