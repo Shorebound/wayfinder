@@ -48,9 +48,9 @@ namespace
         flecs::world World;
         Wayfinder::RuntimeComponentRegistry Registry;
         std::optional<Wayfinder::Plugins::LoadedPlugin> GamePlugin;
-        std::unique_ptr<Wayfinder::Plugins::PluginRegistry> PluginReg;
-        /// Owned config; \ref PluginRegistry stores a reference — must outlive \ref PluginReg.
+        /// Owned config; \ref PluginRegistry stores a reference — declared first so it outlives \ref PluginReg.
         Wayfinder::EngineConfig EngineConfig;
+        std::unique_ptr<Wayfinder::Plugins::PluginRegistry> PluginReg;
 
         explicit WaypointContext(const Wayfinder::ProjectDescriptor* project = nullptr, const std::filesystem::path& toolDir = {})
         {
