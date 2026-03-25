@@ -73,6 +73,11 @@ namespace Wayfinder::Physics
             return JPH::Quat::sEulerAngles(JPH::Vec3(rx, ry, rz));
         }
 
+        [[nodiscard]] JPH::BodyID ToJoltBodyId(PhysicsBodyId id)
+        {
+            return JPH::BodyID(id.Value);
+        }
+
         class BPLayerInterfaceImpl final : public JPH::BroadPhaseLayerInterface
         {
         public:
@@ -378,7 +383,7 @@ namespace Wayfinder::Physics
         }
 
         JPH::BodyInterface& bodyInterface = m_impl->PhysSystem->GetBodyInterface();
-        const JPH::BodyID joltId(bodyId.Value);
+        const JPH::BodyID joltId = ToJoltBodyId(bodyId);
         bodyInterface.RemoveBody(joltId);
         bodyInterface.DestroyBody(joltId);
     }
@@ -391,7 +396,7 @@ namespace Wayfinder::Physics
         }
 
         const JPH::BodyInterface& bodyInterface = m_impl->PhysSystem->GetBodyInterface();
-        const JPH::RVec3 pos = bodyInterface.GetPosition(JPH::BodyID(bodyId.Value));
+        const JPH::RVec3 pos = bodyInterface.GetPosition(ToJoltBodyId(bodyId));
         return {pos.GetX(), pos.GetY(), pos.GetZ()};
     }
 
@@ -403,7 +408,7 @@ namespace Wayfinder::Physics
         }
 
         const JPH::BodyInterface& bodyInterface = m_impl->PhysSystem->GetBodyInterface();
-        const JPH::Quat rot = bodyInterface.GetRotation(JPH::BodyID(bodyId.Value));
+        const JPH::Quat rot = bodyInterface.GetRotation(ToJoltBodyId(bodyId));
         return {rot.GetX(), rot.GetY(), rot.GetZ(), rot.GetW()};
     }
 
@@ -415,7 +420,7 @@ namespace Wayfinder::Physics
         }
 
         JPH::BodyInterface& bodyInterface = m_impl->PhysSystem->GetBodyInterface();
-        bodyInterface.SetPosition(JPH::BodyID(bodyId.Value), ToJoltRVec3(position), JPH::EActivation::Activate);
+        bodyInterface.SetPosition(ToJoltBodyId(bodyId), ToJoltRVec3(position), JPH::EActivation::Activate);
     }
 
 } // namespace Wayfinder::Physics
