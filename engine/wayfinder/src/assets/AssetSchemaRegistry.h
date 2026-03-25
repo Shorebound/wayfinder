@@ -29,12 +29,14 @@ namespace Wayfinder
 
     private:
         static const Entry* Find(std::string_view typeName);
-        static const std::array<Entry, 3>& GetEntries();
+        static const std::array<Entry, 4>& GetEntries();
 
         static bool ValidatePrefabDocument(const nlohmann::json& document, const std::filesystem::path& filePath, std::string& error);
 
         static bool ValidateMaterialDocument(const nlohmann::json& document, const std::filesystem::path& filePath, std::string& error);
 
         static bool ValidateTextureDocument(const nlohmann::json& document, const std::filesystem::path& filePath, std::string& error);
+
+        static bool ValidateMeshDocument(const nlohmann::json& document, const std::filesystem::path& filePath, std::string& error);
     };
 } // namespace Wayfinder

@@ -1,5 +1,6 @@
 #include "AssetSchemaRegistry.h"
 
+#include "MeshAsset.h"
 #include "TextureAsset.h"
 #include "rendering/materials/Material.h"
 #include "scene/ComponentRegistry.h"
@@ -54,12 +55,13 @@ namespace Wayfinder
         return nullptr;
     }
 
-    const std::array<AssetSchemaRegistry::Entry, 3>& AssetSchemaRegistry::GetEntries()
+    const std::array<AssetSchemaRegistry::Entry, 4>& AssetSchemaRegistry::GetEntries()
     {
-        static const std::array<Entry, 3> ENTRIES = {{
+        static const std::array<Entry, 4> ENTRIES = {{
             {.TypeName = "prefab", .BuiltinKind = AssetKind::Prefab, .ValidateFn = &ValidatePrefabDocument},
             {.TypeName = "material", .BuiltinKind = AssetKind::Material, .ValidateFn = &ValidateMaterialDocument},
             {.TypeName = "texture", .BuiltinKind = AssetKind::Texture, .ValidateFn = &ValidateTextureDocument},
+            {.TypeName = "mesh", .BuiltinKind = AssetKind::Mesh, .ValidateFn = &ValidateMeshDocument},
         }};
         return ENTRIES;
     }
@@ -118,6 +120,16 @@ namespace Wayfinder
     bool AssetSchemaRegistry::ValidateTextureDocument(const nlohmann::json& document, const std::filesystem::path& filePath, std::string& error)
     {
         return ValidateTextureAssetDocument(document, filePath, error);
+    }
+
+    bool AssetSchemaRegistry::ValidateMeshDocument(const nlohmann::json& document, const std::filesystem::path& filePath, std::string& error)
+    {
+        if (!ValidateMeshAssetDocument(document, filePath, error))
+        {
+            return false;
+        }
+
+        return ValidateMeshAssetBinary(document, filePath, error);
     }
 
 } // namespace Wayfinder

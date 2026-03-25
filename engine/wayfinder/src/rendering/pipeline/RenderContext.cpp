@@ -28,6 +28,11 @@ namespace Wayfinder
             WAYFINDER_WARNING(LogRenderer, "RenderContext: Failed to initialise TextureManager");
         }
 
+        if (!m_meshManager.Initialise(device))
+        {
+            WAYFINDER_WARNING(LogRenderer, "RenderContext: Failed to initialise MeshManager");
+        }
+
         // Nearest-point sampler for composition blit
         {
             SamplerCreateDesc samplerDesc;
@@ -50,6 +55,7 @@ namespace Wayfinder
         }
 
         m_transientPool.Shutdown();
+        m_meshManager.Shutdown();
         m_textureManager.Shutdown();
         m_transientAllocator.Shutdown();
         m_programRegistry.Shutdown();

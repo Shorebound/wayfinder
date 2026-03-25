@@ -130,6 +130,8 @@ namespace Wayfinder
             return "material";
         case AssetKind::Texture:
             return "texture";
+        case AssetKind::Mesh:
+            return "mesh";
         case AssetKind::Unknown:
             return "unknown";
         }

@@ -9,10 +9,12 @@
 #include "rendering/graph/RenderGraph.h"
 #include "rendering/materials/ShaderProgram.h"
 #include "rendering/mesh/Mesh.h"
+#include "rendering/resources/MeshManager.h"
 #include "rendering/resources/RenderResources.h"
 #include "rendering/resources/TransientBufferAllocator.h"
 
 #include "core/Log.h"
+#include "maths/Frustum.h"
 #include "maths/Maths.h"
 
 #include <algorithm>
@@ -124,7 +126,7 @@ namespace Wayfinder
             desc.FragmentShaderName = "textured_lit";
             desc.VertexResources = {.numUniformBuffers = 1};
             desc.FragmentResources = {.numUniformBuffers = 2, .numSamplers = 1}; // material + scene globals + diffuse sampler
-            desc.VertexLayout = VertexLayouts::PosNormalUV;
+            desc.VertexLayout = VertexLayouts::PosNormalUVTangent;
             desc.Cull = CullMode::Back;
             desc.DepthTest = true;
             desc.DepthWrite = true;
@@ -164,7 +166,7 @@ namespace Wayfinder
         m_context = nullptr;
     }
 
-    bool RenderPipeline::Prepare(RenderFrame& frame) const
+    bool RenderPipeline::Prepare(RenderFrame& frame, uint32_t swapchainWidth, uint32_t swapchainHeight) const
     {
         if (frame.Views.empty())
         {
@@ -176,6 +178,29 @@ namespace Wayfinder
         {
             WAYFINDER_WARNING(LogRenderer, "RenderPipeline: frame '{}' has no passes — skipped", frame.SceneName);
             return false;
+        }
+
+        // Pre-compute view/projection matrices and frustum for each RenderView.
+        const float aspect = (swapchainHeight > 0) ? static_cast<float>(swapchainWidth) / static_cast<float>(swapchainHeight) : 1.0f;
+
+        for (RenderView& view : frame.Views)
+        {
+            const auto& cam = view.CameraState;
+            view.ViewMatrix = Maths::LookAt(cam.Position, cam.Target, cam.Up);
+
+            if (cam.ProjectionType == 0)
+            {
+                view.ProjectionMatrix = Maths::PerspectiveRH_ZO(Maths::ToRadians(cam.FOV), aspect, cam.NearPlane, cam.FarPlane);
+            }
+            else
+            {
+                const float halfH = cam.FOV * 0.5f;
+                const float halfW = halfH * aspect;
+                view.ProjectionMatrix = Maths::OrthoRH_ZO(-halfW, halfW, -halfH, halfH, cam.NearPlane, cam.FarPlane);
+            }
+
+            view.ViewFrustum = Frustum::ExtractPlanes(view.ProjectionMatrix * view.ViewMatrix);
+            view.Prepared = true;
         }
 
         for (RenderPass& pass : frame.Passes)
@@ -192,9 +217,21 @@ namespace Wayfinder
                 continue;
             }
 
-            // Sort scene pass submissions by sort key (front-to-back for opaque)
             if (pass.Kind == RenderPassKind::Scene)
             {
+                const Frustum& frustum = frame.Views.at(pass.ViewIndex).ViewFrustum;
+
+                // Frustum cull: partition visible submissions to the front.
+                std::erase_if(pass.Meshes, [&frustum](const RenderMeshSubmission& submission)
+                {
+                    if (!submission.Visible)
+                    {
+                        return true;
+                    }
+                    return !frustum.TestBounds(submission.WorldSphere, submission.WorldBounds);
+                });
+
+                // Sort surviving submissions by sort key (front-to-back for opaque).
                 std::ranges::sort(pass.Meshes, [](const RenderMeshSubmission& a, const RenderMeshSubmission& b)
                 {
                     return a.SortKey < b.SortKey;
@@ -211,29 +248,18 @@ namespace Wayfinder
         const uint32_t swapW = params.SwapchainWidth;
         const uint32_t swapH = params.SwapchainHeight;
 
-        // ── Camera / Projection (from primary view) ──────────
+        // ── Camera / Projection (from primary pre-computed view) ──
         Colour clearColour = Colour::White();
         auto view = Matrix4(1.0f);
         auto projection = Matrix4(1.0f);
         bool hasCamera = false;
 
-        if (!preparedFrame.Views.empty() && swapW > 0 && swapH > 0)
+        if (!preparedFrame.Views.empty() && preparedFrame.Views.front().Prepared)
         {
-            clearColour = preparedFrame.Views.front().ClearColour;
-            const auto& camera = preparedFrame.Views.front().CameraState;
-            const float aspect = static_cast<float>(swapW) / static_cast<float>(swapH);
-
-            view = Maths::LookAt(camera.Position, camera.Target, camera.Up);
-            if (camera.ProjectionType == 0)
-            {
-                projection = Maths::PerspectiveRH_ZO(Maths::ToRadians(camera.FOV), aspect, 0.1f, 1000.0f);
-            }
-            else
-            {
-                const float halfH = camera.FOV * 0.5f;
-                const float halfW = halfH * aspect;
-                projection = Maths::OrthoRH_ZO(-halfW, halfW, -halfH, halfH, 0.1f, 1000.0f);
-            }
+            const auto& primaryView = preparedFrame.Views.front();
+            clearColour = primaryView.ClearColour;
+            view = primaryView.ViewMatrix;
+            projection = primaryView.ProjectionMatrix;
             hasCamera = true;
         }
 
@@ -287,36 +313,19 @@ namespace Wayfinder
                         continue;
                     }
 
-                    // Per-pass camera from the pass's own view
+                    // Read pre-computed matrices from the pass's view
                     Matrix4 passView = viewMat;
                     Matrix4 passProj = projMat;
 
-                    if (pass.ViewIndex < preparedFrame.Views.size())
+                    if (pass.ViewIndex < preparedFrame.Views.size() && preparedFrame.Views.at(pass.ViewIndex).Prepared)
                     {
                         const auto& pv = preparedFrame.Views.at(pass.ViewIndex);
-                        const auto& cam = pv.CameraState;
-                        const float aspect = (params.SwapchainHeight > 0) ? static_cast<float>(params.SwapchainWidth) / static_cast<float>(params.SwapchainHeight) : 1.0f;
-
-                        passView = Maths::LookAt(cam.Position, cam.Target, cam.Up);
-                        if (cam.ProjectionType == 0)
-                        {
-                            passProj = Maths::PerspectiveRH_ZO(Maths::ToRadians(cam.FOV), aspect, 0.1f, 1000.0f);
-                        }
-                        else
-                        {
-                            const float halfH = cam.FOV * 0.5f;
-                            const float halfW = halfH * aspect;
-                            passProj = Maths::OrthoRH_ZO(-halfW, halfW, -halfH, halfH, 0.1f, 1000.0f);
-                        }
+                        passView = pv.ViewMatrix;
+                        passProj = pv.ProjectionMatrix;
                     }
 
                     for (const auto& submission : pass.Meshes)
                     {
-                        if (!submission.Visible)
-                        {
-                            continue;
-                        }
-
                         const ShaderProgram* program = registry.FindOrDefault(submission.Material.ShaderName);
                         if (!program || !program->Pipeline)
                         {
@@ -362,23 +371,43 @@ namespace Wayfinder
                             }
                         };
 
+                        const RenderMeshResource* meshResource = nullptr;
+                        if (params.ResourceCache)
+                        {
+                            meshResource = &params.ResourceCache->ResolveMesh(submission);
+                        }
+
                         // Solid draw (for Solid and SolidAndWireframe modes)
                         if (fillMode == RenderFillMode::Solid || fillMode == RenderFillMode::SolidAndWireframe)
                         {
-                            // Look up the mesh for this program's vertex layout
-                            const auto meshIt = params.MeshesByStride.find(program->Desc.VertexLayout.stride);
-                            if (meshIt == params.MeshesByStride.end() || !meshIt->second)
+                            const Mesh* meshPtr = nullptr;
+                            if (submission.Mesh.Origin == RenderResourceOrigin::Asset)
+                            {
+                                meshPtr = meshResource ? meshResource->GpuMesh : nullptr;
+                            }
+                            else
+                            {
+                                const auto meshIt = params.MeshesByStride.find(program->Desc.VertexLayout.stride);
+                                if (meshIt != params.MeshesByStride.end())
+                                {
+                                    meshPtr = meshIt->second;
+                                }
+                            }
+
+                            if (!meshPtr || !meshPtr->IsValid())
                             {
                                 continue;
                             }
-                            const auto& mesh = *meshIt->second;
 
                             if (program != lastBoundProgram)
                             {
                                 program->Pipeline->Bind();
-                                mesh.Bind(device);
                                 lastBoundProgram = program;
                             }
+
+                            /// Per-draw mesh bind: several submissions can share the same shader program
+                            /// (e.g. textured_lit) but use different GPU vertex buffers (built-in vs asset mesh).
+                            meshPtr->Bind(device);
 
                             pushUniforms();
 
@@ -391,7 +420,7 @@ namespace Wayfinder
                                 }
                             }
 
-                            mesh.Draw(device);
+                            meshPtr->Draw(device);
                         }
 
                         // Wireframe draw (for Wireframe and SolidAndWireframe modes)
@@ -403,13 +432,24 @@ namespace Wayfinder
                                 const GPUPipelineHandle wireframePipeline = pipelineCache.GetOrCreate(*wireframeDesc);
                                 if (wireframePipeline.IsValid())
                                 {
-                                    // Select the mesh matching the program's vertex layout
-                                    const auto wireframeMeshIt = params.MeshesByStride.find(program->Desc.VertexLayout.stride);
-                                    if (wireframeMeshIt != params.MeshesByStride.end() && wireframeMeshIt->second)
+                                    const Mesh* wireMeshPtr = nullptr;
+                                    if (submission.Mesh.Origin == RenderResourceOrigin::Asset)
                                     {
-                                        auto& wireframeMesh = *wireframeMeshIt->second;
+                                        wireMeshPtr = meshResource ? meshResource->GpuMesh : nullptr;
+                                    }
+                                    else
+                                    {
+                                        const auto wireframeMeshIt = params.MeshesByStride.find(program->Desc.VertexLayout.stride);
+                                        if (wireframeMeshIt != params.MeshesByStride.end())
+                                        {
+                                            wireMeshPtr = wireframeMeshIt->second;
+                                        }
+                                    }
+
+                                    if (wireMeshPtr && wireMeshPtr->IsValid())
+                                    {
                                         device.BindPipeline(wireframePipeline);
-                                        wireframeMesh.Bind(device);
+                                        wireMeshPtr->Bind(device);
                                         lastBoundProgram = nullptr; // Force re-bind on next solid draw
 
                                         // Bind textures so textured wireframe shaders have valid samplers
@@ -422,7 +462,7 @@ namespace Wayfinder
                                         }
 
                                         pushUniforms();
-                                        wireframeMesh.Draw(device);
+                                        wireMeshPtr->Draw(device);
                                     }
                                 }
                             }

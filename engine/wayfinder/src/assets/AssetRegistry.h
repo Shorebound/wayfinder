@@ -17,6 +17,7 @@ namespace Wayfinder
         Prefab,
         Material,
         Texture,
+        Mesh,
     };
 
     struct WAYFINDER_API AssetRecord

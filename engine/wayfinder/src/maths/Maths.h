@@ -57,12 +57,16 @@ namespace Wayfinder::Maths
     // ── Vector operations ────────────────────────────────────
 
     WAYFINDER_API Float3 Normalize(const Float3& value);
+    WAYFINDER_API float Dot(const Float3& a, const Float3& b);
+    WAYFINDER_API Float3 Cross(const Float3& a, const Float3& b);
     WAYFINDER_API Float3 Add(const Float3& lhs, const Float3& rhs);
     WAYFINDER_API Float3 Scale(const Float3& value, float factor);
     WAYFINDER_API float Length(const Float3& value);
 
     WAYFINDER_API Float3 Abs(const Float3& value);
+    WAYFINDER_API float Min(float a, float b);
     WAYFINDER_API float Max(float a, float b);
+    WAYFINDER_API Float3 Min(const Float3& a, const Float3& b);
     WAYFINDER_API Float3 Max(const Float3& a, const Float3& b);
     WAYFINDER_API Matrix3 Transpose(const Matrix3& matrix);
 

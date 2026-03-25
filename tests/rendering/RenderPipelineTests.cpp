@@ -62,7 +62,7 @@ namespace Wayfinder::Tests
         const Wayfinder::RenderPipeline pipeline;
 
         // Should not crash — Prepare returns false for empty frames
-        pipeline.Prepare(frame);
+        pipeline.Prepare(frame, 1280, 720);
     }
 
     TEST_CASE("Extractor builds explicit passes and debug payload")

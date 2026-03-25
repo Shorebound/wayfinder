@@ -1,0 +1,12 @@
+{
+    "asset_id": "04703b61-2d27-4378-91f6-5d335ca19e65",
+    "asset_type": "mesh",
+    "name": "triangle_test",
+    "source": "triangle_test.wfmesh",
+    "submeshes": [
+        {
+            "material_slot": 0,
+            "name": "submesh_0"
+        }
+    ]
+}

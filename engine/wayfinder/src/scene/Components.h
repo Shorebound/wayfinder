@@ -2,6 +2,7 @@
 
 #include <optional>
 #include <string>
+#include <unordered_map>
 
 #include "core/Identifiers.h"
 #include "core/Types.h"
@@ -101,6 +102,14 @@ namespace Wayfinder
     {
         MeshPrimitive Primitive = MeshPrimitive::Cube;
         Float3 Dimensions = {1.0f, 1.0f, 1.0f};
+
+        /// When set, the entity renders this mesh asset instead of a built-in primitive.
+        std::optional<AssetId> MeshAssetId;
+
+        /// Per-entity material overrides by submesh material slot index.
+        /// Maps material slot → material asset ID.
+        /// Slots not present here fall back to the entity's MaterialComponent.
+        std::unordered_map<uint32_t, AssetId> MaterialSlotBindings;
 
         MeshComponent() = default;
         MeshComponent(const MeshComponent&) = default;

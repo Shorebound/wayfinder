@@ -8,6 +8,7 @@
 #include "scene/entity/Entity.h"
 
 #include <array>
+#include <charconv>
 #include <sstream>
 
 namespace Wayfinder
@@ -446,7 +447,36 @@ namespace Wayfinder
 
         bool ValidateMesh(const nlohmann::json& data, std::string& error)
         {
-            return ValidateOptionalEnumValue(data, "primitive", {"cube"}, error) && ValidateOptionalVector3(data, "dimensions", error);
+            if (!ValidateOptionalEnumValue(data, "primitive", {"cube"}, error) || !ValidateOptionalVector3(data, "dimensions", error))
+            {
+                return false;
+            }
+
+            if (data.contains("material_slots"))
+            {
+                if (!data.at("material_slots").is_object())
+                {
+                    error = "'material_slots' must be an object mapping slot indices to asset IDs";
+                    return false;
+                }
+                for (const auto& [key, value] : data.at("material_slots").items())
+                {
+                    if (!value.is_string())
+                    {
+                        error = "material_slots['" + key + "'] must be a string asset ID";
+                        return false;
+                    }
+                    uint32_t unused = 0;
+                    const auto [ptr, ec] = std::from_chars(key.data(), key.data() + key.size(), unused);
+                    if (ec != std::errc{} || ptr != key.data() + key.size())
+                    {
+                        error = "material_slots key '" + key + "' must be an unsigned integer";
+                        return false;
+                    }
+                }
+            }
+
+            return true;
         }
 
         bool ValidateCamera(const nlohmann::json& data, std::string& error)
@@ -634,6 +664,30 @@ namespace Wayfinder
             Wayfinder::MeshComponent mesh;
             mesh.Primitive = ReadPrimitive(data, "primitive", mesh.Primitive);
             mesh.Dimensions = ReadVector3(data, "dimensions", mesh.Dimensions);
+            mesh.MeshAssetId = ReadOptionalAssetId(data, "mesh_id");
+
+            if (data.contains("material_slots") && data.at("material_slots").is_object())
+            {
+                for (const auto& [slotKey, assetIdValue] : data.at("material_slots").items())
+                {
+                    if (!assetIdValue.is_string())
+                    {
+                        continue;
+                    }
+                    uint32_t slotIndex = 0;
+                    const auto [ptr, ec] = std::from_chars(slotKey.data(), slotKey.data() + slotKey.size(), slotIndex);
+                    if (ec != std::errc{} || ptr != slotKey.data() + slotKey.size())
+                    {
+                        continue;
+                    }
+                    auto parsed = Wayfinder::AssetId::Parse(assetIdValue.get<std::string>());
+                    if (parsed)
+                    {
+                        mesh.MaterialSlotBindings[slotIndex] = *parsed;
+                    }
+                }
+            }
+
             entity.AddComponent<Wayfinder::MeshComponent>(mesh);
         }
 
@@ -925,6 +979,19 @@ namespace Wayfinder
             nlohmann::json componentTable;
             componentTable["primitive"] = std::string{ToString(mesh.Primitive)};
             componentTable["dimensions"] = WriteVector3(mesh.Dimensions);
+            if (mesh.MeshAssetId)
+            {
+                componentTable["mesh_id"] = mesh.MeshAssetId->ToString();
+            }
+            if (!mesh.MaterialSlotBindings.empty())
+            {
+                nlohmann::json slotsJson = nlohmann::json::object();
+                for (const auto& [slot, assetId] : mesh.MaterialSlotBindings)
+                {
+                    slotsJson[std::to_string(slot)] = assetId.ToString();
+                }
+                componentTable["material_slots"] = std::move(slotsJson);
+            }
             componentTables["mesh"] = std::move(componentTable);
         }
 

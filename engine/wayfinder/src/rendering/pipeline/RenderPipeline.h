@@ -13,6 +13,8 @@ namespace Wayfinder
 {
     class GPUPipeline;
     class Mesh;
+    class AssetService;
+    class MeshManager;
     class RenderContext;
     class RenderDevice;
     class RenderFeature;
@@ -43,6 +45,9 @@ namespace Wayfinder
         /// the correct mesh for each shader program's declared vertex format.
         const std::unordered_map<uint32_t, Mesh*>& MeshesByStride;
 
+        /// Used when `RenderMeshRef::Origin` is `Asset` — resolves cached GPU meshes.
+        RenderResourceCache* ResourceCache = nullptr;
+
         GPUPipeline& DebugLinePipeline;
         std::span<const std::unique_ptr<RenderFeature>> Features;
     };
@@ -55,9 +60,10 @@ namespace Wayfinder
         void Initialise(RenderContext& context);
         void Shutdown();
 
-        /// Validates views/passes, sorts scene submissions by sort key.
+        /// Validates views/passes, pre-computes view matrices and frustums,
+        /// frustum-culls submissions, then sorts by sort key.
         /// Returns false if the frame is invalid and should be skipped.
-        bool Prepare(RenderFrame& frame) const;
+        bool Prepare(RenderFrame& frame, uint32_t swapchainWidth, uint32_t swapchainHeight) const;
 
         /// Builds the full render graph for the frame (MainScene, Debug,
         /// Feature passes, Composition).

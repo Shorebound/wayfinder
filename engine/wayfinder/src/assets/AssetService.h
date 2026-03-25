@@ -7,6 +7,7 @@
 
 #include "AssetCache.h"
 #include "AssetRegistry.h"
+#include "MeshAsset.h"
 #include "TextureAsset.h"
 #include "rendering/materials/Material.h"
 
@@ -56,6 +57,11 @@ namespace Wayfinder
          */
         void InvalidateTextureAsset(const AssetId& assetId);
 
+        /**
+         * @brief Release CPU-side geometry buffers for a cached mesh asset after GPU upload.
+         */
+        void ReleaseMeshGeometryData(const AssetId& assetId);
+
         /** @brief Return the active asset registry. */
         const AssetRegistry& GetRegistry() const
         {
@@ -73,6 +79,7 @@ namespace Wayfinder
 
         AssetCache<MaterialAsset> m_materialCache;
         AssetCache<TextureAsset> m_textureCache;
+        AssetCache<MeshAsset> m_meshCache;
     };
 
     // ── Template implementation ──────────────────────────────
@@ -96,9 +103,27 @@ namespace Wayfinder
     }
 
     template<>
+    inline const MeshAsset* AssetService::LoadAsset<MeshAsset>(const AssetId& assetId, std::string& error)
+    {
+        if (!m_hasAssetRegistry)
+        {
+            error = "Asset registry is not initialised for the current asset root.";
+            return nullptr;
+        }
+
+        return m_meshCache.LoadOrGet(assetId, m_assetRegistry, error);
+    }
+
+    template<>
     inline TextureAsset* AssetService::GetMutableAsset<TextureAsset>(const AssetId& assetId)
     {
         return m_textureCache.GetMutable(assetId);
+    }
+
+    template<>
+    inline MeshAsset* AssetService::GetMutableAsset<MeshAsset>(const AssetId& assetId)
+    {
+        return m_meshCache.GetMutable(assetId);
     }
 
 } // namespace Wayfinder

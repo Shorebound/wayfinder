@@ -58,6 +58,7 @@ namespace Wayfinder
 
         // Wire texture manager and program registry into resource cache
         m_renderResources->SetTextureManager(&m_context->GetTextures());
+        m_renderResources->SetMeshManager(&m_context->GetMeshes());
         m_renderResources->SetProgramRegistry(&m_context->GetPrograms());
 
         // ── Debug line pipeline (PosColour, uses debug_unlit shaders) ──
@@ -180,18 +181,18 @@ namespace Wayfinder
             m_renderResources->PrepareFrame(preparedFrame);
         }
 
-        // Validate and sort passes via RenderPipeline
-        if (!m_renderPipeline->Prepare(preparedFrame))
-        {
-            m_device->EndFrame();
-            return;
-        }
-
         // ── Query swapchain dimensions for transient targets ──
         const Extent2D swapchainDimensions = m_device->GetSwapchainDimensions();
         const uint32_t swapW = swapchainDimensions.width;
         const uint32_t swapH = swapchainDimensions.height;
         if (swapW == 0 || swapH == 0)
+        {
+            m_device->EndFrame();
+            return;
+        }
+
+        // Pre-compute view matrices, frustum cull, and sort passes
+        if (!m_renderPipeline->Prepare(preparedFrame, swapW, swapH))
         {
             m_device->EndFrame();
             return;
@@ -203,7 +204,7 @@ namespace Wayfinder
         const std::unordered_map<uint32_t, Mesh*> meshesByStride =
         {
             {VertexLayouts::PosNormalColour.stride, &m_primitiveMesh},
-            {VertexLayouts::PosNormalUV.stride, &m_texturedPrimitiveMesh},
+            {VertexLayouts::PosNormalUVTangent.stride, &m_texturedPrimitiveMesh},
         };
 
         const RenderPipelineFrameParams params{
@@ -211,6 +212,7 @@ namespace Wayfinder
             .SwapchainWidth = swapW,
             .SwapchainHeight = swapH,
             .MeshesByStride = meshesByStride,
+            .ResourceCache = m_renderResources.get(),
             .DebugLinePipeline = m_debugLinePipeline,
             .Features = m_features,
         };

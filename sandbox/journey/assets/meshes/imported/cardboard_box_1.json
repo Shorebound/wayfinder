@@ -1,0 +1,12 @@
+{
+    "asset_id": "8b9b97ad-c22b-49e4-b793-56c43f9b9672",
+    "asset_type": "mesh",
+    "name": "cardboard_box_1",
+    "source": "cardboard_box_1.wfmesh",
+    "submeshes": [
+        {
+            "material_slot": 0,
+            "name": "cardboard_box_1_0"
+        }
+    ]
+}

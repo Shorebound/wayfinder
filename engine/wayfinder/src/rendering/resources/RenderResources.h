@@ -13,11 +13,16 @@
 
 namespace Wayfinder
 {
+    class MeshManager;
     class TextureManager;
+    class Mesh;
+
     struct RenderMeshResource
     {
         RenderMeshRef Ref{};
         RenderGeometry Geometry{};
+        /// Populated for asset meshes when a mesh manager is wired into the cache.
+        const Mesh* GpuMesh = nullptr;
     };
 
     struct RenderMaterialResource
@@ -37,6 +42,9 @@ namespace Wayfinder
          *         TextureManager outlives this cache. */
         void SetTextureManager(TextureManager* textureManager);
 
+        /** @brief Non-owning pointer — must outlive this cache. */
+        void SetMeshManager(MeshManager* meshManager);
+
         /** @brief Set the shader program registry used for material resolution.
          *  @param programs Non-owning pointer; the caller must ensure the
          *         ShaderProgramRegistry outlives this cache. */
@@ -52,6 +60,7 @@ namespace Wayfinder
 
         std::shared_ptr<AssetService> m_assetService;
         TextureManager* m_textureManager = nullptr;
+        MeshManager* m_meshManager = nullptr;
         const ShaderProgramRegistry* m_programs = nullptr;
         std::unordered_map<uint64_t, RenderMeshResource> m_meshesByKey;
         std::unordered_map<uint64_t, RenderMaterialResource> m_materialsByKey;

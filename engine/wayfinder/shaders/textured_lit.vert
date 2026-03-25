@@ -1,5 +1,5 @@
 // Wayfinder Textured Lit Vertex Shader
-// Uses VertexPosNormalUV format (Position, Normal, UV).
+// Uses VertexPosNormalUVTangent (Position, Normal, UV, Tangent — tangent unused in fragment for now).
 // Compiled with DXC: dxc -T vs_6_0 -E VSMain -spirv textured_lit.vert -Fo textured_lit.vert.spv
 // SDL_GPU SPIR-V convention: vertex UBO at set 1
 
@@ -15,6 +15,7 @@ struct VSInput
     float3 Position : TEXCOORD0;
     float3 Normal   : TEXCOORD1;
     float2 UV       : TEXCOORD2;
+    float4 Tangent  : TEXCOORD3;
 };
 
 struct VSOutput

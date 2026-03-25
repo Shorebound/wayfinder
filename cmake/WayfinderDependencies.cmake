@@ -171,6 +171,45 @@ if(imgui_ADDED)
     target_link_libraries(imgui PUBLIC SDL3::SDL3)
 endif()
 
+# --- Tool-only dependencies ---
+if(WAYFINDER_BUILD_TOOLS)
+    # --- fastgltf (glTF import — Waypoint tool only) ---
+    CPMAddPackage(
+        NAME fastgltf
+        GITHUB_REPOSITORY spnda/fastgltf
+        GIT_TAG v0.8.0
+        SYSTEM TRUE
+        EXCLUDE_FROM_ALL YES
+        OPTIONS
+            "FASTGLTF_ENABLE_DEPRECATED OFF"
+    )
+
+    # --- meshoptimizer (mesh post-processing — Waypoint tool only) ---
+    CPMAddPackage(
+        NAME meshoptimizer
+        GITHUB_REPOSITORY zeux/meshoptimizer
+        GIT_TAG v0.22
+        SYSTEM TRUE
+        EXCLUDE_FROM_ALL YES
+    )
+
+    # --- MikkTSpace (tangent generation — Waypoint tool only) ---
+    CPMAddPackage(
+        NAME MikkTSpace
+        GITHUB_REPOSITORY mmikk/MikkTSpace
+        GIT_TAG master
+        DOWNLOAD_ONLY YES
+        SYSTEM TRUE
+        EXCLUDE_FROM_ALL YES
+    )
+    if(MikkTSpace_ADDED)
+        add_library(mikktspace STATIC "${MikkTSpace_SOURCE_DIR}/mikktspace.c")
+        target_include_directories(mikktspace SYSTEM PUBLIC "${MikkTSpace_SOURCE_DIR}")
+        # MikkTSpace is C code — suppress C++ compiler warnings
+        set_target_properties(mikktspace PROPERTIES LINKER_LANGUAGE C)
+    endif()
+endif()
+
 # --- doctest (test framework, header-only) ---
 if(WAYFINDER_BUILD_TESTS)
     CPMAddPackage(
