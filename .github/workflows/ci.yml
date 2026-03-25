@@ -159,7 +159,7 @@ jobs:
             fi
           fi
 
-          files=$(git diff --name-only "$base"..HEAD -- '*.cpp' '*.h' \
+          files=$(git diff --name-only --diff-filter=ACMR "$base"..HEAD -- '*.cpp' '*.h' \
             | grep -E '^(engine|sandbox|tests|tools)/' \
             | grep -v 'thirdparty/' \
             || true)
