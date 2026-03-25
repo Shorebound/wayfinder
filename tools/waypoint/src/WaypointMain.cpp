@@ -50,17 +50,17 @@ namespace
         std::optional<Wayfinder::Plugins::LoadedPlugin> GamePlugin;
         std::unique_ptr<Wayfinder::Plugins::PluginRegistry> PluginReg;
         /// Owned config; \ref PluginRegistry stores a reference — must outlive \ref PluginReg.
-        Wayfinder::EngineConfig m_engineConfig;
+        Wayfinder::EngineConfig EngineConfig;
 
         explicit WaypointContext(const Wayfinder::ProjectDescriptor* project = nullptr, const std::filesystem::path& toolDir = {})
         {
             if (project)
             {
-                m_engineConfig = Wayfinder::EngineConfig::LoadFromFile(project->ResolveEngineConfigPath());
+                EngineConfig = Wayfinder::EngineConfig::LoadFromFile(project->ResolveEngineConfigPath());
             }
             else
             {
-                m_engineConfig = Wayfinder::EngineConfig::LoadDefaults();
+                EngineConfig = Wayfinder::EngineConfig::LoadDefaults();
             }
 
             Wayfinder::Scene::RegisterCoreComponents(World);
@@ -81,7 +81,7 @@ namespace
                 if (loadResult && loadResult->Instance)
                 {
                     GamePlugin = std::move(*loadResult);
-                    PluginReg = std::make_unique<Wayfinder::Plugins::PluginRegistry>(*project, m_engineConfig);
+                    PluginReg = std::make_unique<Wayfinder::Plugins::PluginRegistry>(*project, EngineConfig);
                     GamePlugin->Instance->Build(*PluginReg);
                     Registry.AddGameEntries(*PluginReg);
                 }

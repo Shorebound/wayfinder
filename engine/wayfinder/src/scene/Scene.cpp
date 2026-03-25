@@ -10,7 +10,6 @@
 #include <filesystem>
 #include <format>
 #include <unordered_map>
-#include <unordered_set>
 #include <utility>
 #include <vector>
 
@@ -29,58 +28,38 @@ namespace Wayfinder
 
         /// Flecs debug-build locks pair **second** ids while queries reference them; \c ecs_delete on the
         /// scene tag can assert. We never delete tag entities; we \c ecs_clear and recycle them per
-        /// \c flecs::world. We do **not** call \c world.progress() on shutdown — that would advance the
-        /// whole pipeline one frame (systems, timers, etc.) for unrelated work.
-        std::unordered_map<flecs::world_t*, std::vector<flecs::entity_t>> s_sceneTagFreeListByWorld;
-        std::unordered_map<flecs::world_t*, std::vector<flecs::entity_t>> s_deferredSceneTagListByWorld;
-        std::unordered_set<flecs::world_t*> s_sceneTagPoolFiniRegistered;
-
-        void OnWorldFiniSceneTagPool(ecs_world_t* world, void* ctx)
+        /// \c flecs::world. The pool is stored as a world singleton so its lifetime is tied to the world.
+        struct SceneTagPool
         {
-            (void)ctx;
-            s_sceneTagFreeListByWorld.erase(world);
-            s_deferredSceneTagListByWorld.erase(world);
-            s_sceneTagPoolFiniRegistered.erase(world);
-        }
+            std::vector<flecs::entity_t> FreeList;
+            std::vector<flecs::entity_t> DeferredList;
+        };
 
-        void EnsureSceneTagPoolTracksWorldLifetime(flecs::world& world)
+        void DrainDeferredSceneTags(SceneTagPool& pool)
         {
-            flecs::world_t* w = world.c_ptr();
-            if (s_sceneTagPoolFiniRegistered.insert(w).second)
-            {
-                ecs_atfini(w, OnWorldFiniSceneTagPool, nullptr);
-            }
-        }
-
-        void DrainDeferredSceneTags(flecs::world_t* w)
-        {
-            auto it = s_deferredSceneTagListByWorld.find(w);
-            if (it == s_deferredSceneTagListByWorld.end() || it->second.empty())
+            if (pool.DeferredList.empty())
             {
                 return;
             }
 
-            auto& freeList = s_sceneTagFreeListByWorld[w];
-            freeList.insert(freeList.end(), it->second.begin(), it->second.end());
-            it->second.clear();
+            pool.FreeList.insert(pool.FreeList.end(), pool.DeferredList.begin(), pool.DeferredList.end());
+            pool.DeferredList.clear();
         }
 
         flecs::entity AcquireSceneTag(flecs::world& world)
         {
-            EnsureSceneTagPoolTracksWorldLifetime(world);
-            flecs::world_t* w = world.c_ptr();
+            auto& pool = world.ensure<SceneTagPool>();
 
             /// Recycle any tags that were released while the world was deferring.
             if (!world.is_deferred())
             {
-                DrainDeferredSceneTags(w);
+                DrainDeferredSceneTags(pool);
             }
 
-            auto& list = s_sceneTagFreeListByWorld[w];
-            if (!list.empty())
+            if (!pool.FreeList.empty())
             {
-                const flecs::entity_t id = list.back();
-                list.pop_back();
+                const flecs::entity_t id = pool.FreeList.back();
+                pool.FreeList.pop_back();
                 return world.entity(id);
             }
 
@@ -94,20 +73,21 @@ namespace Wayfinder
                 return;
             }
 
+            auto& pool = world.ensure<SceneTagPool>();
+            ecs_clear(world.c_ptr(), tag.id());
+
             /// Scene shutdown may run while Flecs is deferring mutations from a stage. In that case
             /// the tag must not be returned to the free list yet, because queued SceneOwnership pair
-            /// ops may still reference the id and Flecs only permits \\c ecs_merge on stages, not the
+            /// ops may still reference the id and Flecs only permits \c ecs_merge on stages, not the
             /// root world handle. Clearing the tag is safe; the id is parked in the deferred list and
             /// drained into the free list the next time a tag is acquired outside deferred mode.
             if (world.is_deferred())
             {
-                ecs_clear(world.c_ptr(), tag.id());
-                s_deferredSceneTagListByWorld[world.c_ptr()].push_back(tag.id());
+                pool.DeferredList.push_back(tag.id());
                 return;
             }
 
-            ecs_clear(world.c_ptr(), tag.id());
-            s_sceneTagFreeListByWorld[world.c_ptr()].push_back(tag.id());
+            pool.FreeList.push_back(tag.id());
         }
     } // anonymous namespace
 }
@@ -199,22 +179,19 @@ namespace Wayfinder
 
     void Scene::ClearEntities(const bool rebuildOwnedEntitiesQuery)
     {
-        /// Cached query must not outlive deletes — and must not be rebuilt on shutdown while \ref m_sceneTag
-        /// still exists, or Flecs keeps the tag entity delete-locked for queries.
-        m_ownedEntitiesQuery = flecs::query<>{};
-
-        flecs::query<> collectQuery = m_world.query_builder<>().with<SceneOwnership>(m_sceneTag).build();
+        /// Collect owned entities before destroying the cached query. The query must be destroyed
+        /// before \ref ReleaseSceneTag so Flecs debug-build pair locks on the tag are released.
         std::vector<flecs::entity> owned;
-        collectQuery.each([&](flecs::entity entityHandle)
+        m_ownedEntitiesQuery.each([&](flecs::entity entityHandle)
         {
             if (entityHandle.is_valid())
             {
                 owned.push_back(entityHandle);
             }
         });
-        collectQuery = flecs::query<>{};
+        m_ownedEntitiesQuery = flecs::query<>{};
 
-        for (flecs::entity entityHandle : owned)
+        for (const flecs::entity entityHandle : owned)
         {
             entityHandle.destruct();
         }
@@ -343,6 +320,7 @@ namespace Wayfinder
             }
 
             ClearEntities();
+            m_name.clear();
             m_sourcePath.clear();
             m_assetRoot.clear();
         };
