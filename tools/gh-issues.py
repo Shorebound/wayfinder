@@ -703,7 +703,7 @@ def show_ready() -> bool:
         )
 
         if unresolved_blockers == 0:
-            labels = ", ".join(l["name"] for l in gql_iss["labels"]["nodes"])
+            labels = ", ".join(label["name"] for label in gql_iss["labels"]["nodes"])
             if len(labels) > 30:
                 labels = labels[:27] + "..."
 
@@ -796,7 +796,7 @@ def show_milestone_status(milestone_title: str) -> bool:
             f"{c(Colour.YELLOW)}  Open ({len(open_issues)}):{c(Colour.RESET)}"
         )
         for iss in open_issues:
-            labels = ", ".join(l["name"] for l in iss["labels"])
+            labels = ", ".join(label["name"] for label in iss["labels"])
             label_suffix = f" [{labels}]" if labels else ""
             print(
                 f"{c(Colour.WHITE)}    [ ] #{iss['number']} - {iss['title']}{label_suffix}{c(Colour.RESET)}"
@@ -860,7 +860,7 @@ def show_orphans() -> bool:
             continue
 
         if gql_iss["parent"] is None:
-            labels = ", ".join(l["name"] for l in gql_iss["labels"]["nodes"])
+            labels = ", ".join(label["name"] for label in gql_iss["labels"]["nodes"])
             orphans.append(
                 {
                     "number": gql_iss["number"],
