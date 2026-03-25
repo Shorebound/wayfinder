@@ -1,15 +1,15 @@
 #!/usr/bin/env python3
 """Convenience wrapper for running clang-tidy locally.
 
-Requires a Clang build tree with compile_commands.json. Generate one with:
-    cmake --preset dev-clang
+Requires a build tree with compile_commands.json. Generate one with:
+    cmake --preset dev
 
 Usage:
     python tools/tidy.py                        # analyse all engine .cpp files
     python tools/tidy.py --changed              # only files changed vs origin/main
     python tools/tidy.py --fix                  # apply clang-tidy auto-fixes
     python tools/tidy.py engine/wayfinder/src/scene/entity/Entity.cpp  # specific files
-    python tools/tidy.py --build-dir build/clang  # override build directory
+    python tools/tidy.py --build-dir build  # use CI/root build tree
 
 Exit codes:
     0  No issues found
@@ -20,6 +20,7 @@ Exit codes:
 import argparse
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -31,7 +32,10 @@ SOURCE_DIRS = ['engine', 'sandbox', 'tests', 'tools']
 EXCLUDE_DIRS = {'thirdparty', '_deps', 'build', 'shadercompiler'}
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
-DEFAULT_BUILD_DIR = REPO_ROOT / 'build' / 'clang'
+DEFAULT_BUILD_DIRS = (
+    REPO_ROOT / 'build' / 'dev',
+    REPO_ROOT / 'build',
+)
 
 
 def _supports_colour() -> bool:
@@ -70,6 +74,93 @@ def _find_tidy() -> str | None:
         if shutil.which(name):
             return name
     return None
+
+
+def _compile_commands_candidates(build_dir: Path | None) -> list[Path]:
+    if build_dir is None:
+        return [candidate / 'compile_commands.json' for candidate in DEFAULT_BUILD_DIRS]
+    if build_dir.name == 'compile_commands.json':
+        return [build_dir]
+    return [build_dir / 'compile_commands.json']
+
+
+def _resolve_compile_commands(build_dir: Path | None) -> Path | None:
+    for candidate in _compile_commands_candidates(build_dir):
+        if candidate.exists():
+            return candidate
+    return None
+
+
+def _sanitise_compile_arguments(arguments: list[str]) -> list[str]:
+    sanitised: list[str] = []
+    index = 0
+    while index < len(arguments):
+        current = arguments[index]
+
+        if (
+            current == '-Xclang'
+            and index + 2 < len(arguments)
+            and arguments[index + 1] in {'-include-pch', '-include'}
+            and 'cmake_pch' in arguments[index + 2]
+        ):
+            index += 3
+            continue
+
+        if current in {'-include', '-include-pch'} and index + 1 < len(arguments) and 'cmake_pch' in arguments[index + 1]:
+            index += 2
+            continue
+
+        if current == '-Winvalid-pch':
+            index += 1
+            continue
+
+        if current.startswith(('/Yc', '/Yu', '/FI', '/Fp')) and 'cmake_pch' in current:
+            index += 1
+            continue
+
+        if current.startswith('@') and current.endswith('.modmap'):
+            index += 1
+            continue
+
+        if (current.startswith('-fmodule-file=') or current.startswith('-fmodule-mapper=')) and current.endswith('.modmap'):
+            index += 1
+            continue
+
+        sanitised.append(current)
+        index += 1
+
+    return sanitised
+
+
+def _sanitise_compile_command(command: str) -> str:
+    pch_arg = r'(?:"[^"]*cmake_pch[^"]*"|\S*cmake_pch\S*)'
+    patterns = (
+        re.compile(rf'\s-Xclang\s+-include-pch\s+-Xclang\s+{pch_arg}'),
+        re.compile(rf'\s-Xclang\s+-include\s+-Xclang\s+{pch_arg}'),
+        re.compile(rf'\s-include-pch\s+{pch_arg}'),
+        re.compile(rf'\s-include\s+{pch_arg}'),
+        re.compile(rf'\s/(?:Yc|Yu|FI|Fp){pch_arg}'),
+        re.compile(r'\s-Winvalid-pch'),
+        re.compile(r'\s@\S*\.modmap'),
+        re.compile(r'\s-fmodule-file=\S*\.modmap'),
+        re.compile(r'\s-fmodule-mapper=\S*\.modmap'),
+    )
+
+    sanitised = command
+    for pattern in patterns:
+        sanitised = pattern.sub('', sanitised)
+
+    return sanitised
+
+
+def _sanitise_compile_entry(entry: dict[str, object]) -> None:
+    command = entry.get('command')
+    if isinstance(command, str):
+        entry['command'] = _sanitise_compile_command(command)
+
+    arguments = entry.get('arguments')
+    if isinstance(arguments, list) and all(isinstance(arg, str) for arg in arguments):
+        entry['arguments'] = _sanitise_compile_arguments(arguments)
 
 
 def _discover_all_cpp() -> list[Path]:
@@ -115,6 +206,9 @@ def _filter_compile_db(compile_commands: Path, *, config: str) -> Path:
     Ninja Multi-Config emits entries for every configuration.  Each entry's
     command contains -DCMAKE_INTDIR=\\"<Config>\\" which we use to filter.
     Returns a temp directory containing the filtered compile_commands.json.
+
+    Also strips PCH includes and module-map references that won't exist when
+    running without a prior compile of that translation unit.
     """
     with open(compile_commands, 'r', encoding='utf-8') as f:
         entries = json.load(f)
@@ -130,6 +224,9 @@ def _filter_compile_db(compile_commands: Path, *, config: str) -> Path:
             if src not in seen:
                 seen.add(src)
                 filtered.append(entry)
+
+    for entry in filtered:
+        _sanitise_compile_entry(entry)
 
     tmp_dir = Path(tempfile.mkdtemp(prefix='wayfinder-tidy-'))
     out_path = tmp_dir / 'compile_commands.json'
@@ -151,7 +248,7 @@ def _run_one(cmd_base: list[str], filepath: str, cwd: str) -> tuple[str, int, st
 def run_tidy(
     files: list[Path],
     *,
-    build_dir: Path = DEFAULT_BUILD_DIR,
+    build_dir: Path | None = None,
     tool: str | None = None,
     fix: bool = False,
     jobs: int = 0,
@@ -173,14 +270,16 @@ def run_tidy(
         return False  # caller decides severity
 
     # Validate compile_commands.json.
-    compile_commands = build_dir / 'compile_commands.json'
-    if not compile_commands.exists():
-        print(_red(f'compile_commands.json not found at {compile_commands}'), file=sys.stderr)
-        print(_yellow('Generate it with: cmake --preset dev-clang'), file=sys.stderr)
+    compile_commands = _resolve_compile_commands(build_dir)
+    if compile_commands is None:
+        searched = ', '.join(str(candidate) for candidate in _compile_commands_candidates(build_dir))
+        print(_red(f'compile_commands.json not found. Looked in: {searched}'), file=sys.stderr)
+        print(_yellow('Generate it with: cmake --preset dev'), file=sys.stderr)
         return False
 
     # Filter to .cpp — headers are analysed via includes.
-    cpp_files = [f for f in files if f.suffix == '.cpp']
+    # Also drop files that no longer exist (e.g. deleted in the current branch).
+    cpp_files = [f for f in files if f.suffix == '.cpp' and f.exists()]
     if not cpp_files:
         print(_yellow('No .cpp files to analyse.'))
         return False
@@ -255,7 +354,7 @@ def main() -> int:
                         help='Apply clang-tidy auto-fixes in-place.')
     parser.add_argument('-j', '--jobs', type=int, default=0,
                         help='Number of parallel jobs (0 = auto, 1 = sequential). Forced to 1 with --fix.')
-    parser.add_argument('--build-dir', type=Path, default=DEFAULT_BUILD_DIR,
+    parser.add_argument('--build-dir', type=Path, default=None,
                         help='Path to build directory with compile_commands.json.')
     args = parser.parse_args()
 

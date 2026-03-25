@@ -43,7 +43,6 @@ BANNED_INCLUDES: list[tuple[re.Pattern[str], Path, str]] = [
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 FIXUP_SCRIPT = REPO_ROOT / 'tools' / 'format-fixup.py'
-DEFAULT_BUILD_DIR = REPO_ROOT / 'build' / 'clang'
 
 
 def _supports_colour() -> bool:
@@ -239,7 +238,7 @@ def _apply_fixup(text: str) -> str:
     return _fixup_fn(text)
 
 
-def _run_clang_tidy(files: list[Path], *, build_dir: Path, tool: str) -> bool:
+def _run_clang_tidy(files: list[Path], *, build_dir: Path | None, tool: str) -> bool:
     """Run clang-tidy via the shared tidy module. Returns True if issues were found."""
     from tidy import run_tidy
 
@@ -299,7 +298,7 @@ def main() -> int:
                         help='Only check files changed vs origin/main.')
     parser.add_argument('--staged', action='store_true',
                         help='Only check staged files (for pre-commit hooks).')
-    parser.add_argument('--build-dir', type=Path, default=DEFAULT_BUILD_DIR,
+    parser.add_argument('--build-dir', type=Path, default=None,
                         help='Path to build directory with compile_commands.json.')
     args = parser.parse_args()
 

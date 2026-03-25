@@ -112,21 +112,21 @@ PR titles and commits: `<type>(<scope>): <description>`
 ### Relationships
 
 Dependencies use GitHub's native **blocked-by/blocking** and **sub-issues**. 
-Use `gh-issues` (built to `bin/<config>/gh-issues.exe`) to manage relationships:
+Use `gh-issues` (`tools/gh-issues.py`) to manage relationships:
 
-```powershell
-gh-issues blocked-by 12 7      # #12 is blocked by #7
-gh-issues blocking 7 12,15     # #7 is blocking #12 and #15
-gh-issues sub-issue 10 41,42   # #41, #42 are sub-issues of #10
-gh-issues show 12              # relationships + completion status
-gh-issues show 12,15,20        # compact table for multiple issues
-gh-issues tree 10              # sub-issue hierarchy with progress
-gh-issues chain 12             # walk blocked-by chain, find critical path
-gh-issues ready                # all open unblocked issues
-gh-issues status --milestone "Phase 1: Foundation"  # milestone progress
-gh-issues orphans              # issues with no parent or milestone
-gh-issues remove-blocked-by 12 7  # undo: #12 no longer blocked by #7
-gh-issues remove-sub-issue 10 41  # undo: #41 no longer sub-issue of #10
+```bash
+python tools/gh-issues.py blocked-by 12 7      # #12 is blocked by #7
+python tools/gh-issues.py blocking 7 12,15     # #7 is blocking #12 and #15
+python tools/gh-issues.py sub-issue 10 41,42   # #41, #42 are sub-issues of #10
+python tools/gh-issues.py show 12              # relationships + completion status
+python tools/gh-issues.py show 12,15,20        # compact table for multiple issues
+python tools/gh-issues.py tree 10              # sub-issue hierarchy with progress
+python tools/gh-issues.py chain 12             # walk blocked-by chain, find critical path
+python tools/gh-issues.py ready                # all open unblocked issues
+python tools/gh-issues.py status --milestone "Phase 1: Foundation"  # milestone progress
+python tools/gh-issues.py orphans              # issues with no parent or milestone
+python tools/gh-issues.py remove-blocked-by 12 7  # undo: #12 no longer blocked by #7
+python tools/gh-issues.py remove-sub-issue 10 41  # undo: #41 no longer sub-issue of #10
 ```
 ### Workflow
 
