@@ -72,6 +72,17 @@ namespace Wayfinder
                 return;
             }
 
+            /// Scene shutdown may run while Flecs is deferring mutations from a stage. In that case
+            /// the tag must not be returned to the free list yet, because queued SceneOwnership pair
+            /// ops may still reference the id and Flecs only permits \\c ecs_merge on stages, not the
+            /// root world handle. Clearing the tag is still safe, but deferred shutdown abandons tag
+            /// recycling for that scene instance instead of reusing the id too early.
+            if (world.is_deferred())
+            {
+                ecs_clear(world.c_ptr(), tag.id());
+                return;
+            }
+
             ecs_clear(world.c_ptr(), tag.id());
             s_sceneTagFreeListByWorld[world.c_ptr()].push_back(tag.id());
         }
@@ -300,6 +311,19 @@ namespace Wayfinder
 
     Result<void> Scene::LoadFromFile(const std::string& filePath)
     {
+        bool didMutateScene = false;
+        const auto rollbackLoad = [this, &didMutateScene]()
+        {
+            if (!didMutateScene)
+            {
+                return;
+            }
+
+            ClearEntities();
+            m_sourcePath.clear();
+            m_assetRoot.clear();
+        };
+
         try
         {
             const SceneDocumentLoadResult loadResult = LoadSceneDocument(filePath, m_componentRegistry, m_assetService.get());
@@ -309,10 +333,11 @@ namespace Wayfinder
                 return MakeError(std::format("Failed to load scene document: {}", filePath));
             }
 
+            const std::filesystem::path sourcePath = std::filesystem::weakly_canonical(std::filesystem::path(filePath));
+            const std::filesystem::path assetRoot = FindAssetRoot(sourcePath).value_or(std::filesystem::path{});
+
             ClearEntities();
-            m_name = loadResult.Document->Name;
-            m_sourcePath = std::filesystem::weakly_canonical(std::filesystem::path(filePath));
-            m_assetRoot = FindAssetRoot(m_sourcePath).value_or(std::filesystem::path{});
+            didMutateScene = true;
 
             std::unordered_map<SceneObjectId, Entity> createdEntitiesById;
             for (const SceneDocumentEntity& definition : loadResult.Document->Entities)
@@ -320,6 +345,7 @@ namespace Wayfinder
                 Entity entity = CreateEntity(definition.Name);
                 if (const auto idResult = entity.SetSceneObjectId(definition.Id); !idResult)
                 {
+                    rollbackLoad();
                     return MakeError(std::format("Failed to set scene object id for '{}': {}", definition.Name, idResult.error().GetMessage()));
                 }
 
@@ -356,6 +382,10 @@ namespace Wayfinder
                 childIt->second.GetHandle().child_of(parentIdIt->second.GetHandle());
             }
 
+            m_name = loadResult.Document->Name;
+            m_sourcePath = sourcePath;
+            m_assetRoot = assetRoot;
+
             WAYFINDER_INFO(LogScene, "Loaded scene data from: {0}", filePath);
 
             // Apply scene settings as a world singleton
@@ -367,6 +397,7 @@ namespace Wayfinder
         }
         catch (const std::exception& error)
         {
+            rollbackLoad();
             WAYFINDER_ERROR(LogScene, "Failed to load scene file {0}: {1}", filePath, error.what());
             return MakeError(std::format("Failed to load scene file: {}", error.what()));
         }

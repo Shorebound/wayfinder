@@ -16,11 +16,11 @@ The issue recommends Option C and I agree—it's the right call. The flecs relat
 
 1. **Add `flecs::query<>` member to `Scene`** in `Scene.h` — new member `m_ownedEntitiesQuery` alongside the existing maps. *(depends on nothing)*
 2. **Build the query in the constructor** in `Scene.cpp` — after `m_sceneTag` creation, build: `m_ownedEntitiesQuery = m_world.query_builder<>().with<SceneOwnership>(m_sceneTag).build();` *(depends on step 1)*
-3. **Destroy the query in `Shutdown()`** — call `m_ownedEntitiesQuery.destruct()` before `m_sceneTag.destruct()` to avoid dangling references. *(depends on step 2)*
+3. **Clear/rebuild the cached query in `ClearEntities()`** — destroy `m_ownedEntitiesQuery` before collecting/destructing scene-owned entities, then rebuild it there for the non-shutdown path. This keeps query teardown aligned with the actual clear/reload path instead of relying on `Shutdown()` only. *(depends on step 2)*
 
 ### Phase 2: Refactor ClearEntities — Query as Authority
 
-4. **Replace both phases of `ClearEntities()`** with a single query iteration. Remove the map iteration phase (`for (const auto& [id, entityId] : m_entitiesById)`) and the fallback sweep (`m_world.each(...)`). Replace with: iterate `m_ownedEntitiesQuery`, collect entities, destruct them. Then clear both maps. *(depends on step 2)*
+4. **Replace both phases of `ClearEntities()`** with a single query iteration. Remove the map iteration phase (`for (const auto& [id, entityId] : m_entitiesById)`) and the fallback sweep (`m_world.each(...)`). Replace with: destroy `m_ownedEntitiesQuery`, iterate a temporary ownership query, collect entities, destruct them, clear both maps, then rebuild `m_ownedEntitiesQuery` for the active scene path. `Shutdown()` should call `ClearEntities(false)` so it destroys the query without rebuilding it before `ReleaseSceneTag(...)` recycles the tag. *(depends on step 2)*
    - Collect into a vector first (avoid mutating during iteration).
    - Clear `m_entitiesById` and `m_entitiesByName` after destruction.
 
@@ -61,7 +61,7 @@ The issue recommends Option C and I agree—it's the right call. The flecs relat
 
 ## Decisions
 
-- **Query caching**: Use a persistent `flecs::query<>` on Scene rather than ad-hoc `filter_builder` or `each()`. Flecs 4.x caches query results internally, making iteration O(matched) not O(world). The query is built once in the constructor and destroyed in Shutdown.
+- **Query caching**: Use a persistent `flecs::query<>` on Scene rather than ad-hoc `filter_builder` or `each()`. Flecs 4.x caches query results internally, making iteration O(matched) not O(world). The query is built once in the constructor, cleared/rebuilt in `ClearEntities()`, and left destroyed on the shutdown path before `ReleaseSceneTag(...)` recycles the tag. Do not call `m_sceneTag.destruct()`; the tag is `ecs_clear`ed and pooled instead.
 - **SetSceneObjectId return type**: Changed from `void` to `Result<void>`. This is a breaking API change but is consistent with the engine's error-handling convention and the project's greenfield stance on breaking changes.
 - **SaveToFile also refactored**: Same O(world) pattern, same fix. Consistency + performance.
 - **Maps remain mutable**: The `mutable` maps are kept as-is — they're still useful as O(1) lookup indexes. Their role just shifts from co-authority to pure index.

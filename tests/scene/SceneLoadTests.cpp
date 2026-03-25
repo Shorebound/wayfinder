@@ -1,4 +1,7 @@
 #include "TestHelpers.h"
+#include "app/EngineConfig.h"
+#include "plugins/PluginRegistry.h"
+#include "project/ProjectDescriptor.h"
 #include "scene/Components.h"
 #include "scene/RuntimeComponentRegistry.h"
 #include "scene/Scene.h"
@@ -9,6 +12,7 @@
 
 #include <filesystem>
 #include <fstream>
+#include <stdexcept>
 #include <string>
 #include <string_view>
 
@@ -19,6 +23,56 @@ namespace Wayfinder::Tests
 {
     using Helpers::FixturesDir;
     using Helpers::MakeTestRegistry;
+
+    namespace
+    {
+        ProjectDescriptor MakeTestProject()
+        {
+            ProjectDescriptor desc{};
+            desc.Name = "SceneLoadTests";
+            return desc;
+        }
+
+        EngineConfig MakeTestConfig()
+        {
+            return EngineConfig::LoadDefaults();
+        }
+
+        void ApplyThrowingComponent(const nlohmann::json&, Entity&)
+        {
+            throw std::runtime_error("synthetic component apply failure");
+        }
+
+        bool ValidateThrowingComponent(const nlohmann::json& componentData, std::string& error)
+        {
+            if (!componentData.is_object())
+            {
+                error = "component must be an object";
+                return false;
+            }
+
+            return true;
+        }
+
+        RuntimeComponentRegistry MakeThrowingRegistry()
+        {
+            RuntimeComponentRegistry registry = MakeTestRegistry();
+
+            auto project = MakeTestProject();
+            auto config = MakeTestConfig();
+            Plugins::PluginRegistry pluginRegistry(project, config);
+            pluginRegistry.RegisterComponent({
+                .Key = "throwing_component",
+                .RegisterFn = nullptr,
+                .ApplyFn = &ApplyThrowingComponent,
+                .SerialiseFn = nullptr,
+                .ValidateFn = &ValidateThrowingComponent,
+            });
+
+            registry.AddGameEntries(pluginRegistry);
+            return registry;
+        }
+    } // anonymous namespace
 
     TEST_SUITE("Scene Loading")
     {
@@ -159,6 +213,56 @@ namespace Wayfinder::Tests
             // The pre-existing entity should be gone
             auto found = scene.GetEntityByName("PreExisting");
             CHECK_FALSE(found.IsValid());
+        }
+
+        TEST_CASE("LoadFromFile rolls back partially created entities on runtime apply failure")
+        {
+            flecs::world world;
+            auto registry = MakeThrowingRegistry();
+            registry.RegisterComponents(world);
+            Scene::RegisterCoreComponents(world);
+            Scene scene(world, registry, "Default");
+
+            scene.CreateEntity("PreExisting");
+
+            const auto tempDir = FixturesDir() / "temp";
+            std::filesystem::create_directories(tempDir);
+            const auto path = tempDir / "throwing_component_scene.json";
+
+            {
+                nlohmann::json sceneData;
+                sceneData["version"] = 1;
+                sceneData["scene_name"] = "Broken Scene";
+                sceneData["entities"] = nlohmann::json::array({
+                    {
+                        {"name", "First"},
+                    },
+                    {
+                        {"name", "Second"},
+                        {"throwing_component", nlohmann::json::object()},
+                    },
+                });
+
+                std::ofstream file(path);
+                file << sceneData.dump(2);
+            }
+
+            const auto result = scene.LoadFromFile(path.string());
+
+            CHECK_FALSE(result);
+            CHECK_FALSE(scene.GetEntityByName("PreExisting").IsValid());
+            CHECK_FALSE(scene.GetEntityByName("First").IsValid());
+            CHECK_FALSE(scene.GetEntityByName("Second").IsValid());
+
+            const flecs::entity sceneTag = world.entity(scene.GetSceneTagEntityId());
+            auto ownedEntitiesQuery = world.query_builder<>().with<SceneOwnership>(sceneTag).build();
+            size_t entityCount = 0;
+            ownedEntitiesQuery.each([&](flecs::entity)
+            {
+                ++entityCount;
+            });
+
+            CHECK(entityCount == 0);
         }
 
         // ── SceneDocument Low-Level ─────────────────────────────

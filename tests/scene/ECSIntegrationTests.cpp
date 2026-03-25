@@ -283,6 +283,34 @@ namespace Wayfinder::Tests
             }
         }
 
+        TEST_CASE("Shutdown does not recycle scene tag while deferred deletes are pending")
+        {
+            flecs::world world;
+            auto registry = MakeTestRegistry();
+            registry.RegisterComponents(world);
+            Scene::RegisterCoreComponents(world);
+
+            flecs::entity_t entityId = 0;
+            flecs::entity_t tagId = 0;
+            {
+                Scene scene(world, registry, "SceneA");
+                entityId = scene.CreateEntity("One").GetHandle().id();
+                tagId = scene.GetSceneTagEntityId();
+
+                REQUIRE(world.defer_begin());
+                scene.Shutdown();
+                CHECK(world.is_deferred());
+                CHECK(world.defer_end());
+            }
+
+            CHECK_FALSE(world.entity(entityId).is_valid());
+
+            {
+                Scene nextScene(world, registry, "SceneB");
+                CHECK(nextScene.GetSceneTagEntityId() != tagId);
+            }
+        }
+
         TEST_CASE("GetEntityById returns invalid for unknown ID")
         {
             flecs::world world;
