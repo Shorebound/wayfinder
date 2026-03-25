@@ -42,8 +42,7 @@ namespace Wayfinder::Maths
 
     Float3 ExtractScale(const Matrix4& matrix)
     {
-        return 
-        {
+        return {
             Length(TransformDirection(matrix, Right)),
             Length(TransformDirection(matrix, Up)),
             Length(TransformDirection(matrix, Forward)),

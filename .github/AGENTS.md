@@ -9,7 +9,7 @@ This file documents common mistakes, confusion points, and non-obvious behaviour
 - **Test executables are opt-in.** `WAYFINDER_BUILD_TESTS` defaults to `OFF`. Use the `dev` preset or pass `-DWAYFINDER_BUILD_TESTS=ON` explicitly.
 - **MSVC vs Clang differences.** The primary local dev compiler is MSVC; cloud agents use Clang with libc++. Code must compile on both. Watch for MSVC-specific pragmas (guard with `#ifdef WAYFINDER_COMPILER_MSVC`) and C++23 feature availability differences between compilers.
 - **Linux CI must force-select the right Clang via `update-alternatives --set`.** Installing `clang-22` and registering it with `--install` is not enough on GitHub runners — if alternatives is already in manual mode for an older version, higher priority alone won't switch it. The setup action uses `--set` to force selection and a verification step that fails the build if the resolved major version doesn't match. The CMake preset uses generic `clang`/`clang++` and trusts the environment.
-- **Local Clang builds.** Use `cmake --preset dev-clang` + `cmake --build --preset clang-debug` to build with Clang on Windows. This catches Clang-specific issues before CI. The build tree goes into `build/clang/`.
+- **Local Clang builds.** Use `cmake --preset dev` + `cmake --build --preset debug` to build with Clang on Windows. This catches Clang-specific issues before CI. The primary build tree goes into `build/dev/`.
 - **`tools/tidy.py` only analyses `.cpp` files.** Header diagnostics only appear when a checked translation unit includes that header. If you're cleaning a header-only issue, run tidy on one or more consuming `.cpp` files, not just the header path.
 - **`-Wmissing-field-initializers` is suppressed.** Designated initialisers that rely on default member initialisers for remaining fields are idiomatic C++20 — don't pad with `= {}`/`= 0`.
 - **clang-tidy naming style names are literal.** In `readability-identifier-naming`, `CamelCase` produces PascalCase. Use `camelBack` for the repo's `m_memberName` style.
@@ -42,5 +42,5 @@ This file documents common mistakes, confusion points, and non-obvious behaviour
 
 ## gh-issues
 
-- **gh-issues is a compiled C++ tool** (source: `tools/gh-issues/src/Main.cpp`). It is built via CMake when `WAYFINDER_BUILD_TOOLS=ON` and output to `bin/<config>/gh-issues.exe`.
-- **`ready`, `status`, and `orphans` take no issue number.** Just run `gh-issues ready`, `gh-issues orphans`, or `gh-issues status --milestone "..."` directly.
+- **gh-issues is a Python script** (`tools/gh-issues.py`). No build step required — just needs Python 3.10+ and `gh` CLI authenticated with repo scope.
+- **`ready`, `status`, and `orphans` take no issue number.** Just run `python tools/gh-issues.py ready`, `python tools/gh-issues.py orphans`, or `python tools/gh-issues.py status --milestone "..."` directly.

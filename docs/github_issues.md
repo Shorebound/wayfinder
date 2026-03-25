@@ -47,29 +47,29 @@ GitHub also supports **sub-issues** (parent/child hierarchy) for breaking large 
 
 ## CLI Tool: `gh-issues`
 
-Compiled C++ tool (source: `tools/gh-issues/src/Main.cpp`). Built via CMake when `WAYFINDER_BUILD_TOOLS=ON`, output to `bin/<config>/gh-issues.exe`. Manages issue relationships via the GitHub GraphQL API. Handles node ID lookups automatically — just pass issue numbers. Targets accept comma-separated lists (e.g. `7,8,9`).
+Python script (`tools/gh-issues.py`). No build step required — just needs Python 3.10+ and `gh` CLI authenticated with repo scope. Manages issue relationships via the GitHub GraphQL API. Handles node ID lookups automatically — just pass issue numbers. Targets accept comma-separated lists (e.g. `7,8,9`).
 
-```powershell
+```bash
 # Add relationships
-gh-issues blocked-by 12 7         # #12 is blocked by #7
-gh-issues blocking 7 12,15        # #7 is blocking #12 and #15
-gh-issues sub-issue 10 41,42      # #41, #42 become sub-issues of #10
+python tools/gh-issues.py blocked-by 12 7         # #12 is blocked by #7
+python tools/gh-issues.py blocking 7 12,15        # #7 is blocking #12 and #15
+python tools/gh-issues.py sub-issue 10 41,42      # #41, #42 become sub-issues of #10
 
 # Remove relationships
-gh-issues remove-blocked-by 12 7  # undo blocked-by
-gh-issues remove-blocking 7 12    # undo blocking
-gh-issues remove-sub-issue 10 41  # undo sub-issue
+python tools/gh-issues.py remove-blocked-by 12 7  # undo blocked-by
+python tools/gh-issues.py remove-blocking 7 12    # undo blocking
+python tools/gh-issues.py remove-sub-issue 10 41  # undo sub-issue
 
 # Inspect
-gh-issues show 12                 # relationships, labels, blocker summary
-gh-issues show 12,15,20           # compact table for multiple issues
-gh-issues tree 10                 # sub-issue hierarchy with completion counts
-gh-issues chain 12                # walk blocked-by chain, find critical path
+python tools/gh-issues.py show 12                 # relationships, labels, blocker summary
+python tools/gh-issues.py show 12,15,20           # compact table for multiple issues
+python tools/gh-issues.py tree 10                 # sub-issue hierarchy with completion counts
+python tools/gh-issues.py chain 12                # walk blocked-by chain, find critical path
 
 # Discovery
-gh-issues ready                                        # all open unblocked issues
-gh-issues status --milestone "Phase 1: Foundation"      # milestone progress
-gh-issues orphans                                       # issues with no parent or milestone
+python tools/gh-issues.py ready                                        # all open unblocked issues
+python tools/gh-issues.py status --milestone "Phase 1: Foundation"     # milestone progress
+python tools/gh-issues.py orphans                                      # issues with no parent or milestone
 ```
 
 ## GraphQL API Reference
@@ -117,17 +117,19 @@ query { repository(owner: "Shorebound", name: "wayfinder") {
 
 ### `gh` CLI tip
 
-GraphQL queries must go through a file to avoid PowerShell escaping issues:
+GraphQL queries must go through a file to avoid shell escaping issues:
 
-```powershell
-Set-Content -Path temp.graphql -Value 'mutation { ... }' -Encoding ascii -NoNewline
-gh api graphql -F query=@temp.graphql
-Remove-Item temp.graphql
+```bash
+echo 'mutation { ... }' > /tmp/temp.graphql
+gh api graphql -F query=@/tmp/temp.graphql
+rm /tmp/temp.graphql
 ```
+
+The `tools/gh-issues.py` script handles this automatically.
 
 ## Workflow
 
-- Before starting: check `gh-issues show <N>` for unresolved blockers.
+- Before starting: check `python tools/gh-issues.py show <N>` for unresolved blockers.
 - On completion: close the issue, check if anything it was blocking
   is now unblocked.
 - Use `Closes #N` in the PR body to auto-close issues on merge.
