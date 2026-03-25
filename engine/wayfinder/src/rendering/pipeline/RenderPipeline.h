@@ -45,9 +45,8 @@ namespace Wayfinder
         /// the correct mesh for each shader program's declared vertex format.
         const std::unordered_map<uint32_t, Mesh*>& MeshesByStride;
 
-        /// Used when `RenderMeshRef::Origin` is `Asset` — loads GPU meshes from `MeshAsset` data.
-        MeshManager* MeshResources = nullptr;
-        AssetService* Assets = nullptr;
+        /// Used when `RenderMeshRef::Origin` is `Asset` — resolves cached GPU meshes.
+        RenderResourceCache* ResourceCache = nullptr;
 
         GPUPipeline& DebugLinePipeline;
         std::span<const std::unique_ptr<RenderFeature>> Features;

@@ -363,13 +363,19 @@ namespace Wayfinder
                             }
                         };
 
+                        const RenderMeshResource* meshResource = nullptr;
+                        if (params.ResourceCache)
+                        {
+                            meshResource = &params.ResourceCache->ResolveMesh(submission);
+                        }
+
                         // Solid draw (for Solid and SolidAndWireframe modes)
                         if (fillMode == RenderFillMode::Solid || fillMode == RenderFillMode::SolidAndWireframe)
                         {
                             const Mesh* meshPtr = nullptr;
-                            if (submission.Mesh.Origin == RenderResourceOrigin::Asset && submission.Mesh.AssetId && params.MeshResources && params.Assets)
+                            if (submission.Mesh.Origin == RenderResourceOrigin::Asset)
                             {
-                                meshPtr = params.MeshResources->GetOrLoad(*submission.Mesh.AssetId, *params.Assets);
+                                meshPtr = meshResource ? meshResource->GpuMesh : nullptr;
                             }
                             else
                             {
@@ -419,9 +425,9 @@ namespace Wayfinder
                                 if (wireframePipeline.IsValid())
                                 {
                                     const Mesh* wireMeshPtr = nullptr;
-                                    if (submission.Mesh.Origin == RenderResourceOrigin::Asset && submission.Mesh.AssetId && params.MeshResources && params.Assets)
+                                    if (submission.Mesh.Origin == RenderResourceOrigin::Asset)
                                     {
-                                        wireMeshPtr = params.MeshResources->GetOrLoad(*submission.Mesh.AssetId, *params.Assets);
+                                        wireMeshPtr = meshResource ? meshResource->GpuMesh : nullptr;
                                     }
                                     else
                                     {

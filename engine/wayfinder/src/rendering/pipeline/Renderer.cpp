@@ -212,8 +212,7 @@ namespace Wayfinder
             .SwapchainWidth = swapW,
             .SwapchainHeight = swapH,
             .MeshesByStride = meshesByStride,
-            .MeshResources = &m_context->GetMeshes(),
-            .Assets = m_assetService.get(),
+            .ResourceCache = m_renderResources.get(),
             .DebugLinePipeline = m_debugLinePipeline,
             .Features = m_features,
         };

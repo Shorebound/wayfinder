@@ -99,7 +99,16 @@ namespace Wayfinder::Waypoint
 
             out.resize(acc.count);
 
-            if (acc.componentType == fastgltf::ComponentType::UnsignedShort)
+            if (acc.componentType == fastgltf::ComponentType::UnsignedByte)
+            {
+                std::vector<std::uint8_t> tmp(acc.count);
+                fastgltf::copyFromAccessor<std::uint8_t>(asset, acc, tmp.data());
+                for (std::size_t i = 0; i < acc.count; ++i)
+                {
+                    out.at(i) = tmp.at(i);
+                }
+            }
+            else if (acc.componentType == fastgltf::ComponentType::UnsignedShort)
             {
                 std::vector<std::uint16_t> tmp(acc.count);
                 fastgltf::copyFromAccessor<std::uint16_t>(asset, acc, tmp.data());
