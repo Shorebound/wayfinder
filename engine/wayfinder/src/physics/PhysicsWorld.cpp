@@ -73,6 +73,11 @@ namespace Wayfinder::Physics
             return JPH::Quat::sEulerAngles(JPH::Vec3(rx, ry, rz));
         }
 
+        [[nodiscard]] JPH::BodyID ToJoltBodyId(PhysicsBodyId id)
+        {
+            return JPH::BodyID(id.Value);
+        }
+
         class BPLayerInterfaceImpl final : public JPH::BroadPhaseLayerInterface
         {
         public:
@@ -282,7 +287,7 @@ namespace Wayfinder::Physics
         m_fixedTimestep = timestep;
     }
 
-    uint32_t PhysicsWorld::CreateBody(const PhysicsBodyDescriptor& desc, const PhysicsBodyPose& pose)
+    PhysicsBodyId PhysicsWorld::CreateBody(const PhysicsBodyDescriptor& desc, const PhysicsBodyPose& pose)
     {
         if (!m_initialised)
         {
@@ -367,55 +372,55 @@ namespace Wayfinder::Physics
 
         const JPH::BodyID id = joltBody->GetID();
         bodyInterface.AddBody(id, JPH::EActivation::Activate);
-        return id.GetIndexAndSequenceNumber();
+        return PhysicsBodyId{id.GetIndexAndSequenceNumber()};
     }
 
-    void PhysicsWorld::DestroyBody(uint32_t bodyId)
+    void PhysicsWorld::DestroyBody(PhysicsBodyId bodyId)
     {
-        if (!m_initialised || bodyId == INVALID_PHYSICS_BODY)
+        if (!m_initialised || !bodyId.IsValid())
         {
             return;
         }
 
         JPH::BodyInterface& bodyInterface = m_impl->PhysSystem->GetBodyInterface();
-        const JPH::BodyID joltId(bodyId);
+        const JPH::BodyID joltId = ToJoltBodyId(bodyId);
         bodyInterface.RemoveBody(joltId);
         bodyInterface.DestroyBody(joltId);
     }
 
-    Float3 PhysicsWorld::GetBodyPosition(uint32_t bodyId) const
+    Float3 PhysicsWorld::GetBodyPosition(PhysicsBodyId bodyId) const
     {
-        if (!m_initialised || bodyId == INVALID_PHYSICS_BODY)
+        if (!m_initialised || !bodyId.IsValid())
         {
             return {0.0f, 0.0f, 0.0f};
         }
 
         const JPH::BodyInterface& bodyInterface = m_impl->PhysSystem->GetBodyInterface();
-        const JPH::RVec3 pos = bodyInterface.GetPosition(JPH::BodyID(bodyId));
+        const JPH::RVec3 pos = bodyInterface.GetPosition(ToJoltBodyId(bodyId));
         return {pos.GetX(), pos.GetY(), pos.GetZ()};
     }
 
-    Float4 PhysicsWorld::GetBodyRotation(uint32_t bodyId) const
+    Float4 PhysicsWorld::GetBodyRotation(PhysicsBodyId bodyId) const
     {
-        if (!m_initialised || bodyId == INVALID_PHYSICS_BODY)
+        if (!m_initialised || !bodyId.IsValid())
         {
             return {0.0f, 0.0f, 0.0f, 1.0f};
         }
 
         const JPH::BodyInterface& bodyInterface = m_impl->PhysSystem->GetBodyInterface();
-        const JPH::Quat rot = bodyInterface.GetRotation(JPH::BodyID(bodyId));
+        const JPH::Quat rot = bodyInterface.GetRotation(ToJoltBodyId(bodyId));
         return {rot.GetX(), rot.GetY(), rot.GetZ(), rot.GetW()};
     }
 
-    void PhysicsWorld::SetBodyPosition(uint32_t bodyId, const Float3& position)
+    void PhysicsWorld::SetBodyPosition(PhysicsBodyId bodyId, const Float3& position)
     {
-        if (!m_initialised || bodyId == INVALID_PHYSICS_BODY)
+        if (!m_initialised || !bodyId.IsValid())
         {
             return;
         }
 
         JPH::BodyInterface& bodyInterface = m_impl->PhysSystem->GetBodyInterface();
-        bodyInterface.SetPosition(JPH::BodyID(bodyId), ToJoltRVec3(position), JPH::EActivation::Activate);
+        bodyInterface.SetPosition(ToJoltBodyId(bodyId), ToJoltRVec3(position), JPH::EActivation::Activate);
     }
 
 } // namespace Wayfinder::Physics

@@ -4,6 +4,7 @@
 
 #include <doctest/doctest.h>
 
+#include <format>
 #include <type_traits>
 #include <unordered_set>
 
@@ -294,5 +295,88 @@ namespace Wayfinder::Tests
 
         pool.Release(handle);
         CHECK(pool.ActiveCount() == 0);
+    }
+
+    // ── OpaqueHandle Basics ──────────────────────────────────
+
+    struct TestOpaqueTag
+    {
+        using ValueType = uint32_t;
+        static constexpr ValueType INVALID = 0xFFFFFFFF;
+    };
+    using TestOpaqueHandle = Wayfinder::OpaqueHandle<TestOpaqueTag>;
+
+    struct OtherOpaqueTag
+    {
+        using ValueType = uint32_t;
+        static constexpr ValueType INVALID = 0;
+    };
+    using OtherOpaqueHandle = Wayfinder::OpaqueHandle<OtherOpaqueTag>;
+
+    // Compile-time proof that OpaqueHandle<A> and OpaqueHandle<B> are distinct types.
+    static_assert(!std::is_same_v<TestOpaqueHandle, OtherOpaqueHandle>, "OpaqueHandles with different tags must be distinct types");
+
+    // Compile-time proof that OpaqueHandle and Handle are distinct types.
+    static_assert(!std::is_same_v<TestOpaqueHandle, TestHandle>, "OpaqueHandle must not be the same type as Handle");
+
+    TEST_CASE("Default-constructed OpaqueHandle is invalid")
+    {
+        TestOpaqueHandle h{};
+        CHECK_FALSE(h.IsValid());
+        CHECK_FALSE(static_cast<bool>(h));
+        CHECK(h.Value == TestOpaqueTag::INVALID);
+    }
+
+    TEST_CASE("OpaqueHandle with non-sentinel value is valid")
+    {
+        TestOpaqueHandle h{42u};
+        CHECK(h.IsValid());
+        CHECK(static_cast<bool>(h));
+        CHECK(h.Value == 42u);
+    }
+
+    TEST_CASE("OpaqueHandle respects tag-specific sentinel")
+    {
+        // OtherOpaqueTag uses 0 as invalid
+        OtherOpaqueHandle zero{};
+        CHECK_FALSE(zero.IsValid());
+
+        OtherOpaqueHandle nonZero{1u};
+        CHECK(nonZero.IsValid());
+    }
+
+    TEST_CASE("OpaqueHandle equality and comparison")
+    {
+        TestOpaqueHandle a{10u};
+        TestOpaqueHandle b{10u};
+        TestOpaqueHandle c{20u};
+
+        CHECK(a == b);
+        CHECK(a != c);
+        CHECK(a < c);
+    }
+
+    TEST_CASE("OpaqueHandle hashing works in unordered containers")
+    {
+        TestOpaqueHandle a{1u};
+        TestOpaqueHandle b{2u};
+
+        std::unordered_set<TestOpaqueHandle> set;
+        set.insert(a);
+        set.insert(b);
+        set.insert(a); // duplicate
+
+        CHECK(set.size() == 2);
+        CHECK(set.contains(a));
+        CHECK(set.contains(b));
+    }
+
+    TEST_CASE("OpaqueHandle formats via std::format")
+    {
+        TestOpaqueHandle h{42u};
+        CHECK(std::format("{}", h) == "42");
+
+        TestOpaqueHandle invalid{};
+        CHECK(std::format("{}", invalid) == std::format("{}", TestOpaqueTag::INVALID));
     }
 }

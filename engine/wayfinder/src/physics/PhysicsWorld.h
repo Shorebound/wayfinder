@@ -105,23 +105,23 @@ namespace Wayfinder::Physics
         }
 
         /// Create a Jolt body from a physics-native descriptor and return its
-        /// raw BodyID value.
+        /// handle.
         /// @p pose.RotationDegrees is applied as Euler ZYX (matching ComposeTransform).
-        /// Returns INVALID_PHYSICS_BODY on failure.
-        uint32_t CreateBody(const PhysicsBodyDescriptor& descriptor, const PhysicsBodyPose& pose = {});
+        /// Returns an invalid PhysicsBodyId on failure.
+        PhysicsBodyId CreateBody(const PhysicsBodyDescriptor& descriptor, const PhysicsBodyPose& pose = {});
 
         /// Remove and destroy a previously created body.
-        void DestroyBody(uint32_t bodyId);
+        void DestroyBody(PhysicsBodyId bodyId);
 
         /// Query the current world-space position of a body.
-        Float3 GetBodyPosition(uint32_t bodyId) const;
+        Float3 GetBodyPosition(PhysicsBodyId bodyId) const;
 
         /// Query the current world-space rotation of a body as a quaternion
         /// packed into Float4 (x, y, z, w).
-        Float4 GetBodyRotation(uint32_t bodyId) const;
+        Float4 GetBodyRotation(PhysicsBodyId bodyId) const;
 
         /// Set the world-space position of a kinematic body.
-        void SetBodyPosition(uint32_t bodyId, const Float3& position);
+        void SetBodyPosition(PhysicsBodyId bodyId, const Float3& position);
 
         /// @return true after Initialise() and before Shutdown().
         bool IsInitialised() const

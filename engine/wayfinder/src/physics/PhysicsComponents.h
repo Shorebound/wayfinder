@@ -1,5 +1,6 @@
 #pragma once
 
+#include "core/Handle.h"
 #include "core/Types.h"
 
 #include <cstdint>
@@ -22,8 +23,24 @@ namespace Wayfinder::Physics
         Capsule
     };
 
-    /// Sentinel value matching Jolt's invalid BodyID.
-    inline constexpr uint32_t INVALID_PHYSICS_BODY = 0xFFFFFFFF;
+    /**
+     * @brief Tag for the Jolt physics body opaque handle.
+     *
+     * Stores Jolt's raw BodyID value (index + sequence packed into a uint32_t).
+     * Sentinel matches Jolt's @c BodyID::cInvalidBodyID.
+     */
+    struct PhysicsBodyTag
+    {
+        using ValueType = uint32_t;
+        static constexpr ValueType INVALID = 0xFFFFFFFF;
+    };
+
+    /// Typed handle for a Jolt physics body. Prevents accidentally passing
+    /// an unrelated integer where a body handle is expected.
+    using PhysicsBodyId = OpaqueHandle<PhysicsBodyTag>;
+
+    /// Sentinel constant for an invalid physics body handle.
+    inline constexpr PhysicsBodyId INVALID_PHYSICS_BODY{};
 
     /**
      * @brief Describes the motion behaviour of a physics body.
@@ -49,7 +66,7 @@ namespace Wayfinder::Physics
         /// here would silently orphan the Jolt body.  Duplicate-creation
         /// is prevented by the PhysicsCreateBodies observer guard, and
         /// cleanup is handled by PhysicsDestroyBodies on remove/destruct.
-        uint32_t RuntimeBodyId = INVALID_PHYSICS_BODY;
+        PhysicsBodyId RuntimeBodyId;
     };
 
     /**

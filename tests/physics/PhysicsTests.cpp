@@ -59,7 +59,7 @@ namespace Wayfinder::Tests
     /// The observer creates a Jolt body when an entity gains the
     /// RigidBody + Collider + Transform archetype.  An optional
     /// @p onCreated callback is invoked with the new body ID.
-    void RegisterCreateBodiesObserver(flecs::world& world, std::function<void(uint32_t)> onCreated = nullptr)
+    void RegisterCreateBodiesObserver(flecs::world& world, std::function<void(PhysicsBodyId)> onCreated = nullptr)
     {
         world.observer<RigidBodyComponent, const ColliderComponent, const TransformComponent>("PhysicsCreateBodies")
             .event(flecs::OnAdd)
@@ -197,7 +197,7 @@ namespace Wayfinder::Tests
             desc.Shape = ColliderShape::Box;
             desc.HalfExtents = {0.5f, 0.5f, 0.5f};
 
-            uint32_t id = world.CreateBody(desc, MakeBodyPose(Float3{0.0f, 10.0f, 0.0f}));
+            auto id = world.CreateBody(desc, MakeBodyPose(Float3{0.0f, 10.0f, 0.0f}));
             CHECK(id != INVALID_PHYSICS_BODY);
 
             Float3 pos = world.GetBodyPosition(id);
@@ -219,7 +219,7 @@ namespace Wayfinder::Tests
             desc.Shape = ColliderShape::Sphere;
             desc.Radius = 1.0f;
 
-            uint32_t id = world.CreateBody(desc, MakeBodyPose(Float3{5.0f, 0.0f, 0.0f}));
+            auto id = world.CreateBody(desc, MakeBodyPose(Float3{5.0f, 0.0f, 0.0f}));
             CHECK(id != INVALID_PHYSICS_BODY);
 
             Float3 pos = world.GetBodyPosition(id);
@@ -240,7 +240,7 @@ namespace Wayfinder::Tests
             desc.Radius = 0.5f;
             desc.Height = 2.0f;
 
-            uint32_t id = world.CreateBody(desc, MakeBodyPose(Float3{0.0f, 10.0f, 0.0f}));
+            auto id = world.CreateBody(desc, MakeBodyPose(Float3{0.0f, 10.0f, 0.0f}));
             CHECK(id != INVALID_PHYSICS_BODY);
 
             Float3 pos = world.GetBodyPosition(id);
@@ -262,7 +262,7 @@ namespace Wayfinder::Tests
             desc.Shape = ColliderShape::Box;
 
             // 90 degrees around Y axis
-            uint32_t id = world.CreateBody(desc, MakeBodyPose(Float3{0.0f, 0.0f, 0.0f}, Float3{0.0f, 90.0f, 0.0f}));
+            auto id = world.CreateBody(desc, MakeBodyPose(Float3{0.0f, 0.0f, 0.0f}, Float3{0.0f, 90.0f, 0.0f}));
             REQUIRE(id != INVALID_PHYSICS_BODY);
 
             Float4 rot = world.GetBodyRotation(id);
@@ -286,7 +286,7 @@ namespace Wayfinder::Tests
             desc.Type = BodyType::Static;
             desc.Shape = ColliderShape::Box;
 
-            uint32_t id = world.CreateBody(desc, MakeBodyPose(Float3{0.0f, 0.0f, 0.0f}));
+            auto id = world.CreateBody(desc, MakeBodyPose(Float3{0.0f, 0.0f, 0.0f}));
             REQUIRE(id != INVALID_PHYSICS_BODY);
 
             Float4 rot = world.GetBodyRotation(id);
@@ -327,7 +327,7 @@ namespace Wayfinder::Tests
             desc.HalfExtents = {0.5f, 0.5f, 0.5f};
 
             const float startY = 10.0f;
-            uint32_t id = world.CreateBody(desc, MakeBodyPose(Float3{0.0f, startY, 0.0f}));
+            auto id = world.CreateBody(desc, MakeBodyPose(Float3{0.0f, startY, 0.0f}));
             REQUIRE(id != INVALID_PHYSICS_BODY);
 
             // Step several times to let gravity take effect
@@ -355,7 +355,7 @@ namespace Wayfinder::Tests
             desc.Shape = ColliderShape::Box;
             desc.HalfExtents = {5.0f, 0.5f, 5.0f};
 
-            uint32_t id = world.CreateBody(desc, MakeBodyPose(Float3{0.0f, 0.0f, 0.0f}));
+            auto id = world.CreateBody(desc, MakeBodyPose(Float3{0.0f, 0.0f, 0.0f}));
             REQUIRE(id != INVALID_PHYSICS_BODY);
 
             for (int i = 0; i < SIMULATION_STEPS; ++i)
@@ -427,8 +427,8 @@ namespace Wayfinder::Tests
             statDesc.Type = BodyType::Static;
             statDesc.Shape = ColliderShape::Box;
 
-            uint32_t dynId = world.CreateBody(dynDesc, MakeBodyPose(Float3{0.0f, 10.0f, 0.0f}));
-            uint32_t statId = world.CreateBody(statDesc, MakeBodyPose(Float3{0.0f, -1.0f, 0.0f}));
+            auto dynId = world.CreateBody(dynDesc, MakeBodyPose(Float3{0.0f, 10.0f, 0.0f}));
+            auto statId = world.CreateBody(statDesc, MakeBodyPose(Float3{0.0f, -1.0f, 0.0f}));
 
             REQUIRE(dynId != INVALID_PHYSICS_BODY);
             REQUIRE(statId != INVALID_PHYSICS_BODY);
@@ -476,7 +476,7 @@ namespace Wayfinder::Tests
             desc.Type = BodyType::Kinematic;
             desc.Shape = ColliderShape::Box;
 
-            uint32_t id = world.CreateBody(desc, MakeBodyPose(Float3{0.0f, 0.0f, 0.0f}));
+            auto id = world.CreateBody(desc, MakeBodyPose(Float3{0.0f, 0.0f, 0.0f}));
             REQUIRE(id != INVALID_PHYSICS_BODY);
 
             world.SetBodyPosition(id, {5.0f, 10.0f, 15.0f});
@@ -600,7 +600,7 @@ namespace Wayfinder::Tests
             desc.Shape = ColliderShape::Box;
 
             const float startY = 10.0f;
-            uint32_t id = world.CreateBody(desc, MakeBodyPose(Float3{0.0f, startY, 0.0f}));
+            auto id = world.CreateBody(desc, MakeBodyPose(Float3{0.0f, startY, 0.0f}));
             REQUIRE(id != INVALID_PHYSICS_BODY);
 
             // Simulate ~1 second via StepFixed with variable frame times
@@ -661,10 +661,10 @@ namespace Wayfinder::Tests
             ecsWorld.component<TransformComponent>();
 
             // Track body IDs created and destroyed
-            uint32_t createdBodyId = INVALID_PHYSICS_BODY;
+            PhysicsBodyId createdBodyId;
             bool bodyDestroyed = false;
 
-            RegisterCreateBodiesObserver(ecsWorld, [&createdBodyId](uint32_t id)
+            RegisterCreateBodiesObserver(ecsWorld, [&createdBodyId](PhysicsBodyId id)
             {
                 createdBodyId = id;
             });
