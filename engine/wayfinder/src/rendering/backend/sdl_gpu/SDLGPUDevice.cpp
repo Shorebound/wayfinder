@@ -1005,7 +1005,16 @@ namespace Wayfinder
             return GPUTextureHandle::Invalid();
         }
 
-        const uint32_t resolvedMips = (desc.mipLevels == 0) ? CalculateMipLevels(desc.width, desc.height) : desc.mipLevels;
+        const uint32_t maxMips = CalculateMipLevels(desc.width, desc.height);
+        const uint32_t resolvedMips = (desc.mipLevels == 0) ? maxMips : std::min(desc.mipLevels, maxMips);
+
+        if (desc.mipLevels > maxMips)
+        {
+            WAYFINDER_WARN(LogRenderer,
+                "SDLGPUDevice::CreateTexture: Requested {} mip levels for {}x{} texture, "
+                "clamped to maximum of {}",
+                desc.mipLevels, desc.width, desc.height, maxMips);
+        }
 
         SDL_GPUTextureCreateInfo info{};
         info.type = SDL_GPU_TEXTURETYPE_2D;
