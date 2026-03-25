@@ -201,7 +201,7 @@ namespace Wayfinder::Tests
 
     TEST_CASE("TextureManager fallback accessors return default handles before init")
     {
-        TextureManager manager;
+        const TextureManager manager;
         CHECK_FALSE(manager.GetFallback().IsValid());
         CHECK_FALSE(manager.GetWhite().IsValid());
         CHECK_FALSE(manager.GetBlack().IsValid());

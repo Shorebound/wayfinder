@@ -6,7 +6,6 @@
 #include "core/Log.h"
 
 #include <SDL3/SDL.h>
-#include <algorithm>
 #include <array>
 #include <cstring>
 #include <format>
@@ -1031,7 +1030,7 @@ namespace Wayfinder
             return GPUTextureHandle::Invalid();
         }
 
-        return m_texturePool.Acquire({texture, desc.width, desc.height, resolvedMips});
+        return m_texturePool.Acquire({.texture = texture, .width = desc.width, .height = desc.height, .mipLevels = resolvedMips});
     }
 
     void SDLGPUDevice::DestroyTexture(GPUTextureHandle texture)
@@ -1048,6 +1047,7 @@ namespace Wayfinder
         }
     }
 
+    // NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
     void SDLGPUDevice::UploadToTexture(GPUTextureHandle texture, const void* pixelData, uint32_t width, uint32_t height, uint32_t bytesPerRow, uint32_t mipLevel)
     {
         auto* pEntry = m_texturePool.Get(texture);

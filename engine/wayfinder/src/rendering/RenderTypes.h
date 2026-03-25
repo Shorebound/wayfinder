@@ -1,5 +1,7 @@
 #pragma once
 
+#include <algorithm>
+#include <bit>
 #include <cstdint>
 #include <string>
 #include <string_view>
@@ -100,14 +102,7 @@ namespace Wayfinder
         {
             return 1;
         }
-        uint32_t levels = 1;
-        uint32_t dim = (width > height) ? width : height;
-        while (dim > 1)
-        {
-            dim >>= 1;
-            ++levels;
-        }
-        return levels;
+        return std::bit_width(std::max(width, height));
     }
 
     struct Extent2D
