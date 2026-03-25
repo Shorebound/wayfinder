@@ -70,7 +70,13 @@ namespace Wayfinder
         // Declare this pass writes to a colour render target at slot 0.
         void WriteColour(RenderGraphHandle handle, LoadOp load = LoadOp::Clear, ClearValue clear = {});
 
-        // Declare this pass writes to a colour render target at an explicit slot.
+        /**
+         * @brief Declare this pass writes to a colour render target at an explicit MRT slot.
+         * @param handle  Render graph resource to write to.
+         * @param slot    Colour target slot index (must be contiguous from 0).
+         * @param load    Load operation applied at the start of the pass.
+         * @param clear   Clear value used when @p load is LoadOp::Clear.
+         */
         void WriteColour(RenderGraphHandle handle, uint32_t slot, LoadOp load = LoadOp::Clear, ClearValue clear = {});
 
         // Declare this pass writes to a depth render target.
@@ -187,7 +193,8 @@ namespace Wayfinder
             std::vector<RenderGraphHandle> Reads;
             std::vector<uint32_t> DependsOn; // Direct pass indices this pass depends on
 
-            std::vector<ColourWriteInfo> ColourWrites;
+            uint32_t NumColourWrites = 0;
+            std::array<ColourWriteInfo, MAX_COLOUR_TARGETS> ColourWrites{};
             std::optional<DepthWriteInfo> DepthWrite;
             std::optional<SwapchainWriteInfo> SwapchainWrite;
 

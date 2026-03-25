@@ -7,24 +7,31 @@
 #include <string>
 #include <vector>
 
+// Test-idiomatic patterns: push_back with string literals is clear, and operator[] after REQUIRE(size)
+// is guarded. Suppress these doctest/test-pattern noise diagnostics file-wide.
+// NOLINTBEGIN(modernize-use-emplace, cppcoreguidelines-pro-bounds-avoid-unchecked-container-access)
+
 namespace Wayfinder::Tests
 {
-    // Helper: create a NullDevice + TransientResourcePool for graph execution
-    struct GraphTestFixture
+    namespace
     {
-        std::unique_ptr<Wayfinder::RenderDevice> m_Device;
-        Wayfinder::TransientResourcePool m_Pool;
-
-        GraphTestFixture() : m_Device(Wayfinder::RenderDevice::Create(Wayfinder::RenderBackend::Null))
+        // Helper: create a NullDevice + TransientResourcePool for graph execution
+        struct GraphTestFixture
         {
-            m_Pool.Initialise(*m_Device);
-        }
+            std::unique_ptr<Wayfinder::RenderDevice> Device;
+            Wayfinder::TransientResourcePool Pool;
 
-        ~GraphTestFixture()
-        {
-            m_Pool.Shutdown();
-        }
-    };
+            GraphTestFixture() : Device(Wayfinder::RenderDevice::Create(Wayfinder::RenderBackend::Null))
+            {
+                Pool.Initialise(*Device);
+            }
+
+            ~GraphTestFixture()
+            {
+                Pool.Shutdown();
+            }
+        };
+    } // anonymous namespace
 
     // ── Topological Sort ─────────────────────────────────────
 
@@ -87,7 +94,7 @@ namespace Wayfinder::Tests
         REQUIRE(graph.Compile());
 
         GraphTestFixture fixture;
-        graph.Execute(*fixture.m_Device, fixture.m_Pool);
+        graph.Execute(*fixture.Device, fixture.Pool);
 
         REQUIRE(executionOrder.size() == 2);
         CHECK(executionOrder[0] == "A");
@@ -140,7 +147,7 @@ namespace Wayfinder::Tests
         REQUIRE(graph.Compile());
 
         GraphTestFixture fixture;
-        graph.Execute(*fixture.m_Device, fixture.m_Pool);
+        graph.Execute(*fixture.Device, fixture.Pool);
 
         REQUIRE(executionOrder.size() == 3);
         CHECK(executionOrder[0] == "First");
@@ -185,7 +192,7 @@ namespace Wayfinder::Tests
         REQUIRE(graph.Compile());
 
         GraphTestFixture fixture;
-        graph.Execute(*fixture.m_Device, fixture.m_Pool);
+        graph.Execute(*fixture.Device, fixture.Pool);
 
         REQUIRE(executionOrder.size() == 1);
         CHECK(executionOrder[0] == "Present");
@@ -228,7 +235,7 @@ namespace Wayfinder::Tests
         REQUIRE(graph.Compile());
 
         GraphTestFixture fixture;
-        graph.Execute(*fixture.m_Device, fixture.m_Pool);
+        graph.Execute(*fixture.Device, fixture.Pool);
 
         REQUIRE(executionOrder.size() == 2);
         CHECK(executionOrder[0] == "Producer");
@@ -328,7 +335,7 @@ namespace Wayfinder::Tests
         REQUIRE(graph.Compile());
 
         GraphTestFixture fixture;
-        graph.Execute(*fixture.m_Device, fixture.m_Pool);
+        graph.Execute(*fixture.Device, fixture.Pool);
 
         REQUIRE(executionOrder.size() == 2);
         CHECK(executionOrder[0] == "Compute");
@@ -431,7 +438,7 @@ namespace Wayfinder::Tests
 
     TEST_CASE("NullDevice supports all render graph operations")
     {
-        GraphTestFixture fixture;
+        const GraphTestFixture fixture;
 
         // Verify NullDevice can handle all graph-related operations
         Wayfinder::RenderPassDescriptor rpDesc;
@@ -439,33 +446,33 @@ namespace Wayfinder::Tests
         rpDesc.targetSwapchain = false;
 
         // These should all be no-ops without crashing
-        fixture.m_Device->BeginRenderPass(rpDesc);
-        fixture.m_Device->EndRenderPass();
+        fixture.Device->BeginRenderPass(rpDesc);
+        fixture.Device->EndRenderPass();
 
-        fixture.m_Device->BeginComputePass();
-        fixture.m_Device->EndComputePass();
+        fixture.Device->BeginComputePass();
+        fixture.Device->EndComputePass();
 
-        auto tex = fixture.m_Device->CreateTexture({});
-        fixture.m_Device->DestroyTexture(tex);
+        auto tex = fixture.Device->CreateTexture({});
+        fixture.Device->DestroyTexture(tex);
 
-        auto buf = fixture.m_Device->CreateBuffer({});
-        fixture.m_Device->DestroyBuffer(buf);
+        auto buf = fixture.Device->CreateBuffer({});
+        fixture.Device->DestroyBuffer(buf);
 
-        auto shader = fixture.m_Device->CreateShader({});
-        fixture.m_Device->DestroyShader(shader);
+        auto shader = fixture.Device->CreateShader({});
+        fixture.Device->DestroyShader(shader);
 
-        Wayfinder::PipelineCreateDesc pipelineDesc;
-        auto pipeline = fixture.m_Device->CreatePipeline(pipelineDesc);
-        fixture.m_Device->DestroyPipeline(pipeline);
+        const Wayfinder::PipelineCreateDesc pipelineDesc;
+        auto pipeline = fixture.Device->CreatePipeline(pipelineDesc);
+        fixture.Device->DestroyPipeline(pipeline);
 
-        Wayfinder::ComputePipelineCreateDesc computePipelineDesc;
-        auto computePipeline = fixture.m_Device->CreateComputePipeline(computePipelineDesc);
-        fixture.m_Device->DestroyComputePipeline(computePipeline);
+        const Wayfinder::ComputePipelineCreateDesc computePipelineDesc;
+        auto computePipeline = fixture.Device->CreateComputePipeline(computePipelineDesc);
+        fixture.Device->DestroyComputePipeline(computePipeline);
 
-        auto sampler = fixture.m_Device->CreateSampler({});
-        fixture.m_Device->DestroySampler(sampler);
+        auto sampler = fixture.Device->CreateSampler({});
+        fixture.Device->DestroySampler(sampler);
 
-        const Wayfinder::Extent2D swapchainDimensions = fixture.m_Device->GetSwapchainDimensions();
+        const Wayfinder::Extent2D swapchainDimensions = fixture.Device->GetSwapchainDimensions();
         CHECK(swapchainDimensions.width == 0);
         CHECK(swapchainDimensions.height == 0);
     }
@@ -515,7 +522,7 @@ namespace Wayfinder::Tests
         REQUIRE(graph.Compile());
 
         GraphTestFixture fixture;
-        graph.Execute(*fixture.m_Device, fixture.m_Pool);
+        graph.Execute(*fixture.Device, fixture.Pool);
 
         REQUIRE(executionOrder.size() == 2);
         CHECK(executionOrder[0] == "Scene");
@@ -571,7 +578,7 @@ namespace Wayfinder::Tests
         REQUIRE(graph.Compile());
 
         GraphTestFixture fixture;
-        graph.Execute(*fixture.m_Device, fixture.m_Pool);
+        graph.Execute(*fixture.Device, fixture.Pool);
 
         REQUIRE(executionOrder.size() == 2);
         CHECK(executionOrder[0] == "GBuffer");
@@ -634,7 +641,7 @@ namespace Wayfinder::Tests
         REQUIRE(graph.Compile());
 
         GraphTestFixture fixture;
-        graph.Execute(*fixture.m_Device, fixture.m_Pool);
+        graph.Execute(*fixture.Device, fixture.Pool);
 
         REQUIRE(executionOrder.size() == 3);
         CHECK(executionOrder[0] == "PassA");
@@ -678,10 +685,76 @@ namespace Wayfinder::Tests
         REQUIRE(graph.Compile());
 
         GraphTestFixture fixture;
-        graph.Execute(*fixture.m_Device, fixture.m_Pool);
+        graph.Execute(*fixture.Device, fixture.Pool);
 
         REQUIRE(executionOrder.size() == 2);
         CHECK(executionOrder[0] == "Writer");
         CHECK(executionOrder[1] == "Reader");
     }
+
+    TEST_CASE("Depth and MRT combined pass compiles and executes")
+    {
+        // GBuffer pass writes depth + two colour targets (albedo at slot 0, normal at slot 1).
+        // Composition reads all three and writes to swapchain.
+        std::vector<std::string> executionOrder;
+        Wayfinder::RenderGraph graph;
+
+        Wayfinder::RenderGraphTextureDesc albedoDesc;
+        albedoDesc.Width = 1280;
+        albedoDesc.Height = 720;
+        albedoDesc.Format = Wayfinder::TextureFormat::RGBA8_UNORM;
+        albedoDesc.DebugName = "GBuffer_Albedo";
+
+        Wayfinder::RenderGraphTextureDesc normalDesc;
+        normalDesc.Width = 1280;
+        normalDesc.Height = 720;
+        normalDesc.Format = Wayfinder::TextureFormat::RGBA16_FLOAT;
+        normalDesc.DebugName = "GBuffer_Normal";
+
+        Wayfinder::RenderGraphTextureDesc depthDesc;
+        depthDesc.Width = 1280;
+        depthDesc.Height = 720;
+        depthDesc.Format = Wayfinder::TextureFormat::D32_FLOAT;
+        depthDesc.DebugName = "GBuffer_Depth";
+
+        graph.AddPass("GBuffer", [&](Wayfinder::RenderGraphBuilder& builder)
+        {
+            auto albedo = builder.CreateTransient(albedoDesc);
+            auto normal = builder.CreateTransient(normalDesc);
+            auto depth = builder.CreateTransient(depthDesc);
+            builder.WriteColour(albedo, 0);
+            builder.WriteColour(normal, 1);
+            builder.WriteDepth(depth);
+            return [&executionOrder](Wayfinder::RenderDevice&, const Wayfinder::RenderGraphResources&)
+            {
+                executionOrder.push_back("GBuffer");
+            };
+        });
+
+        graph.AddPass("Lighting", [&](Wayfinder::RenderGraphBuilder& builder)
+        {
+            auto albedo = graph.FindHandle("GBuffer_Albedo");
+            auto normal = graph.FindHandle("GBuffer_Normal");
+            auto depth = graph.FindHandle("GBuffer_Depth");
+            builder.ReadTexture(albedo);
+            builder.ReadTexture(normal);
+            builder.ReadTexture(depth);
+            builder.SetSwapchainOutput();
+            return [&executionOrder](Wayfinder::RenderDevice&, const Wayfinder::RenderGraphResources&)
+            {
+                executionOrder.push_back("Lighting");
+            };
+        });
+
+        REQUIRE(graph.Compile());
+
+        GraphTestFixture fixture;
+        graph.Execute(*fixture.Device, fixture.Pool);
+
+        REQUIRE(executionOrder.size() == 2);
+        CHECK(executionOrder[0] == "GBuffer");
+        CHECK(executionOrder[1] == "Lighting");
+    }
 }
+
+// NOLINTEND(modernize-use-emplace, cppcoreguidelines-pro-bounds-avoid-unchecked-container-access)

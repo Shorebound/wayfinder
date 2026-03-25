@@ -203,6 +203,7 @@ namespace Wayfinder
         bool depthTestEnabled = false;
         bool depthWriteEnabled = false;
         uint32_t numColourTargets = 1;
+        std::array<TextureFormat, MAX_COLOUR_TARGETS> colourTargetFormats{};
         std::array<BlendState, MAX_COLOUR_TARGETS> colourTargetBlends{};
     };
 

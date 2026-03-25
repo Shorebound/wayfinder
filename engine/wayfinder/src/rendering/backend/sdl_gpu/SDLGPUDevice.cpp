@@ -343,16 +343,19 @@ namespace Wayfinder
         }
 
         const uint32_t numTargets = std::min(descriptor.numColourTargets, MAX_COLOUR_TARGETS);
-        if (numTargets == 0)
+        if (numTargets == 0 && !descriptor.depthAttachment.enabled)
         {
+            WAYFINDER_ERROR(LogRenderer, "BeginRenderPass '{}': no colour targets and no depth attachment — skipping pass", descriptor.debugName);
             return;
         }
 
         // ── Build colour target array ────────────────────────
+        // NOLINTBEGIN(cppcoreguidelines-pro-bounds-constant-array-index, cppcoreguidelines-pro-bounds-avoid-unchecked-container-access)
         std::array<SDL_GPUColorTargetInfo, MAX_COLOUR_TARGETS> colourTargets{};
 
         for (uint32_t i = 0; i < numTargets; ++i)
         {
+            const auto& attachment = descriptor.colourAttachments[i];
             SDL_GPUTexture* texture = nullptr;
 
             if (descriptor.targetSwapchain && i == 0)
@@ -363,9 +366,9 @@ namespace Wayfinder
                 }
                 texture = m_swapchainTexture;
             }
-            else if (descriptor.colourTargets[i].IsValid())
+            else if (attachment.target.IsValid())
             {
-                auto* pTex = m_texturePool.Get(descriptor.colourTargets[i]);
+                auto* pTex = m_texturePool.Get(attachment.target);
                 texture = pTex ? pTex->texture : nullptr;
             }
 
@@ -374,8 +377,6 @@ namespace Wayfinder
                 WAYFINDER_WARNING(LogRenderer, "BeginRenderPass '{}': colour target at slot {} is null — skipping pass", descriptor.debugName, i);
                 return;
             }
-
-            const auto& attachment = descriptor.colourAttachments[i];
 
             auto& target = colourTargets[i];
             target.texture = texture;
@@ -407,6 +408,7 @@ namespace Wayfinder
                 break;
             }
         }
+        // NOLINTEND(cppcoreguidelines-pro-bounds-constant-array-index, cppcoreguidelines-pro-bounds-avoid-unchecked-container-access)
 
         // ── Depth target ─────────────────────────────────────
         if (descriptor.depthAttachment.enabled)
@@ -642,16 +644,15 @@ namespace Wayfinder
             ++colourTargetIndex;
         }
 
-        // Colour targets — one per MRT attachment, all using swapchain format for now.
-        // Non-swapchain render targets (e.g. G-buffer, shadow maps) will require
-        // per-target format fields in PipelineCreateDesc once framebuffer abstraction lands.
+        // Colour targets — one per MRT attachment.
+        // Per-target formats allow deferred rendering with mixed formats (e.g. RGBA8 albedo + RGBA16F normals).
+        // Default-initialised RGBA8_UNORM falls back to swapchain format for backwards compatibility.
         const SDL_GPUTextureFormat swapchainFormat = SDL_GetGPUSwapchainTextureFormat(m_device, m_window);
         std::array<SDL_GPUColorTargetDescription, MAX_COLOUR_TARGETS> colourTargetDescs{};
-        auto colourTargetDescIt = colourTargetDescs.begin();
-        for (const BlendState& blend : desc.colourTargetBlends | std::views::take(desc.numColourTargets))
+        auto targetSlices = std::views::zip(colourTargetDescs, desc.colourTargetFormats, desc.colourTargetBlends) | std::views::take(desc.numColourTargets);
+        for (auto&& [colourTargetDesc, format, blend] : targetSlices)
         {
-            auto& colourTargetDesc = *colourTargetDescIt++;
-            colourTargetDesc.format = swapchainFormat;
+            colourTargetDesc.format = (format == TextureFormat::RGBA8_UNORM) ? swapchainFormat : ToSDLTextureFormat(format);
 
             if (blend.Enabled)
             {

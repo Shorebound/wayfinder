@@ -201,6 +201,7 @@ namespace Wayfinder
 
     struct ColourAttachmentDescriptor
     {
+        GPUTextureHandle target{};
         ClearValue clearValue{};
         LoadOp loadOp = LoadOp::Clear;
         StoreOp storeOp = StoreOp::Store;
@@ -219,7 +220,6 @@ namespace Wayfinder
         std::string_view debugName;
         uint32_t numColourTargets = 1;
         std::array<ColourAttachmentDescriptor, MAX_COLOUR_TARGETS> colourAttachments{};
-        std::array<GPUTextureHandle, MAX_COLOUR_TARGETS> colourTargets{};
         DepthAttachmentDescriptor depthAttachment{};
         bool targetSwapchain = true;
         GPUTextureHandle depthTarget{}; // If set, use instead of auto-managed depth

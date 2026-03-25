@@ -69,17 +69,29 @@ namespace Wayfinder
 
         auto& pass = CheckedAt(m_graph.m_passes, m_passIndex);
 
-        // Reject duplicate slot writes in the same pass
-        for (const auto& existing : pass.ColourWrites)
+        // NOLINTBEGIN(cppcoreguidelines-pro-bounds-constant-array-index, cppcoreguidelines-pro-bounds-avoid-unchecked-container-access)
+        // — slot is bounds-checked against MAX_COLOUR_TARGETS above
+
+        // Reject duplicate slot writes
+        if (slot < pass.NumColourWrites && pass.ColourWrites[slot].Handle.IsValid())
         {
-            if (existing.Slot == slot)
-            {
-                WAYFINDER_ERROR(LogRenderer, "RenderGraphBuilder::WriteColour: duplicate write to slot {} in pass '{}'", slot, pass.Name.GetString());
-                return;
-            }
+            WAYFINDER_ERROR(LogRenderer, "RenderGraphBuilder::WriteColour: duplicate write to slot {} in pass '{}'", slot, pass.Name.GetString());
+            return;
         }
 
-        pass.ColourWrites.push_back(RenderGraph::ColourWriteInfo{.Handle = handle, .Slot = slot, .Load = load, .Clear = clear});
+        // Reject sparse slots — all slots must be contiguous from 0
+        if (slot > pass.NumColourWrites)
+        {
+            WAYFINDER_ERROR(LogRenderer, "RenderGraphBuilder::WriteColour: slot {} would create a gap (current count: {}) in pass '{}'", slot, pass.NumColourWrites, pass.Name.GetString());
+            return;
+        }
+
+        pass.ColourWrites[slot] = RenderGraph::ColourWriteInfo{.Handle = handle, .Slot = slot, .Load = load, .Clear = clear};
+        // NOLINTEND(cppcoreguidelines-pro-bounds-constant-array-index, cppcoreguidelines-pro-bounds-avoid-unchecked-container-access)
+        if (slot == pass.NumColourWrites)
+        {
+            ++pass.NumColourWrites;
+        }
 
         auto& res = CheckedAt(m_graph.m_resources, handle.Index);
         // LoadOp::Load implies reading previous content
@@ -354,6 +366,7 @@ namespace Wayfinder
                 RenderPassDescriptor rpDesc;
                 rpDesc.debugName = pass.Name.GetString();
 
+                // NOLINTBEGIN(cppcoreguidelines-pro-bounds-constant-array-index, cppcoreguidelines-pro-bounds-avoid-unchecked-container-access)
                 if (pass.SwapchainWrite)
                 {
                     rpDesc.targetSwapchain = true;
@@ -362,26 +375,26 @@ namespace Wayfinder
                     rpDesc.colourAttachments[0].clearValue = pass.SwapchainWrite->Clear;
                     rpDesc.colourAttachments[0].storeOp = StoreOp::Store;
                 }
-                else if (!pass.ColourWrites.empty())
+                else if (pass.NumColourWrites > 0)
                 {
                     rpDesc.targetSwapchain = false;
+                    rpDesc.numColourTargets = pass.NumColourWrites;
 
-                    // Determine the number of targets from the highest slot used
-                    uint32_t maxSlot = 0;
-                    for (const auto& cw : pass.ColourWrites)
+                    for (uint32_t i = 0; i < pass.NumColourWrites; ++i)
                     {
-                        maxSlot = std::max(maxSlot, cw.Slot);
-                    }
-                    rpDesc.numColourTargets = maxSlot + 1;
-
-                    for (const auto& cw : pass.ColourWrites)
-                    {
-                        rpDesc.colourTargets[cw.Slot] = resources.GetTexture(cw.Handle);
-                        rpDesc.colourAttachments[cw.Slot].loadOp = cw.Load;
-                        rpDesc.colourAttachments[cw.Slot].clearValue = cw.Clear;
-                        rpDesc.colourAttachments[cw.Slot].storeOp = StoreOp::Store;
+                        const auto& cw = pass.ColourWrites[i];
+                        rpDesc.colourAttachments[i].target = resources.GetTexture(cw.Handle);
+                        rpDesc.colourAttachments[i].loadOp = cw.Load;
+                        rpDesc.colourAttachments[i].clearValue = cw.Clear;
+                        rpDesc.colourAttachments[i].storeOp = StoreOp::Store;
                     }
                 }
+                else
+                {
+                    rpDesc.targetSwapchain = false;
+                    rpDesc.numColourTargets = 0;
+                }
+                // NOLINTEND(cppcoreguidelines-pro-bounds-constant-array-index, cppcoreguidelines-pro-bounds-avoid-unchecked-container-access)
 
                 if (pass.DepthWrite)
                 {
