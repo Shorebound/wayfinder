@@ -1,6 +1,6 @@
 # Wayfinder
 
-> **This project is a personal experiment** to see how far AI-assisted development can go when paired with a single developer. It's not a production engine, not a portfolio piece, and not representative of any professional work. It's just a fun sandbox for learning what agents can and can't do.
+> **This project is a personal experiment** to see how far AI-assisted development can go. It's not a production engine, not a portfolio piece, and not representative of any professional work. It's just a fun sandbox for learning what agents can and can't do.
 
 Wayfinder is a C++23 game engine targeting a "fantasy console" - sixth-gen aesthetics (PS2, Dreamcast era) with modern compute, architecture, and tooling. The premise: what would developers from that era have built if dynamic lighting, runtime simulation, and fast iteration were cheap?
 
