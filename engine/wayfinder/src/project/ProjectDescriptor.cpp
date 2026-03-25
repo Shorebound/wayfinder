@@ -7,19 +7,19 @@
 namespace Wayfinder
 {
 
-    std::filesystem::path ProjectDescriptor::ResolveModulePath() const
+    std::filesystem::path ProjectDescriptor::ResolvePluginLibraryPath() const
     {
-        if (Paths.Module.empty())
+        if (Paths.Plugin.empty())
         {
             return {};
         }
 
 #ifdef _WIN32
-        return ProjectRoot / (Paths.Module + ".dll");
+        return ProjectRoot / (Paths.Plugin + ".dll");
 #elif defined(__APPLE__)
-        return ProjectRoot / ("lib" + Paths.Module + ".dylib");
+        return ProjectRoot / ("lib" + Paths.Plugin + ".dylib");
 #else
-        return ProjectRoot / ("lib" + Paths.Module + ".so");
+        return ProjectRoot / ("lib" + Paths.Plugin + ".so");
 #endif
     }
 
@@ -67,9 +67,9 @@ namespace Wayfinder
                 {
                     output.Descriptor.EngineVersion = *v;
                 }
-                if (auto v = (*project)["module"].value<std::string>())
+                if (auto v = (*project)["plugin"].value<std::string>())
                 {
-                    output.Descriptor.Paths.Module = *v;
+                    output.Descriptor.Paths.Plugin = *v;
                 }
             }
 

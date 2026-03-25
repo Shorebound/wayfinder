@@ -51,9 +51,9 @@ namespace
         flecs::world World;
         Wayfinder::RuntimeComponentRegistry Registry;
         std::optional<Wayfinder::Plugins::LoadedPlugin> GamePlugin;
-        std::unique_ptr<Wayfinder::Plugins::PluginRegistry> PluginReg;
-        /// Owned config; \ref PluginRegistry stores a reference — must outlive \ref PluginReg.
+        /// Owned config; \ref PluginRegistry stores a reference — declared first so it outlives \ref PluginReg.
         Wayfinder::EngineConfig EngineConfig;
+        std::unique_ptr<Wayfinder::Plugins::PluginRegistry> PluginReg;
 
         explicit WaypointContext(const Wayfinder::ProjectDescriptor* project = nullptr, const std::filesystem::path& toolDir = {})
         {
@@ -69,18 +69,18 @@ namespace
             Wayfinder::Scene::RegisterCoreComponents(World);
             Registry.AddCoreEntries();
 
-            if (project && !project->Paths.Module.empty())
+            if (project && !project->Paths.Plugin.empty())
             {
-                auto modulePath = project->ResolveModulePath();
+                auto pluginLibraryPath = project->ResolvePluginLibraryPath();
 
-                /// If the module isn't next to the project file, try the
+                /// If the plugin library isn't next to the project file, try the
                 /// tool's own directory (common for build-output layouts).
-                if (!std::filesystem::exists(modulePath) && !toolDir.empty())
+                if (!std::filesystem::exists(pluginLibraryPath) && !toolDir.empty())
                 {
-                    modulePath = toolDir / modulePath.filename();
+                    pluginLibraryPath = toolDir / pluginLibraryPath.filename();
                 }
 
-                auto loadResult = Wayfinder::Plugins::PluginLoader::Load(modulePath);
+                auto loadResult = Wayfinder::Plugins::PluginLoader::Load(pluginLibraryPath);
                 if (loadResult && loadResult->Instance)
                 {
                     GamePlugin = std::move(*loadResult);
@@ -90,13 +90,13 @@ namespace
                 }
                 else
                 {
-                    std::cerr << "Warning: failed to load game plugin from " << modulePath.string() << '\n';
+                    std::cerr << "Warning: failed to load game plugin from " << pluginLibraryPath.string() << '\n';
                 }
             }
 
             Registry.RegisterComponents(World);
 
-            /// Mirror Game::InitialiseWorld: apply the game module's systems and globals after
+            /// Mirror Game::InitialiseWorld: apply the plugin registry's systems and globals after
             /// component registration. Without a loaded game plugin, register the same core
             /// scene plugins (transform/camera) used by headless tests — do not combine both paths
             /// or systems would be registered twice.

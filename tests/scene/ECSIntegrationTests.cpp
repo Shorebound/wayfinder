@@ -192,13 +192,125 @@ namespace Wayfinder::Tests
             const SceneObjectId originalId = entity.GetSceneObjectId();
             const SceneObjectId reassignedId = SceneObjectId::Generate();
 
-            entity.SetSceneObjectId(reassignedId);
+            REQUIRE(entity.SetSceneObjectId(reassignedId).has_value());
 
             CHECK_FALSE(scene.GetEntityById(originalId).IsValid());
 
             const auto found = scene.GetEntityById(reassignedId);
             CHECK(found.IsValid());
             CHECK(found == entity);
+        }
+
+        TEST_CASE("SetSceneObjectId rejects nil on scene-owned entity")
+        {
+            flecs::world world;
+            auto registry = MakeTestRegistry();
+            registry.RegisterComponents(world);
+            Scene::RegisterCoreComponents(world);
+            Scene scene(world, registry, "TestScene");
+
+            auto entity = scene.CreateEntity("Player");
+            const SceneObjectId originalId = entity.GetSceneObjectId();
+
+            const auto nilResult = entity.SetSceneObjectId(SceneObjectId{});
+            CHECK_FALSE(nilResult.has_value());
+            CHECK(entity.GetSceneObjectId() == originalId);
+        }
+
+        TEST_CASE("Shutdown destroys all scene-owned entities via SceneOwnership")
+        {
+            flecs::world world;
+            auto registry = MakeTestRegistry();
+            registry.RegisterComponents(world);
+            Scene::RegisterCoreComponents(world);
+
+            std::vector<flecs::entity_t> flecsIds;
+            flecsIds.reserve(5);
+            {
+                Scene scene(world, registry, "TestScene");
+                for (int i = 0; i < 5; ++i)
+                {
+                    auto entity = scene.CreateEntity("Entity");
+                    flecsIds.push_back(entity.GetHandle().id());
+                }
+            }
+
+            for (const flecs::entity_t id : flecsIds)
+            {
+                CHECK_FALSE(world.entity(id).is_valid());
+            }
+        }
+
+        TEST_CASE("Shutdown destroys scene entity after SceneObjectId reassignment")
+        {
+            flecs::world world;
+            auto registry = MakeTestRegistry();
+            registry.RegisterComponents(world);
+            Scene::RegisterCoreComponents(world);
+
+            flecs::entity_t handle = 0;
+            {
+                Scene scene(world, registry, "TestScene");
+                auto entity = scene.CreateEntity("Player");
+                const SceneObjectId newId = SceneObjectId::Generate();
+                REQUIRE(entity.SetSceneObjectId(newId).has_value());
+                handle = entity.GetHandle().id();
+            }
+
+            CHECK_FALSE(world.entity(handle).is_valid());
+        }
+
+        TEST_CASE("Shutdown recycles scene tag for a second Scene on the same world")
+        {
+            flecs::world world;
+            auto registry = MakeTestRegistry();
+            registry.RegisterComponents(world);
+            Scene::RegisterCoreComponents(world);
+
+            flecs::entity_t tagId = 0;
+            {
+                Scene scene(world, registry, "SceneA");
+                scene.CreateEntity("One");
+                tagId = scene.GetSceneTagEntityId();
+                CHECK(tagId != 0);
+            }
+
+            CHECK(world.entity(tagId).is_valid());
+
+            {
+                Scene scene2(world, registry, "SceneB");
+                CHECK(scene2.GetSceneTagEntityId() == tagId);
+            }
+        }
+
+        TEST_CASE("Deferred scene tag release recycles tag after deferred mode ends")
+        {
+            flecs::world world;
+            auto registry = MakeTestRegistry();
+            registry.RegisterComponents(world);
+            Scene::RegisterCoreComponents(world);
+
+            flecs::entity_t entityId = 0;
+            flecs::entity_t tagId = 0;
+            {
+                Scene scene(world, registry, "SceneA");
+                entityId = scene.CreateEntity("One").GetHandle().id();
+                tagId = scene.GetSceneTagEntityId();
+
+                REQUIRE(world.defer_begin());
+                scene.Shutdown();
+                CHECK(world.is_deferred());
+                CHECK(world.defer_end());
+            }
+
+            CHECK_FALSE(world.entity(entityId).is_valid());
+
+            /// After defer_end the deferred tag is drained into the free list, so the
+            /// next scene should recycle it rather than leaking the id permanently.
+            {
+                Scene nextScene(world, registry, "SceneB");
+                CHECK(nextScene.GetSceneTagEntityId() == tagId);
+            }
         }
 
         TEST_CASE("GetEntityById returns invalid for unknown ID")

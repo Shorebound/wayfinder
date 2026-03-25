@@ -25,6 +25,70 @@ namespace Wayfinder
                 Wayfinder::LogScene.GetLogger()->LogFormat(Wayfinder::LogVerbosity::Error, "  - {0}", error);
             }
         }
+
+        /// Flecs debug-build locks pair **second** ids while queries reference them; \c ecs_delete on the
+        /// scene tag can assert. We never delete tag entities; we \c ecs_clear and recycle them per
+        /// \c flecs::world. The pool is stored as a world singleton so its lifetime is tied to the world.
+        struct SceneTagPool
+        {
+            std::vector<flecs::entity_t> FreeList;
+            std::vector<flecs::entity_t> DeferredList;
+        };
+
+        void DrainDeferredSceneTags(SceneTagPool& pool)
+        {
+            if (pool.DeferredList.empty())
+            {
+                return;
+            }
+
+            pool.FreeList.insert(pool.FreeList.end(), pool.DeferredList.begin(), pool.DeferredList.end());
+            pool.DeferredList.clear();
+        }
+
+        flecs::entity AcquireSceneTag(flecs::world& world)
+        {
+            auto& pool = world.ensure<SceneTagPool>();
+
+            /// Recycle any tags that were released while the world was deferring.
+            if (!world.is_deferred())
+            {
+                DrainDeferredSceneTags(pool);
+            }
+
+            if (!pool.FreeList.empty())
+            {
+                const flecs::entity_t id = pool.FreeList.back();
+                pool.FreeList.pop_back();
+                return world.entity(id);
+            }
+
+            return world.entity();
+        }
+
+        void ReleaseSceneTag(flecs::world& world, flecs::entity tag)
+        {
+            if (!tag.is_valid())
+            {
+                return;
+            }
+
+            auto& pool = world.ensure<SceneTagPool>();
+            ecs_clear(world.c_ptr(), tag.id());
+
+            /// Scene shutdown may run while Flecs is deferring mutations from a stage. In that case
+            /// the tag must not be returned to the free list yet, because queued SceneOwnership pair
+            /// ops may still reference the id and Flecs only permits \c ecs_merge on stages, not the
+            /// root world handle. Clearing the tag is safe; the id is parked in the deferred list and
+            /// drained into the free list the next time a tag is acquired outside deferred mode.
+            if (world.is_deferred())
+            {
+                pool.DeferredList.push_back(tag.id());
+                return;
+            }
+
+            pool.FreeList.push_back(tag.id());
+        }
     } // anonymous namespace
 }
 
@@ -32,7 +96,8 @@ namespace Wayfinder
 {
     Scene::Scene(flecs::world& world, const RuntimeComponentRegistry& componentRegistry, std::string name) : m_world(world), m_componentRegistry(componentRegistry), m_name(std::move(name))
     {
-        m_sceneTag = m_world.entity();
+        m_sceneTag = AcquireSceneTag(m_world);
+        m_ownedEntitiesQuery = m_world.query_builder<>().with<SceneOwnership>(m_sceneTag).build();
     }
 
     void Scene::RegisterEntityId(flecs::entity entityHandle, const SceneObjectId& id) const
@@ -112,29 +177,21 @@ namespace Wayfinder
         world.component<PrefabInstanceComponent>();
     }
 
-    void Scene::ClearEntities()
+    void Scene::ClearEntities(const bool rebuildOwnedEntitiesQuery)
     {
-        for (const auto& [id, entityId] : m_entitiesById)
+        /// Collect owned entities before destroying the cached query. The query must be destroyed
+        /// before \ref ReleaseSceneTag so Flecs debug-build pair locks on the tag are released.
+        std::vector<flecs::entity> owned;
+        m_ownedEntitiesQuery.each([&](flecs::entity entityHandle)
         {
-            const flecs::entity entityHandle = m_world.entity(entityId);
             if (entityHandle.is_valid())
             {
-                entityHandle.destruct();
-            }
-        }
-
-        /// Fallback sweep: catch any scene-owned entities that lost their
-        /// map entry (e.g. after SetSceneObjectId({}) removed them from
-        /// m_entitiesById but left the flecs entity alive).
-        std::vector<flecs::entity> orphans;
-        m_world.each([&](flecs::entity entityHandle)
-        {
-            if (entityHandle.is_valid() && entityHandle.has<SceneOwnership>(m_sceneTag))
-            {
-                orphans.push_back(entityHandle);
+                owned.push_back(entityHandle);
             }
         });
-        for (auto& entityHandle : orphans)
+        m_ownedEntitiesQuery = flecs::query<>{};
+
+        for (const flecs::entity entityHandle : owned)
         {
             entityHandle.destruct();
         }
@@ -144,6 +201,11 @@ namespace Wayfinder
 
         // Reset scene-scoped settings
         m_world.set<SceneSettings>({});
+
+        if (rebuildOwnedEntitiesQuery && m_sceneTag.is_valid())
+        {
+            m_ownedEntitiesQuery = m_world.query_builder<>().with<SceneOwnership>(m_sceneTag).build();
+        }
     }
 
     void Scene::Shutdown()
@@ -155,12 +217,15 @@ namespace Wayfinder
 
         WAYFINDER_INFO(LogScene, "Shutting down scene: {0}", m_name);
 
-        ClearEntities();
+        ClearEntities(false);
 
+        /// Pair queries lock the tag id as a pair second (Flecs debug). \c ClearEntities destroys those
+        /// queries. We do not \c ecs_delete the tag; we return it to the pool via \c ReleaseSceneTag.
         if (m_sceneTag.is_valid())
         {
-            m_sceneTag.destruct();
+            ReleaseSceneTag(m_world, m_sceneTag);
         }
+        m_sceneTag = flecs::entity{};
 
         m_active = false;
     }
@@ -246,6 +311,20 @@ namespace Wayfinder
 
     Result<void> Scene::LoadFromFile(const std::string& filePath)
     {
+        bool didMutateScene = false;
+        const auto rollbackLoad = [this, &didMutateScene]()
+        {
+            if (!didMutateScene)
+            {
+                return;
+            }
+
+            ClearEntities();
+            m_name.clear();
+            m_sourcePath.clear();
+            m_assetRoot.clear();
+        };
+
         try
         {
             const SceneDocumentLoadResult loadResult = LoadSceneDocument(filePath, m_componentRegistry, m_assetService.get());
@@ -255,16 +334,21 @@ namespace Wayfinder
                 return MakeError(std::format("Failed to load scene document: {}", filePath));
             }
 
+            const std::filesystem::path sourcePath = std::filesystem::weakly_canonical(std::filesystem::path(filePath));
+            const std::filesystem::path assetRoot = FindAssetRoot(sourcePath).value_or(std::filesystem::path{});
+
             ClearEntities();
-            m_name = loadResult.Document->Name;
-            m_sourcePath = std::filesystem::weakly_canonical(std::filesystem::path(filePath));
-            m_assetRoot = FindAssetRoot(m_sourcePath).value_or(std::filesystem::path{});
+            didMutateScene = true;
 
             std::unordered_map<SceneObjectId, Entity> createdEntitiesById;
             for (const SceneDocumentEntity& definition : loadResult.Document->Entities)
             {
                 Entity entity = CreateEntity(definition.Name);
-                entity.SetSceneObjectId(definition.Id);
+                if (const auto idResult = entity.SetSceneObjectId(definition.Id); !idResult)
+                {
+                    rollbackLoad();
+                    return MakeError(std::format("Failed to set scene object id for '{}': {}", definition.Name, idResult.error().GetMessage()));
+                }
 
                 m_componentRegistry.ApplyComponents(definition.ComponentData, entity);
 
@@ -299,6 +383,10 @@ namespace Wayfinder
                 childIt->second.GetHandle().child_of(parentIdIt->second.GetHandle());
             }
 
+            m_name = loadResult.Document->Name;
+            m_sourcePath = sourcePath;
+            m_assetRoot = assetRoot;
+
             WAYFINDER_INFO(LogScene, "Loaded scene data from: {0}", filePath);
 
             // Apply scene settings as a world singleton
@@ -310,6 +398,7 @@ namespace Wayfinder
         }
         catch (const std::exception& error)
         {
+            rollbackLoad();
             WAYFINDER_ERROR(LogScene, "Failed to load scene file {0}: {1}", filePath, error.what());
             return MakeError(std::format("Failed to load scene file: {}", error.what()));
         }
@@ -328,13 +417,8 @@ namespace Wayfinder
                 document.Settings = m_world.get<SceneSettings>().GetData();
             }
 
-            m_world.each([&](flecs::entity entityHandle)
+            m_ownedEntitiesQuery.each([&](flecs::entity entityHandle)
             {
-                if (!entityHandle.has<SceneOwnership>(m_sceneTag))
-                {
-                    return;
-                }
-
                 const Entity entity{entityHandle, this};
                 if (!entity.HasSceneObjectId())
                 {

@@ -128,7 +128,7 @@ if(WIN32)
   # set(CMAKE_SYSTEM_VERSION "10.0.17134.0")
 
   # Use dynamic runtime library (/MD or /MDd) — required for safe DLL boundary
-  # with game modules (journey_module.dll etc.) loaded at runtime
+  # with game plugins (e.g. journey_plugin.dll) loaded at runtime
   set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>DLL")
   message(STATUS "Windows: Using dynamic runtime library based on configuration.")
 

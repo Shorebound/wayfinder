@@ -32,7 +32,7 @@ namespace Wayfinder
         {
             if (Find(desc.Key))
             {
-                WAYFINDER_LOG(LogScene, LogVerbosity::Warning, "Duplicate component key '{}' from game module, skipping", desc.Key);
+                WAYFINDER_LOG(LogScene, LogVerbosity::Warning, "Duplicate component key '{}' from game plugin, skipping", desc.Key);
                 continue;
             }
 

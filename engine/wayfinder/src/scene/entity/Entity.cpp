@@ -61,8 +61,13 @@ namespace Wayfinder
         return {};
     }
 
-    void Entity::SetSceneObjectId(const SceneObjectId& id)
+    Result<void> Entity::SetSceneObjectId(const SceneObjectId& id)
     {
+        if (id.IsNil() && m_scene != nullptr && m_entityHandle.has<SceneOwnership>(m_scene->GetSceneTag()))
+        {
+            return MakeError("Cannot set nil SceneObjectId on a scene-owned entity");
+        }
+
         const SceneObjectId previousId = GetSceneObjectId();
         m_entityHandle.set<SceneObjectIdComponent>({id});
 
@@ -70,6 +75,8 @@ namespace Wayfinder
         {
             m_scene->UpdateEntityId(m_entityHandle, previousId, id);
         }
+
+        return {};
     }
 
     bool Entity::HasPrefabAssetId() const
