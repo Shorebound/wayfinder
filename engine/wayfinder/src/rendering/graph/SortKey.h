@@ -6,12 +6,15 @@
 namespace Wayfinder
 {
     // 64-bit sort key layout:
-    //   [2 bits: layer]  [16 bits: pipeline/material ID]  [32 bits: depth]  [14 bits: sub-sort]
+    //   Opaque / Overlay: [2 bits: layer] [6 bits: blend group] [16 bits: material ID] [32 bits: depth] [8 bits: sub-sort]
+    //   Transparent:      [2 bits: layer] [32 bits: depth] [6 bits: blend group] [16 bits: material ID] [8 bits: sub-sort]
     //
     // Layer: 0 = Opaque, 1 = Transparent, 2 = Overlay
     // Depth: camera-space Z encoded as uint32. Opaques sort front-to-back (smaller Z first),
     //        transparents sort back-to-front (larger Z first) — achieved by flipping depth bits for transparent.
-    // Sub-sort: tiebreaker for deterministic ordering (entity hash or sequence counter).
+    // Blend group: compact bucket for compatible blend states. Transparent keys place this after depth so
+    //        back-to-front ordering always wins over state clustering.
+    // Sub-sort: 8-bit tiebreaker for deterministic ordering (render priority today).
 
     enum class SortLayer : uint8_t
     {
@@ -38,29 +41,44 @@ namespace Wayfinder
             return bits;
         }
 
-        inline uint64_t Build(SortLayer layer, uint16_t materialId, float cameraSpaceZ, uint16_t subSort)
+        inline uint64_t Build(SortLayer layer, uint8_t blendGroup, uint16_t materialId, float cameraSpaceZ, uint8_t subSort)
         {
             uint64_t key = 0;
 
             // [63:62] — 2-bit layer
             key |= (static_cast<uint64_t>(layer) & 0x3) << 62;
 
-            // [61:46] — 16-bit pipeline/material ID
-            key |= static_cast<uint64_t>(materialId) << 46;
-
-            // [45:14] — 32-bit depth
             uint32_t depthBits = DepthToUint32(cameraSpaceZ);
-
-            // For transparent layer, flip depth so back-to-front sorts naturally as ascending key order
             if (layer == SortLayer::Transparent)
             {
                 depthBits = ~depthBits;
             }
 
-            key |= static_cast<uint64_t>(depthBits) << 14;
+            if (layer == SortLayer::Transparent)
+            {
+                // [61:30] — 32-bit depth
+                key |= static_cast<uint64_t>(depthBits) << 30;
 
-            // [13:0] — 14-bit sub-sort tiebreaker
-            key |= static_cast<uint64_t>(subSort & 0x3FFF);
+                // [29:24] — 6-bit blend group
+                key |= static_cast<uint64_t>(blendGroup & 0x3F) << 24;
+
+                // [23:8] — 16-bit material ID
+                key |= static_cast<uint64_t>(materialId) << 8;
+            }
+            else
+            {
+                // [61:56] — 6-bit blend group
+                key |= static_cast<uint64_t>(blendGroup & 0x3F) << 56;
+
+                // [55:40] — 16-bit material ID
+                key |= static_cast<uint64_t>(materialId) << 40;
+
+                // [39:8] — 32-bit depth
+                key |= static_cast<uint64_t>(depthBits) << 8;
+            }
+
+            // [7:0] — 8-bit sub-sort tiebreaker
+            key |= static_cast<uint64_t>(subSort);
 
             return key;
         }

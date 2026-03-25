@@ -1,0 +1,9 @@
+{
+    "asset_id": "a0000000-0000-0000-0000-0000000000f1",
+    "asset_type": "material",
+    "name": "unlit_blended_material",
+    "shader": "unlit_blended",
+    "parameters": {
+        "base_colour": [255, 255, 255, 128]
+    }
+}
