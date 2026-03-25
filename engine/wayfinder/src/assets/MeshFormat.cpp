@@ -1,5 +1,6 @@
 #include "MeshFormat.h"
 
+#include <algorithm>
 #include <cstring>
 #include <limits>
 
