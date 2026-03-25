@@ -70,6 +70,8 @@ namespace Wayfinder
         RenderResourceOrigin Origin = RenderResourceOrigin::BuiltIn;
         std::optional<AssetId> AssetId;
         uint64_t StableKey = 0;
+        /// Index of the submesh within the mesh asset. Only meaningful for asset meshes.
+        uint32_t SubmeshIndex = 0;
     };
 
     /**

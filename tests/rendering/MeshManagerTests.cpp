@@ -12,7 +12,7 @@ namespace Wayfinder::Tests
         CHECK_NOTHROW(manager.Shutdown());
     }
 
-    TEST_CASE("MeshManager GetOrLoad without Initialise returns fallback reference")
+    TEST_CASE("MeshManager GetOrLoad without Initialise returns error")
     {
         MeshManager manager;
         AssetService assets;
@@ -20,9 +20,9 @@ namespace Wayfinder::Tests
         REQUIRE(assets.SetAssetRoot(std::filesystem::path{}, err));
 
         const AssetId id = AssetId::Generate();
-        Mesh* m = manager.GetOrLoad(id, assets);
-        REQUIRE(m);
-        CHECK(&manager.GetFallbackMesh() == m);
+        auto result = manager.GetOrLoad(id, assets);
+        REQUIRE_FALSE(result.has_value());
+        CHECK(!result.error().GetMessage().empty());
     }
 
 } // namespace Wayfinder::Tests

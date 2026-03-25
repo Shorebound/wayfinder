@@ -81,7 +81,20 @@ namespace Wayfinder
 
         if (submission.Mesh.Origin == RenderResourceOrigin::Asset && submission.Mesh.AssetId && m_meshManager && m_assetService)
         {
-            resource.GpuMesh = m_meshManager->GetOrLoad(*submission.Mesh.AssetId, *m_assetService);
+            auto result = m_meshManager->GetOrLoad(*submission.Mesh.AssetId, *m_assetService);
+            if (result)
+            {
+                const MeshAssetGPU* gpuAsset = *result;
+                if (submission.Mesh.SubmeshIndex < gpuAsset->Submeshes.size())
+                {
+                    resource.GpuMesh = &gpuAsset->Submeshes[submission.Mesh.SubmeshIndex];
+                }
+            }
+            else
+            {
+                WAYFINDER_WARNING(LogRenderer, "RenderResourceCache: {}", result.error().GetMessage());
+                resource.GpuMesh = &m_meshManager->GetFallbackMesh();
+            }
         }
 
         const auto [it, inserted] = m_meshesByKey.emplace(submission.Mesh.StableKey, resource);

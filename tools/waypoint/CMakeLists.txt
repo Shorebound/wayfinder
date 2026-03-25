@@ -19,5 +19,6 @@ target_link_libraries(${ASSET_PROCESSOR_NAME}
         ${ENGINE_NAME}
         fastgltf::fastgltf
         meshoptimizer
+        mikktspace
 )
 

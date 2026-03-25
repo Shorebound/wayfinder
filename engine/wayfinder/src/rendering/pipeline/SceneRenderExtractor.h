@@ -5,6 +5,7 @@
 
 namespace Wayfinder
 {
+    class AssetService;
     class Scene;
 
     class WAYFINDER_API SceneRenderExtractor

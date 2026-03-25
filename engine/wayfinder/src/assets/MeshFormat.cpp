@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <cstring>
 #include <limits>
+#include <utility>
 
 namespace Wayfinder
 {
@@ -310,6 +311,37 @@ namespace Wayfinder
             if (entry.IndexDataOffset > fileBytes.size() || entry.IndexDataSize > fileBytes.size() - entry.IndexDataOffset)
             {
                 error = "Mesh file: index blob out of range for submesh " + std::to_string(i);
+                return false;
+            }
+        }
+
+        // Validate that no submesh data regions overlap each other or the header/table area.
+        using Region = std::pair<uint32_t, uint32_t>; // (offset, offset + size)
+        std::vector<Region> regions;
+        regions.reserve(header.SubmeshCount * 2u);
+
+        for (uint32_t i = 0; i < header.SubmeshCount; ++i)
+        {
+            SubmeshTableEntry entry{};
+            const size_t offset = sizeof(MeshFileHeader) + static_cast<size_t>(i) * sizeof(SubmeshTableEntry);
+            std::memcpy(&entry, fileBytes.data() + offset, sizeof(SubmeshTableEntry));
+
+            if (entry.VertexDataSize > 0)
+            {
+                regions.emplace_back(entry.VertexDataOffset, entry.VertexDataOffset + entry.VertexDataSize);
+            }
+            if (entry.IndexDataSize > 0)
+            {
+                regions.emplace_back(entry.IndexDataOffset, entry.IndexDataOffset + entry.IndexDataSize);
+            }
+        }
+
+        std::sort(regions.begin(), regions.end());
+        for (size_t i = 1; i < regions.size(); ++i)
+        {
+            if (regions[i].first < regions[i - 1].second)
+            {
+                error = "Mesh file: overlapping data regions detected";
                 return false;
             }
         }

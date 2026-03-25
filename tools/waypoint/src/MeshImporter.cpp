@@ -12,6 +12,11 @@
 
 #include <meshoptimizer.h>
 
+extern "C"
+{
+#include <mikktspace.h>
+}
+
 #include <nlohmann/json.hpp>
 
 #include <algorithm>
@@ -48,6 +53,92 @@ namespace Wayfinder::Waypoint
             }
 
             return Float4{tangent, 1.0f};
+        }
+
+        // --- MikkTSpace tangent generation ---
+
+        struct MikkTSpaceUserData
+        {
+            const std::vector<Float3>* Positions;
+            const std::vector<Float3>* Normals;
+            const std::vector<Float2>* UVs;
+            const std::vector<std::uint32_t>* Indices;
+            std::vector<Float4>* Tangents;
+        };
+
+        int MikkGetNumFaces(const SMikkTSpaceContext* ctx)
+        {
+            const auto* data = static_cast<const MikkTSpaceUserData*>(ctx->m_pUserData);
+            return static_cast<int>(data->Indices->size() / 3);
+        }
+
+        int MikkGetNumVerticesOfFace(const SMikkTSpaceContext*, const int)
+        {
+            return 3;
+        }
+
+        void MikkGetPosition(const SMikkTSpaceContext* ctx, float out[], const int face, const int vert)
+        {
+            const auto* data = static_cast<const MikkTSpaceUserData*>(ctx->m_pUserData);
+            const std::uint32_t idx = data->Indices->at(static_cast<std::size_t>(face * 3 + vert));
+            const Float3& pos = data->Positions->at(idx);
+            out[0] = pos.x;
+            out[1] = pos.y;
+            out[2] = pos.z;
+        }
+
+        void MikkGetNormal(const SMikkTSpaceContext* ctx, float out[], const int face, const int vert)
+        {
+            const auto* data = static_cast<const MikkTSpaceUserData*>(ctx->m_pUserData);
+            const std::uint32_t idx = data->Indices->at(static_cast<std::size_t>(face * 3 + vert));
+            const Float3& normal = data->Normals->at(idx);
+            out[0] = normal.x;
+            out[1] = normal.y;
+            out[2] = normal.z;
+        }
+
+        void MikkGetTexCoord(const SMikkTSpaceContext* ctx, float out[], const int face, const int vert)
+        {
+            const auto* data = static_cast<const MikkTSpaceUserData*>(ctx->m_pUserData);
+            const std::uint32_t idx = data->Indices->at(static_cast<std::size_t>(face * 3 + vert));
+            const Float2& uv = data->UVs->at(idx);
+            out[0] = uv.x;
+            out[1] = uv.y;
+        }
+
+        void MikkSetTSpaceBasic(const SMikkTSpaceContext* ctx, const float tangent[], const float sign, const int face, const int vert)
+        {
+            auto* data = static_cast<MikkTSpaceUserData*>(ctx->m_pUserData);
+            const std::uint32_t idx = data->Indices->at(static_cast<std::size_t>(face * 3 + vert));
+            data->Tangents->at(idx) = Float4{tangent[0], tangent[1], tangent[2], sign};
+        }
+
+        /// Generates tangents using MikkTSpace. Falls back to a cross-product heuristic
+        /// if MikkTSpace fails (e.g. degenerate geometry).
+        void GenerateTangents(const std::vector<Float3>& positions, const std::vector<Float3>& normals, const std::vector<Float2>& uvs, const std::vector<std::uint32_t>& indices, std::vector<Float4>& tangents)
+        {
+            MikkTSpaceUserData userData{&positions, &normals, &uvs, &indices, &tangents};
+
+            SMikkTSpaceInterface iface{};
+            iface.m_getNumFaces = MikkGetNumFaces;
+            iface.m_getNumVerticesOfFace = MikkGetNumVerticesOfFace;
+            iface.m_getPosition = MikkGetPosition;
+            iface.m_getNormal = MikkGetNormal;
+            iface.m_getTexCoord = MikkGetTexCoord;
+            iface.m_setTSpaceBasic = MikkSetTSpaceBasic;
+
+            SMikkTSpaceContext ctx{};
+            ctx.m_pInterface = &iface;
+            ctx.m_pUserData = &userData;
+
+            if (genTangSpaceDefault(&ctx) == 0)
+            {
+                /// MikkTSpace failed — fall back to cross-product heuristic.
+                for (std::size_t i = 0; i < positions.size(); ++i)
+                {
+                    tangents.at(i) = ComputeFallbackTangent(Maths::Normalize(normals.at(i)));
+                }
+            }
         }
 
         Result<void> ReadVec3(const fastgltf::Asset& asset, const std::size_t accessorIndex, std::vector<Float3>& out)
@@ -204,35 +295,8 @@ namespace Wayfinder::Waypoint
 
             std::vector<Float4> tangents(vertexCount);
             const auto* tanAttr = primitive.findAttribute("TANGENT");
-            if (tanAttr != primitive.attributes.end())
-            {
-                if (const auto r = ReadVec4(asset, tanAttr->accessorIndex, tangents); !r)
-                {
-                    return MakeError(r.error().GetMessage());
-                }
-                if (tangents.size() != vertexCount)
-                {
-                    return MakeError("TANGENT vertex count mismatch");
-                }
-            }
-            else
-            {
-                for (std::size_t i = 0; i < vertexCount; ++i)
-                {
-                    tangents.at(i) = ComputeFallbackTangent(Maths::Normalize(normals.at(i)));
-                }
-            }
 
-            std::vector<VertexPosNormalUVTangent> vertices(vertexCount);
-            for (std::size_t i = 0; i < vertexCount; ++i)
-            {
-                auto& vertex = vertices.at(i);
-                vertex.Position = positions.at(i);
-                vertex.Normal = normals.at(i);
-                vertex.UV = uvs.at(i);
-                vertex.Tangent = tangents.at(i);
-            }
-
+            /// Read or generate indices before tangent computation — MikkTSpace needs them.
             std::vector<std::uint32_t> indices;
             if (primitive.indicesAccessor)
             {
@@ -253,6 +317,32 @@ namespace Wayfinder::Waypoint
             if (indices.size() % 3 != 0)
             {
                 return MakeError("Index count is not a multiple of 3");
+            }
+
+            if (tanAttr != primitive.attributes.end())
+            {
+                if (const auto r = ReadVec4(asset, tanAttr->accessorIndex, tangents); !r)
+                {
+                    return MakeError(r.error().GetMessage());
+                }
+                if (tangents.size() != vertexCount)
+                {
+                    return MakeError("TANGENT vertex count mismatch");
+                }
+            }
+            else
+            {
+                GenerateTangents(positions, normals, uvs, indices, tangents);
+            }
+
+            std::vector<VertexPosNormalUVTangent> vertices(vertexCount);
+            for (std::size_t i = 0; i < vertexCount; ++i)
+            {
+                auto& vertex = vertices.at(i);
+                vertex.Position = positions.at(i);
+                vertex.Normal = normals.at(i);
+                vertex.UV = uvs.at(i);
+                vertex.Tangent = tangents.at(i);
             }
 
             meshopt_optimizeVertexCache(indices.data(), indices.data(), indices.size(), vertexCount);

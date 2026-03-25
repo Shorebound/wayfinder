@@ -3,41 +3,38 @@
 #include "core/Log.h"
 #include "rendering/backend/RenderDevice.h"
 
+#include <format>
+
 namespace Wayfinder
 {
-    namespace
-    {
-        constexpr uint32_t K_SUBMESH_INDEX = 0u;
-    }
-
     IndexElementSize MeshManager::ToIndexElementSize(const MeshIndexFormat format)
     {
         return format == MeshIndexFormat::Uint32 ? IndexElementSize::Uint32 : IndexElementSize::Uint16;
     }
 
-    bool MeshManager::UploadSubmesh0(RenderDevice& device, const MeshAsset& asset, Mesh& outMesh)
+    Result<Mesh> MeshManager::UploadSubmesh(RenderDevice& device, const SubmeshCpuData& submesh)
     {
-        if (asset.Submeshes.empty())
+        if (submesh.VertexBytes.empty() || submesh.IndexBytes.empty() || submesh.VertexCount == 0 || submesh.IndexCount == 0)
         {
-            return false;
-        }
-
-        const SubmeshCpuData& sm = asset.Submeshes.at(K_SUBMESH_INDEX);
-        if (sm.VertexBytes.empty() || sm.IndexBytes.empty() || sm.VertexCount == 0 || sm.IndexCount == 0)
-        {
-            return false;
+            return MakeError("Submesh has empty vertex or index data");
         }
 
         MeshCreateDesc desc{};
-        desc.VertexData = sm.VertexBytes.data();
-        desc.VertexDataSize = static_cast<uint32_t>(sm.VertexBytes.size());
-        desc.VertexCount = sm.VertexCount;
-        desc.IndexData = sm.IndexBytes.data();
-        desc.IndexDataSize = static_cast<uint32_t>(sm.IndexBytes.size());
-        desc.IndexCount = sm.IndexCount;
-        desc.IndexElementType = ToIndexElementSize(sm.IndexFormat);
+        desc.VertexData = submesh.VertexBytes.data();
+        desc.VertexDataSize = static_cast<uint32_t>(submesh.VertexBytes.size());
+        desc.VertexCount = submesh.VertexCount;
+        desc.IndexData = submesh.IndexBytes.data();
+        desc.IndexDataSize = static_cast<uint32_t>(submesh.IndexBytes.size());
+        desc.IndexCount = submesh.IndexCount;
+        desc.IndexElementType = ToIndexElementSize(submesh.IndexFormat);
 
-        return outMesh.Create(device, desc);
+        Mesh mesh;
+        if (!mesh.Create(device, desc))
+        {
+            return MakeError("GPU buffer creation failed");
+        }
+
+        return mesh;
     }
 
     bool MeshManager::Initialise(RenderDevice& device)
@@ -57,9 +54,12 @@ namespace Wayfinder
 
     void MeshManager::Shutdown()
     {
-        for (auto& [id, mesh] : m_cache)
+        for (auto& [id, gpuAsset] : m_cache)
         {
-            mesh.Destroy();
+            for (Mesh& submesh : gpuAsset->Submeshes)
+            {
+                submesh.Destroy();
+            }
         }
         m_cache.clear();
 
@@ -67,38 +67,55 @@ namespace Wayfinder
         m_device = nullptr;
     }
 
-    Mesh* MeshManager::GetOrLoad(const AssetId& assetId, AssetService& assetService)
+    Result<const MeshAssetGPU*> MeshManager::GetOrLoad(const AssetId& assetId, AssetService& assetService)
     {
         if (!m_device)
         {
-            WAYFINDER_WARNING(LogRenderer, "MeshManager::GetOrLoad called without a valid device");
-            return &m_fallbackMesh;
+            return MakeError("MeshManager not initialised");
         }
 
         if (const auto it = m_cache.find(assetId); it != m_cache.end())
         {
-            return &it->second;
+            return it->second.get();
         }
 
         std::string error;
         const MeshAsset* asset = assetService.LoadAsset<MeshAsset>(assetId, error);
-        if (!asset || asset->Submeshes.empty())
+        if (!asset)
         {
-            WAYFINDER_WARNING(LogRenderer, "MeshManager: Failed to load mesh asset '{}': {}", assetId.ToString(), error);
-            return &m_fallbackMesh;
+            return MakeError(std::format("Failed to load mesh asset '{}': {}", assetId.ToString(), error));
         }
 
-        Mesh mesh;
-        if (!UploadSubmesh0(*m_device, *asset, mesh))
+        if (asset->Submeshes.empty())
         {
-            WAYFINDER_WARNING(LogRenderer, "MeshManager: GPU upload failed for mesh '{}', using fallback", asset->Name);
-            return &m_fallbackMesh;
+            return MakeError(std::format("Mesh asset '{}' has no submeshes", asset->Name));
         }
 
-        const auto [it, inserted] = m_cache.emplace(assetId, std::move(mesh));
+        auto gpuAsset = std::make_unique<MeshAssetGPU>();
+        gpuAsset->Submeshes.reserve(asset->Submeshes.size());
+        gpuAsset->MaterialSlots.reserve(asset->Submeshes.size());
+
+        for (uint32_t i = 0; i < asset->Submeshes.size(); ++i)
+        {
+            auto meshResult = UploadSubmesh(*m_device, asset->Submeshes[i]);
+            if (!meshResult)
+            {
+                // Destroy any submeshes we already uploaded
+                for (Mesh& uploaded : gpuAsset->Submeshes)
+                {
+                    uploaded.Destroy();
+                }
+                return MakeError(std::format("GPU upload failed for submesh {} of '{}': {}", i, asset->Name, meshResult.error().GetMessage()));
+            }
+
+            gpuAsset->Submeshes.push_back(std::move(*meshResult));
+            gpuAsset->MaterialSlots.push_back(asset->Submeshes[i].MaterialSlot);
+        }
+
+        const auto [it, inserted] = m_cache.emplace(assetId, std::move(gpuAsset));
         assetService.ReleaseMeshGeometryData(assetId);
 
-        return &it->second;
+        return it->second.get();
     }
 
 } // namespace Wayfinder

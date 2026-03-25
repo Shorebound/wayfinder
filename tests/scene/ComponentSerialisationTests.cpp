@@ -119,6 +119,35 @@ namespace Wayfinder::Tests
             CHECK(mesh.at("mesh_id").get<std::string>() == "a0000000-0000-0000-0000-000000000099");
         }
 
+        TEST_CASE("Mesh round-trip preserves material_slots")
+        {
+            const nlohmann::json input = {{"primitive", "cube"}, {"dimensions", {1.0, 1.0, 1.0}}, {"mesh_id", "a0000000-0000-0000-0000-000000000099"},
+                {"material_slots", {{"0", "b0000000-0000-0000-0000-000000000001"}, {"2", "c0000000-0000-0000-0000-000000000002"}}}};
+
+            auto output = RoundTrip("mesh", input);
+
+            REQUIRE(output.contains("mesh"));
+            const auto& mesh = output.at("mesh");
+            REQUIRE(mesh.contains("material_slots"));
+            const auto& slots = mesh.at("material_slots");
+            REQUIRE(slots.is_object());
+            CHECK(slots.contains("0"));
+            CHECK(slots.at("0").get<std::string>() == "b0000000-0000-0000-0000-000000000001");
+            CHECK(slots.contains("2"));
+            CHECK(slots.at("2").get<std::string>() == "c0000000-0000-0000-0000-000000000002");
+        }
+
+        TEST_CASE("Mesh round-trip omits material_slots when empty")
+        {
+            const nlohmann::json input = {{"primitive", "cube"}, {"dimensions", {1.0, 1.0, 1.0}}};
+
+            auto output = RoundTrip("mesh", input);
+
+            REQUIRE(output.contains("mesh"));
+            const auto& mesh = output.at("mesh");
+            CHECK_FALSE(mesh.contains("material_slots"));
+        }
+
         TEST_CASE("Camera round-trip preserves values")
         {
             const nlohmann::json input = {{"primary", true}, {"fov", 90.0}, {"projection", "orthographic"}, {"target", {1.0, 2.0, 3.0}}, {"up", {0.0, 1.0, 0.0}}};
