@@ -123,9 +123,6 @@ namespace Wayfinder
         constexpr bool operator==(const BlendState&) const = default;
     };
 
-    /** @brief Maximum number of simultaneous colour render targets. */
-    static constexpr uint32_t MAX_COLOUR_TARGETS = 8;
-
     /** @brief Factory functions returning common blend configurations. */
     namespace BlendPresets
     {

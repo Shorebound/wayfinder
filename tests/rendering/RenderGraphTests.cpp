@@ -521,4 +521,167 @@ namespace Wayfinder::Tests
         CHECK(executionOrder[0] == "Scene");
         CHECK(executionOrder[1] == "Composition");
     }
+
+    // ── Multiple Render Targets ──────────────────────────────
+
+    TEST_CASE("Two-attachment MRT pass compiles and executes")
+    {
+        // GBuffer pass writes to two colour targets (slots 0 and 1).
+        // Composition reads both and writes to swapchain.
+        std::vector<std::string> executionOrder;
+        Wayfinder::RenderGraph graph;
+
+        Wayfinder::RenderGraphTextureDesc albedoDesc;
+        albedoDesc.Width = 800;
+        albedoDesc.Height = 600;
+        albedoDesc.Format = Wayfinder::TextureFormat::RGBA8_UNORM;
+        albedoDesc.DebugName = "GBuffer_Albedo";
+
+        Wayfinder::RenderGraphTextureDesc normalDesc;
+        normalDesc.Width = 800;
+        normalDesc.Height = 600;
+        normalDesc.Format = Wayfinder::TextureFormat::RGBA16_FLOAT;
+        normalDesc.DebugName = "GBuffer_Normal";
+
+        graph.AddPass("GBuffer", [&](Wayfinder::RenderGraphBuilder& builder)
+        {
+            auto albedo = builder.CreateTransient(albedoDesc);
+            auto normal = builder.CreateTransient(normalDesc);
+            builder.WriteColour(albedo, 0);
+            builder.WriteColour(normal, 1);
+            return [&executionOrder](Wayfinder::RenderDevice&, const Wayfinder::RenderGraphResources&)
+            {
+                executionOrder.push_back("GBuffer");
+            };
+        });
+
+        graph.AddPass("Composition", [&](Wayfinder::RenderGraphBuilder& builder)
+        {
+            auto albedo = graph.FindHandle("GBuffer_Albedo");
+            auto normal = graph.FindHandle("GBuffer_Normal");
+            builder.ReadTexture(albedo);
+            builder.ReadTexture(normal);
+            builder.SetSwapchainOutput();
+            return [&executionOrder](Wayfinder::RenderDevice&, const Wayfinder::RenderGraphResources&)
+            {
+                executionOrder.push_back("Composition");
+            };
+        });
+
+        REQUIRE(graph.Compile());
+
+        GraphTestFixture fixture;
+        graph.Execute(*fixture.m_Device, fixture.m_Pool);
+
+        REQUIRE(executionOrder.size() == 2);
+        CHECK(executionOrder[0] == "GBuffer");
+        CHECK(executionOrder[1] == "Composition");
+    }
+
+    TEST_CASE("Mixed single and multi-target chain maintains dependency order")
+    {
+        // A writes slot 0, B writes slots 0+1 (loading slot 0 from A), C reads both → swapchain.
+        std::vector<std::string> executionOrder;
+        Wayfinder::RenderGraph graph;
+
+        Wayfinder::RenderGraphTextureDesc colourDesc;
+        colourDesc.Width = 640;
+        colourDesc.Height = 480;
+        colourDesc.Format = Wayfinder::TextureFormat::RGBA8_UNORM;
+        colourDesc.DebugName = "SharedColour";
+
+        Wayfinder::RenderGraphTextureDesc extraDesc;
+        extraDesc.Width = 640;
+        extraDesc.Height = 480;
+        extraDesc.Format = Wayfinder::TextureFormat::RGBA16_FLOAT;
+        extraDesc.DebugName = "ExtraTarget";
+
+        graph.AddPass("PassA", [&](Wayfinder::RenderGraphBuilder& builder)
+        {
+            auto colour = builder.CreateTransient(colourDesc);
+            builder.WriteColour(colour, 0);
+            return [&executionOrder](Wayfinder::RenderDevice&, const Wayfinder::RenderGraphResources&)
+            {
+                executionOrder.push_back("PassA");
+            };
+        });
+
+        graph.AddPass("PassB", [&](Wayfinder::RenderGraphBuilder& builder)
+        {
+            auto colour = graph.FindHandle("SharedColour");
+            auto extra = builder.CreateTransient(extraDesc);
+            builder.WriteColour(colour, 0, Wayfinder::LoadOp::Load); // depends on PassA
+            builder.WriteColour(extra, 1);
+            return [&executionOrder](Wayfinder::RenderDevice&, const Wayfinder::RenderGraphResources&)
+            {
+                executionOrder.push_back("PassB");
+            };
+        });
+
+        graph.AddPass("PassC", [&](Wayfinder::RenderGraphBuilder& builder)
+        {
+            auto colour = graph.FindHandle("SharedColour");
+            auto extra = graph.FindHandle("ExtraTarget");
+            builder.ReadTexture(colour);
+            builder.ReadTexture(extra);
+            builder.SetSwapchainOutput();
+            return [&executionOrder](Wayfinder::RenderDevice&, const Wayfinder::RenderGraphResources&)
+            {
+                executionOrder.push_back("PassC");
+            };
+        });
+
+        REQUIRE(graph.Compile());
+
+        GraphTestFixture fixture;
+        graph.Execute(*fixture.m_Device, fixture.m_Pool);
+
+        REQUIRE(executionOrder.size() == 3);
+        CHECK(executionOrder[0] == "PassA");
+        CHECK(executionOrder[1] == "PassB");
+        CHECK(executionOrder[2] == "PassC");
+    }
+
+    TEST_CASE("Slot-based WriteColour defaults to slot 0")
+    {
+        // Verify the convenience overload (no explicit slot) works identically to slot 0.
+        std::vector<std::string> executionOrder;
+        Wayfinder::RenderGraph graph;
+
+        Wayfinder::RenderGraphTextureDesc desc;
+        desc.Width = 800;
+        desc.Height = 600;
+        desc.Format = Wayfinder::TextureFormat::RGBA8_UNORM;
+        desc.DebugName = "DefaultSlot";
+
+        graph.AddPass("Writer", [&](Wayfinder::RenderGraphBuilder& builder)
+        {
+            auto tex = builder.CreateTransient(desc);
+            builder.WriteColour(tex); // no slot = slot 0
+            return [&executionOrder](Wayfinder::RenderDevice&, const Wayfinder::RenderGraphResources&)
+            {
+                executionOrder.push_back("Writer");
+            };
+        });
+
+        graph.AddPass("Reader", [&](Wayfinder::RenderGraphBuilder& builder)
+        {
+            auto tex = graph.FindHandle("DefaultSlot");
+            builder.ReadTexture(tex);
+            builder.SetSwapchainOutput();
+            return [&executionOrder](Wayfinder::RenderDevice&, const Wayfinder::RenderGraphResources&)
+            {
+                executionOrder.push_back("Reader");
+            };
+        });
+
+        REQUIRE(graph.Compile());
+
+        GraphTestFixture fixture;
+        graph.Execute(*fixture.m_Device, fixture.m_Pool);
+
+        REQUIRE(executionOrder.size() == 2);
+        CHECK(executionOrder[0] == "Writer");
+        CHECK(executionOrder[1] == "Reader");
+    }
 }

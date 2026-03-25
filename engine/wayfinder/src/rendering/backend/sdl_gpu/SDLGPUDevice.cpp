@@ -342,57 +342,73 @@ namespace Wayfinder
             return;
         }
 
-        // Determine colour target texture
-        SDL_GPUTexture* colourTexture = nullptr;
-        if (descriptor.targetSwapchain)
-        {
-            if (!m_swapchainTexture)
-            {
-                return;
-            }
-            colourTexture = m_swapchainTexture;
-        }
-        else if (descriptor.colourTarget.IsValid())
-        {
-            auto* pTex = m_texturePool.Get(descriptor.colourTarget);
-            colourTexture = pTex ? pTex->texture : nullptr;
-        }
-
-        if (!colourTexture)
+        const uint32_t numTargets = std::min(descriptor.numColourTargets, MAX_COLOUR_TARGETS);
+        if (numTargets == 0)
         {
             return;
         }
 
-        SDL_GPUColorTargetInfo colourTarget{};
-        colourTarget.texture = colourTexture;
-        colourTarget.clear_color.r = descriptor.colourAttachment.clearValue.r;
-        colourTarget.clear_color.g = descriptor.colourAttachment.clearValue.g;
-        colourTarget.clear_color.b = descriptor.colourAttachment.clearValue.b;
-        colourTarget.clear_color.a = descriptor.colourAttachment.clearValue.a;
+        // ── Build colour target array ────────────────────────
+        std::array<SDL_GPUColorTargetInfo, MAX_COLOUR_TARGETS> colourTargets{};
 
-        switch (descriptor.colourAttachment.loadOp)
+        for (uint32_t i = 0; i < numTargets; ++i)
         {
-        case LoadOp::Clear:
-            colourTarget.load_op = SDL_GPU_LOADOP_CLEAR;
-            break;
-        case LoadOp::Load:
-            colourTarget.load_op = SDL_GPU_LOADOP_LOAD;
-            break;
-        case LoadOp::DontCare:
-            colourTarget.load_op = SDL_GPU_LOADOP_DONT_CARE;
-            break;
+            SDL_GPUTexture* texture = nullptr;
+
+            if (descriptor.targetSwapchain && i == 0)
+            {
+                if (!m_swapchainTexture)
+                {
+                    return;
+                }
+                texture = m_swapchainTexture;
+            }
+            else if (descriptor.colourTargets[i].IsValid())
+            {
+                auto* pTex = m_texturePool.Get(descriptor.colourTargets[i]);
+                texture = pTex ? pTex->texture : nullptr;
+            }
+
+            if (!texture)
+            {
+                WAYFINDER_WARNING(LogRenderer, "BeginRenderPass '{}': colour target at slot {} is null — skipping pass", descriptor.debugName, i);
+                return;
+            }
+
+            const auto& attachment = descriptor.colourAttachments[i];
+
+            auto& target = colourTargets[i];
+            target.texture = texture;
+            target.clear_color.r = attachment.clearValue.r;
+            target.clear_color.g = attachment.clearValue.g;
+            target.clear_color.b = attachment.clearValue.b;
+            target.clear_color.a = attachment.clearValue.a;
+
+            switch (attachment.loadOp)
+            {
+            case LoadOp::Clear:
+                target.load_op = SDL_GPU_LOADOP_CLEAR;
+                break;
+            case LoadOp::Load:
+                target.load_op = SDL_GPU_LOADOP_LOAD;
+                break;
+            case LoadOp::DontCare:
+                target.load_op = SDL_GPU_LOADOP_DONT_CARE;
+                break;
+            }
+
+            switch (attachment.storeOp)
+            {
+            case StoreOp::Store:
+                target.store_op = SDL_GPU_STOREOP_STORE;
+                break;
+            case StoreOp::DontCare:
+                target.store_op = SDL_GPU_STOREOP_DONT_CARE;
+                break;
+            }
         }
 
-        switch (descriptor.colourAttachment.storeOp)
-        {
-        case StoreOp::Store:
-            colourTarget.store_op = SDL_GPU_STOREOP_STORE;
-            break;
-        case StoreOp::DontCare:
-            colourTarget.store_op = SDL_GPU_STOREOP_DONT_CARE;
-            break;
-        }
-
+        // ── Depth target ─────────────────────────────────────
         if (descriptor.depthAttachment.enabled)
         {
             SDL_GPUTexture* depthTexture = nullptr;
@@ -438,17 +454,17 @@ namespace Wayfinder
                 depthTarget.stencil_load_op = SDL_GPU_LOADOP_DONT_CARE;
                 depthTarget.stencil_store_op = SDL_GPU_STOREOP_DONT_CARE;
 
-                m_renderPass = SDL_BeginGPURenderPass(m_commandBuffer, &colourTarget, 1, &depthTarget);
+                m_renderPass = SDL_BeginGPURenderPass(m_commandBuffer, colourTargets.data(), numTargets, &depthTarget);
             }
             else
             {
                 WAYFINDER_WARNING(LogRenderer, "Depth attachment enabled but no depth texture available (depthTarget={}, m_depthTexture={})", descriptor.depthTarget.IsValid(), m_depthTexture != nullptr);
-                m_renderPass = SDL_BeginGPURenderPass(m_commandBuffer, &colourTarget, 1, nullptr);
+                m_renderPass = SDL_BeginGPURenderPass(m_commandBuffer, colourTargets.data(), numTargets, nullptr);
             }
         }
         else
         {
-            m_renderPass = SDL_BeginGPURenderPass(m_commandBuffer, &colourTarget, 1, nullptr);
+            m_renderPass = SDL_BeginGPURenderPass(m_commandBuffer, colourTargets.data(), numTargets, nullptr);
         }
     }
 
@@ -1010,7 +1026,7 @@ namespace Wayfinder
 
         if (desc.mipLevels > maxMips)
         {
-            WAYFINDER_WARN(LogRenderer,
+            WAYFINDER_WARNING(LogRenderer,
                 "SDLGPUDevice::CreateTexture: Requested {} mip levels for {}x{} texture, "
                 "clamped to maximum of {}",
                 desc.mipLevels, desc.width, desc.height, maxMips);

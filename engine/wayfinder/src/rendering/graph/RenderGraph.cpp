@@ -52,12 +52,34 @@ namespace Wayfinder
 
     void RenderGraphBuilder::WriteColour(RenderGraphHandle handle, LoadOp load, ClearValue clear)
     {
+        WriteColour(handle, 0, load, clear);
+    }
+
+    void RenderGraphBuilder::WriteColour(RenderGraphHandle handle, uint32_t slot, LoadOp load, ClearValue clear)
+    {
         if (!handle.IsValid() || handle.Index >= m_graph.m_resources.size())
         {
             return;
         }
+        if (slot >= MAX_COLOUR_TARGETS)
+        {
+            WAYFINDER_ERROR(LogRenderer, "RenderGraphBuilder::WriteColour: slot {} exceeds MAX_COLOUR_TARGETS ({})", slot, MAX_COLOUR_TARGETS);
+            return;
+        }
+
         auto& pass = CheckedAt(m_graph.m_passes, m_passIndex);
-        pass.ColourWrite = RenderGraph::ColourWriteInfo{.Handle = handle, .Load = load, .Clear = clear};
+
+        // Reject duplicate slot writes in the same pass
+        for (const auto& existing : pass.ColourWrites)
+        {
+            if (existing.Slot == slot)
+            {
+                WAYFINDER_ERROR(LogRenderer, "RenderGraphBuilder::WriteColour: duplicate write to slot {} in pass '{}'", slot, pass.Name.GetString());
+                return;
+            }
+        }
+
+        pass.ColourWrites.push_back(RenderGraph::ColourWriteInfo{.Handle = handle, .Slot = slot, .Load = load, .Clear = clear});
 
         auto& res = CheckedAt(m_graph.m_resources, handle.Index);
         // LoadOp::Load implies reading previous content
@@ -335,17 +357,30 @@ namespace Wayfinder
                 if (pass.SwapchainWrite)
                 {
                     rpDesc.targetSwapchain = true;
-                    rpDesc.colourAttachment.loadOp = pass.SwapchainWrite->Load;
-                    rpDesc.colourAttachment.clearValue = pass.SwapchainWrite->Clear;
-                    rpDesc.colourAttachment.storeOp = StoreOp::Store;
+                    rpDesc.numColourTargets = 1;
+                    rpDesc.colourAttachments[0].loadOp = pass.SwapchainWrite->Load;
+                    rpDesc.colourAttachments[0].clearValue = pass.SwapchainWrite->Clear;
+                    rpDesc.colourAttachments[0].storeOp = StoreOp::Store;
                 }
-                else if (pass.ColourWrite)
+                else if (!pass.ColourWrites.empty())
                 {
                     rpDesc.targetSwapchain = false;
-                    rpDesc.colourTarget = resources.GetTexture(pass.ColourWrite->Handle);
-                    rpDesc.colourAttachment.loadOp = pass.ColourWrite->Load;
-                    rpDesc.colourAttachment.clearValue = pass.ColourWrite->Clear;
-                    rpDesc.colourAttachment.storeOp = StoreOp::Store;
+
+                    // Determine the number of targets from the highest slot used
+                    uint32_t maxSlot = 0;
+                    for (const auto& cw : pass.ColourWrites)
+                    {
+                        maxSlot = std::max(maxSlot, cw.Slot);
+                    }
+                    rpDesc.numColourTargets = maxSlot + 1;
+
+                    for (const auto& cw : pass.ColourWrites)
+                    {
+                        rpDesc.colourTargets[cw.Slot] = resources.GetTexture(cw.Handle);
+                        rpDesc.colourAttachments[cw.Slot].loadOp = cw.Load;
+                        rpDesc.colourAttachments[cw.Slot].clearValue = cw.Clear;
+                        rpDesc.colourAttachments[cw.Slot].storeOp = StoreOp::Store;
+                    }
                 }
 
                 if (pass.DepthWrite)

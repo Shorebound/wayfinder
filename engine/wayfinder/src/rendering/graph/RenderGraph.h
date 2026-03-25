@@ -67,8 +67,11 @@ namespace Wayfinder
         // Declare this pass reads a texture (for sampling in a shader).
         void ReadTexture(RenderGraphHandle handle);
 
-        // Declare this pass writes to a colour render target.
+        // Declare this pass writes to a colour render target at slot 0.
         void WriteColour(RenderGraphHandle handle, LoadOp load = LoadOp::Clear, ClearValue clear = {});
+
+        // Declare this pass writes to a colour render target at an explicit slot.
+        void WriteColour(RenderGraphHandle handle, uint32_t slot, LoadOp load = LoadOp::Clear, ClearValue clear = {});
 
         // Declare this pass writes to a depth render target.
         void WriteDepth(RenderGraphHandle handle, LoadOp load = LoadOp::Clear, float clearDepth = 1.0f);
@@ -157,6 +160,7 @@ namespace Wayfinder
         struct ColourWriteInfo
         {
             RenderGraphHandle Handle;
+            uint32_t Slot = 0;
             LoadOp Load = LoadOp::Clear;
             ClearValue Clear{};
         };
@@ -183,7 +187,7 @@ namespace Wayfinder
             std::vector<RenderGraphHandle> Reads;
             std::vector<uint32_t> DependsOn; // Direct pass indices this pass depends on
 
-            std::optional<ColourWriteInfo> ColourWrite;
+            std::vector<ColourWriteInfo> ColourWrites;
             std::optional<DepthWriteInfo> DepthWrite;
             std::optional<SwapchainWriteInfo> SwapchainWrite;
 

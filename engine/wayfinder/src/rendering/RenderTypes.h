@@ -1,6 +1,7 @@
 #pragma once
 
 #include <algorithm>
+#include <array>
 #include <bit>
 #include <cstdint>
 #include <string>
@@ -195,6 +196,9 @@ namespace Wayfinder
 
     // ── Render Pass Descriptor ───────────────────────────────
 
+    /** @brief Maximum number of simultaneous colour render targets. */
+    static constexpr uint32_t MAX_COLOUR_TARGETS = 8;
+
     struct ColourAttachmentDescriptor
     {
         ClearValue clearValue{};
@@ -213,11 +217,12 @@ namespace Wayfinder
     struct RenderPassDescriptor
     {
         std::string_view debugName;
-        ColourAttachmentDescriptor colourAttachment{};
+        uint32_t numColourTargets = 1;
+        std::array<ColourAttachmentDescriptor, MAX_COLOUR_TARGETS> colourAttachments{};
+        std::array<GPUTextureHandle, MAX_COLOUR_TARGETS> colourTargets{};
         DepthAttachmentDescriptor depthAttachment{};
         bool targetSwapchain = true;
-        GPUTextureHandle colourTarget{}; // If set and !targetSwapchain, render to this texture
-        GPUTextureHandle depthTarget{};  // If set, use instead of auto-managed depth
+        GPUTextureHandle depthTarget{}; // If set, use instead of auto-managed depth
     };
 
     // ── Device Info ──────────────────────────────────────────
