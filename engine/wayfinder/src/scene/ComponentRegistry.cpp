@@ -8,6 +8,7 @@
 #include "scene/entity/Entity.h"
 
 #include <array>
+#include <charconv>
 #include <sstream>
 
 namespace Wayfinder
@@ -465,6 +466,13 @@ namespace Wayfinder
                         error = "material_slots['" + key + "'] must be a string asset ID";
                         return false;
                     }
+                    uint32_t unused = 0;
+                    const auto [ptr, ec] = std::from_chars(key.data(), key.data() + key.size(), unused);
+                    if (ec != std::errc{} || ptr != key.data() + key.size())
+                    {
+                        error = "material_slots key '" + key + "' must be an unsigned integer";
+                        return false;
+                    }
                 }
             }
 
@@ -666,7 +674,12 @@ namespace Wayfinder
                     {
                         continue;
                     }
-                    const auto slotIndex = static_cast<uint32_t>(std::stoul(slotKey));
+                    uint32_t slotIndex = 0;
+                    const auto [ptr, ec] = std::from_chars(slotKey.data(), slotKey.data() + slotKey.size(), slotIndex);
+                    if (ec != std::errc{} || ptr != slotKey.data() + slotKey.size())
+                    {
+                        continue;
+                    }
                     auto parsed = Wayfinder::AssetId::Parse(assetIdValue.get<std::string>());
                     if (parsed)
                     {

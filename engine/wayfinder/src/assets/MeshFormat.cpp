@@ -302,13 +302,13 @@ namespace Wayfinder
                 return false;
             }
 
-            if (entry.VertexDataOffset > fileBytes.size() || entry.VertexDataSize > fileBytes.size() - entry.VertexDataOffset)
+            if (entry.VertexDataOffset < tableBytes || entry.VertexDataOffset > fileBytes.size() || entry.VertexDataSize > fileBytes.size() - entry.VertexDataOffset)
             {
                 error = "Mesh file: vertex blob out of range for submesh " + std::to_string(i);
                 return false;
             }
 
-            if (entry.IndexDataOffset > fileBytes.size() || entry.IndexDataSize > fileBytes.size() - entry.IndexDataOffset)
+            if (entry.IndexDataOffset < tableBytes || entry.IndexDataOffset > fileBytes.size() || entry.IndexDataSize > fileBytes.size() - entry.IndexDataOffset)
             {
                 error = "Mesh file: index blob out of range for submesh " + std::to_string(i);
                 return false;

@@ -23,7 +23,7 @@ namespace Wayfinder
      * @brief Six-plane view frustum extracted from a view-projection matrix.
      *
      * Planes point inward: a point on the positive side of all six planes is visible.
-     * Use `ExtractFrustumPlanes()` to construct from a combined view-projection matrix,
+     * Use `Frustum::ExtractPlanes()` to construct from a combined view-projection matrix,
      * then `TestAABB()` to cull world-space axis-aligned bounding boxes.
      */
     struct WAYFINDER_API Frustum

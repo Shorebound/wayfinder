@@ -281,6 +281,15 @@ int main(int argc, char** argv)
                 return 1;
             }
             nameStem = argv[argIndex + 1];
+            argIndex += 2;
+        }
+
+        if (argIndex < argc)
+        {
+            std::cerr << "Unknown trailing argument: " << argv[argIndex] << "\n";
+            PrintUsage();
+            Wayfinder::Log::Shutdown();
+            return 1;
         }
 
         exitCode = RunImportMesh({.SourcePath = gltfPath, .OutputDirectory = outputDir, .NameStem = nameStem});

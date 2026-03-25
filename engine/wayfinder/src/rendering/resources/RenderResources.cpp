@@ -89,6 +89,11 @@ namespace Wayfinder
                 {
                     resource.GpuMesh = &gpuAsset->Submeshes.at(submission.Mesh.SubmeshIndex);
                 }
+                else
+                {
+                    WAYFINDER_WARNING(LogRenderer, "RenderResourceCache: SubmeshIndex {} out of range (asset has {} submeshes)", submission.Mesh.SubmeshIndex, gpuAsset->Submeshes.size());
+                    resource.GpuMesh = &m_meshManager->GetFallbackMesh();
+                }
             }
             else
             {

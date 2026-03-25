@@ -312,6 +312,10 @@ def _run_one(cmd_base: list[str], filepath: str, cwd: str) -> tuple[str, int, st
     # clang-tidy prints diagnostics to stdout.
     output = result.stdout + result.stderr
     had_issue, filtered_output = _filter_tidy_output(output)
+    # Treat tool failures (crashes, missing compile DB) as errors even if no
+    # repo-owned diagnostics were detected.
+    if result.returncode != 0 and not had_issue:
+        return filepath, result.returncode, filtered_output or output
     return filepath, 1 if had_issue else 0, filtered_output
 
 
