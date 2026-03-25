@@ -283,7 +283,7 @@ namespace Wayfinder::Tests
             }
         }
 
-        TEST_CASE("Shutdown does not recycle scene tag while deferred deletes are pending")
+        TEST_CASE("Deferred scene tag release recycles tag after deferred mode ends")
         {
             flecs::world world;
             auto registry = MakeTestRegistry();
@@ -305,9 +305,11 @@ namespace Wayfinder::Tests
 
             CHECK_FALSE(world.entity(entityId).is_valid());
 
+            /// After defer_end the deferred tag is drained into the free list, so the
+            /// next scene should recycle it rather than leaking the id permanently.
             {
                 Scene nextScene(world, registry, "SceneB");
-                CHECK(nextScene.GetSceneTagEntityId() != tagId);
+                CHECK(nextScene.GetSceneTagEntityId() == tagId);
             }
         }
 

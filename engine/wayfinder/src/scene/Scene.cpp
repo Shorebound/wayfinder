@@ -32,12 +32,14 @@ namespace Wayfinder
         /// \c flecs::world. We do **not** call \c world.progress() on shutdown — that would advance the
         /// whole pipeline one frame (systems, timers, etc.) for unrelated work.
         std::unordered_map<flecs::world_t*, std::vector<flecs::entity_t>> s_sceneTagFreeListByWorld;
+        std::unordered_map<flecs::world_t*, std::vector<flecs::entity_t>> s_deferredSceneTagListByWorld;
         std::unordered_set<flecs::world_t*> s_sceneTagPoolFiniRegistered;
 
         void OnWorldFiniSceneTagPool(ecs_world_t* world, void* ctx)
         {
             (void)ctx;
             s_sceneTagFreeListByWorld.erase(world);
+            s_deferredSceneTagListByWorld.erase(world);
             s_sceneTagPoolFiniRegistered.erase(world);
         }
 
@@ -50,10 +52,30 @@ namespace Wayfinder
             }
         }
 
+        void DrainDeferredSceneTags(flecs::world_t* w)
+        {
+            auto it = s_deferredSceneTagListByWorld.find(w);
+            if (it == s_deferredSceneTagListByWorld.end() || it->second.empty())
+            {
+                return;
+            }
+
+            auto& freeList = s_sceneTagFreeListByWorld[w];
+            freeList.insert(freeList.end(), it->second.begin(), it->second.end());
+            it->second.clear();
+        }
+
         flecs::entity AcquireSceneTag(flecs::world& world)
         {
             EnsureSceneTagPoolTracksWorldLifetime(world);
             flecs::world_t* w = world.c_ptr();
+
+            /// Recycle any tags that were released while the world was deferring.
+            if (!world.is_deferred())
+            {
+                DrainDeferredSceneTags(w);
+            }
+
             auto& list = s_sceneTagFreeListByWorld[w];
             if (!list.empty())
             {
@@ -75,11 +97,12 @@ namespace Wayfinder
             /// Scene shutdown may run while Flecs is deferring mutations from a stage. In that case
             /// the tag must not be returned to the free list yet, because queued SceneOwnership pair
             /// ops may still reference the id and Flecs only permits \\c ecs_merge on stages, not the
-            /// root world handle. Clearing the tag is still safe, but deferred shutdown abandons tag
-            /// recycling for that scene instance instead of reusing the id too early.
+            /// root world handle. Clearing the tag is safe; the id is parked in the deferred list and
+            /// drained into the free list the next time a tag is acquired outside deferred mode.
             if (world.is_deferred())
             {
                 ecs_clear(world.c_ptr(), tag.id());
+                s_deferredSceneTagListByWorld[world.c_ptr()].push_back(tag.id());
                 return;
             }
 

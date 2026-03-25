@@ -235,9 +235,11 @@ namespace Wayfinder::Tests
                 sceneData["scene_name"] = "Broken Scene";
                 sceneData["entities"] = nlohmann::json::array({
                     {
+                        {"id", "00000000-0000-7000-8000-000000000001"},
                         {"name", "First"},
                     },
                     {
+                        {"id", "00000000-0000-7000-8000-000000000002"},
                         {"name", "Second"},
                         {"throwing_component", nlohmann::json::object()},
                     },
