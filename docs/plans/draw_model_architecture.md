@@ -522,9 +522,20 @@ Flat draw items, CPU sort, per-draw API calls. Handles small-to-medium scene com
 
 ### Stage 2: Frustum Culling
 
-CPU-side AABB frustum test per draw item. Cost: ~10 ns/object. 50K objects = 0.5 ms. Essential for open-world scenes — without it the flat list balloons with off-screen objects.
+CPU-side frustum test per draw item using two-tier sphere→AABB rejection. Cost: ~10 ns/object. 50K objects = 0.5 ms. Essential for open-world scenes — without it the flat list balloons with off-screen objects.
 
-**Requires:** Each draw item carries an AABB. The `AxisAlignedBounds` per submesh already exists in the mesh asset — propagate it to the submission.
+**Implemented:**
+- `BoundingSphere` + `AxisAlignedBounds` per `RenderMeshSubmission`, populated during extraction.
+- Arvo's fast AABB transform (Graphics Gems 1990) in `TransformBounds` — ~3x faster than 8-corner brute force.
+- `Frustum::TestBounds` two-tier test: cheap sphere pre-rejection (6 dot products), then tighter AABB p-vertex test only for sphere-visible items.
+- `RenderView` pre-computes `ViewMatrix`, `ProjectionMatrix`, and `ViewFrustum` once per view in `Prepare()` — no per-pass recomputation.
+- Camera `NearPlane`/`FarPlane` are data-driven on the `Camera` struct, not hard-coded.
+- Cull → sort ordering in `Prepare()`: dead submissions are removed before sorting, so sort operates on the visible set only.
+
+**Future improvements:**
+- **ECS visibility writeback.** After culling, write a `ViewVisibility` component (or tag) back to the ECS world so gameplay systems, animation, audio, and particle emitters can skip work for off-screen entities. Requires an entity reference on each submission.
+- **Hierarchical culling.** For dense scenes, a spatial acceleration structure (BVH or octree) can reject entire subtrees before testing individual items.
+- **Temporal coherence.** Cache visibility results across frames and only re-test entities near frustum edges.
 
 ### Stage 3: GPU Skinning
 
@@ -571,7 +582,7 @@ Upload draw descriptor buffer to GPU, add frustum cull compute pass, use `DrawIn
 
 Even at Stage 1, these should be part of the data model to avoid rework later:
 
-1. **Bounds on draw items.** Propagate `AxisAlignedBounds` from mesh asset submeshes to `RenderMeshSubmission`. Zero cost if unused, enables Stage 2 without submission changes.
+1. **Bounds on draw items.** ~~Propagate `AxisAlignedBounds` from mesh asset submeshes to `RenderMeshSubmission`.~~ Done — submissions carry both `WorldBounds` (AABB) and `WorldSphere` (bounding sphere), populated during extraction. Frustum culling uses both in a two-tier test.
 2. **Mesh identity in sort key.** Add mesh ID bits to `SortKeyBuilder` so identical meshes are adjacent after sorting. Enables Stage 4 without sort-key rework.
 3. **General buffer usage flags.** Even before skinning or compute, extending `BufferUsage` beyond Vertex/Index costs nothing and unblocks all future GPU work.
 

@@ -318,7 +318,7 @@ namespace Wayfinder
         // Validate that no submesh data regions overlap each other or the header/table area.
         using Region = std::pair<uint32_t, uint32_t>; // (offset, offset + size)
         std::vector<Region> regions;
-        regions.reserve(header.SubmeshCount * 2u);
+        regions.reserve(static_cast<size_t>(header.SubmeshCount) * 2u);
 
         for (uint32_t i = 0; i < header.SubmeshCount; ++i)
         {
@@ -336,10 +336,10 @@ namespace Wayfinder
             }
         }
 
-        std::sort(regions.begin(), regions.end());
+        std::ranges::sort(regions);
         for (size_t i = 1; i < regions.size(); ++i)
         {
-            if (regions[i].first < regions[i - 1].second)
+            if (regions.at(i).first < regions.at(i - 1).second)
             {
                 error = "Mesh file: overlapping data regions detected";
                 return false;

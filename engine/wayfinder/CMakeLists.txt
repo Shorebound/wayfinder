@@ -120,6 +120,10 @@ set(ENGINE_ALL_SOURCES
   src/gameplay/GameplayTagRegistry.h
 
   # Maths
+  src/maths/Bounds.cpp
+  src/maths/Bounds.h
+  src/maths/Frustum.cpp
+  src/maths/Frustum.h
   src/maths/Maths.cpp
   src/maths/Maths.h
 

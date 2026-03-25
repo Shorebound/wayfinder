@@ -65,8 +65,8 @@ namespace Wayfinder::Tests
 
     TEST_CASE("MeshFormat multi-submesh round-trip preserves all submeshes")
     {
-        constexpr uint32_t submeshCount = 3;
-        auto src = MakeTestMeshFile(submeshCount);
+        constexpr uint32_t SUBMESH_COUNT = 3;
+        auto src = MakeTestMeshFile(SUBMESH_COUNT);
 
         std::vector<std::byte> bytes;
         std::string err;
@@ -75,10 +75,10 @@ namespace Wayfinder::Tests
         ParsedMeshFile dst;
         REQUIRE(ParseMeshFile(std::span(bytes.data(), bytes.size()), dst, err));
 
-        REQUIRE(dst.Header.SubmeshCount == submeshCount);
-        REQUIRE(dst.Submeshes.size() == submeshCount);
+        REQUIRE(dst.Header.SubmeshCount == SUBMESH_COUNT);
+        REQUIRE(dst.Submeshes.size() == SUBMESH_COUNT);
 
-        for (uint32_t i = 0; i < submeshCount; ++i)
+        for (uint32_t i = 0; i < SUBMESH_COUNT; ++i)
         {
             CHECK(dst.Submeshes.at(i).VertexBytes == src.Submeshes.at(i).VertexBytes);
             CHECK(dst.Submeshes.at(i).IndexBytes == src.Submeshes.at(i).IndexBytes);
@@ -104,8 +104,8 @@ namespace Wayfinder::Tests
         REQUIRE(WriteMeshFileV1(src, bytes, err));
 
         // Corrupt magic bytes
-        bytes[0] = std::byte{0xFF};
-        bytes[1] = std::byte{0xFF};
+        bytes.at(0) = std::byte{0xFF};
+        bytes.at(1) = std::byte{0xFF};
 
         CHECK_FALSE(ValidateMeshBinaryLayout(std::span(bytes.data(), bytes.size()), err));
         CHECK(err.find("magic") != std::string::npos);
@@ -119,8 +119,8 @@ namespace Wayfinder::Tests
         REQUIRE(WriteMeshFileV1(src, bytes, err));
 
         // Corrupt version (bytes 4-5 in the header)
-        constexpr uint16_t badVersion = 99;
-        std::memcpy(bytes.data() + offsetof(MeshFileHeader, Version), &badVersion, sizeof(badVersion));
+        constexpr uint16_t BAD_VERSION = 99;
+        std::memcpy(bytes.data() + offsetof(MeshFileHeader, Version), &BAD_VERSION, sizeof(BAD_VERSION));
 
         CHECK_FALSE(ValidateMeshBinaryLayout(std::span(bytes.data(), bytes.size()), err));
         CHECK(err.find("version") != std::string::npos);

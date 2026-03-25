@@ -77,47 +77,51 @@ namespace Wayfinder::Waypoint
             return 3;
         }
 
+        // NOLINTNEXTLINE(cppcoreguidelines-avoid-c-arrays,modernize-avoid-c-arrays)
         void MikkGetPosition(const SMikkTSpaceContext* ctx, float out[], const int face, const int vert)
         {
             const auto* data = static_cast<const MikkTSpaceUserData*>(ctx->m_pUserData);
-            const std::uint32_t idx = data->Indices->at(static_cast<std::size_t>(face * 3 + vert));
+            const auto idx = data->Indices->at(static_cast<std::size_t>(face) * 3 + static_cast<std::size_t>(vert));
             const Float3& pos = data->Positions->at(idx);
-            out[0] = pos.x;
-            out[1] = pos.y;
-            out[2] = pos.z;
+            out[0] = pos.x; // NOLINT(cppcoreguidelines-pro-type-union-access)
+            out[1] = pos.y; // NOLINT(cppcoreguidelines-pro-type-union-access)
+            out[2] = pos.z; // NOLINT(cppcoreguidelines-pro-type-union-access)
         }
 
+        // NOLINTNEXTLINE(cppcoreguidelines-avoid-c-arrays,modernize-avoid-c-arrays)
         void MikkGetNormal(const SMikkTSpaceContext* ctx, float out[], const int face, const int vert)
         {
             const auto* data = static_cast<const MikkTSpaceUserData*>(ctx->m_pUserData);
-            const std::uint32_t idx = data->Indices->at(static_cast<std::size_t>(face * 3 + vert));
+            const auto idx = data->Indices->at(static_cast<std::size_t>(face) * 3 + static_cast<std::size_t>(vert));
             const Float3& normal = data->Normals->at(idx);
-            out[0] = normal.x;
-            out[1] = normal.y;
-            out[2] = normal.z;
+            out[0] = normal.x; // NOLINT(cppcoreguidelines-pro-type-union-access)
+            out[1] = normal.y; // NOLINT(cppcoreguidelines-pro-type-union-access)
+            out[2] = normal.z; // NOLINT(cppcoreguidelines-pro-type-union-access)
         }
 
+        // NOLINTNEXTLINE(cppcoreguidelines-avoid-c-arrays,modernize-avoid-c-arrays)
         void MikkGetTexCoord(const SMikkTSpaceContext* ctx, float out[], const int face, const int vert)
         {
             const auto* data = static_cast<const MikkTSpaceUserData*>(ctx->m_pUserData);
-            const std::uint32_t idx = data->Indices->at(static_cast<std::size_t>(face * 3 + vert));
+            const auto idx = data->Indices->at(static_cast<std::size_t>(face) * 3 + static_cast<std::size_t>(vert));
             const Float2& uv = data->UVs->at(idx);
-            out[0] = uv.x;
-            out[1] = uv.y;
+            out[0] = uv.x; // NOLINT(cppcoreguidelines-pro-type-union-access)
+            out[1] = uv.y; // NOLINT(cppcoreguidelines-pro-type-union-access)
         }
 
+        // NOLINTNEXTLINE(cppcoreguidelines-avoid-c-arrays,modernize-avoid-c-arrays,bugprone-easily-swappable-parameters)
         void MikkSetTSpaceBasic(const SMikkTSpaceContext* ctx, const float tangent[], const float sign, const int face, const int vert)
         {
             auto* data = static_cast<MikkTSpaceUserData*>(ctx->m_pUserData);
-            const std::uint32_t idx = data->Indices->at(static_cast<std::size_t>(face * 3 + vert));
-            data->Tangents->at(idx) = Float4{tangent[0], tangent[1], tangent[2], sign};
+            const auto idx = data->Indices->at(static_cast<std::size_t>(face) * 3 + static_cast<std::size_t>(vert));
+            data->Tangents->at(idx) = Float4{tangent[0], tangent[1], tangent[2], sign}; // NOLINT(cppcoreguidelines-pro-bounds-constant-array-index)
         }
 
         /// Generates tangents using MikkTSpace. Falls back to a cross-product heuristic
         /// if MikkTSpace fails (e.g. degenerate geometry).
         void GenerateTangents(const std::vector<Float3>& positions, const std::vector<Float3>& normals, const std::vector<Float2>& uvs, const std::vector<std::uint32_t>& indices, std::vector<Float4>& tangents)
         {
-            MikkTSpaceUserData userData{&positions, &normals, &uvs, &indices, &tangents};
+            MikkTSpaceUserData userData{.Positions = &positions, .Normals = &normals, .UVs = &uvs, .Indices = &indices, .Tangents = &tangents};
 
             SMikkTSpaceInterface iface{};
             iface.m_getNumFaces = MikkGetNumFaces;

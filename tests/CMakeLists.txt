@@ -34,6 +34,7 @@ add_executable(${WAYFINDER_CORE_TEST_NAME}
   core/ResultTests.cpp
   core/MeshFormatTests.cpp
   core/AssetPipelineTests.cpp
+  core/FrustumTests.cpp
   app/EngineRuntimeTests.cpp
   app/EngineConfigTests.cpp
   app/SubsystemTests.cpp

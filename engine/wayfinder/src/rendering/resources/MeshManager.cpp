@@ -97,7 +97,7 @@ namespace Wayfinder
 
         for (uint32_t i = 0; i < asset->Submeshes.size(); ++i)
         {
-            auto meshResult = UploadSubmesh(*m_device, asset->Submeshes[i]);
+            auto meshResult = UploadSubmesh(*m_device, asset->Submeshes.at(i));
             if (!meshResult)
             {
                 // Destroy any submeshes we already uploaded
@@ -109,7 +109,7 @@ namespace Wayfinder
             }
 
             gpuAsset->Submeshes.push_back(std::move(*meshResult));
-            gpuAsset->MaterialSlots.push_back(asset->Submeshes[i].MaterialSlot);
+            gpuAsset->MaterialSlots.push_back(asset->Submeshes.at(i).MaterialSlot);
         }
 
         const auto [it, inserted] = m_cache.emplace(assetId, std::move(gpuAsset));

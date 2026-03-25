@@ -87,7 +87,7 @@ namespace Wayfinder
                 const MeshAssetGPU* gpuAsset = *result;
                 if (submission.Mesh.SubmeshIndex < gpuAsset->Submeshes.size())
                 {
-                    resource.GpuMesh = &gpuAsset->Submeshes[submission.Mesh.SubmeshIndex];
+                    resource.GpuMesh = &gpuAsset->Submeshes.at(submission.Mesh.SubmeshIndex);
                 }
             }
             else

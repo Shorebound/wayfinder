@@ -181,18 +181,18 @@ namespace Wayfinder
             m_renderResources->PrepareFrame(preparedFrame);
         }
 
-        // Validate and sort passes via RenderPipeline
-        if (!m_renderPipeline->Prepare(preparedFrame))
-        {
-            m_device->EndFrame();
-            return;
-        }
-
         // ── Query swapchain dimensions for transient targets ──
         const Extent2D swapchainDimensions = m_device->GetSwapchainDimensions();
         const uint32_t swapW = swapchainDimensions.width;
         const uint32_t swapH = swapchainDimensions.height;
         if (swapW == 0 || swapH == 0)
+        {
+            m_device->EndFrame();
+            return;
+        }
+
+        // Pre-compute view matrices, frustum cull, and sort passes
+        if (!m_renderPipeline->Prepare(preparedFrame, swapW, swapH))
         {
             m_device->EndFrame();
             return;

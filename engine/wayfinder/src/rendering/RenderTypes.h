@@ -19,6 +19,8 @@ namespace Wayfinder
         Float3 Target{0.0f, 0.0f, 0.0f};
         Float3 Up{0.0f, 1.0f, 0.0f};
         float FOV = 45.0f;
+        float NearPlane = 0.1f;
+        float FarPlane = 1000.0f;
         int ProjectionType = 0; // 0 = Perspective, 1 = Orthographic
     };
 

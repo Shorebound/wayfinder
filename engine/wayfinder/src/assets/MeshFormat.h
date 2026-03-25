@@ -1,6 +1,7 @@
 #pragma once
 
 #include "core/Types.h"
+#include "maths/Bounds.h"
 #include "wayfinder_exports.h"
 
 #include <cstddef>
@@ -32,12 +33,6 @@ namespace Wayfinder
     {
         Uint16 = 0,
         Uint32 = 1,
-    };
-
-    struct AxisAlignedBounds
-    {
-        Float3 Min{0.0f};
-        Float3 Max{0.0f};
     };
 
 #pragma pack(push, 1)

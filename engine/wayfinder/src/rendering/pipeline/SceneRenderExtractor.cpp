@@ -4,6 +4,7 @@
 
 #include "assets/AssetService.h"
 #include "core/Log.h"
+#include "maths/Bounds.h"
 #include "maths/Maths.h"
 #include "scene/Components.h"
 #include "scene/Scene.h"
@@ -171,8 +172,8 @@ namespace Wayfinder
                 }
             }
 
-            /// Emit a single submission with the given mesh ref and material.
-            auto emitSubmission = [&](const RenderMeshRef& meshRef, const RenderMaterialBinding& material)
+            /// Emit a single submission with the given mesh ref, material, and world-space bounds.
+            auto emitSubmission = [&](const RenderMeshRef& meshRef, const RenderMaterialBinding& material, const AxisAlignedBounds& worldBounds)
             {
                 RenderMeshSubmission submission;
                 submission.Mesh = meshRef;
@@ -184,6 +185,8 @@ namespace Wayfinder
                 submission.Layer = renderable.Layer;
                 submission.SortPriority = renderable.SortPriority;
                 submission.LocalToWorld = localToWorld;
+                submission.WorldBounds = worldBounds;
+                submission.WorldSphere = ComputeBoundingSphere(worldBounds);
                 submission.SortKey = SortKeyBuilder::Build(MapLayer(submission.Layer), MaterialIdBits(submission.Material.Ref.AssetId), cameraSpaceZ, static_cast<uint16_t>(submission.SortPriority));
 
                 RenderPass* owningPass = frame.FindScenePassForSubmission(submission, 0);
@@ -198,19 +201,16 @@ namespace Wayfinder
 
             if (mesh.MeshAssetId)
             {
-                // Asset mesh — emit one submission per submesh
-                uint32_t submeshCount = 1;
-
+                // Asset mesh — load metadata once, emit one submission per submesh
+                const MeshAsset* meshAsset = nullptr;
                 const auto& assetService = scene.GetAssetService();
                 if (assetService)
                 {
                     std::string error;
-                    const MeshAsset* meshAsset = assetService->LoadAsset<MeshAsset>(*mesh.MeshAssetId, error);
-                    if (meshAsset)
-                    {
-                        submeshCount = static_cast<uint32_t>(meshAsset->Submeshes.size());
-                    }
+                    meshAsset = assetService->LoadAsset<MeshAsset>(*mesh.MeshAssetId, error);
                 }
+
+                const uint32_t submeshCount = meshAsset ? static_cast<uint32_t>(meshAsset->Submeshes.size()) : 1u;
 
                 for (uint32_t submeshIdx = 0; submeshIdx < submeshCount; ++submeshIdx)
                 {
@@ -223,16 +223,12 @@ namespace Wayfinder
                     // Resolve per-submesh material: slot binding → entity material → built-in
                     RenderMaterialBinding submeshMaterial = entityMaterial;
 
-                    // Check if this submesh's material slot has a per-entity override
-                    uint32_t materialSlot = submeshIdx; // Default: slot = submesh index
-                    if (const auto& assetServicePtr = scene.GetAssetService(); assetServicePtr)
+                    uint32_t materialSlot = submeshIdx;
+                    AxisAlignedBounds localBounds{};
+                    if (meshAsset && submeshIdx < meshAsset->Submeshes.size())
                     {
-                        std::string error;
-                        const MeshAsset* meshAsset = assetServicePtr->LoadAsset<MeshAsset>(*mesh.MeshAssetId, error);
-                        if (meshAsset && submeshIdx < meshAsset->Submeshes.size())
-                        {
-                            materialSlot = meshAsset->Submeshes[submeshIdx].MaterialSlot;
-                        }
+                        materialSlot = meshAsset->Submeshes.at(submeshIdx).MaterialSlot;
+                        localBounds = meshAsset->Submeshes.at(submeshIdx).Bounds;
                     }
 
                     if (const auto slotIt = mesh.MaterialSlotBindings.find(materialSlot); slotIt != mesh.MaterialSlotBindings.end())
@@ -243,17 +239,22 @@ namespace Wayfinder
                         submeshMaterial.HasOverrides = false;
                     }
 
-                    emitSubmission(meshRef, submeshMaterial);
+                    const AxisAlignedBounds worldBounds = TransformBounds(localBounds, localToWorld);
+                    emitSubmission(meshRef, submeshMaterial, worldBounds);
                 }
             }
             else
             {
-                // Built-in primitive — single submission
+                // Built-in primitive — single submission with bounds derived from dimensions
                 RenderMeshRef meshRef;
                 meshRef.Origin = RenderResourceOrigin::BuiltIn;
                 meshRef.StableKey = K_BUILT_IN_BOX_MESH_KEY;
 
-                emitSubmission(meshRef, entityMaterial);
+                const Float3 halfDim = mesh.Dimensions * 0.5f;
+                const AxisAlignedBounds localBounds{.Min = -halfDim, .Max = halfDim};
+                const AxisAlignedBounds worldBounds = TransformBounds(localBounds, localToWorld);
+
+                emitSubmission(meshRef, entityMaterial, worldBounds);
             }
         });
 

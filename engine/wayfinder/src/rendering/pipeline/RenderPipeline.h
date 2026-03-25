@@ -60,9 +60,10 @@ namespace Wayfinder
         void Initialise(RenderContext& context);
         void Shutdown();
 
-        /// Validates views/passes, sorts scene submissions by sort key.
+        /// Validates views/passes, pre-computes view matrices and frustums,
+        /// frustum-culls submissions, then sorts by sort key.
         /// Returns false if the frame is invalid and should be skipped.
-        bool Prepare(RenderFrame& frame) const;
+        bool Prepare(RenderFrame& frame, uint32_t swapchainWidth, uint32_t swapchainHeight) const;
 
         /// Builds the full render graph for the frame (MainScene, Debug,
         /// Feature passes, Composition).
