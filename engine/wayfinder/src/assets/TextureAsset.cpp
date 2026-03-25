@@ -14,6 +14,7 @@ namespace Wayfinder
         constexpr std::string_view TEXTURE_SOURCE_KEY = "source";
         constexpr std::string_view TEXTURE_FILTER_KEY = "filter";
         constexpr std::string_view TEXTURE_ADDRESS_MODE_KEY = "address_mode";
+        constexpr std::string_view TEXTURE_MIP_LEVELS_KEY = "mip_levels";
 
         SamplerFilter ParseFilter(const std::string& text)
         {
@@ -78,6 +79,12 @@ namespace Wayfinder
             return false;
         }
 
+        if (document.contains(TEXTURE_MIP_LEVELS_KEY) && !document.at(TEXTURE_MIP_LEVELS_KEY).is_number_unsigned())
+        {
+            error = "Texture asset '" + label + "' field 'mip_levels' must be a non-negative integer (0 = auto, 1 = no mips)";
+            return false;
+        }
+
         return true;
     }
 
@@ -106,6 +113,7 @@ namespace Wayfinder
         texture.SourcePath = document.at(TEXTURE_SOURCE_KEY).get<std::string>();
         texture.Filter = ParseFilter(document.value(std::string{TEXTURE_FILTER_KEY}, std::string("linear")));
         texture.AddressMode = ParseAddressMode(document.value(std::string{TEXTURE_ADDRESS_MODE_KEY}, std::string("repeat")));
+        texture.MipLevels = document.value(std::string{TEXTURE_MIP_LEVELS_KEY}, 0u);
 
         // Resolve image path relative to the JSON descriptor's directory
         const std::filesystem::path imageDir = filePath.parent_path();

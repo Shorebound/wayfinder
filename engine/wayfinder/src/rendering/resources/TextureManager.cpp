@@ -6,6 +6,7 @@
 #include <algorithm>
 #include <array>
 #include <cstdint>
+#include <cstring>
 #include <span>
 
 namespace Wayfinder
@@ -129,7 +130,8 @@ namespace Wayfinder
         }
 
         m_textureCache[assetId] = gpuTexture;
-        WAYFINDER_INFO(LogRenderer, "TextureManager: Loaded '{}' ({}x{}) to GPU", asset->Name, asset->Width, asset->Height);
+
+        WAYFINDER_INFO(LogRenderer, "TextureManager: Loaded '{}' ({}x{}, mipLevels={}) to GPU", asset->Name, asset->Width, asset->Height, asset->MipLevels);
 
         // Release CPU-side pixel data now that it's on the GPU
         assetService.ReleaseTexturePixelData(assetId);
@@ -172,6 +174,7 @@ namespace Wayfinder
         desc.height = asset.Height;
         desc.format = TextureFormat::RGBA8_UNORM;
         desc.usage = TextureUsage::Sampler;
+        desc.mipLevels = asset.MipLevels; // 0 = auto, device resolves
 
         GPUTextureHandle texture = m_device->CreateTexture(desc);
         if (!texture)
@@ -180,6 +183,11 @@ namespace Wayfinder
         }
 
         m_device->UploadToTexture(texture, asset.PixelData.data(), asset.Width, asset.Height, asset.Width * asset.Channels);
+
+        if (asset.MipLevels != 1)
+        {
+            m_device->GenerateMipmaps(texture);
+        }
 
         return texture;
     }
@@ -252,18 +260,38 @@ namespace Wayfinder
     {
         static_assert(sizeof(SamplerFilter) == 1, "SamplerFilter must be 1 byte for hash packing");
         static_assert(sizeof(SamplerAddressMode) == 1, "SamplerAddressMode must be 1 byte for hash packing");
+        static_assert(sizeof(SamplerMipmapMode) == 1, "SamplerMipmapMode must be 1 byte for hash packing");
 
-        // Pack 4 enum bytes into a 32-bit value, then hash via FNV-1a.
-        const uint32_t packed =
-            (static_cast<uint32_t>(desc.minFilter) << 0) | (static_cast<uint32_t>(desc.magFilter) << 8) | (static_cast<uint32_t>(desc.addressModeU) << 16) | (static_cast<uint32_t>(desc.addressModeV) << 24);
-
-        // FNV-1a 64-bit
+        // FNV-1a 64-bit hash over all fields
         uint64_t hash = 14695981039346656037ull;
-        for (int i = 0; i < 4; ++i)
+
+        auto feedByte = [&hash](uint8_t byte)
         {
-            hash ^= static_cast<uint64_t>((packed >> (i * 8)) & 0xFF);
+            hash ^= static_cast<uint64_t>(byte);
             hash *= 1099511628211ull;
-        }
+        };
+
+        auto feedFloat = [&feedByte](float value)
+        {
+            uint32_t bits = 0;
+            std::memcpy(&bits, &value, sizeof(bits));
+            for (int i = 0; i < 4; ++i)
+            {
+                feedByte(static_cast<uint8_t>((bits >> (i * 8)) & 0xFF));
+            }
+        };
+
+        feedByte(static_cast<uint8_t>(desc.minFilter));
+        feedByte(static_cast<uint8_t>(desc.magFilter));
+        feedByte(static_cast<uint8_t>(desc.addressModeU));
+        feedByte(static_cast<uint8_t>(desc.addressModeV));
+        feedByte(static_cast<uint8_t>(desc.mipmapMode));
+        feedFloat(desc.minLod);
+        feedFloat(desc.maxLod);
+        feedFloat(desc.mipLodBias);
+        feedByte(desc.enableAnisotropy ? 1 : 0);
+        feedFloat(desc.maxAnisotropy);
+
         return hash;
     }
 

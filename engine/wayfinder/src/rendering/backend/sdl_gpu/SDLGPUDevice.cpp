@@ -1,4 +1,5 @@
 #include "SDLGPUDevice.h"
+#include "BlitMipGenerator.h"
 #include "platform/Window.h"
 #include "rendering/backend/null/NullDevice.h"
 
@@ -192,6 +193,9 @@ namespace Wayfinder
         m_info.DriverInfo = driver ? driver : "unknown";
 
         WAYFINDER_INFO(LogRenderer, "SDLGPUDevice: Initialised (driver: {})", m_info.DriverInfo);
+
+        m_mipGenerator = std::make_unique<BlitMipGenerator>();
+
         return {};
     }
 
@@ -230,9 +234,9 @@ namespace Wayfinder
             });
             m_samplerPool.Clear();
 
-            m_texturePool.ForEachAlive([&](SDL_GPUTexture* t)
+            m_texturePool.ForEachAlive([&](TextureEntry& entry)
             {
-                SDL_ReleaseGPUTexture(m_device, t);
+                SDL_ReleaseGPUTexture(m_device, entry.texture);
             });
             m_texturePool.Clear();
 
@@ -351,7 +355,7 @@ namespace Wayfinder
         else if (descriptor.colourTarget.IsValid())
         {
             auto* pTex = m_texturePool.Get(descriptor.colourTarget);
-            colourTexture = pTex ? *pTex : nullptr;
+            colourTexture = pTex ? pTex->texture : nullptr;
         }
 
         if (!colourTexture)
@@ -395,7 +399,7 @@ namespace Wayfinder
             if (descriptor.depthTarget.IsValid())
             {
                 auto* pTex = m_texturePool.Get(descriptor.depthTarget);
-                depthTexture = pTex ? *pTex : nullptr;
+                depthTexture = pTex ? pTex->texture : nullptr;
             }
             else if (m_depthTexture)
             {
@@ -1001,23 +1005,41 @@ namespace Wayfinder
             return GPUTextureHandle::Invalid();
         }
 
+        const uint32_t maxMips = CalculateMipLevels(desc.width, desc.height);
+        const uint32_t resolvedMips = (desc.mipLevels == 0) ? maxMips : std::min(desc.mipLevels, maxMips);
+
+        if (desc.mipLevels > maxMips)
+        {
+            WAYFINDER_WARN(LogRenderer,
+                "SDLGPUDevice::CreateTexture: Requested {} mip levels for {}x{} texture, "
+                "clamped to maximum of {}",
+                desc.mipLevels, desc.width, desc.height, maxMips);
+        }
+
         SDL_GPUTextureCreateInfo info{};
         info.type = SDL_GPU_TEXTURETYPE_2D;
         info.format = ToSDLTextureFormat(desc.format);
         info.width = desc.width;
         info.height = desc.height;
         info.layer_count_or_depth = 1;
-        info.num_levels = 1;
-        info.usage = ToSDLTextureUsage(desc.usage);
+        info.num_levels = resolvedMips;
+
+        auto usage = desc.usage;
+        if (resolvedMips > 1 && !HasFlag(usage, TextureUsage::DepthTarget))
+        {
+            /// Blit-based mip generation requires ColourTarget usage.
+            usage = usage | TextureUsage::ColourTarget;
+        }
+        info.usage = ToSDLTextureUsage(usage);
 
         SDL_GPUTexture* texture = SDL_CreateGPUTexture(m_device, &info);
         if (!texture)
         {
-            WAYFINDER_ERROR(LogRenderer, "SDLGPUDevice::CreateTexture: Failed ({}x{}) — {}", desc.width, desc.height, SDL_GetError());
+            WAYFINDER_ERROR(LogRenderer, "SDLGPUDevice::CreateTexture: Failed ({}x{}, {} mips) — {}", desc.width, desc.height, resolvedMips, SDL_GetError());
             return GPUTextureHandle::Invalid();
         }
 
-        return m_texturePool.Acquire(texture);
+        return m_texturePool.Acquire({.texture = texture, .width = desc.width, .height = desc.height, .mipLevels = resolvedMips});
     }
 
     void SDLGPUDevice::DestroyTexture(GPUTextureHandle texture)
@@ -1026,18 +1048,19 @@ namespace Wayfinder
         {
             return;
         }
-        auto* pTexture = m_texturePool.Get(texture);
-        if (pTexture)
+        auto* pEntry = m_texturePool.Get(texture);
+        if (pEntry)
         {
-            SDL_ReleaseGPUTexture(m_device, *pTexture);
+            SDL_ReleaseGPUTexture(m_device, pEntry->texture);
             m_texturePool.Release(texture);
         }
     }
 
-    void SDLGPUDevice::UploadToTexture(GPUTextureHandle texture, const void* pixelData, uint32_t width, uint32_t height, uint32_t bytesPerRow)
+    // NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
+    void SDLGPUDevice::UploadToTexture(GPUTextureHandle texture, const void* pixelData, uint32_t width, uint32_t height, uint32_t bytesPerRow, uint32_t mipLevel)
     {
-        auto* pTexture = m_texturePool.Get(texture);
-        if (!m_device || !pTexture || !pixelData || width == 0 || height == 0)
+        auto* pEntry = m_texturePool.Get(texture);
+        if (!m_device || !pEntry || !pixelData || width == 0 || height == 0)
         {
             return;
         }
@@ -1086,7 +1109,8 @@ namespace Wayfinder
         src.rows_per_layer = height;
 
         SDL_GPUTextureRegion dst{};
-        dst.texture = *pTexture;
+        dst.texture = pEntry->texture;
+        dst.mip_level = mipLevel;
         dst.w = width;
         dst.h = height;
         dst.d = 1;
@@ -1096,6 +1120,20 @@ namespace Wayfinder
 
         SDL_SubmitGPUCommandBuffer(cmdBuf);
         SDL_ReleaseGPUTransferBuffer(m_device, transferBuffer);
+    }
+
+    void SDLGPUDevice::GenerateMipmaps(GPUTextureHandle texture)
+    {
+        auto* pEntry = m_texturePool.Get(texture);
+        if (!m_device || !pEntry || pEntry->mipLevels <= 1)
+        {
+            return;
+        }
+
+        if (m_mipGenerator)
+        {
+            m_mipGenerator->Generate(m_device, pEntry->texture, pEntry->mipLevels, pEntry->width, pEntry->height);
+        }
     }
 
     // ── Samplers ─────────────────────────────────────────────
@@ -1111,7 +1149,12 @@ namespace Wayfinder
         SDL_GPUSamplerCreateInfo info{};
         info.min_filter = (desc.minFilter == SamplerFilter::Nearest) ? SDL_GPU_FILTER_NEAREST : SDL_GPU_FILTER_LINEAR;
         info.mag_filter = (desc.magFilter == SamplerFilter::Nearest) ? SDL_GPU_FILTER_NEAREST : SDL_GPU_FILTER_LINEAR;
-        info.mipmap_mode = SDL_GPU_SAMPLERMIPMAPMODE_NEAREST;
+        info.mipmap_mode = (desc.mipmapMode == SamplerMipmapMode::Linear) ? SDL_GPU_SAMPLERMIPMAPMODE_LINEAR : SDL_GPU_SAMPLERMIPMAPMODE_NEAREST;
+        info.min_lod = desc.minLod;
+        info.max_lod = desc.maxLod;
+        info.mip_lod_bias = desc.mipLodBias;
+        info.enable_anisotropy = desc.enableAnisotropy;
+        info.max_anisotropy = desc.maxAnisotropy;
 
         auto toAddressMode = [](SamplerAddressMode mode) -> SDL_GPUSamplerAddressMode
         {
@@ -1161,15 +1204,15 @@ namespace Wayfinder
         {
             return;
         }
-        auto* pTexture = m_texturePool.Get(texture);
+        auto* pEntry = m_texturePool.Get(texture);
         auto* pSampler = m_samplerPool.Get(sampler);
-        if (!pTexture || !pSampler)
+        if (!pEntry || !pSampler)
         {
             return;
         }
 
         SDL_GPUTextureSamplerBinding binding{};
-        binding.texture = *pTexture;
+        binding.texture = pEntry->texture;
         binding.sampler = *pSampler;
 
         SDL_BindGPUFragmentSamplers(m_renderPass, slot, &binding, 1);

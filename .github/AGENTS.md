@@ -34,7 +34,7 @@ This file documents common mistakes, confusion points, and non-obvious behaviour
 ## Rendering
 
 - **SDL_GPU SPIR-V binding convention:** Vertex samplers = set 0, vertex UBOs = set 1, fragment samplers = set 2, fragment UBOs = set 3. Combined image samplers need `[[vk::combinedImageSampler]]` + `[[vk::binding(N, SET)]]` on both `Texture2D` and `SamplerState`.
-- **`NullDevice` is real.** It's used for headless testing and tools. All `Create*()` methods return `{}` (invalid handles). Code that runs in tests must handle null-device gracefully.
+- **`NullDevice` is real.** It's used for headless testing and tools. `CreateTexture()` and `CreateSampler()` return distinguishable valid handles (incrementing counter). All other `Create*()` methods return `{}` (invalid handles). Code that runs in tests must handle null-device gracefully.
 
 ## Plugin System
 

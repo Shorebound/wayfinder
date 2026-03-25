@@ -70,15 +70,16 @@ namespace Wayfinder
         // ── Textures (no-ops) ──
         GPUTextureHandle CreateTexture(const TextureCreateDesc&) override
         {
-            return {};
+            return GPUTextureHandle{.Index = m_nextId++, .Generation = 1};
         }
         void DestroyTexture(GPUTextureHandle) override {}
-        void UploadToTexture(GPUTextureHandle, const void*, uint32_t, uint32_t, uint32_t) override {}
+        void UploadToTexture(GPUTextureHandle, const void*, uint32_t, uint32_t, uint32_t, uint32_t) override {}
+        void GenerateMipmaps(GPUTextureHandle) override {}
 
         // ── Samplers (no-ops) ──
         GPUSamplerHandle CreateSampler(const SamplerCreateDesc&) override
         {
-            return {};
+            return GPUSamplerHandle{.Index = m_nextId++, .Generation = 1};
         }
         void DestroySampler(GPUSamplerHandle) override {}
         void BindFragmentSampler(uint32_t, GPUTextureHandle, GPUSamplerHandle) override {}
@@ -95,6 +96,7 @@ namespace Wayfinder
 
     private:
         RenderDeviceInfo m_info{.BackendName = "Null"};
+        uint32_t m_nextId = 0;
     };
 
 } // namespace Wayfinder

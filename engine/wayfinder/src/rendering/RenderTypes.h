@@ -1,5 +1,7 @@
 #pragma once
 
+#include <algorithm>
+#include <bit>
 #include <cstdint>
 #include <string>
 #include <string_view>
@@ -82,7 +84,28 @@ namespace Wayfinder
         uint32_t height = 0;
         TextureFormat format = TextureFormat::RGBA8_UNORM;
         TextureUsage usage = TextureUsage::ColourTarget;
+
+        /**
+         * @brief Mip level count.
+         * 0 = generate full mip chain (floor(log2(max(w,h))) + 1).
+         * 1 = base level only (no mipmaps).
+         * N = explicit mip level count.
+         */
+        uint32_t mipLevels = 1;
     };
+
+    /**
+     * @brief Calculate the full mip chain level count for a 2D texture.
+     * @return floor(log2(max(width, height))) + 1, or 1 if either dimension is zero.
+     */
+    inline constexpr uint32_t CalculateMipLevels(uint32_t width, uint32_t height)
+    {
+        if (width == 0 || height == 0)
+        {
+            return 1;
+        }
+        return std::bit_width(std::max(width, height));
+    }
 
     struct Extent2D
     {
@@ -93,6 +116,12 @@ namespace Wayfinder
     // ── Sampler ───────────────────────────────────────────────
 
     enum class SamplerFilter : uint8_t
+    {
+        Nearest,
+        Linear,
+    };
+
+    enum class SamplerMipmapMode : uint8_t
     {
         Nearest,
         Linear,
@@ -111,6 +140,22 @@ namespace Wayfinder
         SamplerFilter magFilter = SamplerFilter::Nearest;
         SamplerAddressMode addressModeU = SamplerAddressMode::ClampToEdge;
         SamplerAddressMode addressModeV = SamplerAddressMode::ClampToEdge;
+        SamplerMipmapMode mipmapMode = SamplerMipmapMode::Nearest;
+
+        /** @brief Minimum mip LOD clamp. 0 = use base level. */
+        float minLod = 0.0f;
+
+        /** @brief Maximum mip LOD clamp. Large value = allow all mips. */
+        float maxLod = 1000.0f;
+
+        /** @brief Bias applied to the computed mip LOD. Negative = sharper. */
+        float mipLodBias = 0.0f;
+
+        /** @brief Enable anisotropic filtering. */
+        bool enableAnisotropy = false;
+
+        /** @brief Maximum anisotropy level (1–16). Only used when enableAnisotropy is true. */
+        float maxAnisotropy = 1.0f;
     };
 
     // ── GPU Enums ────────────────────────────────────────────
