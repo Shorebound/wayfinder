@@ -328,6 +328,8 @@ namespace Wayfinder
 
             if (pass.Type == RenderGraphPassType::Raster)
             {
+                GPUDebugScope passDebugScope(device, pass.Name.GetString());
+
                 // Build the render pass descriptor
                 RenderPassDescriptor rpDesc;
                 rpDesc.debugName = pass.Name.GetString();
@@ -363,6 +365,7 @@ namespace Wayfinder
             }
             else if (pass.Type == RenderGraphPassType::Compute)
             {
+                GPUDebugScope passDebugScope(device, pass.Name.GetString());
                 device.BeginComputePass();
                 pass.Execute(device, resources);
                 device.EndComputePass();

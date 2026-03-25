@@ -1,3 +1,4 @@
+#include "app/EngineConfig.h"
 #include "rendering/backend/RenderDevice.h"
 #include "rendering/graph/RenderFeature.h"
 #include "rendering/graph/RenderFrame.h"
@@ -14,6 +15,121 @@
 
 namespace Wayfinder::Tests
 {
+    namespace
+    {
+        class TrackingRenderDevice final : public Wayfinder::RenderDevice
+        {
+        public:
+            Result<void> Initialise(Wayfinder::Window&) override
+            {
+                return {};
+            }
+
+            void Shutdown() override {}
+
+            bool BeginFrame() override
+            {
+                m_events.emplace_back("BeginFrame");
+                return true;
+            }
+
+            void EndFrame() override
+            {
+                m_events.emplace_back("EndFrame");
+            }
+
+            void PushDebugGroup(std::string_view name) override
+            {
+                m_events.emplace_back(std::string("PushDebugGroup:") + std::string(name));
+            }
+
+            void PopDebugGroup() override
+            {
+                m_events.emplace_back("PopDebugGroup");
+            }
+
+            void BeginRenderPass(const Wayfinder::RenderPassDescriptor&) override {}
+            void EndRenderPass() override {}
+
+            GPUShaderHandle CreateShader(const ShaderCreateDesc&) override
+            {
+                return {};
+            }
+
+            void DestroyShader(GPUShaderHandle) override {}
+
+            GPUPipelineHandle CreatePipeline(const PipelineCreateDesc&) override
+            {
+                return {};
+            }
+
+            void DestroyPipeline(GPUPipelineHandle) override {}
+            void BindPipeline(GPUPipelineHandle) override {}
+
+            GPUBufferHandle CreateBuffer(const BufferCreateDesc&) override
+            {
+                return GPUBufferHandle{.Index = m_nextId++, .Generation = 1};
+            }
+
+            void DestroyBuffer(GPUBufferHandle) override {}
+            void UploadToBuffer(GPUBufferHandle, const void*, BufferUploadRegion) override {}
+            void BindVertexBuffer(GPUBufferHandle, VertexBufferBindingDesc) override {}
+            void BindIndexBuffer(GPUBufferHandle, IndexElementSize, uint32_t) override {}
+            void DrawIndexed(uint32_t, uint32_t, uint32_t, int32_t) override {}
+            void DrawPrimitives(uint32_t, uint32_t, uint32_t) override {}
+            void PushVertexUniform(uint32_t, const void*, uint32_t) override {}
+            void PushFragmentUniform(uint32_t, const void*, uint32_t) override {}
+
+            GPUComputePipelineHandle CreateComputePipeline(const ComputePipelineCreateDesc&) override
+            {
+                return {};
+            }
+
+            void DestroyComputePipeline(GPUComputePipelineHandle) override {}
+            void BeginComputePass() override {}
+            void EndComputePass() override {}
+            void BindComputePipeline(GPUComputePipelineHandle) override {}
+            void DispatchCompute(uint32_t, uint32_t, uint32_t) override {}
+
+            GPUTextureHandle CreateTexture(const TextureCreateDesc&) override
+            {
+                return GPUTextureHandle{.Index = m_nextId++, .Generation = 1};
+            }
+
+            void DestroyTexture(GPUTextureHandle) override {}
+            void UploadToTexture(GPUTextureHandle, const void*, uint32_t, uint32_t, uint32_t, uint32_t) override {}
+            void GenerateMipmaps(GPUTextureHandle) override {}
+
+            GPUSamplerHandle CreateSampler(const SamplerCreateDesc&) override
+            {
+                return GPUSamplerHandle{.Index = m_nextId++, .Generation = 1};
+            }
+
+            void DestroySampler(GPUSamplerHandle) override {}
+            void BindFragmentSampler(uint32_t, GPUTextureHandle, GPUSamplerHandle) override {}
+
+            [[nodiscard]] Extent2D GetSwapchainDimensions() const override
+            {
+                return {.width = 320, .height = 240};
+            }
+
+            const RenderDeviceInfo& GetDeviceInfo() const override
+            {
+                return m_info;
+            }
+
+            const std::vector<std::string>& GetEvents() const
+            {
+                return m_events;
+            }
+
+        private:
+            RenderDeviceInfo m_info{.BackendName = "Tracking"};
+            std::vector<std::string> m_events;
+            uint32_t m_nextId = 0;
+        };
+    } // namespace
+
     // A minimal test feature that records when AddPasses is called.
     class TestFeature : public Wayfinder::RenderFeature
     {
@@ -209,6 +325,29 @@ namespace Wayfinder::Tests
         CHECK(overlay.WasExecuted());
 
         pool.Shutdown();
+    }
+
+    TEST_CASE("Renderer wraps the frame in a GPU debug group")
+    {
+        TrackingRenderDevice device;
+        Wayfinder::EngineConfig config;
+        config.Window.Width = 320;
+        config.Window.Height = 240;
+
+        Wayfinder::Renderer renderer;
+        REQUIRE(renderer.Initialise(device, config));
+
+        Wayfinder::RenderFrame frame;
+        frame.SceneName = "Empty";
+
+        renderer.Render(frame);
+        renderer.Shutdown();
+
+        REQUIRE(device.GetEvents().size() >= 4);
+        CHECK(device.GetEvents()[0] == "BeginFrame");
+        CHECK(device.GetEvents()[1] == "PushDebugGroup:Frame: Empty");
+        CHECK(device.GetEvents()[2] == "PopDebugGroup");
+        CHECK(device.GetEvents()[3] == "EndFrame");
     }
 
     TEST_CASE("Removing a feature stops its pass injection")

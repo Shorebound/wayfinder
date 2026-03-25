@@ -300,6 +300,25 @@ namespace Wayfinder
         m_swapchainTexture = nullptr;
     }
 
+    void SDLGPUDevice::PushDebugGroup(std::string_view name)
+    {
+        if (!m_commandBuffer)
+        {
+            return;
+        }
+
+        const std::string label = name.empty() ? "Unnamed GPU Scope" : std::string(name);
+        SDL_PushGPUDebugGroup(m_commandBuffer, label.c_str());
+    }
+
+    void SDLGPUDevice::PopDebugGroup()
+    {
+        if (m_commandBuffer)
+        {
+            SDL_PopGPUDebugGroup(m_commandBuffer);
+        }
+    }
+
     void SDLGPUDevice::EnsureDepthTexture(uint32_t width, uint32_t height)
     {
         if (m_depthTexture && m_depthWidth == width && m_depthHeight == height)
@@ -1010,7 +1029,7 @@ namespace Wayfinder
 
         if (desc.mipLevels > maxMips)
         {
-            WAYFINDER_WARN(LogRenderer,
+            WAYFINDER_WARNING(LogRenderer,
                 "SDLGPUDevice::CreateTexture: Requested {} mip levels for {}x{} texture, "
                 "clamped to maximum of {}",
                 desc.mipLevels, desc.width, desc.height, maxMips);
