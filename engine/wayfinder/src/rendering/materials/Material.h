@@ -15,6 +15,19 @@
 
 namespace Wayfinder
 {
+    // ── Material Blend Mode ──────────────────────────────────
+    // Authored blend preset stored in material JSON. GPU-agnostic — the
+    // renderer maps this to a concrete BlendState at submission time.
+
+    enum class MaterialBlendMode : uint8_t
+    {
+        Opaque = 0,
+        AlphaBlend,
+        Additive,
+        Premultiplied,
+        Multiplicative
+    };
+
     // ── Material Asset ───────────────────────────────────────
     // The authored, disk-backed material definition (loaded from JSON).
     // Carries a shader reference and a generic parameter bag.
@@ -26,6 +39,7 @@ namespace Wayfinder
         AssetId Id;
         std::string Name;
         std::string ShaderName = "unlit";
+        MaterialBlendMode BlendMode = MaterialBlendMode::Opaque;
         MaterialParameterBlock Parameters;
 
         /// Named texture slot references: slot name (e.g. "diffuse") → texture AssetId.

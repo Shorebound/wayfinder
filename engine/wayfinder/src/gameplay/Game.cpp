@@ -195,7 +195,7 @@ namespace Wayfinder
     {
         if (!m_stateMachine)
         {
-            WAYFINDER_WARNING(LogGame, "TransitionTo('{}') called but no state machine is configured", stateName);
+            WAYFINDER_WARN(LogGame, "TransitionTo('{}') called but no state machine is configured", stateName);
             return;
         }
         m_stateMachine->TransitionTo(stateName);
@@ -270,7 +270,7 @@ namespace Wayfinder
             }
             else
             {
-                WAYFINDER_WARNING(LogGame, "Tag file not found: '{}'", fullPath.string());
+                WAYFINDER_WARN(LogGame, "Tag file not found: '{}'", fullPath.string());
             }
         }
 

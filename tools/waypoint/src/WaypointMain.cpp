@@ -199,7 +199,7 @@ int main(int argc, char** argv)
 
         for (const auto& warning : loadResult->Warnings)
         {
-            WAYFINDER_WARNING(Wayfinder::LogEngine, "Project: {}", warning);
+            WAYFINDER_WARN(Wayfinder::LogEngine, "Project: {}", warning);
         }
 
         project = std::move(loadResult->Descriptor);

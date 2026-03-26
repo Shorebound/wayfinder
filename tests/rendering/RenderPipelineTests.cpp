@@ -1,6 +1,9 @@
+#include "TestHelpers.h"
 #include "app/EngineConfig.h"
+#include "assets/AssetService.h"
 #include "rendering/backend/RenderDevice.h"
 #include "rendering/graph/RenderFrame.h"
+#include "rendering/graph/SortKey.h"
 #include "rendering/pipeline/RenderContext.h"
 #include "rendering/pipeline/RenderPipeline.h"
 #include "rendering/pipeline/SceneRenderExtractor.h"
@@ -13,6 +16,8 @@
 
 #include "ecs/Flecs.h"
 #include <doctest/doctest.h>
+#include <filesystem>
+#include <memory>
 #include <string>
 
 namespace Wayfinder::Tests
@@ -63,6 +68,17 @@ namespace Wayfinder::Tests
 
         // Should not crash — Prepare returns false for empty frames
         pipeline.Prepare(frame, 1280, 720);
+    }
+
+    TEST_CASE("SortKeyBuilder keeps transparent depth ordering ahead of blend grouping")
+    {
+        const uint64_t opaqueNear = Wayfinder::SortKeyBuilder::Build(Wayfinder::SortLayer::Opaque, 0, 7, -1.0f, 0);
+        const uint64_t opaqueFar = Wayfinder::SortKeyBuilder::Build(Wayfinder::SortLayer::Opaque, 0, 7, -10.0f, 0);
+        CHECK(opaqueNear < opaqueFar);
+
+        const uint64_t transparentFar = Wayfinder::SortKeyBuilder::Build(Wayfinder::SortLayer::Transparent, 1, 3, -10.0f, 0);
+        const uint64_t transparentNear = Wayfinder::SortKeyBuilder::Build(Wayfinder::SortLayer::Transparent, 63, 1024, -1.0f, 0);
+        CHECK(transparentFar < transparentNear);
     }
 
     TEST_CASE("Extractor builds explicit passes and debug payload")
@@ -146,6 +162,72 @@ namespace Wayfinder::Tests
 
         REQUIRE(mainPass != nullptr);
         CHECK(mainPass->Meshes.empty());
+    }
+
+    TEST_CASE("Extractor routes blended materials on main layer into transparent sorting")
+    {
+        auto blendedMaterialId = Wayfinder::AssetId::Parse("a0000000-0000-0000-0000-0000000000f1");
+        REQUIRE(blendedMaterialId.has_value());
+
+        flecs::world world;
+        Wayfinder::Scene::RegisterCoreComponents(world);
+        Wayfinder::RuntimeComponentRegistry registry;
+        registry.AddCoreEntries();
+        registry.RegisterComponents(world);
+        Wayfinder::SceneWorldBootstrap::RegisterDefaultScenePlugins(world);
+        Wayfinder::Scene scene(world, registry, "Extractor Transparent Sort Scene");
+
+        auto assetService = std::make_shared<Wayfinder::AssetService>();
+        std::string assetError;
+        REQUIRE(assetService->SetAssetRoot(Wayfinder::Tests::Helpers::FixturesDir() / "blend_test", assetError));
+        scene.SetAssetService(assetService);
+
+        Wayfinder::Entity camera = scene.CreateEntity("Camera");
+        camera.AddComponent<Wayfinder::TransformComponent>(Wayfinder::TransformComponent{{0.0f, 0.0f, 5.0f}});
+        Wayfinder::CameraComponent cameraComponent;
+        cameraComponent.Primary = true;
+        cameraComponent.Target = {0.0f, 0.0f, 0.0f};
+        camera.AddComponent<Wayfinder::CameraComponent>(cameraComponent);
+
+        auto createBlendedCube = [&](const std::string& name, float worldZ)
+        {
+            Wayfinder::Entity cube = scene.CreateEntity(name);
+            cube.AddComponent<Wayfinder::TransformComponent>(Wayfinder::TransformComponent{{0.0f, 0.5f, worldZ}});
+            cube.AddComponent<Wayfinder::MeshComponent>(Wayfinder::MeshComponent{});
+
+            Wayfinder::RenderableComponent renderable;
+            renderable.Layer = Wayfinder::RenderLayers::Main;
+            cube.AddComponent<Wayfinder::RenderableComponent>(renderable);
+
+            Wayfinder::MaterialComponent material;
+            material.MaterialAssetId = *blendedMaterialId;
+            cube.AddComponent<Wayfinder::MaterialComponent>(material);
+        };
+
+        createBlendedCube("FarCube", 0.0f);
+        createBlendedCube("NearCube", 2.0f);
+
+        world.progress(0.016f);
+
+        const Wayfinder::SceneRenderExtractor extractor;
+        Wayfinder::RenderFrame frame = extractor.Extract(scene);
+        Wayfinder::RenderPass* mainPass = frame.FindPass(Wayfinder::RenderPassIds::MainScene);
+
+        REQUIRE(mainPass != nullptr);
+        REQUIRE(mainPass->Meshes.size() == 2);
+        CHECK((mainPass->Meshes[0].SortKey >> 62) == static_cast<uint64_t>(Wayfinder::SortLayer::Transparent));
+        CHECK((mainPass->Meshes[1].SortKey >> 62) == static_cast<uint64_t>(Wayfinder::SortLayer::Transparent));
+
+        const Wayfinder::RenderPipeline pipeline;
+        REQUIRE(pipeline.Prepare(frame, 1280, 720));
+
+        mainPass = frame.FindPass(Wayfinder::RenderPassIds::MainScene);
+        REQUIRE(mainPass != nullptr);
+        REQUIRE(mainPass->Meshes.size() == 2);
+        CHECK(mainPass->Meshes[0].LocalToWorld[3].z == doctest::Approx(0.0f));
+        CHECK(mainPass->Meshes[1].LocalToWorld[3].z == doctest::Approx(2.0f));
+
+        scene.Shutdown();
     }
 
     TEST_CASE("Resource cache resolves mesh")

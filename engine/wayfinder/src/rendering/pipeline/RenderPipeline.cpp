@@ -99,6 +99,29 @@ namespace Wayfinder
 
         {
             ShaderProgramDesc desc;
+            desc.Name = "unlit_blended";
+            desc.VertexShaderName = "unlit";
+            desc.FragmentShaderName = "unlit";
+            desc.VertexResources = {.numUniformBuffers = 1};
+            desc.FragmentResources = {.numUniformBuffers = 1};
+            desc.VertexLayout = VertexLayouts::PosNormalColour;
+            desc.Cull = CullMode::Back;
+            desc.DepthTest = true;
+            desc.DepthWrite = false;
+            desc.Blend = BlendPresets::AlphaBlend();
+            desc.MaterialParams =
+            {
+                {.Name = "base_colour", .Type = MaterialParamType::Colour, .Offset = 0, .Default = LinearColour::White()},
+            };
+            desc.MaterialUBOSize = 16; // float4
+            desc.VertexUBOSize = sizeof(UnlitTransformUBO);
+            desc.NeedsSceneGlobals = false;
+
+            registry.Register(desc);
+        }
+
+        {
+            ShaderProgramDesc desc;
             desc.Name = "basic_lit";
             desc.VertexShaderName = "basic_lit";
             desc.FragmentShaderName = "basic_lit";
@@ -170,13 +193,13 @@ namespace Wayfinder
     {
         if (frame.Views.empty())
         {
-            WAYFINDER_WARNING(LogRenderer, "RenderPipeline: frame '{}' has no views — skipped", frame.SceneName);
+            WAYFINDER_WARN(LogRenderer, "RenderPipeline: frame '{}' has no views — skipped", frame.SceneName);
             return false;
         }
 
         if (frame.Passes.empty())
         {
-            WAYFINDER_WARNING(LogRenderer, "RenderPipeline: frame '{}' has no passes — skipped", frame.SceneName);
+            WAYFINDER_WARN(LogRenderer, "RenderPipeline: frame '{}' has no passes — skipped", frame.SceneName);
             return false;
         }
 
@@ -212,7 +235,7 @@ namespace Wayfinder
 
             if (pass.ViewIndex >= frame.Views.size())
             {
-                WAYFINDER_WARNING(LogRenderer, "RenderPipeline: pass '{}' references invalid view index {}", pass.Id, pass.ViewIndex);
+                WAYFINDER_WARN(LogRenderer, "RenderPipeline: pass '{}' references invalid view index {}", pass.Id, pass.ViewIndex);
                 pass.Enabled = false;
                 continue;
             }

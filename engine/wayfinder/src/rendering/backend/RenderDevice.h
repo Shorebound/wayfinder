@@ -125,9 +125,6 @@ namespace Wayfinder
         constexpr bool operator==(const BlendState&) const = default;
     };
 
-    /** @brief Maximum number of simultaneous colour render targets. */
-    static constexpr uint32_t MAX_COLOUR_TARGETS = 8;
-
     /** @brief Factory functions returning common blend configurations. */
     namespace BlendPresets
     {
@@ -208,6 +205,7 @@ namespace Wayfinder
         bool depthTestEnabled = false;
         bool depthWriteEnabled = false;
         uint32_t numColourTargets = 1;
+        std::array<TextureFormat, MAX_COLOUR_TARGETS> colourTargetFormats{};
         std::array<BlendState, MAX_COLOUR_TARGETS> colourTargetBlends{};
     };
 
@@ -258,7 +256,13 @@ namespace Wayfinder
 
         // ── Render Pass ──────────────────────────────────────
 
-        virtual void BeginRenderPass(const RenderPassDescriptor& descriptor) = 0;
+        /**
+         * @brief Begin a render pass described by the given descriptor.
+         * @return True if the pass was started successfully; false if it was skipped
+         *         (missing swapchain, null targets, etc.).  Callers should skip
+         *         Execute / EndRenderPass when this returns false.
+         */
+        virtual bool BeginRenderPass(const RenderPassDescriptor& descriptor) = 0;
         virtual void EndRenderPass() = 0;
 
         // ── Shader and Pipeline ──────────────────────────────

@@ -376,7 +376,7 @@ namespace Wayfinder
                 const auto parentIdIt = createdEntitiesById.find(*definition.ParentId);
                 if (childIt == createdEntitiesById.end() || parentIdIt == createdEntitiesById.end())
                 {
-                    WAYFINDER_WARNING(LogScene, "Could not resolve hierarchy link {0} -> {1}", definition.Name, definition.ParentId->ToString());
+                    WAYFINDER_WARN(LogScene, "Could not resolve hierarchy link {0} -> {1}", definition.Name, definition.ParentId->ToString());
                     continue;
                 }
 
@@ -422,7 +422,7 @@ namespace Wayfinder
                 const Entity entity{entityHandle, this};
                 if (!entity.HasSceneObjectId())
                 {
-                    WAYFINDER_WARNING(LogScene, "Skipping scene entity without SceneObjectId during save: {0}", entity.GetName());
+                    WAYFINDER_WARN(LogScene, "Skipping scene entity without SceneObjectId during save: {0}", entity.GetName());
                     return;
                 }
 

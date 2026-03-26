@@ -18,19 +18,19 @@ namespace Wayfinder
         // May fail on Null backend (no real GPU buffers) — non-fatal in that case.
         if (!m_transientAllocator.Initialise(device, 4u * 1024u * 1024u, 1u * 1024u * 1024u))
         {
-            WAYFINDER_WARNING(LogRenderer, "RenderContext: Failed to initialise transient buffer allocator");
+            WAYFINDER_WARN(LogRenderer, "RenderContext: Failed to initialise transient buffer allocator");
         }
 
         m_transientPool.Initialise(device);
 
         if (!m_textureManager.Initialise(device))
         {
-            WAYFINDER_WARNING(LogRenderer, "RenderContext: Failed to initialise TextureManager");
+            WAYFINDER_WARN(LogRenderer, "RenderContext: Failed to initialise TextureManager");
         }
 
         if (!m_meshManager.Initialise(device))
         {
-            WAYFINDER_WARNING(LogRenderer, "RenderContext: Failed to initialise MeshManager");
+            WAYFINDER_WARN(LogRenderer, "RenderContext: Failed to initialise MeshManager");
         }
 
         // Nearest-point sampler for composition blit

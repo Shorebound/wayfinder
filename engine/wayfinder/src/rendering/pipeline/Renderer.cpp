@@ -31,11 +31,11 @@ namespace Wayfinder
             }
             catch (const std::exception& exception)
             {
-                WAYFINDER_WARNING(LogRenderer, "Renderer shutdown suppressed exception during destruction: {}", exception.what());
+                WAYFINDER_WARN(LogRenderer, "Renderer shutdown suppressed exception during destruction: {}", exception.what());
             }
             catch (...)
             {
-                WAYFINDER_WARNING(LogRenderer, "Renderer shutdown suppressed unknown exception during destruction.");
+                WAYFINDER_WARN(LogRenderer, "Renderer shutdown suppressed unknown exception during destruction.");
             }
         }
     }
@@ -49,7 +49,7 @@ namespace Wayfinder
         m_context = std::make_unique<RenderContext>();
         if (auto result = m_context->Initialise(device, config); !result)
         {
-            WAYFINDER_WARNING(LogRenderer, "Renderer: Failed to initialise RenderContext — {}", result.error().GetMessage());
+            WAYFINDER_WARN(LogRenderer, "Renderer: Failed to initialise RenderContext — {}", result.error().GetMessage());
             return std::unexpected(result.error());
         }
 
@@ -76,7 +76,7 @@ namespace Wayfinder
 
             if (!m_debugLinePipeline.Create(device, m_context->GetShaders(), desc, &m_context->GetPipelines()))
             {
-                WAYFINDER_WARNING(LogRenderer, "Renderer: Failed to create debug line pipeline");
+                WAYFINDER_WARN(LogRenderer, "Renderer: Failed to create debug line pipeline");
             }
         }
 

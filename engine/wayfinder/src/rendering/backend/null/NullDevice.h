@@ -29,7 +29,10 @@ namespace Wayfinder
         void PushDebugGroup(std::string_view) override {}
         void PopDebugGroup() override {}
 
-        void BeginRenderPass(const RenderPassDescriptor&) override {}
+        bool BeginRenderPass(const RenderPassDescriptor&) override
+        {
+            return true;
+        }
         void EndRenderPass() override {}
 
         // ── Shader / Pipeline (no-ops) ──

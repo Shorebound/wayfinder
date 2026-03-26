@@ -48,7 +48,10 @@ namespace Wayfinder::Tests
                 m_events.emplace_back("PopDebugGroup");
             }
 
-            void BeginRenderPass(const Wayfinder::RenderPassDescriptor&) override {}
+            bool BeginRenderPass(const Wayfinder::RenderPassDescriptor&) override
+            {
+                return true;
+            }
             void EndRenderPass() override {}
 
             GPUShaderHandle CreateShader(const ShaderCreateDesc&) override

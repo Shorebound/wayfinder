@@ -30,6 +30,13 @@ This project is greenfield. Breaking changes, rewrites, and architectural pivots
 - **Explicit over implicit** — capabilities are checked, passes are validated, nothing silently dropped.
 - **Engine is a library** — the game and editor are consumers. The engine never knows who's calling it.
 
+## Data Files
+
+- **TOML** for hand-authored content: configuration, input mappings, etc. It's more readable and forgiving for humans, and supports comments.
+- **JSON** for interchange formats, generated data, and anything benefiting from schema validation such as assets, scene descriptions, render graph definitions, etc. The strictness and tooling support help catch errors early.
+- Validate data files at load time with clear error messages for authors.
+
+
 ## Build
 
 CMake 4.0+, Ninja Multi-Config, Clang. Presets are the workflow.
@@ -46,7 +53,7 @@ Key targets: `wayfinder` (engine lib), `journey` (sandbox), `waypoint` (asset CL
 
 Source files are listed explicitly in CMakeLists.txt. When adding a new `.cpp` or `.h`, add it to the relevant CMakeLists.txt.
 
-### Testing
+## Testing
 
 When implementing a new system, feature, or non-trivial refactor, include or update the tests that cover its important behaviour.
 Use doctest. Follow existing patterns in `tests/`.
@@ -59,6 +66,10 @@ Use doctest. Follow existing patterns in `tests/`.
 - One file per domain, not per class. 
 - Names describe behaviour, not functions.
 
+## Validation
+- Code must pass it's relevant tests, `tools/lint.py` and `tools/tidy.py` to be valid.
+- `//NOLINTBEGIN`/`//NOLINTEND` blocks are fine for all test code or if solutions are not obvious or solvable (such as inescapable third-party issues).
+
 ## Code Style
 
 Formatting is enforced by `.clang-format`.
@@ -67,10 +78,11 @@ Formatting is enforced by `.clang-format`.
 
 - Types: PascalCase with suffixes for components/systems, and `I` prefix for interfaces.
 - Functions: PascalCase with verb prefixes. `IsX` / `HasX` / `WasX` (bool queries), `GetX` / `SetX`, `CreateX` / `DestroyX`, `LoadX` / `SaveX`, `ValidateX`, `SubscribeX` / `UnsubscribeX`, `OnX`.
-- Members: `m_` prefix, camelCase. 
+- Members: `m_` prefix, camelCase.
+- Public members: PascalCase
 - Constants: SCREAMING_SNAKE_CASE. 
 - Aliases: PascalCase. 
-- Template params: `T` prefix.
+- Template params: `T` prefix with descriptive name.
 
 ### Language
 

@@ -49,7 +49,7 @@ Key targets: `wayfinder` (engine lib), `journey` (sandbox), `waypoint` (asset CL
 
 Source files are listed explicitly in CMakeLists.txt. When adding a new `.cpp` or `.h`, add it to the relevant CMakeLists.txt.
 
-### Testing
+## Testing
 
 When implementing a new system, feature, or non-trivial refactor, include or update the tests that cover its important behaviour.
 Use doctest. Follow existing patterns in `tests/`.
@@ -61,6 +61,10 @@ Use doctest. Follow existing patterns in `tests/`.
 - no filesystem outside `tests/fixtures/`. 
 - One file per domain, not per class. 
 - Names describe behaviour, not functions.
+
+## Validation
+- Code must pass it's relevant tests, `tools/lint.py` and `tools/tidy.py` to be valid.
+- `//NOLINTBEGIN`/`//NOLINTEND` blocks are fine for all test code or if solutions are not obvious or solvable (such as inescapable third-party issues).
 
 ## Code Style
 
@@ -74,7 +78,7 @@ Formatting is enforced by `.clang-format`.
 - Public members: PascalCase
 - Constants: SCREAMING_SNAKE_CASE. 
 - Aliases: PascalCase. 
-- Template params: `T` prefix.
+- Template params: `T` prefix with descriptive name.
 
 ### Language
 
@@ -98,10 +102,6 @@ All engine code lives in `Wayfinder`. Subdirectories under `engine/wayfinder/src
 
 - `/** … */` Javadoc-style (with `@brief`, `@param`, `@return`, `@todo`, etc.) for public API and types.
 - `///` for inline implementation notes.
-
-## Validation
-- Code must pass `tools/lint.py` and `tools/tidy.py` to be valid.
-- `//NOLINTBEGIN`/`//NOLINTEND` blocks are fine for all test code or if solutions are not obvious or solvable (such as inescapable third-party issues).
 
 ## Commits, Branches & Issues
 

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <algorithm>
+#include <array>
 #include <bit>
 #include <cstdint>
 #include <string>
@@ -30,6 +31,7 @@ namespace Wayfinder
 
     enum class TextureFormat : uint8_t
     {
+        SwapchainFormat, ///< Placeholder: resolved to the swapchain's actual format at pipeline creation.
         RGBA8_UNORM,
         BGRA8_UNORM,
         R16_FLOAT,
@@ -195,8 +197,12 @@ namespace Wayfinder
 
     // ── Render Pass Descriptor ───────────────────────────────
 
+    /** @brief Maximum number of simultaneous colour render targets. */
+    static constexpr uint32_t MAX_COLOUR_TARGETS = 8;
+
     struct ColourAttachmentDescriptor
     {
+        GPUTextureHandle target{};
         ClearValue clearValue{};
         LoadOp loadOp = LoadOp::Clear;
         StoreOp storeOp = StoreOp::Store;
@@ -213,11 +219,11 @@ namespace Wayfinder
     struct RenderPassDescriptor
     {
         std::string_view debugName;
-        ColourAttachmentDescriptor colourAttachment{};
+        uint32_t numColourTargets = 1;
+        std::array<ColourAttachmentDescriptor, MAX_COLOUR_TARGETS> colourAttachments{};
         DepthAttachmentDescriptor depthAttachment{};
         bool targetSwapchain = true;
-        GPUTextureHandle colourTarget{}; // If set and !targetSwapchain, render to this texture
-        GPUTextureHandle depthTarget{};  // If set, use instead of auto-managed depth
+        GPUTextureHandle depthTarget{}; // If set, use instead of auto-managed depth
     };
 
     // ── Device Info ──────────────────────────────────────────

@@ -16,6 +16,7 @@ namespace Wayfinder
         constexpr std::string_view WIREFRAME_KEY = "wireframe";
         constexpr std::string_view PARAMETERS_KEY = "parameters";
         constexpr std::string_view TEXTURES_KEY = "textures";
+        constexpr std::string_view BLEND_KEY = "blend";
 
         /// Parse a JSON array of 3 or 4 integers into a LinearColour.
         /// Returns false if any channel is not an integer.
@@ -160,6 +161,39 @@ namespace Wayfinder
         parsed.Id = *assetId;
         parsed.Name = document.value(std::string{NAME_KEY}, std::filesystem::path(sourceLabel).stem().string());
         parsed.ShaderName = document.value(std::string{SHADER_KEY}, std::string("unlit"));
+
+        // Parse "blend" preset (optional — defaults to Opaque)
+        if (document.contains(BLEND_KEY))
+        {
+            if (!document.at(BLEND_KEY).is_string())
+            {
+                error = "Material asset '" + sourceLabel + "' field 'blend' must be a string";
+                return false;
+            }
+
+            const std::string blendText = document.at(BLEND_KEY).get<std::string>();
+            if (blendText == "alpha")
+            {
+                parsed.BlendMode = MaterialBlendMode::AlphaBlend;
+            }
+            else if (blendText == "additive")
+            {
+                parsed.BlendMode = MaterialBlendMode::Additive;
+            }
+            else if (blendText == "premultiplied")
+            {
+                parsed.BlendMode = MaterialBlendMode::Premultiplied;
+            }
+            else if (blendText == "multiplicative")
+            {
+                parsed.BlendMode = MaterialBlendMode::Multiplicative;
+            }
+            else if (blendText != "opaque")
+            {
+                error = "Material asset '" + sourceLabel + "' has unknown blend mode '" + blendText + "'";
+                return false;
+            }
+        }
 
         // Parse "parameters" object if present
         if (document.contains(PARAMETERS_KEY) && document.at(PARAMETERS_KEY).is_object())

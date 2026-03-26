@@ -41,7 +41,7 @@ namespace Wayfinder
             const toml::array* tags = data.get_as<toml::array>("tags");
             if (!tags)
             {
-                WAYFINDER_WARNING(LogEngine, "Tag file '{}' contains no [[tags]] array", canonical);
+                WAYFINDER_WARN(LogEngine, "Tag file '{}' contains no [[tags]] array", canonical);
                 return 0;
             }
 
@@ -58,7 +58,7 @@ namespace Wayfinder
                 const auto name = nameNode != nullptr ? nameNode->value<std::string>() : std::optional<std::string>{};
                 if (!name || name->empty())
                 {
-                    WAYFINDER_WARNING(LogEngine, "Tag file '{}': skipping entry without 'name'", canonical);
+                    WAYFINDER_WARN(LogEngine, "Tag file '{}': skipping entry without 'name'", canonical);
                     continue;
                 }
 
@@ -130,7 +130,7 @@ namespace Wayfinder
     {
         if (!IsRegistered(name))
         {
-            WAYFINDER_WARNING(LogEngine,
+            WAYFINDER_WARN(LogEngine,
                 "GameplayTagRegistry: requested unregistered tag '{}'. "
                 "Register it in a tag file or via PluginRegistry::RegisterTag().",
                 name);
