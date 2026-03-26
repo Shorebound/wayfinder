@@ -368,6 +368,12 @@ namespace Wayfinder
                 RenderPassDescriptor rpDesc;
                 rpDesc.debugName = pass.Name.GetString();
 
+                if (pass.SwapchainWrite && pass.NumColourWrites > 0)
+                {
+                    WAYFINDER_ERROR(LogRenderer, "RenderGraph: pass '{}' has both SwapchainWrite and {} ColourWrites — these are mutually exclusive, skipping pass", pass.Name.GetString(), pass.NumColourWrites);
+                    continue;
+                }
+
                 // NOLINTBEGIN(cppcoreguidelines-pro-bounds-constant-array-index, cppcoreguidelines-pro-bounds-avoid-unchecked-container-access)
                 if (pass.SwapchainWrite)
                 {

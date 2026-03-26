@@ -480,8 +480,9 @@ namespace Wayfinder
             }
             else
             {
-                WAYFINDER_WARNING(LogRenderer, "Depth attachment enabled but no depth texture available (depthTarget={}, m_depthTexture={})", descriptor.depthTarget.IsValid(), m_depthTexture != nullptr);
-                m_renderPass = SDL_BeginGPURenderPass(m_commandBuffer, colourTargets.data(), numTargets, nullptr);
+                WAYFINDER_ERROR(LogRenderer, "BeginRenderPass '{}': depth attachment enabled but no depth texture available (depthTarget={}, m_depthTexture={})", descriptor.debugName, descriptor.depthTarget.IsValid(),
+                    m_depthTexture != nullptr);
+                return false;
             }
         }
         else
