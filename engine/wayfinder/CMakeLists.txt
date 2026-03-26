@@ -195,8 +195,8 @@ set(ENGINE_ALL_SOURCES
   src/rendering/backend/sdl_gpu/BlitMipGenerator.h
 
   # Rendering — Graph
-  src/rendering/graph/RenderFeature.h
   src/rendering/graph/RenderFrame.h
+  src/rendering/graph/RenderPass.h
   src/rendering/graph/RenderGraph.cpp
   src/rendering/graph/RenderGraph.h
   src/rendering/graph/RenderIntent.h
@@ -229,6 +229,14 @@ set(ENGINE_ALL_SOURCES
   src/rendering/pipeline/Renderer.h
   src/rendering/pipeline/SceneRenderExtractor.cpp
   src/rendering/pipeline/SceneRenderExtractor.h
+
+  # Rendering — Passes
+  src/rendering/passes/DebugPass.cpp
+  src/rendering/passes/DebugPass.h
+  src/rendering/passes/SceneOpaquePass.cpp
+  src/rendering/passes/SceneOpaquePass.h
+  src/rendering/passes/SubmissionDrawing.cpp
+  src/rendering/passes/SubmissionDrawing.h
 
   # Rendering — Resources
   src/rendering/resources/RenderResources.cpp

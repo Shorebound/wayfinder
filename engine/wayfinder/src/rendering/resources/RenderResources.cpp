@@ -46,7 +46,7 @@ namespace Wayfinder
 
     void RenderResourceCache::PrepareFrame(RenderFrame& frame)
     {
-        for (RenderPass& pass : frame.Passes)
+        for (FramePass& pass : frame.Passes)
         {
             for (RenderMeshSubmission& mesh : pass.Meshes)
             {

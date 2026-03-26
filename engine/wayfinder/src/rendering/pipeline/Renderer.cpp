@@ -4,7 +4,6 @@
 #include "RenderPipeline.h"
 #include "core/Result.h"
 #include "rendering/backend/RenderDevice.h"
-#include "rendering/graph/RenderFeature.h"
 #include "rendering/graph/RenderFrame.h"
 #include "rendering/graph/RenderGraph.h"
 #include "rendering/resources/RenderResources.h"
@@ -45,7 +44,6 @@ namespace Wayfinder
         m_device = &device;
         m_screenWidth = static_cast<int>(config.Window.Width);
         m_screenHeight = static_cast<int>(config.Window.Height);
-        // ── GPU infrastructure ───────────────────────────────
         m_context = std::make_unique<RenderContext>();
         if (auto result = m_context->Initialise(device, config); !result)
         {
@@ -53,44 +51,19 @@ namespace Wayfinder
             return std::unexpected(result.error());
         }
 
-        // ── Render pipeline (registers shader programs) ──────
         m_renderPipeline->Initialise(*m_context);
 
-        // Wire texture manager and program registry into resource cache
         m_renderResources->SetTextureManager(&m_context->GetTextures());
         m_renderResources->SetMeshManager(&m_context->GetMeshes());
         m_renderResources->SetProgramRegistry(&m_context->GetPrograms());
 
-        // ── Debug line pipeline (PosColour, uses debug_unlit shaders) ──
-        {
-            GPUPipelineDesc desc{};
-            desc.vertexShaderName = "debug_unlit";
-            desc.fragmentShaderName = "unlit"; // shares the same fragment shader
-            desc.vertexResources = {.numUniformBuffers = 1};
-            desc.fragmentResources = {.numUniformBuffers = 1};
-            desc.vertexLayout = VertexLayouts::PosColour;
-            desc.primitiveType = PrimitiveType::LineList;
-            desc.cullMode = CullMode::None;
-            desc.depthTestEnabled = false;
-            desc.depthWriteEnabled = false;
-
-            if (!m_debugLinePipeline.Create(device, m_context->GetShaders(), desc, &m_context->GetPipelines()))
-            {
-                WAYFINDER_WARN(LogRenderer, "Renderer: Failed to create debug line pipeline");
-            }
-        }
-
-        // Single built-in mesh for all scene primitives
         m_primitiveMesh = Mesh::CreatePrimitive(device);
-
-        // UV-mapped mesh for textured rendering
         m_texturedPrimitiveMesh = Mesh::CreateTexturedPrimitive(device);
 
-        // Attach any features that were added before Initialise().
-        for (auto& feature : m_features)
+        for (auto& pass : m_passes)
         {
-            auto ctx = MakeFeatureContext();
-            feature->OnAttach(ctx);
+            auto ctx = MakePassContext();
+            pass->OnAttach(ctx);
         }
 
         WAYFINDER_INFO(LogRenderer, "Renderer initialised ({}x{}, backend: {})", m_screenWidth, m_screenHeight, device.GetDeviceInfo().BackendName);
@@ -101,17 +74,15 @@ namespace Wayfinder
 
     void Renderer::Shutdown()
     {
-        // Remove features first (they may hold GPU resources)
-        for (auto& feature : m_features)
+        for (auto& pass : m_passes)
         {
-            auto ctx = MakeFeatureContext();
-            feature->OnDetach(ctx);
+            auto ctx = MakePassContext();
+            pass->OnDetach(ctx);
         }
-        m_features.clear();
+        m_passes.clear();
 
         m_primitiveMesh.Destroy();
         m_texturedPrimitiveMesh.Destroy();
-        m_debugLinePipeline.Destroy();
 
         m_renderPipeline->Shutdown();
 
@@ -140,25 +111,19 @@ namespace Wayfinder
         }
     }
 
-    RenderFeatureContext Renderer::MakeFeatureContext()
+    RenderPassContext Renderer::MakePassContext()
     {
-        return RenderFeatureContext{
-            .Device = m_context->GetDevice(),
-            .ProgramRegistry = m_context->GetPrograms(),
-            .ShaderManager = m_context->GetShaders(),
-            .PipelineCache = m_context->GetPipelines(),
-            .NearestSampler = m_context->GetNearestSampler(),
-        };
+        return RenderPassContext{.Context = *m_context};
     }
 
-    void Renderer::AddFeature(std::unique_ptr<RenderFeature> feature)
+    void Renderer::AddPass(std::unique_ptr<RenderPass> pass)
     {
         if (m_device)
         {
-            auto ctx = MakeFeatureContext();
-            feature->OnAttach(ctx);
+            auto ctx = MakePassContext();
+            pass->OnAttach(ctx);
         }
-        m_features.push_back(std::move(feature));
+        m_passes.push_back(std::move(pass));
     }
 
     void Renderer::Render(const RenderFrame& frame)
@@ -180,24 +145,21 @@ namespace Wayfinder
                 frameDebugName += frame.SceneName;
             }
 
-            GPUDebugScope frameDebugScope(*m_device, frameDebugName);
+            const GPUDebugScope frameDebugScope(*m_device, frameDebugName);
 
             m_context->GetTransientBuffers().BeginFrame();
 
-            // Resolve material bindings from asset data
             RenderFrame preparedFrame = frame;
             if (m_renderResources)
             {
                 m_renderResources->PrepareFrame(preparedFrame);
             }
 
-            // ── Query swapchain dimensions for transient targets ──
             const Extent2D swapchainDimensions = m_device->GetSwapchainDimensions();
             const uint32_t swapW = swapchainDimensions.width;
             const uint32_t swapH = swapchainDimensions.height;
             if (swapW != 0 && swapH != 0 && m_renderPipeline->Prepare(preparedFrame, swapW, swapH))
             {
-                // ── Build and execute render graph ───────────────────
                 RenderGraph graph;
 
                 const std::unordered_map<uint32_t, Mesh*> meshesByStride =
@@ -212,10 +174,8 @@ namespace Wayfinder
                     .SwapchainHeight = swapH,
                     .MeshesByStride = meshesByStride,
                     .ResourceCache = m_renderResources.get(),
-                    .DebugLinePipeline = m_debugLinePipeline,
-                    .Features = m_features,
                 };
-                m_renderPipeline->BuildGraph(graph, params);
+                m_renderPipeline->BuildGraph(graph, params, m_passes);
 
                 if (graph.Compile())
                 {

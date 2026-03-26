@@ -31,7 +31,7 @@ namespace Wayfinder
     };
 
     // ── Well-Known Resource Names ────────────────────────────
-    // Published by the engine so features can reference them by name.
+    // Published by the engine so passes can reference them by name.
 
     namespace WellKnown
     {

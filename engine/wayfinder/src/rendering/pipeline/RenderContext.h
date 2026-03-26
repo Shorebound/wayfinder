@@ -17,7 +17,7 @@ namespace Wayfinder
     struct EngineConfig;
 
     /// Owns the shared GPU resource infrastructure used by the render pipeline,
-    /// features, and anything else that needs to create or look up GPU resources.
+    /// render passes, and anything else that needs to create or look up GPU resources.
     /// Created once at initialisation, passed by reference to subsystems.
     class WAYFINDER_API RenderContext
     {

@@ -28,7 +28,7 @@ namespace Wayfinder
      * @brief A named post-processing effect with a generic parameter bag.
      *
      * Effects are stacked inside PostProcessVolumeComponents and blended across
-     * volumes. RenderFeatures consume these by querying their effect type from
+     * volumes. Render passes consume these by querying their effect type from
      * the blended stack.
      */
     struct WAYFINDER_API PostProcessEffect
@@ -103,7 +103,7 @@ namespace Wayfinder
 
     /**
      * @struct PostProcessStack
-     * @brief Blended result: per-effect-type parameter blocks, ready for consumption by RenderFeatures.
+     * @brief Blended result: per-effect-type parameter blocks, ready for consumption by render passes.
      */
     struct WAYFINDER_API PostProcessStack
     {

@@ -196,7 +196,7 @@ namespace Wayfinder
                 const size_t viewIndex = frame.AddView(view);
                 frame.AddScenePass(RenderPassIds::MainScene, viewIndex, RenderLayers::Main);
                 frame.AddScenePass(RenderPassIds::OverlayScene, viewIndex, RenderLayers::Overlay);
-                RenderPass& debugPass = frame.AddDebugPass(RenderPassIds::Debug, viewIndex);
+                FramePass& debugPass = frame.AddDebugPass(RenderPassIds::Debug, viewIndex);
                 if (debugPass.DebugDraw)
                 {
                     debugPass.DebugDraw->ShowWorldGrid = true;
@@ -294,7 +294,7 @@ namespace Wayfinder
                 const SortLayer sortLayer = materialState.Blend.Enabled ? SortLayer::Transparent : MapLayer(submission.Layer);
                 submission.SortKey = SortKeyBuilder::Build(sortLayer, BlendGroupBits(materialState.Blend), MaterialIdBits(submission.Material), cameraSpaceZ, submission.SortPriority);
 
-                RenderPass* owningPass = frame.FindScenePassForSubmission(submission, 0);
+                FramePass* owningPass = frame.FindScenePassForSubmission(submission, 0);
                 if (!owningPass)
                 {
                     WAYFINDER_WARN(LogRenderer, "SceneRenderExtractor skipped mesh submission because no scene pass matched layer '{0}' in frame '{1}'.", submission.Layer, frame.SceneName);
@@ -411,7 +411,7 @@ namespace Wayfinder
                 debugBox.Material.Domain = RenderMaterialDomain::Debug;
                 debugBox.Material.Parameters.SetColour("base_colour", LinearColour::FromColour(light.Tint));
 
-                if (RenderPass* pass = frame.FindPass(RenderPassIds::Debug))
+                if (FramePass* pass = frame.FindPass(RenderPassIds::Debug))
                 {
                     pass->DebugDraw->Boxes.push_back(debugBox);
                 }
@@ -424,7 +424,7 @@ namespace Wayfinder
                     debugLine.End = lineEnd;
                     debugLine.Tint = light.Tint;
 
-                    if (RenderPass* pass = frame.FindPass(RenderPassIds::Debug))
+                    if (FramePass* pass = frame.FindPass(RenderPassIds::Debug))
                     {
                         pass->DebugDraw->Lines.push_back(debugLine);
                     }

@@ -292,7 +292,7 @@ namespace Wayfinder::Tests
 
         const Wayfinder::SceneRenderExtractor extractor;
         const Wayfinder::RenderFrame frame = extractor.Extract(scene);
-        const Wayfinder::RenderPass* mainPass = frame.FindPass(Wayfinder::RenderPassIds::MainScene);
+        const Wayfinder::FramePass* mainPass = frame.FindPass(Wayfinder::RenderPassIds::MainScene);
 
         scene.Shutdown();
 

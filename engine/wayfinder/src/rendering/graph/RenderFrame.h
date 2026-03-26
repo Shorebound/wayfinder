@@ -211,7 +211,9 @@ namespace Wayfinder
         Debug
     };
 
-    struct RenderPass
+    /// CPU-side frame pass record (meshes, debug draw, etc.). Not to be confused with `RenderPass` graph
+    /// nodes in `rendering/graph/RenderPass.h`.
+    struct FramePass
     {
         RenderPassId Id = RenderPassIds::MainScene;
         RenderPassKind Kind = RenderPassKind::Scene;
@@ -237,7 +239,7 @@ namespace Wayfinder
         std::string SceneName;
         std::filesystem::path AssetRoot;
         std::vector<RenderView> Views;
-        std::vector<RenderPass> Passes;
+        std::vector<FramePass> Passes;
         std::vector<RenderLightSubmission> Lights;
 
         size_t AddView(const RenderView& view)
@@ -246,9 +248,9 @@ namespace Wayfinder
             return Views.size() - 1;
         }
 
-        RenderPass& AddScenePass(const RenderPassId& id, size_t viewIndex, const RenderLayerId& sceneLayer)
+        FramePass& AddScenePass(const RenderPassId& id, size_t viewIndex, const RenderLayerId& sceneLayer)
         {
-            RenderPass pass;
+            FramePass pass;
             pass.Id = id;
             pass.Kind = RenderPassKind::Scene;
             pass.ViewIndex = viewIndex;
@@ -257,9 +259,9 @@ namespace Wayfinder
             return Passes.back();
         }
 
-        RenderPass& AddDebugPass(const RenderPassId& id, size_t viewIndex)
+        FramePass& AddDebugPass(const RenderPassId& id, size_t viewIndex)
         {
-            RenderPass pass;
+            FramePass pass;
             pass.Id = id;
             pass.Kind = RenderPassKind::Debug;
             pass.ViewIndex = viewIndex;
@@ -268,9 +270,9 @@ namespace Wayfinder
             return Passes.back();
         }
 
-        RenderPass* FindPass(const RenderPassId& id)
+        FramePass* FindPass(const RenderPassId& id)
         {
-            for (RenderPass& pass : Passes)
+            for (FramePass& pass : Passes)
             {
                 if (pass.Id == id)
                 {
@@ -281,9 +283,9 @@ namespace Wayfinder
             return nullptr;
         }
 
-        const RenderPass* FindPass(const RenderPassId& id) const
+        const FramePass* FindPass(const RenderPassId& id) const
         {
-            for (const RenderPass& pass : Passes)
+            for (const FramePass& pass : Passes)
             {
                 if (pass.Id == id)
                 {
@@ -294,9 +296,9 @@ namespace Wayfinder
             return nullptr;
         }
 
-        RenderPass* FindScenePassForSubmission(const RenderMeshSubmission& submission, size_t viewIndex)
+        FramePass* FindScenePassForSubmission(const RenderMeshSubmission& submission, size_t viewIndex)
         {
-            for (RenderPass& pass : Passes)
+            for (FramePass& pass : Passes)
             {
                 if (pass.ViewIndex == viewIndex && pass.AcceptsSceneSubmission(submission))
                 {

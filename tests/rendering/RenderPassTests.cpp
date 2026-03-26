@@ -1,8 +1,9 @@
 #include "app/EngineConfig.h"
 #include "rendering/backend/RenderDevice.h"
-#include "rendering/graph/RenderFeature.h"
 #include "rendering/graph/RenderFrame.h"
 #include "rendering/graph/RenderGraph.h"
+#include "rendering/graph/RenderPass.h"
+#include "rendering/pipeline/RenderPipelineFrameParams.h"
 #include "rendering/pipeline/Renderer.h"
 #include "rendering/resources/RenderResources.h"
 #include "rendering/resources/TransientResourcePool.h"
@@ -11,12 +12,28 @@
 
 #include <memory>
 #include <string>
+#include <unordered_map>
 #include <vector>
+
+// NOLINTBEGIN(cppcoreguidelines-avoid-c-arrays, cppcoreguidelines-avoid-const-or-ref-data-members, cppcoreguidelines-pro-bounds-array-to-pointer-decay, cppcoreguidelines-pro-bounds-avoid-unchecked-container-access,
+// misc-const-correctness, misc-use-internal-linkage, modernize-avoid-c-arrays, modernize-use-designated-initializers, modernize-use-nodiscard, readability-identifier-naming)
 
 namespace Wayfinder::Tests
 {
     namespace
     {
+        Wayfinder::RenderPipelineFrameParams MakeTestParams(Wayfinder::RenderFrame& frame, uint32_t w = 800, uint32_t h = 600)
+        {
+            static const std::unordered_map<uint32_t, Wayfinder::Mesh*> K_EMPTY_MESHES;
+            return Wayfinder::RenderPipelineFrameParams{
+                .Frame = frame,
+                .SwapchainWidth = w,
+                .SwapchainHeight = h,
+                .MeshesByStride = K_EMPTY_MESHES,
+                .ResourceCache = nullptr,
+            };
+        }
+
         class TrackingRenderDevice final : public Wayfinder::RenderDevice
         {
         public:
@@ -133,22 +150,20 @@ namespace Wayfinder::Tests
         };
     } // namespace
 
-    // A minimal test feature that records when AddPasses is called.
-    class TestFeature : public Wayfinder::RenderFeature
+    class TestPass : public Wayfinder::RenderPass
     {
     public:
-        explicit TestFeature(std::string name, std::vector<std::string>& log) : m_name(std::move(name)), m_log(log) {}
+        explicit TestPass(std::string name, std::vector<std::string>& log) : m_name(std::move(name)), m_log(log) {}
 
-        const std::string& GetName() const override
+        std::string_view GetName() const override
         {
             return m_name;
         }
 
-        void AddPasses(Wayfinder::RenderGraph& graph, const Wayfinder::RenderFrame&) override
+        void AddPasses(Wayfinder::RenderGraph& graph, const Wayfinder::RenderPipelineFrameParams& /*params*/) override
         {
-            m_log.push_back(m_name + "::AddPasses");
+            m_log.push_back(std::string(m_name) + "::AddPasses");
 
-            // Inject a simple pass that reads SceneColour and writes swapchain
             graph.AddPass(m_name, [this](Wayfinder::RenderGraphBuilder& builder)
             {
                 auto colour = builder.CreateTransient({128, 128, Wayfinder::TextureFormat::RGBA8_UNORM, m_name.c_str()});
@@ -159,14 +174,14 @@ namespace Wayfinder::Tests
             });
         }
 
-        void OnAttach(const Wayfinder::RenderFeatureContext&) override
+        void OnAttach(const Wayfinder::RenderPassContext&) override
         {
-            m_log.push_back(m_name + "::OnAttach");
+            m_log.push_back(std::string(m_name) + "::OnAttach");
         }
 
-        void OnDetach(const Wayfinder::RenderFeatureContext&) override
+        void OnDetach(const Wayfinder::RenderPassContext&) override
         {
-            m_log.push_back(m_name + "::OnDetach");
+            m_log.push_back(std::string(m_name) + "::OnDetach");
         }
 
     private:
@@ -174,17 +189,15 @@ namespace Wayfinder::Tests
         std::vector<std::string>& m_log;
     };
 
-    // A feature that injects a pass reading SceneColour and writing to swapchain.
-    class OverlayFeature : public Wayfinder::RenderFeature
+    class OverlayPass : public Wayfinder::RenderPass
     {
     public:
-        const std::string& GetName() const override
+        std::string_view GetName() const override
         {
-            static const std::string name = "Overlay";
-            return name;
+            return "Overlay";
         }
 
-        void AddPasses(Wayfinder::RenderGraph& graph, const Wayfinder::RenderFrame&) override
+        void AddPasses(Wayfinder::RenderGraph& graph, const Wayfinder::RenderPipelineFrameParams& /*params*/) override
         {
             graph.AddPass("OverlayPass", [&](Wayfinder::RenderGraphBuilder& builder)
             {
@@ -214,96 +227,85 @@ namespace Wayfinder::Tests
         bool m_executed = false;
     };
 
-    // ── Feature Lifecycle ────────────────────────────────────
-
-    TEST_CASE("RenderFeature default state")
+    TEST_CASE("RenderPass default state")
     {
         std::vector<std::string> log;
-        TestFeature feature("Test", log);
+        TestPass pass("Test", log);
 
-        CHECK(feature.IsEnabled());
-        CHECK(feature.GetName() == "Test");
+        CHECK(pass.IsEnabled());
+        CHECK(pass.GetName() == "Test");
 
-        feature.SetEnabled(false);
-        CHECK_FALSE(feature.IsEnabled());
+        pass.SetEnabled(false);
+        CHECK_FALSE(pass.IsEnabled());
     }
 
-    // ── Feature Injection into Graph ─────────────────────────
-
-    TEST_CASE("Feature injects passes into render graph")
+    TEST_CASE("Pass injects passes into render graph")
     {
         std::vector<std::string> log;
-        TestFeature feature("MyEffect", log);
+        TestPass pass("MyEffect", log);
         Wayfinder::RenderFrame frame;
         Wayfinder::RenderGraph graph;
 
-        feature.AddPasses(graph, frame);
+        pass.AddPasses(graph, MakeTestParams(frame));
 
         CHECK(log.size() == 1);
         CHECK(log[0] == "MyEffect::AddPasses");
     }
 
-    TEST_CASE("Disabled feature can be skipped by caller")
+    TEST_CASE("Disabled pass can be skipped by caller")
     {
         std::vector<std::string> log;
-        TestFeature feature("Skipped", log);
-        feature.SetEnabled(false);
+        TestPass pass("Skipped", log);
+        pass.SetEnabled(false);
 
         Wayfinder::RenderFrame frame;
         Wayfinder::RenderGraph graph;
 
-        // The renderer checks IsEnabled() before calling AddPasses.
-        // We simulate that pattern here.
-        if (feature.IsEnabled())
+        if (pass.IsEnabled())
         {
-            feature.AddPasses(graph, frame);
+            pass.AddPasses(graph, MakeTestParams(frame));
         }
 
         CHECK(log.empty());
     }
 
-    // ── Multiple Features ────────────────────────────────────
-
-    TEST_CASE("Multiple features inject passes in registration order")
+    TEST_CASE("Multiple passes inject in registration order")
     {
         std::vector<std::string> log;
 
-        auto featureA = std::make_unique<TestFeature>("FeatureA", log);
-        auto featureB = std::make_unique<TestFeature>("FeatureB", log);
+        auto passA = std::make_unique<TestPass>("PassA", log);
+        auto passB = std::make_unique<TestPass>("PassB", log);
 
-        std::vector<std::unique_ptr<Wayfinder::RenderFeature>> features;
-        features.push_back(std::move(featureA));
-        features.push_back(std::move(featureB));
+        std::vector<std::unique_ptr<Wayfinder::RenderPass>> passes;
+        passes.push_back(std::move(passA));
+        passes.push_back(std::move(passB));
 
         Wayfinder::RenderFrame frame;
         Wayfinder::RenderGraph graph;
 
-        for (auto& feature : features)
+        for (auto& p : passes)
         {
-            if (feature->IsEnabled())
+            if (p->IsEnabled())
             {
-                feature->AddPasses(graph, frame);
+                p->AddPasses(graph, MakeTestParams(frame));
             }
         }
 
         REQUIRE(log.size() == 2);
-        CHECK(log[0] == "FeatureA::AddPasses");
-        CHECK(log[1] == "FeatureB::AddPasses");
+        CHECK(log[0] == "PassA::AddPasses");
+        CHECK(log[1] == "PassB::AddPasses");
     }
 
-    // ── Feature With Graph Execution ─────────────────────────
-
-    TEST_CASE("Feature pass executes in compiled graph")
+    TEST_CASE("Pass executes in compiled graph")
     {
         auto device = Wayfinder::RenderDevice::Create(Wayfinder::RenderBackend::Null);
         Wayfinder::TransientResourcePool pool;
         pool.Initialise(*device);
 
-        OverlayFeature overlay;
+        OverlayPass overlay;
         Wayfinder::RenderFrame frame;
         Wayfinder::RenderGraph graph;
 
-        // Engine adds a scene pass first
         Wayfinder::RenderGraphTextureDesc colourDesc;
         colourDesc.Width = 800;
         colourDesc.Height = 600;
@@ -319,8 +321,7 @@ namespace Wayfinder::Tests
             };
         });
 
-        // Feature injects its pass
-        overlay.AddPasses(graph, frame);
+        overlay.AddPasses(graph, MakeTestParams(frame));
 
         REQUIRE(graph.Compile());
         graph.Execute(*device, pool);
@@ -353,33 +354,30 @@ namespace Wayfinder::Tests
         CHECK(device.GetEvents()[3] == "EndFrame");
     }
 
-    TEST_CASE("Removing a feature stops its pass injection")
+    TEST_CASE("Removing a pass stops its pass injection")
     {
         std::vector<std::string> log;
 
-        std::vector<std::unique_ptr<Wayfinder::RenderFeature>> features;
-        features.push_back(std::make_unique<TestFeature>("Removable", log));
-        features.push_back(std::make_unique<TestFeature>("Persistent", log));
+        std::vector<std::unique_ptr<Wayfinder::RenderPass>> passes;
+        passes.push_back(std::make_unique<TestPass>("Removable", log));
+        passes.push_back(std::make_unique<TestPass>("Persistent", log));
 
-        // Remove the first feature (simulate Renderer::RemoveFeature)
-        features.erase(features.begin());
+        passes.erase(passes.begin());
 
         Wayfinder::RenderFrame frame;
         Wayfinder::RenderGraph graph;
 
-        for (auto& feature : features)
+        for (auto& p : passes)
         {
-            if (feature->IsEnabled())
+            if (p->IsEnabled())
             {
-                feature->AddPasses(graph, frame);
+                p->AddPasses(graph, MakeTestParams(frame));
             }
         }
 
         REQUIRE(log.size() == 1);
         CHECK(log[0] == "Persistent::AddPasses");
     }
-
-    // ── Pipeline and Buffer Headless Tests ───────────────────
 
     TEST_CASE("NullDevice pipeline creation returns handle")
     {
@@ -402,7 +400,6 @@ namespace Wayfinder::Tests
         auto buffer = device->CreateBuffer(desc);
         CHECK_FALSE(buffer.IsValid());
 
-        // Upload some data — should be a no-op on NullDevice
         uint8_t data[64] = {};
         device->UploadToBuffer(buffer, data, {.sizeInBytes = sizeof(data)});
 
@@ -422,13 +419,11 @@ namespace Wayfinder::Tests
         device->DestroyShader(shader);
     }
 
-    // ── Material Resolution ──────────────────────────────────
-
     TEST_CASE("RenderResourceCache resolves built-in materials")
     {
         Wayfinder::RenderFrame frame;
         const size_t viewIndex = frame.AddView(Wayfinder::RenderView{});
-        Wayfinder::RenderPass& scenePass = frame.AddScenePass(Wayfinder::RenderPassIds::MainScene, viewIndex, Wayfinder::RenderLayers::Main);
+        Wayfinder::FramePass& scenePass = frame.AddScenePass(Wayfinder::RenderPassIds::MainScene, viewIndex, Wayfinder::RenderLayers::Main);
 
         Wayfinder::RenderMeshSubmission submission;
         submission.Mesh.Origin = Wayfinder::RenderResourceOrigin::BuiltIn;
@@ -448,9 +443,11 @@ namespace Wayfinder::Tests
         CHECK(resolved.Ref.Origin == Wayfinder::RenderResourceOrigin::BuiltIn);
         CHECK(resolved.Ref.StableKey == 42);
 
-        // Verify that the submission's material binding was set up correctly
         CHECK(scenePass.Meshes[0].Material.Ref.Origin == Wayfinder::RenderResourceOrigin::BuiltIn);
         CHECK(scenePass.Meshes[0].Material.ShaderName == "unlit");
         CHECK(scenePass.Meshes[0].Material.Parameters.Has("base_colour"));
     }
-}
+} // namespace Wayfinder::Tests
+
+// NOLINTEND(cppcoreguidelines-avoid-c-arrays, cppcoreguidelines-avoid-const-or-ref-data-members, cppcoreguidelines-pro-bounds-array-to-pointer-decay, cppcoreguidelines-pro-bounds-avoid-unchecked-container-access,
+// misc-const-correctness, misc-use-internal-linkage, modernize-avoid-c-arrays, modernize-use-designated-initializers, modernize-use-nodiscard, readability-identifier-naming)

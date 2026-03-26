@@ -116,8 +116,8 @@ namespace Wayfinder::Tests
 
         const Wayfinder::SceneRenderExtractor extractor;
         const Wayfinder::RenderFrame frame = extractor.Extract(scene);
-        const Wayfinder::RenderPass* mainPass = frame.FindPass(Wayfinder::RenderPassIds::MainScene);
-        const Wayfinder::RenderPass* debugPass = frame.FindPass(Wayfinder::RenderPassIds::Debug);
+        const Wayfinder::FramePass* mainPass = frame.FindPass(Wayfinder::RenderPassIds::MainScene);
+        const Wayfinder::FramePass* debugPass = frame.FindPass(Wayfinder::RenderPassIds::Debug);
 
         scene.Shutdown();
 
@@ -156,7 +156,7 @@ namespace Wayfinder::Tests
 
         const Wayfinder::SceneRenderExtractor extractor;
         const Wayfinder::RenderFrame frame = extractor.Extract(scene);
-        const Wayfinder::RenderPass* mainPass = frame.FindPass(Wayfinder::RenderPassIds::MainScene);
+        const Wayfinder::FramePass* mainPass = frame.FindPass(Wayfinder::RenderPassIds::MainScene);
 
         scene.Shutdown();
 
@@ -211,7 +211,7 @@ namespace Wayfinder::Tests
 
         const Wayfinder::SceneRenderExtractor extractor;
         Wayfinder::RenderFrame frame = extractor.Extract(scene);
-        Wayfinder::RenderPass* mainPass = frame.FindPass(Wayfinder::RenderPassIds::MainScene);
+        Wayfinder::FramePass* mainPass = frame.FindPass(Wayfinder::RenderPassIds::MainScene);
 
         REQUIRE(mainPass != nullptr);
         REQUIRE(mainPass->Meshes.size() == 2);
@@ -234,7 +234,7 @@ namespace Wayfinder::Tests
     {
         Wayfinder::RenderFrame frame;
         const size_t viewIndex = frame.AddView(Wayfinder::RenderView{});
-        Wayfinder::RenderPass& scenePass = frame.AddScenePass(Wayfinder::RenderPassIds::MainScene, viewIndex, Wayfinder::RenderLayers::Main);
+        Wayfinder::FramePass& scenePass = frame.AddScenePass(Wayfinder::RenderPassIds::MainScene, viewIndex, Wayfinder::RenderLayers::Main);
         scenePass.Meshes.push_back(MakeSolidMesh(100, Wayfinder::Colour::Red()));
         scenePass.Meshes.push_back(MakeSolidMesh(10, Wayfinder::Colour::Blue()));
 

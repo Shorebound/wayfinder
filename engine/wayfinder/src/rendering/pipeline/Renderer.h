@@ -2,8 +2,7 @@
 
 #include "core/Result.h"
 #include "rendering/RenderTypes.h"
-#include "rendering/backend/GPUPipeline.h"
-#include "rendering/graph/RenderFeature.h"
+#include "rendering/graph/RenderPass.h"
 #include "rendering/mesh/Mesh.h"
 
 #include <algorithm>
@@ -34,35 +33,34 @@ namespace Wayfinder
         void Render(const RenderFrame& frame);
         void SetAssetService(const std::shared_ptr<AssetService>& assetService);
 
-        // ── RenderFeature API ────────────────────────────────
-        void AddFeature(std::unique_ptr<RenderFeature> feature);
+        void AddPass(std::unique_ptr<RenderPass> pass);
 
         template<typename T>
-        bool RemoveFeature()
+        bool RemovePass()
         {
-            auto it = std::find_if(m_features.begin(), m_features.end(), [](const std::unique_ptr<RenderFeature>& f)
+            auto it = std::find_if(m_passes.begin(), m_passes.end(), [](const std::unique_ptr<RenderPass>& p)
             {
-                return dynamic_cast<T*>(f.get()) != nullptr;
+                return dynamic_cast<T*>(p.get()) != nullptr;
             });
-            if (it != m_features.end())
+            if (it != m_passes.end())
             {
                 if (m_device)
                 {
-                    auto ctx = MakeFeatureContext();
+                    auto ctx = MakePassContext();
                     (*it)->OnDetach(ctx);
                 }
-                m_features.erase(it);
+                m_passes.erase(it);
                 return true;
             }
             return false;
         }
 
         template<typename T>
-        const T* GetFeature() const
+        const T* GetPass() const
         {
-            for (const auto& f : m_features)
+            for (const auto& p : m_passes)
             {
-                if (auto* ptr = dynamic_cast<const T*>(f.get()))
+                if (auto* ptr = dynamic_cast<const T*>(p.get()))
                 {
                     return ptr;
                 }
@@ -71,11 +69,11 @@ namespace Wayfinder
         }
 
         template<typename T>
-        T* GetFeature()
+        T* GetPass()
         {
-            for (auto& f : m_features)
+            for (auto& p : m_passes)
             {
-                if (auto* ptr = dynamic_cast<T*>(f.get()))
+                if (auto* ptr = dynamic_cast<T*>(p.get()))
                 {
                     return ptr;
                 }
@@ -90,19 +88,11 @@ namespace Wayfinder
         std::unique_ptr<RenderPipeline> m_renderPipeline;
         std::unique_ptr<RenderResourceCache> m_renderResources;
 
-        // Builds the context struct that features receive on attach/detach.
-        RenderFeatureContext MakeFeatureContext();
+        RenderPassContext MakePassContext();
 
-        // ── Features ─────────────────────────────────────────
-        std::vector<std::unique_ptr<RenderFeature>> m_features;
+        std::vector<std::unique_ptr<RenderPass>> m_passes;
 
-        // ── Debug-only pipeline (PosColour, uses debug_unlit shaders) ──
-        GPUPipeline m_debugLinePipeline;
-
-        // Single built-in mesh — all scene primitives use PosNormalColour
         Mesh m_primitiveMesh;
-
-        // UV-mapped primitive mesh — used by textured shader programs
         Mesh m_texturedPrimitiveMesh;
 
         int m_screenWidth;

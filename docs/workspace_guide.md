@@ -333,6 +333,6 @@ If you are new to the repository, read the docs in this order:
 2. `docs/project_vision.md`
 3. `docs/runtime_architecture.md`
 4. `docs/data_authoring_and_editor.md`
-5. `docs/render_features.md`
+5. `docs/render_passes.md`
 6. `docs/sdl3_migration_plan.md`
 7. `docs/implementation_plan.md`
