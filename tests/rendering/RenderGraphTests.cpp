@@ -9,6 +9,137 @@
 
 namespace Wayfinder::Tests
 {
+    namespace
+    {
+        class TrackingRenderDevice final : public Wayfinder::RenderDevice
+        {
+        public:
+            Result<void> Initialise(Wayfinder::Window&) override
+            {
+                return {};
+            }
+
+            void Shutdown() override {}
+
+            bool BeginFrame() override
+            {
+                m_events.emplace_back("BeginFrame");
+                return true;
+            }
+
+            void EndFrame() override
+            {
+                m_events.emplace_back("EndFrame");
+            }
+
+            void PushDebugGroup(std::string_view name) override
+            {
+                m_events.emplace_back(std::string("PushDebugGroup:") + std::string(name));
+            }
+
+            void PopDebugGroup() override
+            {
+                m_events.emplace_back("PopDebugGroup");
+            }
+
+            void BeginRenderPass(const Wayfinder::RenderPassDescriptor& descriptor) override
+            {
+                m_events.emplace_back(std::string("BeginRenderPass:") + std::string(descriptor.debugName));
+            }
+
+            void EndRenderPass() override
+            {
+                m_events.emplace_back("EndRenderPass");
+            }
+
+            GPUShaderHandle CreateShader(const ShaderCreateDesc&) override
+            {
+                return {};
+            }
+
+            void DestroyShader(GPUShaderHandle) override {}
+
+            GPUPipelineHandle CreatePipeline(const PipelineCreateDesc&) override
+            {
+                return {};
+            }
+
+            void DestroyPipeline(GPUPipelineHandle) override {}
+            void BindPipeline(GPUPipelineHandle) override {}
+
+            GPUBufferHandle CreateBuffer(const BufferCreateDesc&) override
+            {
+                return GPUBufferHandle{.Index = m_nextId++, .Generation = 1};
+            }
+
+            void DestroyBuffer(GPUBufferHandle) override {}
+            void UploadToBuffer(GPUBufferHandle, const void*, BufferUploadRegion) override {}
+            void BindVertexBuffer(GPUBufferHandle, VertexBufferBindingDesc) override {}
+            void BindIndexBuffer(GPUBufferHandle, IndexElementSize, uint32_t) override {}
+            void DrawIndexed(uint32_t, uint32_t, uint32_t, int32_t) override {}
+            void DrawPrimitives(uint32_t, uint32_t, uint32_t) override {}
+            void PushVertexUniform(uint32_t, const void*, uint32_t) override {}
+            void PushFragmentUniform(uint32_t, const void*, uint32_t) override {}
+
+            GPUComputePipelineHandle CreateComputePipeline(const ComputePipelineCreateDesc&) override
+            {
+                return {};
+            }
+
+            void DestroyComputePipeline(GPUComputePipelineHandle) override {}
+
+            void BeginComputePass() override
+            {
+                m_events.emplace_back("BeginComputePass");
+            }
+
+            void EndComputePass() override
+            {
+                m_events.emplace_back("EndComputePass");
+            }
+
+            void BindComputePipeline(GPUComputePipelineHandle) override {}
+            void DispatchCompute(uint32_t, uint32_t, uint32_t) override {}
+
+            GPUTextureHandle CreateTexture(const TextureCreateDesc&) override
+            {
+                return GPUTextureHandle{.Index = m_nextId++, .Generation = 1};
+            }
+
+            void DestroyTexture(GPUTextureHandle) override {}
+            void UploadToTexture(GPUTextureHandle, const void*, uint32_t, uint32_t, uint32_t, uint32_t) override {}
+            void GenerateMipmaps(GPUTextureHandle) override {}
+
+            GPUSamplerHandle CreateSampler(const SamplerCreateDesc&) override
+            {
+                return GPUSamplerHandle{.Index = m_nextId++, .Generation = 1};
+            }
+
+            void DestroySampler(GPUSamplerHandle) override {}
+            void BindFragmentSampler(uint32_t, GPUTextureHandle, GPUSamplerHandle) override {}
+
+            [[nodiscard]] Extent2D GetSwapchainDimensions() const override
+            {
+                return {.width = 1280, .height = 720};
+            }
+
+            const RenderDeviceInfo& GetDeviceInfo() const override
+            {
+                return m_info;
+            }
+
+            const std::vector<std::string>& GetEvents() const
+            {
+                return m_events;
+            }
+
+        private:
+            RenderDeviceInfo m_info{.BackendName = "Tracking"};
+            std::vector<std::string> m_events;
+            uint32_t m_nextId = 0;
+        };
+    } // namespace
+
     // Helper: create a NullDevice + TransientResourcePool for graph execution
     struct GraphTestFixture
     {
@@ -146,6 +277,58 @@ namespace Wayfinder::Tests
         CHECK(executionOrder[0] == "First");
         CHECK(executionOrder[1] == "Second");
         CHECK(executionOrder[2] == "Present");
+    }
+
+    TEST_CASE("Render graph wraps raster and compute passes in GPU debug groups")
+    {
+        TrackingRenderDevice device;
+        Wayfinder::TransientResourcePool pool;
+        pool.Initialise(device);
+
+        Wayfinder::RenderGraph graph;
+
+        Wayfinder::RenderGraphTextureDesc colourDesc;
+        colourDesc.Width = 640;
+        colourDesc.Height = 480;
+        colourDesc.Format = Wayfinder::TextureFormat::RGBA8_UNORM;
+        colourDesc.DebugName = "DebugColour";
+
+        graph.AddPass("MainScene", [&](Wayfinder::RenderGraphBuilder& builder)
+        {
+            auto colour = builder.CreateTransient(colourDesc);
+            builder.WriteColour(colour);
+            return [](Wayfinder::RenderDevice&, const Wayfinder::RenderGraphResources&)
+            {
+            };
+        });
+
+        graph.AddComputePass("Tonemap", [&](Wayfinder::RenderGraphBuilder& builder)
+        {
+            auto colour = graph.FindHandle("DebugColour");
+            builder.ReadTexture(colour);
+            builder.SetSwapchainOutput();
+            return [](Wayfinder::RenderDevice&, const Wayfinder::RenderGraphResources&)
+            {
+            };
+        });
+
+        REQUIRE(graph.Compile());
+        graph.Execute(device, pool);
+
+        const std::vector<std::string> expectedEvents{
+            "PushDebugGroup:MainScene",
+            "BeginRenderPass:MainScene",
+            "EndRenderPass",
+            "PopDebugGroup",
+            "PushDebugGroup:Tonemap",
+            "BeginComputePass",
+            "EndComputePass",
+            "PopDebugGroup",
+        };
+
+        CHECK(device.GetEvents() == expectedEvents);
+
+        pool.Shutdown();
     }
 
     // ── Pass Culling ─────────────────────────────────────────

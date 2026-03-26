@@ -26,6 +26,9 @@ namespace Wayfinder
         }
         void EndFrame() override {}
 
+        void PushDebugGroup(std::string_view) override {}
+        void PopDebugGroup() override {}
+
         void BeginRenderPass(const RenderPassDescriptor&) override {}
         void EndRenderPass() override {}
 
