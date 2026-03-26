@@ -77,6 +77,7 @@ Formatting is enforced by `.clang-format`.
 ### Naming
 
 - Types: PascalCase with suffixes for components/systems, and `I` prefix for interfaces.
+- Rendering extension bases (`RenderPass`, etc.) may omit `I` when the name is already the domain’s plugin surface — see `engine/wayfinder/src/rendering/graph/RenderPass.h`.
 - Functions: PascalCase with verb prefixes. `IsX` / `HasX` / `WasX` (bool queries), `GetX` / `SetX`, `CreateX` / `DestroyX`, `LoadX` / `SaveX`, `ValidateX`, `SubscribeX` / `UnsubscribeX`, `OnX`.
 - Members: `m_` prefix, camelCase.
 - Public members: PascalCase

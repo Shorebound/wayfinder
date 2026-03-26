@@ -46,7 +46,7 @@ The rendering subsystem is further organised into subdirectories:
 | Directory | Purpose |
 |-----------|---------|
 | `rendering/backend/` | GPU device abstraction — `RenderDevice`, GPU buffers, pipelines, vertex formats, plus backend implementations (`null/`, `sdl_gpu/`) |
-| `rendering/graph/` | Render graph framework — `RenderGraph`, features, frame data, intents, sort keys |
+| `rendering/graph/` | Render graph framework — `RenderGraph`, `RenderPass` injectors, frame data, intents, sort keys |
 | `rendering/pipeline/` | Pipeline execution — `Renderer`, `RenderPipeline`, `RenderContext`, `PipelineCache`, scene extraction |
 | `rendering/resources/` | GPU resource management — `RenderResources`, transient buffer and resource pools |
 | `rendering/materials/` | Material and shader system — `Material`, parameters, post-process volumes, shader programs and manager |

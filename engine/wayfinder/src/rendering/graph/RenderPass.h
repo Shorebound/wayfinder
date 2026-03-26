@@ -32,7 +32,8 @@ namespace Wayfinder
         /// Returns a unique name for this pass (used for removal and logging).
         virtual std::string_view GetName() const = 0;
 
-        /// Bitmask of `RenderPassCapabilities` — advisory until the executor enforces scheduling.
+        /// Bitmask of `RenderPassCapabilities` — scheduling/profiling/authoring; graph nodes may also call
+        /// `RenderGraphBuilder::DeclarePassCapabilities` for dev-time checks in `RenderGraph::Compile`.
         virtual RenderPassCapabilityMask GetCapabilities() const
         {
             return RenderPassCapabilities::Raster;

@@ -4,6 +4,7 @@
 #include "core/Result.h"
 #include "rendering/backend/RenderDevice.h"
 #include "rendering/graph/RenderFrame.h"
+#include "rendering/graph/RenderFrameUtils.h"
 #include "rendering/graph/RenderGraph.h"
 #include "rendering/resources/RenderResources.h"
 
@@ -182,6 +183,7 @@ namespace Wayfinder
                     .SwapchainHeight = swapH,
                     .MeshesByStride = meshesByStride,
                     .ResourceCache = m_renderResources.get(),
+                    .PrimaryView = ResolvePreparedPrimaryView(preparedFrame),
                 };
                 m_renderPipeline->BuildGraph(graph, params, m_passes);
 

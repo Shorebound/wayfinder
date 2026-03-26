@@ -1,10 +1,12 @@
 #include "app/EngineConfig.h"
 #include "rendering/backend/RenderDevice.h"
 #include "rendering/graph/RenderFrame.h"
+#include "rendering/graph/RenderFrameUtils.h"
 #include "rendering/graph/RenderGraph.h"
 #include "rendering/graph/RenderPass.h"
 #include "rendering/pipeline/RenderPipelineFrameParams.h"
 #include "rendering/pipeline/Renderer.h"
+#include "rendering/pipeline/ShaderUniforms.h"
 #include "rendering/resources/RenderResources.h"
 #include "rendering/resources/TransientResourcePool.h"
 
@@ -33,6 +35,7 @@ namespace Wayfinder::Tests
                 .SwapchainHeight = h,
                 .MeshesByStride = K_EMPTY_MESHES,
                 .ResourceCache = nullptr,
+                .PrimaryView = Wayfinder::ResolvePreparedPrimaryView(frame),
             };
         }
 
@@ -203,7 +206,7 @@ namespace Wayfinder::Tests
         {
             graph.AddPass("OverlayPass", [&](Wayfinder::RenderGraphBuilder& builder)
             {
-                auto colour = graph.FindHandle(Wayfinder::WellKnown::SceneColour);
+                auto colour = graph.FindHandle(Wayfinder::GraphTextureId::SceneColour);
                 if (colour.IsValid())
                 {
                     builder.ReadTexture(colour);
@@ -312,7 +315,7 @@ namespace Wayfinder::Tests
         colourDesc.Width = 800;
         colourDesc.Height = 600;
         colourDesc.Format = Wayfinder::TextureFormat::RGBA8_UNORM;
-        colourDesc.DebugName = Wayfinder::WellKnown::SceneColour;
+        colourDesc.DebugName = Wayfinder::GraphTextureName(Wayfinder::GraphTextureId::SceneColour);
 
         graph.AddPass("MainScene", [&](Wayfinder::RenderGraphBuilder& builder)
         {
@@ -448,6 +451,29 @@ namespace Wayfinder::Tests
         CHECK(scenePass.Meshes[0].Material.Ref.Origin == Wayfinder::RenderResourceOrigin::BuiltIn);
         CHECK(scenePass.Meshes[0].Material.ShaderName == "unlit");
         CHECK(scenePass.Meshes[0].Material.Parameters.Has("base_colour"));
+    }
+
+    TEST_CASE("ResolvePreparedPrimaryView is invalid when there are no prepared views")
+    {
+        Wayfinder::RenderFrame frame;
+        CHECK_FALSE(Wayfinder::ResolvePreparedPrimaryView(frame).Valid);
+    }
+
+    TEST_CASE("ResolvePreparedPrimaryView is valid when the first view is prepared")
+    {
+        Wayfinder::RenderFrame frame;
+        Wayfinder::RenderView view;
+        view.Prepared = true;
+        view.ViewMatrix = Wayfinder::Matrix4(1.0f);
+        view.ProjectionMatrix = Wayfinder::Matrix4(1.0f);
+        frame.Views.push_back(view);
+        const Wayfinder::PreparedPrimaryView pv = Wayfinder::ResolvePreparedPrimaryView(frame);
+        CHECK(pv.Valid);
+    }
+
+    TEST_CASE("SceneGlobalsUBO size matches std140 contract")
+    {
+        CHECK(sizeof(Wayfinder::SceneGlobalsUBO) == 32);
     }
 } // namespace Wayfinder::Tests
 

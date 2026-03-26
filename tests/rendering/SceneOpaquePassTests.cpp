@@ -1,6 +1,7 @@
 #include "app/EngineConfig.h"
 #include "rendering/backend/RenderDevice.h"
 #include "rendering/graph/RenderFrame.h"
+#include "rendering/graph/RenderFrameUtils.h"
 #include "rendering/graph/RenderGraph.h"
 #include "rendering/pipeline/RenderContext.h"
 #include "rendering/pipeline/RenderPipeline.h"
@@ -47,6 +48,7 @@ namespace Wayfinder::Tests
             .SwapchainHeight = 240,
             .MeshesByStride = K_EMPTY_MESHES,
             .ResourceCache = nullptr,
+            .PrimaryView = Wayfinder::ResolvePreparedPrimaryView(frame),
         };
 
         Wayfinder::RenderGraph graph;

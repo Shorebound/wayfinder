@@ -4,8 +4,8 @@
 
 namespace Wayfinder
 {
-    /// Bitmask describing what a `RenderPass` injector may do. Used for documentation, dev validation,
-    /// and future scheduling (compute queues, profiling buckets).
+    /// Bitmask describing what a `RenderPass` injector may do. Used for documentation, dev validation in
+    /// `RenderGraph::Compile` when declared on the builder, and future scheduling (compute queues, profiling buckets).
     namespace RenderPassCapabilities
     {
         inline constexpr uint32_t Raster = 1u << 0;

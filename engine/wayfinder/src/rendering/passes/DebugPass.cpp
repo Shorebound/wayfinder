@@ -2,10 +2,13 @@
 
 #include "rendering/backend/RenderDevice.h"
 #include "rendering/backend/VertexFormats.h"
+#include "rendering/graph/RenderFrameUtils.h"
 #include "rendering/graph/RenderGraph.h"
+#include "rendering/graph/RenderPassCapabilities.h"
 #include "rendering/materials/ShaderProgram.h"
 #include "rendering/mesh/Mesh.h"
 #include "rendering/pipeline/RenderContext.h"
+#include "rendering/pipeline/ShaderUniforms.h"
 #include "rendering/resources/TransientBufferAllocator.h"
 
 #include "core/Log.h"
@@ -18,19 +21,6 @@
 
 namespace Wayfinder
 {
-    namespace
-    {
-        struct UnlitTransformUBO
-        {
-            Matrix4 Mvp;
-        };
-
-        struct DebugMaterialUBO
-        {
-            Float4 BaseColour;
-        };
-    } // namespace
-
     void DebugPass::OnAttach(const RenderPassContext& context)
     {
         m_context = &context.Context;
@@ -67,22 +57,16 @@ namespace Wayfinder
             return;
         }
 
-        auto view = Matrix4(1.0f);
-        auto projection = Matrix4(1.0f);
-        bool hasCamera = false;
-
-        if (!params.Frame.Views.empty() && params.Frame.Views.front().Prepared)
-        {
-            const auto& primaryView = params.Frame.Views.front();
-            view = primaryView.ViewMatrix;
-            projection = primaryView.ProjectionMatrix;
-            hasCamera = true;
-        }
+        const PreparedPrimaryView& primary = params.PrimaryView;
+        const Matrix4 view = primary.ViewMatrix;
+        const Matrix4 projection = primary.ProjectionMatrix;
+        const bool hasCamera = primary.Valid;
 
         graph.AddPass("Debug", [&, viewMat = view, projMat = projection, hasCamera](RenderGraphBuilder& builder)
         {
-            auto colour = graph.FindHandleChecked(WellKnown::SceneColour);
-            auto depth = graph.FindHandleChecked(WellKnown::SceneDepth);
+            builder.DeclarePassCapabilities(RenderPassCapabilities::Raster | RenderPassCapabilities::RasterOverlayOrDebug);
+            auto colour = graph.FindHandleChecked(GraphTextureId::SceneColour);
+            auto depth = graph.FindHandleChecked(GraphTextureId::SceneDepth);
             builder.WriteColour(colour, LoadOp::Load);
             builder.WriteDepth(depth, LoadOp::Load);
 
@@ -144,12 +128,12 @@ namespace Wayfinder
 
                     if (alloc.IsValid())
                     {
-                        const Matrix4 mvp = projMat * viewMat;
-                        const DebugMaterialUBO materialUBO{Float4(1.0f)};
+                        const UnlitTransformUBO transformUBO{.Mvp = projMat * viewMat};
+                        const DebugMaterialUBO materialUBO{.BaseColour = Float4(1.0f)};
 
                         debugLinePipeline.Bind();
                         device.BindVertexBuffer(alloc.Buffer, {.offsetInBytes = alloc.Offset});
-                        device.PushVertexUniform(0, &mvp, sizeof(Matrix4));
+                        device.PushVertexUniform(0, &transformUBO, sizeof(UnlitTransformUBO));
                         device.PushFragmentUniform(0, &materialUBO, sizeof(DebugMaterialUBO));
                         device.DrawPrimitives(static_cast<uint32_t>(lineVertices.size()));
                     }
@@ -188,8 +172,8 @@ namespace Wayfinder
 
                     for (const auto& box : layer.DebugDraw->Boxes)
                     {
-                        const UnlitTransformUBO transformUBO{projMat * viewMat * box.LocalToWorld};
-                        const DebugMaterialUBO materialUBO{Float4(1.0f)};
+                        const UnlitTransformUBO transformUBO{.Mvp = projMat * viewMat * box.LocalToWorld};
+                        const DebugMaterialUBO materialUBO{.BaseColour = Float4(1.0f)};
 
                         device.PushVertexUniform(0, &transformUBO, sizeof(UnlitTransformUBO));
                         device.PushFragmentUniform(0, &materialUBO, sizeof(DebugMaterialUBO));

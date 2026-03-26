@@ -4,7 +4,9 @@
 
 #include "rendering/backend/RenderDevice.h"
 #include "rendering/backend/VertexFormats.h"
+#include "rendering/graph/RenderFrameUtils.h"
 #include "rendering/graph/RenderGraph.h"
+#include "rendering/graph/RenderPassCapabilities.h"
 #include "rendering/materials/ShaderProgram.h"
 #include "rendering/pipeline/RenderContext.h"
 
@@ -57,19 +59,11 @@ namespace Wayfinder
         const uint32_t swapW = params.SwapchainWidth;
         const uint32_t swapH = params.SwapchainHeight;
 
-        Colour clearColour = Colour::White();
-        auto view = Matrix4(1.0f);
-        auto projection = Matrix4(1.0f);
-        bool hasCamera = false;
-
-        if (!preparedFrame.Views.empty() && preparedFrame.Views.front().Prepared)
-        {
-            const auto& primaryView = preparedFrame.Views.front();
-            clearColour = primaryView.ClearColour;
-            view = primaryView.ViewMatrix;
-            projection = primaryView.ProjectionMatrix;
-            hasCamera = true;
-        }
+        const PreparedPrimaryView& primary = params.PrimaryView;
+        const Colour clearColour = primary.ClearColour;
+        const Matrix4 view = primary.ViewMatrix;
+        const Matrix4 projection = primary.ProjectionMatrix;
+        const bool hasCamera = primary.Valid;
 
         const SceneGlobalsUBO sceneGlobals = BuildSceneGlobals(preparedFrame);
 
@@ -77,16 +71,17 @@ namespace Wayfinder
         colourDesc.Width = swapW;
         colourDesc.Height = swapH;
         colourDesc.Format = TextureFormat::RGBA8_UNORM;
-        colourDesc.DebugName = WellKnown::SceneColour;
+        colourDesc.DebugName = GraphTextureName(GraphTextureId::SceneColour);
 
         RenderGraphTextureDesc depthDesc;
         depthDesc.Width = swapW;
         depthDesc.Height = swapH;
         depthDesc.Format = TextureFormat::D32_FLOAT;
-        depthDesc.DebugName = WellKnown::SceneDepth;
+        depthDesc.DebugName = GraphTextureName(GraphTextureId::SceneDepth);
 
         graph.AddPass("MainScene", [&, viewMat = view, projMat = projection, hasCamera](RenderGraphBuilder& builder)
         {
+            builder.DeclarePassCapabilities(RenderPassCapabilities::Raster | RenderPassCapabilities::RasterSceneGeometry);
             auto colour = builder.CreateTransient(colourDesc);
             auto depth = builder.CreateTransient(depthDesc);
             builder.WriteColour(colour, LoadOp::Clear, ClearValue::FromColour(clearColour));

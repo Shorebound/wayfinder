@@ -16,19 +16,6 @@ namespace Wayfinder
 {
     namespace
     {
-        // Vertex UBO shared by all scene shaders: MVP + Model (128 bytes)
-        struct TransformUBO
-        {
-            Matrix4 Mvp;
-            Matrix4 Model;
-        };
-
-        // Unlit shaders only need MVP (64 bytes)
-        struct UnlitTransformUBO
-        {
-            Matrix4 Mvp;
-        };
-
         /// Builds a PipelineCreateDesc for the wireframe variant of a shader program.
         /// Returns std::nullopt if the shader handles cannot be resolved.
         std::optional<PipelineCreateDesc> MakeWireframeVariant(const ShaderProgramDesc& desc, ShaderManager& shaders)

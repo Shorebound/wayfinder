@@ -1,6 +1,7 @@
 #include "RenderGraph.h"
 #include "core/Log.h"
 #include "rendering/backend/RenderDevice.h"
+#include "rendering/graph/RenderPassCapabilities.h"
 #include "rendering/resources/TransientResourcePool.h"
 
 #include <algorithm>
@@ -145,6 +146,12 @@ namespace Wayfinder
         pass.SwapchainWrite = RenderGraph::SwapchainWriteInfo{.Load = load, .Clear = clear};
     }
 
+    void RenderGraphBuilder::DeclarePassCapabilities(const RenderPassCapabilityMask mask)
+    {
+        auto& pass = CheckedAt(m_graph.m_passes, m_passIndex);
+        pass.DeclaredCapabilities = mask;
+    }
+
     // ── Resources ────────────────────────────────────────────
 
     GPUTextureHandle RenderGraphResources::GetTexture(RenderGraphHandle handle) const
@@ -174,22 +181,26 @@ namespace Wayfinder
 
     RenderGraphHandle RenderGraph::ImportTexture(std::string_view name)
     {
-        const auto internedName = InternedString::Intern(name);
+        return ImportTexture(InternedString::Intern(name));
+    }
 
-        // Check if already imported
+    RenderGraphHandle RenderGraph::ImportTexture(const InternedString& name)
+    {
         for (uint32_t i = 0; i < m_resources.size(); ++i)
         {
-            if (CheckedAt(m_resources, i).Name == internedName)
+            if (CheckedAt(m_resources, i).Name == name)
             {
                 return {i};
             }
         }
 
-        // Imported/externally-provided textures use a default-constructed desc
-        // (width/height == 0) so the transient allocation step skips them —
-        // their GPU handles are supplied externally before Execute().
         const RenderGraphTextureDesc desc;
-        return AllocateResource(desc, internedName);
+        return AllocateResource(desc, name);
+    }
+
+    RenderGraphHandle RenderGraph::ImportTexture(const GraphTextureId id)
+    {
+        return ImportTexture(GraphTextureIntern(id));
     }
 
     RenderGraphHandle RenderGraph::FindHandle(std::string_view name) const
@@ -206,12 +217,38 @@ namespace Wayfinder
         return {};
     }
 
+    RenderGraphHandle RenderGraph::FindHandle(const GraphTextureId id) const
+    {
+        const InternedString& name = GraphTextureIntern(id);
+        for (uint32_t i = 0; i < m_resources.size(); ++i)
+        {
+            if (CheckedAt(m_resources, i).Name == name)
+            {
+                return {i};
+            }
+        }
+        return {};
+    }
+
     RenderGraphHandle RenderGraph::FindHandleChecked(std::string_view name) const
     {
         RenderGraphHandle h = FindHandle(name);
         if (!h.IsValid())
         {
             WAYFINDER_ERROR(LogRenderer, "RenderGraph: FindHandleChecked missing resource '{}'", name);
+#ifndef NDEBUG
+            assert(false && "RenderGraph: FindHandleChecked missing resource");
+#endif
+        }
+        return h;
+    }
+
+    RenderGraphHandle RenderGraph::FindHandleChecked(const GraphTextureId id) const
+    {
+        RenderGraphHandle h = FindHandle(id);
+        if (!h.IsValid())
+        {
+            WAYFINDER_ERROR(LogRenderer, "RenderGraph: FindHandleChecked missing resource '{}'", GraphTextureIntern(id).GetString());
 #ifndef NDEBUG
             assert(false && "RenderGraph: FindHandleChecked missing resource");
 #endif
@@ -323,6 +360,39 @@ namespace Wayfinder
         {
             CheckedAt(m_passes, i).Culled = !CheckedAt(alive, i);
         }
+
+#if !defined(NDEBUG)
+        for (uint32_t i = 0; i < passCount; ++i)
+        {
+            auto& pass = CheckedAt(m_passes, i);
+            if (pass.Culled || !pass.DeclaredCapabilities.has_value())
+            {
+                continue;
+            }
+            const RenderPassCapabilityMask caps = *pass.DeclaredCapabilities;
+            if ((caps & RenderPassCapabilities::RasterSceneGeometry) != 0)
+            {
+                if (pass.NumColourWrites == 0 && !pass.DepthWrite.has_value())
+                {
+                    WAYFINDER_WARN(LogRenderer, "RenderGraph: pass '{}' declared RasterSceneGeometry but has no colour or depth attachment", pass.Name.GetString());
+                }
+            }
+            if ((caps & RenderPassCapabilities::RasterOverlayOrDebug) != 0)
+            {
+                if (pass.NumColourWrites == 0)
+                {
+                    WAYFINDER_WARN(LogRenderer, "RenderGraph: pass '{}' declared RasterOverlayOrDebug but has no colour attachment", pass.Name.GetString());
+                }
+            }
+            if ((caps & RenderPassCapabilities::FullscreenComposite) != 0)
+            {
+                if (!pass.SwapchainWrite.has_value())
+                {
+                    WAYFINDER_WARN(LogRenderer, "RenderGraph: pass '{}' declared FullscreenComposite but does not set swapchain output", pass.Name.GetString());
+                }
+            }
+        }
+#endif
 
         // Assign sort order
         uint32_t order = 0;

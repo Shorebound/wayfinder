@@ -5,6 +5,7 @@
 #include "rendering/backend/RenderDevice.h"
 #include "rendering/backend/VertexFormats.h"
 #include "rendering/graph/RenderGraph.h"
+#include "rendering/graph/RenderPassCapabilities.h"
 #include "rendering/materials/ShaderProgram.h"
 #include "rendering/passes/DebugPass.h"
 #include "rendering/passes/SceneOpaquePass.h"
@@ -199,7 +200,8 @@ namespace Wayfinder
 
         graph.AddPass("Composition", [&](RenderGraphBuilder& builder)
         {
-            auto colour = graph.FindHandleChecked(WellKnown::SceneColour);
+            builder.DeclarePassCapabilities(RenderPassCapabilities::Raster | RenderPassCapabilities::FullscreenComposite);
+            auto colour = graph.FindHandleChecked(GraphTextureId::SceneColour);
             builder.ReadTexture(colour);
             builder.SetSwapchainOutput(LoadOp::DontCare);
 

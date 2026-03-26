@@ -2,6 +2,7 @@
 
 #include "rendering/RenderTypes.h"
 #include "rendering/graph/RenderFrame.h"
+#include "rendering/graph/RenderFrameUtils.h"
 
 #include <cstdint>
 #include <memory>
@@ -26,6 +27,9 @@ namespace Wayfinder
 
         /// Used when `RenderMeshRef::Origin` is `Asset` — resolves cached GPU meshes.
         RenderResourceCache* ResourceCache = nullptr;
+
+        /// Primary prepared view (`ResolvePreparedPrimaryView`); used by graph passes for defaults.
+        PreparedPrimaryView PrimaryView{};
     };
 
 } // namespace Wayfinder

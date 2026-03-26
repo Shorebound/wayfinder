@@ -4,6 +4,7 @@
 #include "rendering/ArenaFunction.h"
 #include "rendering/FrameAllocator.h"
 #include "rendering/RenderTypes.h"
+#include "rendering/graph/RenderPassCapabilities.h"
 
 #include <concepts>
 #include <cstdint>
@@ -30,13 +31,39 @@ namespace Wayfinder
         bool operator==(const RenderGraphHandle&) const = default;
     };
 
-    // ── Well-Known Resource Names ────────────────────────────
-    // Published by the engine so passes can reference them by name.
+    // ── Engine graph texture ids (stable InternedString names, same pattern as `FrameLayerIds`) ──
 
-    namespace WellKnown
+    enum class GraphTextureId : uint8_t
     {
-        inline constexpr const char* SceneColour = "SceneColour";
-        inline constexpr const char* SceneDepth = "SceneDepth";
+        SceneColour,
+        SceneDepth,
+    };
+
+    /// Stable interned names for resources created or looked up by `GraphTextureId`.
+    namespace GraphTextures
+    {
+        inline const InternedString SceneColour = InternedString::Intern("SceneColour");
+        inline const InternedString SceneDepth = InternedString::Intern("SceneDepth");
+    }
+
+    /// Resolves `GraphTextureId` to the shared `InternedString` (for lookups without re-interning).
+    inline const InternedString& GraphTextureIntern(const GraphTextureId id)
+    {
+        switch (id)
+        {
+        case GraphTextureId::SceneColour:
+            return GraphTextures::SceneColour;
+        case GraphTextureId::SceneDepth:
+            return GraphTextures::SceneDepth;
+        }
+        static const InternedString kEmpty;
+        return kEmpty;
+    }
+
+    /// Null-terminated pointer into the interned string — valid for `RenderGraphTextureDesc::DebugName`.
+    inline const char* GraphTextureName(const GraphTextureId id)
+    {
+        return GraphTextureIntern(id).GetString().c_str();
     }
 
     // ── Texture Description for Graph Resources ──────────────
@@ -84,6 +111,9 @@ namespace Wayfinder
 
         // This pass writes directly to the swapchain.
         void SetSwapchainOutput(LoadOp load = LoadOp::Clear, ClearValue clear = {});
+
+        /// Optional metadata for dev-time validation in `Compile` (matches `RenderPass::GetCapabilities` when set).
+        void DeclarePassCapabilities(RenderPassCapabilityMask mask);
 
     private:
         friend class RenderGraph;
@@ -140,12 +170,16 @@ namespace Wayfinder
 
         // Import a named resource handle so passes can reference it by name.
         RenderGraphHandle ImportTexture(std::string_view name);
+        RenderGraphHandle ImportTexture(const InternedString& name);
+        RenderGraphHandle ImportTexture(GraphTextureId id);
 
         // Look up a previously imported or created named resource.
         RenderGraphHandle FindHandle(std::string_view name) const;
+        RenderGraphHandle FindHandle(GraphTextureId id) const;
 
         /// Like `FindHandle`, but logs and asserts in non-`NDEBUG` builds when the name is missing.
         RenderGraphHandle FindHandleChecked(std::string_view name) const;
+        RenderGraphHandle FindHandleChecked(GraphTextureId id) const;
 
         // Compile: topological sort on dependencies + dead pass culling.
         bool Compile();
@@ -203,6 +237,8 @@ namespace Wayfinder
 
             bool Culled = false;
             uint32_t SortOrder = UINT32_MAX;
+
+            std::optional<RenderPassCapabilityMask> DeclaredCapabilities;
         };
 
         RenderGraphHandle AllocateResource(const RenderGraphTextureDesc& desc, InternedString name = {});

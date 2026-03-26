@@ -2,23 +2,10 @@
 
 #include "rendering/backend/VertexFormats.h"
 #include "rendering/materials/ShaderProgram.h"
+#include "rendering/pipeline/ShaderUniforms.h"
 
 namespace Wayfinder
 {
-    namespace
-    {
-        struct UnlitTransformUBO
-        {
-            Matrix4 Mvp;
-        };
-
-        struct TransformUBO
-        {
-            Matrix4 Mvp;
-            Matrix4 Model;
-        };
-    } // namespace
-
     void RegisterForwardOpaquePrograms(ShaderProgramRegistry& registry)
     {
         {

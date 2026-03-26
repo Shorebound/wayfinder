@@ -2,9 +2,9 @@
 
 #include "core/Types.h"
 #include "rendering/pipeline/RenderPipelineFrameParams.h"
+#include "rendering/pipeline/ShaderUniforms.h"
 
 #include <cstdint>
-#include <type_traits>
 #include <vector>
 
 namespace Wayfinder
@@ -16,18 +16,6 @@ namespace Wayfinder
     class ShaderProgramRegistry;
     struct RenderMeshSubmission;
     struct ShaderProgram;
-
-    /// Per-frame scene globals pushed to fragment UBO slot 1 for shaders that need it.
-    struct alignas(16) SceneGlobalsUBO
-    {
-        Float3 LightDirection{0.0f, -0.7f, -0.5f};
-        float LightIntensity = 1.0f;
-        Float3 LightColour{1.0f, 1.0f, 1.0f};
-        float Ambient = 0.15f;
-    };
-    static_assert(std::is_standard_layout_v<SceneGlobalsUBO>, "SceneGlobalsUBO must be standard layout for GPU upload");
-    static_assert(std::is_trivially_copyable_v<SceneGlobalsUBO>, "SceneGlobalsUBO must be trivially copyable for GPU upload");
-    static_assert(sizeof(SceneGlobalsUBO) == 32, "SceneGlobalsUBO must be 32 bytes (2 x vec4) for std140 layout");
 
     struct SubmissionDrawState
     {
