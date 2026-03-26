@@ -106,6 +106,7 @@ namespace Wayfinder
         const ShaderProgram* Find(std::string_view name) const;
 
         // Convenience: find with fallback to a default program.
+        // NOLINTNEXTLINE(bugprone-easily-swappable-parameters) — primary name vs fallback shader name
         const ShaderProgram* FindOrDefault(std::string_view name, std::string_view fallback = "unlit") const;
 
     private:

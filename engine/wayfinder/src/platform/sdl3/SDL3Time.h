@@ -1,6 +1,8 @@
 #pragma once
 #include "platform/Time.h"
 
+#include <cstdint>
+
 namespace Wayfinder
 {
     class SDL3Time : public Time

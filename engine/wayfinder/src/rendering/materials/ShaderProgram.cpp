@@ -85,6 +85,7 @@ namespace Wayfinder
         return (it != m_programs.end()) ? &it->second : nullptr;
     }
 
+    // NOLINTNEXTLINE(bugprone-easily-swappable-parameters) — primary name vs fallback shader name
     const ShaderProgram* ShaderProgramRegistry::FindOrDefault(const std::string_view name, const std::string_view fallback) const
     {
         if (const auto* program = Find(name))

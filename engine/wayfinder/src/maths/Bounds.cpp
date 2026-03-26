@@ -26,14 +26,14 @@ namespace Wayfinder
             }
         }
 
-        return {newMin, newMax};
+        return AxisAlignedBounds{.Min = newMin, .Max = newMax};
     }
 
     BoundingSphere ComputeBoundingSphere(const AxisAlignedBounds& bounds)
     {
         const Float3 centre = (bounds.Min + bounds.Max) * 0.5f;
         const float radius = glm::length(bounds.Max - centre);
-        return {centre, radius};
+        return BoundingSphere{.Centre = centre, .Radius = radius};
     }
 
     BoundingSphere TransformSphere(const BoundingSphere& local, const Matrix4& transform)
@@ -48,7 +48,7 @@ namespace Wayfinder
         const float scaleZ = glm::length(Float3{transform[2]});
         const float maxScale = std::max({scaleX, scaleY, scaleZ});
 
-        return {centre, local.Radius * maxScale};
+        return BoundingSphere{.Centre = centre, .Radius = local.Radius * maxScale};
     }
 
 } // namespace Wayfinder

@@ -2,6 +2,8 @@
 
 #include "platform/BackendConfig.h"
 
+#include <memory>
+
 namespace Wayfinder
 {
     // Interface for time management
