@@ -43,7 +43,7 @@ namespace Wayfinder
         void PushDebugGroup(std::string_view name) override;
         void PopDebugGroup() override;
 
-        void BeginRenderPass(const RenderPassDescriptor& descriptor) override;
+        bool BeginRenderPass(const RenderPassDescriptor& descriptor) override;
         void EndRenderPass() override;
 
         GPUShaderHandle CreateShader(const ShaderCreateDesc& desc) override;

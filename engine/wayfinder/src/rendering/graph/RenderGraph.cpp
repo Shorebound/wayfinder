@@ -407,9 +407,11 @@ namespace Wayfinder
                     rpDesc.depthAttachment.storeOp = StoreOp::Store;
                 }
 
-                device.BeginRenderPass(rpDesc);
-                pass.Execute(device, resources);
-                device.EndRenderPass();
+                if (device.BeginRenderPass(rpDesc))
+                {
+                    pass.Execute(device, resources);
+                    device.EndRenderPass();
+                }
             }
             else if (pass.Type == RenderGraphPassType::Compute)
             {

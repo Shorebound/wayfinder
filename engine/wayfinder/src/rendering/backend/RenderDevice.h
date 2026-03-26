@@ -256,7 +256,13 @@ namespace Wayfinder
 
         // ── Render Pass ──────────────────────────────────────
 
-        virtual void BeginRenderPass(const RenderPassDescriptor& descriptor) = 0;
+        /**
+         * @brief Begin a render pass described by the given descriptor.
+         * @return True if the pass was started successfully; false if it was skipped
+         *         (missing swapchain, null targets, etc.).  Callers should skip
+         *         Execute / EndRenderPass when this returns false.
+         */
+        virtual bool BeginRenderPass(const RenderPassDescriptor& descriptor) = 0;
         virtual void EndRenderPass() = 0;
 
         // ── Shader and Pipeline ──────────────────────────────

@@ -84,6 +84,7 @@ namespace Wayfinder
         {
             switch (format)
             {
+            case TextureFormat::SwapchainFormat:
             case TextureFormat::RGBA8_UNORM:
                 return SDL_GPU_TEXTUREFORMAT_R8G8B8A8_UNORM;
             case TextureFormat::BGRA8_UNORM:
@@ -354,18 +355,18 @@ namespace Wayfinder
 
     // ── Render Pass ──────────────────────────────────────────
 
-    void SDLGPUDevice::BeginRenderPass(const RenderPassDescriptor& descriptor)
+    bool SDLGPUDevice::BeginRenderPass(const RenderPassDescriptor& descriptor)
     {
         if (!m_commandBuffer)
         {
-            return;
+            return false;
         }
 
         const uint32_t numTargets = std::min(descriptor.numColourTargets, MAX_COLOUR_TARGETS);
         if (numTargets == 0 && !descriptor.depthAttachment.enabled)
         {
             WAYFINDER_ERROR(LogRenderer, "BeginRenderPass '{}': no colour targets and no depth attachment — skipping pass", descriptor.debugName);
-            return;
+            return false;
         }
 
         // ── Build colour target array ────────────────────────
@@ -381,7 +382,7 @@ namespace Wayfinder
             {
                 if (!m_swapchainTexture)
                 {
-                    return;
+                    return false;
                 }
                 texture = m_swapchainTexture;
             }
@@ -394,7 +395,7 @@ namespace Wayfinder
             if (!texture)
             {
                 WAYFINDER_WARNING(LogRenderer, "BeginRenderPass '{}': colour target at slot {} is null — skipping pass", descriptor.debugName, i);
-                return;
+                return false;
             }
 
             auto& target = colourTargets[i];
@@ -487,6 +488,8 @@ namespace Wayfinder
         {
             m_renderPass = SDL_BeginGPURenderPass(m_commandBuffer, colourTargets.data(), numTargets, nullptr);
         }
+
+        return m_renderPass != nullptr;
     }
 
     void SDLGPUDevice::EndRenderPass()
@@ -665,13 +668,13 @@ namespace Wayfinder
 
         // Colour targets — one per MRT attachment.
         // Per-target formats allow deferred rendering with mixed formats (e.g. RGBA8 albedo + RGBA16F normals).
-        // Default-initialised RGBA8_UNORM falls back to swapchain format for backwards compatibility.
+        // SwapchainFormat (value 0, the default for zero-initialised arrays) resolves to the actual swapchain format.
         const SDL_GPUTextureFormat swapchainFormat = SDL_GetGPUSwapchainTextureFormat(m_device, m_window);
         std::array<SDL_GPUColorTargetDescription, MAX_COLOUR_TARGETS> colourTargetDescs{};
         auto targetSlices = std::views::zip(colourTargetDescs, desc.colourTargetFormats, desc.colourTargetBlends) | std::views::take(desc.numColourTargets);
         for (auto&& [colourTargetDesc, format, blend] : targetSlices)
         {
-            colourTargetDesc.format = (format == TextureFormat::RGBA8_UNORM) ? swapchainFormat : ToSDLTextureFormat(format);
+            colourTargetDesc.format = (format == TextureFormat::SwapchainFormat) ? swapchainFormat : ToSDLTextureFormat(format);
 
             if (blend.Enabled)
             {

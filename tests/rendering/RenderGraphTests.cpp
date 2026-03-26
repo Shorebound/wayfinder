@@ -46,9 +46,10 @@ namespace Wayfinder::Tests
                 m_events.emplace_back("PopDebugGroup");
             }
 
-            void BeginRenderPass(const Wayfinder::RenderPassDescriptor& descriptor) override
+            bool BeginRenderPass(const Wayfinder::RenderPassDescriptor& descriptor) override
             {
                 m_events.emplace_back(std::string("BeginRenderPass:") + std::string(descriptor.debugName));
+                return true;
             }
 
             void EndRenderPass() override
@@ -145,9 +146,8 @@ namespace Wayfinder::Tests
     } // namespace
 
     // Helper: create a NullDevice + TransientResourcePool for graph execution
-    struct GraphTestFixture
+    namespace
     {
-        // Helper: create a NullDevice + TransientResourcePool for graph execution
         struct GraphTestFixture
         {
             std::unique_ptr<Wayfinder::RenderDevice> Device;

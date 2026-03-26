@@ -31,6 +31,7 @@ namespace Wayfinder
 
     enum class TextureFormat : uint8_t
     {
+        SwapchainFormat, ///< Placeholder: resolved to the swapchain's actual format at pipeline creation.
         RGBA8_UNORM,
         BGRA8_UNORM,
         R16_FLOAT,
