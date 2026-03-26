@@ -2,6 +2,8 @@
 
 #include <array>
 #include <memory>
+#include <string_view>
+#include <utility>
 
 #include "VertexFormats.h"
 #include "core/Result.h"
@@ -247,6 +249,11 @@ namespace Wayfinder
         /// Submit the command buffer and present the swapchain.
         virtual void EndFrame() = 0;
 
+        // ── GPU Debug Annotation ─────────────────────────────
+
+        virtual void PushDebugGroup(std::string_view name) = 0;
+        virtual void PopDebugGroup() = 0;
+
         // ── Render Pass ──────────────────────────────────────
 
         virtual void BeginRenderPass(const RenderPassDescriptor& descriptor) = 0;
@@ -332,6 +339,47 @@ namespace Wayfinder
         // ── Factory ──────────────────────────────────────────
 
         static std::unique_ptr<RenderDevice> Create(RenderBackend backend);
+    };
+
+    class WAYFINDER_API GPUDebugScope
+    {
+    public:
+        GPUDebugScope(RenderDevice& device, std::string_view name) : m_device(&device)
+        {
+            m_device->PushDebugGroup(name);
+        }
+
+        ~GPUDebugScope()
+        {
+            Release();
+        }
+
+        GPUDebugScope(const GPUDebugScope&) = delete;
+        GPUDebugScope& operator=(const GPUDebugScope&) = delete;
+
+        GPUDebugScope(GPUDebugScope&& other) noexcept : m_device(std::exchange(other.m_device, nullptr)) {}
+
+        GPUDebugScope& operator=(GPUDebugScope&& other) noexcept
+        {
+            if (this != &other)
+            {
+                Release();
+                m_device = std::exchange(other.m_device, nullptr);
+            }
+            return *this;
+        }
+
+    private:
+        void Release()
+        {
+            if (m_device != nullptr)
+            {
+                m_device->PopDebugGroup();
+                m_device = nullptr;
+            }
+        }
+
+        RenderDevice* m_device = nullptr;
     };
 
 } // namespace Wayfinder

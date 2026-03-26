@@ -172,55 +172,56 @@ namespace Wayfinder
             return;
         }
 
-        m_context->GetTransientBuffers().BeginFrame();
-
-        // Resolve material bindings from asset data
-        RenderFrame preparedFrame = frame;
-        if (m_renderResources)
         {
-            m_renderResources->PrepareFrame(preparedFrame);
-        }
+            std::string frameDebugName = "Frame";
+            if (!frame.SceneName.empty())
+            {
+                frameDebugName += ": ";
+                frameDebugName += frame.SceneName;
+            }
 
-        // ── Query swapchain dimensions for transient targets ──
-        const Extent2D swapchainDimensions = m_device->GetSwapchainDimensions();
-        const uint32_t swapW = swapchainDimensions.width;
-        const uint32_t swapH = swapchainDimensions.height;
-        if (swapW == 0 || swapH == 0)
-        {
-            m_device->EndFrame();
-            return;
-        }
+            GPUDebugScope frameDebugScope(*m_device, frameDebugName);
 
-        // Pre-compute view matrices, frustum cull, and sort passes
-        if (!m_renderPipeline->Prepare(preparedFrame, swapW, swapH))
-        {
-            m_device->EndFrame();
-            return;
-        }
+            m_context->GetTransientBuffers().BeginFrame();
 
-        // ── Build and execute render graph ───────────────────
-        RenderGraph graph;
+            // Resolve material bindings from asset data
+            RenderFrame preparedFrame = frame;
+            if (m_renderResources)
+            {
+                m_renderResources->PrepareFrame(preparedFrame);
+            }
 
-        const std::unordered_map<uint32_t, Mesh*> meshesByStride =
-        {
-            {VertexLayouts::PosNormalColour.stride, &m_primitiveMesh},
-            {VertexLayouts::PosNormalUVTangent.stride, &m_texturedPrimitiveMesh},
-        };
+            // ── Query swapchain dimensions for transient targets ──
+            const Extent2D swapchainDimensions = m_device->GetSwapchainDimensions();
+            const uint32_t swapW = swapchainDimensions.width;
+            const uint32_t swapH = swapchainDimensions.height;
+            if (swapW != 0 && swapH != 0 && m_renderPipeline->Prepare(preparedFrame, swapW, swapH))
+            {
+                // ── Build and execute render graph ───────────────────
+                RenderGraph graph;
 
-        const RenderPipelineFrameParams params{
-            .Frame = preparedFrame,
-            .SwapchainWidth = swapW,
-            .SwapchainHeight = swapH,
-            .MeshesByStride = meshesByStride,
-            .ResourceCache = m_renderResources.get(),
-            .DebugLinePipeline = m_debugLinePipeline,
-            .Features = m_features,
-        };
-        m_renderPipeline->BuildGraph(graph, params);
+                const std::unordered_map<uint32_t, Mesh*> meshesByStride =
+                {
+                    {VertexLayouts::PosNormalColour.stride, &m_primitiveMesh},
+                    {VertexLayouts::PosNormalUVTangent.stride, &m_texturedPrimitiveMesh},
+                };
 
-        if (graph.Compile())
-        {
-            graph.Execute(*m_device, m_context->GetTransientPool());
+                const RenderPipelineFrameParams params{
+                    .Frame = preparedFrame,
+                    .SwapchainWidth = swapW,
+                    .SwapchainHeight = swapH,
+                    .MeshesByStride = meshesByStride,
+                    .ResourceCache = m_renderResources.get(),
+                    .DebugLinePipeline = m_debugLinePipeline,
+                    .Features = m_features,
+                };
+                m_renderPipeline->BuildGraph(graph, params);
+
+                if (graph.Compile())
+                {
+                    graph.Execute(*m_device, m_context->GetTransientPool());
+                }
+            }
         }
 
         m_device->EndFrame();
