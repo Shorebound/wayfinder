@@ -1,0 +1,3 @@
+# Test translation units: relax noisy rules (fixtures, doctest patterns, intentional moved-from checks).
+InheritParentConfig: true
+Checks: '-misc-use-internal-linkage,-misc-use-anonymous-namespace,-misc-const-correctness,-readability-identifier-naming,-modernize-use-emplace,-modernize-use-designated-initializers,-performance-enum-size,-modernize-use-auto,-modernize-use-nodiscard,-bugprone-unchecked-optional-access,-cppcoreguidelines-avoid-const-or-ref-data-members,-bugprone-exception-escape,-bugprone-use-after-move'

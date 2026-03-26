@@ -3,6 +3,7 @@
 
 #include <doctest/doctest.h>
 
+#include <array>
 #include <cstdint>
 #include <string>
 #include <vector>
@@ -274,9 +275,9 @@ namespace Wayfinder::Tests
         // Simulate a large capture (~256 bytes) typical of render passes
         struct LargeCapture
         {
-            float Matrix[16]{};  // 64 bytes
-            float Matrix2[16]{}; // 64 bytes
-            int Values[32]{};    // 128 bytes
+            std::array<float, 16> Matrix{};  // 64 bytes
+            std::array<float, 16> Matrix2{}; // 64 bytes
+            std::array<int, 32> Values{};    // 128 bytes
         };
 
         LargeCapture data;

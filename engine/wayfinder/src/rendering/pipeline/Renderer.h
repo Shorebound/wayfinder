@@ -47,6 +47,12 @@ namespace Wayfinder
          */
         void RegisterEnginePass(EngineRenderPhase phase, int32_t orderWithinPhase, std::unique_ptr<RenderPass> pass);
 
+        /**
+         * @brief Removes the first pass whose dynamic type is `T` from `m_passes`.
+         * @tparam T Render pass type to match.
+         * @return True if a pass was removed; false if none matched.
+         * @note When the renderer is initialised, calls `OnDetach` on the removed pass before erasing it.
+         */
         template<typename T>
         bool RemovePass()
         {
@@ -67,6 +73,11 @@ namespace Wayfinder
             return false;
         }
 
+        /**
+         * @brief Returns the first pass whose dynamic type is `T`, if any.
+         * @tparam T Render pass type to match.
+         * @return Pointer to the pass, or nullptr when no matching pass is registered.
+         */
         template<typename T>
         const T* GetPass() const
         {
@@ -80,6 +91,11 @@ namespace Wayfinder
             return nullptr;
         }
 
+        /**
+         * @brief Returns the first pass whose dynamic type is `T`, if any (non-const view).
+         * @tparam T Render pass type to match.
+         * @return Pointer to the pass, or nullptr when no matching pass is registered.
+         */
         template<typename T>
         T* GetPass()
         {

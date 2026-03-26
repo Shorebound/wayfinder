@@ -1,5 +1,10 @@
 #include "SpdLogOutput.h"
 #include "SpdLogger.h"
+
+#include <spdlog/sinks/rotating_file_sink.h>
+#include <spdlog/sinks/sink.h>
+#include <spdlog/sinks/stdout_color_sinks.h>
+
 #include <filesystem>
 
 namespace Wayfinder
@@ -40,6 +45,7 @@ namespace Wayfinder
         }
     }
 
+    // NOLINTNEXTLINE(modernize-use-equals-default) — delegates to SpdLogOutput with a concrete sink
     SpdConsoleOutput::SpdConsoleOutput() : SpdLogOutput(std::make_shared<spdlog::sinks::stdout_color_sink_mt>()) {}
 
     SpdFileOutput::SpdFileOutput(const LogFileConfig& config) : SpdLogOutput(nullptr)

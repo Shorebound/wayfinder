@@ -9,8 +9,7 @@ namespace Wayfinder
 {
     GameplayTag GameplayTagRegistry::RegisterTag(const std::string_view name, const std::string_view comment)
     {
-        const std::string nameStr(name);
-        if (auto it = m_index.find(nameStr); it != m_index.end())
+        if (auto it = m_index.find(name); it != m_index.end())
         {
             // Update existing definition (code overrides data comment if non-empty).
             if (!comment.empty())
@@ -25,8 +24,8 @@ namespace Wayfinder
         EnsureAncestors(name, GameplayTagSourceKind::Code);
 
         const size_t idx = m_definitions.size();
-        m_definitions.push_back({.Name = nameStr, .Comment = std::string(comment), .SourceFile = "(code)"});
-        m_index[nameStr] = idx;
+        m_definitions.push_back({.Name = std::string(name), .Comment = std::string(comment), .SourceFile = "(code)"});
+        m_index[m_definitions.back().Name] = idx;
 
         WAYFINDER_INFO(LogEngine, "GameplayTagRegistry: registered tag '{}'{}", name, comment.empty() ? "" : " — " + std::string(comment));
 

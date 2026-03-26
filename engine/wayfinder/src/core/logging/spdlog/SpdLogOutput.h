@@ -1,6 +1,8 @@
 #pragma once
 #include "core/logging/ILogOutput.h"
 
+#include <spdlog/spdlog.h>
+
 namespace Wayfinder
 {
     // Forward declaration

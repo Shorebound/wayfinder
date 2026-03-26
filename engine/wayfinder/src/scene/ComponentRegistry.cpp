@@ -282,7 +282,7 @@ namespace Wayfinder
 
             if (!data.at(key).is_boolean())
             {
-                error = std::string{"field '"} + std::string(key) + "' must be a boolean";
+                error = std::format("field '{}' must be a boolean", key);
                 return false;
             }
 
@@ -299,14 +299,14 @@ namespace Wayfinder
             const auto& node = data.at(key);
             if (!node.is_string())
             {
-                error = std::string{"field '"} + std::string(key) + "' must be a UUID string";
+                error = std::format("field '{}' must be a UUID string", key);
                 return false;
             }
 
             const auto assetId = Wayfinder::AssetId::Parse(node.get<std::string>());
             if (!assetId)
             {
-                error = std::string{"field '"} + std::string(key) + "' must be a valid UUID";
+                error = std::format("field '{}' must be a valid UUID", key);
                 return false;
             }
 
@@ -322,7 +322,7 @@ namespace Wayfinder
 
             if (!IsNumberNode(data.at(key)))
             {
-                error = std::string{"field '"} + std::string(key) + "' must be numeric";
+                error = std::format("field '{}' must be numeric", key);
                 return false;
             }
 
@@ -338,7 +338,7 @@ namespace Wayfinder
 
             if (!data.at(key).is_number_integer())
             {
-                error = std::string{"field '"} + std::string(key) + "' must be an integer";
+                error = std::format("field '{}' must be an integer", key);
                 return false;
             }
 
@@ -355,7 +355,7 @@ namespace Wayfinder
             const auto& node = data.at(key);
             if (!node.is_array() || node.size() != 3)
             {
-                error = std::string{"field '"} + std::string(key) + "' must be an array of 3 numbers";
+                error = std::format("field '{}' must be an array of 3 numbers", key);
                 return false;
             }
 
@@ -363,7 +363,7 @@ namespace Wayfinder
             {
                 if (!IsNumberNode(index))
                 {
-                    error = std::string{"field '"} + std::string(key) + "' must be an array of 3 numbers";
+                    error = std::format("field '{}' must be an array of 3 numbers", key);
                     return false;
                 }
             }
@@ -381,7 +381,7 @@ namespace Wayfinder
             const auto& node = data.at(key);
             if (!node.is_array() || (node.size() != 3 && node.size() != 4))
             {
-                error = std::string{"field '"} + std::string(key) + "' must be an array of 3 or 4 integers";
+                error = std::format("field '{}' must be an array of 3 or 4 integers", key);
                 return false;
             }
 
@@ -389,14 +389,14 @@ namespace Wayfinder
             {
                 if (!node.at(index).is_number_integer())
                 {
-                    error = std::string{"field '"} + std::string(key) + "' must be an array of 3 or 4 integers";
+                    error = std::format("field '{}' must be an array of 3 or 4 integers", key);
                     return false;
                 }
 
                 const int64_t channelValue = node.at(index).get<int64_t>();
                 if (channelValue < 0 || channelValue > 255)
                 {
-                    error = std::string{"field '"} + std::string(key) + "' channel " + std::to_string(index) + " value " + std::to_string(channelValue) + " is out of range (0-255)";
+                    error = std::format("field '{}' channel {} value {} is out of range (0-255)", key, index, channelValue);
                     return false;
                 }
             }
@@ -414,7 +414,7 @@ namespace Wayfinder
             const auto& node = data.at(key);
             if (!node.is_string())
             {
-                error = std::string{"field '"} + std::string(key) + "' must be a string";
+                error = std::format("field '{}' must be a string", key);
                 return false;
             }
 
