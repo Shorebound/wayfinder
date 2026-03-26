@@ -143,12 +143,12 @@ namespace Wayfinder
 
     bool GameplayTagRegistry::IsRegistered(const std::string_view name) const
     {
-        return m_index.contains(std::string(name));
+        return m_index.contains(name);
     }
 
     const GameplayTagDefinition* GameplayTagRegistry::FindDefinition(const std::string_view name) const
     {
-        if (const auto it = m_index.find(std::string(name)); it != m_index.end())
+        if (const auto it = m_index.find(name); it != m_index.end())
         {
             return &m_definitions.at(it->second);
         }

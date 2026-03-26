@@ -236,9 +236,7 @@ namespace Wayfinder
         if (!h.IsValid())
         {
             WAYFINDER_ERROR(LogRenderer, "RenderGraph: FindHandleChecked missing resource '{}'", name);
-#ifndef NDEBUG
             assert(false && "RenderGraph: FindHandleChecked missing resource");
-#endif
         }
         return h;
     }
@@ -249,9 +247,7 @@ namespace Wayfinder
         if (!h.IsValid())
         {
             WAYFINDER_ERROR(LogRenderer, "RenderGraph: FindHandleChecked missing resource '{}'", GraphTextureIntern(id).GetString());
-#ifndef NDEBUG
             assert(false && "RenderGraph: FindHandleChecked missing resource");
-#endif
         }
         return h;
     }
@@ -370,25 +366,25 @@ namespace Wayfinder
                 continue;
             }
             const RenderPassCapabilityMask caps = *pass.DeclaredCapabilities;
-            if ((caps & RenderPassCapabilities::RasterSceneGeometry) != 0)
+            if ((caps & RenderPassCapabilities::RASTER_SCENE_GEOMETRY) != 0)
             {
                 if (pass.NumColourWrites == 0 && !pass.DepthWrite.has_value())
                 {
-                    WAYFINDER_WARN(LogRenderer, "RenderGraph: pass '{}' declared RasterSceneGeometry but has no colour or depth attachment", pass.Name.GetString());
+                    WAYFINDER_WARN(LogRenderer, "RenderGraph: pass '{}' declared RASTER_SCENE_GEOMETRY but has no colour or depth attachment", pass.Name.GetString());
                 }
             }
-            if ((caps & RenderPassCapabilities::RasterOverlayOrDebug) != 0)
+            if ((caps & RenderPassCapabilities::RASTER_OVERLAY_OR_DEBUG) != 0)
             {
                 if (pass.NumColourWrites == 0)
                 {
-                    WAYFINDER_WARN(LogRenderer, "RenderGraph: pass '{}' declared RasterOverlayOrDebug but has no colour attachment", pass.Name.GetString());
+                    WAYFINDER_WARN(LogRenderer, "RenderGraph: pass '{}' declared RASTER_OVERLAY_OR_DEBUG but has no colour attachment", pass.Name.GetString());
                 }
             }
-            if ((caps & RenderPassCapabilities::FullscreenComposite) != 0)
+            if ((caps & RenderPassCapabilities::FULLSCREEN_COMPOSITE) != 0)
             {
                 if (!pass.SwapchainWrite.has_value())
                 {
-                    WAYFINDER_WARN(LogRenderer, "RenderGraph: pass '{}' declared FullscreenComposite but does not set swapchain output", pass.Name.GetString());
+                    WAYFINDER_WARN(LogRenderer, "RenderGraph: pass '{}' declared FULLSCREEN_COMPOSITE but does not set swapchain output", pass.Name.GetString());
                 }
             }
         }

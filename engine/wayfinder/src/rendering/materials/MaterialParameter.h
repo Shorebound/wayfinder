@@ -1,9 +1,11 @@
 #pragma once
 
+#include "core/TransparentStringHash.h"
 #include "core/Types.h"
 #include "wayfinder_exports.h"
 
 #include <cstdint>
+#include <functional>
 #include <string>
 #include <string_view>
 #include <unordered_map>
@@ -47,36 +49,51 @@ namespace Wayfinder
 
     struct WAYFINDER_API MaterialParameterBlock
     {
-        std::unordered_map<std::string, MaterialParamValue> Values;
+        /// Heterogeneous lookup avoids allocating a temporary `std::string` on `find` / `contains` when the key exists.
+        std::unordered_map<std::string, MaterialParamValue, TransparentStringHash, std::equal_to<>> Values;
 
+    private:
+        void SetParameter(std::string_view name, MaterialParamValue value)
+        {
+            if (const auto it = Values.find(name); it != Values.end())
+            {
+                it->second = std::move(value);
+            }
+            else
+            {
+                Values.emplace(std::string(name), std::move(value));
+            }
+        }
+
+    public:
         void SetFloat(std::string_view name, float v)
         {
-            Values[std::string(name)] = v;
+            SetParameter(name, v);
         }
         void SetVec2(std::string_view name, const Float2& v)
         {
-            Values[std::string(name)] = v;
+            SetParameter(name, v);
         }
         void SetVec3(std::string_view name, const Float3& v)
         {
-            Values[std::string(name)] = v;
+            SetParameter(name, v);
         }
         void SetVec4(std::string_view name, const Float4& v)
         {
-            Values[std::string(name)] = v;
+            SetParameter(name, v);
         }
         void SetColour(std::string_view name, const LinearColour& v)
         {
-            Values[std::string(name)] = v;
+            SetParameter(name, v);
         }
         void SetInt(std::string_view name, int32_t v)
         {
-            Values[std::string(name)] = v;
+            SetParameter(name, v);
         }
 
         bool Has(std::string_view name) const
         {
-            return Values.contains(std::string(name));
+            return Values.contains(name);
         }
 
         // Write all parameters into a byte buffer using the given declarations.

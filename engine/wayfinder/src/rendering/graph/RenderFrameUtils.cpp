@@ -2,7 +2,7 @@
 
 #include "rendering/graph/RenderFrame.h"
 
-namespace Wayfinder
+namespace Wayfinder::Rendering
 {
     PreparedPrimaryView ResolvePreparedPrimaryView(const RenderFrame& frame)
     {
@@ -20,4 +20,4 @@ namespace Wayfinder
         return out;
     }
 
-} // namespace Wayfinder
+} // namespace Wayfinder::Rendering

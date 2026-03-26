@@ -411,21 +411,19 @@ namespace Wayfinder
                 debugBox.Material.Domain = RenderMaterialDomain::Debug;
                 debugBox.Material.Parameters.SetColour("base_colour", LinearColour::FromColour(light.Tint));
 
-                if (FrameLayerRecord* debugLayer = frame.FindLayer(FrameLayerIds::Debug))
+                FrameLayerRecord* debugLayer = frame.FindLayer(FrameLayerIds::Debug);
+                if (debugLayer)
                 {
                     debugLayer->DebugDraw->Boxes.push_back(debugBox);
-                }
 
-                if (light.Type == LightType::Directional)
-                {
-                    const Float3 lineEnd = Maths::Add(position, Maths::Scale(direction, 1.5f));
-                    RenderDebugLine debugLine;
-                    debugLine.Start = position;
-                    debugLine.End = lineEnd;
-                    debugLine.Tint = light.Tint;
-
-                    if (FrameLayerRecord* debugLayer = frame.FindLayer(FrameLayerIds::Debug))
+                    if (light.Type == LightType::Directional)
                     {
+                        const Float3 lineEnd = Maths::Add(position, Maths::Scale(direction, 1.5f));
+                        RenderDebugLine debugLine;
+                        debugLine.Start = position;
+                        debugLine.End = lineEnd;
+                        debugLine.Tint = light.Tint;
+
                         debugLayer->DebugDraw->Lines.push_back(debugLine);
                     }
                 }

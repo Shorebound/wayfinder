@@ -200,7 +200,7 @@ namespace Wayfinder
 
         graph.AddPass("Composition", [&](RenderGraphBuilder& builder)
         {
-            builder.DeclarePassCapabilities(RenderPassCapabilities::Raster | RenderPassCapabilities::FullscreenComposite);
+            builder.DeclarePassCapabilities(RenderPassCapabilities::RASTER | RenderPassCapabilities::FULLSCREEN_COMPOSITE);
             auto colour = graph.FindHandleChecked(GraphTextureId::SceneColour);
             builder.ReadTexture(colour);
             builder.SetSwapchainOutput(LoadOp::DontCare);

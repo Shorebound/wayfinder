@@ -140,7 +140,7 @@ namespace Wayfinder
             return;
         }
 
-        m_entitiesByName[std::string(name)] = entityHandle.id();
+        m_entitiesByName.insert_or_assign(std::string(name), entityHandle.id());
     }
 
     void Scene::UnregisterEntityName(const std::string_view name) const
@@ -150,7 +150,7 @@ namespace Wayfinder
             return;
         }
 
-        m_entitiesByName.erase(std::string(name));
+        m_entitiesByName.erase(name);
     }
 
     void Scene::UpdateEntityName(flecs::entity entityHandle, const std::string& previousName, const std::string& newName) const
@@ -233,7 +233,7 @@ namespace Wayfinder
 
     bool Scene::IsNameTaken(const std::string_view name, flecs::entity_t excludeEntity) const
     {
-        const auto it = m_entitiesByName.find(std::string(name));
+        const auto it = m_entitiesByName.find(name);
         return it != m_entitiesByName.end() && it->second != excludeEntity;
     }
 
@@ -244,13 +244,20 @@ namespace Wayfinder
             return std::string(base);
         }
 
+        std::string candidate;
+        candidate.reserve(base.size() + 16U);
+        candidate.assign(base);
         uint32_t suffix = 1;
-        while (IsNameTaken(std::string(base) + std::to_string(suffix), excludeEntity))
+        for (;;)
         {
+            candidate.resize(base.size());
+            candidate += std::to_string(suffix);
+            if (!IsNameTaken(candidate, excludeEntity))
+            {
+                return candidate;
+            }
             ++suffix;
         }
-
-        return std::string(base) + std::to_string(suffix);
     }
 
     Entity Scene::CreateEntity(const std::string_view name)
@@ -276,15 +283,14 @@ namespace Wayfinder
 
     Entity Scene::GetEntityByName(const std::string_view name)
     {
-        const std::string nameStr(name);
-        const auto nameIt = m_entitiesByName.find(nameStr);
+        const auto nameIt = m_entitiesByName.find(name);
         if (nameIt == m_entitiesByName.end())
         {
             return {};
         }
 
         const flecs::entity entityHandle = m_world.entity(nameIt->second);
-        if (!entityHandle.is_valid() || !entityHandle.has<SceneOwnership>(m_sceneTag) || !entityHandle.has<NameComponent>() || !(entityHandle.get<NameComponent>().Value == nameStr))
+        if (!entityHandle.is_valid() || !entityHandle.has<SceneOwnership>(m_sceneTag) || !entityHandle.has<NameComponent>() || !(entityHandle.get<NameComponent>().Value == name))
         {
             m_entitiesByName.erase(nameIt);
             return {};

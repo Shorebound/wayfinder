@@ -41,8 +41,9 @@ namespace Wayfinder::Physics
 
         void AssignJsonMember(nlohmann::json& object, const std::string_view key, nlohmann::json value)
         {
-            object.erase(key);
-            object.emplace(key, std::move(value));
+            // object.erase(key);
+            // object.emplace(key, std::move(value));
+            object[std::string(key)] = std::move(value);
         }
 
         [[nodiscard]] Quaternion ToQuaternion(const Float4& rotation)

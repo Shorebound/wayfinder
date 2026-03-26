@@ -9,6 +9,7 @@
 
 #include <array>
 #include <charconv>
+#include <format>
 #include <sstream>
 #include <string>
 #include <string_view>
@@ -239,13 +240,13 @@ namespace Wayfinder
             const auto& node = data.at(key);
             if (!node.is_string())
             {
-                error = std::string("'") + std::string(key) + "' must be a string";
+                error = std::format("'{}' must be a string", key);
                 return false;
             }
 
             if (node.get<std::string>().empty())
             {
-                error = std::string("'") + std::string(key) + "' must not be empty";
+                error = std::format("'{}' must not be empty", key);
                 return false;
             }
 

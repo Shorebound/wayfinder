@@ -39,6 +39,22 @@ namespace Wayfinder
     {
         switch (type)
         {
+
+        case EventType::None:
+            return "None";
+
+        // Window Events
+        case EventType::WindowClose:
+            return "WindowClose";
+        case EventType::WindowResize:
+            return "WindowResize";
+        case EventType::WindowFocus:
+            return "WindowFocus";
+        case EventType::WindowLostFocus:
+            return "WindowLostFocus";
+        case EventType::WindowMoved:
+            return "WindowMoved";
+
         // Application Events
         case EventType::AppTick:
             return "AppTick";
@@ -46,6 +62,7 @@ namespace Wayfinder
             return "AppUpdate";
         case EventType::AppRender:
             return "AppRender";
+
         // Keyboard Events
         case EventType::KeyPressed:
             return "KeyPressed";
@@ -53,6 +70,7 @@ namespace Wayfinder
             return "KeyReleased";
         case EventType::KeyTyped:
             return "KeyTyped";
+
         // Mouse Events
         case EventType::MouseButtonPressed:
             return "MouseButtonPressed";

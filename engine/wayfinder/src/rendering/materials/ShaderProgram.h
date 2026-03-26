@@ -113,7 +113,7 @@ namespace Wayfinder
         ShaderManager* m_shaders = nullptr;
         PipelineCache* m_cache = nullptr;
 
-        std::unordered_map<std::string, ShaderProgram> m_programs;
+        std::unordered_map<std::string, ShaderProgram, TransparentStringHash, std::equal_to<>> m_programs;
         // Owned pipelines (not from cache) that need explicit destruction
         std::vector<GPUPipeline*> m_ownedPipelines;
     };

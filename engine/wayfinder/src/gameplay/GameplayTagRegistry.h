@@ -2,9 +2,11 @@
 
 #include "GameplayTag.h"
 #include "app/Subsystem.h"
+#include "core/TransparentStringHash.h"
 #include "wayfinder_exports.h"
 
 #include <filesystem>
+#include <functional>
 #include <string>
 #include <string_view>
 #include <unordered_map>
@@ -94,7 +96,7 @@ namespace Wayfinder
         void EnsureAncestors(std::string_view name, GameplayTagSourceKind sourceKind, std::string_view sourceFile = {});
 
         std::vector<GameplayTagDefinition> m_definitions;
-        std::unordered_map<std::string, size_t> m_index; ///< Name -> index into m_definitions.
+        std::unordered_map<std::string, size_t, TransparentStringHash, std::equal_to<>> m_index; ///< Name -> index into m_definitions.
         std::vector<std::string> m_loadedFiles;
     };
 

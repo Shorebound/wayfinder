@@ -5,7 +5,10 @@
 namespace Wayfinder
 {
     struct RenderFrame;
+}
 
+namespace Wayfinder::Rendering
+{
     /// Resolved camera state for the primary view (`Views.front()` when that view is prepared).
     struct PreparedPrimaryView
     {
@@ -16,6 +19,6 @@ namespace Wayfinder
     };
 
     /** @brief Primary view matrices and clear colour when `Views.front()` is prepared; otherwise `Valid` is false. */
-    PreparedPrimaryView ResolvePreparedPrimaryView(const RenderFrame& frame);
+    [[nodiscard]] PreparedPrimaryView ResolvePreparedPrimaryView(const RenderFrame& frame);
 
-} // namespace Wayfinder
+} // namespace Wayfinder::Rendering

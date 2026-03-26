@@ -1,6 +1,7 @@
 #pragma once
 
 #include <filesystem>
+#include <functional>
 #include <memory>
 #include <string>
 #include <string_view>
@@ -10,6 +11,7 @@
 
 #include "core/Identifiers.h"
 #include "core/Result.h"
+#include "core/TransparentStringHash.h"
 #include "wayfinder_exports.h"
 
 namespace Wayfinder
@@ -119,7 +121,7 @@ namespace Wayfinder
         /// Cached query: entities with \ref SceneOwnership for this scene (single source of truth for scene membership).
         mutable flecs::query<> m_ownedEntitiesQuery;
         mutable std::unordered_map<SceneObjectId, flecs::entity_t> m_entitiesById;
-        mutable std::unordered_map<std::string, flecs::entity_t> m_entitiesByName;
+        mutable std::unordered_map<std::string, flecs::entity_t, TransparentStringHash, std::equal_to<>> m_entitiesByName;
         std::string m_name;
         std::filesystem::path m_sourcePath;
         std::filesystem::path m_assetRoot;

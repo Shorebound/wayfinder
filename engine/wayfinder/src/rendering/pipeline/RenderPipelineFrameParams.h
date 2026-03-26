@@ -28,8 +28,8 @@ namespace Wayfinder
         /// Used when `RenderMeshRef::Origin` is `Asset` — resolves cached GPU meshes.
         RenderResourceCache* ResourceCache = nullptr;
 
-        /// Primary prepared view (`ResolvePreparedPrimaryView`); used by graph passes for defaults.
-        PreparedPrimaryView PrimaryView{};
+        /// Primary prepared view (`Rendering::ResolvePreparedPrimaryView`); used by graph passes for defaults.
+        Rendering::PreparedPrimaryView PrimaryView{};
     };
 
 } // namespace Wayfinder

@@ -1,38 +1,21 @@
 #include "InternedString.h"
 
+#include "core/TransparentStringHash.h"
+
 #include <unordered_set>
 
 namespace Wayfinder
 {
     namespace
     {
-        /// Transparent hash enables heterogeneous `find` / `contains` with `std::string_view`
-        /// without constructing a temporary `std::string` on lookup hits.
-        struct InternTableHash
+        std::unordered_set<std::string, TransparentStringHash, std::equal_to<>>& GetTable()
         {
-            // NOLINTNEXTLINE(readability-identifier-naming) — required name for transparent `unordered_set` lookup
-            using is_transparent = void;
-
-            std::size_t operator()(std::string_view sv) const noexcept
+            static std::unordered_set<std::string, TransparentStringHash, std::equal_to<>> sTable = []
             {
-                return std::hash<std::string_view>{}(sv);
-            }
-        };
-
-        void ReserveInternTableOnce(std::unordered_set<std::string, InternTableHash, std::equal_to<>>& table)
-        {
-            static bool done = false;
-            if (!done)
-            {
-                done = true;
+                std::unordered_set<std::string, TransparentStringHash, std::equal_to<>> table;
                 table.reserve(2048);
-            }
-        }
-
-        std::unordered_set<std::string, InternTableHash, std::equal_to<>>& GetTable()
-        {
-            static std::unordered_set<std::string, InternTableHash, std::equal_to<>> sTable;
-            ReserveInternTableOnce(sTable);
+                return table;
+            }();
             return sTable;
         }
 

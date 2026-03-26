@@ -59,7 +59,7 @@ namespace Wayfinder
         const uint32_t swapW = params.SwapchainWidth;
         const uint32_t swapH = params.SwapchainHeight;
 
-        const PreparedPrimaryView& primary = params.PrimaryView;
+        const auto& primary = params.PrimaryView;
         const Colour clearColour = primary.ClearColour;
         const Matrix4 view = primary.ViewMatrix;
         const Matrix4 projection = primary.ProjectionMatrix;
@@ -81,7 +81,7 @@ namespace Wayfinder
 
         graph.AddPass("MainScene", [&, viewMat = view, projMat = projection, hasCamera](RenderGraphBuilder& builder)
         {
-            builder.DeclarePassCapabilities(RenderPassCapabilities::Raster | RenderPassCapabilities::RasterSceneGeometry);
+            builder.DeclarePassCapabilities(RenderPassCapabilities::RASTER | RenderPassCapabilities::RASTER_SCENE_GEOMETRY);
             auto colour = builder.CreateTransient(colourDesc);
             auto depth = builder.CreateTransient(depthDesc);
             builder.WriteColour(colour, LoadOp::Clear, ClearValue::FromColour(clearColour));

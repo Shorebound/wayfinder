@@ -57,14 +57,14 @@ namespace Wayfinder
             return;
         }
 
-        const PreparedPrimaryView& primary = params.PrimaryView;
+        const auto& primary = params.PrimaryView;
         const Matrix4 view = primary.ViewMatrix;
         const Matrix4 projection = primary.ProjectionMatrix;
         const bool hasCamera = primary.Valid;
 
         graph.AddPass("Debug", [&, viewMat = view, projMat = projection, hasCamera](RenderGraphBuilder& builder)
         {
-            builder.DeclarePassCapabilities(RenderPassCapabilities::Raster | RenderPassCapabilities::RasterOverlayOrDebug);
+            builder.DeclarePassCapabilities(RenderPassCapabilities::RASTER | RenderPassCapabilities::RASTER_OVERLAY_OR_DEBUG);
             auto colour = graph.FindHandleChecked(GraphTextureId::SceneColour);
             auto depth = graph.FindHandleChecked(GraphTextureId::SceneDepth);
             builder.WriteColour(colour, LoadOp::Load);

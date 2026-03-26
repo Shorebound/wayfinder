@@ -13,18 +13,21 @@ namespace Wayfinder
         Matrix4 Mvp{};
         Matrix4 Model{};
     };
+    static_assert(sizeof(TransformUBO) == 128, "TransformUBO must match shader layout (2 x mat4)");
 
     /// Vertex UBO for unlit scene shaders (single MVP matrix).
     struct UnlitTransformUBO
     {
         Matrix4 Mvp{};
     };
+    static_assert(sizeof(UnlitTransformUBO) == 64, "UnlitTransformUBO must match shader layout (1 x mat4)");
 
     /// Fragment UBO for debug unlit draws (base colour).
     struct DebugMaterialUBO
     {
         Float4 BaseColour{};
     };
+    static_assert(sizeof(DebugMaterialUBO) == 16, "DebugMaterialUBO must match shader layout (vec4)");
 
     /// Per-frame scene globals pushed to fragment UBO slot 1 for shaders that need it (std140).
     struct alignas(16) SceneGlobalsUBO

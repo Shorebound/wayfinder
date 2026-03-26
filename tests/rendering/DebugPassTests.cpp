@@ -17,7 +17,7 @@ namespace Wayfinder::Tests
         CHECK(count == (2 * clamped + 1) * 4);
     }
 
-    TEST_CASE("Debug pass frame has no boxes when extractor omits debug draws")
+    TEST_CASE("Debug layer is absent when frame has no debug layer (extractor omits debug draws)")
     {
         Wayfinder::RenderFrame frame;
         Wayfinder::FrameLayerRecord* debug = frame.FindLayer(Wayfinder::FrameLayerIds::Debug);

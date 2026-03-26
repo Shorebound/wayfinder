@@ -6,6 +6,7 @@
 #include "rendering/RenderTypes.h"
 #include "rendering/graph/RenderPassCapabilities.h"
 
+#include <cassert>
 #include <concepts>
 #include <cstdint>
 #include <optional>
@@ -56,6 +57,7 @@ namespace Wayfinder
         case GraphTextureId::SceneDepth:
             return GraphTextures::SceneDepth;
         }
+        assert(false && "GraphTextureIntern: unhandled GraphTextureId");
         static const InternedString kEmpty;
         return kEmpty;
     }

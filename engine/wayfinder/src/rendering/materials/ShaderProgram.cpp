@@ -81,7 +81,7 @@ namespace Wayfinder
 
     const ShaderProgram* ShaderProgramRegistry::Find(const std::string_view name) const
     {
-        auto it = m_programs.find(std::string(name));
+        const auto it = m_programs.find(name);
         return (it != m_programs.end()) ? &it->second : nullptr;
     }
 

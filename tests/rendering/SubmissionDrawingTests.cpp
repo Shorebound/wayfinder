@@ -47,7 +47,7 @@ namespace Wayfinder::Tests
             .SwapchainHeight = 240,
             .MeshesByStride = K_EMPTY_MESHES,
             .ResourceCache = nullptr,
-            .PrimaryView = Wayfinder::ResolvePreparedPrimaryView(frame),
+            .PrimaryView = Wayfinder::Rendering::ResolvePreparedPrimaryView(frame),
         };
 
         Wayfinder::SubmissionDrawState state{

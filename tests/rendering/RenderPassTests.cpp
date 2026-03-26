@@ -35,7 +35,7 @@ namespace Wayfinder::Tests
                 .SwapchainHeight = h,
                 .MeshesByStride = K_EMPTY_MESHES,
                 .ResourceCache = nullptr,
-                .PrimaryView = Wayfinder::ResolvePreparedPrimaryView(frame),
+                .PrimaryView = Wayfinder::Rendering::ResolvePreparedPrimaryView(frame),
             };
         }
 
@@ -456,7 +456,7 @@ namespace Wayfinder::Tests
     TEST_CASE("ResolvePreparedPrimaryView is invalid when there are no prepared views")
     {
         Wayfinder::RenderFrame frame;
-        CHECK_FALSE(Wayfinder::ResolvePreparedPrimaryView(frame).Valid);
+        CHECK_FALSE(Wayfinder::Rendering::ResolvePreparedPrimaryView(frame).Valid);
     }
 
     TEST_CASE("ResolvePreparedPrimaryView is valid when the first view is prepared")
@@ -467,7 +467,7 @@ namespace Wayfinder::Tests
         view.ViewMatrix = Wayfinder::Matrix4(1.0f);
         view.ProjectionMatrix = Wayfinder::Matrix4(1.0f);
         frame.Views.push_back(view);
-        const Wayfinder::PreparedPrimaryView pv = Wayfinder::ResolvePreparedPrimaryView(frame);
+        const Wayfinder::Rendering::PreparedPrimaryView pv = Wayfinder::Rendering::ResolvePreparedPrimaryView(frame);
         CHECK(pv.Valid);
     }
 

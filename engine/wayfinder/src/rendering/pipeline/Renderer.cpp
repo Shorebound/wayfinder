@@ -183,7 +183,7 @@ namespace Wayfinder
                     .SwapchainHeight = swapH,
                     .MeshesByStride = meshesByStride,
                     .ResourceCache = m_renderResources.get(),
-                    .PrimaryView = ResolvePreparedPrimaryView(preparedFrame),
+                    .PrimaryView = Rendering::ResolvePreparedPrimaryView(preparedFrame),
                 };
                 m_renderPipeline->BuildGraph(graph, params, m_passes);
 

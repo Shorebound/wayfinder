@@ -58,12 +58,11 @@ namespace Wayfinder
                 continue;
             }
 
-            RenderDebugDrawList debugDraw = layer.DebugDraw.value_or(RenderDebugDrawList{});
+            RenderDebugDrawList& debugDraw = *layer.DebugDraw;
             for (RenderDebugBox& debugBox : debugDraw.Boxes)
             {
                 debugBox.Material = PrepareMaterialBinding(debugBox.Material);
             }
-            layer.DebugDraw = std::move(debugDraw);
         }
     }
 

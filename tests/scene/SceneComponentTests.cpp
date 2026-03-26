@@ -292,12 +292,12 @@ namespace Wayfinder::Tests
 
         const Wayfinder::SceneRenderExtractor extractor;
         const Wayfinder::RenderFrame frame = extractor.Extract(scene);
-        const Wayfinder::FrameLayerRecord* mainPass = frame.FindLayer(Wayfinder::FrameLayerIds::MainScene);
+        const Wayfinder::FrameLayerRecord* mainLayer = frame.FindLayer(Wayfinder::FrameLayerIds::MainScene);
 
         scene.Shutdown();
 
-        REQUIRE(mainPass != nullptr);
-        REQUIRE(mainPass->Meshes.size() == 4);
+        REQUIRE(mainLayer != nullptr);
+        REQUIRE(mainLayer->Meshes.size() == 4);
 
         // Verify: wireframe=true → SolidAndWireframe,
         //         wireframe=false → Solid,
@@ -306,7 +306,7 @@ namespace Wayfinder::Tests
         int countSolid = 0;
         int countSolidAndWireframe = 0;
         int countUnset = 0;
-        for (const auto& mesh : mainPass->Meshes)
+        for (const auto& mesh : mainLayer->Meshes)
         {
             if (!mesh.Material.StateOverrides.FillMode.has_value())
             {

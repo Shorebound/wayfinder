@@ -79,6 +79,7 @@ set(ENGINE_ALL_SOURCES
   src/core/Handle.h
   src/core/Identifiers.cpp
   src/core/Identifiers.h
+  src/core/TransparentStringHash.h
   src/core/InternedString.cpp
   src/core/InternedString.h
   src/core/Log.cpp

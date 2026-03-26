@@ -33,9 +33,18 @@ namespace Wayfinder
         void Render(const RenderFrame& frame);
         void SetAssetService(const std::shared_ptr<AssetService>& assetService);
 
+        /**
+         * @brief Registers a game or editor-owned render pass; it receives `OnAttach` immediately if the renderer is initialised.
+         * @param pass Ownership of the pass instance; must not be null.
+         */
         void AddPass(std::unique_ptr<RenderPass> pass);
 
-        /// Engine-owned passes (ordered by phase — see `EngineRenderPhase`). Call after `Initialise` if extending the pipeline.
+        /**
+         * @brief Registers an engine pass in the fixed phase ordering (opaque, debug, etc.).
+         * @param phase Band used with `orderWithinPhase` for stable ordering within the engine pipeline.
+         * @param orderWithinPhase Lower values run earlier within the same phase.
+         * @param pass Ownership of the pass instance; must not be null.
+         */
         void RegisterEnginePass(EngineRenderPhase phase, int32_t orderWithinPhase, std::unique_ptr<RenderPass> pass);
 
         template<typename T>

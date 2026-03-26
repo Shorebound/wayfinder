@@ -36,7 +36,7 @@ namespace Wayfinder
         /// `RenderGraphBuilder::DeclarePassCapabilities` for dev-time checks in `RenderGraph::Compile`.
         virtual RenderPassCapabilityMask GetCapabilities() const
         {
-            return RenderPassCapabilities::Raster;
+            return RenderPassCapabilities::RASTER;
         }
 
         /// Called each frame to inject passes into the render graph.

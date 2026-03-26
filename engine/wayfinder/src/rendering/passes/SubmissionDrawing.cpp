@@ -98,21 +98,19 @@ namespace Wayfinder
             meshResource = &params.ResourceCache->ResolveMesh(submission);
         }
 
-        if (fillMode == RenderFillMode::Solid || fillMode == RenderFillMode::SolidAndWireframe)
+        const auto resolveMesh = [&]() -> const Mesh*
         {
-            const Mesh* meshPtr = nullptr;
             if (submission.Mesh.Origin == RenderResourceOrigin::Asset)
             {
-                meshPtr = meshResource ? meshResource->GpuMesh : nullptr;
+                return meshResource ? meshResource->GpuMesh : nullptr;
             }
-            else
-            {
-                const auto meshIt = params.MeshesByStride.find(program->Desc.VertexLayout.stride);
-                if (meshIt != params.MeshesByStride.end())
-                {
-                    meshPtr = meshIt->second;
-                }
-            }
+            const auto meshIt = params.MeshesByStride.find(program->Desc.VertexLayout.stride);
+            return (meshIt != params.MeshesByStride.end()) ? meshIt->second : nullptr;
+        };
+
+        if (fillMode == RenderFillMode::Solid || fillMode == RenderFillMode::SolidAndWireframe)
+        {
+            const Mesh* meshPtr = resolveMesh();
 
             if (!meshPtr || !meshPtr->IsValid())
             {
@@ -147,19 +145,7 @@ namespace Wayfinder
                 const GPUPipelineHandle wireframePipeline = pipelineCache.GetOrCreate(*wireframeDesc);
                 if (wireframePipeline.IsValid())
                 {
-                    const Mesh* wireMeshPtr = nullptr;
-                    if (submission.Mesh.Origin == RenderResourceOrigin::Asset)
-                    {
-                        wireMeshPtr = meshResource ? meshResource->GpuMesh : nullptr;
-                    }
-                    else
-                    {
-                        const auto wireframeMeshIt = params.MeshesByStride.find(program->Desc.VertexLayout.stride);
-                        if (wireframeMeshIt != params.MeshesByStride.end())
-                        {
-                            wireMeshPtr = wireframeMeshIt->second;
-                        }
-                    }
+                    const Mesh* wireMeshPtr = resolveMesh();
 
                     if (wireMeshPtr && wireMeshPtr->IsValid())
                     {
