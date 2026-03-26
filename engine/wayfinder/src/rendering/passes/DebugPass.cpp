@@ -13,6 +13,7 @@
 #include "core/Log.h"
 #include "maths/Maths.h"
 
+#include <algorithm>
 #include <unordered_map>
 
 #ifdef WAYFINDER_COMPILER_MSVC
@@ -52,6 +53,25 @@ namespace Wayfinder
             return r;
         }
     } // namespace
+
+    void DebugPass::AppendWorldGridLineVertices(std::vector<VertexPosColour>& lineVertices, const WorldGridSpec spec)
+    {
+        const int clamped = std::max(1, spec.Slices);
+        const float extent = static_cast<float>(clamped) * spec.Spacing;
+        const Float3 majorColour{0.45f, 0.45f, 0.45f};
+        const Float3 minorColour{0.25f, 0.25f, 0.25f};
+
+        for (int i = -clamped; i <= clamped; ++i)
+        {
+            const float coord = static_cast<float>(i) * spec.Spacing;
+            const Float3& gridColour = (i == 0) ? majorColour : minorColour;
+
+            lineVertices.push_back({.Position = Float3{-extent, 0.0f, coord}, .Colour = gridColour});
+            lineVertices.push_back({.Position = Float3{extent, 0.0f, coord}, .Colour = gridColour});
+            lineVertices.push_back({.Position = Float3{coord, 0.0f, -extent}, .Colour = gridColour});
+            lineVertices.push_back({.Position = Float3{coord, 0.0f, extent}, .Colour = gridColour});
+        }
+    }
 
     void DebugPass::OnAttach(const RenderPassContext& context)
     {
@@ -126,22 +146,7 @@ namespace Wayfinder
 
                     if (layer.DebugDraw->ShowWorldGrid)
                     {
-                        const int slices = std::max(1, layer.DebugDraw->WorldGridSlices);
-                        const float spacing = layer.DebugDraw->WorldGridSpacing;
-                        const float extent = static_cast<float>(slices) * spacing;
-                        const Float3 majorColour{0.45f, 0.45f, 0.45f};
-                        const Float3 minorColour{0.25f, 0.25f, 0.25f};
-
-                        for (int i = -slices; i <= slices; ++i)
-                        {
-                            const float coord = static_cast<float>(i) * spacing;
-                            const Float3& gridColour = (i == 0) ? majorColour : minorColour;
-
-                            lineVertices.push_back({.Position = Float3{-extent, 0.0f, coord}, .Colour = gridColour});
-                            lineVertices.push_back({.Position = Float3{extent, 0.0f, coord}, .Colour = gridColour});
-                            lineVertices.push_back({.Position = Float3{coord, 0.0f, -extent}, .Colour = gridColour});
-                            lineVertices.push_back({.Position = Float3{coord, 0.0f, extent}, .Colour = gridColour});
-                        }
+                        AppendWorldGridLineVertices(lineVertices, {.Slices = layer.DebugDraw->WorldGridSlices, .Spacing = layer.DebugDraw->WorldGridSpacing});
                     }
 
                     for (const auto& line : layer.DebugDraw->Lines)

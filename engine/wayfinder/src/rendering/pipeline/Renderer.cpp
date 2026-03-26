@@ -60,6 +60,10 @@ namespace Wayfinder
         m_primitiveMesh = Mesh::CreatePrimitive(device);
         m_texturedPrimitiveMesh = Mesh::CreateTexturedPrimitive(device);
 
+        // AddPass consults m_isInitialised before OnAttach; set true before this loop so nested AddPass during
+        // OnAttach attaches new passes.
+        m_isInitialised = true;
+
         for (auto& pass : m_passes)
         {
             auto ctx = MakePassContext();
@@ -68,7 +72,6 @@ namespace Wayfinder
 
         WAYFINDER_INFO(LogRenderer, "Renderer initialised ({}x{}, backend: {})", m_screenWidth, m_screenHeight, device.GetDeviceInfo().BackendName);
 
-        m_isInitialised = true;
         return {};
     }
 

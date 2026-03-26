@@ -412,7 +412,7 @@ namespace Wayfinder
                 debugBox.Material.Parameters.SetColour("base_colour", LinearColour::FromColour(light.Tint));
 
                 FrameLayerRecord* debugLayer = frame.FindLayer(FrameLayerIds::Debug);
-                if (debugLayer)
+                if (debugLayer && debugLayer->DebugDraw)
                 {
                     debugLayer->DebugDraw->Boxes.push_back(debugBox);
 

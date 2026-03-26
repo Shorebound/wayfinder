@@ -65,5 +65,6 @@ namespace Wayfinder
         RenderContext* m_context = nullptr;
         std::vector<EnginePassSlot> m_enginePasses;
         uint32_t m_nextEnginePassInsertSequence = 0;
+        bool m_initialised = false;
     };
 } // namespace Wayfinder

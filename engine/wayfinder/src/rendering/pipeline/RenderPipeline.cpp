@@ -62,6 +62,10 @@ namespace Wayfinder
     void RenderPipeline::Initialise(RenderContext& context)
     {
         m_context = &context;
+        if (m_initialised)
+        {
+            return;
+        }
 
         auto& registry = context.GetPrograms();
 
@@ -87,6 +91,8 @@ namespace Wayfinder
 
         RegisterEnginePass(EngineRenderPhase::OpaqueMain, 0, std::make_unique<SceneOpaquePass>());
         RegisterEnginePass(EngineRenderPhase::Debug, 0, std::make_unique<DebugPass>());
+
+        m_initialised = true;
     }
 
     void RenderPipeline::Shutdown()
@@ -105,6 +111,7 @@ namespace Wayfinder
         m_enginePasses.clear();
         m_nextEnginePassInsertSequence = 0;
         m_context = nullptr;
+        m_initialised = false;
     }
 
     bool RenderPipeline::Prepare(RenderFrame& frame, uint32_t swapchainWidth, uint32_t swapchainHeight) const
