@@ -56,7 +56,7 @@ namespace Wayfinder
             });
             if (it != m_passes.end())
             {
-                if (m_device)
+                if (m_isInitialised && m_context)
                 {
                     auto ctx = MakePassContext();
                     (*it)->OnDetach(ctx);

@@ -2,7 +2,6 @@
 
 #include "rendering/backend/RenderDevice.h"
 #include "rendering/backend/VertexFormats.h"
-#include "rendering/graph/RenderFrameUtils.h"
 #include "rendering/graph/RenderGraph.h"
 #include "rendering/graph/RenderPassCapabilities.h"
 #include "rendering/materials/ShaderProgram.h"
@@ -14,6 +13,8 @@
 #include "core/Log.h"
 #include "maths/Maths.h"
 
+#include <unordered_map>
+
 #ifdef WAYFINDER_COMPILER_MSVC
 #pragma warning(push)
 #pragma warning(disable : 4324)
@@ -21,6 +22,37 @@
 
 namespace Wayfinder
 {
+    namespace
+    {
+        struct ResolvedViewForLayer
+        {
+            Matrix4 View{};
+            Matrix4 Proj{};
+            bool Ok = false;
+        };
+
+        /**
+         * @brief Resolves view/projection for a layer — same rules as \ref SceneOpaquePass (primary defaults, optional per-view override).
+         */
+        ResolvedViewForLayer ResolveViewMatricesForLayer(const RenderPipelineFrameParams& params, size_t viewIndex)
+        {
+            ResolvedViewForLayer r;
+            const auto& primary = params.PrimaryView;
+            r.View = primary.ViewMatrix;
+            r.Proj = primary.ProjectionMatrix;
+            if (viewIndex < params.Frame.Views.size() && params.Frame.Views.at(viewIndex).Prepared)
+            {
+                const auto& pv = params.Frame.Views.at(viewIndex);
+                r.View = pv.ViewMatrix;
+                r.Proj = pv.ProjectionMatrix;
+                r.Ok = true;
+                return r;
+            }
+            r.Ok = primary.Valid;
+            return r;
+        }
+    } // namespace
+
     void DebugPass::OnAttach(const RenderPassContext& context)
     {
         m_context = &context.Context;
@@ -57,12 +89,7 @@ namespace Wayfinder
             return;
         }
 
-        const auto& primary = params.PrimaryView;
-        const Matrix4 view = primary.ViewMatrix;
-        const Matrix4 projection = primary.ProjectionMatrix;
-        const bool hasCamera = primary.Valid;
-
-        graph.AddPass("Debug", [&, viewMat = view, projMat = projection, hasCamera](RenderGraphBuilder& builder)
+        graph.AddPass("Debug", [&](RenderGraphBuilder& builder)
         {
             builder.DeclarePassCapabilities(RenderPassCapabilities::RASTER | RenderPassCapabilities::RASTER_OVERLAY_OR_DEBUG);
             auto colour = graph.FindHandleChecked(GraphTextureId::SceneColour);
@@ -70,9 +97,9 @@ namespace Wayfinder
             builder.WriteColour(colour, LoadOp::Load);
             builder.WriteDepth(depth, LoadOp::Load);
 
-            return [this, &params, viewMat, projMat, hasCamera](RenderDevice& device, const RenderGraphResources& /*resources*/)
+            return [this, &params](RenderDevice& device, const RenderGraphResources& /*resources*/)
             {
-                if (!hasCamera || !m_context)
+                if (!m_context)
                 {
                     return;
                 }
@@ -84,7 +111,8 @@ namespace Wayfinder
                 const auto debugMeshIt = params.MeshesByStride.find(VertexLayouts::PosNormalColour.stride);
                 const Mesh* primitiveMeshPtr = (debugMeshIt != params.MeshesByStride.end()) ? debugMeshIt->second : nullptr;
 
-                std::vector<VertexPosColour> lineVertices;
+                std::unordered_map<size_t, std::vector<VertexPosColour>> lineBuckets;
+                std::unordered_map<size_t, std::vector<RenderDebugBox>> boxBuckets;
 
                 for (const auto& layer : params.Frame.Layers)
                 {
@@ -92,6 +120,9 @@ namespace Wayfinder
                     {
                         continue;
                     }
+
+                    const size_t viewIdx = layer.ViewIndex;
+                    std::vector<VertexPosColour>& lineVertices = lineBuckets[viewIdx];
 
                     if (layer.DebugDraw->ShowWorldGrid)
                     {
@@ -119,16 +150,33 @@ namespace Wayfinder
                         lineVertices.push_back({.Position = line.Start, .Colour = lineColour});
                         lineVertices.push_back({.Position = line.End, .Colour = lineColour});
                     }
+
+                    if (!layer.DebugDraw->Boxes.empty())
+                    {
+                        auto& boxes = boxBuckets[viewIdx];
+                        boxes.insert(boxes.end(), layer.DebugDraw->Boxes.begin(), layer.DebugDraw->Boxes.end());
+                    }
                 }
 
-                if (!lineVertices.empty() && debugLinePipeline.IsValid())
+                for (const auto& [viewIndex, lineVertices] : lineBuckets)
                 {
+                    if (lineVertices.empty() || !debugLinePipeline.IsValid())
+                    {
+                        continue;
+                    }
+
+                    const ResolvedViewForLayer resolved = ResolveViewMatricesForLayer(params, viewIndex);
+                    if (!resolved.Ok)
+                    {
+                        continue;
+                    }
+
                     const auto dataSize = static_cast<uint32_t>(lineVertices.size() * sizeof(VertexPosColour));
                     const TransientAllocation alloc = transientAllocator.AllocateVertices(lineVertices.data(), dataSize);
 
                     if (alloc.IsValid())
                     {
-                        const UnlitTransformUBO transformUBO{.Mvp = projMat * viewMat};
+                        const UnlitTransformUBO transformUBO{.Mvp = resolved.Proj * resolved.View};
                         const DebugMaterialUBO materialUBO{.BaseColour = Float4(1.0f)};
 
                         debugLinePipeline.Bind();
@@ -146,9 +194,9 @@ namespace Wayfinder
                 }
 
                 bool hasPendingBoxes = false;
-                for (const auto& layer : params.Frame.Layers)
+                for (const auto& entry : boxBuckets)
                 {
-                    if (layer.Enabled && layer.DebugDraw && !layer.DebugDraw->Boxes.empty())
+                    if (!entry.second.empty())
                     {
                         hasPendingBoxes = true;
                         break;
@@ -163,16 +211,22 @@ namespace Wayfinder
                 unlitProgram->Pipeline->Bind();
                 primitiveMeshPtr->Bind(device);
 
-                for (const auto& layer : params.Frame.Layers)
+                for (const auto& [viewIndex, boxes] : boxBuckets)
                 {
-                    if (!layer.Enabled || !layer.DebugDraw)
+                    if (boxes.empty())
                     {
                         continue;
                     }
 
-                    for (const auto& box : layer.DebugDraw->Boxes)
+                    const ResolvedViewForLayer resolved = ResolveViewMatricesForLayer(params, viewIndex);
+                    if (!resolved.Ok)
                     {
-                        const UnlitTransformUBO transformUBO{.Mvp = projMat * viewMat * box.LocalToWorld};
+                        continue;
+                    }
+
+                    for (const auto& box : boxes)
+                    {
+                        const UnlitTransformUBO transformUBO{.Mvp = resolved.Proj * resolved.View * box.LocalToWorld};
                         const DebugMaterialUBO materialUBO{.BaseColour = Float4(1.0f)};
 
                         device.PushVertexUniform(0, &transformUBO, sizeof(UnlitTransformUBO));

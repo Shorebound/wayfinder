@@ -76,8 +76,11 @@ namespace Wayfinder
     {
         for (auto& pass : m_passes)
         {
-            auto ctx = MakePassContext();
-            pass->OnDetach(ctx);
+            if (m_isInitialised && m_context)
+            {
+                auto ctx = MakePassContext();
+                pass->OnDetach(ctx);
+            }
         }
         m_passes.clear();
 
@@ -118,7 +121,11 @@ namespace Wayfinder
 
     void Renderer::AddPass(std::unique_ptr<RenderPass> pass)
     {
-        if (m_device)
+        if (!pass)
+        {
+            return;
+        }
+        if (m_isInitialised && m_context)
         {
             auto ctx = MakePassContext();
             pass->OnAttach(ctx);

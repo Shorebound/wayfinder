@@ -173,15 +173,18 @@ namespace Wayfinder
         m_currentScene = std::make_unique<Scene>(m_world, m_componentRegistry, pathStr);
         m_currentScene->SetAssetService(m_assetService);
 
-        if (std::filesystem::exists(pathStr))
+        if (!std::filesystem::exists(pathStr))
         {
-            if (auto result = m_currentScene->LoadFromFile(pathStr); !result)
-            {
-                WAYFINDER_ERROR(LogGame, "Failed to load scene '{}': {}", pathStr, result.error().GetMessage());
-            }
+            WAYFINDER_WARN(LogGame, "Scene file not found: {}", pathStr);
         }
-
-        WAYFINDER_INFO(LogGame, "Loaded scene: {}", pathStr);
+        else if (auto result = m_currentScene->LoadFromFile(pathStr); !result)
+        {
+            WAYFINDER_ERROR(LogGame, "Failed to load scene '{}': {}", pathStr, result.error().GetMessage());
+        }
+        else
+        {
+            WAYFINDER_INFO(LogGame, "Loaded scene: {}", pathStr);
+        }
     }
 
     void Game::UnloadCurrentScene()

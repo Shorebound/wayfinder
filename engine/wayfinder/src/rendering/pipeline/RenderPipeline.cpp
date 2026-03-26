@@ -192,7 +192,7 @@ namespace Wayfinder
 
         for (const auto& pass : gamePasses)
         {
-            if (pass->IsEnabled())
+            if (pass && pass->IsEnabled())
             {
                 pass->AddPasses(graph, params);
             }
