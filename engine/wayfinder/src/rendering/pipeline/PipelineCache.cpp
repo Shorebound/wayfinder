@@ -80,8 +80,9 @@ namespace Wayfinder
         combine(std::hash<bool>{}(desc.depthWriteEnabled));
 
         // Colour target blend states and formats
-        combine(std::hash<uint32_t>{}(desc.numColourTargets));
-        for (uint32_t i = 0; i < desc.numColourTargets; ++i)
+        const uint32_t numTargets = std::min(desc.numColourTargets, static_cast<uint32_t>(MAX_COLOUR_TARGETS));
+        combine(std::hash<uint32_t>{}(numTargets));
+        for (uint32_t i = 0; i < numTargets; ++i)
         {
             combine(std::hash<uint8_t>{}(static_cast<uint8_t>(desc.colourTargetFormats[i])));
 
