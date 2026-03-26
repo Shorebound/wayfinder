@@ -1,8 +1,8 @@
 #include "SceneRenderExtractor.h"
-#include "rendering/graph/SortKey.h"
 #include "rendering/backend/RenderDevice.h"
-#include "rendering/materials/PostProcessVolume.h"
+#include "rendering/graph/SortKey.h"
 #include "rendering/materials/Material.h"
+#include "rendering/materials/PostProcessVolume.h"
 
 #include "assets/AssetService.h"
 #include "core/Log.h"
@@ -80,37 +80,56 @@ namespace Wayfinder
             return hash;
         }
 
-        Wayfinder::BlendState ResolveShaderBlendState(std::string_view shaderName)
+        Wayfinder::BlendState MapBlendMode(Wayfinder::MaterialBlendMode mode)
         {
-            if (shaderName == "unlit_blended")
+            switch (mode)
             {
+            case Wayfinder::MaterialBlendMode::AlphaBlend:
                 return Wayfinder::BlendPresets::AlphaBlend();
+            case Wayfinder::MaterialBlendMode::Additive:
+                return Wayfinder::BlendPresets::Additive();
+            case Wayfinder::MaterialBlendMode::Premultiplied:
+                return Wayfinder::BlendPresets::Premultiplied();
+            case Wayfinder::MaterialBlendMode::Multiplicative:
+                return Wayfinder::BlendPresets::Multiplicative();
+            default:
+                return Wayfinder::BlendPresets::Opaque();
             }
-
-            return Wayfinder::BlendPresets::Opaque();
         }
 
-        std::string ResolveMaterialShaderName(const Wayfinder::RenderMaterialBinding& material, const Wayfinder::Scene& scene)
+        struct ResolvedMaterialState
         {
+            std::string ShaderName;
+            Wayfinder::BlendState Blend;
+        };
+
+        ResolvedMaterialState ResolveMaterialState(const Wayfinder::RenderMaterialBinding& material, const Wayfinder::Scene& scene)
+        {
+            ResolvedMaterialState state;
+            state.ShaderName = material.ShaderName;
+            state.Blend = Wayfinder::BlendPresets::Opaque();
+
             if (material.Ref.Origin != Wayfinder::RenderResourceOrigin::Asset || !material.Ref.AssetId)
             {
-                return material.ShaderName;
+                return state;
             }
 
             const std::shared_ptr<Wayfinder::AssetService>& assetService = scene.GetAssetService();
             if (!assetService)
             {
-                return material.ShaderName;
+                return state;
             }
 
             std::string error;
             const Wayfinder::MaterialAsset* materialAsset = assetService->LoadMaterialAsset(*material.Ref.AssetId, error);
             if (!materialAsset)
             {
-                return material.ShaderName;
+                return state;
             }
 
-            return materialAsset->ShaderName;
+            state.ShaderName = materialAsset->ShaderName;
+            state.Blend = MapBlendMode(materialAsset->BlendMode);
+            return state;
         }
 
         uint8_t BlendGroupBits(const Wayfinder::BlendState& blendState)
@@ -264,16 +283,16 @@ namespace Wayfinder
                 submission.Geometry.Dimensions = mesh.Dimensions;
                 submission.Material = material;
                 submission.Material.StateOverrides = stateOverrides;
-                submission.Material.ShaderName = ResolveMaterialShaderName(submission.Material, scene);
+                const auto materialState = ResolveMaterialState(submission.Material, scene);
+                submission.Material.ShaderName = materialState.ShaderName;
                 submission.Visible = renderable.Visible;
                 submission.Layer = renderable.Layer;
                 submission.SortPriority = renderable.SortPriority;
                 submission.LocalToWorld = localToWorld;
                 submission.WorldBounds = worldBounds;
                 submission.WorldSphere = ComputeBoundingSphere(worldBounds);
-                const BlendState blendState = ResolveShaderBlendState(submission.Material.ShaderName);
-                const SortLayer sortLayer = blendState.Enabled ? SortLayer::Transparent : MapLayer(submission.Layer);
-                submission.SortKey = SortKeyBuilder::Build(sortLayer, BlendGroupBits(blendState), MaterialIdBits(submission.Material), cameraSpaceZ, submission.SortPriority);
+                const SortLayer sortLayer = materialState.Blend.Enabled ? SortLayer::Transparent : MapLayer(submission.Layer);
+                submission.SortKey = SortKeyBuilder::Build(sortLayer, BlendGroupBits(materialState.Blend), MaterialIdBits(submission.Material), cameraSpaceZ, submission.SortPriority);
 
                 RenderPass* owningPass = frame.FindScenePassForSubmission(submission, 0);
                 if (!owningPass)

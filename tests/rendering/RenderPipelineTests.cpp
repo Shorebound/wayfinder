@@ -1,3 +1,4 @@
+#include "TestHelpers.h"
 #include "app/EngineConfig.h"
 #include "assets/AssetService.h"
 #include "rendering/backend/RenderDevice.h"
@@ -178,7 +179,7 @@ namespace Wayfinder::Tests
 
         auto assetService = std::make_shared<Wayfinder::AssetService>();
         std::string assetError;
-        REQUIRE(assetService->SetAssetRoot("/home/runner/work/wayfinder/wayfinder/tests/fixtures", assetError));
+        REQUIRE(assetService->SetAssetRoot(Wayfinder::Tests::Helpers::FixturesDir() / "blend_test", assetError));
         scene.SetAssetService(assetService);
 
         Wayfinder::Entity camera = scene.CreateEntity("Camera");

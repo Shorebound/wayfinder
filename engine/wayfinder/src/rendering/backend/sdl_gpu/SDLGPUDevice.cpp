@@ -1010,7 +1010,7 @@ namespace Wayfinder
 
         if (desc.mipLevels > maxMips)
         {
-            WAYFINDER_WARN(LogRenderer,
+            WAYFINDER_WARNING(LogRenderer,
                 "SDLGPUDevice::CreateTexture: Requested {} mip levels for {}x{} texture, "
                 "clamped to maximum of {}",
                 desc.mipLevels, desc.width, desc.height, maxMips);
