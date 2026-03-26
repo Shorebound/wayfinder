@@ -1,5 +1,6 @@
 #pragma once
 
+#include "rendering/graph/RenderPassCapabilities.h"
 #include "rendering/pipeline/RenderPipelineFrameParams.h"
 
 #include <string_view>
@@ -30,6 +31,12 @@ namespace Wayfinder
 
         /// Returns a unique name for this pass (used for removal and logging).
         virtual std::string_view GetName() const = 0;
+
+        /// Bitmask of `RenderPassCapabilities` — advisory until the executor enforces scheduling.
+        virtual RenderPassCapabilityMask GetCapabilities() const
+        {
+            return RenderPassCapabilities::Raster;
+        }
 
         /// Called each frame to inject passes into the render graph.
         virtual void AddPasses(RenderGraph& graph, const RenderPipelineFrameParams& params) = 0;

@@ -5,8 +5,9 @@
 
 #include <algorithm>
 #include <cassert>
+#include <cstdint>
 #include <queue>
-#include <unordered_set>
+#include <string>
 
 namespace Wayfinder
 {
@@ -35,6 +36,8 @@ namespace Wayfinder
     {
         if (!handle.IsValid() || handle.Index >= m_graph.m_resources.size())
         {
+            const auto& pass = CheckedAt(m_graph.m_passes, m_passIndex);
+            WAYFINDER_ERROR(LogRenderer, "RenderGraph pass '{}': ReadTexture — invalid handle (index={}, valid={})", pass.Name.GetString(), handle.Index, handle.IsValid());
             return;
         }
         auto& pass = CheckedAt(m_graph.m_passes, m_passIndex);
@@ -59,6 +62,8 @@ namespace Wayfinder
     {
         if (!handle.IsValid() || handle.Index >= m_graph.m_resources.size())
         {
+            const auto& pass = CheckedAt(m_graph.m_passes, m_passIndex);
+            WAYFINDER_ERROR(LogRenderer, "RenderGraph pass '{}': WriteColour — invalid handle (index={}, valid={})", pass.Name.GetString(), handle.Index, handle.IsValid());
             return;
         }
         if (slot >= MAX_COLOUR_TARGETS)
@@ -117,6 +122,8 @@ namespace Wayfinder
     {
         if (!handle.IsValid() || handle.Index >= m_graph.m_resources.size())
         {
+            const auto& pass = CheckedAt(m_graph.m_passes, m_passIndex);
+            WAYFINDER_ERROR(LogRenderer, "RenderGraph pass '{}': WriteDepth — invalid handle (index={}, valid={})", pass.Name.GetString(), handle.Index, handle.IsValid());
             return;
         }
         auto& pass = CheckedAt(m_graph.m_passes, m_passIndex);
@@ -197,6 +204,19 @@ namespace Wayfinder
             }
         }
         return {};
+    }
+
+    RenderGraphHandle RenderGraph::FindHandleChecked(std::string_view name) const
+    {
+        RenderGraphHandle h = FindHandle(name);
+        if (!h.IsValid())
+        {
+            WAYFINDER_ERROR(LogRenderer, "RenderGraph: FindHandleChecked missing resource '{}'", name);
+#ifndef NDEBUG
+            assert(false && "RenderGraph: FindHandleChecked missing resource");
+#endif
+        }
+        return h;
     }
 
     bool RenderGraph::Compile()
@@ -311,6 +331,30 @@ namespace Wayfinder
             CheckedAt(m_passes, idx).SortOrder = order++;
         }
 
+#if !defined(NDEBUG)
+        {
+            static uint32_t sOrderLogThrottle = 0;
+            if ((sOrderLogThrottle++ % 120u) == 0u)
+            {
+                std::string orderLine;
+                for (const uint32_t idx : m_executionOrder)
+                {
+                    const auto& p = CheckedAt(m_passes, idx);
+                    if (!orderLine.empty())
+                    {
+                        orderLine += " -> ";
+                    }
+                    orderLine += p.Name.GetString();
+                    if (p.Culled)
+                    {
+                        orderLine += " (culled)";
+                    }
+                }
+                WAYFINDER_VERBOSE(LogRenderer, "RenderGraph compile order: {}", orderLine);
+            }
+        }
+#endif
+
         m_compiled = true;
         return true;
     }
@@ -372,7 +416,7 @@ namespace Wayfinder
 
             if (pass.Type == RenderGraphPassType::Raster)
             {
-                GPUDebugScope passDebugScope(device, pass.Name.GetString());
+                const GPUDebugScope passDebugScope(device, pass.Name.GetString());
 
                 // Build the render pass descriptor
                 RenderPassDescriptor rpDesc;
@@ -431,7 +475,7 @@ namespace Wayfinder
             }
             else if (pass.Type == RenderGraphPassType::Compute)
             {
-                GPUDebugScope passDebugScope(device, pass.Name.GetString());
+                const GPUDebugScope passDebugScope(device, pass.Name.GetString());
                 device.BeginComputePass();
                 pass.Execute(device, resources);
                 device.EndComputePass();

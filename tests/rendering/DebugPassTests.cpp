@@ -20,7 +20,7 @@ namespace Wayfinder::Tests
     TEST_CASE("Debug pass frame has no boxes when extractor omits debug draws")
     {
         Wayfinder::RenderFrame frame;
-        Wayfinder::FramePass* debug = frame.FindPass(Wayfinder::RenderPassIds::Debug);
+        Wayfinder::FrameLayerRecord* debug = frame.FindLayer(Wayfinder::FrameLayerIds::Debug);
         CHECK(debug == nullptr);
     }
 } // namespace Wayfinder::Tests

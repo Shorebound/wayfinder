@@ -35,8 +35,8 @@ namespace Wayfinder::Tests
         view.CameraState.NearPlane = 0.1f;
         view.CameraState.FarPlane = 100.0f;
         frame.AddView(view);
-        frame.AddScenePass(Wayfinder::RenderPassIds::MainScene, 0, Wayfinder::RenderLayers::Main);
-        frame.AddDebugPass(Wayfinder::RenderPassIds::Debug, 0);
+        frame.AddSceneLayer(Wayfinder::FrameLayerIds::MainScene, 0, Wayfinder::RenderLayers::Main);
+        frame.AddDebugLayer(Wayfinder::FrameLayerIds::Debug, 0);
 
         REQUIRE(pipeline.Prepare(frame, 320, 240));
 

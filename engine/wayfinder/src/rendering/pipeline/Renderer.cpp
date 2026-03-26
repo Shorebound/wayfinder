@@ -1,7 +1,6 @@
 #include "Renderer.h"
 
 #include "RenderContext.h"
-#include "RenderPipeline.h"
 #include "core/Result.h"
 #include "rendering/backend/RenderDevice.h"
 #include "rendering/graph/RenderFrame.h"
@@ -124,6 +123,15 @@ namespace Wayfinder
             pass->OnAttach(ctx);
         }
         m_passes.push_back(std::move(pass));
+    }
+
+    void Renderer::RegisterEnginePass(EngineRenderPhase phase, int32_t orderWithinPhase, std::unique_ptr<RenderPass> pass)
+    {
+        if (!m_renderPipeline)
+        {
+            return;
+        }
+        m_renderPipeline->RegisterEnginePass(phase, orderWithinPhase, std::move(pass));
     }
 
     void Renderer::Render(const RenderFrame& frame)

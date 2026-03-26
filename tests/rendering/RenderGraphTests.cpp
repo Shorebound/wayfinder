@@ -7,9 +7,8 @@
 #include <string>
 #include <vector>
 
-// Test-idiomatic patterns: push_back with string literals is clear, and operator[] after REQUIRE(size)
-// is guarded. Suppress these doctest/test-pattern noise diagnostics file-wide.
-// NOLINTBEGIN(modernize-use-emplace, cppcoreguidelines-pro-bounds-avoid-unchecked-container-access)
+// Doctest CHECK with operator[] — file-wide suppression for test code.
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-avoid-unchecked-container-access, modernize-use-emplace, modernize-use-nodiscard)
 
 namespace Wayfinder::Tests
 {
@@ -1006,4 +1005,4 @@ namespace Wayfinder::Tests
     }
 }
 
-// NOLINTEND(modernize-use-emplace, cppcoreguidelines-pro-bounds-avoid-unchecked-container-access)
+// NOLINTEND(cppcoreguidelines-pro-bounds-avoid-unchecked-container-access, modernize-use-emplace, modernize-use-nodiscard)

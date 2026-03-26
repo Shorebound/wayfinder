@@ -13,6 +13,11 @@ namespace Wayfinder
             return "SceneOpaque";
         }
 
+        RenderPassCapabilityMask GetCapabilities() const override
+        {
+            return RenderPassCapabilities::Raster | RenderPassCapabilities::RasterSceneGeometry;
+        }
+
         void OnAttach(const RenderPassContext& context) override;
         void OnDetach(const RenderPassContext& /*context*/) override {}
 

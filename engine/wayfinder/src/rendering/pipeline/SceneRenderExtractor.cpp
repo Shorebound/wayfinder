@@ -194,9 +194,9 @@ namespace Wayfinder
                 view.CameraState.FOV = activeCamera.FieldOfView;
                 view.CameraState.ProjectionType = static_cast<int>(activeCamera.Projection);
                 const size_t viewIndex = frame.AddView(view);
-                frame.AddScenePass(RenderPassIds::MainScene, viewIndex, RenderLayers::Main);
-                frame.AddScenePass(RenderPassIds::OverlayScene, viewIndex, RenderLayers::Overlay);
-                FramePass& debugPass = frame.AddDebugPass(RenderPassIds::Debug, viewIndex);
+                frame.AddSceneLayer(FrameLayerIds::MainScene, viewIndex, RenderLayers::Main);
+                frame.AddSceneLayer(FrameLayerIds::OverlayScene, viewIndex, RenderLayers::Overlay);
+                FrameLayerRecord& debugPass = frame.AddDebugLayer(FrameLayerIds::Debug, viewIndex);
                 if (debugPass.DebugDraw)
                 {
                     debugPass.DebugDraw->ShowWorldGrid = true;
@@ -294,14 +294,14 @@ namespace Wayfinder
                 const SortLayer sortLayer = materialState.Blend.Enabled ? SortLayer::Transparent : MapLayer(submission.Layer);
                 submission.SortKey = SortKeyBuilder::Build(sortLayer, BlendGroupBits(materialState.Blend), MaterialIdBits(submission.Material), cameraSpaceZ, submission.SortPriority);
 
-                FramePass* owningPass = frame.FindScenePassForSubmission(submission, 0);
-                if (!owningPass)
+                FrameLayerRecord* owningLayer = frame.FindSceneLayerForSubmission(submission, 0);
+                if (!owningLayer)
                 {
-                    WAYFINDER_WARN(LogRenderer, "SceneRenderExtractor skipped mesh submission because no scene pass matched layer '{0}' in frame '{1}'.", submission.Layer, frame.SceneName);
+                    WAYFINDER_WARN(LogRenderer, "SceneRenderExtractor skipped mesh submission because no scene layer matched layer '{0}' in frame '{1}'.", submission.Layer, frame.SceneName);
                     return;
                 }
 
-                owningPass->Meshes.push_back(std::move(submission));
+                owningLayer->Meshes.push_back(std::move(submission));
             };
 
             if (mesh.MeshAssetId)
@@ -411,9 +411,9 @@ namespace Wayfinder
                 debugBox.Material.Domain = RenderMaterialDomain::Debug;
                 debugBox.Material.Parameters.SetColour("base_colour", LinearColour::FromColour(light.Tint));
 
-                if (FramePass* pass = frame.FindPass(RenderPassIds::Debug))
+                if (FrameLayerRecord* debugLayer = frame.FindLayer(FrameLayerIds::Debug))
                 {
-                    pass->DebugDraw->Boxes.push_back(debugBox);
+                    debugLayer->DebugDraw->Boxes.push_back(debugBox);
                 }
 
                 if (light.Type == LightType::Directional)
@@ -424,9 +424,9 @@ namespace Wayfinder
                     debugLine.End = lineEnd;
                     debugLine.Tint = light.Tint;
 
-                    if (FramePass* pass = frame.FindPass(RenderPassIds::Debug))
+                    if (FrameLayerRecord* debugLayer = frame.FindLayer(FrameLayerIds::Debug))
                     {
-                        pass->DebugDraw->Lines.push_back(debugLine);
+                        debugLayer->DebugDraw->Lines.push_back(debugLine);
                     }
                 }
             }

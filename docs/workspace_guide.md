@@ -53,6 +53,8 @@ The rendering subsystem is further organised into subdirectories:
 | `rendering/mesh/` | Geometry data — `Mesh`, vertex formats |
 | `rendering/RenderTypes.h` | Rendering-specific types — camera, textures, samplers, render passes, device info |
 
+Terminology for **CPU frame layers** vs **graph `RenderPass` injectors**, **`RenderPipelineFrameParams`**, and **engine pass phases**: see [`render_passes.md`](render_passes.md).
+
 ### Sandboxes
 
 - `sandbox/journey/` is the main runtime sandbox used to validate engine changes

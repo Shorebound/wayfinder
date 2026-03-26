@@ -46,24 +46,24 @@ namespace Wayfinder
 
     void RenderResourceCache::PrepareFrame(RenderFrame& frame)
     {
-        for (FramePass& pass : frame.Passes)
+        for (FrameLayerRecord& layer : frame.Layers)
         {
-            for (RenderMeshSubmission& mesh : pass.Meshes)
+            for (RenderMeshSubmission& mesh : layer.Meshes)
             {
                 mesh.Material = PrepareMaterialBinding(mesh.Material);
             }
 
-            if (!pass.DebugDraw.has_value())
+            if (!layer.DebugDraw.has_value())
             {
                 continue;
             }
 
-            RenderDebugDrawList debugDraw = pass.DebugDraw.value_or(RenderDebugDrawList{});
+            RenderDebugDrawList debugDraw = layer.DebugDraw.value_or(RenderDebugDrawList{});
             for (RenderDebugBox& debugBox : debugDraw.Boxes)
             {
                 debugBox.Material = PrepareMaterialBinding(debugBox.Material);
             }
-            pass.DebugDraw = std::move(debugDraw);
+            layer.DebugDraw = std::move(debugDraw);
         }
     }
 

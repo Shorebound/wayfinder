@@ -144,6 +144,9 @@ namespace Wayfinder
         // Look up a previously imported or created named resource.
         RenderGraphHandle FindHandle(std::string_view name) const;
 
+        /// Like `FindHandle`, but logs and asserts in non-`NDEBUG` builds when the name is missing.
+        RenderGraphHandle FindHandleChecked(std::string_view name) const;
+
         // Compile: topological sort on dependencies + dead pass culling.
         bool Compile();
 

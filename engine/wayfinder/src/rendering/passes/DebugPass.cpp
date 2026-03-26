@@ -81,8 +81,8 @@ namespace Wayfinder
 
         graph.AddPass("Debug", [&, viewMat = view, projMat = projection, hasCamera](RenderGraphBuilder& builder)
         {
-            auto colour = graph.FindHandle(WellKnown::SceneColour);
-            auto depth = graph.FindHandle(WellKnown::SceneDepth);
+            auto colour = graph.FindHandleChecked(WellKnown::SceneColour);
+            auto depth = graph.FindHandleChecked(WellKnown::SceneDepth);
             builder.WriteColour(colour, LoadOp::Load);
             builder.WriteDepth(depth, LoadOp::Load);
 
@@ -102,17 +102,17 @@ namespace Wayfinder
 
                 std::vector<VertexPosColour> lineVertices;
 
-                for (const auto& pass : params.Frame.Passes)
+                for (const auto& layer : params.Frame.Layers)
                 {
-                    if (!pass.Enabled || !pass.DebugDraw)
+                    if (!layer.Enabled || !layer.DebugDraw)
                     {
                         continue;
                     }
 
-                    if (pass.DebugDraw->ShowWorldGrid)
+                    if (layer.DebugDraw->ShowWorldGrid)
                     {
-                        const int slices = std::max(1, pass.DebugDraw->WorldGridSlices);
-                        const float spacing = pass.DebugDraw->WorldGridSpacing;
+                        const int slices = std::max(1, layer.DebugDraw->WorldGridSlices);
+                        const float spacing = layer.DebugDraw->WorldGridSpacing;
                         const float extent = static_cast<float>(slices) * spacing;
                         const Float3 majorColour{0.45f, 0.45f, 0.45f};
                         const Float3 minorColour{0.25f, 0.25f, 0.25f};
@@ -129,7 +129,7 @@ namespace Wayfinder
                         }
                     }
 
-                    for (const auto& line : pass.DebugDraw->Lines)
+                    for (const auto& line : layer.DebugDraw->Lines)
                     {
                         const Float3 lineColour = LinearColour::FromColour(line.Tint).ToFloat3();
                         lineVertices.push_back({.Position = line.Start, .Colour = lineColour});
@@ -162,9 +162,9 @@ namespace Wayfinder
                 }
 
                 bool hasPendingBoxes = false;
-                for (const auto& pass : params.Frame.Passes)
+                for (const auto& layer : params.Frame.Layers)
                 {
-                    if (pass.Enabled && pass.DebugDraw && !pass.DebugDraw->Boxes.empty())
+                    if (layer.Enabled && layer.DebugDraw && !layer.DebugDraw->Boxes.empty())
                     {
                         hasPendingBoxes = true;
                         break;
@@ -179,14 +179,14 @@ namespace Wayfinder
                 unlitProgram->Pipeline->Bind();
                 primitiveMeshPtr->Bind(device);
 
-                for (const auto& pass : params.Frame.Passes)
+                for (const auto& layer : params.Frame.Layers)
                 {
-                    if (!pass.Enabled || !pass.DebugDraw)
+                    if (!layer.Enabled || !layer.DebugDraw)
                     {
                         continue;
                     }
 
-                    for (const auto& box : pass.DebugDraw->Boxes)
+                    for (const auto& box : layer.DebugDraw->Boxes)
                     {
                         const UnlitTransformUBO transformUBO{projMat * viewMat * box.LocalToWorld};
                         const DebugMaterialUBO materialUBO{Float4(1.0f)};

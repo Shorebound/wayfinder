@@ -1,7 +1,7 @@
 #include "RenderPipeline.h"
 
+#include "ForwardOpaqueShaderPrograms.h"
 #include "RenderContext.h"
-#include "rendering/backend/GPUPipeline.h"
 #include "rendering/backend/RenderDevice.h"
 #include "rendering/backend/VertexFormats.h"
 #include "rendering/graph/RenderGraph.h"
@@ -18,11 +18,44 @@
 
 namespace Wayfinder
 {
-    void RenderPipeline::AddEnginePass(std::unique_ptr<RenderPass> pass)
+    void RenderPipeline::SortEnginePasses()
     {
+        std::ranges::sort(m_enginePasses, [](const EnginePassSlot& a, const EnginePassSlot& b)
+        {
+            if (a.Phase != b.Phase)
+            {
+                return static_cast<uint8_t>(a.Phase) < static_cast<uint8_t>(b.Phase);
+            }
+            if (a.OrderWithinPhase != b.OrderWithinPhase)
+            {
+                return a.OrderWithinPhase < b.OrderWithinPhase;
+            }
+            return a.InsertSequence < b.InsertSequence;
+        });
+    }
+
+    void RenderPipeline::RegisterEnginePass(EngineRenderPhase phase, int32_t orderWithinPhase, std::unique_ptr<RenderPass> pass)
+    {
+        if (!m_context)
+        {
+            WAYFINDER_ERROR(LogRenderer, "RegisterEnginePass: pipeline has no context — call Initialise first");
+            return;
+        }
+        if (!pass)
+        {
+            return;
+        }
+
         const RenderPassContext ctx{*m_context};
         pass->OnAttach(ctx);
-        m_enginePasses.push_back(std::move(pass));
+
+        m_enginePasses.push_back(EnginePassSlot{
+            .Phase = phase,
+            .OrderWithinPhase = orderWithinPhase,
+            .InsertSequence = m_nextEnginePassInsertSequence++,
+            .Pass = std::move(pass),
+        });
+        SortEnginePasses();
     }
 
     void RenderPipeline::Initialise(RenderContext& context)
@@ -49,8 +82,10 @@ namespace Wayfinder
             registry.Register(desc);
         }
 
-        AddEnginePass(std::make_unique<SceneOpaquePass>());
-        AddEnginePass(std::make_unique<DebugPass>());
+        RegisterForwardOpaquePrograms(registry);
+
+        RegisterEnginePass(EngineRenderPhase::OpaqueMain, 0, std::make_unique<SceneOpaquePass>());
+        RegisterEnginePass(EngineRenderPhase::Debug, 0, std::make_unique<DebugPass>());
     }
 
     void RenderPipeline::Shutdown()
@@ -58,12 +93,16 @@ namespace Wayfinder
         if (m_context)
         {
             const RenderPassContext ctx{*m_context};
-            for (auto& pass : m_enginePasses)
+            for (auto& slot : m_enginePasses)
             {
-                pass->OnDetach(ctx);
+                if (slot.Pass)
+                {
+                    slot.Pass->OnDetach(ctx);
+                }
             }
         }
         m_enginePasses.clear();
+        m_nextEnginePassInsertSequence = 0;
         m_context = nullptr;
     }
 
@@ -75,9 +114,9 @@ namespace Wayfinder
             return false;
         }
 
-        if (frame.Passes.empty())
+        if (frame.Layers.empty())
         {
-            WAYFINDER_WARN(LogRenderer, "RenderPipeline: frame '{}' has no passes — skipped", frame.SceneName);
+            WAYFINDER_WARN(LogRenderer, "RenderPipeline: frame '{}' has no layers — skipped", frame.SceneName);
             return false;
         }
 
@@ -103,25 +142,25 @@ namespace Wayfinder
             view.Prepared = true;
         }
 
-        for (FramePass& pass : frame.Passes)
+        for (FrameLayerRecord& layer : frame.Layers)
         {
-            if (!pass.Enabled || pass.Id.IsEmpty())
+            if (!layer.Enabled || layer.Id.IsEmpty())
             {
                 continue;
             }
 
-            if (pass.ViewIndex >= frame.Views.size())
+            if (layer.ViewIndex >= frame.Views.size())
             {
-                WAYFINDER_WARN(LogRenderer, "RenderPipeline: pass '{}' references invalid view index {}", pass.Id, pass.ViewIndex);
-                pass.Enabled = false;
+                WAYFINDER_WARN(LogRenderer, "RenderPipeline: layer '{}' references invalid view index {}", layer.Id, layer.ViewIndex);
+                layer.Enabled = false;
                 continue;
             }
 
-            if (pass.Kind == RenderPassKind::Scene)
+            if (layer.Kind == FrameLayerKind::Scene)
             {
-                const Frustum& frustum = frame.Views.at(pass.ViewIndex).ViewFrustum;
+                const Frustum& frustum = frame.Views.at(layer.ViewIndex).ViewFrustum;
 
-                std::erase_if(pass.Meshes, [&frustum](const RenderMeshSubmission& submission)
+                std::erase_if(layer.Meshes, [&frustum](const RenderMeshSubmission& submission)
                 {
                     if (!submission.Visible)
                     {
@@ -130,7 +169,7 @@ namespace Wayfinder
                     return !frustum.TestBounds(submission.WorldSphere, submission.WorldBounds);
                 });
 
-                std::ranges::sort(pass.Meshes, [](const RenderMeshSubmission& a, const RenderMeshSubmission& b)
+                std::ranges::sort(layer.Meshes, [](const RenderMeshSubmission& a, const RenderMeshSubmission& b)
                 {
                     return a.SortKey < b.SortKey;
                 });
@@ -142,11 +181,11 @@ namespace Wayfinder
 
     void RenderPipeline::BuildGraph(RenderGraph& graph, const RenderPipelineFrameParams& params, std::span<const std::unique_ptr<RenderPass>> gamePasses) const
     {
-        for (const auto& pass : m_enginePasses)
+        for (const auto& slot : m_enginePasses)
         {
-            if (pass->IsEnabled())
+            if (slot.Pass && slot.Pass->IsEnabled())
             {
-                pass->AddPasses(graph, params);
+                slot.Pass->AddPasses(graph, params);
             }
         }
 
@@ -160,7 +199,7 @@ namespace Wayfinder
 
         graph.AddPass("Composition", [&](RenderGraphBuilder& builder)
         {
-            auto colour = graph.FindHandle(WellKnown::SceneColour);
+            auto colour = graph.FindHandleChecked(WellKnown::SceneColour);
             builder.ReadTexture(colour);
             builder.SetSwapchainOutput(LoadOp::DontCare);
 
@@ -172,6 +211,11 @@ namespace Wayfinder
                 const auto nearestSampler = m_context->GetNearestSampler();
                 if (!compProgram || !compProgram->Pipeline || !sceneColourTex || !nearestSampler)
                 {
+#if defined(NDEBUG)
+                    WAYFINDER_WARN(LogRenderer, "Composition: missing program, pipeline, scene colour, or sampler — skipped");
+#else
+                    WAYFINDER_ERROR(LogRenderer, "Composition: missing program, pipeline, scene colour, or sampler — skipped");
+#endif
                     return;
                 }
 

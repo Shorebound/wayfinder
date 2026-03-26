@@ -205,18 +205,18 @@ namespace Wayfinder
         bool Prepared = false;
     };
 
-    enum class RenderPassKind
+    enum class FrameLayerKind
     {
         Scene,
         Debug
     };
 
-    /// CPU-side frame pass record (meshes, debug draw, etc.). Not to be confused with `RenderPass` graph
-    /// nodes in `rendering/graph/RenderPass.h`.
-    struct FramePass
+    /// CPU-side layer record (meshes, debug draw, etc.). Not to be confused with `RenderPass` graph
+    /// injectors in `rendering/graph/RenderPass.h`.
+    struct FrameLayerRecord
     {
-        RenderPassId Id = RenderPassIds::MainScene;
-        RenderPassKind Kind = RenderPassKind::Scene;
+        FrameLayerId Id = FrameLayerIds::MainScene;
+        FrameLayerKind Kind = FrameLayerKind::Scene;
         size_t ViewIndex = 0;
         std::optional<RenderLayerId> SceneLayer;
         std::vector<RenderMeshSubmission> Meshes;
@@ -225,7 +225,7 @@ namespace Wayfinder
 
         bool AcceptsSceneSubmission(const RenderMeshSubmission& submission) const
         {
-            if (Kind != RenderPassKind::Scene)
+            if (Kind != FrameLayerKind::Scene)
             {
                 return false;
             }
@@ -239,7 +239,7 @@ namespace Wayfinder
         std::string SceneName;
         std::filesystem::path AssetRoot;
         std::vector<RenderView> Views;
-        std::vector<FramePass> Passes;
+        std::vector<FrameLayerRecord> Layers;
         std::vector<RenderLightSubmission> Lights;
 
         size_t AddView(const RenderView& view)
@@ -248,61 +248,61 @@ namespace Wayfinder
             return Views.size() - 1;
         }
 
-        FramePass& AddScenePass(const RenderPassId& id, size_t viewIndex, const RenderLayerId& sceneLayer)
+        FrameLayerRecord& AddSceneLayer(const FrameLayerId& id, size_t viewIndex, const RenderLayerId& sceneLayer)
         {
-            FramePass pass;
-            pass.Id = id;
-            pass.Kind = RenderPassKind::Scene;
-            pass.ViewIndex = viewIndex;
-            pass.SceneLayer = sceneLayer;
-            Passes.push_back(std::move(pass));
-            return Passes.back();
+            FrameLayerRecord layer;
+            layer.Id = id;
+            layer.Kind = FrameLayerKind::Scene;
+            layer.ViewIndex = viewIndex;
+            layer.SceneLayer = sceneLayer;
+            Layers.push_back(std::move(layer));
+            return Layers.back();
         }
 
-        FramePass& AddDebugPass(const RenderPassId& id, size_t viewIndex)
+        FrameLayerRecord& AddDebugLayer(const FrameLayerId& id, size_t viewIndex)
         {
-            FramePass pass;
-            pass.Id = id;
-            pass.Kind = RenderPassKind::Debug;
-            pass.ViewIndex = viewIndex;
-            pass.DebugDraw = RenderDebugDrawList{};
-            Passes.push_back(std::move(pass));
-            return Passes.back();
+            FrameLayerRecord layer;
+            layer.Id = id;
+            layer.Kind = FrameLayerKind::Debug;
+            layer.ViewIndex = viewIndex;
+            layer.DebugDraw = RenderDebugDrawList{};
+            Layers.push_back(std::move(layer));
+            return Layers.back();
         }
 
-        FramePass* FindPass(const RenderPassId& id)
+        FrameLayerRecord* FindLayer(const FrameLayerId& id)
         {
-            for (FramePass& pass : Passes)
+            for (FrameLayerRecord& layer : Layers)
             {
-                if (pass.Id == id)
+                if (layer.Id == id)
                 {
-                    return &pass;
+                    return &layer;
                 }
             }
 
             return nullptr;
         }
 
-        const FramePass* FindPass(const RenderPassId& id) const
+        const FrameLayerRecord* FindLayer(const FrameLayerId& id) const
         {
-            for (const FramePass& pass : Passes)
+            for (const FrameLayerRecord& layer : Layers)
             {
-                if (pass.Id == id)
+                if (layer.Id == id)
                 {
-                    return &pass;
+                    return &layer;
                 }
             }
 
             return nullptr;
         }
 
-        FramePass* FindScenePassForSubmission(const RenderMeshSubmission& submission, size_t viewIndex)
+        FrameLayerRecord* FindSceneLayerForSubmission(const RenderMeshSubmission& submission, size_t viewIndex)
         {
-            for (FramePass& pass : Passes)
+            for (FrameLayerRecord& layer : Layers)
             {
-                if (pass.ViewIndex == viewIndex && pass.AcceptsSceneSubmission(submission))
+                if (layer.ViewIndex == viewIndex && layer.AcceptsSceneSubmission(submission))
                 {
-                    return &pass;
+                    return &layer;
                 }
             }
 

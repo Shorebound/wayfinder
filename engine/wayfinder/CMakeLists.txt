@@ -197,6 +197,7 @@ set(ENGINE_ALL_SOURCES
   # Rendering — Graph
   src/rendering/graph/RenderFrame.h
   src/rendering/graph/RenderPass.h
+  src/rendering/graph/RenderPassCapabilities.h
   src/rendering/graph/RenderGraph.cpp
   src/rendering/graph/RenderGraph.h
   src/rendering/graph/RenderIntent.h
@@ -223,6 +224,8 @@ set(ENGINE_ALL_SOURCES
   src/rendering/pipeline/PipelineCache.h
   src/rendering/pipeline/RenderContext.cpp
   src/rendering/pipeline/RenderContext.h
+  src/rendering/pipeline/ForwardOpaqueShaderPrograms.cpp
+  src/rendering/pipeline/ForwardOpaqueShaderPrograms.h
   src/rendering/pipeline/RenderPipeline.cpp
   src/rendering/pipeline/RenderPipeline.h
   src/rendering/pipeline/Renderer.cpp

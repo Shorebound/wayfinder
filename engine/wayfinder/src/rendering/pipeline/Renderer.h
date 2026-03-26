@@ -4,6 +4,7 @@
 #include "rendering/RenderTypes.h"
 #include "rendering/graph/RenderPass.h"
 #include "rendering/mesh/Mesh.h"
+#include "rendering/pipeline/RenderPipeline.h"
 
 #include <algorithm>
 #include <memory>
@@ -18,7 +19,6 @@ namespace Wayfinder
     struct EngineConfig;
     struct RenderFrame;
     struct RenderLightSubmission;
-    class RenderPipeline;
     class RenderResourceCache;
 
     class WAYFINDER_API Renderer
@@ -34,6 +34,9 @@ namespace Wayfinder
         void SetAssetService(const std::shared_ptr<AssetService>& assetService);
 
         void AddPass(std::unique_ptr<RenderPass> pass);
+
+        /// Engine-owned passes (ordered by phase — see `EngineRenderPhase`). Call after `Initialise` if extending the pipeline.
+        void RegisterEnginePass(EngineRenderPhase phase, int32_t orderWithinPhase, std::unique_ptr<RenderPass> pass);
 
         template<typename T>
         bool RemovePass()

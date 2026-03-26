@@ -20,17 +20,6 @@ namespace Wayfinder
 {
     namespace
     {
-        struct UnlitTransformUBO
-        {
-            Matrix4 Mvp;
-        };
-
-        struct TransformUBO
-        {
-            Matrix4 Mvp;
-            Matrix4 Model;
-        };
-
         SceneGlobalsUBO BuildSceneGlobals(const RenderFrame& frame)
         {
             SceneGlobalsUBO globals;
@@ -54,97 +43,6 @@ namespace Wayfinder
     void SceneOpaquePass::OnAttach(const RenderPassContext& context)
     {
         m_context = &context.Context;
-        auto& registry = m_context->GetPrograms();
-
-        {
-            ShaderProgramDesc desc;
-            desc.Name = "unlit";
-            desc.VertexShaderName = "unlit";
-            desc.FragmentShaderName = "unlit";
-            desc.VertexResources = {.numUniformBuffers = 1};
-            desc.FragmentResources = {.numUniformBuffers = 1};
-            desc.VertexLayout = VertexLayouts::PosNormalColour;
-            desc.Cull = CullMode::Back;
-            desc.DepthTest = true;
-            desc.DepthWrite = true;
-            desc.MaterialParams =
-            {
-                {.Name = "base_colour", .Type = MaterialParamType::Colour, .Offset = 0, .Default = LinearColour::White()},
-            };
-            desc.MaterialUBOSize = 16;
-            desc.VertexUBOSize = sizeof(UnlitTransformUBO);
-            desc.NeedsSceneGlobals = false;
-
-            registry.Register(desc);
-        }
-
-        {
-            ShaderProgramDesc desc;
-            desc.Name = "unlit_blended";
-            desc.VertexShaderName = "unlit";
-            desc.FragmentShaderName = "unlit";
-            desc.VertexResources = {.numUniformBuffers = 1};
-            desc.FragmentResources = {.numUniformBuffers = 1};
-            desc.VertexLayout = VertexLayouts::PosNormalColour;
-            desc.Cull = CullMode::Back;
-            desc.DepthTest = true;
-            desc.DepthWrite = false;
-            desc.Blend = BlendPresets::AlphaBlend();
-            desc.MaterialParams =
-            {
-                {.Name = "base_colour", .Type = MaterialParamType::Colour, .Offset = 0, .Default = LinearColour::White()},
-            };
-            desc.MaterialUBOSize = 16;
-            desc.VertexUBOSize = sizeof(UnlitTransformUBO);
-            desc.NeedsSceneGlobals = false;
-
-            registry.Register(desc);
-        }
-
-        {
-            ShaderProgramDesc desc;
-            desc.Name = "basic_lit";
-            desc.VertexShaderName = "basic_lit";
-            desc.FragmentShaderName = "basic_lit";
-            desc.VertexResources = {.numUniformBuffers = 1};
-            desc.FragmentResources = {.numUniformBuffers = 2};
-            desc.VertexLayout = VertexLayouts::PosNormalColour;
-            desc.Cull = CullMode::Back;
-            desc.DepthTest = true;
-            desc.DepthWrite = true;
-            desc.MaterialParams =
-            {
-                {.Name = "base_colour", .Type = MaterialParamType::Colour, .Offset = 0, .Default = LinearColour::White()},
-            };
-            desc.MaterialUBOSize = 16;
-            desc.VertexUBOSize = sizeof(TransformUBO);
-            desc.NeedsSceneGlobals = true;
-
-            registry.Register(desc);
-        }
-
-        {
-            ShaderProgramDesc desc;
-            desc.Name = "textured_lit";
-            desc.VertexShaderName = "textured_lit";
-            desc.FragmentShaderName = "textured_lit";
-            desc.VertexResources = {.numUniformBuffers = 1};
-            desc.FragmentResources = {.numUniformBuffers = 2, .numSamplers = 1};
-            desc.VertexLayout = VertexLayouts::PosNormalUVTangent;
-            desc.Cull = CullMode::Back;
-            desc.DepthTest = true;
-            desc.DepthWrite = true;
-            desc.MaterialParams =
-            {
-                {.Name = "base_colour", .Type = MaterialParamType::Colour, .Offset = 0, .Default = LinearColour::White()},
-            };
-            desc.MaterialUBOSize = 16;
-            desc.VertexUBOSize = sizeof(TransformUBO);
-            desc.NeedsSceneGlobals = true;
-            desc.TextureSlots = {{.Name = "diffuse", .BindingSlot = 0}};
-
-            registry.Register(desc);
-        }
     }
 
     void SceneOpaquePass::AddPasses(RenderGraph& graph, const RenderPipelineFrameParams& params)
@@ -209,9 +107,9 @@ namespace Wayfinder
                     .Params = params,
                 };
 
-                for (const auto& pass : params.Frame.Passes)
+                for (const auto& layer : params.Frame.Layers)
                 {
-                    if (!pass.Enabled || pass.Kind != RenderPassKind::Scene)
+                    if (!layer.Enabled || layer.Kind != FrameLayerKind::Scene)
                     {
                         continue;
                     }
@@ -219,14 +117,14 @@ namespace Wayfinder
                     Matrix4 passView = viewMat;
                     Matrix4 passProj = projMat;
 
-                    if (pass.ViewIndex < params.Frame.Views.size() && params.Frame.Views.at(pass.ViewIndex).Prepared)
+                    if (layer.ViewIndex < params.Frame.Views.size() && params.Frame.Views.at(layer.ViewIndex).Prepared)
                     {
-                        const auto& pv = params.Frame.Views.at(pass.ViewIndex);
+                        const auto& pv = params.Frame.Views.at(layer.ViewIndex);
                         passView = pv.ViewMatrix;
                         passProj = pv.ProjectionMatrix;
                     }
 
-                    for (const auto& submission : pass.Meshes)
+                    for (const auto& submission : layer.Meshes)
                     {
                         DrawSubmission(state, submission, passView, passProj, sceneGlobals);
                     }

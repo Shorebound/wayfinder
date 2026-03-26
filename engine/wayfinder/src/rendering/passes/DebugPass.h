@@ -14,6 +14,11 @@ namespace Wayfinder
             return "Debug";
         }
 
+        RenderPassCapabilityMask GetCapabilities() const override
+        {
+            return RenderPassCapabilities::Raster | RenderPassCapabilities::RasterOverlayOrDebug;
+        }
+
         void OnAttach(const RenderPassContext& context) override;
         void OnDetach(const RenderPassContext& context) override;
 

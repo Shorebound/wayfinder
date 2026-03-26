@@ -10,11 +10,13 @@
 
 #include <doctest/doctest.h>
 
+#include <array>
 #include <memory>
 #include <string>
 #include <unordered_map>
 #include <vector>
 
+// Test doubles and doctest CHECK patterns (file-wide suppressions for test code).
 // NOLINTBEGIN(cppcoreguidelines-avoid-c-arrays, cppcoreguidelines-avoid-const-or-ref-data-members, cppcoreguidelines-pro-bounds-array-to-pointer-decay, cppcoreguidelines-pro-bounds-avoid-unchecked-container-access,
 // misc-const-correctness, misc-use-internal-linkage, modernize-avoid-c-arrays, modernize-use-designated-initializers, modernize-use-nodiscard, readability-identifier-naming)
 
@@ -400,8 +402,8 @@ namespace Wayfinder::Tests
         auto buffer = device->CreateBuffer(desc);
         CHECK_FALSE(buffer.IsValid());
 
-        uint8_t data[64] = {};
-        device->UploadToBuffer(buffer, data, {.sizeInBytes = sizeof(data)});
+        std::array<uint8_t, 64> data{};
+        device->UploadToBuffer(buffer, data.data(), {.sizeInBytes = data.size()});
 
         device->DestroyBuffer(buffer);
     }
@@ -423,7 +425,7 @@ namespace Wayfinder::Tests
     {
         Wayfinder::RenderFrame frame;
         const size_t viewIndex = frame.AddView(Wayfinder::RenderView{});
-        Wayfinder::FramePass& scenePass = frame.AddScenePass(Wayfinder::RenderPassIds::MainScene, viewIndex, Wayfinder::RenderLayers::Main);
+        Wayfinder::FrameLayerRecord& scenePass = frame.AddSceneLayer(Wayfinder::FrameLayerIds::MainScene, viewIndex, Wayfinder::RenderLayers::Main);
 
         Wayfinder::RenderMeshSubmission submission;
         submission.Mesh.Origin = Wayfinder::RenderResourceOrigin::BuiltIn;
