@@ -16,6 +16,10 @@ This file documents common mistakes, confusion points, and non-obvious behaviour
 - **`-Wmissing-field-initializers` is suppressed.** Designated initialisers that rely on default member initialisers for remaining fields are idiomatic C++20 — don't pad with `= {}`/`= 0`.
 - **clang-tidy naming style names are literal.** In `readability-identifier-naming`, `CamelCase` produces PascalCase. Use `camelBack` for the repo's `m_memberName` style.
 
+## Core
+
+- **`InternedString` is not a general-purpose string pool.** It keeps every distinct interned value for the process lifetime. Do not intern high-cardinality or per-frame-unique strings (timestamps, GUIDs, formatted numbers) — use `std::string` / `std::string_view` for those. Stable ids (pass names, graph keys, gameplay tags) are the intended use.
+
 ## Logging
 
 - **Engine logging uses `std::format`, not fmt.** spdlog is configured with `SPDLOG_USE_STD_FORMAT=ON`, and the engine's `ILogger::LogFormatted` calls `std::vformat` internally. This means `std::formatter<T>` specialisations are what matter — fmt formatters are irrelevant.

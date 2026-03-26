@@ -60,14 +60,22 @@ namespace Wayfinder::Tests
         CHECK(a == b);
     }
 
-    // ── Implicit Conversion ──────────────────────────────────
+    // ── String view / storage ─────────────────────────────────
 
-    TEST_CASE("Implicit conversion to const string reference")
+    TEST_CASE("AsStringView matches GetString content")
     {
         auto s = InternedString::Intern("Convertible");
-        const std::string& ref = s;
+        CHECK(s.GetString() == std::string(s.AsStringView()));
+        CHECK(std::string(s.AsStringView()) == "Convertible");
+    }
 
-        CHECK(ref == "Convertible");
+    TEST_CASE("InternedString compares to string_view without interning rhs")
+    {
+        auto s = InternedString::Intern("GameplayTag.Status.Burning");
+        const std::string_view sv{"GameplayTag.Status.Burning"};
+        CHECK(std::string(s.AsStringView()) == std::string(sv));
+        CHECK(((s <=> sv) == std::strong_ordering::equal));
+        CHECK_FALSE(s.operator==(std::string_view("Other")));
     }
 
     // ── Ordering ─────────────────────────────────────────────
