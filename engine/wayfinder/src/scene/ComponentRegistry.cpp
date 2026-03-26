@@ -10,6 +10,7 @@
 #include <array>
 #include <charconv>
 #include <sstream>
+#include <string_view>
 
 namespace Wayfinder
 {
@@ -121,7 +122,7 @@ namespace Wayfinder
             return nlohmann::json::array({static_cast<int64_t>(value.r), static_cast<int64_t>(value.g), static_cast<int64_t>(value.b), static_cast<int64_t>(value.a)});
         }
 
-        const char* ToString(Wayfinder::MeshPrimitive primitive)
+        std::string_view ToString(Wayfinder::MeshPrimitive primitive)
         {
             switch (primitive)
             {
@@ -132,7 +133,7 @@ namespace Wayfinder
             return "cube";
         }
 
-        const char* ToString(Wayfinder::ProjectionMode projection)
+        std::string_view ToString(Wayfinder::ProjectionMode projection)
         {
             switch (projection)
             {
@@ -145,7 +146,7 @@ namespace Wayfinder
             return "perspective";
         }
 
-        const char* ToString(Wayfinder::LightType type)
+        std::string_view ToString(Wayfinder::LightType type)
         {
             switch (type)
             {
@@ -853,7 +854,7 @@ namespace Wayfinder
 
         // ── PostProcessVolumeComponent ──────────────────────────
 
-        const char* ToString(Wayfinder::PostProcessVolumeShape shape)
+        std::string_view ToString(Wayfinder::PostProcessVolumeShape shape)
         {
             switch (shape)
             {

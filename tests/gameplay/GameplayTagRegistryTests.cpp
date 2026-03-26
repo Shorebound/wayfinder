@@ -3,6 +3,8 @@
 
 #include <doctest/doctest.h>
 
+#include <string>
+
 #include <filesystem>
 
 // ── Code Registration ────────────────────────────────────
@@ -17,7 +19,7 @@ namespace Wayfinder::Tests
             auto tag = registry.RegisterTag("Status.Burning", "Entity is on fire");
 
             CHECK(tag.IsValid());
-            CHECK(tag.GetName() == "Status.Burning");
+            CHECK(std::string(tag.GetName()) == "Status.Burning");
             CHECK(registry.IsRegistered("Status.Burning"));
         }
 
@@ -85,7 +87,7 @@ namespace Wayfinder::Tests
             GameplayTagRegistry registry;
             auto tag = registry.RequestTag("Unregistered.Tag");
             CHECK(tag.IsValid());
-            CHECK(tag.GetName() == "Unregistered.Tag");
+            CHECK(std::string(tag.GetName()) == "Unregistered.Tag");
         }
 
         TEST_CASE("RequestTag returns tag for registered name")
@@ -94,7 +96,7 @@ namespace Wayfinder::Tests
             registry.RegisterTag("Status");
             auto tag = registry.RequestTag("Status");
             CHECK(tag.IsValid());
-            CHECK(tag.GetName() == "Status");
+            CHECK(std::string(tag.GetName()) == "Status");
         }
 
         // ── TOML File Loading ───────────────────────────────────

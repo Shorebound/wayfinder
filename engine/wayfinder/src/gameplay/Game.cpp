@@ -14,6 +14,7 @@
 
 #include <filesystem>
 #include <functional>
+#include <string_view>
 #include <unordered_map>
 
 namespace Wayfinder
@@ -164,22 +165,23 @@ namespace Wayfinder
         m_initialised = false;
     }
 
-    void Game::LoadScene(const std::string& scenePath)
+    void Game::LoadScene(const std::string_view scenePath)
     {
+        const std::string pathStr(scenePath);
         UnloadCurrentScene();
 
-        m_currentScene = std::make_unique<Scene>(m_world, m_componentRegistry, scenePath);
+        m_currentScene = std::make_unique<Scene>(m_world, m_componentRegistry, pathStr);
         m_currentScene->SetAssetService(m_assetService);
 
-        if (std::filesystem::exists(scenePath))
+        if (std::filesystem::exists(pathStr))
         {
-            if (auto result = m_currentScene->LoadFromFile(scenePath); !result)
+            if (auto result = m_currentScene->LoadFromFile(pathStr); !result)
             {
-                WAYFINDER_ERROR(LogGame, "Failed to load scene '{}': {}", scenePath, result.error().GetMessage());
+                WAYFINDER_ERROR(LogGame, "Failed to load scene '{}': {}", pathStr, result.error().GetMessage());
             }
         }
 
-        WAYFINDER_INFO(LogGame, "Loaded scene: {}", scenePath);
+        WAYFINDER_INFO(LogGame, "Loaded scene: {}", pathStr);
     }
 
     void Game::UnloadCurrentScene()
@@ -191,7 +193,7 @@ namespace Wayfinder
         }
     }
 
-    void Game::TransitionTo(const std::string& stateName)
+    void Game::TransitionTo(const std::string_view stateName)
     {
         if (!m_stateMachine)
         {

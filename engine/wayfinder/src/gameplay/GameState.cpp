@@ -6,7 +6,7 @@
 
 namespace Wayfinder
 {
-    RunCondition InState(const std::string& stateName)
+    RunCondition InState(const std::string_view stateName)
     {
         return [name = InternedString::Intern(stateName)](const flecs::world& world) -> bool
         {
@@ -15,7 +15,7 @@ namespace Wayfinder
         };
     }
 
-    RunCondition NotInState(const std::string& stateName)
+    RunCondition NotInState(const std::string_view stateName)
     {
         return [name = InternedString::Intern(stateName)](const flecs::world& world) -> bool
         {

@@ -44,11 +44,11 @@ namespace Wayfinder
         void Update(float deltaTime);
         void Shutdown();
 
-        void LoadScene(const std::string& scenePath);
+        void LoadScene(std::string_view scenePath);
         void UnloadCurrentScene();
 
         /// Transition to a named game state. Forwards to GameStateMachine.
-        void TransitionTo(const std::string& stateName);
+        void TransitionTo(std::string_view stateName);
 
         /// Returns the name of the currently active game state.
         std::string_view GetCurrentState() const;

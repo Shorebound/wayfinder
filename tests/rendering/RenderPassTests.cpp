@@ -238,7 +238,7 @@ namespace Wayfinder::Tests
         TestPass pass("Test", log);
 
         CHECK(pass.IsEnabled());
-        CHECK(pass.GetName() == "Test");
+        CHECK(std::string(pass.GetName()) == "Test");
 
         pass.SetEnabled(false);
         CHECK_FALSE(pass.IsEnabled());

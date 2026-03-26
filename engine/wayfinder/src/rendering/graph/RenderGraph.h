@@ -60,10 +60,10 @@ namespace Wayfinder
         return kEmpty;
     }
 
-    /// Null-terminated pointer into the interned string — valid for `RenderGraphTextureDesc::DebugName`.
-    inline const char* GraphTextureName(const GraphTextureId id)
+    /// Borrowed view of the stable interned name (same storage as `GraphTextureIntern`).
+    inline std::string_view GraphTextureName(const GraphTextureId id)
     {
-        return GraphTextureIntern(id).GetString().c_str();
+        return GraphTextureIntern(id).AsStringView();
     }
 
     // ── Texture Description for Graph Resources ──────────────
@@ -73,7 +73,7 @@ namespace Wayfinder
         uint32_t Width = 0;
         uint32_t Height = 0;
         TextureFormat Format = TextureFormat::RGBA8_UNORM;
-        const char* DebugName = "";
+        std::string_view DebugName{};
     };
 
     // ── Forward Declarations ─────────────────────────────────

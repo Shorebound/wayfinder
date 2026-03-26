@@ -336,7 +336,7 @@ namespace Wayfinder::Tests
             auto tag = registry.RegisterTag("Status.Burning", "On fire");
 
             CHECK(tag.IsValid());
-            CHECK(tag.GetName() == "Status.Burning");
+            CHECK(std::string(tag.GetName()) == "Status.Burning");
             CHECK(registry.GetRegisteredTags().size() == 1);
         }
 

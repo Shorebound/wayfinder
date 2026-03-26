@@ -4,6 +4,7 @@
 #include "core/logging/spdlog/SpdLogger.h"
 
 #include <cstdint>
+#include <string>
 
 namespace Wayfinder
 {
@@ -54,7 +55,7 @@ namespace Wayfinder
             return *m_cached;
         }
 
-        m_cached = &Log::GetCategory(m_name);
+        m_cached = &Log::GetCategory(std::string{m_name});
         m_generation = currentGeneration;
         return *m_cached;
     }

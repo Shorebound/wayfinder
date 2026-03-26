@@ -169,7 +169,7 @@ Stable **engine** colour/depth targets use `GraphTextureId` with singleton **`In
 | `GraphTextureId::SceneColour` | `GraphTextures::SceneColour` | Main scene colour (created by the MainScene graph pass). |
 | `GraphTextureId::SceneDepth` | `GraphTextures::SceneDepth` | Main scene depth. |
 
-**`GraphTextureIntern(GraphTextureId)`** returns the shared `InternedString` for that id (no re-interning). **`GraphTextureName`** exposes a null-terminated C string for `RenderGraphTextureDesc::DebugName`.
+**`GraphTextureIntern(GraphTextureId)`** returns the shared `InternedString` for that id (no re-interning). **`GraphTextureName`** returns a **`std::string_view`** over that interned text. **`RenderGraphTextureDesc::DebugName`** is a **`std::string_view`** (assigned from literals, `GraphTextureName`, or other stable views before `CreateTransient` interns it).
 
 Use **`graph.FindHandle(GraphTextureId::SceneColour)`** (or `FindHandleChecked`) after those resources exist in the graph. Arbitrary transient textures still use string names on `RenderGraphTextureDesc::DebugName` and `FindHandle("…")`.
 

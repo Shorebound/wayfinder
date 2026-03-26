@@ -3,6 +3,7 @@
 #include "core/events/Event.h"
 
 #include <string>
+#include <string_view>
 
 namespace Wayfinder
 {
@@ -17,7 +18,7 @@ namespace Wayfinder
         virtual void OnUpdate(float /*deltaTime*/) {}
         virtual void OnEvent(Event& /*event*/) {}
 
-        virtual const char* GetName() const
+        virtual std::string_view GetName() const
         {
             return "Layer";
         }

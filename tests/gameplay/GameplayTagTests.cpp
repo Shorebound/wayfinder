@@ -2,6 +2,8 @@
 
 #include <doctest/doctest.h>
 
+#include <string>
+
 using namespace Wayfinder;
 
 // ── Tag Creation ─────────────────────────────────────────
@@ -17,7 +19,7 @@ namespace Wayfinder::Tests
     {
         auto tag = GameplayTag::FromName("Status.Burning");
         CHECK(tag.IsValid());
-        CHECK(tag.GetName() == "Status.Burning");
+        CHECK(std::string(tag.GetName()) == "Status.Burning");
     }
 
     TEST_CASE("Tags with the same name are equal")
@@ -92,7 +94,7 @@ namespace Wayfinder::Tests
         auto child = GameplayTag::FromName("Status.Burning");
         auto parent = child.Parent();
         REQUIRE(parent.has_value());
-        CHECK(parent->GetName() == "Status");
+        CHECK(std::string(parent->GetName()) == "Status");
     }
 
     TEST_CASE("Parent of deep tag returns immediate parent")
@@ -100,7 +102,7 @@ namespace Wayfinder::Tests
         auto deep = GameplayTag::FromName("Status.Damage.Fire");
         auto parent = deep.Parent();
         REQUIRE(parent.has_value());
-        CHECK(parent->GetName() == "Status.Damage");
+        CHECK(std::string(parent->GetName()) == "Status.Damage");
     }
 
     // ── Depth ────────────────────────────────────────────────
