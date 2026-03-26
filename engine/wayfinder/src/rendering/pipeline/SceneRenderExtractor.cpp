@@ -192,7 +192,7 @@ namespace Wayfinder
                 RenderPass* owningPass = frame.FindScenePassForSubmission(submission, 0);
                 if (!owningPass)
                 {
-                    WAYFINDER_WARNING(LogRenderer, "SceneRenderExtractor skipped mesh submission because no scene pass matched layer '{0}' in frame '{1}'.", submission.Layer, frame.SceneName);
+                    WAYFINDER_WARN(LogRenderer, "SceneRenderExtractor skipped mesh submission because no scene pass matched layer '{0}' in frame '{1}'.", submission.Layer, frame.SceneName);
                     return;
                 }
 

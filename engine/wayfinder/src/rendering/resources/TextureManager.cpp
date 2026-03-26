@@ -87,7 +87,7 @@ namespace Wayfinder
     {
         if (!m_device)
         {
-            WAYFINDER_WARNING(LogRenderer, "TextureManager::GetOrLoad called without a valid device");
+            WAYFINDER_WARN(LogRenderer, "TextureManager::GetOrLoad called without a valid device");
             return m_fallbackTexture;
         }
 
@@ -102,7 +102,7 @@ namespace Wayfinder
         const TextureAsset* asset = assetService.LoadAsset<TextureAsset>(assetId, error);
         if (!asset)
         {
-            WAYFINDER_WARNING(LogRenderer, "TextureManager: Failed to load texture asset '{}': {}", assetId.ToString(), error);
+            WAYFINDER_WARN(LogRenderer, "TextureManager: Failed to load texture asset '{}': {}", assetId.ToString(), error);
             m_textureCache[assetId] = m_fallbackTexture;
             return m_fallbackTexture;
         }
@@ -114,7 +114,7 @@ namespace Wayfinder
             asset = assetService.LoadAsset<TextureAsset>(assetId, error);
             if (!asset || asset->PixelData.empty())
             {
-                WAYFINDER_WARNING(LogRenderer, "TextureManager: Failed to reload pixel data for texture '{}': {}", assetId.ToString(), error);
+                WAYFINDER_WARN(LogRenderer, "TextureManager: Failed to reload pixel data for texture '{}': {}", assetId.ToString(), error);
                 m_textureCache[assetId] = m_fallbackTexture;
                 return m_fallbackTexture;
             }
@@ -124,7 +124,7 @@ namespace Wayfinder
         GPUTextureHandle gpuTexture = CreateAndUpload(*asset);
         if (!gpuTexture)
         {
-            WAYFINDER_WARNING(LogRenderer, "TextureManager: GPU upload failed for texture '{}', using fallback", asset->Name);
+            WAYFINDER_WARN(LogRenderer, "TextureManager: GPU upload failed for texture '{}', using fallback", asset->Name);
             m_textureCache[assetId] = m_fallbackTexture;
             return m_fallbackTexture;
         }
@@ -143,7 +143,7 @@ namespace Wayfinder
     {
         if (!m_device)
         {
-            WAYFINDER_WARNING(LogRenderer, "TextureManager::GetOrCreateSampler called without a valid device");
+            WAYFINDER_WARN(LogRenderer, "TextureManager::GetOrCreateSampler called without a valid device");
             return {};
         }
 

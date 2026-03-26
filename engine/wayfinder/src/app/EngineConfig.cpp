@@ -14,7 +14,7 @@ namespace Wayfinder
             {
                 return PlatformBackend::SDL3;
             }
-            WAYFINDER_WARNING(LogEngine, "Unknown platform backend '{}', defaulting to SDL3", value);
+            WAYFINDER_WARN(LogEngine, "Unknown platform backend '{}', defaulting to SDL3", value);
             return PlatformBackend::SDL3;
         }
 
@@ -28,7 +28,7 @@ namespace Wayfinder
             {
                 return RenderBackend::Null;
             }
-            WAYFINDER_WARNING(LogEngine, "Unknown render backend '{}', defaulting to SDL_GPU", value);
+            WAYFINDER_WARN(LogEngine, "Unknown render backend '{}', defaulting to SDL_GPU", value);
             return RenderBackend::SDL_GPU;
         }
     }
@@ -44,7 +44,7 @@ namespace Wayfinder
 
         if (!std::filesystem::exists(path))
         {
-            WAYFINDER_WARNING(LogEngine, "Config file not found: {}. Using defaults.", path.string());
+            WAYFINDER_WARN(LogEngine, "Config file not found: {}. Using defaults.", path.string());
             return config;
         }
 

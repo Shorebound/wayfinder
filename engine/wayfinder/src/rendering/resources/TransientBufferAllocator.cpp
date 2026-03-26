@@ -90,7 +90,7 @@ namespace Wayfinder
 
         if (alignedCursor + sizeInBytes > capacity)
         {
-            WAYFINDER_WARNING(LogRenderer, "TransientBufferAllocator: Ring buffer overflow ({} + {} > {} bytes)", alignedCursor, sizeInBytes, capacity);
+            WAYFINDER_WARN(LogRenderer, "TransientBufferAllocator: Ring buffer overflow ({} + {} > {} bytes)", alignedCursor, sizeInBytes, capacity);
             return {};
         }
 

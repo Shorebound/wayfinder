@@ -62,7 +62,7 @@ namespace Wayfinder
 
         for (const auto& warning : loadResult->Warnings)
         {
-            WAYFINDER_WARNING(LogEngine, "Project: {}", warning);
+            WAYFINDER_WARN(LogEngine, "Project: {}", warning);
         }
 
         m_project = std::make_unique<ProjectDescriptor>(std::move(loadResult->Descriptor));

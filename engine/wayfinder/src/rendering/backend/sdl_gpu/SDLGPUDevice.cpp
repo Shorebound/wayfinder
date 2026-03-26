@@ -148,11 +148,11 @@ namespace Wayfinder
         }
         catch (const std::exception& ex)
         {
-            WAYFINDER_WARNING(LogRenderer, "SDLGPUDevice::~SDLGPUDevice suppressed exception during Shutdown(): {}", ex.what());
+            WAYFINDER_WARN(LogRenderer, "SDLGPUDevice::~SDLGPUDevice suppressed exception during Shutdown(): {}", ex.what());
         }
         catch (...)
         {
-            WAYFINDER_WARNING(LogRenderer, "SDLGPUDevice::~SDLGPUDevice suppressed unknown exception during Shutdown().");
+            WAYFINDER_WARN(LogRenderer, "SDLGPUDevice::~SDLGPUDevice suppressed unknown exception during Shutdown().");
         }
     }
 
@@ -394,7 +394,7 @@ namespace Wayfinder
 
             if (!texture)
             {
-                WAYFINDER_WARNING(LogRenderer, "BeginRenderPass '{}': colour target at slot {} is null — skipping pass", descriptor.debugName, i);
+                WAYFINDER_WARN(LogRenderer, "BeginRenderPass '{}': colour target at slot {} is null — skipping pass", descriptor.debugName, i);
                 return false;
             }
 
@@ -658,11 +658,11 @@ namespace Wayfinder
         {
             if (!blend.Enabled && blend.ColourWriteMask == 0)
             {
-                WAYFINDER_WARNING(LogRenderer, "CreatePipeline: colour target {} has blending disabled and ColourWriteMask=0 — nothing will be written", colourTargetIndex);
+                WAYFINDER_WARN(LogRenderer, "CreatePipeline: colour target {} has blending disabled and ColourWriteMask=0 — nothing will be written", colourTargetIndex);
             }
             if (blend.Enabled && blend.ColourWriteMask == 0)
             {
-                WAYFINDER_WARNING(LogRenderer, "CreatePipeline: colour target {} has blending enabled but ColourWriteMask=0 — blended result will be discarded", colourTargetIndex);
+                WAYFINDER_WARN(LogRenderer, "CreatePipeline: colour target {} has blending enabled but ColourWriteMask=0 — blended result will be discarded", colourTargetIndex);
             }
             ++colourTargetIndex;
         }
@@ -1050,7 +1050,7 @@ namespace Wayfinder
 
         if (desc.mipLevels > maxMips)
         {
-            WAYFINDER_WARNING(LogRenderer,
+            WAYFINDER_WARN(LogRenderer,
                 "SDLGPUDevice::CreateTexture: Requested {} mip levels for {}x{} texture, "
                 "clamped to maximum of {}",
                 desc.mipLevels, desc.width, desc.height, maxMips);

@@ -170,13 +170,13 @@ namespace Wayfinder
     {
         if (frame.Views.empty())
         {
-            WAYFINDER_WARNING(LogRenderer, "RenderPipeline: frame '{}' has no views — skipped", frame.SceneName);
+            WAYFINDER_WARN(LogRenderer, "RenderPipeline: frame '{}' has no views — skipped", frame.SceneName);
             return false;
         }
 
         if (frame.Passes.empty())
         {
-            WAYFINDER_WARNING(LogRenderer, "RenderPipeline: frame '{}' has no passes — skipped", frame.SceneName);
+            WAYFINDER_WARN(LogRenderer, "RenderPipeline: frame '{}' has no passes — skipped", frame.SceneName);
             return false;
         }
 
@@ -212,7 +212,7 @@ namespace Wayfinder
 
             if (pass.ViewIndex >= frame.Views.size())
             {
-                WAYFINDER_WARNING(LogRenderer, "RenderPipeline: pass '{}' references invalid view index {}", pass.Id, pass.ViewIndex);
+                WAYFINDER_WARN(LogRenderer, "RenderPipeline: pass '{}' references invalid view index {}", pass.Id, pass.ViewIndex);
                 pass.Enabled = false;
                 continue;
             }

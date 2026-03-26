@@ -281,7 +281,7 @@ namespace Wayfinder::Physics
     {
         if (timestep <= 0.0f)
         {
-            WAYFINDER_WARNING(LogPhysics, "SetFixedTimestep called with non-positive value {:.6f}; ignoring", timestep);
+            WAYFINDER_WARN(LogPhysics, "SetFixedTimestep called with non-positive value {:.6f}; ignoring", timestep);
             return;
         }
         m_fixedTimestep = timestep;
