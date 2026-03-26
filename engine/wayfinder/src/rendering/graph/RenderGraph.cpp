@@ -52,12 +52,56 @@ namespace Wayfinder
 
     void RenderGraphBuilder::WriteColour(RenderGraphHandle handle, LoadOp load, ClearValue clear)
     {
+        WriteColour(handle, 0, load, clear);
+    }
+
+    void RenderGraphBuilder::WriteColour(RenderGraphHandle handle, uint32_t slot, LoadOp load, ClearValue clear)
+    {
         if (!handle.IsValid() || handle.Index >= m_graph.m_resources.size())
         {
             return;
         }
+        if (slot >= MAX_COLOUR_TARGETS)
+        {
+            WAYFINDER_ERROR(LogRenderer, "RenderGraphBuilder::WriteColour: slot {} exceeds MAX_COLOUR_TARGETS ({})", slot, MAX_COLOUR_TARGETS);
+            return;
+        }
+
         auto& pass = CheckedAt(m_graph.m_passes, m_passIndex);
-        pass.ColourWrite = RenderGraph::ColourWriteInfo{.Handle = handle, .Load = load, .Clear = clear};
+
+        // NOLINTBEGIN(cppcoreguidelines-pro-bounds-constant-array-index, cppcoreguidelines-pro-bounds-avoid-unchecked-container-access)
+        // — slot is bounds-checked against MAX_COLOUR_TARGETS above
+
+        // Reject duplicate slot writes
+        if (slot < pass.NumColourWrites && pass.ColourWrites[slot].Handle.IsValid())
+        {
+            WAYFINDER_ERROR(LogRenderer, "RenderGraphBuilder::WriteColour: duplicate write to slot {} in pass '{}'", slot, pass.Name.GetString());
+            return;
+        }
+
+        // Reject sparse slots — all slots must be contiguous from 0
+        if (slot > pass.NumColourWrites)
+        {
+            WAYFINDER_ERROR(LogRenderer, "RenderGraphBuilder::WriteColour: slot {} would create a gap (current count: {}) in pass '{}'", slot, pass.NumColourWrites, pass.Name.GetString());
+            return;
+        }
+
+        // Reject aliasing the same texture into multiple MRT slots
+        for (uint32_t i = 0; i < pass.NumColourWrites; ++i)
+        {
+            if (i != slot && pass.ColourWrites[i].Handle == handle)
+            {
+                WAYFINDER_ERROR(LogRenderer, "RenderGraphBuilder::WriteColour: texture already bound to slot {} — cannot also bind to slot {} in pass '{}'", i, slot, pass.Name.GetString());
+                return;
+            }
+        }
+
+        pass.ColourWrites[slot] = RenderGraph::ColourWriteInfo{.Handle = handle, .Slot = slot, .Load = load, .Clear = clear};
+        // NOLINTEND(cppcoreguidelines-pro-bounds-constant-array-index, cppcoreguidelines-pro-bounds-avoid-unchecked-container-access)
+        if (slot == pass.NumColourWrites)
+        {
+            ++pass.NumColourWrites;
+        }
 
         auto& res = CheckedAt(m_graph.m_resources, handle.Index);
         // LoadOp::Load implies reading previous content
@@ -334,21 +378,41 @@ namespace Wayfinder
                 RenderPassDescriptor rpDesc;
                 rpDesc.debugName = pass.Name.GetString();
 
+                if (pass.SwapchainWrite && pass.NumColourWrites > 0)
+                {
+                    WAYFINDER_ERROR(LogRenderer, "RenderGraph: pass '{}' has both SwapchainWrite and {} ColourWrites — these are mutually exclusive, skipping pass", pass.Name.GetString(), pass.NumColourWrites);
+                    continue;
+                }
+
+                // NOLINTBEGIN(cppcoreguidelines-pro-bounds-constant-array-index, cppcoreguidelines-pro-bounds-avoid-unchecked-container-access)
                 if (pass.SwapchainWrite)
                 {
                     rpDesc.targetSwapchain = true;
-                    rpDesc.colourAttachment.loadOp = pass.SwapchainWrite->Load;
-                    rpDesc.colourAttachment.clearValue = pass.SwapchainWrite->Clear;
-                    rpDesc.colourAttachment.storeOp = StoreOp::Store;
+                    rpDesc.numColourTargets = 1;
+                    rpDesc.colourAttachments[0].loadOp = pass.SwapchainWrite->Load;
+                    rpDesc.colourAttachments[0].clearValue = pass.SwapchainWrite->Clear;
+                    rpDesc.colourAttachments[0].storeOp = StoreOp::Store;
                 }
-                else if (pass.ColourWrite)
+                else if (pass.NumColourWrites > 0)
                 {
                     rpDesc.targetSwapchain = false;
-                    rpDesc.colourTarget = resources.GetTexture(pass.ColourWrite->Handle);
-                    rpDesc.colourAttachment.loadOp = pass.ColourWrite->Load;
-                    rpDesc.colourAttachment.clearValue = pass.ColourWrite->Clear;
-                    rpDesc.colourAttachment.storeOp = StoreOp::Store;
+                    rpDesc.numColourTargets = pass.NumColourWrites;
+
+                    for (uint32_t i = 0; i < pass.NumColourWrites; ++i)
+                    {
+                        const auto& cw = pass.ColourWrites[i];
+                        rpDesc.colourAttachments[i].target = resources.GetTexture(cw.Handle);
+                        rpDesc.colourAttachments[i].loadOp = cw.Load;
+                        rpDesc.colourAttachments[i].clearValue = cw.Clear;
+                        rpDesc.colourAttachments[i].storeOp = StoreOp::Store;
+                    }
                 }
+                else
+                {
+                    rpDesc.targetSwapchain = false;
+                    rpDesc.numColourTargets = 0;
+                }
+                // NOLINTEND(cppcoreguidelines-pro-bounds-constant-array-index, cppcoreguidelines-pro-bounds-avoid-unchecked-container-access)
 
                 if (pass.DepthWrite)
                 {
@@ -359,9 +423,11 @@ namespace Wayfinder
                     rpDesc.depthAttachment.storeOp = StoreOp::Store;
                 }
 
-                device.BeginRenderPass(rpDesc);
-                pass.Execute(device, resources);
-                device.EndRenderPass();
+                if (device.BeginRenderPass(rpDesc))
+                {
+                    pass.Execute(device, resources);
+                    device.EndRenderPass();
+                }
             }
             else if (pass.Type == RenderGraphPassType::Compute)
             {

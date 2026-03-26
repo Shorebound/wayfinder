@@ -7,6 +7,10 @@
 #include <string>
 #include <vector>
 
+// Test-idiomatic patterns: push_back with string literals is clear, and operator[] after REQUIRE(size)
+// is guarded. Suppress these doctest/test-pattern noise diagnostics file-wide.
+// NOLINTBEGIN(modernize-use-emplace, cppcoreguidelines-pro-bounds-avoid-unchecked-container-access)
+
 namespace Wayfinder::Tests
 {
     namespace
@@ -42,9 +46,14 @@ namespace Wayfinder::Tests
                 m_events.emplace_back("PopDebugGroup");
             }
 
-            void BeginRenderPass(const Wayfinder::RenderPassDescriptor& descriptor) override
+            bool BeginRenderPass(const Wayfinder::RenderPassDescriptor& descriptor) override
             {
                 m_events.emplace_back(std::string("BeginRenderPass:") + std::string(descriptor.debugName));
+                m_capturedDescriptors.push_back(descriptor);
+                // Own the debug name string so it doesn't dangle
+                m_capturedNames.push_back(std::string(descriptor.debugName));
+                m_capturedDescriptors.back().debugName = m_capturedNames.back();
+                return true;
             }
 
             void EndRenderPass() override
@@ -133,29 +142,55 @@ namespace Wayfinder::Tests
                 return m_events;
             }
 
+            const std::vector<Wayfinder::RenderPassDescriptor>& GetCapturedDescriptors() const
+            {
+                return m_capturedDescriptors;
+            }
+
         private:
             RenderDeviceInfo m_info{.BackendName = "Tracking"};
             std::vector<std::string> m_events;
+            std::vector<Wayfinder::RenderPassDescriptor> m_capturedDescriptors;
+            std::vector<std::string> m_capturedNames;
             uint32_t m_nextId = 0;
         };
     } // namespace
 
     // Helper: create a NullDevice + TransientResourcePool for graph execution
-    struct GraphTestFixture
+    namespace
     {
-        std::unique_ptr<Wayfinder::RenderDevice> m_Device;
-        Wayfinder::TransientResourcePool m_Pool;
-
-        GraphTestFixture() : m_Device(Wayfinder::RenderDevice::Create(Wayfinder::RenderBackend::Null))
+        struct TrackingTestFixture
         {
-            m_Pool.Initialise(*m_Device);
-        }
+            TrackingRenderDevice Device;
+            Wayfinder::TransientResourcePool Pool;
 
-        ~GraphTestFixture()
+            TrackingTestFixture()
+            {
+                Pool.Initialise(Device);
+            }
+
+            ~TrackingTestFixture()
+            {
+                Pool.Shutdown();
+            }
+        };
+
+        struct GraphTestFixture
         {
-            m_Pool.Shutdown();
-        }
-    };
+            std::unique_ptr<Wayfinder::RenderDevice> Device;
+            Wayfinder::TransientResourcePool Pool;
+
+            GraphTestFixture() : Device(Wayfinder::RenderDevice::Create(Wayfinder::RenderBackend::Null))
+            {
+                Pool.Initialise(*Device);
+            }
+
+            ~GraphTestFixture()
+            {
+                Pool.Shutdown();
+            }
+        };
+    } // anonymous namespace
 
     // ── Topological Sort ─────────────────────────────────────
 
@@ -218,7 +253,7 @@ namespace Wayfinder::Tests
         REQUIRE(graph.Compile());
 
         GraphTestFixture fixture;
-        graph.Execute(*fixture.m_Device, fixture.m_Pool);
+        graph.Execute(*fixture.Device, fixture.Pool);
 
         REQUIRE(executionOrder.size() == 2);
         CHECK(executionOrder[0] == "A");
@@ -271,7 +306,7 @@ namespace Wayfinder::Tests
         REQUIRE(graph.Compile());
 
         GraphTestFixture fixture;
-        graph.Execute(*fixture.m_Device, fixture.m_Pool);
+        graph.Execute(*fixture.Device, fixture.Pool);
 
         REQUIRE(executionOrder.size() == 3);
         CHECK(executionOrder[0] == "First");
@@ -368,7 +403,7 @@ namespace Wayfinder::Tests
         REQUIRE(graph.Compile());
 
         GraphTestFixture fixture;
-        graph.Execute(*fixture.m_Device, fixture.m_Pool);
+        graph.Execute(*fixture.Device, fixture.Pool);
 
         REQUIRE(executionOrder.size() == 1);
         CHECK(executionOrder[0] == "Present");
@@ -411,7 +446,7 @@ namespace Wayfinder::Tests
         REQUIRE(graph.Compile());
 
         GraphTestFixture fixture;
-        graph.Execute(*fixture.m_Device, fixture.m_Pool);
+        graph.Execute(*fixture.Device, fixture.Pool);
 
         REQUIRE(executionOrder.size() == 2);
         CHECK(executionOrder[0] == "Producer");
@@ -511,7 +546,7 @@ namespace Wayfinder::Tests
         REQUIRE(graph.Compile());
 
         GraphTestFixture fixture;
-        graph.Execute(*fixture.m_Device, fixture.m_Pool);
+        graph.Execute(*fixture.Device, fixture.Pool);
 
         REQUIRE(executionOrder.size() == 2);
         CHECK(executionOrder[0] == "Compute");
@@ -614,7 +649,7 @@ namespace Wayfinder::Tests
 
     TEST_CASE("NullDevice supports all render graph operations")
     {
-        GraphTestFixture fixture;
+        const GraphTestFixture fixture;
 
         // Verify NullDevice can handle all graph-related operations
         Wayfinder::RenderPassDescriptor rpDesc;
@@ -622,33 +657,36 @@ namespace Wayfinder::Tests
         rpDesc.targetSwapchain = false;
 
         // These should all be no-ops without crashing
-        fixture.m_Device->BeginRenderPass(rpDesc);
-        fixture.m_Device->EndRenderPass();
+        const bool passStarted = fixture.Device->BeginRenderPass(rpDesc);
+        if (passStarted)
+        {
+            fixture.Device->EndRenderPass();
+        }
 
-        fixture.m_Device->BeginComputePass();
-        fixture.m_Device->EndComputePass();
+        fixture.Device->BeginComputePass();
+        fixture.Device->EndComputePass();
 
-        auto tex = fixture.m_Device->CreateTexture({});
-        fixture.m_Device->DestroyTexture(tex);
+        auto tex = fixture.Device->CreateTexture({});
+        fixture.Device->DestroyTexture(tex);
 
-        auto buf = fixture.m_Device->CreateBuffer({});
-        fixture.m_Device->DestroyBuffer(buf);
+        auto buf = fixture.Device->CreateBuffer({});
+        fixture.Device->DestroyBuffer(buf);
 
-        auto shader = fixture.m_Device->CreateShader({});
-        fixture.m_Device->DestroyShader(shader);
+        auto shader = fixture.Device->CreateShader({});
+        fixture.Device->DestroyShader(shader);
 
-        Wayfinder::PipelineCreateDesc pipelineDesc;
-        auto pipeline = fixture.m_Device->CreatePipeline(pipelineDesc);
-        fixture.m_Device->DestroyPipeline(pipeline);
+        const Wayfinder::PipelineCreateDesc pipelineDesc;
+        auto pipeline = fixture.Device->CreatePipeline(pipelineDesc);
+        fixture.Device->DestroyPipeline(pipeline);
 
-        Wayfinder::ComputePipelineCreateDesc computePipelineDesc;
-        auto computePipeline = fixture.m_Device->CreateComputePipeline(computePipelineDesc);
-        fixture.m_Device->DestroyComputePipeline(computePipeline);
+        const Wayfinder::ComputePipelineCreateDesc computePipelineDesc;
+        auto computePipeline = fixture.Device->CreateComputePipeline(computePipelineDesc);
+        fixture.Device->DestroyComputePipeline(computePipeline);
 
-        auto sampler = fixture.m_Device->CreateSampler({});
-        fixture.m_Device->DestroySampler(sampler);
+        auto sampler = fixture.Device->CreateSampler({});
+        fixture.Device->DestroySampler(sampler);
 
-        const Wayfinder::Extent2D swapchainDimensions = fixture.m_Device->GetSwapchainDimensions();
+        const Wayfinder::Extent2D swapchainDimensions = fixture.Device->GetSwapchainDimensions();
         CHECK(swapchainDimensions.width == 0);
         CHECK(swapchainDimensions.height == 0);
     }
@@ -698,10 +736,274 @@ namespace Wayfinder::Tests
         REQUIRE(graph.Compile());
 
         GraphTestFixture fixture;
-        graph.Execute(*fixture.m_Device, fixture.m_Pool);
+        graph.Execute(*fixture.Device, fixture.Pool);
 
         REQUIRE(executionOrder.size() == 2);
         CHECK(executionOrder[0] == "Scene");
         CHECK(executionOrder[1] == "Composition");
     }
+
+    // ── Multiple Render Targets ──────────────────────────────
+
+    TEST_CASE("Two-attachment MRT pass compiles and executes")
+    {
+        // GBuffer pass writes to two colour targets (slots 0 and 1).
+        // Composition reads both and writes to swapchain.
+        std::vector<std::string> executionOrder;
+        Wayfinder::RenderGraph graph;
+
+        Wayfinder::RenderGraphTextureDesc albedoDesc;
+        albedoDesc.Width = 800;
+        albedoDesc.Height = 600;
+        albedoDesc.Format = Wayfinder::TextureFormat::RGBA8_UNORM;
+        albedoDesc.DebugName = "GBuffer_Albedo";
+
+        Wayfinder::RenderGraphTextureDesc normalDesc;
+        normalDesc.Width = 800;
+        normalDesc.Height = 600;
+        normalDesc.Format = Wayfinder::TextureFormat::RGBA16_FLOAT;
+        normalDesc.DebugName = "GBuffer_Normal";
+
+        graph.AddPass("GBuffer", [&](Wayfinder::RenderGraphBuilder& builder)
+        {
+            auto albedo = builder.CreateTransient(albedoDesc);
+            auto normal = builder.CreateTransient(normalDesc);
+            builder.WriteColour(albedo, 0);
+            builder.WriteColour(normal, 1);
+            return [&executionOrder](Wayfinder::RenderDevice&, const Wayfinder::RenderGraphResources&)
+            {
+                executionOrder.push_back("GBuffer");
+            };
+        });
+
+        graph.AddPass("Composition", [&](Wayfinder::RenderGraphBuilder& builder)
+        {
+            auto albedo = graph.FindHandle("GBuffer_Albedo");
+            auto normal = graph.FindHandle("GBuffer_Normal");
+            builder.ReadTexture(albedo);
+            builder.ReadTexture(normal);
+            builder.SetSwapchainOutput();
+            return [&executionOrder](Wayfinder::RenderDevice&, const Wayfinder::RenderGraphResources&)
+            {
+                executionOrder.push_back("Composition");
+            };
+        });
+
+        REQUIRE(graph.Compile());
+
+        TrackingTestFixture fixture;
+        graph.Execute(fixture.Device, fixture.Pool);
+
+        REQUIRE(executionOrder.size() == 2);
+        CHECK(executionOrder[0] == "GBuffer");
+        CHECK(executionOrder[1] == "Composition");
+
+        // Verify the GBuffer descriptor has 2 colour targets with valid handles
+        const auto& descriptors = fixture.Device.GetCapturedDescriptors();
+        REQUIRE(descriptors.size() >= 1);
+        const auto& gbufferDesc = descriptors[0];
+        CHECK(gbufferDesc.numColourTargets == 2);
+        CHECK(gbufferDesc.colourAttachments[0].target.IsValid());
+        CHECK(gbufferDesc.colourAttachments[1].target.IsValid());
+        CHECK_FALSE(gbufferDesc.colourAttachments[0].target == gbufferDesc.colourAttachments[1].target);
+    }
+
+    TEST_CASE("Mixed single and multi-target chain maintains dependency order")
+    {
+        // A writes slot 0, B writes slots 0+1 (loading slot 0 from A), C reads both → swapchain.
+        std::vector<std::string> executionOrder;
+        Wayfinder::RenderGraph graph;
+
+        Wayfinder::RenderGraphTextureDesc colourDesc;
+        colourDesc.Width = 640;
+        colourDesc.Height = 480;
+        colourDesc.Format = Wayfinder::TextureFormat::RGBA8_UNORM;
+        colourDesc.DebugName = "SharedColour";
+
+        Wayfinder::RenderGraphTextureDesc extraDesc;
+        extraDesc.Width = 640;
+        extraDesc.Height = 480;
+        extraDesc.Format = Wayfinder::TextureFormat::RGBA16_FLOAT;
+        extraDesc.DebugName = "ExtraTarget";
+
+        graph.AddPass("PassA", [&](Wayfinder::RenderGraphBuilder& builder)
+        {
+            auto colour = builder.CreateTransient(colourDesc);
+            builder.WriteColour(colour, 0);
+            return [&executionOrder](Wayfinder::RenderDevice&, const Wayfinder::RenderGraphResources&)
+            {
+                executionOrder.push_back("PassA");
+            };
+        });
+
+        graph.AddPass("PassB", [&](Wayfinder::RenderGraphBuilder& builder)
+        {
+            auto colour = graph.FindHandle("SharedColour");
+            auto extra = builder.CreateTransient(extraDesc);
+            builder.WriteColour(colour, 0, Wayfinder::LoadOp::Load); // depends on PassA
+            builder.WriteColour(extra, 1);
+            return [&executionOrder](Wayfinder::RenderDevice&, const Wayfinder::RenderGraphResources&)
+            {
+                executionOrder.push_back("PassB");
+            };
+        });
+
+        graph.AddPass("PassC", [&](Wayfinder::RenderGraphBuilder& builder)
+        {
+            auto colour = graph.FindHandle("SharedColour");
+            auto extra = graph.FindHandle("ExtraTarget");
+            builder.ReadTexture(colour);
+            builder.ReadTexture(extra);
+            builder.SetSwapchainOutput();
+            return [&executionOrder](Wayfinder::RenderDevice&, const Wayfinder::RenderGraphResources&)
+            {
+                executionOrder.push_back("PassC");
+            };
+        });
+
+        REQUIRE(graph.Compile());
+
+        TrackingTestFixture fixture;
+        graph.Execute(fixture.Device, fixture.Pool);
+
+        REQUIRE(executionOrder.size() == 3);
+        CHECK(executionOrder[0] == "PassA");
+        CHECK(executionOrder[1] == "PassB");
+        CHECK(executionOrder[2] == "PassC");
+
+        // PassA writes 1 colour target, PassB writes 2 (slot 0 loaded + slot 1 new)
+        const auto& descriptors = fixture.Device.GetCapturedDescriptors();
+        REQUIRE(descriptors.size() >= 2);
+        CHECK(descriptors[0].numColourTargets == 1);
+        CHECK(descriptors[0].colourAttachments[0].target.IsValid());
+        CHECK(descriptors[1].numColourTargets == 2);
+        CHECK(descriptors[1].colourAttachments[0].target.IsValid());
+        CHECK(descriptors[1].colourAttachments[1].target.IsValid());
+    }
+
+    TEST_CASE("Slot-based WriteColour defaults to slot 0")
+    {
+        // Verify the convenience overload (no explicit slot) works identically to slot 0.
+        std::vector<std::string> executionOrder;
+        Wayfinder::RenderGraph graph;
+
+        Wayfinder::RenderGraphTextureDesc desc;
+        desc.Width = 800;
+        desc.Height = 600;
+        desc.Format = Wayfinder::TextureFormat::RGBA8_UNORM;
+        desc.DebugName = "DefaultSlot";
+
+        graph.AddPass("Writer", [&](Wayfinder::RenderGraphBuilder& builder)
+        {
+            auto tex = builder.CreateTransient(desc);
+            builder.WriteColour(tex); // no slot = slot 0
+            return [&executionOrder](Wayfinder::RenderDevice&, const Wayfinder::RenderGraphResources&)
+            {
+                executionOrder.push_back("Writer");
+            };
+        });
+
+        graph.AddPass("Reader", [&](Wayfinder::RenderGraphBuilder& builder)
+        {
+            auto tex = graph.FindHandle("DefaultSlot");
+            builder.ReadTexture(tex);
+            builder.SetSwapchainOutput();
+            return [&executionOrder](Wayfinder::RenderDevice&, const Wayfinder::RenderGraphResources&)
+            {
+                executionOrder.push_back("Reader");
+            };
+        });
+
+        REQUIRE(graph.Compile());
+
+        TrackingTestFixture fixture;
+        graph.Execute(fixture.Device, fixture.Pool);
+
+        REQUIRE(executionOrder.size() == 2);
+        CHECK(executionOrder[0] == "Writer");
+        CHECK(executionOrder[1] == "Reader");
+
+        // Convenience WriteColour (no slot arg) should produce slot 0
+        const auto& descriptors = fixture.Device.GetCapturedDescriptors();
+        REQUIRE(descriptors.size() >= 1);
+        CHECK(descriptors[0].numColourTargets == 1);
+        CHECK(descriptors[0].colourAttachments[0].target.IsValid());
+    }
+
+    TEST_CASE("Depth and MRT combined pass compiles and executes")
+    {
+        // GBuffer pass writes depth + two colour targets (albedo at slot 0, normal at slot 1).
+        // Composition reads all three and writes to swapchain.
+        std::vector<std::string> executionOrder;
+        Wayfinder::RenderGraph graph;
+
+        Wayfinder::RenderGraphTextureDesc albedoDesc;
+        albedoDesc.Width = 1280;
+        albedoDesc.Height = 720;
+        albedoDesc.Format = Wayfinder::TextureFormat::RGBA8_UNORM;
+        albedoDesc.DebugName = "GBuffer_Albedo";
+
+        Wayfinder::RenderGraphTextureDesc normalDesc;
+        normalDesc.Width = 1280;
+        normalDesc.Height = 720;
+        normalDesc.Format = Wayfinder::TextureFormat::RGBA16_FLOAT;
+        normalDesc.DebugName = "GBuffer_Normal";
+
+        Wayfinder::RenderGraphTextureDesc depthDesc;
+        depthDesc.Width = 1280;
+        depthDesc.Height = 720;
+        depthDesc.Format = Wayfinder::TextureFormat::D32_FLOAT;
+        depthDesc.DebugName = "GBuffer_Depth";
+
+        graph.AddPass("GBuffer", [&](Wayfinder::RenderGraphBuilder& builder)
+        {
+            auto albedo = builder.CreateTransient(albedoDesc);
+            auto normal = builder.CreateTransient(normalDesc);
+            auto depth = builder.CreateTransient(depthDesc);
+            builder.WriteColour(albedo, 0);
+            builder.WriteColour(normal, 1);
+            builder.WriteDepth(depth);
+            return [&executionOrder](Wayfinder::RenderDevice&, const Wayfinder::RenderGraphResources&)
+            {
+                executionOrder.push_back("GBuffer");
+            };
+        });
+
+        graph.AddPass("Lighting", [&](Wayfinder::RenderGraphBuilder& builder)
+        {
+            auto albedo = graph.FindHandle("GBuffer_Albedo");
+            auto normal = graph.FindHandle("GBuffer_Normal");
+            auto depth = graph.FindHandle("GBuffer_Depth");
+            builder.ReadTexture(albedo);
+            builder.ReadTexture(normal);
+            builder.ReadTexture(depth);
+            builder.SetSwapchainOutput();
+            return [&executionOrder](Wayfinder::RenderDevice&, const Wayfinder::RenderGraphResources&)
+            {
+                executionOrder.push_back("Lighting");
+            };
+        });
+
+        REQUIRE(graph.Compile());
+
+        TrackingTestFixture fixture;
+        graph.Execute(fixture.Device, fixture.Pool);
+
+        REQUIRE(executionOrder.size() == 2);
+        CHECK(executionOrder[0] == "GBuffer");
+        CHECK(executionOrder[1] == "Lighting");
+
+        // Verify GBuffer descriptor: 2 colour targets + depth
+        const auto& descriptors = fixture.Device.GetCapturedDescriptors();
+        REQUIRE(descriptors.size() >= 1);
+        const auto& gbufferDesc = descriptors[0];
+        CHECK(gbufferDesc.numColourTargets == 2);
+        CHECK(gbufferDesc.colourAttachments[0].target.IsValid());
+        CHECK(gbufferDesc.colourAttachments[1].target.IsValid());
+        CHECK_FALSE(gbufferDesc.colourAttachments[0].target == gbufferDesc.colourAttachments[1].target);
+        CHECK(gbufferDesc.depthAttachment.enabled);
+        CHECK(gbufferDesc.depthTarget.IsValid());
+    }
 }
+
+// NOLINTEND(modernize-use-emplace, cppcoreguidelines-pro-bounds-avoid-unchecked-container-access)

@@ -67,8 +67,17 @@ namespace Wayfinder
         // Declare this pass reads a texture (for sampling in a shader).
         void ReadTexture(RenderGraphHandle handle);
 
-        // Declare this pass writes to a colour render target.
+        // Declare this pass writes to a colour render target at slot 0.
         void WriteColour(RenderGraphHandle handle, LoadOp load = LoadOp::Clear, ClearValue clear = {});
+
+        /**
+         * @brief Declare this pass writes to a colour render target at an explicit MRT slot.
+         * @param handle  Render graph resource to write to.
+         * @param slot    Colour target slot index (must be contiguous from 0).
+         * @param load    Load operation applied at the start of the pass.
+         * @param clear   Clear value used when @p load is LoadOp::Clear.
+         */
+        void WriteColour(RenderGraphHandle handle, uint32_t slot, LoadOp load = LoadOp::Clear, ClearValue clear = {});
 
         // Declare this pass writes to a depth render target.
         void WriteDepth(RenderGraphHandle handle, LoadOp load = LoadOp::Clear, float clearDepth = 1.0f);
@@ -157,6 +166,7 @@ namespace Wayfinder
         struct ColourWriteInfo
         {
             RenderGraphHandle Handle;
+            uint32_t Slot = 0;
             LoadOp Load = LoadOp::Clear;
             ClearValue Clear{};
         };
@@ -183,7 +193,8 @@ namespace Wayfinder
             std::vector<RenderGraphHandle> Reads;
             std::vector<uint32_t> DependsOn; // Direct pass indices this pass depends on
 
-            std::optional<ColourWriteInfo> ColourWrite;
+            uint32_t NumColourWrites = 0;
+            std::array<ColourWriteInfo, MAX_COLOUR_TARGETS> ColourWrites{};
             std::optional<DepthWriteInfo> DepthWrite;
             std::optional<SwapchainWriteInfo> SwapchainWrite;
 

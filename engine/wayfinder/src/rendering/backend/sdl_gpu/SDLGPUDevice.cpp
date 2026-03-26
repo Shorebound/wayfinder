@@ -84,6 +84,7 @@ namespace Wayfinder
         {
             switch (format)
             {
+            case TextureFormat::SwapchainFormat:
             case TextureFormat::RGBA8_UNORM:
                 return SDL_GPU_TEXTUREFORMAT_R8G8B8A8_UNORM;
             case TextureFormat::BGRA8_UNORM:
@@ -147,11 +148,11 @@ namespace Wayfinder
         }
         catch (const std::exception& ex)
         {
-            WAYFINDER_WARNING(LogRenderer, "SDLGPUDevice::~SDLGPUDevice suppressed exception during Shutdown(): {}", ex.what());
+            WAYFINDER_WARN(LogRenderer, "SDLGPUDevice::~SDLGPUDevice suppressed exception during Shutdown(): {}", ex.what());
         }
         catch (...)
         {
-            WAYFINDER_WARNING(LogRenderer, "SDLGPUDevice::~SDLGPUDevice suppressed unknown exception during Shutdown().");
+            WAYFINDER_WARN(LogRenderer, "SDLGPUDevice::~SDLGPUDevice suppressed unknown exception during Shutdown().");
         }
     }
 
@@ -354,64 +355,82 @@ namespace Wayfinder
 
     // ── Render Pass ──────────────────────────────────────────
 
-    void SDLGPUDevice::BeginRenderPass(const RenderPassDescriptor& descriptor)
+    bool SDLGPUDevice::BeginRenderPass(const RenderPassDescriptor& descriptor)
     {
         if (!m_commandBuffer)
         {
-            return;
+            return false;
         }
 
-        // Determine colour target texture
-        SDL_GPUTexture* colourTexture = nullptr;
-        if (descriptor.targetSwapchain)
+        const uint32_t numTargets = std::min(descriptor.numColourTargets, MAX_COLOUR_TARGETS);
+        if (numTargets == 0 && !descriptor.depthAttachment.enabled)
         {
-            if (!m_swapchainTexture)
+            WAYFINDER_ERROR(LogRenderer, "BeginRenderPass '{}': no colour targets and no depth attachment — skipping pass", descriptor.debugName);
+            return false;
+        }
+
+        // ── Build colour target array ────────────────────────
+        // NOLINTBEGIN(cppcoreguidelines-pro-bounds-constant-array-index, cppcoreguidelines-pro-bounds-avoid-unchecked-container-access)
+        std::array<SDL_GPUColorTargetInfo, MAX_COLOUR_TARGETS> colourTargets{};
+
+        for (uint32_t i = 0; i < numTargets; ++i)
+        {
+            const auto& attachment = descriptor.colourAttachments[i];
+            SDL_GPUTexture* texture = nullptr;
+
+            if (descriptor.targetSwapchain && i == 0)
             {
-                return;
+                if (!m_swapchainTexture)
+                {
+                    return false;
+                }
+                texture = m_swapchainTexture;
             }
-            colourTexture = m_swapchainTexture;
-        }
-        else if (descriptor.colourTarget.IsValid())
-        {
-            auto* pTex = m_texturePool.Get(descriptor.colourTarget);
-            colourTexture = pTex ? pTex->texture : nullptr;
-        }
+            else if (attachment.target.IsValid())
+            {
+                auto* pTex = m_texturePool.Get(attachment.target);
+                texture = pTex ? pTex->texture : nullptr;
+            }
 
-        if (!colourTexture)
-        {
-            return;
+            if (!texture)
+            {
+                WAYFINDER_WARN(LogRenderer, "BeginRenderPass '{}': colour target at slot {} is null — skipping pass", descriptor.debugName, i);
+                return false;
+            }
+
+            auto& target = colourTargets[i];
+            target.texture = texture;
+            target.clear_color.r = attachment.clearValue.r;
+            target.clear_color.g = attachment.clearValue.g;
+            target.clear_color.b = attachment.clearValue.b;
+            target.clear_color.a = attachment.clearValue.a;
+
+            switch (attachment.loadOp)
+            {
+            case LoadOp::Clear:
+                target.load_op = SDL_GPU_LOADOP_CLEAR;
+                break;
+            case LoadOp::Load:
+                target.load_op = SDL_GPU_LOADOP_LOAD;
+                break;
+            case LoadOp::DontCare:
+                target.load_op = SDL_GPU_LOADOP_DONT_CARE;
+                break;
+            }
+
+            switch (attachment.storeOp)
+            {
+            case StoreOp::Store:
+                target.store_op = SDL_GPU_STOREOP_STORE;
+                break;
+            case StoreOp::DontCare:
+                target.store_op = SDL_GPU_STOREOP_DONT_CARE;
+                break;
+            }
         }
+        // NOLINTEND(cppcoreguidelines-pro-bounds-constant-array-index, cppcoreguidelines-pro-bounds-avoid-unchecked-container-access)
 
-        SDL_GPUColorTargetInfo colourTarget{};
-        colourTarget.texture = colourTexture;
-        colourTarget.clear_color.r = descriptor.colourAttachment.clearValue.r;
-        colourTarget.clear_color.g = descriptor.colourAttachment.clearValue.g;
-        colourTarget.clear_color.b = descriptor.colourAttachment.clearValue.b;
-        colourTarget.clear_color.a = descriptor.colourAttachment.clearValue.a;
-
-        switch (descriptor.colourAttachment.loadOp)
-        {
-        case LoadOp::Clear:
-            colourTarget.load_op = SDL_GPU_LOADOP_CLEAR;
-            break;
-        case LoadOp::Load:
-            colourTarget.load_op = SDL_GPU_LOADOP_LOAD;
-            break;
-        case LoadOp::DontCare:
-            colourTarget.load_op = SDL_GPU_LOADOP_DONT_CARE;
-            break;
-        }
-
-        switch (descriptor.colourAttachment.storeOp)
-        {
-        case StoreOp::Store:
-            colourTarget.store_op = SDL_GPU_STOREOP_STORE;
-            break;
-        case StoreOp::DontCare:
-            colourTarget.store_op = SDL_GPU_STOREOP_DONT_CARE;
-            break;
-        }
-
+        // ── Depth target ─────────────────────────────────────
         if (descriptor.depthAttachment.enabled)
         {
             SDL_GPUTexture* depthTexture = nullptr;
@@ -457,18 +476,21 @@ namespace Wayfinder
                 depthTarget.stencil_load_op = SDL_GPU_LOADOP_DONT_CARE;
                 depthTarget.stencil_store_op = SDL_GPU_STOREOP_DONT_CARE;
 
-                m_renderPass = SDL_BeginGPURenderPass(m_commandBuffer, &colourTarget, 1, &depthTarget);
+                m_renderPass = SDL_BeginGPURenderPass(m_commandBuffer, colourTargets.data(), numTargets, &depthTarget);
             }
             else
             {
-                WAYFINDER_WARNING(LogRenderer, "Depth attachment enabled but no depth texture available (depthTarget={}, m_depthTexture={})", descriptor.depthTarget.IsValid(), m_depthTexture != nullptr);
-                m_renderPass = SDL_BeginGPURenderPass(m_commandBuffer, &colourTarget, 1, nullptr);
+                WAYFINDER_ERROR(LogRenderer, "BeginRenderPass '{}': depth attachment enabled but no depth texture available (depthTarget={}, m_depthTexture={})", descriptor.debugName, descriptor.depthTarget.IsValid(),
+                    m_depthTexture != nullptr);
+                return false;
             }
         }
         else
         {
-            m_renderPass = SDL_BeginGPURenderPass(m_commandBuffer, &colourTarget, 1, nullptr);
+            m_renderPass = SDL_BeginGPURenderPass(m_commandBuffer, colourTargets.data(), numTargets, nullptr);
         }
+
+        return m_renderPass != nullptr;
     }
 
     void SDLGPUDevice::EndRenderPass()
@@ -636,25 +658,24 @@ namespace Wayfinder
         {
             if (!blend.Enabled && blend.ColourWriteMask == 0)
             {
-                WAYFINDER_WARNING(LogRenderer, "CreatePipeline: colour target {} has blending disabled and ColourWriteMask=0 — nothing will be written", colourTargetIndex);
+                WAYFINDER_WARN(LogRenderer, "CreatePipeline: colour target {} has blending disabled and ColourWriteMask=0 — nothing will be written", colourTargetIndex);
             }
             if (blend.Enabled && blend.ColourWriteMask == 0)
             {
-                WAYFINDER_WARNING(LogRenderer, "CreatePipeline: colour target {} has blending enabled but ColourWriteMask=0 — blended result will be discarded", colourTargetIndex);
+                WAYFINDER_WARN(LogRenderer, "CreatePipeline: colour target {} has blending enabled but ColourWriteMask=0 — blended result will be discarded", colourTargetIndex);
             }
             ++colourTargetIndex;
         }
 
-        // Colour targets — one per MRT attachment, all using swapchain format for now.
-        // Non-swapchain render targets (e.g. G-buffer, shadow maps) will require
-        // per-target format fields in PipelineCreateDesc once framebuffer abstraction lands.
+        // Colour targets — one per MRT attachment.
+        // Per-target formats allow deferred rendering with mixed formats (e.g. RGBA8 albedo + RGBA16F normals).
+        // SwapchainFormat (value 0, the default for zero-initialised arrays) resolves to the actual swapchain format.
         const SDL_GPUTextureFormat swapchainFormat = SDL_GetGPUSwapchainTextureFormat(m_device, m_window);
         std::array<SDL_GPUColorTargetDescription, MAX_COLOUR_TARGETS> colourTargetDescs{};
-        auto colourTargetDescIt = colourTargetDescs.begin();
-        for (const BlendState& blend : desc.colourTargetBlends | std::views::take(desc.numColourTargets))
+        auto targetSlices = std::views::zip(colourTargetDescs, desc.colourTargetFormats, desc.colourTargetBlends) | std::views::take(desc.numColourTargets);
+        for (auto&& [colourTargetDesc, format, blend] : targetSlices)
         {
-            auto& colourTargetDesc = *colourTargetDescIt++;
-            colourTargetDesc.format = swapchainFormat;
+            colourTargetDesc.format = (format == TextureFormat::SwapchainFormat) ? swapchainFormat : ToSDLTextureFormat(format);
 
             if (blend.Enabled)
             {
@@ -1029,7 +1050,7 @@ namespace Wayfinder
 
         if (desc.mipLevels > maxMips)
         {
-            WAYFINDER_WARNING(LogRenderer,
+            WAYFINDER_WARN(LogRenderer,
                 "SDLGPUDevice::CreateTexture: Requested {} mip levels for {}x{} texture, "
                 "clamped to maximum of {}",
                 desc.mipLevels, desc.width, desc.height, maxMips);

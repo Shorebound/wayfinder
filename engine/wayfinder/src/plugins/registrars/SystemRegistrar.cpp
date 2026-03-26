@@ -60,7 +60,7 @@ namespace Wayfinder::Plugins
                 }
                 else
                 {
-                    WAYFINDER_WARNING(LogEngine,
+                    WAYFINDER_WARN(LogEngine,
                         "SystemRegistrar: system '{}' declares After '{}' but no such "
                         "system is registered; ignoring ordering constraint.",
                         descriptor.Name, dep);
@@ -77,7 +77,7 @@ namespace Wayfinder::Plugins
                 }
                 else
                 {
-                    WAYFINDER_WARNING(LogEngine,
+                    WAYFINDER_WARN(LogEngine,
                         "SystemRegistrar: system '{}' declares Before '{}' but no such "
                         "system is registered; ignoring ordering constraint.",
                         descriptor.Name, dep);

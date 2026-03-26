@@ -43,7 +43,7 @@ namespace Wayfinder
 
         if (m_programs.contains(desc.Name))
         {
-            WAYFINDER_WARNING(LogRenderer, "ShaderProgramRegistry: '{}' already registered — skipping", desc.Name);
+            WAYFINDER_WARN(LogRenderer, "ShaderProgramRegistry: '{}' already registered — skipping", desc.Name);
             return true;
         }
 

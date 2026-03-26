@@ -117,6 +117,6 @@ namespace Wayfinder
 
 #define WAYFINDER_VERBOSE(category, ...) WAYFINDER_LOG(category, Wayfinder::LogVerbosity::Verbose, __VA_ARGS__)
 #define WAYFINDER_INFO(category, ...) WAYFINDER_LOG(category, Wayfinder::LogVerbosity::Info, __VA_ARGS__)
-#define WAYFINDER_WARNING(category, ...) WAYFINDER_LOG(category, Wayfinder::LogVerbosity::Warning, __VA_ARGS__)
+#define WAYFINDER_WARN(category, ...) WAYFINDER_LOG(category, Wayfinder::LogVerbosity::Warning, __VA_ARGS__)
 #define WAYFINDER_ERROR(category, ...) WAYFINDER_LOG(category, Wayfinder::LogVerbosity::Error, __VA_ARGS__)
 #define WAYFINDER_FATAL(category, ...) WAYFINDER_LOG(category, Wayfinder::LogVerbosity::Fatal, __VA_ARGS__)
