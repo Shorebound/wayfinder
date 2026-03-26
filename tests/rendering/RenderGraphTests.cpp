@@ -49,6 +49,10 @@ namespace Wayfinder::Tests
             bool BeginRenderPass(const Wayfinder::RenderPassDescriptor& descriptor) override
             {
                 m_events.emplace_back(std::string("BeginRenderPass:") + std::string(descriptor.debugName));
+                m_capturedDescriptors.push_back(descriptor);
+                // Own the debug name string so it doesn't dangle
+                m_capturedNames.push_back(std::string(descriptor.debugName));
+                m_capturedDescriptors.back().debugName = m_capturedNames.back();
                 return true;
             }
 
@@ -138,9 +142,16 @@ namespace Wayfinder::Tests
                 return m_events;
             }
 
+            const std::vector<Wayfinder::RenderPassDescriptor>& GetCapturedDescriptors() const
+            {
+                return m_capturedDescriptors;
+            }
+
         private:
             RenderDeviceInfo m_info{.BackendName = "Tracking"};
             std::vector<std::string> m_events;
+            std::vector<Wayfinder::RenderPassDescriptor> m_capturedDescriptors;
+            std::vector<std::string> m_capturedNames;
             uint32_t m_nextId = 0;
         };
     } // namespace
@@ -148,6 +159,22 @@ namespace Wayfinder::Tests
     // Helper: create a NullDevice + TransientResourcePool for graph execution
     namespace
     {
+        struct TrackingTestFixture
+        {
+            TrackingRenderDevice Device;
+            Wayfinder::TransientResourcePool Pool;
+
+            TrackingTestFixture()
+            {
+                Pool.Initialise(Device);
+            }
+
+            ~TrackingTestFixture()
+            {
+                Pool.Shutdown();
+            }
+        };
+
         struct GraphTestFixture
         {
             std::unique_ptr<Wayfinder::RenderDevice> Device;
@@ -630,8 +657,11 @@ namespace Wayfinder::Tests
         rpDesc.targetSwapchain = false;
 
         // These should all be no-ops without crashing
-        fixture.Device->BeginRenderPass(rpDesc);
-        fixture.Device->EndRenderPass();
+        const bool passStarted = fixture.Device->BeginRenderPass(rpDesc);
+        if (passStarted)
+        {
+            fixture.Device->EndRenderPass();
+        }
 
         fixture.Device->BeginComputePass();
         fixture.Device->EndComputePass();
@@ -761,12 +791,21 @@ namespace Wayfinder::Tests
 
         REQUIRE(graph.Compile());
 
-        GraphTestFixture fixture;
-        graph.Execute(*fixture.Device, fixture.Pool);
+        TrackingTestFixture fixture;
+        graph.Execute(fixture.Device, fixture.Pool);
 
         REQUIRE(executionOrder.size() == 2);
         CHECK(executionOrder[0] == "GBuffer");
         CHECK(executionOrder[1] == "Composition");
+
+        // Verify the GBuffer descriptor has 2 colour targets with valid handles
+        const auto& descriptors = fixture.Device.GetCapturedDescriptors();
+        REQUIRE(descriptors.size() >= 1);
+        const auto& gbufferDesc = descriptors[0];
+        CHECK(gbufferDesc.numColourTargets == 2);
+        CHECK(gbufferDesc.colourAttachments[0].target.IsValid());
+        CHECK(gbufferDesc.colourAttachments[1].target.IsValid());
+        CHECK_FALSE(gbufferDesc.colourAttachments[0].target == gbufferDesc.colourAttachments[1].target);
     }
 
     TEST_CASE("Mixed single and multi-target chain maintains dependency order")
@@ -824,13 +863,22 @@ namespace Wayfinder::Tests
 
         REQUIRE(graph.Compile());
 
-        GraphTestFixture fixture;
-        graph.Execute(*fixture.Device, fixture.Pool);
+        TrackingTestFixture fixture;
+        graph.Execute(fixture.Device, fixture.Pool);
 
         REQUIRE(executionOrder.size() == 3);
         CHECK(executionOrder[0] == "PassA");
         CHECK(executionOrder[1] == "PassB");
         CHECK(executionOrder[2] == "PassC");
+
+        // PassA writes 1 colour target, PassB writes 2 (slot 0 loaded + slot 1 new)
+        const auto& descriptors = fixture.Device.GetCapturedDescriptors();
+        REQUIRE(descriptors.size() >= 2);
+        CHECK(descriptors[0].numColourTargets == 1);
+        CHECK(descriptors[0].colourAttachments[0].target.IsValid());
+        CHECK(descriptors[1].numColourTargets == 2);
+        CHECK(descriptors[1].colourAttachments[0].target.IsValid());
+        CHECK(descriptors[1].colourAttachments[1].target.IsValid());
     }
 
     TEST_CASE("Slot-based WriteColour defaults to slot 0")
@@ -868,12 +916,18 @@ namespace Wayfinder::Tests
 
         REQUIRE(graph.Compile());
 
-        GraphTestFixture fixture;
-        graph.Execute(*fixture.Device, fixture.Pool);
+        TrackingTestFixture fixture;
+        graph.Execute(fixture.Device, fixture.Pool);
 
         REQUIRE(executionOrder.size() == 2);
         CHECK(executionOrder[0] == "Writer");
         CHECK(executionOrder[1] == "Reader");
+
+        // Convenience WriteColour (no slot arg) should produce slot 0
+        const auto& descriptors = fixture.Device.GetCapturedDescriptors();
+        REQUIRE(descriptors.size() >= 1);
+        CHECK(descriptors[0].numColourTargets == 1);
+        CHECK(descriptors[0].colourAttachments[0].target.IsValid());
     }
 
     TEST_CASE("Depth and MRT combined pass compiles and executes")
@@ -932,12 +986,23 @@ namespace Wayfinder::Tests
 
         REQUIRE(graph.Compile());
 
-        GraphTestFixture fixture;
-        graph.Execute(*fixture.Device, fixture.Pool);
+        TrackingTestFixture fixture;
+        graph.Execute(fixture.Device, fixture.Pool);
 
         REQUIRE(executionOrder.size() == 2);
         CHECK(executionOrder[0] == "GBuffer");
         CHECK(executionOrder[1] == "Lighting");
+
+        // Verify GBuffer descriptor: 2 colour targets + depth
+        const auto& descriptors = fixture.Device.GetCapturedDescriptors();
+        REQUIRE(descriptors.size() >= 1);
+        const auto& gbufferDesc = descriptors[0];
+        CHECK(gbufferDesc.numColourTargets == 2);
+        CHECK(gbufferDesc.colourAttachments[0].target.IsValid());
+        CHECK(gbufferDesc.colourAttachments[1].target.IsValid());
+        CHECK_FALSE(gbufferDesc.colourAttachments[0].target == gbufferDesc.colourAttachments[1].target);
+        CHECK(gbufferDesc.depthAttachment.enabled);
+        CHECK(gbufferDesc.depthTarget.IsValid());
     }
 }
 

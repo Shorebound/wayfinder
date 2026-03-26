@@ -86,6 +86,16 @@ namespace Wayfinder
             return;
         }
 
+        // Reject aliasing the same texture into multiple MRT slots
+        for (uint32_t i = 0; i < pass.NumColourWrites; ++i)
+        {
+            if (i != slot && pass.ColourWrites[i].Handle == handle)
+            {
+                WAYFINDER_ERROR(LogRenderer, "RenderGraphBuilder::WriteColour: texture already bound to slot {} — cannot also bind to slot {} in pass '{}'", i, slot, pass.Name.GetString());
+                return;
+            }
+        }
+
         pass.ColourWrites[slot] = RenderGraph::ColourWriteInfo{.Handle = handle, .Slot = slot, .Load = load, .Clear = clear};
         // NOLINTEND(cppcoreguidelines-pro-bounds-constant-array-index, cppcoreguidelines-pro-bounds-avoid-unchecked-container-access)
         if (slot == pass.NumColourWrites)
