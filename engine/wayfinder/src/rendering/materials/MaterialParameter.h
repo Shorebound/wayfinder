@@ -5,6 +5,7 @@
 
 #include <cstdint>
 #include <string>
+#include <string_view>
 #include <unordered_map>
 #include <variant>
 #include <vector>
@@ -48,34 +49,34 @@ namespace Wayfinder
     {
         std::unordered_map<std::string, MaterialParamValue> Values;
 
-        void SetFloat(const std::string& name, float v)
+        void SetFloat(std::string_view name, float v)
         {
-            Values[name] = v;
+            Values[std::string(name)] = v;
         }
-        void SetVec2(const std::string& name, const Float2& v)
+        void SetVec2(std::string_view name, const Float2& v)
         {
-            Values[name] = v;
+            Values[std::string(name)] = v;
         }
-        void SetVec3(const std::string& name, const Float3& v)
+        void SetVec3(std::string_view name, const Float3& v)
         {
-            Values[name] = v;
+            Values[std::string(name)] = v;
         }
-        void SetVec4(const std::string& name, const Float4& v)
+        void SetVec4(std::string_view name, const Float4& v)
         {
-            Values[name] = v;
+            Values[std::string(name)] = v;
         }
-        void SetColour(const std::string& name, const LinearColour& v)
+        void SetColour(std::string_view name, const LinearColour& v)
         {
-            Values[name] = v;
+            Values[std::string(name)] = v;
         }
-        void SetInt(const std::string& name, int32_t v)
+        void SetInt(std::string_view name, int32_t v)
         {
-            Values[name] = v;
+            Values[std::string(name)] = v;
         }
 
-        bool Has(const std::string& name) const
+        bool Has(std::string_view name) const
         {
-            return Values.contains(name);
+            return Values.contains(std::string(name));
         }
 
         // Write all parameters into a byte buffer using the given declarations.

@@ -3,6 +3,7 @@
 #include <cstdint>
 #include <span>
 #include <string>
+#include <string_view>
 #include <unordered_map>
 #include <variant>
 #include <vector>
@@ -38,33 +39,33 @@ namespace Wayfinder
         std::unordered_map<std::string, PostProcessParamValue> Parameters; ///< Named parameter bag.
 
         /** @brief Retrieve a float parameter, returning @p fallback if not found. */
-        float GetFloat(const std::string& name, float fallback = 0.0f) const;
+        float GetFloat(std::string_view name, float fallback = 0.0f) const;
         /** @brief Retrieve an integer parameter, returning @p fallback if not found. */
-        int32_t GetInt(const std::string& name, int32_t fallback = 0) const;
+        int32_t GetInt(std::string_view name, int32_t fallback = 0) const;
         /** @brief Retrieve a Float3 parameter, returning @p fallback if not found. */
-        Float3 GetFloat3(const std::string& name, const Float3& fallback = {0.0f, 0.0f, 0.0f}) const;
+        Float3 GetFloat3(std::string_view name, const Float3& fallback = {0.0f, 0.0f, 0.0f}) const;
         /** @brief Retrieve a Colour parameter, returning @p fallback if not found. */
-        Colour GetColour(const std::string& name, const Colour& fallback = Colour::White()) const;
+        Colour GetColour(std::string_view name, const Colour& fallback = Colour::White()) const;
 
         /** @brief Set a float parameter. */
-        void SetFloat(const std::string& name, float v)
+        void SetFloat(std::string_view name, float v)
         {
-            Parameters[name] = v;
+            Parameters[std::string(name)] = v;
         }
         /** @brief Set an integer parameter. */
-        void SetInt(const std::string& name, int32_t v)
+        void SetInt(std::string_view name, int32_t v)
         {
-            Parameters[name] = v;
+            Parameters[std::string(name)] = v;
         }
         /** @brief Set a Float3 parameter. */
-        void SetFloat3(const std::string& name, const Float3& v)
+        void SetFloat3(std::string_view name, const Float3& v)
         {
-            Parameters[name] = v;
+            Parameters[std::string(name)] = v;
         }
         /** @brief Set a Colour parameter. */
-        void SetColour(const std::string& name, const Colour& v)
+        void SetColour(std::string_view name, const Colour& v)
         {
-            Parameters[name] = v;
+            Parameters[std::string(name)] = v;
         }
     };
 
@@ -110,9 +111,9 @@ namespace Wayfinder
         std::unordered_map<std::string, PostProcessEffect> Effects; ///< Blended effects keyed by type.
 
         /** @brief Find a blended effect by type, or nullptr if absent. */
-        const PostProcessEffect* FindEffect(const std::string& type) const;
+        const PostProcessEffect* FindEffect(std::string_view type) const;
         /** @brief Returns true if the stack contains the given effect type. */
-        bool HasEffect(const std::string& type) const;
+        bool HasEffect(std::string_view type) const;
     };
 
     /**

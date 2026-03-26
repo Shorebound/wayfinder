@@ -188,12 +188,12 @@ namespace Wayfinder
         m_vsync = enabled;
     }
 
-    void SDL3Window::SetTitle(const std::string& title)
+    void SDL3Window::SetTitle(std::string_view title)
     {
-        m_title = title;
+        m_title.assign(title.begin(), title.end());
         if (m_window)
         {
-            SDL_SetWindowTitle(m_window, title.c_str());
+            SDL_SetWindowTitle(m_window, m_title.c_str());
         }
     }
 

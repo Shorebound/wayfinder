@@ -4,6 +4,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <string>
 #include <vector>
 
 namespace Wayfinder
@@ -150,9 +151,9 @@ namespace Wayfinder
 {
     // ── PostProcessEffect accessors ──────────────────────────
 
-    float PostProcessEffect::GetFloat(const std::string& name, float fallback) const
+    float PostProcessEffect::GetFloat(const std::string_view name, float fallback) const
     {
-        auto it = Parameters.find(name);
+        auto it = Parameters.find(std::string(name));
         if (it == Parameters.end())
         {
             return fallback;
@@ -168,9 +169,9 @@ namespace Wayfinder
         return fallback;
     }
 
-    int32_t PostProcessEffect::GetInt(const std::string& name, int32_t fallback) const
+    int32_t PostProcessEffect::GetInt(const std::string_view name, int32_t fallback) const
     {
-        auto it = Parameters.find(name);
+        auto it = Parameters.find(std::string(name));
         if (it == Parameters.end())
         {
             return fallback;
@@ -186,9 +187,9 @@ namespace Wayfinder
         return fallback;
     }
 
-    Float3 PostProcessEffect::GetFloat3(const std::string& name, const Float3& fallback) const
+    Float3 PostProcessEffect::GetFloat3(const std::string_view name, const Float3& fallback) const
     {
-        auto it = Parameters.find(name);
+        auto it = Parameters.find(std::string(name));
         if (it == Parameters.end())
         {
             return fallback;
@@ -200,9 +201,9 @@ namespace Wayfinder
         return fallback;
     }
 
-    Colour PostProcessEffect::GetColour(const std::string& name, const Colour& fallback) const
+    Colour PostProcessEffect::GetColour(const std::string_view name, const Colour& fallback) const
     {
-        auto it = Parameters.find(name);
+        auto it = Parameters.find(std::string(name));
         if (it == Parameters.end())
         {
             return fallback;
@@ -216,15 +217,15 @@ namespace Wayfinder
 
     // ── PostProcessStack ─────────────────────────────────────
 
-    const PostProcessEffect* PostProcessStack::FindEffect(const std::string& type) const
+    const PostProcessEffect* PostProcessStack::FindEffect(const std::string_view type) const
     {
-        auto it = Effects.find(type);
+        auto it = Effects.find(std::string(type));
         return it != Effects.end() ? &it->second : nullptr;
     }
 
-    bool PostProcessStack::HasEffect(const std::string& type) const
+    bool PostProcessStack::HasEffect(const std::string_view type) const
     {
-        return Effects.contains(type);
+        return Effects.contains(std::string(type));
     }
 
     // ── Blending ─────────────────────────────────────────────

@@ -3,6 +3,7 @@
 #include "rendering/backend/RenderDevice.h"
 
 #include <string>
+#include <string_view>
 #include <unordered_map>
 #include <vector>
 
@@ -38,18 +39,18 @@ namespace Wayfinder
         ShaderManager(const ShaderManager&) = delete;
         ShaderManager& operator=(const ShaderManager&) = delete;
 
-        void Initialise(RenderDevice& device, const std::string& shaderDirectory);
+        void Initialise(RenderDevice& device, std::string_view shaderDirectory);
         void Shutdown();
 
         // Loads bytecode from "<shaderDirectory>/<name>.vert.spv" or "<name>.frag.spv",
         // creates a GPU shader, and caches it. Returns nullptr on failure.
         // Resource counts describe the shader's bindings — passed through to ShaderCreateDesc.
         // Variant key selects a pre-compiled permutation (0 = base variant).
-        GPUShaderHandle GetShader(const std::string& name, ShaderStage stage, const ShaderResourceCounts& resources = {}, ShaderVariantKey variant = 0);
+        GPUShaderHandle GetShader(std::string_view name, ShaderStage stage, const ShaderResourceCounts& resources = {}, ShaderVariantKey variant = 0);
 
         // Loads compute shader bytecode from "<shaderDirectory>/<name>.comp.spv".
         // Returns the raw bytecode for use with RenderDevice::CreateComputePipeline.
-        std::vector<uint8_t> LoadComputeShaderBytecode(const std::string& name);
+        std::vector<uint8_t> LoadComputeShaderBytecode(std::string_view name);
 
     private:
         struct ShaderKey
