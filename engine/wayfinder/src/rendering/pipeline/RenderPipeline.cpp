@@ -61,11 +61,12 @@ namespace Wayfinder
 
     void RenderPipeline::Initialise(RenderContext& context)
     {
-        m_context = &context;
         if (m_initialised)
         {
             return;
         }
+
+        m_context = &context;
 
         auto& registry = context.GetPrograms();
 
@@ -203,6 +204,11 @@ namespace Wayfinder
             {
                 pass->AddPasses(graph, params);
             }
+        }
+
+        if (!m_context)
+        {
+            return;
         }
 
         graph.AddPass("Composition", [&](RenderGraphBuilder& builder)

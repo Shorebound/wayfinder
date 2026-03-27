@@ -5,6 +5,7 @@
 
 #include <cstdint>
 #include <string>
+#include <string_view>
 
 namespace Wayfinder
 {
@@ -35,17 +36,19 @@ namespace Wayfinder
             static std::uint64_t sGeneration = 1;
             return sGeneration;
         }
-
     } // namespace
 
-    const LogCategoryHandle LogEngine{"Engine"};
-    const LogCategoryHandle LogRenderer{"Renderer"};
-    const LogCategoryHandle LogInput{"Input"};
-    const LogCategoryHandle LogAudio{"Audio"};
-    const LogCategoryHandle LogAssets{"Assets"};
-    const LogCategoryHandle LogPhysics{"Physics"};
-    const LogCategoryHandle LogGame{"Game"};
-    const LogCategoryHandle LogScene{"Scene"};
+    // std::string_view UDL: constexpr (pointer + length); avoids static-init warnings on (char*) → string_view.
+    using std::literals::string_view_literals::operator""sv;
+
+    const LogCategoryHandle LogEngine{"Engine"sv};
+    const LogCategoryHandle LogRenderer{"Renderer"sv};
+    const LogCategoryHandle LogInput{"Input"sv};
+    const LogCategoryHandle LogAudio{"Audio"sv};
+    const LogCategoryHandle LogAssets{"Assets"sv};
+    const LogCategoryHandle LogPhysics{"Physics"sv};
+    const LogCategoryHandle LogGame{"Game"sv};
+    const LogCategoryHandle LogScene{"Scene"sv};
 
     LogCategory& LogCategoryHandle::Get() const
     {

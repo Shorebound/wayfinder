@@ -53,7 +53,7 @@ namespace Wayfinder
                 mesh.Material = PrepareMaterialBinding(mesh.Material);
             }
 
-            if (!layer.DebugDraw.has_value())
+            if (!layer.DebugDraw)
             {
                 continue;
             }

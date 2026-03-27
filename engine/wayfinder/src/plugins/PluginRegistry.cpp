@@ -3,6 +3,7 @@
 
 #include "ecs/Flecs.h"
 
+#include <ranges>
 #include <string>
 
 namespace Wayfinder::Plugins
@@ -30,9 +31,9 @@ namespace Wayfinder::Plugins
 
     void PluginRegistry::NotifyShutdown()
     {
-        for (auto it = m_plugins.rbegin(); it != m_plugins.rend(); ++it)
+        for (auto& plugin : std::views::reverse(m_plugins))
         {
-            (*it)->OnShutdown();
+            plugin->OnShutdown();
         }
     }
 

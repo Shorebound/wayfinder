@@ -74,7 +74,7 @@ namespace Wayfinder
         }
         // NOLINTEND(misc-no-recursion, cppcoreguidelines-pro-bounds-avoid-unchecked-container-access)
 
-        // NOLINTNEXTLINE(bugprone-easily-swappable-parameters) — fallbackName vs sourceLabel are distinct roles in diagnostics
+        // NOLINTBEGIN(bugprone-easily-swappable-parameters)
         Wayfinder::SceneDocumentEntity ParseEntityDefinition(
             const nlohmann::json& data, const Wayfinder::RuntimeComponentRegistry& registry, const std::string& fallbackName, const std::string& sourceLabel, std::vector<std::string>& errors)
         {
@@ -123,6 +123,7 @@ namespace Wayfinder
 
             return definition;
         }
+        // NOLINTEND(bugprone-easily-swappable-parameters)
 
         std::optional<Wayfinder::SceneDocumentEntity> ParsePrefabDefinition(
             const std::filesystem::path& prefabPath, const Wayfinder::RuntimeComponentRegistry& registry, std::unordered_map<std::string, Wayfinder::SceneDocumentEntity>& prefabCache, std::vector<std::string>& errors)

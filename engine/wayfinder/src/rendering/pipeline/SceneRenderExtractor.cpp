@@ -14,7 +14,6 @@
 #include <array>
 #include <cstddef>
 #include <cstdint>
-#include <iterator>
 #include <memory>
 #include <string>
 #include <string_view>
@@ -31,10 +30,9 @@ namespace Wayfinder
         {
             const std::array<std::uint8_t, 16>& bytes = assetId.Value.GetBytes();
             uint64_t result = 0;
-            auto iterator = bytes.begin();
-            for (size_t index = 0; index < 8; ++index, ++iterator)
+            for (size_t index = 0; index < 8; ++index)
             {
-                result = (result << 8) | static_cast<uint64_t>(*iterator);
+                result = (result << 8) | static_cast<uint64_t>(bytes[index]);
             }
 
             /// Mix submesh index into the key to guarantee distinct entries per submesh.
@@ -61,10 +59,10 @@ namespace Wayfinder
             {
                 const std::array<std::uint8_t, 16>& bytes = material.Ref.AssetId->Value.GetBytes();
                 uint16_t hash = 0;
-                for (auto iterator = bytes.begin(); iterator != bytes.end(); std::advance(iterator, 2))
+                for (size_t index = 0; index < bytes.size(); index += 2)
                 {
-                    const auto lowByte = static_cast<uint16_t>(*iterator);
-                    const auto highByte = static_cast<uint16_t>(*std::next(iterator));
+                    const auto lowByte = static_cast<uint16_t>(bytes[index]);
+                    const auto highByte = static_cast<uint16_t>(bytes[index + 1]);
                     hash ^= lowByte | static_cast<uint16_t>(highByte << 8);
                 }
 

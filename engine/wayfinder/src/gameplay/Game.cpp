@@ -13,7 +13,6 @@
 #include "scene/SceneSettings.h"
 
 #include <filesystem>
-#include <functional>
 #include <string_view>
 #include <unordered_map>
 
@@ -46,23 +45,24 @@ namespace Wayfinder
         InitialiseWorld();
 
         // Guard that tears down subsystems on any early return.  Dismissed on success.
-        bool committed = false;
-        auto cleanup = [&]
+        struct CleanupState
         {
-            if (!committed)
-            {
-                GameSubsystems::Unbind();
-                m_subsystems.Shutdown();
-            }
+            bool Committed = false;
+            Game* Self = nullptr;
         };
+        CleanupState cleanupState{.Self = this};
         struct CleanupGuard
         {
-            std::function<void()> Fn;
-            ~CleanupGuard()
+            CleanupState* State = nullptr;
+            ~CleanupGuard() noexcept
             {
-                Fn();
+                if (!State->Committed)
+                {
+                    GameSubsystems::Unbind();
+                    State->Self->m_subsystems.Shutdown();
+                }
             }
-        } const guard{cleanup};
+        } const guard{.State = &cleanupState};
 
         const auto bootScenePath = ctx.project.ResolveBootScene();
 
@@ -92,7 +92,7 @@ namespace Wayfinder
 
         WAYFINDER_INFO(LogGame, "Loaded bootstrap scene from: {}", resolvedPath.string());
 
-        committed = true;
+        cleanupState.Committed = true;
         m_running = true;
         m_initialised = true;
         return {};

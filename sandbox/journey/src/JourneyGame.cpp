@@ -177,7 +177,7 @@ namespace
                         }
                     }
                 });
-            }, HasTag(burning));
+            }, Wayfinder::HasTag(burning));
         }
     };
 
