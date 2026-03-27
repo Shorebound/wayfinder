@@ -65,6 +65,7 @@ namespace Wayfinder::Tests
         submission.Material.ShaderName = "unlit";
         submission.Material.Parameters.SetColour("base_colour", Wayfinder::LinearColour::White());
         submission.LocalToWorld = Wayfinder::Matrix4(1.0f);
+        submission.ViewIndex = 0;
 
         const Wayfinder::SceneGlobalsUBO globals{};
 

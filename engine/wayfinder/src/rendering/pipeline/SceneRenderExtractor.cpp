@@ -297,7 +297,7 @@ namespace Wayfinder
                     const SortLayer sortLayer = materialState.Blend.Enabled ? SortLayer::Transparent : MapLayer(submission.Layer);
                     submission.SortKey = SortKeyBuilder::Build(sortLayer, BlendGroupBits(materialState.Blend), MaterialIdBits(submission.Material), cameraSpaceZ, submission.SortPriority);
 
-                    submission.ViewIndex = *primaryViewIndex;
+                    submission.ViewIndex = primaryViewIndex;
                     FrameLayerRecord* owningLayer = frame.FindSceneLayerForSubmission(submission);
                     if (!owningLayer)
                     {

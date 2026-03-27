@@ -36,6 +36,7 @@ namespace Wayfinder::Tests
             submission.Material.StateOverrides.FillMode = Wayfinder::RenderFillMode::Solid;
             submission.Material.Parameters.SetColour("base_colour", Wayfinder::LinearColour::FromColour(colour));
             submission.SortPriority = sortPriority;
+            submission.ViewIndex = 0;
             return submission;
         }
     } // namespace

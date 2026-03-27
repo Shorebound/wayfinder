@@ -438,6 +438,7 @@ namespace Wayfinder::Tests
         submission.Material.Ref.StableKey = 42;
         submission.Material.ShaderName = "unlit";
         submission.Material.Parameters.SetColour("base_colour", Wayfinder::LinearColour::White());
+        submission.ViewIndex = viewIndex;
         scenePass.Meshes.push_back(submission);
 
         Wayfinder::RenderResourceCache resources;
