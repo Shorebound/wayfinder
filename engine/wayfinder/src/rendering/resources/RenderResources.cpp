@@ -58,9 +58,8 @@ namespace Wayfinder
                 continue;
             }
 
-            // somehow this triggers `unchecked access to optional value [bugprone-unchecked-optional-access,-warnings-as-errors]`
-            // NOLINTNEXTLINE(bugprone-unchecked-optional-access)
-            for (auto& debugBox : layer.DebugDraw->Boxes)
+            auto& debugDraw = layer.DebugDraw.value();
+            for (auto& debugBox : debugDraw.Boxes)
             {
                 debugBox.Material = PrepareMaterialBinding(debugBox.Material);
             }
