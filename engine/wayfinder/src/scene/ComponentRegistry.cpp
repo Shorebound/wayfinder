@@ -634,7 +634,7 @@ namespace Wayfinder
                     const std::string normalised = Wayfinder::NormaliseEffectTypeString(effectTypeStr);
                     if (!Wayfinder::IsValidEffectTypeName(normalised))
                     {
-                        error = "unknown post-process effect type: " + effectTypeStr;
+                        error = "unknown blendable effect type: " + effectTypeStr;
                         return false;
                     }
 
@@ -896,7 +896,7 @@ namespace Wayfinder
             const std::optional<Wayfinder::BlendableEffectId> idOpt = registry->FindIdByName(normalised);
             if (!idOpt.has_value())
             {
-                WAYFINDER_WARN(LogScene, "ReadEffect: unknown post-process effect type '{}' — skipped", typeStr);
+                WAYFINDER_WARN(LogScene, "ReadEffect: unknown effect type '{}' — skipped", typeStr);
                 return effect;
             }
 
