@@ -53,13 +53,13 @@ namespace Wayfinder
                 mesh.Material = PrepareMaterialBinding(mesh.Material);
             }
 
-            if (!layer.DebugDraw.has_value())
+            if (!layer.DebugDraw)
             {
                 continue;
             }
 
-            auto& debugDraw = layer.DebugDraw.value();
-            for (auto& debugBox : debugDraw.Boxes)
+            // NOLINTNEXTLINE(bugprone-unchecked-optional-access)
+            for (auto& debugBox : layer.DebugDraw->Boxes)
             {
                 debugBox.Material = PrepareMaterialBinding(debugBox.Material);
             }
