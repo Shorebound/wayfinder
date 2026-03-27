@@ -3,18 +3,18 @@
 #include "maths/Maths.h"
 
 #include <algorithm>
+#include <cctype>
 #include <cmath>
 #include <string>
+#include <variant>
 #include <vector>
 
 namespace Wayfinder
 {
     namespace
     {
-        float ComputeDistanceToVolume(const Wayfinder::PostProcessVolumeInstance& instance, const Wayfinder::Float3& cameraPosition)
+        float ComputeDistanceToVolume(const PostProcessVolumeInstance& instance, const Float3& cameraPosition)
         {
-            using namespace Wayfinder;
-
             const PostProcessVolumeComponent& volume = *instance.Volume;
             if (volume.Shape == PostProcessVolumeShape::Global)
             {
@@ -30,8 +30,6 @@ namespace Wayfinder
                 return Maths::Max(Maths::Length(offset) - scaledRadius, 0.0f);
             }
 
-            // Box: extract rotation from local-to-world, rotate offset into local
-            // orientation, then compute axis-aligned distance with scaled extents.
             Matrix3 rotMat(instance.LocalToWorld);
             rotMat[0] = Maths::Normalize(rotMat[0]); // NOLINT(cppcoreguidelines-pro-bounds-avoid-unchecked-container-access)
             rotMat[1] = Maths::Normalize(rotMat[1]); // NOLINT(cppcoreguidelines-pro-bounds-avoid-unchecked-container-access)
@@ -53,193 +51,137 @@ namespace Wayfinder
             return Maths::Clamp(1.0f - (distance / blendDistance), 0.0f, 1.0f);
         }
 
-        uint8_t LerpByte(uint8_t a, uint8_t b, float t)
+        ColourGradingParams IdentityColourGrading()
         {
-            return static_cast<uint8_t>(Maths::Clamp(static_cast<float>(a) + (static_cast<float>(b) - static_cast<float>(a)) * t, 0.0f, 255.0f));
+            return ColourGradingParams{};
         }
 
-        Wayfinder::Colour LerpColour(const Wayfinder::Colour& a, const Wayfinder::Colour& b, float t)
+        ColourGradingParams LerpColourGrading(const ColourGradingParams& a, const ColourGradingParams& b, float w)
         {
-            return {.r = LerpByte(a.r, b.r, t), .g = LerpByte(a.g, b.g, t), .b = LerpByte(a.b, b.b, t), .a = LerpByte(a.a, b.a, t)};
+            return ColourGradingParams{
+                .ExposureStops = Maths::Mix(a.ExposureStops, b.ExposureStops, w),
+                .Contrast = Maths::Mix(a.Contrast, b.Contrast, w),
+                .Saturation = Maths::Mix(a.Saturation, b.Saturation, w),
+                .Lift = Maths::Mix(a.Lift, b.Lift, w),
+                .Gamma = Maths::Mix(a.Gamma, b.Gamma, w),
+                .Gain = Maths::Mix(a.Gain, b.Gain, w),
+                .VignetteStrength = Maths::Mix(a.VignetteStrength, b.VignetteStrength, w),
+                .ChromaticAberrationIntensity = Maths::Mix(a.ChromaticAberrationIntensity, b.ChromaticAberrationIntensity, w),
+            };
         }
 
-        float LerpParamValue(float current, float target, float weight)
+        BloomParams LerpBloom(const BloomParams& a, const BloomParams& b, float w)
         {
-            return Maths::Mix(current, target, weight);
+            return BloomParams{
+                .Threshold = Maths::Mix(a.Threshold, b.Threshold, w),
+                .Intensity = Maths::Mix(a.Intensity, b.Intensity, w),
+                .Radius = Maths::Mix(a.Radius, b.Radius, w),
+            };
         }
 
-        int32_t LerpParamValue(int32_t current, int32_t target, float weight)
+        void BlendPayloadInto(PostProcessEffect& result, const PostProcessEffect& source, float weight)
         {
-            return static_cast<int32_t>(std::round(Maths::Mix(static_cast<float>(current), static_cast<float>(target), weight)));
-        }
-
-        Wayfinder::Float3 LerpParamValue(const Wayfinder::Float3& current, const Wayfinder::Float3& target, float weight)
-        {
-            return Maths::Mix(current, target, weight);
-        }
-
-        Wayfinder::Colour LerpParamValue(const Wayfinder::Colour& current, const Wayfinder::Colour& target, float weight)
-        {
-            return LerpColour(current, target, weight);
-        }
-
-        // Blend a single parameter value toward a target by weight.
-        Wayfinder::PostProcessParamValue LerpParam(const Wayfinder::PostProcessParamValue& current, const Wayfinder::PostProcessParamValue& target, float weight)
-        {
-            // Both sides must hold the same type; if mismatched, take the target.
-            if (current.index() != target.index())
+            if (source.Type != result.Type)
             {
-                return target;
+                return;
             }
 
-            return std::visit([&](const auto& a) -> Wayfinder::PostProcessParamValue
+            if (source.Type == PostProcessEffectType::ColourGrading)
             {
-                using T = std::decay_t<decltype(a)>;
-                const auto& b = std::get<T>(target);
-                return LerpParamValue(a, b, weight);
-            }, current);
-        }
-
-        float ZeroParamValue(float)
-        {
-            return 0.0f;
-        }
-
-        int32_t ZeroParamValue(int32_t)
-        {
-            return int32_t{0};
-        }
-
-        Wayfinder::Float3 ZeroParamValue(const Wayfinder::Float3&)
-        {
-            return Wayfinder::Float3{0.0f, 0.0f, 0.0f};
-        }
-
-        Wayfinder::Colour ZeroParamValue(const Wayfinder::Colour&)
-        {
-            return Wayfinder::Colour{.r = 0, .g = 0, .b = 0, .a = 0};
-        }
-
-        Wayfinder::PostProcessParamValue ZeroValue(const Wayfinder::PostProcessParamValue& v)
-        {
-            return std::visit([](const auto& val) -> Wayfinder::PostProcessParamValue
-            {
-                return ZeroParamValue(val);
-            }, v);
-        }
-
-        void BlendEffectInto(Wayfinder::PostProcessEffect& result, const Wayfinder::PostProcessEffect& source, float weight)
-        {
-            for (const auto& [key, value] : source.Parameters)
-            {
-                auto it = result.Parameters.find(key);
-                if (it != result.Parameters.end())
+                auto* dst = std::get_if<ColourGradingParams>(&result.Payload);
+                const auto* src = std::get_if<ColourGradingParams>(&source.Payload);
+                if (dst && src)
                 {
-                    it->second = LerpParam(it->second, value, weight);
+                    *dst = LerpColourGrading(*dst, *src, weight);
                 }
-                else
+            }
+            else if (source.Type == PostProcessEffectType::Bloom)
+            {
+                auto* dst = std::get_if<BloomParams>(&result.Payload);
+                const auto* src = std::get_if<BloomParams>(&source.Payload);
+                if (dst && src)
                 {
-                    result.Parameters[key] = LerpParam(ZeroValue(value), value, weight);
+                    *dst = LerpBloom(*dst, *src, weight);
+                }
+            }
+        }
+
+        void BlendFirstContribution(PostProcessEffect& entry, const PostProcessEffect& source, float weight)
+        {
+            entry.Type = source.Type;
+            entry.Enabled = source.Enabled;
+
+            if (source.Type == PostProcessEffectType::ColourGrading)
+            {
+                if (const auto* src = std::get_if<ColourGradingParams>(&source.Payload))
+                {
+                    entry.Payload = LerpColourGrading(IdentityColourGrading(), *src, weight);
+                }
+            }
+            else if (source.Type == PostProcessEffectType::Bloom)
+            {
+                if (const auto* src = std::get_if<BloomParams>(&source.Payload))
+                {
+                    entry.Payload = LerpBloom(BloomParams{.Threshold = 1.0f, .Intensity = 0.0f, .Radius = 1.0f}, *src, weight);
                 }
             }
         }
 
     } // namespace
-}
 
-namespace Wayfinder
-{
-    // ── PostProcessEffect accessors ──────────────────────────
-
-    float PostProcessEffect::GetFloat(const std::string_view name, float fallback) const
+    PostProcessEffectType PostProcessEffect::ParseTypeString(const std::string_view name)
     {
-        auto it = Parameters.find(std::string(name));
-        if (it == Parameters.end())
+        std::string lower;
+        lower.reserve(name.size());
+        for (const char c : name)
         {
-            return fallback;
+            lower.push_back(static_cast<char>(std::tolower(static_cast<unsigned char>(c))));
         }
-        if (const auto* v = std::get_if<float>(&it->second))
+
+        if (lower == "colour_grading" || lower == "colourgrading" || lower == "grading" || lower == "color_grading")
         {
-            return *v;
+            return PostProcessEffectType::ColourGrading;
         }
-        if (const auto* v = std::get_if<int32_t>(&it->second))
+        if (lower == "bloom")
         {
-            return static_cast<float>(*v);
+            return PostProcessEffectType::Bloom;
         }
-        return fallback;
+        return PostProcessEffectType::Unknown;
     }
 
-    int32_t PostProcessEffect::GetInt(const std::string_view name, int32_t fallback) const
+    std::string_view PostProcessEffect::TypeToString(const PostProcessEffectType type)
     {
-        auto it = Parameters.find(std::string(name));
-        if (it == Parameters.end())
+        switch (type)
         {
-            return fallback;
+        case PostProcessEffectType::ColourGrading:
+            return "colour_grading";
+        case PostProcessEffectType::Bloom:
+            return "bloom";
+        case PostProcessEffectType::Unknown:
+        default:
+            return "unknown";
         }
-        if (const auto* v = std::get_if<int32_t>(&it->second))
-        {
-            return *v;
-        }
-        if (const auto* v = std::get_if<float>(&it->second))
-        {
-            return static_cast<int32_t>(*v);
-        }
-        return fallback;
     }
 
-    Float3 PostProcessEffect::GetFloat3(const std::string_view name, const Float3& fallback) const
+    const PostProcessEffect* PostProcessStack::FindEffect(const PostProcessEffectType type) const
     {
-        auto it = Parameters.find(std::string(name));
-        if (it == Parameters.end())
-        {
-            return fallback;
-        }
-        if (const auto* v = std::get_if<Float3>(&it->second))
-        {
-            return *v;
-        }
-        return fallback;
-    }
-
-    Colour PostProcessEffect::GetColour(const std::string_view name, const Colour& fallback) const
-    {
-        auto it = Parameters.find(std::string(name));
-        if (it == Parameters.end())
-        {
-            return fallback;
-        }
-        if (const auto* v = std::get_if<Colour>(&it->second))
-        {
-            return *v;
-        }
-        return fallback;
-    }
-
-    // ── PostProcessStack ─────────────────────────────────────
-
-    const PostProcessEffect* PostProcessStack::FindEffect(const std::string_view type) const
-    {
-        auto it = Effects.find(std::string(type));
+        const auto it = Effects.find(type);
         return it != Effects.end() ? &it->second : nullptr;
     }
 
-    bool PostProcessStack::HasEffect(const std::string_view type) const
+    bool PostProcessStack::HasEffect(const PostProcessEffectType type) const
     {
-        return Effects.contains(std::string(type));
+        return Effects.contains(type);
     }
 
-    // ── Blending ─────────────────────────────────────────────
-
-    PostProcessStack BlendPostProcessVolumes(const Float3& cameraPosition, std::span<const PostProcessVolumeInstance> volumes)
+    PostProcessStack BlendPostProcessVolumes(const Float3& cameraPosition, const std::span<const PostProcessVolumeInstance> volumes)
     {
         PostProcessStack result;
-
         if (volumes.empty())
         {
             return result;
         }
 
-        // Sort by priority (ascending) — higher priority volumes layer on last and dominate.
         std::vector<const PostProcessVolumeInstance*> sorted;
         sorted.reserve(volumes.size());
         for (const auto& instance : volumes)
@@ -260,7 +202,6 @@ namespace Wayfinder
         {
             const float distance = ComputeDistanceToVolume(*instance, cameraPosition);
             const float weight = ComputeBlendWeight(distance, instance->Volume->BlendDistance);
-
             if (weight <= 0.0f)
             {
                 continue;
@@ -268,7 +209,7 @@ namespace Wayfinder
 
             for (const auto& effect : instance->Volume->Effects)
             {
-                if (!effect.Enabled)
+                if (!effect.Enabled || effect.Type == PostProcessEffectType::Unknown)
                 {
                     continue;
                 }
@@ -276,19 +217,32 @@ namespace Wayfinder
                 auto it = result.Effects.find(effect.Type);
                 if (it != result.Effects.end())
                 {
-                    BlendEffectInto(it->second, effect, weight);
+                    BlendPayloadInto(it->second, effect, weight);
                 }
                 else
                 {
-                    // First contribution — blend from zero baseline so weight is respected.
-                    PostProcessEffect& entry = result.Effects[effect.Type];
-                    entry.Type = effect.Type;
-                    entry.Enabled = true;
-                    BlendEffectInto(entry, effect, weight);
+                    PostProcessEffect entry;
+                    BlendFirstContribution(entry, effect, weight);
+                    result.Effects.emplace(effect.Type, entry);
                 }
             }
         }
 
         return result;
     }
+
+    ColourGradingParams ResolveColourGradingForView(const PostProcessStack& stack)
+    {
+        const PostProcessEffect* fx = stack.FindEffect(PostProcessEffectType::ColourGrading);
+        if (!fx)
+        {
+            return IdentityColourGrading();
+        }
+        if (const auto* p = std::get_if<ColourGradingParams>(&fx->Payload))
+        {
+            return *p;
+        }
+        return IdentityColourGrading();
+    }
+
 } // namespace Wayfinder

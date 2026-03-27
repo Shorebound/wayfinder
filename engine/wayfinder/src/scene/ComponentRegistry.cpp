@@ -13,6 +13,7 @@
 #include <sstream>
 #include <string>
 #include <string_view>
+#include <variant>
 
 namespace Wayfinder
 {
@@ -627,6 +628,13 @@ namespace Wayfinder
                         return false;
                     }
 
+                    const std::string effectTypeStr = effectEntry.at("type").get<std::string>();
+                    if (Wayfinder::PostProcessEffect::ParseTypeString(effectTypeStr) == Wayfinder::PostProcessEffectType::Unknown)
+                    {
+                        error = "unknown post-process effect type: " + effectTypeStr;
+                        return false;
+                    }
+
                     for (const auto& [key, value] : effectEntry.items())
                     {
                         if (key == "type")
@@ -870,62 +878,33 @@ namespace Wayfinder
             return "global";
         }
 
-        Wayfinder::PostProcessParamValue ReadEffectParam(const nlohmann::json& node)
-        {
-            if (node.is_number_float())
-            {
-                return node.get<float>();
-            }
-            if (node.is_number_integer())
-            {
-                return static_cast<int32_t>(node.get<int64_t>());
-            }
-
-            if (node.is_array())
-            {
-                // All-integer arrays → Colour; otherwise → Float3
-                bool allInts = true;
-                for (const auto& i : node)
-                {
-                    if (!i.is_number_integer())
-                    {
-                        allInts = false;
-                        break;
-                    }
-                }
-
-                if (allInts)
-                {
-                    Wayfinder::Colour c{};
-                    c.r = ClampColourChannel(node.at(0).get<int64_t>());
-                    c.g = ClampColourChannel(node.at(1).get<int64_t>());
-                    c.b = ClampColourChannel(node.at(2).get<int64_t>());
-                    c.a = node.size() >= 4 ? ClampColourChannel(node.at(3).get<int64_t>()) : 255;
-                    return c;
-                }
-
-                if (node.size() >= 3)
-                {
-                    return Wayfinder::Float3{ReadArrayFloat(node, 0, 0.0f), ReadArrayFloat(node, 1, 0.0f), ReadArrayFloat(node, 2, 0.0f)};
-                }
-            }
-
-            return 0.0f;
-        }
-
         Wayfinder::PostProcessEffect ReadEffect(const nlohmann::json& effectData)
         {
             Wayfinder::PostProcessEffect effect;
-            effect.Type = effectData.value("type", std::string{});
+            const std::string typeStr = effectData.value("type", std::string{});
+            effect.Type = Wayfinder::PostProcessEffect::ParseTypeString(typeStr);
             effect.Enabled = effectData.value("enabled", true);
 
-            for (const auto& [key, value] : effectData.items())
+            if (effect.Type == Wayfinder::PostProcessEffectType::ColourGrading)
             {
-                if (key == "type" || key == "enabled")
-                {
-                    continue;
-                }
-                effect.Parameters[key] = ReadEffectParam(value);
+                Wayfinder::ColourGradingParams p{};
+                p.ExposureStops = ReadFloat(effectData, "exposure_stops", p.ExposureStops);
+                p.Contrast = ReadFloat(effectData, "contrast", p.Contrast);
+                p.Saturation = ReadFloat(effectData, "saturation", p.Saturation);
+                p.Lift = ReadVector3(effectData, "lift", p.Lift);
+                p.Gamma = ReadVector3(effectData, "gamma", p.Gamma);
+                p.Gain = ReadVector3(effectData, "gain", p.Gain);
+                p.VignetteStrength = ReadFloat(effectData, "vignette_strength", p.VignetteStrength);
+                p.ChromaticAberrationIntensity = ReadFloat(effectData, "chromatic_aberration_intensity", p.ChromaticAberrationIntensity);
+                effect.Payload = p;
+            }
+            else if (effect.Type == Wayfinder::PostProcessEffectType::Bloom)
+            {
+                Wayfinder::BloomParams p{};
+                p.Threshold = ReadFloat(effectData, "threshold", p.Threshold);
+                p.Intensity = ReadFloat(effectData, "intensity", p.Intensity);
+                p.Radius = ReadFloat(effectData, "radius", p.Radius);
+                effect.Payload = p;
             }
 
             return effect;
@@ -1089,30 +1068,6 @@ namespace Wayfinder
             componentTables["renderable"] = std::move(componentTable);
         }
 
-        void WriteEffectParam(nlohmann::json& obj, const std::string& key, const Wayfinder::PostProcessParamValue& value)
-        {
-            std::visit([&](const auto& v)
-            {
-                using T = std::decay_t<decltype(v)>;
-                if constexpr (std::is_same_v<T, float>)
-                {
-                    obj[key] = v;
-                }
-                else if constexpr (std::is_same_v<T, int32_t>)
-                {
-                    obj[key] = static_cast<int64_t>(v);
-                }
-                else if constexpr (std::is_same_v<T, Wayfinder::Float3>)
-                {
-                    obj[key] = WriteVector3(v);
-                }
-                else if constexpr (std::is_same_v<T, Wayfinder::Colour>)
-                {
-                    obj[key] = WriteColour(v);
-                }
-            }, value);
-        }
-
         void SerialisePostProcessVolume(const Wayfinder::Entity& entity, nlohmann::json& componentTables)
         {
             if (!entity.HasComponent<Wayfinder::PostProcessVolumeComponent>())
@@ -1134,15 +1089,34 @@ namespace Wayfinder
                 for (const auto& effect : volume.Effects)
                 {
                     nlohmann::json effectTable;
-                    effectTable["type"] = effect.Type;
+                    effectTable["type"] = std::string{Wayfinder::PostProcessEffect::TypeToString(effect.Type)};
                     if (!effect.Enabled)
                     {
                         effectTable["enabled"] = false;
                     }
 
-                    for (const auto& [key, value] : effect.Parameters)
+                    if (effect.Type == Wayfinder::PostProcessEffectType::ColourGrading)
                     {
-                        WriteEffectParam(effectTable, key, value);
+                        if (const auto* p = std::get_if<Wayfinder::ColourGradingParams>(&effect.Payload))
+                        {
+                            effectTable["exposure_stops"] = p->ExposureStops;
+                            effectTable["contrast"] = p->Contrast;
+                            effectTable["saturation"] = p->Saturation;
+                            effectTable["lift"] = WriteVector3(p->Lift);
+                            effectTable["gamma"] = WriteVector3(p->Gamma);
+                            effectTable["gain"] = WriteVector3(p->Gain);
+                            effectTable["vignette_strength"] = p->VignetteStrength;
+                            effectTable["chromatic_aberration_intensity"] = p->ChromaticAberrationIntensity;
+                        }
+                    }
+                    else if (effect.Type == Wayfinder::PostProcessEffectType::Bloom)
+                    {
+                        if (const auto* p = std::get_if<Wayfinder::BloomParams>(&effect.Payload))
+                        {
+                            effectTable["threshold"] = p->Threshold;
+                            effectTable["intensity"] = p->Intensity;
+                            effectTable["radius"] = p->Radius;
+                        }
                     }
 
                     effectsArray.push_back(std::move(effectTable));

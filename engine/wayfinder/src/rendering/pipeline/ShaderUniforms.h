@@ -42,4 +42,15 @@ namespace Wayfinder
     static_assert(std::is_trivially_copyable_v<SceneGlobalsUBO>, "SceneGlobalsUBO must be trivially copyable for GPU upload");
     static_assert(sizeof(SceneGlobalsUBO) == 32, "SceneGlobalsUBO must be 32 bytes (2 x vec4) for std140 layout");
 
+    /// Fragment UBO for fullscreen composition / present-source copy (std140, matches `composition.frag`).
+    struct alignas(16) CompositionUBO
+    {
+        Float4 ExposureContrastSaturationPad{}; ///< x = exposure (stops), y = contrast, z = saturation
+        Float4 Lift{};
+        Float4 Gamma{};
+        Float4 Gain{};
+        Float4 VignetteAberrationPad{}; ///< x = vignette strength, y = chromatic aberration intensity
+    };
+    static_assert(sizeof(CompositionUBO) == 80, "CompositionUBO must match composition.frag cbuffer");
+
 } // namespace Wayfinder

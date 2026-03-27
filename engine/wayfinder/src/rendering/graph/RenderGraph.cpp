@@ -260,6 +260,26 @@ namespace Wayfinder
             return false;
         }
 
+        uint32_t swapchainWriteCount = 0;
+        for (uint32_t i = 0; i < passCount; ++i)
+        {
+            if (CheckedAt(m_passes, i).SwapchainWrite.has_value())
+            {
+                ++swapchainWriteCount;
+            }
+        }
+        if (swapchainWriteCount == 0)
+        {
+            WAYFINDER_ERROR(LogRenderer, "RenderGraph::Compile: no pass writes to the swapchain — graph is invalid");
+            return false;
+        }
+#if !defined(NDEBUG)
+        if (swapchainWriteCount > 1)
+        {
+            WAYFINDER_WARN(LogRenderer, "RenderGraph::Compile: {} passes write to the swapchain — expected exactly one in typical pipelines", swapchainWriteCount);
+        }
+#endif
+
         // ── Build dependency graph ───────────────────────────
         // Dependencies are recorded during setup (ReadTexture, WriteColour+Load, WriteDepth+Load).
         // Deduplicate edges to avoid inflated in-degrees.

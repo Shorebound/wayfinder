@@ -2,12 +2,10 @@
 
 #include "ForwardOpaqueShaderPrograms.h"
 #include "RenderContext.h"
-#include "rendering/backend/RenderDevice.h"
-#include "rendering/backend/VertexFormats.h"
 #include "rendering/graph/RenderGraph.h"
-#include "rendering/graph/RenderPassCapabilities.h"
-#include "rendering/materials/ShaderProgram.h"
+#include "rendering/passes/CompositionPass.h"
 #include "rendering/passes/DebugPass.h"
+#include "rendering/passes/PresentSourceCopyPass.h"
 #include "rendering/passes/SceneOpaquePass.h"
 
 #include "core/Log.h"
@@ -19,9 +17,9 @@
 
 namespace Wayfinder
 {
-    void RenderPipeline::SortEnginePasses()
+    void RenderPipeline::SortEnginePassList(std::vector<EnginePassSlot>& slots)
     {
-        std::ranges::sort(m_enginePasses, [](const EnginePassSlot& a, const EnginePassSlot& b)
+        std::ranges::sort(slots, [](const EnginePassSlot& a, const EnginePassSlot& b)
         {
             if (a.Phase != b.Phase)
             {
@@ -35,7 +33,7 @@ namespace Wayfinder
         });
     }
 
-    void RenderPipeline::RegisterEnginePass(EngineRenderPhase phase, int32_t orderWithinPhase, std::unique_ptr<RenderPass> pass)
+    void RenderPipeline::RegisterEnginePass(const EngineRenderPhase phase, const int32_t orderWithinPhase, std::unique_ptr<RenderPass> pass)
     {
         if (!m_context)
         {
@@ -50,13 +48,34 @@ namespace Wayfinder
         const RenderPassContext ctx{*m_context};
         pass->OnAttach(ctx);
 
-        m_enginePasses.push_back(EnginePassSlot{
+        EnginePassSlot slot{
             .Phase = phase,
             .OrderWithinPhase = orderWithinPhase,
             .InsertSequence = m_nextEnginePassInsertSequence++,
             .Pass = std::move(pass),
-        });
-        SortEnginePasses();
+        };
+
+        if (phase == EngineRenderPhase::LateEngine)
+        {
+            m_lateEnginePasses.push_back(std::move(slot));
+            SortEnginePassList(m_lateEnginePasses);
+        }
+        else
+        {
+            m_earlyEnginePasses.push_back(std::move(slot));
+            SortEnginePassList(m_earlyEnginePasses);
+        }
+    }
+
+    void RenderPipeline::InvokePassList(RenderGraph& graph, const RenderPipelineFrameParams& params, const std::vector<EnginePassSlot>& slots) const
+    {
+        for (const auto& slot : slots)
+        {
+            if (slot.Pass && slot.Pass->IsEnabled())
+            {
+                slot.Pass->AddPasses(graph, params);
+            }
+        }
     }
 
     void RenderPipeline::Initialise(RenderContext& context)
@@ -68,30 +87,12 @@ namespace Wayfinder
 
         m_context = &context;
 
-        auto& registry = context.GetPrograms();
-
-        {
-            ShaderProgramDesc desc;
-            desc.Name = "composition";
-            desc.VertexShaderName = "fullscreen";
-            desc.FragmentShaderName = "composition";
-            desc.VertexResources = {};
-            desc.FragmentResources = {.numUniformBuffers = 0, .numSamplers = 1};
-            desc.VertexLayout = VertexLayouts::Empty;
-            desc.Cull = CullMode::None;
-            desc.DepthTest = false;
-            desc.DepthWrite = false;
-            desc.MaterialUBOSize = 0;
-            desc.VertexUBOSize = 0;
-            desc.NeedsSceneGlobals = false;
-
-            registry.Register(desc);
-        }
-
-        RegisterForwardOpaquePrograms(registry);
+        RegisterForwardOpaquePrograms(context.GetPrograms());
 
         RegisterEnginePass(EngineRenderPhase::OpaqueMain, 0, std::make_unique<SceneOpaquePass>());
         RegisterEnginePass(EngineRenderPhase::Debug, 0, std::make_unique<DebugPass>());
+        RegisterEnginePass(EngineRenderPhase::LateEngine, 0, std::make_unique<PresentSourceCopyPass>());
+        RegisterEnginePass(EngineRenderPhase::LateEngine, 1, std::make_unique<CompositionPass>());
 
         m_initialised = true;
     }
@@ -101,7 +102,14 @@ namespace Wayfinder
         if (m_context)
         {
             const RenderPassContext ctx{*m_context};
-            for (auto& slot : m_enginePasses)
+            for (auto& slot : m_earlyEnginePasses)
+            {
+                if (slot.Pass)
+                {
+                    slot.Pass->OnDetach(ctx);
+                }
+            }
+            for (auto& slot : m_lateEnginePasses)
             {
                 if (slot.Pass)
                 {
@@ -109,13 +117,14 @@ namespace Wayfinder
                 }
             }
         }
-        m_enginePasses.clear();
+        m_earlyEnginePasses.clear();
+        m_lateEnginePasses.clear();
         m_nextEnginePassInsertSequence = 0;
         m_context = nullptr;
         m_initialised = false;
     }
 
-    bool RenderPipeline::Prepare(RenderFrame& frame, uint32_t swapchainWidth, uint32_t swapchainHeight) const
+    bool RenderPipeline::Prepare(RenderFrame& frame, const uint32_t swapchainWidth, const uint32_t swapchainHeight) const
     {
         if (frame.Views.empty())
         {
@@ -188,15 +197,9 @@ namespace Wayfinder
         return true;
     }
 
-    void RenderPipeline::BuildGraph(RenderGraph& graph, const RenderPipelineFrameParams& params, std::span<const std::unique_ptr<RenderPass>> gamePasses) const
+    void RenderPipeline::BuildGraph(RenderGraph& graph, const RenderPipelineFrameParams& params, const std::span<const std::unique_ptr<RenderPass>> gamePasses) const
     {
-        for (const auto& slot : m_enginePasses)
-        {
-            if (slot.Pass && slot.Pass->IsEnabled())
-            {
-                slot.Pass->AddPasses(graph, params);
-            }
-        }
+        InvokePassList(graph, params, m_earlyEnginePasses);
 
         for (const auto& pass : gamePasses)
         {
@@ -206,39 +209,7 @@ namespace Wayfinder
             }
         }
 
-        if (!m_context)
-        {
-            return;
-        }
-
-        graph.AddPass("Composition", [&](RenderGraphBuilder& builder)
-        {
-            builder.DeclarePassCapabilities(RenderPassCapabilities::RASTER | RenderPassCapabilities::FULLSCREEN_COMPOSITE);
-            auto colour = graph.FindHandleChecked(GraphTextureId::SceneColour);
-            builder.ReadTexture(colour);
-            builder.SetSwapchainOutput(LoadOp::DontCare);
-
-            return [this, colour](RenderDevice& device, const RenderGraphResources& resources)
-            {
-                auto sceneColourTex = resources.GetTexture(colour);
-
-                const ShaderProgram* compProgram = m_context->GetPrograms().Find("composition");
-                const auto nearestSampler = m_context->GetNearestSampler();
-                if (!compProgram || !compProgram->Pipeline || !sceneColourTex || !nearestSampler)
-                {
-#if defined(NDEBUG)
-                    WAYFINDER_WARN(LogRenderer, "Composition: missing program, pipeline, scene colour, or sampler — skipped");
-#else
-                    WAYFINDER_ERROR(LogRenderer, "Composition: missing program, pipeline, scene colour, or sampler — skipped");
-#endif
-                    return;
-                }
-
-                compProgram->Pipeline->Bind();
-                device.BindFragmentSampler(0, sceneColourTex, nearestSampler);
-                device.DrawPrimitives(3);
-            };
-        });
+        InvokePassList(graph, params, m_lateEnginePasses);
     }
 
 } // namespace Wayfinder

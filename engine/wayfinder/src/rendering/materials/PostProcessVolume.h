@@ -1,10 +1,9 @@
 #pragma once
 
-#include <cstdint>
+#include <map>
 #include <span>
 #include <string>
 #include <string_view>
-#include <unordered_map>
 #include <variant>
 #include <vector>
 
@@ -21,52 +20,53 @@ namespace Wayfinder
         Sphere
     };
 
-    /** @brief Value type for post-process effect parameters. */
-    using PostProcessParamValue = std::variant<float, int32_t, Float3, Colour>;
+    /** @brief Authoring / runtime effect kind — resolved from JSON `type` strings at load time. */
+    enum class PostProcessEffectType : uint8_t
+    {
+        Unknown = 0,
+        ColourGrading,
+        Bloom,
+    };
+
+    /** @brief Parameters for final-screen colour grading (lift / gamma / gain, exposure, contrast). */
+    struct ColourGradingParams
+    {
+        float ExposureStops = 0.0f;
+        float Contrast = 1.0f;
+        float Saturation = 1.0f;
+        Float3 Lift = {0.0f, 0.0f, 0.0f};
+        Float3 Gamma = {1.0f, 1.0f, 1.0f};
+        Float3 Gain = {1.0f, 1.0f, 1.0f};
+        float VignetteStrength = 0.0f;
+        float ChromaticAberrationIntensity = 0.0f;
+    };
+
+    /** @brief Bloom — reserved for dedicated bloom passes (parameters only; graph passes consume these later). */
+    struct BloomParams
+    {
+        float Threshold = 1.0f;
+        float Intensity = 0.0f;
+        float Radius = 1.0f;
+    };
+
+    /** @brief Typed payload for a single effect instance. */
+    using PostProcessEffectPayload = std::variant<std::monostate, ColourGradingParams, BloomParams>;
 
     /**
      * @struct PostProcessEffect
-     * @brief A named post-processing effect with a generic parameter bag.
-     *
-     * Effects are stacked inside PostProcessVolumeComponents and blended across
-     * volumes. Render passes consume these by querying their effect type from
-     * the blended stack.
+     * @brief One effect with a typed payload (no stringly-typed parameter maps at runtime).
      */
     struct WAYFINDER_API PostProcessEffect
     {
-        std::string Type;                                                  ///< Effect identifier, e.g. "exposure", "bloom", "fog", "vignette".
-        bool Enabled = true;                                               ///< Whether this effect contributes to the blended stack.
-        std::unordered_map<std::string, PostProcessParamValue> Parameters; ///< Named parameter bag.
+        PostProcessEffectType Type = PostProcessEffectType::Unknown;
+        bool Enabled = true;
+        PostProcessEffectPayload Payload{};
 
-        /** @brief Retrieve a float parameter, returning @p fallback if not found. */
-        float GetFloat(std::string_view name, float fallback = 0.0f) const;
-        /** @brief Retrieve an integer parameter, returning @p fallback if not found. */
-        int32_t GetInt(std::string_view name, int32_t fallback = 0) const;
-        /** @brief Retrieve a Float3 parameter, returning @p fallback if not found. */
-        Float3 GetFloat3(std::string_view name, const Float3& fallback = {0.0f, 0.0f, 0.0f}) const;
-        /** @brief Retrieve a Colour parameter, returning @p fallback if not found. */
-        Colour GetColour(std::string_view name, const Colour& fallback = Colour::White()) const;
+        /** @brief Parse authoring string (e.g. JSON `type`) to enum; returns Unknown if unrecognised. */
+        static PostProcessEffectType ParseTypeString(std::string_view name);
 
-        /** @brief Set a float parameter. */
-        void SetFloat(std::string_view name, float v)
-        {
-            Parameters[std::string(name)] = v;
-        }
-        /** @brief Set an integer parameter. */
-        void SetInt(std::string_view name, int32_t v)
-        {
-            Parameters[std::string(name)] = v;
-        }
-        /** @brief Set a Float3 parameter. */
-        void SetFloat3(std::string_view name, const Float3& v)
-        {
-            Parameters[std::string(name)] = v;
-        }
-        /** @brief Set a Colour parameter. */
-        void SetColour(std::string_view name, const Colour& v)
-        {
-            Parameters[std::string(name)] = v;
-        }
+        /** @brief Serialise effect type for JSON / tools. */
+        static std::string_view TypeToString(PostProcessEffectType type);
     };
 
     /**
@@ -75,12 +75,12 @@ namespace Wayfinder
      */
     struct PostProcessVolumeComponent
     {
-        PostProcessVolumeShape Shape = PostProcessVolumeShape::Global; ///< Volume shape (Global applies everywhere).
-        int Priority = 0;                                              ///< Blend ordering — higher priority volumes layer on last.
-        float BlendDistance = 0.0f;                                    ///< Distance over which the volume fades in (0 = hard cut).
-        Float3 Dimensions = {10.0f, 10.0f, 10.0f};                     ///< Full extents for Box shape.
-        float Radius = 10.0f;                                          ///< Radius for Sphere shape.
-        std::vector<PostProcessEffect> Effects;                        ///< Effects contributed by this volume.
+        PostProcessVolumeShape Shape = PostProcessVolumeShape::Global;
+        int Priority = 0;
+        float BlendDistance = 0.0f;
+        Float3 Dimensions = {10.0f, 10.0f, 10.0f};
+        float Radius = 10.0f;
+        std::vector<PostProcessEffect> Effects;
 
         PostProcessVolumeComponent() = default;
         PostProcessVolumeComponent(const PostProcessVolumeComponent&) = default;
@@ -90,37 +90,32 @@ namespace Wayfinder
     /**
      * @struct PostProcessVolumeInstance
      * @brief Input to the blending function: a volume paired with its world-space transform.
-     *
-     * Volume may be nullptr — BlendPostProcessVolumes() skips null entries,
-     * so callers can safely push default-constructed instances.
      */
     struct PostProcessVolumeInstance
     {
-        const PostProcessVolumeComponent* Volume = nullptr; ///< The volume data (may be nullptr).
-        Float3 WorldPosition = {0.0f, 0.0f, 0.0f};          ///< World-space position of the volume entity.
-        Float3 WorldScale = {1.0f, 1.0f, 1.0f};             ///< World-space scale of the volume entity.
-        Matrix4 LocalToWorld = Matrix4(1.0f);               ///< Full local-to-world transform matrix.
+        const PostProcessVolumeComponent* Volume = nullptr;
+        Float3 WorldPosition = {0.0f, 0.0f, 0.0f};
+        Float3 WorldScale = {1.0f, 1.0f, 1.0f};
+        Matrix4 LocalToWorld = Matrix4(1.0f);
     };
 
     /**
      * @struct PostProcessStack
-     * @brief Blended result: per-effect-type parameter blocks, ready for consumption by render passes.
+     * @brief Blended result keyed by effect type.
      */
     struct WAYFINDER_API PostProcessStack
     {
-        std::unordered_map<std::string, PostProcessEffect> Effects; ///< Blended effects keyed by type.
+        std::map<PostProcessEffectType, PostProcessEffect> Effects;
 
-        /** @brief Find a blended effect by type, or nullptr if absent. */
-        const PostProcessEffect* FindEffect(std::string_view type) const;
-        /** @brief Returns true if the stack contains the given effect type. */
-        bool HasEffect(std::string_view type) const;
+        const PostProcessEffect* FindEffect(PostProcessEffectType type) const;
+        bool HasEffect(PostProcessEffectType type) const;
     };
 
     /**
-     * @brief Evaluate all active volumes against the camera position and produce a blended stack.
-     * @param cameraPosition World-space position of the camera used for distance-based blending.
-     * @param volumes        Span of volume instances to evaluate (null Volume entries are skipped).
-     * @return A PostProcessStack with all contributing effects blended by priority and distance.
+     * @brief Evaluate all active volumes against the camera and produce a blended stack.
      */
     WAYFINDER_API PostProcessStack BlendPostProcessVolumes(const Float3& cameraPosition, std::span<const PostProcessVolumeInstance> volumes);
+
+    /** @brief Merge blended colour grading contributions into one struct for GPU upload. */
+    WAYFINDER_API ColourGradingParams ResolveColourGradingForView(const PostProcessStack& stack);
 } // namespace Wayfinder

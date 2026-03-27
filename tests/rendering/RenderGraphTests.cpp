@@ -199,6 +199,27 @@ namespace Wayfinder::Tests
         CHECK_FALSE(graph.Compile());
     }
 
+    TEST_CASE("Graph with raster passes but no swapchain writer does not compile")
+    {
+        Wayfinder::RenderGraph graph;
+        Wayfinder::RenderGraphTextureDesc desc;
+        desc.Width = 64;
+        desc.Height = 64;
+        desc.Format = Wayfinder::TextureFormat::RGBA8_UNORM;
+        desc.DebugName = "NoPresent";
+
+        graph.AddPass("OnlyRT", [&](Wayfinder::RenderGraphBuilder& builder)
+        {
+            auto t = builder.CreateTransient(desc);
+            builder.WriteColour(t);
+            return [](Wayfinder::RenderDevice&, const Wayfinder::RenderGraphResources&)
+            {
+            };
+        });
+
+        CHECK_FALSE(graph.Compile());
+    }
+
     TEST_CASE("Single pass targeting swapchain compiles")
     {
         Wayfinder::RenderGraph graph;

@@ -238,8 +238,12 @@ set(ENGINE_ALL_SOURCES
   src/rendering/pipeline/SceneRenderExtractor.h
 
   # Rendering — Passes
+  src/rendering/passes/CompositionPass.cpp
+  src/rendering/passes/CompositionPass.h
   src/rendering/passes/DebugPass.cpp
   src/rendering/passes/DebugPass.h
+  src/rendering/passes/PresentSourceCopyPass.cpp
+  src/rendering/passes/PresentSourceCopyPass.h
   src/rendering/passes/SceneOpaquePass.cpp
   src/rendering/passes/SceneOpaquePass.h
   src/rendering/passes/SubmissionDrawing.cpp

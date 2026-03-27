@@ -4,7 +4,7 @@ overview: Replace ad-hoc pipeline ordering with explicit injection segments, ext
 todos:
   - id: pipeline-segments
     content: Introduce ordered injection segments (early engine / game / late engine) in BuildGraph; avoid N separate loops by iterating segment lists or one flattened ordered queue built at registration time
-    status: pending
+    status: completed
   - id: late-engine-phase
     content: Add EngineRenderPhase::LateEngine (or PostGameEngine)—semantics "runs after game passes"; document vs PreComposite; register CompositionPass in this band only
     status: pending
@@ -25,7 +25,7 @@ todos:
     status: pending
   - id: cmake-docs-tests
     content: CMakeLists, render_passes.md overhaul (segments, PresentSource, validation, typed effects), SceneOpaquePassTests + render tests + lint/tidy
-    status: pending
+    status: completed
 isProject: false
 ---
 

@@ -29,6 +29,8 @@ namespace Wayfinder
         PostOpaque = 2,
         Debug = 3,
         PreComposite = 4,
+        /// Runs in the **late engine** segment — **after** game `RenderPass` injectors (e.g. present, swapchain composite).
+        LateEngine = 5,
     };
 
     /// Validates, sorts, and builds the render graph for a frame.
@@ -48,7 +50,7 @@ namespace Wayfinder
         /// Returns false if the frame is invalid and should be skipped.
         bool Prepare(RenderFrame& frame, uint32_t swapchainWidth, uint32_t swapchainHeight) const;
 
-        /// Builds the full render graph for the frame (engine passes, game passes, Composition).
+        /// Builds the render graph: **early engine** injectors → **game** injectors → **late engine** injectors.
         void BuildGraph(RenderGraph& graph, const RenderPipelineFrameParams& params, std::span<const std::unique_ptr<RenderPass>> gamePasses) const;
 
     private:
@@ -60,10 +62,13 @@ namespace Wayfinder
             std::unique_ptr<RenderPass> Pass;
         };
 
-        void SortEnginePasses();
+        static void SortEnginePassList(std::vector<EnginePassSlot>& slots);
+
+        void InvokePassList(RenderGraph& graph, const RenderPipelineFrameParams& params, const std::vector<EnginePassSlot>& slots) const;
 
         RenderContext* m_context = nullptr;
-        std::vector<EnginePassSlot> m_enginePasses;
+        std::vector<EnginePassSlot> m_earlyEnginePasses;
+        std::vector<EnginePassSlot> m_lateEnginePasses;
         uint32_t m_nextEnginePassInsertSequence = 0;
         bool m_initialised = false;
     };
