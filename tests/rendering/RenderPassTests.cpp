@@ -406,7 +406,7 @@ namespace Wayfinder::Tests
         CHECK_FALSE(buffer.IsValid());
 
         std::array<uint8_t, 64> data{};
-        device->UploadToBuffer(buffer, data.data(), {.sizeInBytes = data.size()});
+        device->UploadToBuffer(buffer, data.data(), {.sizeInBytes = static_cast<uint32_t>(data.size())});
 
         device->DestroyBuffer(buffer);
     }

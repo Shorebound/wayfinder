@@ -150,7 +150,10 @@ namespace Wayfinder
             return;
         }
 
-        m_entitiesByName.erase(name);
+        if (const auto it = m_entitiesByName.find(name); it != m_entitiesByName.end())
+        {
+            m_entitiesByName.erase(it);
+        }
     }
 
     void Scene::UpdateEntityName(flecs::entity entityHandle, const std::string& previousName, const std::string& newName) const
