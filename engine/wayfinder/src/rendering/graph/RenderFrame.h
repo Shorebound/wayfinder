@@ -272,30 +272,44 @@ namespace Wayfinder
             return Layers.back();
         }
 
+        /// Resolves a layer by id only when it is unique across the frame. If the same id appears on
+        /// more than one view, returns nullptr — use `FindLayer(id, viewIndex)` instead.
         FrameLayerRecord* FindLayer(const FrameLayerId& id)
         {
-            for (FrameLayerRecord& layer : Layers)
+            FrameLayerRecord* match = nullptr;
+            for (auto& layer : Layers)
             {
                 if (layer.Id == id)
                 {
-                    return &layer;
+                    if (match != nullptr)
+                    {
+                        return nullptr;
+                    }
+                    match = &layer;
                 }
             }
 
-            return nullptr;
+            return match;
         }
 
+        /// Resolves a layer by id only when it is unique across the frame. If the same id appears on
+        /// more than one view, returns nullptr — use `FindLayer(id, viewIndex)` instead.
         const FrameLayerRecord* FindLayer(const FrameLayerId& id) const
         {
-            for (const FrameLayerRecord& layer : Layers)
+            const FrameLayerRecord* match = nullptr;
+            for (const auto& layer : Layers)
             {
                 if (layer.Id == id)
                 {
-                    return &layer;
+                    if (match != nullptr)
+                    {
+                        return nullptr;
+                    }
+                    match = &layer;
                 }
             }
 
-            return nullptr;
+            return match;
         }
 
         FrameLayerRecord* FindLayer(const FrameLayerId& id, size_t viewIndex)

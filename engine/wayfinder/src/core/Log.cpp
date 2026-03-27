@@ -38,7 +38,7 @@ namespace Wayfinder
         }
     } // namespace
 
-    // std::string_view UDL: constexpr (pointer + length); avoids static-init warnings on (char*) → string_view.
+    /// std::string_view UDL: constexpr (pointer + length); avoids static-init warnings on (char*) → string_view.
     using std::literals::string_view_literals::operator""sv;
 
     const LogCategoryHandle LogEngine{"Engine"sv};

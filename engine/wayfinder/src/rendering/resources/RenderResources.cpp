@@ -48,6 +48,11 @@ namespace Wayfinder
     {
         for (auto& layer : frame.Layers)
         {
+            if (!layer.Enabled)
+            {
+                continue;
+            }
+
             for (auto& mesh : layer.Meshes)
             {
                 mesh.Material = PrepareMaterialBinding(mesh.Material);
