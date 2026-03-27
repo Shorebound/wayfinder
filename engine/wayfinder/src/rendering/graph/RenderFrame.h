@@ -213,8 +213,11 @@ namespace Wayfinder
         Debug
     };
 
-    /// CPU-side layer record (meshes, debug draw, etc.). Not to be confused with `RenderPass` graph
-    /// injectors in `rendering/graph/RenderPass.h`.
+    /**
+     * @brief CPU-side layer record (meshes, debug draw, etc.).
+     *
+     * Not to be confused with `RenderPass` graph injectors in `rendering/graph/RenderPass.h`.
+     */
     struct FrameLayerRecord
     {
         FrameLayerId Id = FrameLayerIds::MainScene;
@@ -250,6 +253,12 @@ namespace Wayfinder
             return Views.size() - 1;
         }
 
+        /**
+         * @warning The returned `FrameLayerRecord&` refers to an element inside `Layers`. It is
+         *          invalidated if `Layers` reallocates (for example when pushing more layers). Do not
+         *          store this reference across operations that may grow `Layers`; keep an index or id
+         *          and resolve via `FindLayer` instead.
+         */
         FrameLayerRecord& AddSceneLayer(const FrameLayerId& id, size_t viewIndex, const RenderLayerId& sceneLayer)
         {
             FrameLayerRecord layer;
@@ -261,6 +270,12 @@ namespace Wayfinder
             return Layers.back();
         }
 
+        /**
+         * @warning The returned `FrameLayerRecord&` refers to an element inside `Layers`. It is
+         *          invalidated if `Layers` reallocates (for example when pushing more layers). Do not
+         *          store this reference across operations that may grow `Layers`; keep an index or id
+         *          and resolve via `FindLayer` instead.
+         */
         FrameLayerRecord& AddDebugLayer(const FrameLayerId& id, size_t viewIndex)
         {
             FrameLayerRecord layer;
@@ -338,11 +353,16 @@ namespace Wayfinder
             return nullptr;
         }
 
-        FrameLayerRecord* FindSceneLayerForSubmission(const RenderMeshSubmission& submission, size_t viewIndex)
+        /**
+         * @brief Finds the scene layer that accepts this mesh submission.
+         *
+         * Uses `submission.ViewIndex` with `FrameLayerRecord::ViewIndex` when scanning `Layers`.
+         */
+        FrameLayerRecord* FindSceneLayerForSubmission(const RenderMeshSubmission& submission)
         {
             for (FrameLayerRecord& layer : Layers)
             {
-                if (layer.ViewIndex == viewIndex && layer.AcceptsSceneSubmission(submission))
+                if (layer.ViewIndex == submission.ViewIndex && layer.AcceptsSceneSubmission(submission))
                 {
                     return &layer;
                 }

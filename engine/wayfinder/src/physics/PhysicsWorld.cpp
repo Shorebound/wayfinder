@@ -102,6 +102,7 @@ namespace Wayfinder::Physics
                 return m_objectToBroadPhase.at(ToLayerIndex(inLayer));
             }
 
+#if defined(JPH_EXTERNAL_PROFILE) || defined(JPH_PROFILE_ENABLED)
             [[nodiscard]] const char* GetBroadPhaseLayerName(JPH::BroadPhaseLayer inLayer) const override
             {
                 switch (static_cast<JPH::BroadPhaseLayer::Type>(inLayer))
@@ -114,6 +115,7 @@ namespace Wayfinder::Physics
                     return "UNKNOWN";
                 }
             }
+#endif
 
         private:
             std::array<JPH::BroadPhaseLayer, PhysicsLayers::NUM_LAYERS> m_objectToBroadPhase{};

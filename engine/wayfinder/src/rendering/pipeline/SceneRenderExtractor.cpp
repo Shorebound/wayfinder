@@ -298,7 +298,7 @@ namespace Wayfinder
                     submission.SortKey = SortKeyBuilder::Build(sortLayer, BlendGroupBits(materialState.Blend), MaterialIdBits(submission.Material), cameraSpaceZ, submission.SortPriority);
 
                     submission.ViewIndex = *primaryViewIndex;
-                    FrameLayerRecord* owningLayer = frame.FindSceneLayerForSubmission(submission, submission.ViewIndex);
+                    FrameLayerRecord* owningLayer = frame.FindSceneLayerForSubmission(submission);
                     if (!owningLayer)
                     {
                         WAYFINDER_WARN(LogRenderer, "SceneRenderExtractor skipped mesh submission because no scene layer matched layer '{0}' in frame '{1}'.", submission.Layer, frame.SceneName);
