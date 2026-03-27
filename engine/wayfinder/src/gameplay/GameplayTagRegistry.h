@@ -2,9 +2,11 @@
 
 #include "GameplayTag.h"
 #include "app/Subsystem.h"
+#include "core/TransparentStringHash.h"
 #include "wayfinder_exports.h"
 
 #include <filesystem>
+#include <functional>
 #include <string>
 #include <string_view>
 #include <unordered_map>
@@ -60,7 +62,7 @@ namespace Wayfinder
     public:
         /// Register a tag programmatically (from code). Returns the tag.
         /// Updates existing definition's comment if the tag was already registered.
-        GameplayTag RegisterTag(const std::string& name, const std::string& comment = {});
+        GameplayTag RegisterTag(std::string_view name, std::string_view comment = {});
 
         /// Load tag definitions from a TOML file. Returns number of tags loaded, or -1 on error.
         int LoadTagFile(const std::filesystem::path& path);
@@ -69,13 +71,13 @@ namespace Wayfinder
         void UnloadTagFile(const std::filesystem::path& path);
 
         /// Request a validated tag by name. Logs a warning if the tag is not registered.
-        GameplayTag RequestTag(const std::string& name) const;
+        GameplayTag RequestTag(std::string_view name) const;
 
         /// Check if a tag name is registered.
-        bool IsRegistered(const std::string& name) const;
+        bool IsRegistered(std::string_view name) const;
 
         /// Look up the full definition for a tag. Returns nullptr if not registered.
-        const GameplayTagDefinition* FindDefinition(const std::string& name) const;
+        const GameplayTagDefinition* FindDefinition(std::string_view name) const;
 
         /// All registered tag definitions.
         const std::vector<GameplayTagDefinition>& GetAllDefinitions() const
@@ -94,7 +96,7 @@ namespace Wayfinder
         void EnsureAncestors(std::string_view name, GameplayTagSourceKind sourceKind, std::string_view sourceFile = {});
 
         std::vector<GameplayTagDefinition> m_definitions;
-        std::unordered_map<std::string, size_t> m_index; ///< Name -> index into m_definitions.
+        std::unordered_map<std::string, size_t, TransparentStringHash, std::equal_to<>> m_index; ///< Name -> index into m_definitions.
         std::vector<std::string> m_loadedFiles;
     };
 

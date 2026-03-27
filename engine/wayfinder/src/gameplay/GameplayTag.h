@@ -32,9 +32,9 @@ namespace Wayfinder
             return GetName() <=> other.GetName();
         }
 
-        const std::string& GetName() const
+        std::string_view GetName() const
         {
-            return m_name.GetString();
+            return m_name.AsStringView();
         }
         bool IsValid() const
         {
@@ -68,13 +68,13 @@ namespace Wayfinder
 
         /// Construct a tag from a plain name string.  Interns the string
         /// and returns the tag.
-        static GameplayTag FromName(const std::string& name)
+        static GameplayTag FromName(const std::string_view name)
         {
             return GameplayTag{name};
         }
 
     private:
-        explicit GameplayTag(const std::string& name) : m_name(InternedString::Intern(name)) {}
+        explicit GameplayTag(const std::string_view name) : m_name(InternedString::Intern(name)) {}
         explicit GameplayTag(InternedString name) : m_name(name) {}
         GameplayTag() = default;
 

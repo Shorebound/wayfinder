@@ -5,6 +5,7 @@
 
 #include <filesystem>
 #include <string>
+#include <string_view>
 #include <vector>
 
 namespace Wayfinder
@@ -20,11 +21,11 @@ namespace Wayfinder
         std::string Plugin;
     };
 
-    inline constexpr const char* DEFAULT_PROJECT_NAME = "Untitled";
+    inline constexpr std::string_view DEFAULT_PROJECT_NAME = "Untitled";
 
     struct WAYFINDER_API ProjectDescriptor
     {
-        std::string Name = DEFAULT_PROJECT_NAME;
+        std::string Name = std::string(DEFAULT_PROJECT_NAME);
         std::string Version = "0.1.0";
         std::string EngineVersion = "0.1.0";
 

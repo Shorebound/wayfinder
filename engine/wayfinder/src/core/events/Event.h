@@ -4,6 +4,7 @@
 #include <memory>
 #include <ostream>
 #include <string>
+#include <string_view>
 
 namespace Wayfinder
 {
@@ -34,10 +35,26 @@ namespace Wayfinder
         MouseScrolled
     };
 
-    constexpr const char* EventTypeToString(EventType type)
+    constexpr std::string_view EventTypeToString(const EventType type)
     {
         switch (type)
         {
+
+        case EventType::None:
+            return "None";
+
+        // Window Events
+        case EventType::WindowClose:
+            return "WindowClose";
+        case EventType::WindowResize:
+            return "WindowResize";
+        case EventType::WindowFocus:
+            return "WindowFocus";
+        case EventType::WindowLostFocus:
+            return "WindowLostFocus";
+        case EventType::WindowMoved:
+            return "WindowMoved";
+
         // Application Events
         case EventType::AppTick:
             return "AppTick";
@@ -45,6 +62,7 @@ namespace Wayfinder
             return "AppUpdate";
         case EventType::AppRender:
             return "AppRender";
+
         // Keyboard Events
         case EventType::KeyPressed:
             return "KeyPressed";
@@ -52,6 +70,7 @@ namespace Wayfinder
             return "KeyReleased";
         case EventType::KeyTyped:
             return "KeyTyped";
+
         // Mouse Events
         case EventType::MouseButtonPressed:
             return "MouseButtonPressed";
@@ -62,8 +81,6 @@ namespace Wayfinder
         case EventType::MouseScrolled:
             return "MouseScrolled";
         default:
-            // Using throw might be better during development
-            // throw std::runtime_error("Unknown EventType in EventTypeToString");
             return "UnknownEvent";
         }
     }
@@ -109,11 +126,11 @@ namespace Wayfinder
         bool Handled = false;
 
         virtual EventType GetEventType() const = 0;
-        virtual const char* GetName() const = 0;
+        virtual std::string_view GetName() const = 0;
         virtual EventCategory GetCategoryFlags() const = 0;
         virtual std::string ToString() const
         {
-            return GetName();
+            return std::string(GetName());
         }
 
         bool IsInCategory(const EventCategory category) const
@@ -169,7 +186,7 @@ namespace Wayfinder
         {
             return GetStaticType();
         }
-        virtual const char* GetName() const override
+        virtual std::string_view GetName() const override
         {
             return EventTypeToString(GetStaticType());
         }

@@ -14,8 +14,8 @@
 #include <array>
 #include <cstddef>
 #include <cstdint>
-#include <iterator>
 #include <memory>
+#include <optional>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -31,10 +31,9 @@ namespace Wayfinder
         {
             const std::array<std::uint8_t, 16>& bytes = assetId.Value.GetBytes();
             uint64_t result = 0;
-            auto iterator = bytes.begin();
-            for (size_t index = 0; index < 8; ++index, ++iterator)
+            for (size_t index = 0; index < 8; ++index)
             {
-                result = (result << 8) | static_cast<uint64_t>(*iterator);
+                result = (result << 8) | static_cast<uint64_t>(bytes[index]);
             }
 
             /// Mix submesh index into the key to guarantee distinct entries per submesh.
@@ -61,10 +60,10 @@ namespace Wayfinder
             {
                 const std::array<std::uint8_t, 16>& bytes = material.Ref.AssetId->Value.GetBytes();
                 uint16_t hash = 0;
-                for (auto iterator = bytes.begin(); iterator != bytes.end(); std::advance(iterator, 2))
+                for (size_t index = 0; index < bytes.size(); index += 2)
                 {
-                    const auto lowByte = static_cast<uint16_t>(*iterator);
-                    const auto highByte = static_cast<uint16_t>(*std::next(iterator));
+                    const auto lowByte = static_cast<uint16_t>(bytes[index]);
+                    const auto highByte = static_cast<uint16_t>(bytes[index + 1]);
                     hash ^= lowByte | static_cast<uint16_t>(highByte << 8);
                 }
 
@@ -182,6 +181,7 @@ namespace Wayfinder
         frame.SceneName = scene.GetName();
         frame.AssetRoot = scene.GetAssetRoot();
 
+        std::optional<size_t> primaryViewIndex;
         if (scene.GetWorld().has<ActiveCameraStateComponent>())
         {
             const auto& activeCamera = scene.GetWorld().get<ActiveCameraStateComponent>();
@@ -193,177 +193,182 @@ namespace Wayfinder
                 view.CameraState.Up = activeCamera.Up;
                 view.CameraState.FOV = activeCamera.FieldOfView;
                 view.CameraState.ProjectionType = static_cast<int>(activeCamera.Projection);
-                const size_t viewIndex = frame.AddView(view);
-                frame.AddScenePass(RenderPassIds::MainScene, viewIndex, RenderLayers::Main);
-                frame.AddScenePass(RenderPassIds::OverlayScene, viewIndex, RenderLayers::Overlay);
-                RenderPass& debugPass = frame.AddDebugPass(RenderPassIds::Debug, viewIndex);
-                if (debugPass.DebugDraw)
+                primaryViewIndex = frame.AddView(view);
+                const size_t viewIndex = *primaryViewIndex;
+                frame.AddSceneLayer(FrameLayerIds::MainScene, viewIndex, RenderLayers::Main);
+                frame.AddSceneLayer(FrameLayerIds::OverlayScene, viewIndex, RenderLayers::Overlay);
+                FrameLayerRecord& debugLayer = frame.AddDebugLayer(FrameLayerIds::Debug, viewIndex);
+                if (debugLayer.DebugDraw)
                 {
-                    debugPass.DebugDraw->ShowWorldGrid = true;
+                    debugLayer.DebugDraw->ShowWorldGrid = true;
                 }
             }
         }
 
-        // Compute view matrix for sort-key depth calculation
-        auto cameraView = Matrix4(1.0f);
-        if (scene.GetWorld().has<ActiveCameraStateComponent>())
+        if (primaryViewIndex.has_value())
         {
-            const auto& activeCamera = scene.GetWorld().get<ActiveCameraStateComponent>();
-            if (activeCamera.IsValid)
+            // Compute view matrix for sort-key depth calculation (only needed when layer-backed mesh extraction runs).
+            auto cameraView = Matrix4(1.0f);
+            if (scene.GetWorld().has<ActiveCameraStateComponent>())
             {
-                cameraView = Maths::LookAt(activeCamera.Position, activeCamera.Target, activeCamera.Up);
-            }
-        }
-
-        scene.GetWorld().each([&frame, &cameraView, &scene](flecs::entity entityHandle)
-        {
-            if (!entityHandle.has<TransformComponent>() || !entityHandle.has<MeshComponent>() || !entityHandle.has<RenderableComponent>())
-            {
-                return;
-            }
-
-            const auto& transform = entityHandle.get<TransformComponent>();
-            const auto& mesh = entityHandle.get<MeshComponent>();
-            const auto& renderable = entityHandle.get<RenderableComponent>();
-
-            Matrix4 localToWorld = transform.GetLocalMatrix();
-
-            if (entityHandle.has<WorldTransformComponent>())
-            {
-                const auto& worldTransform = entityHandle.get<WorldTransformComponent>();
-                localToWorld = worldTransform.LocalToWorld;
-            }
-
-            // Compute camera-space Z for depth sorting (shared by all submesh submissions)
-            const Float3 worldPosition = Maths::TransformPoint(localToWorld, {0.0f, 0.0f, 0.0f});
-            const Float3 cameraSpacePosition = Maths::TransformPoint(cameraView, worldPosition);
-            const float cameraSpaceZ = cameraSpacePosition.z; // NOLINT(cppcoreguidelines-pro-type-union-access)
-
-            // Resolve entity-level material (fallback for all submeshes)
-            RenderMaterialBinding entityMaterial{};
-            entityMaterial.Ref.Origin = RenderResourceOrigin::BuiltIn;
-            entityMaterial.Ref.StableKey = K_BUILT_IN_SURFACE_MATERIAL_KEY;
-            entityMaterial.Domain = RenderMaterialDomain::Surface;
-            entityMaterial.Parameters.SetColour("base_colour", LinearColour::White());
-
-            if (entityHandle.has<MaterialComponent>())
-            {
-                const auto& material = entityHandle.get<MaterialComponent>();
-                if (material.MaterialAssetId)
+                const auto& activeCamera = scene.GetWorld().get<ActiveCameraStateComponent>();
+                if (activeCamera.IsValid)
                 {
-                    entityMaterial.Ref.Origin = RenderResourceOrigin::Asset;
-                    entityMaterial.Ref.AssetId = material.MaterialAssetId;
-                    entityMaterial.Ref.StableKey = MakeStableKey(*material.MaterialAssetId);
-                }
-
-                if (material.HasBaseColourOverride || !material.MaterialAssetId)
-                {
-                    entityMaterial.HasOverrides = true;
-                    entityMaterial.Overrides.SetColour("base_colour", LinearColour::FromColour(material.BaseColour));
+                    cameraView = Maths::LookAt(activeCamera.Position, activeCamera.Target, activeCamera.Up);
                 }
             }
 
-            // Resolve render-state overrides
-            RenderStateOverrides stateOverrides{};
-            if (entityHandle.has<RenderOverrideComponent>())
+            scene.GetWorld().each([&frame, &cameraView, &scene, primaryViewIndex](flecs::entity entityHandle)
             {
-                const auto& renderOverride = entityHandle.get<RenderOverrideComponent>();
-                if (renderOverride.Wireframe.has_value())
+                if (!entityHandle.has<TransformComponent>() || !entityHandle.has<MeshComponent>() || !entityHandle.has<RenderableComponent>())
                 {
-                    stateOverrides.FillMode = *renderOverride.Wireframe ? RenderFillMode::SolidAndWireframe : RenderFillMode::Solid;
-                }
-            }
-
-            /// Emit a single submission with the given mesh ref, material, and world-space bounds.
-            auto emitSubmission = [&](const RenderMeshRef& meshRef, const RenderMaterialBinding& material, const AxisAlignedBounds& worldBounds)
-            {
-                RenderMeshSubmission submission;
-                submission.Mesh = meshRef;
-                submission.Geometry.Type = RenderGeometryType::Box;
-                submission.Geometry.Dimensions = mesh.Dimensions;
-                submission.Material = material;
-                submission.Material.StateOverrides = stateOverrides;
-                const auto materialState = ResolveMaterialState(submission.Material, scene);
-                submission.Material.ShaderName = materialState.ShaderName;
-                submission.Visible = renderable.Visible;
-                submission.Layer = renderable.Layer;
-                submission.SortPriority = renderable.SortPriority;
-                submission.LocalToWorld = localToWorld;
-                submission.WorldBounds = worldBounds;
-                submission.WorldSphere = ComputeBoundingSphere(worldBounds);
-                const SortLayer sortLayer = materialState.Blend.Enabled ? SortLayer::Transparent : MapLayer(submission.Layer);
-                submission.SortKey = SortKeyBuilder::Build(sortLayer, BlendGroupBits(materialState.Blend), MaterialIdBits(submission.Material), cameraSpaceZ, submission.SortPriority);
-
-                RenderPass* owningPass = frame.FindScenePassForSubmission(submission, 0);
-                if (!owningPass)
-                {
-                    WAYFINDER_WARN(LogRenderer, "SceneRenderExtractor skipped mesh submission because no scene pass matched layer '{0}' in frame '{1}'.", submission.Layer, frame.SceneName);
                     return;
                 }
 
-                owningPass->Meshes.push_back(std::move(submission));
-            };
+                const auto& transform = entityHandle.get<TransformComponent>();
+                const auto& mesh = entityHandle.get<MeshComponent>();
+                const auto& renderable = entityHandle.get<RenderableComponent>();
 
-            if (mesh.MeshAssetId)
-            {
-                // Asset mesh — load metadata once, emit one submission per submesh
-                const MeshAsset* meshAsset = nullptr;
-                const auto& assetService = scene.GetAssetService();
-                if (assetService)
+                Matrix4 localToWorld = transform.GetLocalMatrix();
+
+                if (entityHandle.has<WorldTransformComponent>())
                 {
-                    std::string error;
-                    meshAsset = assetService->LoadAsset<MeshAsset>(*mesh.MeshAssetId, error);
+                    const auto& worldTransform = entityHandle.get<WorldTransformComponent>();
+                    localToWorld = worldTransform.LocalToWorld;
                 }
 
-                const uint32_t submeshCount = meshAsset ? static_cast<uint32_t>(meshAsset->Submeshes.size()) : 1u;
+                // Compute camera-space Z for depth sorting (shared by all submesh submissions)
+                const Float3 worldPosition = Maths::TransformPoint(localToWorld, {0.0f, 0.0f, 0.0f});
+                const Float3 cameraSpacePosition = Maths::TransformPoint(cameraView, worldPosition);
+                const float cameraSpaceZ = cameraSpacePosition.z; // NOLINT(cppcoreguidelines-pro-type-union-access)
 
-                for (uint32_t submeshIdx = 0; submeshIdx < submeshCount; ++submeshIdx)
+                // Resolve entity-level material (fallback for all submeshes)
+                RenderMaterialBinding entityMaterial{};
+                entityMaterial.Ref.Origin = RenderResourceOrigin::BuiltIn;
+                entityMaterial.Ref.StableKey = K_BUILT_IN_SURFACE_MATERIAL_KEY;
+                entityMaterial.Domain = RenderMaterialDomain::Surface;
+                entityMaterial.Parameters.SetColour("base_colour", LinearColour::White());
+
+                if (entityHandle.has<MaterialComponent>())
                 {
+                    const auto& material = entityHandle.get<MaterialComponent>();
+                    if (material.MaterialAssetId)
+                    {
+                        entityMaterial.Ref.Origin = RenderResourceOrigin::Asset;
+                        entityMaterial.Ref.AssetId = material.MaterialAssetId;
+                        entityMaterial.Ref.StableKey = MakeStableKey(*material.MaterialAssetId);
+                    }
+
+                    if (material.HasBaseColourOverride || !material.MaterialAssetId)
+                    {
+                        entityMaterial.HasOverrides = true;
+                        entityMaterial.Overrides.SetColour("base_colour", LinearColour::FromColour(material.BaseColour));
+                    }
+                }
+
+                // Resolve render-state overrides
+                RenderStateOverrides stateOverrides{};
+                if (entityHandle.has<RenderOverrideComponent>())
+                {
+                    const auto& renderOverride = entityHandle.get<RenderOverrideComponent>();
+                    if (renderOverride.Wireframe.has_value())
+                    {
+                        stateOverrides.FillMode = *renderOverride.Wireframe ? RenderFillMode::SolidAndWireframe : RenderFillMode::Solid;
+                    }
+                }
+
+                /// Emit a single submission with the given mesh ref, material, and world-space bounds.
+                auto emitSubmission = [&](const RenderMeshRef& meshRef, const RenderMaterialBinding& material, const AxisAlignedBounds& worldBounds)
+                {
+                    RenderMeshSubmission submission;
+                    submission.Mesh = meshRef;
+                    submission.Geometry.Type = RenderGeometryType::Box;
+                    submission.Geometry.Dimensions = mesh.Dimensions;
+                    submission.Material = material;
+                    submission.Material.StateOverrides = stateOverrides;
+                    const auto materialState = ResolveMaterialState(submission.Material, scene);
+                    submission.Material.ShaderName = materialState.ShaderName;
+                    submission.Visible = renderable.Visible;
+                    submission.Layer = renderable.Layer;
+                    submission.SortPriority = renderable.SortPriority;
+                    submission.LocalToWorld = localToWorld;
+                    submission.WorldBounds = worldBounds;
+                    submission.WorldSphere = ComputeBoundingSphere(worldBounds);
+                    const SortLayer sortLayer = materialState.Blend.Enabled ? SortLayer::Transparent : MapLayer(submission.Layer);
+                    submission.SortKey = SortKeyBuilder::Build(sortLayer, BlendGroupBits(materialState.Blend), MaterialIdBits(submission.Material), cameraSpaceZ, submission.SortPriority);
+
+                    submission.ViewIndex = primaryViewIndex;
+                    FrameLayerRecord* owningLayer = frame.FindSceneLayerForSubmission(submission);
+                    if (!owningLayer)
+                    {
+                        WAYFINDER_WARN(LogRenderer, "SceneRenderExtractor skipped mesh submission because no scene layer matched layer '{0}' in frame '{1}'.", submission.Layer, frame.SceneName);
+                        return;
+                    }
+
+                    owningLayer->Meshes.push_back(std::move(submission));
+                };
+
+                if (mesh.MeshAssetId)
+                {
+                    // Asset mesh — load metadata once, emit one submission per submesh
+                    const MeshAsset* meshAsset = nullptr;
+                    const auto& assetService = scene.GetAssetService();
+                    if (assetService)
+                    {
+                        std::string error;
+                        meshAsset = assetService->LoadAsset<MeshAsset>(*mesh.MeshAssetId, error);
+                    }
+
+                    const uint32_t submeshCount = meshAsset ? static_cast<uint32_t>(meshAsset->Submeshes.size()) : 1u;
+
+                    for (uint32_t submeshIdx = 0; submeshIdx < submeshCount; ++submeshIdx)
+                    {
+                        RenderMeshRef meshRef;
+                        meshRef.Origin = RenderResourceOrigin::Asset;
+                        meshRef.AssetId = mesh.MeshAssetId;
+                        meshRef.StableKey = MakeStableKey(*mesh.MeshAssetId, submeshIdx);
+                        meshRef.SubmeshIndex = submeshIdx;
+
+                        // Resolve per-submesh material: slot binding → entity material → built-in
+                        RenderMaterialBinding submeshMaterial = entityMaterial;
+
+                        uint32_t materialSlot = submeshIdx;
+                        AxisAlignedBounds localBounds{};
+                        if (meshAsset && submeshIdx < meshAsset->Submeshes.size())
+                        {
+                            materialSlot = meshAsset->Submeshes.at(submeshIdx).MaterialSlot;
+                            localBounds = meshAsset->Submeshes.at(submeshIdx).Bounds;
+                        }
+
+                        if (const auto slotIt = mesh.MaterialSlotBindings.find(materialSlot); slotIt != mesh.MaterialSlotBindings.end())
+                        {
+                            submeshMaterial.Ref.Origin = RenderResourceOrigin::Asset;
+                            submeshMaterial.Ref.AssetId = slotIt->second;
+                            submeshMaterial.Ref.StableKey = MakeStableKey(slotIt->second);
+                            submeshMaterial.HasOverrides = false;
+                        }
+
+                        const AxisAlignedBounds worldBounds = TransformBounds(localBounds, localToWorld);
+                        emitSubmission(meshRef, submeshMaterial, worldBounds);
+                    }
+                }
+                else
+                {
+                    // Built-in primitive — single submission with bounds derived from dimensions
                     RenderMeshRef meshRef;
-                    meshRef.Origin = RenderResourceOrigin::Asset;
-                    meshRef.AssetId = mesh.MeshAssetId;
-                    meshRef.StableKey = MakeStableKey(*mesh.MeshAssetId, submeshIdx);
-                    meshRef.SubmeshIndex = submeshIdx;
+                    meshRef.Origin = RenderResourceOrigin::BuiltIn;
+                    meshRef.StableKey = K_BUILT_IN_BOX_MESH_KEY;
 
-                    // Resolve per-submesh material: slot binding → entity material → built-in
-                    RenderMaterialBinding submeshMaterial = entityMaterial;
-
-                    uint32_t materialSlot = submeshIdx;
-                    AxisAlignedBounds localBounds{};
-                    if (meshAsset && submeshIdx < meshAsset->Submeshes.size())
-                    {
-                        materialSlot = meshAsset->Submeshes.at(submeshIdx).MaterialSlot;
-                        localBounds = meshAsset->Submeshes.at(submeshIdx).Bounds;
-                    }
-
-                    if (const auto slotIt = mesh.MaterialSlotBindings.find(materialSlot); slotIt != mesh.MaterialSlotBindings.end())
-                    {
-                        submeshMaterial.Ref.Origin = RenderResourceOrigin::Asset;
-                        submeshMaterial.Ref.AssetId = slotIt->second;
-                        submeshMaterial.Ref.StableKey = MakeStableKey(slotIt->second);
-                        submeshMaterial.HasOverrides = false;
-                    }
-
+                    const Float3 halfDim = mesh.Dimensions * 0.5f;
+                    const AxisAlignedBounds localBounds{.Min = -halfDim, .Max = halfDim};
                     const AxisAlignedBounds worldBounds = TransformBounds(localBounds, localToWorld);
-                    emitSubmission(meshRef, submeshMaterial, worldBounds);
+
+                    emitSubmission(meshRef, entityMaterial, worldBounds);
                 }
-            }
-            else
-            {
-                // Built-in primitive — single submission with bounds derived from dimensions
-                RenderMeshRef meshRef;
-                meshRef.Origin = RenderResourceOrigin::BuiltIn;
-                meshRef.StableKey = K_BUILT_IN_BOX_MESH_KEY;
+            });
+        }
 
-                const Float3 halfDim = mesh.Dimensions * 0.5f;
-                const AxisAlignedBounds localBounds{.Min = -halfDim, .Max = halfDim};
-                const AxisAlignedBounds worldBounds = TransformBounds(localBounds, localToWorld);
-
-                emitSubmission(meshRef, entityMaterial, worldBounds);
-            }
-        });
-
-        scene.GetWorld().each([&frame](flecs::entity entityHandle)
+        scene.GetWorld().each([&frame, primaryViewIndex](flecs::entity entityHandle)
         {
             if (!entityHandle.has<TransformComponent>() || !entityHandle.has<LightComponent>())
             {
@@ -394,7 +399,7 @@ namespace Wayfinder
             submission.DebugDraw = light.DebugDraw;
             frame.Lights.push_back(submission);
 
-            if (light.DebugDraw)
+            if (light.DebugDraw && primaryViewIndex.has_value())
             {
                 const float debugSize = light.Type == LightType::Directional ? 0.6f : 0.3f;
                 const Matrix4 debugTransform = Maths::ComposeTransform({
@@ -411,22 +416,20 @@ namespace Wayfinder
                 debugBox.Material.Domain = RenderMaterialDomain::Debug;
                 debugBox.Material.Parameters.SetColour("base_colour", LinearColour::FromColour(light.Tint));
 
-                if (RenderPass* pass = frame.FindPass(RenderPassIds::Debug))
+                FrameLayerRecord* debugLayer = frame.FindLayer(FrameLayerIds::Debug, *primaryViewIndex);
+                if (debugLayer && debugLayer->DebugDraw)
                 {
-                    pass->DebugDraw->Boxes.push_back(debugBox);
-                }
+                    debugLayer->DebugDraw->Boxes.push_back(debugBox);
 
-                if (light.Type == LightType::Directional)
-                {
-                    const Float3 lineEnd = Maths::Add(position, Maths::Scale(direction, 1.5f));
-                    RenderDebugLine debugLine;
-                    debugLine.Start = position;
-                    debugLine.End = lineEnd;
-                    debugLine.Tint = light.Tint;
-
-                    if (RenderPass* pass = frame.FindPass(RenderPassIds::Debug))
+                    if (light.Type == LightType::Directional)
                     {
-                        pass->DebugDraw->Lines.push_back(debugLine);
+                        const Float3 lineEnd = Maths::Add(position, Maths::Scale(direction, 1.5f));
+                        RenderDebugLine debugLine;
+                        debugLine.Start = position;
+                        debugLine.End = lineEnd;
+                        debugLine.Tint = light.Tint;
+
+                        debugLayer->DebugDraw->Lines.push_back(debugLine);
                     }
                 }
             }

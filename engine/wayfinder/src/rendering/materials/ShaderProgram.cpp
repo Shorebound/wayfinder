@@ -2,8 +2,10 @@
 
 #include "ShaderManager.h"
 #include "core/Log.h"
+
 #include "rendering/backend/GPUPipeline.h"
 #include "rendering/pipeline/PipelineCache.h"
+#include <string>
 
 namespace Wayfinder
 {
@@ -77,13 +79,14 @@ namespace Wayfinder
         return true;
     }
 
-    const ShaderProgram* ShaderProgramRegistry::Find(const std::string& name) const
+    const ShaderProgram* ShaderProgramRegistry::Find(const std::string_view name) const
     {
-        auto it = m_programs.find(name);
+        const auto it = m_programs.find(name);
         return (it != m_programs.end()) ? &it->second : nullptr;
     }
 
-    const ShaderProgram* ShaderProgramRegistry::FindOrDefault(const std::string& name, const std::string& fallback) const
+    // NOLINTNEXTLINE(bugprone-easily-swappable-parameters) — primary name vs fallback shader name
+    const ShaderProgram* ShaderProgramRegistry::FindOrDefault(const std::string_view name, const std::string_view fallback) const
     {
         if (const auto* program = Find(name))
         {

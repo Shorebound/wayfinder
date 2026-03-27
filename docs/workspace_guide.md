@@ -46,12 +46,14 @@ The rendering subsystem is further organised into subdirectories:
 | Directory | Purpose |
 |-----------|---------|
 | `rendering/backend/` | GPU device abstraction — `RenderDevice`, GPU buffers, pipelines, vertex formats, plus backend implementations (`null/`, `sdl_gpu/`) |
-| `rendering/graph/` | Render graph framework — `RenderGraph`, features, frame data, intents, sort keys |
+| `rendering/graph/` | Render graph framework — `RenderGraph`, `RenderPass` injectors, frame data, intents, sort keys |
 | `rendering/pipeline/` | Pipeline execution — `Renderer`, `RenderPipeline`, `RenderContext`, `PipelineCache`, scene extraction |
 | `rendering/resources/` | GPU resource management — `RenderResources`, transient buffer and resource pools |
 | `rendering/materials/` | Material and shader system — `Material`, parameters, post-process volumes, shader programs and manager |
 | `rendering/mesh/` | Geometry data — `Mesh`, vertex formats |
 | `rendering/RenderTypes.h` | Rendering-specific types — camera, textures, samplers, render passes, device info |
+
+Terminology for **CPU frame layers** vs **graph `RenderPass` injectors**, **`RenderPipelineFrameParams`**, and **engine pass phases**: see [`render_passes.md`](render_passes.md).
 
 ### Sandboxes
 
@@ -333,6 +335,6 @@ If you are new to the repository, read the docs in this order:
 2. `docs/project_vision.md`
 3. `docs/runtime_architecture.md`
 4. `docs/data_authoring_and_editor.md`
-5. `docs/render_features.md`
+5. `docs/render_passes.md`
 6. `docs/sdl3_migration_plan.md`
 7. `docs/implementation_plan.md`

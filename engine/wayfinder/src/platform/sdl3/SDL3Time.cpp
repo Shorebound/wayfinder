@@ -7,14 +7,14 @@ namespace Wayfinder
 {
     std::unique_ptr<Time> Time::Create(PlatformBackend backend)
     {
-        switch (backend)
+        if (backend == PlatformBackend::SDL3)
         {
-        case PlatformBackend::SDL3:
             return std::make_unique<SDL3Time>();
-        case PlatformBackend::Null:
+        }
+        if (backend == PlatformBackend::Null)
+        {
             return std::make_unique<NullTime>();
         }
-
         return nullptr;
     }
 

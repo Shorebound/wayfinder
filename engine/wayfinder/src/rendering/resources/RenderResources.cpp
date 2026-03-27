@@ -46,24 +46,28 @@ namespace Wayfinder
 
     void RenderResourceCache::PrepareFrame(RenderFrame& frame)
     {
-        for (RenderPass& pass : frame.Passes)
+        for (auto& layer : frame.Layers)
         {
-            for (RenderMeshSubmission& mesh : pass.Meshes)
-            {
-                mesh.Material = PrepareMaterialBinding(mesh.Material);
-            }
-
-            if (!pass.DebugDraw.has_value())
+            if (!layer.Enabled)
             {
                 continue;
             }
 
-            RenderDebugDrawList debugDraw = pass.DebugDraw.value_or(RenderDebugDrawList{});
-            for (RenderDebugBox& debugBox : debugDraw.Boxes)
+            for (auto& mesh : layer.Meshes)
+            {
+                mesh.Material = PrepareMaterialBinding(mesh.Material);
+            }
+
+            if (!layer.DebugDraw)
+            {
+                continue;
+            }
+
+            // NOLINTNEXTLINE(bugprone-unchecked-optional-access)
+            for (auto& debugBox : layer.DebugDraw->Boxes)
             {
                 debugBox.Material = PrepareMaterialBinding(debugBox.Material);
             }
-            pass.DebugDraw = std::move(debugDraw);
         }
     }
 
@@ -84,7 +88,7 @@ namespace Wayfinder
             auto result = m_meshManager->GetOrLoad(*submission.Mesh.AssetId, *m_assetService);
             if (result)
             {
-                const MeshAssetGPU* gpuAsset = *result;
+                const auto* gpuAsset = *result;
                 if (submission.Mesh.SubmeshIndex < gpuAsset->Submeshes.size())
                 {
                     resource.GpuMesh = &gpuAsset->Submeshes.at(submission.Mesh.SubmeshIndex);
@@ -150,7 +154,7 @@ namespace Wayfinder
         }
 
         std::string error;
-        const MaterialAsset* materialAsset = m_assetService->LoadMaterialAsset(*binding.Ref.AssetId, error);
+        const auto* materialAsset = m_assetService->LoadMaterialAsset(*binding.Ref.AssetId, error);
         if (!materialAsset)
         {
             return resource;
@@ -179,7 +183,7 @@ namespace Wayfinder
             return;
         }
 
-        const ShaderProgram* program = m_programs->FindOrDefault(binding.ShaderName);
+        const auto* program = m_programs->FindOrDefault(binding.ShaderName);
         if (!program)
         {
             return;

@@ -1,16 +1,21 @@
 #include "InternedString.h"
 
+#include "core/TransparentStringHash.h"
+
 #include <unordered_set>
 
 namespace Wayfinder
 {
     namespace
     {
-        /// The global intern table. Entries are never removed — once interned,
-        /// the pointer is stable for the lifetime of the process.
-        std::unordered_set<std::string>& GetTable()
+        std::unordered_set<std::string, TransparentStringHash, std::equal_to<>>& GetTable()
         {
-            static std::unordered_set<std::string> sTable;
+            static std::unordered_set<std::string, TransparentStringHash, std::equal_to<>> sTable = []
+            {
+                std::unordered_set<std::string, TransparentStringHash, std::equal_to<>> table;
+                table.reserve(2048);
+                return table;
+            }();
             return sTable;
         }
 
@@ -25,8 +30,12 @@ namespace Wayfinder
     InternedString InternedString::Intern(std::string_view text)
     {
         auto& table = GetTable();
-        auto [it, _] = table.emplace(text);
-        return InternedString{&*it};
+        if (const auto it = table.find(text); it != table.end())
+        {
+            return InternedString{&*it};
+        }
+        const auto [inserted, _] = table.emplace(text);
+        return InternedString{&*inserted};
     }
 
 } // namespace Wayfinder

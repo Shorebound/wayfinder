@@ -7,6 +7,7 @@
 
 #include <functional>
 #include <string>
+#include <string_view>
 #include <unordered_map>
 #include <vector>
 
@@ -102,17 +103,18 @@ namespace Wayfinder
         bool Register(const ShaderProgramDesc& desc);
 
         // Look up a registered program by name. Returns nullptr if not found.
-        const ShaderProgram* Find(const std::string& name) const;
+        const ShaderProgram* Find(std::string_view name) const;
 
         // Convenience: find with fallback to a default program.
-        const ShaderProgram* FindOrDefault(const std::string& name, const std::string& fallback = "unlit") const;
+        // NOLINTNEXTLINE(bugprone-easily-swappable-parameters) — primary name vs fallback shader name
+        const ShaderProgram* FindOrDefault(std::string_view name, std::string_view fallback = "unlit") const;
 
     private:
         RenderDevice* m_device = nullptr;
         ShaderManager* m_shaders = nullptr;
         PipelineCache* m_cache = nullptr;
 
-        std::unordered_map<std::string, ShaderProgram> m_programs;
+        std::unordered_map<std::string, ShaderProgram, TransparentStringHash, std::equal_to<>> m_programs;
         // Owned pipelines (not from cache) that need explicit destruction
         std::vector<GPUPipeline*> m_ownedPipelines;
     };

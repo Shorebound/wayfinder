@@ -2,18 +2,19 @@
 #include "core/Log.h"
 
 #include <algorithm>
+#include <string>
 #include <toml++/toml.hpp>
 
 namespace Wayfinder
 {
-    GameplayTag GameplayTagRegistry::RegisterTag(const std::string& name, const std::string& comment)
+    GameplayTag GameplayTagRegistry::RegisterTag(const std::string_view name, const std::string_view comment)
     {
         if (auto it = m_index.find(name); it != m_index.end())
         {
             // Update existing definition (code overrides data comment if non-empty).
             if (!comment.empty())
             {
-                m_definitions.at(it->second).Comment = comment;
+                m_definitions.at(it->second).Comment = std::string(comment);
             }
             // Mark as code-owned so UnloadTagFile() won't remove it.
             m_definitions.at(it->second).SourceFile = "(code)";
@@ -23,10 +24,10 @@ namespace Wayfinder
         EnsureAncestors(name, GameplayTagSourceKind::Code);
 
         const size_t idx = m_definitions.size();
-        m_definitions.push_back({.Name = name, .Comment = comment, .SourceFile = "(code)"});
-        m_index[name] = idx;
+        m_definitions.push_back({.Name = std::string(name), .Comment = std::string(comment), .SourceFile = "(code)"});
+        m_index[m_definitions.back().Name] = idx;
 
-        WAYFINDER_INFO(LogEngine, "GameplayTagRegistry: registered tag '{}'{}", name, comment.empty() ? "" : " — " + comment);
+        WAYFINDER_INFO(LogEngine, "GameplayTagRegistry: registered tag '{}'{}", name, comment.empty() ? "" : " — " + std::string(comment));
 
         return GameplayTag::FromName(name);
     }
@@ -126,7 +127,7 @@ namespace Wayfinder
         WAYFINDER_INFO(LogEngine, "GameplayTagRegistry: unloaded tag file '{}'", canonical);
     }
 
-    GameplayTag GameplayTagRegistry::RequestTag(const std::string& name) const
+    GameplayTag GameplayTagRegistry::RequestTag(const std::string_view name) const
     {
         if (!IsRegistered(name))
         {
@@ -139,12 +140,12 @@ namespace Wayfinder
         return GameplayTag::FromName(name);
     }
 
-    bool GameplayTagRegistry::IsRegistered(const std::string& name) const
+    bool GameplayTagRegistry::IsRegistered(const std::string_view name) const
     {
         return m_index.contains(name);
     }
 
-    const GameplayTagDefinition* GameplayTagRegistry::FindDefinition(const std::string& name) const
+    const GameplayTagDefinition* GameplayTagRegistry::FindDefinition(const std::string_view name) const
     {
         if (const auto it = m_index.find(name); it != m_index.end())
         {

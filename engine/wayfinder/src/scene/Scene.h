@@ -1,14 +1,17 @@
 #pragma once
 
 #include <filesystem>
+#include <functional>
 #include <memory>
 #include <string>
+#include <string_view>
 #include <unordered_map>
 
 #include "ecs/Flecs.h"
 
 #include "core/Identifiers.h"
 #include "core/Result.h"
+#include "core/TransparentStringHash.h"
 #include "wayfinder_exports.h"
 
 namespace Wayfinder
@@ -20,7 +23,7 @@ namespace Wayfinder
     class WAYFINDER_API Scene
     {
     public:
-        Scene(flecs::world& world, const RuntimeComponentRegistry& componentRegistry, std::string name = "Default Scene");
+        Scene(flecs::world& world, const RuntimeComponentRegistry& componentRegistry, std::string_view name = "Default Scene");
         ~Scene();
 
         Scene(const Scene&) = delete;
@@ -40,20 +43,20 @@ namespace Wayfinder
 
         void Shutdown();
 
-        Entity CreateEntity(const std::string& name = "Entity");
-        Entity GetEntityByName(const std::string& name);
+        Entity CreateEntity(std::string_view name = "Entity");
+        Entity GetEntityByName(std::string_view name);
         Entity GetEntityById(const SceneObjectId& id);
 
         /// Returns true if @p name is already taken by an entity in this scene
         /// other than @p excludeEntity.
-        bool IsNameTaken(const std::string& name, flecs::entity_t excludeEntity = 0) const;
+        bool IsNameTaken(std::string_view name, flecs::entity_t excludeEntity = 0) const;
 
         /// Returns a scene-unique variant of @p base, appending a numeric suffix
         /// if necessary.  The entity identified by @p excludeEntity (if any)
         /// is ignored during the collision check.
-        std::string GenerateUniqueName(const std::string& base, flecs::entity_t excludeEntity = 0) const;
-        Result<void> LoadFromFile(const std::string& filePath);
-        Result<void> SaveToFile(const std::string& filePath) const;
+        std::string GenerateUniqueName(std::string_view base, flecs::entity_t excludeEntity = 0) const;
+        Result<void> LoadFromFile(std::string_view filePath);
+        Result<void> SaveToFile(std::string_view filePath) const;
         void SetAssetService(const std::shared_ptr<AssetService>& assetService)
         {
             m_assetService = assetService;
@@ -103,8 +106,8 @@ namespace Wayfinder
         void RegisterEntityId(flecs::entity entityHandle, const SceneObjectId& id) const;
         void UnregisterEntityId(const SceneObjectId& id) const;
         void UpdateEntityId(flecs::entity entityHandle, const SceneObjectId& previousId, const SceneObjectId& newId) const;
-        void RegisterEntityName(flecs::entity entityHandle, const std::string& name) const;
-        void UnregisterEntityName(const std::string& name) const;
+        void RegisterEntityName(flecs::entity entityHandle, std::string_view name) const;
+        void UnregisterEntityName(std::string_view name) const;
         void UpdateEntityName(flecs::entity entityHandle, const std::string& previousName, const std::string& newName) const;
 
         flecs::entity GetSceneTag() const
@@ -118,7 +121,7 @@ namespace Wayfinder
         /// Cached query: entities with \ref SceneOwnership for this scene (single source of truth for scene membership).
         mutable flecs::query<> m_ownedEntitiesQuery;
         mutable std::unordered_map<SceneObjectId, flecs::entity_t> m_entitiesById;
-        mutable std::unordered_map<std::string, flecs::entity_t> m_entitiesByName;
+        mutable std::unordered_map<std::string, flecs::entity_t, TransparentStringHash, std::equal_to<>> m_entitiesByName;
         std::string m_name;
         std::filesystem::path m_sourcePath;
         std::filesystem::path m_assetRoot;

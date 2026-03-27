@@ -36,6 +36,7 @@ namespace Wayfinder::Tests
             submission.Material.StateOverrides.FillMode = Wayfinder::RenderFillMode::Solid;
             submission.Material.Parameters.SetColour("base_colour", Wayfinder::LinearColour::FromColour(colour));
             submission.SortPriority = sortPriority;
+            submission.ViewIndex = 0;
             return submission;
         }
     } // namespace
@@ -116,13 +117,13 @@ namespace Wayfinder::Tests
 
         const Wayfinder::SceneRenderExtractor extractor;
         const Wayfinder::RenderFrame frame = extractor.Extract(scene);
-        const Wayfinder::RenderPass* mainPass = frame.FindPass(Wayfinder::RenderPassIds::MainScene);
-        const Wayfinder::RenderPass* debugPass = frame.FindPass(Wayfinder::RenderPassIds::Debug);
+        const Wayfinder::FrameLayerRecord* mainPass = frame.FindLayer(Wayfinder::FrameLayerIds::MainScene);
+        const Wayfinder::FrameLayerRecord* debugPass = frame.FindLayer(Wayfinder::FrameLayerIds::Debug);
 
         scene.Shutdown();
 
         CHECK(frame.Views.size() == 1);
-        CHECK(frame.Passes.size() == 3);
+        CHECK(frame.Layers.size() == 3);
         REQUIRE(mainPass != nullptr);
         REQUIRE(debugPass != nullptr);
         CHECK(mainPass->Meshes.size() == 1);
@@ -156,7 +157,7 @@ namespace Wayfinder::Tests
 
         const Wayfinder::SceneRenderExtractor extractor;
         const Wayfinder::RenderFrame frame = extractor.Extract(scene);
-        const Wayfinder::RenderPass* mainPass = frame.FindPass(Wayfinder::RenderPassIds::MainScene);
+        const Wayfinder::FrameLayerRecord* mainPass = frame.FindLayer(Wayfinder::FrameLayerIds::MainScene);
 
         scene.Shutdown();
 
@@ -211,7 +212,7 @@ namespace Wayfinder::Tests
 
         const Wayfinder::SceneRenderExtractor extractor;
         Wayfinder::RenderFrame frame = extractor.Extract(scene);
-        Wayfinder::RenderPass* mainPass = frame.FindPass(Wayfinder::RenderPassIds::MainScene);
+        Wayfinder::FrameLayerRecord* mainPass = frame.FindLayer(Wayfinder::FrameLayerIds::MainScene);
 
         REQUIRE(mainPass != nullptr);
         REQUIRE(mainPass->Meshes.size() == 2);
@@ -221,7 +222,7 @@ namespace Wayfinder::Tests
         const Wayfinder::RenderPipeline pipeline;
         REQUIRE(pipeline.Prepare(frame, 1280, 720));
 
-        mainPass = frame.FindPass(Wayfinder::RenderPassIds::MainScene);
+        mainPass = frame.FindLayer(Wayfinder::FrameLayerIds::MainScene);
         REQUIRE(mainPass != nullptr);
         REQUIRE(mainPass->Meshes.size() == 2);
         CHECK(mainPass->Meshes[0].LocalToWorld[3].z == doctest::Approx(0.0f));
@@ -234,7 +235,7 @@ namespace Wayfinder::Tests
     {
         Wayfinder::RenderFrame frame;
         const size_t viewIndex = frame.AddView(Wayfinder::RenderView{});
-        Wayfinder::RenderPass& scenePass = frame.AddScenePass(Wayfinder::RenderPassIds::MainScene, viewIndex, Wayfinder::RenderLayers::Main);
+        Wayfinder::FrameLayerRecord& scenePass = frame.AddSceneLayer(Wayfinder::FrameLayerIds::MainScene, viewIndex, Wayfinder::RenderLayers::Main);
         scenePass.Meshes.push_back(MakeSolidMesh(100, Wayfinder::Colour::Red()));
         scenePass.Meshes.push_back(MakeSolidMesh(10, Wayfinder::Colour::Blue()));
 

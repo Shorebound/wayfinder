@@ -3,6 +3,9 @@
 
 #include "ecs/Flecs.h"
 
+#include <ranges>
+#include <string>
+
 namespace Wayfinder::Plugins
 {
     PluginRegistry::PluginRegistry(const ::Wayfinder::ProjectDescriptor& project, const ::Wayfinder::EngineConfig& config) : m_project(project), m_config(config) {}
@@ -28,9 +31,9 @@ namespace Wayfinder::Plugins
 
     void PluginRegistry::NotifyShutdown()
     {
-        for (auto it = m_plugins.rbegin(); it != m_plugins.rend(); ++it)
+        for (auto& plugin : std::views::reverse(m_plugins))
         {
-            (*it)->OnShutdown();
+            plugin->OnShutdown();
         }
     }
 
@@ -67,10 +70,10 @@ namespace Wayfinder::Plugins
         m_states.SetInitial(std::move(stateName));
     }
 
-    ::Wayfinder::GameplayTag PluginRegistry::RegisterTag(std::string tagName, std::string comment)
+    ::Wayfinder::GameplayTag PluginRegistry::RegisterTag(const std::string_view tagName, const std::string_view comment)
     {
-        ::Wayfinder::GameplayTag tag = ::Wayfinder::GameplayTag::FromName(tagName);
-        m_tags.Register({.Name = std::move(tagName), .Comment = std::move(comment)});
+        const ::Wayfinder::GameplayTag tag = ::Wayfinder::GameplayTag::FromName(tagName);
+        m_tags.Register({.Name = std::string(tagName), .Comment = std::string(comment)});
         return tag;
     }
 

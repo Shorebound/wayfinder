@@ -79,6 +79,7 @@ set(ENGINE_ALL_SOURCES
   src/core/Handle.h
   src/core/Identifiers.cpp
   src/core/Identifiers.h
+  src/core/TransparentStringHash.h
   src/core/InternedString.cpp
   src/core/InternedString.h
   src/core/Log.cpp
@@ -195,8 +196,11 @@ set(ENGINE_ALL_SOURCES
   src/rendering/backend/sdl_gpu/BlitMipGenerator.h
 
   # Rendering — Graph
-  src/rendering/graph/RenderFeature.h
   src/rendering/graph/RenderFrame.h
+  src/rendering/graph/RenderFrameUtils.cpp
+  src/rendering/graph/RenderFrameUtils.h
+  src/rendering/graph/RenderPass.h
+  src/rendering/graph/RenderPassCapabilities.h
   src/rendering/graph/RenderGraph.cpp
   src/rendering/graph/RenderGraph.h
   src/rendering/graph/RenderIntent.h
@@ -223,12 +227,23 @@ set(ENGINE_ALL_SOURCES
   src/rendering/pipeline/PipelineCache.h
   src/rendering/pipeline/RenderContext.cpp
   src/rendering/pipeline/RenderContext.h
+  src/rendering/pipeline/ForwardOpaqueShaderPrograms.cpp
+  src/rendering/pipeline/ForwardOpaqueShaderPrograms.h
+  src/rendering/pipeline/ShaderUniforms.h
   src/rendering/pipeline/RenderPipeline.cpp
   src/rendering/pipeline/RenderPipeline.h
   src/rendering/pipeline/Renderer.cpp
   src/rendering/pipeline/Renderer.h
   src/rendering/pipeline/SceneRenderExtractor.cpp
   src/rendering/pipeline/SceneRenderExtractor.h
+
+  # Rendering — Passes
+  src/rendering/passes/DebugPass.cpp
+  src/rendering/passes/DebugPass.h
+  src/rendering/passes/SceneOpaquePass.cpp
+  src/rendering/passes/SceneOpaquePass.h
+  src/rendering/passes/SubmissionDrawing.cpp
+  src/rendering/passes/SubmissionDrawing.h
 
   # Rendering — Resources
   src/rendering/resources/RenderResources.cpp

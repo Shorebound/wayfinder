@@ -14,6 +14,7 @@
 #include <array>
 #include <bit>
 #include <nlohmann/json.hpp>
+#include <string_view>
 
 namespace Wayfinder::Physics
 {
@@ -21,7 +22,7 @@ namespace Wayfinder::Physics
 
     namespace
     {
-        [[nodiscard]] nlohmann::json::const_iterator FindJsonMember(const nlohmann::json& data, const char* key)
+        [[nodiscard]] nlohmann::json::const_iterator FindJsonMember(const nlohmann::json& data, const std::string_view key)
         {
             return data.find(key);
         }
@@ -38,10 +39,11 @@ namespace Wayfinder::Physics
             return std::bit_cast<std::array<float, 4>>(value);
         }
 
-        void AssignJsonMember(nlohmann::json& object, const char* key, nlohmann::json value)
+        void AssignJsonMember(nlohmann::json& object, const std::string_view key, nlohmann::json value)
         {
-            object.erase(key);
-            object.emplace(key, std::move(value));
+            // object.erase(key);
+            // object.emplace(key, std::move(value));
+            object[std::string(key)] = std::move(value);
         }
 
         [[nodiscard]] Quaternion ToQuaternion(const Float4& rotation)
@@ -77,7 +79,7 @@ namespace Wayfinder::Physics
     namespace
     {
         /// Read a 3-element JSON array into a Float3, falling back to @p fallback.
-        Float3 ReadVector3(const nlohmann::json& data, const char* key, const Float3& fallback)
+        Float3 ReadVector3(const nlohmann::json& data, const std::string_view key, const Float3& fallback)
         {
             const auto it = FindJsonMember(data, key);
             if (it == data.end())

@@ -6,10 +6,10 @@
 
 namespace Wayfinder
 {
-    void ShaderManager::Initialise(RenderDevice& device, const std::string& shaderDirectory)
+    void ShaderManager::Initialise(RenderDevice& device, std::string_view shaderDirectory)
     {
         m_device = &device;
-        m_shaderDir = shaderDirectory;
+        m_shaderDir.assign(shaderDirectory.begin(), shaderDirectory.end());
         WAYFINDER_INFO(LogRenderer, "ShaderManager: initialised with directory '{}'", m_shaderDir);
     }
 
@@ -26,9 +26,9 @@ namespace Wayfinder
         m_device = nullptr;
     }
 
-    GPUShaderHandle ShaderManager::GetShader(const std::string& name, ShaderStage stage, const ShaderResourceCounts& resources, ShaderVariantKey variant)
+    GPUShaderHandle ShaderManager::GetShader(const std::string_view name, ShaderStage stage, const ShaderResourceCounts& resources, ShaderVariantKey variant)
     {
-        const ShaderKey key{.name = name, .stage = stage, .variant = variant};
+        const ShaderKey key{.name = std::string(name), .stage = stage, .variant = variant};
         auto it = m_cache.find(key);
         if (it != m_cache.end())
         {
@@ -38,7 +38,7 @@ namespace Wayfinder
         // Build filename: <name>.vert.spv or <name>.frag.spv
         // Future: variant != 0 would append a suffix, e.g. <name>_VC.vert.spv
         const char* stageSuffix = (stage == ShaderStage::Vertex) ? ".vert.spv" : ".frag.spv";
-        std::string filePath = (std::filesystem::path(m_shaderDir) / (name + stageSuffix)).string();
+        std::string filePath = (std::filesystem::path(m_shaderDir) / (std::string(name) + stageSuffix)).string();
 
         std::vector<uint8_t> bytecode = ReadFile(filePath);
         if (bytecode.empty())
@@ -89,9 +89,9 @@ namespace Wayfinder
         return buffer;
     }
 
-    std::vector<uint8_t> ShaderManager::LoadComputeShaderBytecode(const std::string& name)
+    std::vector<uint8_t> ShaderManager::LoadComputeShaderBytecode(const std::string_view name)
     {
-        std::string filePath = (std::filesystem::path(m_shaderDir) / (name + ".comp.spv")).string();
+        std::string filePath = (std::filesystem::path(m_shaderDir) / (std::string(name) + ".comp.spv")).string();
         std::vector<uint8_t> bytecode = ReadFile(filePath);
         if (bytecode.empty())
         {

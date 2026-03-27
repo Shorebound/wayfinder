@@ -2,9 +2,9 @@
 
 #include "core/Result.h"
 #include "rendering/RenderTypes.h"
-#include "rendering/backend/GPUPipeline.h"
-#include "rendering/graph/RenderFeature.h"
+#include "rendering/graph/RenderPass.h"
 #include "rendering/mesh/Mesh.h"
+#include "rendering/pipeline/RenderPipeline.h"
 
 #include <algorithm>
 #include <memory>
@@ -19,7 +19,6 @@ namespace Wayfinder
     struct EngineConfig;
     struct RenderFrame;
     struct RenderLightSubmission;
-    class RenderPipeline;
     class RenderResourceCache;
 
     class WAYFINDER_API Renderer
@@ -34,35 +33,57 @@ namespace Wayfinder
         void Render(const RenderFrame& frame);
         void SetAssetService(const std::shared_ptr<AssetService>& assetService);
 
-        // ── RenderFeature API ────────────────────────────────
-        void AddFeature(std::unique_ptr<RenderFeature> feature);
+        /**
+         * @brief Registers a game or editor-owned render pass; it receives `OnAttach` immediately if the renderer is initialised.
+         * @param pass Ownership of the pass instance; must not be null.
+         */
+        void AddPass(std::unique_ptr<RenderPass> pass);
 
+        /**
+         * @brief Registers an engine pass in the fixed phase ordering (opaque, debug, etc.).
+         * @param phase Band used with `orderWithinPhase` for stable ordering within the engine pipeline.
+         * @param orderWithinPhase Lower values run earlier within the same phase.
+         * @param pass Ownership of the pass instance; must not be null.
+         */
+        void RegisterEnginePass(EngineRenderPhase phase, int32_t orderWithinPhase, std::unique_ptr<RenderPass> pass);
+
+        /**
+         * @brief Removes the first pass whose dynamic type is `T` from `m_passes`.
+         * @tparam T Render pass type to match.
+         * @return True if a pass was removed; false if none matched.
+         * @note When the renderer is initialised, calls `OnDetach` on the removed pass before erasing it.
+         */
         template<typename T>
-        bool RemoveFeature()
+        bool RemovePass()
         {
-            auto it = std::find_if(m_features.begin(), m_features.end(), [](const std::unique_ptr<RenderFeature>& f)
+            auto it = std::find_if(m_passes.begin(), m_passes.end(), [](const std::unique_ptr<RenderPass>& p)
             {
-                return dynamic_cast<T*>(f.get()) != nullptr;
+                return dynamic_cast<T*>(p.get()) != nullptr;
             });
-            if (it != m_features.end())
+            if (it != m_passes.end())
             {
-                if (m_device)
+                if (m_isInitialised && m_context)
                 {
-                    auto ctx = MakeFeatureContext();
+                    auto ctx = MakePassContext();
                     (*it)->OnDetach(ctx);
                 }
-                m_features.erase(it);
+                m_passes.erase(it);
                 return true;
             }
             return false;
         }
 
+        /**
+         * @brief Returns the first pass whose dynamic type is `T`, if any.
+         * @tparam T Render pass type to match.
+         * @return Pointer to the pass, or nullptr when no matching pass is registered.
+         */
         template<typename T>
-        const T* GetFeature() const
+        const T* GetPass() const
         {
-            for (const auto& f : m_features)
+            for (const auto& p : m_passes)
             {
-                if (auto* ptr = dynamic_cast<const T*>(f.get()))
+                if (auto* ptr = dynamic_cast<const T*>(p.get()))
                 {
                     return ptr;
                 }
@@ -70,12 +91,17 @@ namespace Wayfinder
             return nullptr;
         }
 
+        /**
+         * @brief Returns the first pass whose dynamic type is `T`, if any (non-const view).
+         * @tparam T Render pass type to match.
+         * @return Pointer to the pass, or nullptr when no matching pass is registered.
+         */
         template<typename T>
-        T* GetFeature()
+        T* GetPass()
         {
-            for (auto& f : m_features)
+            for (auto& p : m_passes)
             {
-                if (auto* ptr = dynamic_cast<T*>(f.get()))
+                if (auto* ptr = dynamic_cast<T*>(p.get()))
                 {
                     return ptr;
                 }
@@ -90,19 +116,11 @@ namespace Wayfinder
         std::unique_ptr<RenderPipeline> m_renderPipeline;
         std::unique_ptr<RenderResourceCache> m_renderResources;
 
-        // Builds the context struct that features receive on attach/detach.
-        RenderFeatureContext MakeFeatureContext();
+        RenderPassContext MakePassContext();
 
-        // ── Features ─────────────────────────────────────────
-        std::vector<std::unique_ptr<RenderFeature>> m_features;
+        std::vector<std::unique_ptr<RenderPass>> m_passes;
 
-        // ── Debug-only pipeline (PosColour, uses debug_unlit shaders) ──
-        GPUPipeline m_debugLinePipeline;
-
-        // Single built-in mesh — all scene primitives use PosNormalColour
         Mesh m_primitiveMesh;
-
-        // UV-mapped primitive mesh — used by textured shader programs
         Mesh m_texturedPrimitiveMesh;
 
         int m_screenWidth;

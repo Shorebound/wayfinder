@@ -9,13 +9,16 @@
 
 #include <array>
 #include <charconv>
+#include <format>
 #include <sstream>
+#include <string>
+#include <string_view>
 
 namespace Wayfinder
 {
     namespace
     {
-        std::optional<Wayfinder::AssetId> ReadOptionalAssetId(const nlohmann::json& data, const char* key)
+        std::optional<Wayfinder::AssetId> ReadOptionalAssetId(const nlohmann::json& data, std::string_view key)
         {
             if (!data.contains(key) || !data.at(key).is_string())
             {
@@ -31,7 +34,7 @@ namespace Wayfinder
             world.component<T_>();
         }
 
-        float ReadFloat(const nlohmann::json& data, const char* key, float fallback)
+        float ReadFloat(const nlohmann::json& data, std::string_view key, float fallback)
         {
             if (!data.contains(key))
             {
@@ -59,7 +62,7 @@ namespace Wayfinder
             return fallback;
         }
 
-        Wayfinder::Float3 ReadVector3(const nlohmann::json& data, const char* key, const Wayfinder::Float3& fallback)
+        Wayfinder::Float3 ReadVector3(const nlohmann::json& data, std::string_view key, const Wayfinder::Float3& fallback)
         {
             if (!data.contains(key))
             {
@@ -96,7 +99,7 @@ namespace Wayfinder
             return static_cast<uint8_t>(value);
         }
 
-        Wayfinder::Colour ReadColour(const nlohmann::json& data, const char* key, const Wayfinder::Colour& fallback)
+        Wayfinder::Colour ReadColour(const nlohmann::json& data, std::string_view key, const Wayfinder::Colour& fallback)
         {
             if (!data.contains(key))
             {
@@ -121,7 +124,7 @@ namespace Wayfinder
             return nlohmann::json::array({static_cast<int64_t>(value.r), static_cast<int64_t>(value.g), static_cast<int64_t>(value.b), static_cast<int64_t>(value.a)});
         }
 
-        const char* ToString(Wayfinder::MeshPrimitive primitive)
+        std::string_view ToString(Wayfinder::MeshPrimitive primitive)
         {
             switch (primitive)
             {
@@ -132,7 +135,7 @@ namespace Wayfinder
             return "cube";
         }
 
-        const char* ToString(Wayfinder::ProjectionMode projection)
+        std::string_view ToString(Wayfinder::ProjectionMode projection)
         {
             switch (projection)
             {
@@ -145,7 +148,7 @@ namespace Wayfinder
             return "perspective";
         }
 
-        const char* ToString(Wayfinder::LightType type)
+        std::string_view ToString(Wayfinder::LightType type)
         {
             switch (type)
             {
@@ -158,7 +161,7 @@ namespace Wayfinder
             return "point";
         }
 
-        Wayfinder::InternedString ReadRenderLayer(const nlohmann::json& data, const char* key, const Wayfinder::InternedString& fallback)
+        Wayfinder::InternedString ReadRenderLayer(const nlohmann::json& data, std::string_view key, const Wayfinder::InternedString& fallback)
         {
             if (!data.contains(key) || !data.at(key).is_string())
             {
@@ -174,7 +177,7 @@ namespace Wayfinder
             return Wayfinder::InternedString::Intern(layer);
         }
 
-        Wayfinder::MeshPrimitive ReadPrimitive(const nlohmann::json& data, const char* key, Wayfinder::MeshPrimitive fallback)
+        Wayfinder::MeshPrimitive ReadPrimitive(const nlohmann::json& data, std::string_view key, Wayfinder::MeshPrimitive fallback)
         {
             if (!data.contains(key) || !data.at(key).is_string())
             {
@@ -190,7 +193,7 @@ namespace Wayfinder
             return fallback;
         }
 
-        Wayfinder::ProjectionMode ReadProjection(const nlohmann::json& data, const char* key, Wayfinder::ProjectionMode fallback)
+        Wayfinder::ProjectionMode ReadProjection(const nlohmann::json& data, std::string_view key, Wayfinder::ProjectionMode fallback)
         {
             if (!data.contains(key) || !data.at(key).is_string())
             {
@@ -206,7 +209,7 @@ namespace Wayfinder
             return fallback;
         }
 
-        Wayfinder::LightType ReadLightType(const nlohmann::json& data, const char* key, Wayfinder::LightType fallback)
+        Wayfinder::LightType ReadLightType(const nlohmann::json& data, std::string_view key, Wayfinder::LightType fallback)
         {
             if (!data.contains(key) || !data.at(key).is_string())
             {
@@ -227,7 +230,7 @@ namespace Wayfinder
             return fallback;
         }
 
-        bool ValidateOptionalNonEmptyString(const nlohmann::json& data, const char* key, std::string& error)
+        bool ValidateOptionalNonEmptyString(const nlohmann::json& data, std::string_view key, std::string& error)
         {
             if (!data.contains(key))
             {
@@ -237,13 +240,13 @@ namespace Wayfinder
             const auto& node = data.at(key);
             if (!node.is_string())
             {
-                error = std::string("'") + key + "' must be a string";
+                error = std::format("'{}' must be a string", key);
                 return false;
             }
 
             if (node.get<std::string>().empty())
             {
-                error = std::string("'") + key + "' must not be empty";
+                error = std::format("'{}' must not be empty", key);
                 return false;
             }
 
@@ -270,7 +273,7 @@ namespace Wayfinder
             return node.is_number();
         }
 
-        bool ValidateOptionalBool(const nlohmann::json& data, const char* key, std::string& error)
+        bool ValidateOptionalBool(const nlohmann::json& data, std::string_view key, std::string& error)
         {
             if (!data.contains(key))
             {
@@ -279,14 +282,14 @@ namespace Wayfinder
 
             if (!data.at(key).is_boolean())
             {
-                error = std::string{"field '"} + key + "' must be a boolean";
+                error = std::format("field '{}' must be a boolean", key);
                 return false;
             }
 
             return true;
         }
 
-        bool ValidateOptionalAssetId(const nlohmann::json& data, const char* key, std::string& error)
+        bool ValidateOptionalAssetId(const nlohmann::json& data, std::string_view key, std::string& error)
         {
             if (!data.contains(key))
             {
@@ -296,21 +299,21 @@ namespace Wayfinder
             const auto& node = data.at(key);
             if (!node.is_string())
             {
-                error = std::string{"field '"} + key + "' must be a UUID string";
+                error = std::format("field '{}' must be a UUID string", key);
                 return false;
             }
 
             const auto assetId = Wayfinder::AssetId::Parse(node.get<std::string>());
             if (!assetId)
             {
-                error = std::string{"field '"} + key + "' must be a valid UUID";
+                error = std::format("field '{}' must be a valid UUID", key);
                 return false;
             }
 
             return true;
         }
 
-        bool ValidateOptionalNumber(const nlohmann::json& data, const char* key, std::string& error)
+        bool ValidateOptionalNumber(const nlohmann::json& data, std::string_view key, std::string& error)
         {
             if (!data.contains(key))
             {
@@ -319,14 +322,14 @@ namespace Wayfinder
 
             if (!IsNumberNode(data.at(key)))
             {
-                error = std::string{"field '"} + key + "' must be numeric";
+                error = std::format("field '{}' must be numeric", key);
                 return false;
             }
 
             return true;
         }
 
-        bool ValidateOptionalInteger(const nlohmann::json& data, const char* key, std::string& error)
+        bool ValidateOptionalInteger(const nlohmann::json& data, std::string_view key, std::string& error)
         {
             if (!data.contains(key))
             {
@@ -335,14 +338,14 @@ namespace Wayfinder
 
             if (!data.at(key).is_number_integer())
             {
-                error = std::string{"field '"} + key + "' must be an integer";
+                error = std::format("field '{}' must be an integer", key);
                 return false;
             }
 
             return true;
         }
 
-        bool ValidateOptionalVector3(const nlohmann::json& data, const char* key, std::string& error)
+        bool ValidateOptionalVector3(const nlohmann::json& data, std::string_view key, std::string& error)
         {
             if (!data.contains(key))
             {
@@ -352,7 +355,7 @@ namespace Wayfinder
             const auto& node = data.at(key);
             if (!node.is_array() || node.size() != 3)
             {
-                error = std::string{"field '"} + key + "' must be an array of 3 numbers";
+                error = std::format("field '{}' must be an array of 3 numbers", key);
                 return false;
             }
 
@@ -360,7 +363,7 @@ namespace Wayfinder
             {
                 if (!IsNumberNode(index))
                 {
-                    error = std::string{"field '"} + key + "' must be an array of 3 numbers";
+                    error = std::format("field '{}' must be an array of 3 numbers", key);
                     return false;
                 }
             }
@@ -368,7 +371,7 @@ namespace Wayfinder
             return true;
         }
 
-        bool ValidateOptionalColour(const nlohmann::json& data, const char* key, std::string& error)
+        bool ValidateOptionalColour(const nlohmann::json& data, std::string_view key, std::string& error)
         {
             if (!data.contains(key))
             {
@@ -378,7 +381,7 @@ namespace Wayfinder
             const auto& node = data.at(key);
             if (!node.is_array() || (node.size() != 3 && node.size() != 4))
             {
-                error = std::string{"field '"} + key + "' must be an array of 3 or 4 integers";
+                error = std::format("field '{}' must be an array of 3 or 4 integers", key);
                 return false;
             }
 
@@ -386,14 +389,14 @@ namespace Wayfinder
             {
                 if (!node.at(index).is_number_integer())
                 {
-                    error = std::string{"field '"} + key + "' must be an array of 3 or 4 integers";
+                    error = std::format("field '{}' must be an array of 3 or 4 integers", key);
                     return false;
                 }
 
                 const int64_t channelValue = node.at(index).get<int64_t>();
                 if (channelValue < 0 || channelValue > 255)
                 {
-                    error = std::string{"field '"} + key + "' channel " + std::to_string(index) + " value " + std::to_string(channelValue) + " is out of range (0-255)";
+                    error = std::format("field '{}' channel {} value {} is out of range (0-255)", key, index, channelValue);
                     return false;
                 }
             }
@@ -401,7 +404,7 @@ namespace Wayfinder
             return true;
         }
 
-        bool ValidateOptionalEnumValue(const nlohmann::json& data, const char* key, std::initializer_list<std::string_view> acceptedValues, std::string& error)
+        bool ValidateOptionalEnumValue(const nlohmann::json& data, std::string_view key, std::initializer_list<std::string_view> acceptedValues, std::string& error)
         {
             if (!data.contains(key))
             {
@@ -411,7 +414,7 @@ namespace Wayfinder
             const auto& node = data.at(key);
             if (!node.is_string())
             {
-                error = std::string{"field '"} + key + "' must be a string";
+                error = std::format("field '{}' must be a string", key);
                 return false;
             }
 
@@ -748,7 +751,7 @@ namespace Wayfinder
             entity.AddComponent<Wayfinder::RenderableComponent>(renderable);
         }
 
-        Wayfinder::PostProcessVolumeShape ReadVolumeShape(const nlohmann::json& data, const char* key, Wayfinder::PostProcessVolumeShape fallback)
+        Wayfinder::PostProcessVolumeShape ReadVolumeShape(const nlohmann::json& data, std::string_view key, Wayfinder::PostProcessVolumeShape fallback)
         {
             if (!data.contains(key) || !data.at(key).is_string())
             {
@@ -853,7 +856,7 @@ namespace Wayfinder
 
         // ── PostProcessVolumeComponent ──────────────────────────
 
-        const char* ToString(Wayfinder::PostProcessVolumeShape shape)
+        std::string_view ToString(Wayfinder::PostProcessVolumeShape shape)
         {
             switch (shape)
             {

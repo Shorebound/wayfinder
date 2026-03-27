@@ -48,6 +48,10 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
 
+      # Surfaces compiler diagnostics on the PR / job summary (file:line annotations).
+      - name: Register Clang problem matcher
+        run: echo "::add-matcher::${{ github.workspace }}/.github/matchers/clang.json"
+
       - name: Configure
         run: cmake --preset ci-linux
 
@@ -95,6 +99,9 @@ jobs:
         uses: ./.github/actions/setup-dxc
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Register MSVC problem matcher
+        run: echo "::add-matcher::${{ github.workspace }}/.github/matchers/msvc.json"
 
       - name: Configure
         run: cmake --preset ci-windows
@@ -144,6 +151,9 @@ jobs:
       - name: Configure (for compile_commands.json)
         run: cmake --preset ci-linux
 
+      - name: Register Clang problem matcher
+        run: echo "::add-matcher::${{ github.workspace }}/.github/matchers/clang.json"
+
       # Phase A: Only analyse files changed in this PR / push.
       # Switch to full-source scan once baseline is clean.
       - name: Get changed C++ files
@@ -164,13 +174,20 @@ jobs:
             | grep -v 'thirdparty/' \
             || true)
 
+          cpp_files=$(echo "$files" | grep '\.cpp$' || true)
+
           if [ -z "$files" ]; then
             echo "skip=true" >> "$GITHUB_OUTPUT"
             echo "No C++ files changed — skipping clang-tidy."
+          elif [ -z "$cpp_files" ]; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            echo "Only headers changed — skipping clang-tidy (no changed .cpp translation units)."
+            echo "Changed files:"
+            echo "$files"
           else
             echo "skip=false" >> "$GITHUB_OUTPUT"
-            echo "$files" > /tmp/changed_files.txt
-            echo "Changed files:"
+            echo "$cpp_files" > /tmp/changed_files.txt
+            echo "Changed .cpp files for clang-tidy:"
             cat /tmp/changed_files.txt
           fi
 
@@ -180,7 +197,7 @@ jobs:
         run: |
           set -o pipefail
           # Use tidy.py which filters the multi-config compile DB to Debug-only.
-          python3 tools/tidy.py $(cat /tmp/changed_files.txt | grep '\.cpp$' | tr '\n' ' ') \
+          python3 tools/tidy.py $(cat /tmp/changed_files.txt | tr '\n' ' ') \
             --build-dir build 2>&1 \
             | tee /tmp/clang-tidy-output.txt
 

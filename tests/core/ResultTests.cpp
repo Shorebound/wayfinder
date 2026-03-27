@@ -26,7 +26,7 @@ namespace Wayfinder::Tests
         CHECK(err.GetMessage() == "something went wrong");
     }
 
-    TEST_CASE("Error constructed from C-string literal")
+    TEST_CASE("Error constructed from string literal (string_view)")
     {
         const Error err("file not found");
         CHECK(err.GetMessage() == "file not found");
@@ -45,9 +45,9 @@ namespace Wayfinder::Tests
         CHECK_FALSE(Error("a") == Error("b"));
     }
 
-    TEST_CASE("Error constructed from nullptr treats it as empty string")
+    TEST_CASE("Error constructed from empty string_view")
     {
-        const Error err(static_cast<const char*>(nullptr));
+        const Error err(std::string_view{});
         CHECK(err.GetMessage().empty());
     }
 

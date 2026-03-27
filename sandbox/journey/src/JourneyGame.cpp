@@ -12,7 +12,7 @@
 
 #include <nlohmann/json.hpp>
 
-namespace Wayfinder::Journey
+namespace
 {
     struct HealthComponent
     {
@@ -21,12 +21,12 @@ namespace Wayfinder::Journey
     };
 
     /// Example plugin that registers a custom HealthComponent for scene authoring.
-    class HealthPlugin : public Plugins::Plugin
+    class HealthPlugin : public Wayfinder::Plugins::Plugin
     {
     public:
-        void Build(Plugins::PluginRegistry& registry) override
+        void Build(Wayfinder::Plugins::PluginRegistry& registry) override
         {
-            Plugins::PluginRegistry::ComponentDescriptor desc;
+            Wayfinder::Plugins::PluginRegistry::ComponentDescriptor desc;
             desc.Key = "health";
 
             desc.RegisterFn = [](flecs::world& world)
@@ -109,14 +109,14 @@ namespace Wayfinder::Journey
     };
 
     /// Example plugin that registers game states and conditioned systems.
-    class GameplayPlugin : public Plugins::Plugin
+    class GameplayPlugin : public Wayfinder::Plugins::Plugin
     {
     public:
-        void Build(Plugins::PluginRegistry& registry) override
+        void Build(Wayfinder::Plugins::PluginRegistry& registry) override
         {
             // Register game states with lifecycle callbacks
-            registry.RegisterState({"Playing", nullptr, nullptr});
-            registry.RegisterState({"Paused", nullptr, nullptr});
+            registry.RegisterState({.Name = "Playing", .OnEnter = nullptr, .OnExit = nullptr});
+            registry.RegisterState({.Name = "Paused", .OnEnter = nullptr, .OnExit = nullptr});
 
             // A system that only runs while in the "Playing" state.
             // Convention: the flecs system name must match the descriptor name
@@ -144,10 +144,10 @@ namespace Wayfinder::Journey
     };
 
     /// Example plugin demonstrating gameplay tag registration.
-    class TagDemoPlugin : public Plugins::Plugin
+    class TagDemoPlugin : public Wayfinder::Plugins::Plugin
     {
     public:
-        void Build(Plugins::PluginRegistry& registry) override
+        void Build(Wayfinder::Plugins::PluginRegistry& registry) override
         {
             // Load data-driven tag files from config/tags/
             registry.RegisterTagFile("tags/status.tags.toml");
@@ -177,30 +177,31 @@ namespace Wayfinder::Journey
                         }
                     }
                 });
-            }, HasTag(burning));
+            }, Wayfinder::HasTag(burning));
         }
     };
 
-    class JourneyGame : public Plugins::Plugin
+    class JourneyGame : public Wayfinder::Plugins::Plugin
     {
-        void Build(Plugins::PluginRegistry& registry) override
+    public:
+        void Build(Wayfinder::Plugins::PluginRegistry& registry) override
         {
             Wayfinder::PopulateDefaultScenePlugins(registry);
-            registry.AddPlugin<Physics::PhysicsPlugin>();
+            registry.AddPlugin<Wayfinder::Physics::PhysicsPlugin>();
             registry.AddPlugin<HealthPlugin>();
             registry.AddPlugin<GameplayPlugin>();
             registry.AddPlugin<TagDemoPlugin>();
         }
     };
-} // namespace Wayfinder::Journey
+} // namespace
 
 namespace Wayfinder::Plugins
 {
     std::unique_ptr<Plugin> CreateGamePlugin()
     {
-        return std::make_unique<Journey::JourneyGame>();
+        return std::make_unique<JourneyGame>();
     }
 }
 
 // Dynamic entry point for tools loading the plugin as a shared library.
-WAYFINDER_IMPLEMENT_GAME_PLUGIN(Wayfinder::Journey::JourneyGame)
+WAYFINDER_IMPLEMENT_GAME_PLUGIN(JourneyGame)

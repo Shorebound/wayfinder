@@ -41,7 +41,7 @@ namespace Wayfinder
         }
     }
 
-    void GameStateMachine::TransitionTo(const std::string& stateName)
+    void GameStateMachine::TransitionTo(const std::string_view stateName)
     {
         WAYFINDER_ASSERT(m_world, "TransitionTo() called before Configure()");
 

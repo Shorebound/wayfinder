@@ -52,9 +52,9 @@ namespace Wayfinder
         {
             m_vsync = enabled;
         }
-        void SetTitle(const std::string& title) override
+        void SetTitle(std::string_view title) override
         {
-            m_title = title;
+            m_title.assign(title.begin(), title.end());
         }
         void SetSize(uint32_t width, uint32_t height) override
         {

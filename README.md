@@ -53,5 +53,5 @@ The `dev` preset enables the sandbox, tools, and tests. See `CMakePresets.json` 
 |------|----------------|
 | `docs/project_vision.md` | Fantasy-console premise and design philosophy |
 | `docs/workspace_guide.md` | Repository layout, build targets, workflows |
-| `docs/render_features.md` | Creating render features and injecting passes |
+| `docs/render_passes.md` | Creating render passes and injecting graph nodes |
 | `docs/github_issues.md` | Issue tracking conventions and `gh-issues.py` reference |

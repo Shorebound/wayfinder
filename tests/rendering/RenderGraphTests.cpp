@@ -7,9 +7,8 @@
 #include <string>
 #include <vector>
 
-// Test-idiomatic patterns: push_back with string literals is clear, and operator[] after REQUIRE(size)
-// is guarded. Suppress these doctest/test-pattern noise diagnostics file-wide.
-// NOLINTBEGIN(modernize-use-emplace, cppcoreguidelines-pro-bounds-avoid-unchecked-container-access)
+// Doctest CHECK with operator[] — file-wide suppression for test code.
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-avoid-unchecked-container-access, modernize-use-emplace, modernize-use-nodiscard)
 
 namespace Wayfinder::Tests
 {
@@ -227,7 +226,7 @@ namespace Wayfinder::Tests
         colourDesc.Width = 800;
         colourDesc.Height = 600;
         colourDesc.Format = Wayfinder::TextureFormat::RGBA8_UNORM;
-        colourDesc.DebugName = Wayfinder::WellKnown::SceneColour;
+        colourDesc.DebugName = Wayfinder::GraphTextureName(Wayfinder::GraphTextureId::SceneColour);
 
         graph.AddPass("A_WriteColour", [&](Wayfinder::RenderGraphBuilder& builder)
         {
@@ -241,7 +240,7 @@ namespace Wayfinder::Tests
 
         graph.AddPass("B_ReadAndPresent", [&](Wayfinder::RenderGraphBuilder& builder)
         {
-            auto colour = graph.FindHandle(Wayfinder::WellKnown::SceneColour);
+            auto colour = graph.FindHandle(Wayfinder::GraphTextureId::SceneColour);
             builder.ReadTexture(colour);
             builder.SetSwapchainOutput();
             return [&executionOrder](Wayfinder::RenderDevice&, const Wayfinder::RenderGraphResources&)
@@ -579,21 +578,24 @@ namespace Wayfinder::Tests
         pool.Shutdown();
     }
 
-    // ── Well-Known Resource Handles ──────────────────────────
+    // ── Graph texture ids ────────────────────────────────────
 
-    TEST_CASE("Well-known names resolve correctly")
+    TEST_CASE("GraphTextureId names resolve correctly")
     {
+        CHECK(Wayfinder::GraphTextures::SceneColour == Wayfinder::InternedString::Intern("SceneColour"));
+        CHECK(Wayfinder::GraphTextures::SceneDepth == Wayfinder::InternedString::Intern("SceneDepth"));
+
         Wayfinder::RenderGraph graph;
 
-        auto sceneColour = graph.ImportTexture(Wayfinder::WellKnown::SceneColour);
-        auto sceneDepth = graph.ImportTexture(Wayfinder::WellKnown::SceneDepth);
+        auto sceneColour = graph.ImportTexture(Wayfinder::GraphTextureId::SceneColour);
+        auto sceneDepth = graph.ImportTexture(Wayfinder::GraphTextureId::SceneDepth);
 
         CHECK(sceneColour.IsValid());
         CHECK(sceneDepth.IsValid());
         CHECK_FALSE(sceneColour == sceneDepth);
 
         // FindHandle returns the same handle
-        auto found = graph.FindHandle(Wayfinder::WellKnown::SceneColour);
+        auto found = graph.FindHandle(Wayfinder::GraphTextureId::SceneColour);
         CHECK(found == sceneColour);
 
         // Unknown name returns invalid handle
@@ -1006,4 +1008,4 @@ namespace Wayfinder::Tests
     }
 }
 
-// NOLINTEND(modernize-use-emplace, cppcoreguidelines-pro-bounds-avoid-unchecked-container-access)
+// NOLINTEND(cppcoreguidelines-pro-bounds-avoid-unchecked-container-access, modernize-use-emplace, modernize-use-nodiscard)

@@ -11,10 +11,15 @@ This file documents common mistakes, confusion points, and non-obvious behaviour
 - **MSVC vs Clang differences.** The primary local dev compiler is MSVC; cloud agents use Clang with libc++. Code must compile on both. Watch for MSVC-specific pragmas (guard with `#ifdef WAYFINDER_COMPILER_MSVC`) and C++23 feature availability differences between compilers.
 - **Linux CI must force-select the right Clang via `update-alternatives --set`.** Installing `clang-22` and registering it with `--install` is not enough on GitHub runners — if alternatives is already in manual mode for an older version, higher priority alone won't switch it. The setup action uses `--set` to force selection and a verification step that fails the build if the resolved major version doesn't match. The CMake preset uses generic `clang`/`clang++` and trusts the environment.
 - **Local Clang builds.** Use `cmake --preset dev` + `cmake --build --preset debug` to build with Clang on Windows. This catches Clang-specific issues before CI. The primary build tree goes into `build/dev/`.
+- **CI problem matchers.** `.github/workflows/ci.yml` registers `.github/matchers/clang.json` (Linux + static analysis) and `msvc.json` (Windows) so compiler diagnostics appear as annotations on PRs instead of only in raw logs.
 - **`tools/tidy.py` only analyses `.cpp` files.** Header diagnostics only appear when a checked translation unit includes that header. If you're cleaning a header-only issue, run tidy on one or more consuming `.cpp` files, not just the header path.
 - **`tools/tidy.py` ignores third-party and generated diagnostics by primary location.** If clang-tidy walks into `thirdparty/`, `_deps/`, `build/`, or `shadercompiler/`, those findings are filtered out unless the primary diagnostic location is in repo-owned source (`engine/`, `sandbox/`, `tests/`, `tools/`). This also applies to `tools/lint.py --tidy` and the CI static-analysis job because they share the same tidy wrapper.
 - **`-Wmissing-field-initializers` is suppressed.** Designated initialisers that rely on default member initialisers for remaining fields are idiomatic C++20 — don't pad with `= {}`/`= 0`.
 - **clang-tidy naming style names are literal.** In `readability-identifier-naming`, `CamelCase` produces PascalCase. Use `camelBack` for the repo's `m_memberName` style.
+
+## Core
+
+- **`InternedString` is not a general-purpose string pool.** It keeps every distinct interned value for the process lifetime. Do not intern high-cardinality or per-frame-unique strings (timestamps, GUIDs, formatted numbers) — use `std::string` / `std::string_view` for those. Stable ids (pass names, graph keys, gameplay tags) are the intended use.
 
 ## Logging
 

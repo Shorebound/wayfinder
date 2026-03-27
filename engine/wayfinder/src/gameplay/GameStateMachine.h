@@ -44,7 +44,7 @@ namespace Wayfinder
         /// Transition to a named game state.  Calls OnExit for the old
         /// state, updates the ActiveGameState singleton, calls OnEnter for
         /// the new state, and marks run conditions dirty.
-        void TransitionTo(const std::string& stateName);
+        void TransitionTo(std::string_view stateName);
 
         /// Returns the name of the currently active game state.
         std::string_view GetCurrentState() const;

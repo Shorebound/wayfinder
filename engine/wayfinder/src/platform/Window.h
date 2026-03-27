@@ -5,6 +5,7 @@
 #include "platform/BackendConfig.h"
 
 #include <functional>
+#include <string_view>
 
 namespace Wayfinder
 {
@@ -37,7 +38,7 @@ namespace Wayfinder
         virtual void* GetNativeHandle() const = 0;
 
         virtual void SetVSync(bool enabled) = 0;
-        virtual void SetTitle(const std::string& title) = 0;
+        virtual void SetTitle(std::string_view title) = 0;
         virtual void SetSize(uint32_t width, uint32_t height) = 0;
 
         virtual void SetEventCallback(const EventCallbackFn& callback) = 0;

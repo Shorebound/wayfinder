@@ -12,6 +12,7 @@
 #include <functional>
 #include <memory>
 #include <string>
+#include <string_view>
 #include <typeindex>
 #include <utility>
 #include <vector>
@@ -124,7 +125,7 @@ namespace Wayfinder::Plugins
 
         /// Register a gameplay tag name. Returns a GameplayTag that can be
         /// captured and used immediately (e.g. passed to HasTag run conditions).
-        ::Wayfinder::GameplayTag RegisterTag(std::string tagName, std::string comment = {});
+        ::Wayfinder::GameplayTag RegisterTag(std::string_view tagName, std::string_view comment = {});
 
         /// Register a tag definition file to be loaded at startup.
         /// Path is relative to the project's config directory.

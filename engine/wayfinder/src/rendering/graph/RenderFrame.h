@@ -9,6 +9,7 @@
 #include <vector>
 
 #include "RenderIntent.h"
+#include "core/Assert.h"
 #include "core/Identifiers.h"
 #include "core/Types.h"
 #include "maths/Bounds.h"
@@ -155,6 +156,12 @@ namespace Wayfinder
         RenderLayerId Layer = RenderLayers::Main;
         uint8_t SortPriority = 128;
         uint64_t SortKey = 0;
+        /**
+         * @brief Which view's scene layers this submission targets (must match `FrameLayerRecord::ViewIndex` when set).
+         *
+         * Unset means the submission does not target a view; `FindSceneLayerForSubmission` rejects such submissions.
+         */
+        std::optional<size_t> ViewIndex;
     };
 
     struct RenderLightSubmission
@@ -205,16 +212,26 @@ namespace Wayfinder
         bool Prepared = false;
     };
 
-    enum class RenderPassKind
+    /**
+     * @brief Discriminator for `FrameLayerRecord::Kind` — scene mesh layers vs debug overlay layers.
+     */
+    enum class FrameLayerKind
     {
+        /** Meshes and scene content for a view. */
         Scene,
+        /** Debug draw lists (lines, boxes, grid) for a view. */
         Debug
     };
 
-    struct RenderPass
+    /**
+     * @brief CPU-side layer record (meshes, debug draw, etc.).
+     *
+     * Not to be confused with `RenderPass` graph injectors in `rendering/graph/RenderPass.h`.
+     */
+    struct FrameLayerRecord
     {
-        RenderPassId Id = RenderPassIds::MainScene;
-        RenderPassKind Kind = RenderPassKind::Scene;
+        FrameLayerId Id = FrameLayerIds::MainScene;
+        FrameLayerKind Kind = FrameLayerKind::Scene;
         size_t ViewIndex = 0;
         std::optional<RenderLayerId> SceneLayer;
         std::vector<RenderMeshSubmission> Meshes;
@@ -223,7 +240,7 @@ namespace Wayfinder
 
         bool AcceptsSceneSubmission(const RenderMeshSubmission& submission) const
         {
-            if (Kind != RenderPassKind::Scene)
+            if (Kind != FrameLayerKind::Scene)
             {
                 return false;
             }
@@ -237,7 +254,7 @@ namespace Wayfinder
         std::string SceneName;
         std::filesystem::path AssetRoot;
         std::vector<RenderView> Views;
-        std::vector<RenderPass> Passes;
+        std::vector<FrameLayerRecord> Layers;
         std::vector<RenderLightSubmission> Lights;
 
         size_t AddView(const RenderView& view)
@@ -246,61 +263,199 @@ namespace Wayfinder
             return Views.size() - 1;
         }
 
-        RenderPass& AddScenePass(const RenderPassId& id, size_t viewIndex, const RenderLayerId& sceneLayer)
+        /**
+         * @brief Registers a scene `FrameLayerRecord` for a view and render layer (e.g. main vs overlay).
+         *
+         * @param id Frame layer id (e.g. `FrameLayerIds::MainScene`).
+         * @param viewIndex Index into `Views`; must be in range.
+         * @param sceneLayer Which `RenderLayerId` this record accepts (see `AcceptsSceneSubmission`).
+         * @return Reference to the new record in `Layers`.
+         *
+         * @warning The returned `FrameLayerRecord&` refers to an element inside `Layers`. It is
+         *          invalidated if `Layers` reallocates (for example when pushing more layers). Do not
+         *          store this reference across operations that may grow `Layers`; keep an index or id
+         *          and resolve via `FindLayer` instead.
+         */
+        FrameLayerRecord& AddSceneLayer(const FrameLayerId& id, size_t viewIndex, const RenderLayerId& sceneLayer)
         {
-            RenderPass pass;
-            pass.Id = id;
-            pass.Kind = RenderPassKind::Scene;
-            pass.ViewIndex = viewIndex;
-            pass.SceneLayer = sceneLayer;
-            Passes.push_back(std::move(pass));
-            return Passes.back();
-        }
-
-        RenderPass& AddDebugPass(const RenderPassId& id, size_t viewIndex)
-        {
-            RenderPass pass;
-            pass.Id = id;
-            pass.Kind = RenderPassKind::Debug;
-            pass.ViewIndex = viewIndex;
-            pass.DebugDraw = RenderDebugDrawList{};
-            Passes.push_back(std::move(pass));
-            return Passes.back();
-        }
-
-        RenderPass* FindPass(const RenderPassId& id)
-        {
-            for (RenderPass& pass : Passes)
+            WAYFINDER_ASSERT(viewIndex < Views.size(), "AddSceneLayer: viewIndex out of range for Views");
+            for (const auto& existing : Layers)
             {
-                if (pass.Id == id)
+                if (existing.Id == id && existing.ViewIndex == viewIndex)
                 {
-                    return &pass;
+                    WAYFINDER_ASSERT(false, "AddSceneLayer: duplicate FrameLayerId for the same viewIndex");
+                }
+            }
+            const std::optional<RenderLayerId> sceneTarget{sceneLayer};
+            for (const auto& existing : Layers)
+            {
+                if (existing.Kind == FrameLayerKind::Scene && existing.ViewIndex == viewIndex && existing.SceneLayer == sceneTarget)
+                {
+                    WAYFINDER_ASSERT(false, "AddSceneLayer: duplicate scene layer registration for the same viewIndex and RenderLayerId");
+                }
+            }
+
+            FrameLayerRecord layer;
+            layer.Id = id;
+            layer.Kind = FrameLayerKind::Scene;
+            layer.ViewIndex = viewIndex;
+            layer.SceneLayer = sceneLayer;
+            Layers.push_back(std::move(layer));
+            return Layers.back();
+        }
+
+        /**
+         * @brief Registers a debug `FrameLayerRecord` for a view (lines, boxes, grid).
+         *
+         * @param id Frame layer id (e.g. `FrameLayerIds::Debug`).
+         * @param viewIndex Index into `Views`; must be in range.
+         * @return Reference to the new record in `Layers`.
+         *
+         * @warning The returned `FrameLayerRecord&` refers to an element inside `Layers`. It is
+         *          invalidated if `Layers` reallocates (for example when pushing more layers). Do not
+         *          store this reference across operations that may grow `Layers`; keep an index or id
+         *          and resolve via `FindLayer` instead.
+         */
+        FrameLayerRecord& AddDebugLayer(const FrameLayerId& id, size_t viewIndex)
+        {
+            WAYFINDER_ASSERT(viewIndex < Views.size(), "AddDebugLayer: viewIndex out of range for Views");
+            for (const auto& existing : Layers)
+            {
+                if (existing.Id == id && existing.ViewIndex == viewIndex)
+                {
+                    WAYFINDER_ASSERT(false, "AddDebugLayer: duplicate FrameLayerId for the same viewIndex");
+                }
+            }
+
+            FrameLayerRecord layer;
+            layer.Id = id;
+            layer.Kind = FrameLayerKind::Debug;
+            layer.ViewIndex = viewIndex;
+            layer.DebugDraw = RenderDebugDrawList{};
+            Layers.push_back(std::move(layer));
+            return Layers.back();
+        }
+
+        /**
+         * @brief Resolves a layer by id only when that id is unique across the frame.
+         *
+         * @param id Layer id to find.
+         * @return Pointer to the single matching layer, or nullptr if none or if the same id appears on more than one view.
+         *
+         * If the same id appears on more than one view, returns nullptr — use `FindLayer(id, viewIndex)` instead.
+         */
+        FrameLayerRecord* FindLayer(const FrameLayerId& id)
+        {
+            FrameLayerRecord* match = nullptr;
+            for (auto& layer : Layers)
+            {
+                if (layer.Id == id)
+                {
+                    if (match != nullptr)
+                    {
+                        return nullptr;
+                    }
+                    match = &layer;
+                }
+            }
+
+            return match;
+        }
+
+        /**
+         * @brief Resolves a layer by id only when that id is unique across the frame (const).
+         *
+         * @param id Layer id to find.
+         * @return Pointer to the single matching layer, or nullptr if none or if the same id appears on more than one view.
+         */
+        const FrameLayerRecord* FindLayer(const FrameLayerId& id) const
+        {
+            const FrameLayerRecord* match = nullptr;
+            for (const auto& layer : Layers)
+            {
+                if (layer.Id == id)
+                {
+                    if (match != nullptr)
+                    {
+                        return nullptr;
+                    }
+                    match = &layer;
+                }
+            }
+
+            return match;
+        }
+
+        /**
+         * @brief Resolves a layer by id and view index.
+         *
+         * @param id Layer id to find.
+         * @param viewIndex View index; must match `FrameLayerRecord::ViewIndex`.
+         * @return Pointer to the matching layer, or nullptr.
+         */
+        FrameLayerRecord* FindLayer(const FrameLayerId& id, size_t viewIndex)
+        {
+            for (FrameLayerRecord& layer : Layers)
+            {
+                if (layer.Id == id && layer.ViewIndex == viewIndex)
+                {
+                    return &layer;
                 }
             }
 
             return nullptr;
         }
 
-        const RenderPass* FindPass(const RenderPassId& id) const
+        /**
+         * @brief Resolves a layer by id and view index (const).
+         *
+         * @param id Layer id to find.
+         * @param viewIndex View index; must match `FrameLayerRecord::ViewIndex`.
+         * @return Pointer to the matching layer, or nullptr.
+         */
+        const FrameLayerRecord* FindLayer(const FrameLayerId& id, size_t viewIndex) const
         {
-            for (const RenderPass& pass : Passes)
+            for (const FrameLayerRecord& layer : Layers)
             {
-                if (pass.Id == id)
+                if (layer.Id == id && layer.ViewIndex == viewIndex)
                 {
-                    return &pass;
+                    return &layer;
                 }
             }
 
             return nullptr;
         }
 
-        RenderPass* FindScenePassForSubmission(const RenderMeshSubmission& submission, size_t viewIndex)
+        /**
+         * @brief Finds the scene layer that accepts this mesh submission.
+         *
+         * @param submission Draw submission; if `ViewIndex` is unset, returns nullptr (cannot resolve).
+         * @return Pointer to the accepting scene layer, or nullptr if `ViewIndex` is unset or no layer matches.
+         */
+        FrameLayerRecord* FindSceneLayerForSubmission(const RenderMeshSubmission& submission)
         {
-            for (RenderPass& pass : Passes)
+            return const_cast<FrameLayerRecord*>(std::as_const(*this).FindSceneLayerForSubmission(submission));
+        }
+
+        /**
+         * @brief Finds the scene layer that accepts this mesh submission (const).
+         *
+         * @param submission Draw submission; if `ViewIndex` is unset, returns nullptr (cannot resolve).
+         * @return Pointer to the accepting scene layer, or nullptr if `ViewIndex` is unset or no layer matches.
+         */
+        const FrameLayerRecord* FindSceneLayerForSubmission(const RenderMeshSubmission& submission) const
+        {
+            if (!submission.ViewIndex.has_value())
             {
-                if (pass.ViewIndex == viewIndex && pass.AcceptsSceneSubmission(submission))
+                return nullptr;
+            }
+
+            const size_t submissionViewIndex = *submission.ViewIndex;
+            for (const auto& layer : Layers)
+            {
+                if (layer.ViewIndex == submissionViewIndex && layer.AcceptsSceneSubmission(submission))
                 {
-                    return &pass;
+                    return &layer;
                 }
             }
 

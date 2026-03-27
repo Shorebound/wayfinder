@@ -23,9 +23,7 @@ namespace Wayfinder
     public:
         Error() = default;
 
-        explicit Error(std::string message) : m_message(std::move(message)) {}
-
-        explicit Error(const char* message) : m_message(message ? message : "") {}
+        explicit Error(std::string_view message) : m_message(message) {}
 
         [[nodiscard]] const std::string& GetMessage() const noexcept
         {
@@ -57,24 +55,15 @@ namespace Wayfinder
     using Result = std::expected<T, E>;
 
     /**
-     * @brief Construct an unexpected Error from a std::string message.
+     * @brief Construct an unexpected Error from a message.
      * @param message  Human-readable description of the failure.
      * @return An `std::unexpected<Error>` suitable for returning from a
      *         function that yields `Result<T>`.
      */
-    [[nodiscard]] inline std::unexpected<Error> MakeError(std::string message)
-    {
-        return std::unexpected<Error>(Error(std::move(message)));
-    }
-
     /**
-     * @brief Construct an unexpected Error from a C-string literal.
-     * @param message  Human-readable description of the failure.
-     *                 A null pointer is treated as an empty message.
-     * @return An `std::unexpected<Error>` suitable for returning from a
-     *         function that yields `Result<T>`.
+     * @brief Construct an unexpected Error from a message (literals, `std::string`, or `std::format` output).
      */
-    [[nodiscard]] inline std::unexpected<Error> MakeError(const char* message)
+    [[nodiscard]] inline std::unexpected<Error> MakeError(std::string_view message)
     {
         return std::unexpected<Error>(Error(message));
     }

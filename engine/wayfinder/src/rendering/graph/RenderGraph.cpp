@@ -1,12 +1,14 @@
 #include "RenderGraph.h"
 #include "core/Log.h"
 #include "rendering/backend/RenderDevice.h"
+#include "rendering/graph/RenderPassCapabilities.h"
 #include "rendering/resources/TransientResourcePool.h"
 
 #include <algorithm>
 #include <cassert>
+#include <cstdint>
 #include <queue>
-#include <unordered_set>
+#include <string>
 
 namespace Wayfinder
 {
@@ -35,6 +37,8 @@ namespace Wayfinder
     {
         if (!handle.IsValid() || handle.Index >= m_graph.m_resources.size())
         {
+            const auto& pass = CheckedAt(m_graph.m_passes, m_passIndex);
+            WAYFINDER_ERROR(LogRenderer, "RenderGraph pass '{}': ReadTexture — invalid handle (index={}, valid={})", pass.Name.GetString(), handle.Index, handle.IsValid());
             return;
         }
         auto& pass = CheckedAt(m_graph.m_passes, m_passIndex);
@@ -59,6 +63,8 @@ namespace Wayfinder
     {
         if (!handle.IsValid() || handle.Index >= m_graph.m_resources.size())
         {
+            const auto& pass = CheckedAt(m_graph.m_passes, m_passIndex);
+            WAYFINDER_ERROR(LogRenderer, "RenderGraph pass '{}': WriteColour — invalid handle (index={}, valid={})", pass.Name.GetString(), handle.Index, handle.IsValid());
             return;
         }
         if (slot >= MAX_COLOUR_TARGETS)
@@ -117,6 +123,8 @@ namespace Wayfinder
     {
         if (!handle.IsValid() || handle.Index >= m_graph.m_resources.size())
         {
+            const auto& pass = CheckedAt(m_graph.m_passes, m_passIndex);
+            WAYFINDER_ERROR(LogRenderer, "RenderGraph pass '{}': WriteDepth — invalid handle (index={}, valid={})", pass.Name.GetString(), handle.Index, handle.IsValid());
             return;
         }
         auto& pass = CheckedAt(m_graph.m_passes, m_passIndex);
@@ -136,6 +144,12 @@ namespace Wayfinder
     {
         auto& pass = CheckedAt(m_graph.m_passes, m_passIndex);
         pass.SwapchainWrite = RenderGraph::SwapchainWriteInfo{.Load = load, .Clear = clear};
+    }
+
+    void RenderGraphBuilder::DeclarePassCapabilities(const RenderPassCapabilityMask mask)
+    {
+        auto& pass = CheckedAt(m_graph.m_passes, m_passIndex);
+        pass.DeclaredCapabilities = mask;
     }
 
     // ── Resources ────────────────────────────────────────────
@@ -167,22 +181,26 @@ namespace Wayfinder
 
     RenderGraphHandle RenderGraph::ImportTexture(std::string_view name)
     {
-        const auto internedName = InternedString::Intern(name);
+        return ImportTexture(InternedString::Intern(name));
+    }
 
-        // Check if already imported
+    RenderGraphHandle RenderGraph::ImportTexture(const InternedString& name)
+    {
         for (uint32_t i = 0; i < m_resources.size(); ++i)
         {
-            if (CheckedAt(m_resources, i).Name == internedName)
+            if (CheckedAt(m_resources, i).Name == name)
             {
                 return {i};
             }
         }
 
-        // Imported/externally-provided textures use a default-constructed desc
-        // (width/height == 0) so the transient allocation step skips them —
-        // their GPU handles are supplied externally before Execute().
         const RenderGraphTextureDesc desc;
-        return AllocateResource(desc, internedName);
+        return AllocateResource(desc, name);
+    }
+
+    RenderGraphHandle RenderGraph::ImportTexture(const GraphTextureId id)
+    {
+        return ImportTexture(GraphTextureIntern(id));
     }
 
     RenderGraphHandle RenderGraph::FindHandle(std::string_view name) const
@@ -197,6 +215,41 @@ namespace Wayfinder
             }
         }
         return {};
+    }
+
+    RenderGraphHandle RenderGraph::FindHandle(const GraphTextureId id) const
+    {
+        const InternedString& name = GraphTextureIntern(id);
+        for (uint32_t i = 0; i < m_resources.size(); ++i)
+        {
+            if (CheckedAt(m_resources, i).Name == name)
+            {
+                return {i};
+            }
+        }
+        return {};
+    }
+
+    RenderGraphHandle RenderGraph::FindHandleChecked(std::string_view name) const
+    {
+        RenderGraphHandle h = FindHandle(name);
+        if (!h.IsValid())
+        {
+            WAYFINDER_ERROR(LogRenderer, "RenderGraph: FindHandleChecked missing resource '{}'", name);
+            assert(false && "RenderGraph: FindHandleChecked missing resource");
+        }
+        return h;
+    }
+
+    RenderGraphHandle RenderGraph::FindHandleChecked(const GraphTextureId id) const
+    {
+        RenderGraphHandle h = FindHandle(id);
+        if (!h.IsValid())
+        {
+            WAYFINDER_ERROR(LogRenderer, "RenderGraph: FindHandleChecked missing resource '{}'", GraphTextureIntern(id).GetString());
+            assert(false && "RenderGraph: FindHandleChecked missing resource");
+        }
+        return h;
     }
 
     bool RenderGraph::Compile()
@@ -304,12 +357,69 @@ namespace Wayfinder
             CheckedAt(m_passes, i).Culled = !CheckedAt(alive, i);
         }
 
+#if !defined(NDEBUG)
+        for (uint32_t i = 0; i < passCount; ++i)
+        {
+            auto& pass = CheckedAt(m_passes, i);
+            if (pass.Culled || !pass.DeclaredCapabilities.has_value())
+            {
+                continue;
+            }
+            const RenderPassCapabilityMask caps = *pass.DeclaredCapabilities;
+            if ((caps & RenderPassCapabilities::RASTER_SCENE_GEOMETRY) != 0)
+            {
+                if (pass.NumColourWrites == 0 && !pass.DepthWrite.has_value())
+                {
+                    WAYFINDER_WARN(LogRenderer, "RenderGraph: pass '{}' declared RASTER_SCENE_GEOMETRY but has no colour or depth attachment", pass.Name.GetString());
+                }
+            }
+            if ((caps & RenderPassCapabilities::RASTER_OVERLAY_OR_DEBUG) != 0)
+            {
+                if (pass.NumColourWrites == 0)
+                {
+                    WAYFINDER_WARN(LogRenderer, "RenderGraph: pass '{}' declared RASTER_OVERLAY_OR_DEBUG but has no colour attachment", pass.Name.GetString());
+                }
+            }
+            if ((caps & RenderPassCapabilities::FULLSCREEN_COMPOSITE) != 0)
+            {
+                if (!pass.SwapchainWrite.has_value())
+                {
+                    WAYFINDER_WARN(LogRenderer, "RenderGraph: pass '{}' declared FULLSCREEN_COMPOSITE but does not set swapchain output", pass.Name.GetString());
+                }
+            }
+        }
+#endif
+
         // Assign sort order
         uint32_t order = 0;
         for (const uint32_t idx : m_executionOrder)
         {
             CheckedAt(m_passes, idx).SortOrder = order++;
         }
+
+#if !defined(NDEBUG)
+        {
+            static uint32_t sOrderLogThrottle = 0;
+            if ((sOrderLogThrottle++ % 120u) == 0u)
+            {
+                std::string orderLine;
+                for (const uint32_t idx : m_executionOrder)
+                {
+                    const auto& p = CheckedAt(m_passes, idx);
+                    if (!orderLine.empty())
+                    {
+                        orderLine += " -> ";
+                    }
+                    orderLine += p.Name.GetString();
+                    if (p.Culled)
+                    {
+                        orderLine += " (culled)";
+                    }
+                }
+                WAYFINDER_VERBOSE(LogRenderer, "RenderGraph compile order: {}", orderLine);
+            }
+        }
+#endif
 
         m_compiled = true;
         return true;
@@ -372,7 +482,7 @@ namespace Wayfinder
 
             if (pass.Type == RenderGraphPassType::Raster)
             {
-                GPUDebugScope passDebugScope(device, pass.Name.GetString());
+                const GPUDebugScope passDebugScope(device, pass.Name.GetString());
 
                 // Build the render pass descriptor
                 RenderPassDescriptor rpDesc;
@@ -431,7 +541,7 @@ namespace Wayfinder
             }
             else if (pass.Type == RenderGraphPassType::Compute)
             {
-                GPUDebugScope passDebugScope(device, pass.Name.GetString());
+                const GPUDebugScope passDebugScope(device, pass.Name.GetString());
                 device.BeginComputePass();
                 pass.Execute(device, resources);
                 device.EndComputePass();

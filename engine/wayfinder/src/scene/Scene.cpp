@@ -9,6 +9,7 @@
 
 #include <filesystem>
 #include <format>
+#include <string>
 #include <unordered_map>
 #include <utility>
 #include <vector>
@@ -94,7 +95,7 @@ namespace Wayfinder
 
 namespace Wayfinder
 {
-    Scene::Scene(flecs::world& world, const RuntimeComponentRegistry& componentRegistry, std::string name) : m_world(world), m_componentRegistry(componentRegistry), m_name(std::move(name))
+    Scene::Scene(flecs::world& world, const RuntimeComponentRegistry& componentRegistry, const std::string_view name) : m_world(world), m_componentRegistry(componentRegistry), m_name(name)
     {
         m_sceneTag = AcquireSceneTag(m_world);
         m_ownedEntitiesQuery = m_world.query_builder<>().with<SceneOwnership>(m_sceneTag).build();
@@ -132,24 +133,27 @@ namespace Wayfinder
         RegisterEntityId(entityHandle, newId);
     }
 
-    void Scene::RegisterEntityName(flecs::entity entityHandle, const std::string& name) const
+    void Scene::RegisterEntityName(flecs::entity entityHandle, const std::string_view name) const
     {
         if (!entityHandle.is_valid() || name.empty())
         {
             return;
         }
 
-        m_entitiesByName[name] = entityHandle.id();
+        m_entitiesByName.insert_or_assign(std::string(name), entityHandle.id());
     }
 
-    void Scene::UnregisterEntityName(const std::string& name) const
+    void Scene::UnregisterEntityName(const std::string_view name) const
     {
         if (name.empty())
         {
             return;
         }
 
-        m_entitiesByName.erase(name);
+        if (const auto it = m_entitiesByName.find(name); it != m_entitiesByName.end())
+        {
+            m_entitiesByName.erase(it);
+        }
     }
 
     void Scene::UpdateEntityName(flecs::entity entityHandle, const std::string& previousName, const std::string& newName) const
@@ -230,29 +234,36 @@ namespace Wayfinder
         m_active = false;
     }
 
-    bool Scene::IsNameTaken(const std::string& name, flecs::entity_t excludeEntity) const
+    bool Scene::IsNameTaken(const std::string_view name, flecs::entity_t excludeEntity) const
     {
         const auto it = m_entitiesByName.find(name);
         return it != m_entitiesByName.end() && it->second != excludeEntity;
     }
 
-    std::string Scene::GenerateUniqueName(const std::string& base, flecs::entity_t excludeEntity) const
+    std::string Scene::GenerateUniqueName(const std::string_view base, flecs::entity_t excludeEntity) const
     {
         if (!IsNameTaken(base, excludeEntity))
         {
-            return base;
+            return std::string(base);
         }
 
+        std::string candidate;
+        candidate.reserve(base.size() + 16U);
+        candidate.assign(base);
         uint32_t suffix = 1;
-        while (IsNameTaken(base + std::to_string(suffix), excludeEntity))
+        for (;;)
         {
+            candidate.resize(base.size());
+            candidate += std::to_string(suffix);
+            if (!IsNameTaken(candidate, excludeEntity))
+            {
+                return candidate;
+            }
             ++suffix;
         }
-
-        return base + std::to_string(suffix);
     }
 
-    Entity Scene::CreateEntity(const std::string& name)
+    Entity Scene::CreateEntity(const std::string_view name)
     {
         std::string uniqueName = GenerateUniqueName(name);
 
@@ -273,7 +284,7 @@ namespace Wayfinder
         return Entity{handle, this};
     }
 
-    Entity Scene::GetEntityByName(const std::string& name)
+    Entity Scene::GetEntityByName(const std::string_view name)
     {
         const auto nameIt = m_entitiesByName.find(name);
         if (nameIt == m_entitiesByName.end())
@@ -309,8 +320,9 @@ namespace Wayfinder
         return Entity{entityHandle, this};
     }
 
-    Result<void> Scene::LoadFromFile(const std::string& filePath)
+    Result<void> Scene::LoadFromFile(const std::string_view filePath)
     {
+        const std::string filePathStr(filePath);
         bool didMutateScene = false;
         const auto rollbackLoad = [this, &didMutateScene]()
         {
@@ -327,14 +339,14 @@ namespace Wayfinder
 
         try
         {
-            const SceneDocumentLoadResult loadResult = LoadSceneDocument(filePath, m_componentRegistry, m_assetService.get());
+            const SceneDocumentLoadResult loadResult = LoadSceneDocument(filePathStr, m_componentRegistry, m_assetService.get());
             if (!loadResult.Document)
             {
-                LogDocumentErrors(loadResult.Errors, filePath);
-                return MakeError(std::format("Failed to load scene document: {}", filePath));
+                LogDocumentErrors(loadResult.Errors, filePathStr);
+                return MakeError(std::format("Failed to load scene document: {}", filePathStr));
             }
 
-            const std::filesystem::path sourcePath = std::filesystem::weakly_canonical(std::filesystem::path(filePath));
+            const std::filesystem::path sourcePath = std::filesystem::weakly_canonical(std::filesystem::path(filePathStr));
             const std::filesystem::path assetRoot = FindAssetRoot(sourcePath).value_or(std::filesystem::path{});
 
             ClearEntities();
@@ -387,7 +399,7 @@ namespace Wayfinder
             m_sourcePath = sourcePath;
             m_assetRoot = assetRoot;
 
-            WAYFINDER_INFO(LogScene, "Loaded scene data from: {0}", filePath);
+            WAYFINDER_INFO(LogScene, "Loaded scene data from: {0}", filePathStr);
 
             // Apply scene settings as a world singleton
             SceneSettings settings;
@@ -399,13 +411,14 @@ namespace Wayfinder
         catch (const std::exception& error)
         {
             rollbackLoad();
-            WAYFINDER_ERROR(LogScene, "Failed to load scene file {0}: {1}", filePath, error.what());
+            WAYFINDER_ERROR(LogScene, "Failed to load scene file {0}: {1}", filePathStr, error.what());
             return MakeError(std::format("Failed to load scene file: {}", error.what()));
         }
     }
 
-    Result<void> Scene::SaveToFile(const std::string& filePath) const
+    Result<void> Scene::SaveToFile(const std::string_view filePath) const
     {
+        const std::string filePathStr(filePath);
         try
         {
             SceneDocument document;
@@ -450,18 +463,18 @@ namespace Wayfinder
             });
 
             std::string error;
-            if (!SaveSceneDocument(document, filePath, error))
+            if (!SaveSceneDocument(document, filePathStr, error))
             {
                 WAYFINDER_ERROR(LogScene, "{0}", error);
                 return MakeError(error);
             }
 
-            WAYFINDER_INFO(LogScene, "Saved scene data to: {0}", filePath);
+            WAYFINDER_INFO(LogScene, "Saved scene data to: {0}", filePathStr);
             return {};
         }
         catch (const std::exception& error)
         {
-            WAYFINDER_ERROR(LogScene, "Failed to save scene file {0}: {1}", filePath, error.what());
+            WAYFINDER_ERROR(LogScene, "Failed to save scene file {0}: {1}", filePathStr, error.what());
             return MakeError(std::format("Failed to save scene file: {}", error.what()));
         }
     }

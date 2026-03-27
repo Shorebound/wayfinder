@@ -6,6 +6,7 @@
 #include <cstdint>
 #include <memory>
 #include <string>
+#include <string_view>
 
 namespace Wayfinder
 {
@@ -41,7 +42,7 @@ namespace Wayfinder
     class WAYFINDER_API LogCategoryHandle
     {
     public:
-        constexpr explicit LogCategoryHandle(const char* name) noexcept : m_name(name) {}
+        constexpr explicit LogCategoryHandle(const std::string_view name) noexcept : m_name(name) {}
 
         LogCategory& Get() const;
         const std::string& GetName() const;
@@ -50,7 +51,7 @@ namespace Wayfinder
         operator LogCategory&() const;
 
     private:
-        const char* m_name;
+        std::string_view m_name;
         mutable LogCategory* m_cached = nullptr;
         mutable std::uint64_t m_generation = 0;
     };

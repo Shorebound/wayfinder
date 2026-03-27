@@ -3,13 +3,17 @@
 #include "plugins/PluginRegistry.h"
 #include "scene/SceneWorldBootstrap.h"
 
-class WaystoneGame : public Wayfinder::Plugins::Plugin
+namespace
 {
-    void Build(Wayfinder::Plugins::PluginRegistry& registry) override
+    class WaystoneGame : public Wayfinder::Plugins::Plugin
     {
-        Wayfinder::PopulateDefaultScenePlugins(registry);
-    }
-};
+    public:
+        void Build(Wayfinder::Plugins::PluginRegistry& registry) override
+        {
+            Wayfinder::PopulateDefaultScenePlugins(registry);
+        }
+    };
+} // namespace
 
 namespace Wayfinder::Plugins
 {

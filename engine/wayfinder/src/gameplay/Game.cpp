@@ -13,7 +13,7 @@
 #include "scene/SceneSettings.h"
 
 #include <filesystem>
-#include <functional>
+#include <string_view>
 #include <unordered_map>
 
 namespace Wayfinder
@@ -45,23 +45,25 @@ namespace Wayfinder
         InitialiseWorld();
 
         // Guard that tears down subsystems on any early return.  Dismissed on success.
-        bool committed = false;
-        auto cleanup = [&]
+        struct CleanupState
         {
-            if (!committed)
-            {
-                GameSubsystems::Unbind();
-                m_subsystems.Shutdown();
-            }
+            bool Committed = false;
+            Game* Self = nullptr;
         };
+        CleanupState cleanupState{.Self = this};
         struct CleanupGuard
         {
-            std::function<void()> Fn;
-            ~CleanupGuard()
+            CleanupState* State = nullptr;
+            ~CleanupGuard() noexcept
             {
-                Fn();
+                if (!State->Committed)
+                {
+                    GameSubsystems::Unbind();
+                    State->Self->m_subsystems.Shutdown();
+                    State->Self->m_stateMachine = nullptr;
+                }
             }
-        } const guard{cleanup};
+        } const guard{.State = &cleanupState};
 
         const auto bootScenePath = ctx.project.ResolveBootScene();
 
@@ -91,7 +93,7 @@ namespace Wayfinder
 
         WAYFINDER_INFO(LogGame, "Loaded bootstrap scene from: {}", resolvedPath.string());
 
-        committed = true;
+        cleanupState.Committed = true;
         m_running = true;
         m_initialised = true;
         return {};
@@ -164,22 +166,27 @@ namespace Wayfinder
         m_initialised = false;
     }
 
-    void Game::LoadScene(const std::string& scenePath)
+    void Game::LoadScene(const std::string_view scenePath)
     {
-        UnloadCurrentScene();
-
-        m_currentScene = std::make_unique<Scene>(m_world, m_componentRegistry, scenePath);
-        m_currentScene->SetAssetService(m_assetService);
-
-        if (std::filesystem::exists(scenePath))
+        const std::string pathStr(scenePath);
+        if (!std::filesystem::exists(pathStr))
         {
-            if (auto result = m_currentScene->LoadFromFile(scenePath); !result)
-            {
-                WAYFINDER_ERROR(LogGame, "Failed to load scene '{}': {}", scenePath, result.error().GetMessage());
-            }
+            WAYFINDER_WARN(LogGame, "Scene file not found: {}", pathStr);
+            return;
         }
 
-        WAYFINDER_INFO(LogGame, "Loaded scene: {}", scenePath);
+        auto newScene = std::make_unique<Scene>(m_world, m_componentRegistry, pathStr);
+        newScene->SetAssetService(m_assetService);
+
+        if (auto result = newScene->LoadFromFile(pathStr); !result)
+        {
+            WAYFINDER_ERROR(LogGame, "Failed to load scene '{}': {}", pathStr, result.error().GetMessage());
+            return;
+        }
+
+        UnloadCurrentScene();
+        m_currentScene = std::move(newScene);
+        WAYFINDER_INFO(LogGame, "Loaded scene: {}", pathStr);
     }
 
     void Game::UnloadCurrentScene()
@@ -191,7 +198,7 @@ namespace Wayfinder
         }
     }
 
-    void Game::TransitionTo(const std::string& stateName)
+    void Game::TransitionTo(const std::string_view stateName)
     {
         if (!m_stateMachine)
         {

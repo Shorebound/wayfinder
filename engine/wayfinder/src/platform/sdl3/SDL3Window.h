@@ -37,7 +37,7 @@ namespace Wayfinder
         }
 
         void SetVSync(bool enabled) override;
-        void SetTitle(const std::string& title) override;
+        void SetTitle(std::string_view title) override;
         void SetSize(uint32_t width, uint32_t height) override;
         void SetEventCallback(const EventCallbackFn& callback) override;
 
