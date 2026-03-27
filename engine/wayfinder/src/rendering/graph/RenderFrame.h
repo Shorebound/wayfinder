@@ -155,6 +155,8 @@ namespace Wayfinder
         RenderLayerId Layer = RenderLayers::Main;
         uint8_t SortPriority = 128;
         uint64_t SortKey = 0;
+        /// Which view's scene layers this submission targets (must match `FrameLayerRecord::ViewIndex`).
+        size_t ViewIndex = 0;
     };
 
     struct RenderLightSubmission
@@ -288,6 +290,32 @@ namespace Wayfinder
             for (const FrameLayerRecord& layer : Layers)
             {
                 if (layer.Id == id)
+                {
+                    return &layer;
+                }
+            }
+
+            return nullptr;
+        }
+
+        FrameLayerRecord* FindLayer(const FrameLayerId& id, size_t viewIndex)
+        {
+            for (FrameLayerRecord& layer : Layers)
+            {
+                if (layer.Id == id && layer.ViewIndex == viewIndex)
+                {
+                    return &layer;
+                }
+            }
+
+            return nullptr;
+        }
+
+        const FrameLayerRecord* FindLayer(const FrameLayerId& id, size_t viewIndex) const
+        {
+            for (const FrameLayerRecord& layer : Layers)
+            {
+                if (layer.Id == id && layer.ViewIndex == viewIndex)
                 {
                     return &layer;
                 }

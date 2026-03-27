@@ -60,6 +60,7 @@ namespace Wayfinder
                 {
                     GameSubsystems::Unbind();
                     State->Self->m_subsystems.Shutdown();
+                    State->Self->m_stateMachine = nullptr;
                 }
             }
         } const guard{.State = &cleanupState};

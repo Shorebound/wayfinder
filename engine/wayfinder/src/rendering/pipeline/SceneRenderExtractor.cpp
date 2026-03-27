@@ -15,6 +15,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <memory>
+#include <optional>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -180,6 +181,7 @@ namespace Wayfinder
         frame.SceneName = scene.GetName();
         frame.AssetRoot = scene.GetAssetRoot();
 
+        std::optional<size_t> primaryViewIndex;
         if (scene.GetWorld().has<ActiveCameraStateComponent>())
         {
             const auto& activeCamera = scene.GetWorld().get<ActiveCameraStateComponent>();
@@ -191,13 +193,14 @@ namespace Wayfinder
                 view.CameraState.Up = activeCamera.Up;
                 view.CameraState.FOV = activeCamera.FieldOfView;
                 view.CameraState.ProjectionType = static_cast<int>(activeCamera.Projection);
-                const size_t viewIndex = frame.AddView(view);
+                primaryViewIndex = frame.AddView(view);
+                const size_t viewIndex = *primaryViewIndex;
                 frame.AddSceneLayer(FrameLayerIds::MainScene, viewIndex, RenderLayers::Main);
                 frame.AddSceneLayer(FrameLayerIds::OverlayScene, viewIndex, RenderLayers::Overlay);
-                FrameLayerRecord& debugPass = frame.AddDebugLayer(FrameLayerIds::Debug, viewIndex);
-                if (debugPass.DebugDraw)
+                FrameLayerRecord& debugLayer = frame.AddDebugLayer(FrameLayerIds::Debug, viewIndex);
+                if (debugLayer.DebugDraw)
                 {
-                    debugPass.DebugDraw->ShowWorldGrid = true;
+                    debugLayer.DebugDraw->ShowWorldGrid = true;
                 }
             }
         }
@@ -213,7 +216,7 @@ namespace Wayfinder
             }
         }
 
-        scene.GetWorld().each([&frame, &cameraView, &scene](flecs::entity entityHandle)
+        scene.GetWorld().each([&frame, &cameraView, &scene, primaryViewIndex](flecs::entity entityHandle)
         {
             if (!entityHandle.has<TransformComponent>() || !entityHandle.has<MeshComponent>() || !entityHandle.has<RenderableComponent>())
             {
@@ -292,7 +295,8 @@ namespace Wayfinder
                 const SortLayer sortLayer = materialState.Blend.Enabled ? SortLayer::Transparent : MapLayer(submission.Layer);
                 submission.SortKey = SortKeyBuilder::Build(sortLayer, BlendGroupBits(materialState.Blend), MaterialIdBits(submission.Material), cameraSpaceZ, submission.SortPriority);
 
-                FrameLayerRecord* owningLayer = frame.FindSceneLayerForSubmission(submission, 0);
+                submission.ViewIndex = primaryViewIndex.value_or(0);
+                FrameLayerRecord* owningLayer = frame.FindSceneLayerForSubmission(submission, submission.ViewIndex);
                 if (!owningLayer)
                 {
                     WAYFINDER_WARN(LogRenderer, "SceneRenderExtractor skipped mesh submission because no scene layer matched layer '{0}' in frame '{1}'.", submission.Layer, frame.SceneName);
@@ -361,7 +365,7 @@ namespace Wayfinder
             }
         });
 
-        scene.GetWorld().each([&frame](flecs::entity entityHandle)
+        scene.GetWorld().each([&frame, primaryViewIndex](flecs::entity entityHandle)
         {
             if (!entityHandle.has<TransformComponent>() || !entityHandle.has<LightComponent>())
             {
@@ -409,7 +413,7 @@ namespace Wayfinder
                 debugBox.Material.Domain = RenderMaterialDomain::Debug;
                 debugBox.Material.Parameters.SetColour("base_colour", LinearColour::FromColour(light.Tint));
 
-                FrameLayerRecord* debugLayer = frame.FindLayer(FrameLayerIds::Debug);
+                FrameLayerRecord* debugLayer = frame.FindLayer(FrameLayerIds::Debug, primaryViewIndex.value_or(0));
                 if (debugLayer && debugLayer->DebugDraw)
                 {
                     debugLayer->DebugDraw->Boxes.push_back(debugBox);

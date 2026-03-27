@@ -174,13 +174,20 @@ jobs:
             | grep -v 'thirdparty/' \
             || true)
 
+          cpp_files=$(echo "$files" | grep '\.cpp$' || true)
+
           if [ -z "$files" ]; then
             echo "skip=true" >> "$GITHUB_OUTPUT"
             echo "No C++ files changed — skipping clang-tidy."
+          elif [ -z "$cpp_files" ]; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            echo "Only headers changed — skipping clang-tidy (no changed .cpp translation units)."
+            echo "Changed files:"
+            echo "$files"
           else
             echo "skip=false" >> "$GITHUB_OUTPUT"
-            echo "$files" > /tmp/changed_files.txt
-            echo "Changed files:"
+            echo "$cpp_files" > /tmp/changed_files.txt
+            echo "Changed .cpp files for clang-tidy:"
             cat /tmp/changed_files.txt
           fi
 
@@ -190,7 +197,7 @@ jobs:
         run: |
           set -o pipefail
           # Use tidy.py which filters the multi-config compile DB to Debug-only.
-          python3 tools/tidy.py $(cat /tmp/changed_files.txt | grep '\.cpp$' | tr '\n' ' ') \
+          python3 tools/tidy.py $(cat /tmp/changed_files.txt | tr '\n' ' ') \
             --build-dir build 2>&1 \
             | tee /tmp/clang-tidy-output.txt
 
