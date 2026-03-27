@@ -2,6 +2,7 @@
 
 #include "PipelineCache.h"
 #include "core/Result.h"
+#include "rendering/materials/PostProcessRegistry.h"
 #include "rendering/materials/ShaderManager.h"
 #include "rendering/materials/ShaderProgram.h"
 #include "rendering/resources/MeshManager.h"
@@ -113,6 +114,23 @@ namespace Wayfinder
             return m_nearestSampler;
         }
 
+        PostProcessRegistry& GetPostProcessRegistry()
+        {
+            return m_postProcessRegistry;
+        }
+        const PostProcessRegistry& GetPostProcessRegistry() const
+        {
+            return m_postProcessRegistry;
+        }
+
+        const EnginePostProcessIds& GetEnginePostProcessIds() const
+        {
+            return m_enginePostProcessIds;
+        }
+
+        /// Registers built-in blendable post-process types (colour grading, vignette, CA). Call once after Initialise.
+        void RegisterEnginePostProcessEffects();
+
     private:
         RenderDevice* m_device = nullptr;
 
@@ -124,6 +142,9 @@ namespace Wayfinder
         TextureManager m_textureManager;
         MeshManager m_meshManager;
         GPUSamplerHandle m_nearestSampler{};
+
+        PostProcessRegistry m_postProcessRegistry;
+        EnginePostProcessIds m_enginePostProcessIds{};
     };
 
 } // namespace Wayfinder

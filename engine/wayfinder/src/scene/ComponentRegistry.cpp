@@ -7,13 +7,15 @@
 #include "gameplay/GameplayTagRegistry.h"
 #include "scene/entity/Entity.h"
 
+#include "rendering/materials/PostProcessRegistry.h"
+#include "rendering/materials/PostProcessVolume.h"
+
 #include <array>
 #include <charconv>
 #include <format>
 #include <sstream>
 #include <string>
 #include <string_view>
-#include <variant>
 
 namespace Wayfinder
 {
@@ -629,7 +631,8 @@ namespace Wayfinder
                     }
 
                     const std::string effectTypeStr = effectEntry.at("type").get<std::string>();
-                    if (Wayfinder::PostProcessEffect::ParseTypeString(effectTypeStr) == Wayfinder::PostProcessEffectType::Unknown)
+                    const std::string normalised = Wayfinder::NormalisePostProcessEffectTypeString(effectTypeStr);
+                    if (!Wayfinder::IsValidPostProcessEffectTypeName(normalised))
                     {
                         error = "unknown post-process effect type: " + effectTypeStr;
                         return false;
@@ -880,33 +883,34 @@ namespace Wayfinder
 
         Wayfinder::PostProcessEffect ReadEffect(const nlohmann::json& effectData)
         {
-            Wayfinder::PostProcessEffect effect;
+            Wayfinder::PostProcessEffect effect{};
+            const Wayfinder::PostProcessRegistry* registry = Wayfinder::PostProcessRegistry::GetActiveInstance();
+            if (registry == nullptr)
+            {
+                WAYFINDER_WARN(LogScene, "ReadEffect: PostProcessRegistry not active — post-process effect skipped");
+                return effect;
+            }
+
             const std::string typeStr = effectData.value("type", std::string{});
-            effect.Type = Wayfinder::PostProcessEffect::ParseTypeString(typeStr);
+            const std::string normalised = Wayfinder::NormalisePostProcessEffectTypeString(typeStr);
+            const std::optional<Wayfinder::PostProcessEffectId> idOpt = registry->FindIdByName(normalised);
+            if (!idOpt.has_value())
+            {
+                WAYFINDER_WARN(LogScene, "ReadEffect: unknown post-process effect type '{}' — skipped", typeStr);
+                return effect;
+            }
+
+            const Wayfinder::PostProcessEffectDesc* desc = registry->Find(*idOpt);
+            if (desc == nullptr || desc->Deserialise == nullptr)
+            {
+                return effect;
+            }
+
+            effect.TypeId = *idOpt;
             effect.Enabled = effectData.value("enabled", true);
-
-            if (effect.Type == Wayfinder::PostProcessEffectType::ColourGrading)
-            {
-                Wayfinder::ColourGradingParams p{};
-                p.ExposureStops = ReadFloat(effectData, "exposure_stops", p.ExposureStops);
-                p.Contrast = ReadFloat(effectData, "contrast", p.Contrast);
-                p.Saturation = ReadFloat(effectData, "saturation", p.Saturation);
-                p.Lift = ReadVector3(effectData, "lift", p.Lift);
-                p.Gamma = ReadVector3(effectData, "gamma", p.Gamma);
-                p.Gain = ReadVector3(effectData, "gain", p.Gain);
-                p.VignetteStrength = ReadFloat(effectData, "vignette_strength", p.VignetteStrength);
-                p.ChromaticAberrationIntensity = ReadFloat(effectData, "chromatic_aberration_intensity", p.ChromaticAberrationIntensity);
-                effect.Payload = p;
-            }
-            else if (effect.Type == Wayfinder::PostProcessEffectType::Bloom)
-            {
-                Wayfinder::BloomParams p{};
-                p.Threshold = ReadFloat(effectData, "threshold", p.Threshold);
-                p.Intensity = ReadFloat(effectData, "intensity", p.Intensity);
-                p.Radius = ReadFloat(effectData, "radius", p.Radius);
-                effect.Payload = p;
-            }
-
+            // NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
+            desc->Deserialise(effect.Payload, effectData);
+            // NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
             return effect;
         }
 
@@ -1088,37 +1092,26 @@ namespace Wayfinder
                 nlohmann::json effectsArray = nlohmann::json::array();
                 for (const auto& effect : volume.Effects)
                 {
+                    const Wayfinder::PostProcessRegistry* registry = Wayfinder::PostProcessRegistry::GetActiveInstance();
+                    if (registry == nullptr)
+                    {
+                        break;
+                    }
+                    const Wayfinder::PostProcessEffectDesc* desc = registry->Find(effect.TypeId);
+                    if (desc == nullptr || desc->Serialise == nullptr)
+                    {
+                        continue;
+                    }
+
                     nlohmann::json effectTable;
-                    effectTable["type"] = std::string{Wayfinder::PostProcessEffect::TypeToString(effect.Type)};
+                    effectTable["type"] = std::string{desc->Name};
                     if (!effect.Enabled)
                     {
                         effectTable["enabled"] = false;
                     }
-
-                    if (effect.Type == Wayfinder::PostProcessEffectType::ColourGrading)
-                    {
-                        if (const auto* p = std::get_if<Wayfinder::ColourGradingParams>(&effect.Payload))
-                        {
-                            effectTable["exposure_stops"] = p->ExposureStops;
-                            effectTable["contrast"] = p->Contrast;
-                            effectTable["saturation"] = p->Saturation;
-                            effectTable["lift"] = WriteVector3(p->Lift);
-                            effectTable["gamma"] = WriteVector3(p->Gamma);
-                            effectTable["gain"] = WriteVector3(p->Gain);
-                            effectTable["vignette_strength"] = p->VignetteStrength;
-                            effectTable["chromatic_aberration_intensity"] = p->ChromaticAberrationIntensity;
-                        }
-                    }
-                    else if (effect.Type == Wayfinder::PostProcessEffectType::Bloom)
-                    {
-                        if (const auto* p = std::get_if<Wayfinder::BloomParams>(&effect.Payload))
-                        {
-                            effectTable["threshold"] = p->Threshold;
-                            effectTable["intensity"] = p->Intensity;
-                            effectTable["radius"] = p->Radius;
-                        }
-                    }
-
+                    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
+                    desc->Serialise(effectTable, effect.Payload);
+                    // NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
                     effectsArray.push_back(std::move(effectTable));
                 }
 

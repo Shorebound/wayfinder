@@ -1,16 +1,31 @@
 #include "PostProcessVolume.h"
 
+#include "PostProcessRegistry.h"
+
+#include "core/Assert.h"
 #include "maths/Maths.h"
 
 #include <algorithm>
 #include <cctype>
 #include <cmath>
-#include <string>
-#include <variant>
-#include <vector>
+#include <cstring>
+
+#include <nlohmann/json.hpp>
+
+static_assert(sizeof(Wayfinder::ColourGradingParams) <= Wayfinder::POST_PROCESS_EFFECT_PAYLOAD_CAPACITY);
+static_assert(sizeof(Wayfinder::VignetteParams) <= Wayfinder::POST_PROCESS_EFFECT_PAYLOAD_CAPACITY);
+static_assert(sizeof(Wayfinder::ChromaticAberrationParams) <= Wayfinder::POST_PROCESS_EFFECT_PAYLOAD_CAPACITY);
 
 namespace Wayfinder
 {
+    PostProcessStack::~PostProcessStack()
+    {
+        if (const PostProcessRegistry* registry = PostProcessRegistry::GetActiveInstance())
+        {
+            Clear(*registry);
+        }
+    }
+
     namespace
     {
         float ComputeDistanceToVolume(const PostProcessVolumeInstance& instance, const Float3& cameraPosition)
@@ -51,138 +66,221 @@ namespace Wayfinder
             return Maths::Clamp(1.0f - (distance / blendDistance), 0.0f, 1.0f);
         }
 
-        ColourGradingParams IdentityColourGrading()
-        {
-            return ColourGradingParams{};
-        }
-
-        ColourGradingParams LerpColourGrading(const ColourGradingParams& a, const ColourGradingParams& b, float w)
-        {
-            return ColourGradingParams{
-                .ExposureStops = Maths::Mix(a.ExposureStops, b.ExposureStops, w),
-                .Contrast = Maths::Mix(a.Contrast, b.Contrast, w),
-                .Saturation = Maths::Mix(a.Saturation, b.Saturation, w),
-                .Lift = Maths::Mix(a.Lift, b.Lift, w),
-                .Gamma = Maths::Mix(a.Gamma, b.Gamma, w),
-                .Gain = Maths::Mix(a.Gain, b.Gain, w),
-                .VignetteStrength = Maths::Mix(a.VignetteStrength, b.VignetteStrength, w),
-                .ChromaticAberrationIntensity = Maths::Mix(a.ChromaticAberrationIntensity, b.ChromaticAberrationIntensity, w),
-            };
-        }
-
-        BloomParams LerpBloom(const BloomParams& a, const BloomParams& b, float w)
-        {
-            return BloomParams{
-                .Threshold = Maths::Mix(a.Threshold, b.Threshold, w),
-                .Intensity = Maths::Mix(a.Intensity, b.Intensity, w),
-                .Radius = Maths::Mix(a.Radius, b.Radius, w),
-            };
-        }
-
-        void BlendPayloadInto(PostProcessEffect& result, const PostProcessEffect& source, float weight)
-        {
-            if (source.Type != result.Type)
-            {
-                return;
-            }
-
-            if (source.Type == PostProcessEffectType::ColourGrading)
-            {
-                auto* dst = std::get_if<ColourGradingParams>(&result.Payload);
-                const auto* src = std::get_if<ColourGradingParams>(&source.Payload);
-                if (dst && src)
-                {
-                    *dst = LerpColourGrading(*dst, *src, weight);
-                }
-            }
-            else if (source.Type == PostProcessEffectType::Bloom)
-            {
-                auto* dst = std::get_if<BloomParams>(&result.Payload);
-                const auto* src = std::get_if<BloomParams>(&source.Payload);
-                if (dst && src)
-                {
-                    *dst = LerpBloom(*dst, *src, weight);
-                }
-            }
-        }
-
-        void BlendFirstContribution(PostProcessEffect& entry, const PostProcessEffect& source, float weight)
-        {
-            entry.Type = source.Type;
-            entry.Enabled = source.Enabled;
-
-            if (source.Type == PostProcessEffectType::ColourGrading)
-            {
-                if (const auto* src = std::get_if<ColourGradingParams>(&source.Payload))
-                {
-                    entry.Payload = LerpColourGrading(IdentityColourGrading(), *src, weight);
-                }
-            }
-            else if (source.Type == PostProcessEffectType::Bloom)
-            {
-                if (const auto* src = std::get_if<BloomParams>(&source.Payload))
-                {
-                    entry.Payload = LerpBloom(BloomParams{.Threshold = 1.0f, .Intensity = 0.0f, .Radius = 1.0f}, *src, weight);
-                }
-            }
-        }
-
     } // namespace
 
-    PostProcessEffectType PostProcessEffect::ParseTypeString(const std::string_view name)
+    void PostProcessEffect::DestroyPayload(const PostProcessRegistry& registry)
     {
-        std::string lower;
-        lower.reserve(name.size());
-        for (const char c : name)
+        if (TypeId == INVALID_POST_PROCESS_EFFECT_ID)
         {
-            lower.push_back(static_cast<char>(std::tolower(static_cast<unsigned char>(c))));
+            return;
         }
-
-        if (lower == "colour_grading" || lower == "colourgrading" || lower == "grading" || lower == "color_grading")
+        const PostProcessEffectDesc* desc = registry.Find(TypeId);
+        if (desc == nullptr || desc->Destroy == nullptr)
         {
-            return PostProcessEffectType::ColourGrading;
+            return;
         }
-        if (lower == "bloom")
-        {
-            return PostProcessEffectType::Bloom;
-        }
-        return PostProcessEffectType::Unknown;
+        // Type-erased payload buffer; registry Destroy runs the correct destructor for TypeId.
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
+        desc->Destroy(Payload);
     }
 
-    std::string_view PostProcessEffect::TypeToString(const PostProcessEffectType type)
+    const PostProcessEffect* PostProcessStack::FindEffect(const PostProcessEffectId id) const
     {
-        switch (type)
+        const auto it = std::ranges::find_if(Effects, [id](const PostProcessEffect& e)
         {
-        case PostProcessEffectType::ColourGrading:
-            return "colour_grading";
-        case PostProcessEffectType::Bloom:
-            return "bloom";
-        case PostProcessEffectType::Unknown:
-        default:
-            return "unknown";
-        }
-    }
-
-    const PostProcessEffect* PostProcessStack::FindEffect(const PostProcessEffectType type) const
-    {
-        if (type == PostProcessEffectType::Unknown)
+            return e.TypeId == id;
+        });
+        if (it == Effects.end())
         {
             return nullptr;
         }
-        const auto i = static_cast<size_t>(type);
-        if (i >= Effects.size() || !Effects[i].has_value())
+        return &*it;
+    }
+
+    PostProcessEffect* PostProcessStack::FindEffectMutable(const PostProcessEffectId id)
+    {
+        const auto it = std::ranges::find_if(Effects, [id](const PostProcessEffect& e)
+        {
+            return e.TypeId == id;
+        });
+        if (it == Effects.end())
         {
             return nullptr;
         }
-        return &*Effects[i];
+        return &*it;
     }
 
-    bool PostProcessStack::HasEffect(const PostProcessEffectType type) const
+    PostProcessEffect& PostProcessStack::GetOrCreate(const PostProcessEffectId id, const PostProcessRegistry& registry)
     {
-        return FindEffect(type) != nullptr;
+        if (PostProcessEffect* existing = FindEffectMutable(id))
+        {
+            return *existing;
+        }
+
+        const PostProcessEffectDesc* desc = registry.Find(id);
+        // NOLINTBEGIN(readability-simplify-boolean-expr)
+        WAYFINDER_ASSERT(desc != nullptr);
+        WAYFINDER_ASSERT(desc->CreateIdentity != nullptr);
+        // NOLINTEND(readability-simplify-boolean-expr)
+
+        PostProcessEffect effect{};
+        effect.TypeId = id;
+        effect.Enabled = true;
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
+        desc->CreateIdentity(effect.Payload);
+        Effects.push_back(effect);
+        return Effects.back();
     }
 
-    PostProcessStack BlendPostProcessVolumes(const Float3& cameraPosition, const std::span<const PostProcessVolumeInstance> volumes)
+    void PostProcessStack::Clear(const PostProcessRegistry& registry)
+    {
+        for (PostProcessEffect& e : Effects)
+        {
+            e.DestroyPayload(registry);
+        }
+        Effects.clear();
+    }
+
+    ColourGradingParams Identity(PostProcessTag<ColourGradingParams>)
+    {
+        return ColourGradingParams{};
+    }
+
+    ColourGradingParams Lerp(const ColourGradingParams& current, const ColourGradingParams& source, const float weight)
+    {
+        ColourGradingParams out{};
+        out.ExposureStops = LerpOverride(current.ExposureStops, source.ExposureStops, weight);
+        out.Contrast = LerpOverride(current.Contrast, source.Contrast, weight);
+        out.Saturation = LerpOverride(current.Saturation, source.Saturation, weight);
+        out.Lift = LerpOverride(current.Lift, source.Lift, weight);
+        out.Gamma = LerpOverride(current.Gamma, source.Gamma, weight);
+        out.Gain = LerpOverride(current.Gain, source.Gain, weight);
+        return out;
+    }
+
+    void Serialise(nlohmann::json& json, const ColourGradingParams& params)
+    {
+        if (params.ExposureStops.Active)
+        {
+            json["exposure_stops"] = params.ExposureStops.Value;
+        }
+        if (params.Contrast.Active)
+        {
+            json["contrast"] = params.Contrast.Value;
+        }
+        if (params.Saturation.Active)
+        {
+            json["saturation"] = params.Saturation.Value;
+        }
+        if (params.Lift.Active)
+        {
+            json["lift"] = nlohmann::json::array({params.Lift.Value.x, params.Lift.Value.y, params.Lift.Value.z});
+        }
+        if (params.Gamma.Active)
+        {
+            json["gamma"] = nlohmann::json::array({params.Gamma.Value.x, params.Gamma.Value.y, params.Gamma.Value.z});
+        }
+        if (params.Gain.Active)
+        {
+            json["gain"] = nlohmann::json::array({params.Gain.Value.x, params.Gain.Value.y, params.Gain.Value.z});
+        }
+    }
+
+    ColourGradingParams Deserialise(PostProcessTag<ColourGradingParams>, const nlohmann::json& json)
+    {
+        ColourGradingParams p{};
+        if (auto it = json.find("exposure_stops"); it != json.end() && it->is_number())
+        {
+            p.ExposureStops = Override<float>::Set(it->get<float>());
+        }
+        if (auto it = json.find("contrast"); it != json.end() && it->is_number())
+        {
+            p.Contrast = Override<float>::Set(it->get<float>());
+        }
+        if (auto it = json.find("saturation"); it != json.end() && it->is_number())
+        {
+            p.Saturation = Override<float>::Set(it->get<float>());
+        }
+        if (auto it = json.find("lift"); it != json.end() && it->is_array() && it->size() >= 3)
+        {
+            p.Lift = Override<Float3>::Set(Float3{(*it)[0].get<float>(), (*it)[1].get<float>(), (*it)[2].get<float>()});
+        }
+        if (auto it = json.find("gamma"); it != json.end() && it->is_array() && it->size() >= 3)
+        {
+            p.Gamma = Override<Float3>::Set(Float3{(*it)[0].get<float>(), (*it)[1].get<float>(), (*it)[2].get<float>()});
+        }
+        if (auto it = json.find("gain"); it != json.end() && it->is_array() && it->size() >= 3)
+        {
+            p.Gain = Override<Float3>::Set(Float3{(*it)[0].get<float>(), (*it)[1].get<float>(), (*it)[2].get<float>()});
+        }
+        return p;
+    }
+
+    VignetteParams Identity(PostProcessTag<VignetteParams>)
+    {
+        return VignetteParams{};
+    }
+
+    VignetteParams Lerp(const VignetteParams& current, const VignetteParams& source, const float weight)
+    {
+        VignetteParams out{};
+        out.Strength = LerpOverride(current.Strength, source.Strength, weight);
+        return out;
+    }
+
+    void Serialise(nlohmann::json& json, const VignetteParams& params)
+    {
+        if (params.Strength.Active)
+        {
+            json["strength"] = params.Strength.Value;
+        }
+    }
+
+    VignetteParams Deserialise(PostProcessTag<VignetteParams>, const nlohmann::json& json)
+    {
+        VignetteParams p{};
+        if (auto it = json.find("strength"); it != json.end() && it->is_number())
+        {
+            p.Strength = Override<float>::Set(it->get<float>());
+        }
+        return p;
+    }
+
+    ChromaticAberrationParams Identity(PostProcessTag<ChromaticAberrationParams>)
+    {
+        return ChromaticAberrationParams{};
+    }
+
+    ChromaticAberrationParams Lerp(const ChromaticAberrationParams& current, const ChromaticAberrationParams& source, const float weight)
+    {
+        ChromaticAberrationParams out{};
+        out.Intensity = LerpOverride(current.Intensity, source.Intensity, weight);
+        return out;
+    }
+
+    void Serialise(nlohmann::json& json, const ChromaticAberrationParams& params)
+    {
+        if (params.Intensity.Active)
+        {
+            json["intensity"] = params.Intensity.Value;
+        }
+    }
+
+    ChromaticAberrationParams Deserialise(PostProcessTag<ChromaticAberrationParams>, const nlohmann::json& json)
+    {
+        ChromaticAberrationParams p{};
+        if (auto it = json.find("intensity"); it != json.end() && it->is_number())
+        {
+            p.Intensity = Override<float>::Set(it->get<float>());
+        }
+        else if (auto it = json.find("chromatic_aberration_intensity"); it != json.end() && it->is_number())
+        {
+            p.Intensity = Override<float>::Set(it->get<float>());
+        }
+        return p;
+    }
+
+    PostProcessStack BlendPostProcessVolumes(const Float3& cameraPosition, const std::span<const PostProcessVolumeInstance> volumes, const PostProcessRegistry& registry)
     {
         PostProcessStack result;
         if (volumes.empty())
@@ -217,45 +315,75 @@ namespace Wayfinder
 
             for (const auto& effect : instance->Volume->Effects)
             {
-                if (!effect.Enabled || effect.Type == PostProcessEffectType::Unknown)
+                if (!effect.Enabled || effect.TypeId == INVALID_POST_PROCESS_EFFECT_ID)
                 {
                     continue;
                 }
 
-                const auto slot = static_cast<size_t>(effect.Type);
-                if (slot >= result.Effects.size())
+                const PostProcessEffectDesc* desc = registry.Find(effect.TypeId);
+                if (desc == nullptr || desc->Blend == nullptr)
                 {
                     continue;
                 }
-                auto& slotEffect = result.Effects[slot];
-                if (slotEffect.has_value())
-                {
-                    BlendPayloadInto(*slotEffect, effect, weight);
-                }
-                else
-                {
-                    PostProcessEffect entry;
-                    BlendFirstContribution(entry, effect, weight);
-                    slotEffect = entry;
-                }
+
+                PostProcessEffect& slot = result.GetOrCreate(effect.TypeId, registry);
+                // NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
+                desc->Blend(slot.Payload, effect.Payload, weight);
+                // NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
             }
         }
 
         return result;
     }
 
-    ColourGradingParams ResolveColourGradingForView(const PostProcessStack& stack)
+    ColourGradingParams ResolveColourGradingForView(const PostProcessStack& stack, const PostProcessEffectId id)
     {
-        const PostProcessEffect* fx = stack.FindEffect(PostProcessEffectType::ColourGrading);
-        if (!fx)
+        const auto* p = stack.FindPayload<ColourGradingParams>(id);
+        if (p == nullptr)
         {
-            return IdentityColourGrading();
+            return Identity(PostProcessTag<ColourGradingParams>{});
         }
-        if (const auto* p = std::get_if<ColourGradingParams>(&fx->Payload))
+        return *p;
+    }
+
+    VignetteParams ResolveVignetteForView(const PostProcessStack& stack, const PostProcessEffectId id)
+    {
+        const auto* p = stack.FindPayload<VignetteParams>(id);
+        if (p == nullptr)
         {
-            return *p;
+            return Identity(PostProcessTag<VignetteParams>{});
         }
-        return IdentityColourGrading();
+        return *p;
+    }
+
+    ChromaticAberrationParams ResolveChromaticAberrationForView(const PostProcessStack& stack, const PostProcessEffectId id)
+    {
+        const auto* p = stack.FindPayload<ChromaticAberrationParams>(id);
+        if (p == nullptr)
+        {
+            return Identity(PostProcessTag<ChromaticAberrationParams>{});
+        }
+        return *p;
+    }
+
+    std::string NormalisePostProcessEffectTypeString(const std::string_view name)
+    {
+        std::string lower;
+        lower.reserve(name.size());
+        for (const char c : name)
+        {
+            lower.push_back(static_cast<char>(std::tolower(static_cast<unsigned char>(c))));
+        }
+        return lower;
+    }
+
+    bool IsValidPostProcessEffectTypeName(const std::string_view normalisedLower)
+    {
+        if (const PostProcessRegistry* reg = PostProcessRegistry::GetActiveInstance())
+        {
+            return reg->FindIdByName(normalisedLower).has_value();
+        }
+        return normalisedLower == "colour_grading" || normalisedLower == "vignette" || normalisedLower == "chromatic_aberration";
     }
 
 } // namespace Wayfinder

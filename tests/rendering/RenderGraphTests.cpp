@@ -398,10 +398,12 @@ namespace Wayfinder::Tests
         CHECK(executionOrder[2] == "C");
     }
 
-    TEST_CASE("MakeCompositionUBO maps identity ColourGradingParams to composition UBO layout")
+    TEST_CASE("MakeCompositionUBO maps identity post-process params to composition UBO layout")
     {
-        const Wayfinder::ColourGradingParams p{};
-        const Wayfinder::CompositionUBO u = Wayfinder::MakeCompositionUBO(p);
+        const Wayfinder::ColourGradingParams grading{};
+        const Wayfinder::VignetteParams vignette{};
+        const Wayfinder::ChromaticAberrationParams chromaticAberration{};
+        const Wayfinder::CompositionUBO u = Wayfinder::MakeCompositionUBO(grading, vignette, chromaticAberration);
         CHECK(u.ExposureContrastSaturationPad.x == doctest::Approx(0.0f));
         CHECK(u.ExposureContrastSaturationPad.y == doctest::Approx(1.0f));
         CHECK(u.ExposureContrastSaturationPad.z == doctest::Approx(1.0f));

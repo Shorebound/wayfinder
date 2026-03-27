@@ -2,6 +2,7 @@
 #include "rendering/backend/RenderDevice.h"
 #include "rendering/graph/SortKey.h"
 #include "rendering/materials/Material.h"
+#include "rendering/materials/PostProcessRegistry.h"
 #include "rendering/materials/PostProcessVolume.h"
 
 #include "assets/AssetService.h"
@@ -471,9 +472,13 @@ namespace Wayfinder
         // Blend post-process volumes per view using each view's camera position
         if (!volumeInstances.empty())
         {
-            for (auto& view : frame.Views)
+            const PostProcessRegistry* ppRegistry = PostProcessRegistry::GetActiveInstance();
+            if (ppRegistry != nullptr)
             {
-                view.PostProcess = BlendPostProcessVolumes(view.CameraState.Position, volumeInstances);
+                for (auto& view : frame.Views)
+                {
+                    view.PostProcess = BlendPostProcessVolumes(view.CameraState.Position, volumeInstances, *ppRegistry);
+                }
             }
         }
 

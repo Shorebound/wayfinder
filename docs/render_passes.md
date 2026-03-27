@@ -178,7 +178,9 @@ Use **`graph.FindHandle(GraphTextureId::SceneColour)`** (or `FindHandleChecked`)
 
 ### Post-processing data
 
-Scene **`PostProcessVolumeComponent`** data is blended into **`RenderView::PostProcess`** (`PostProcessStack`) during extraction. Effects use **typed** payloads (`ColourGradingParams`, `BloomParams`, …). **`CompositionPass`** reads the primary view’s stack and uploads a **`CompositionUBO`** for the fullscreen shader.
+Scene **`PostProcessVolumeComponent`** data is blended into **`RenderView::PostProcess`** (`PostProcessStack`) during extraction. Effect types are registered at runtime in **`PostProcessRegistry`** (engine defaults: `colour_grading`, `vignette`, `chromatic_aberration`). Each effect uses a small **typed** payload struct with **`Override<T>`** fields so authors can override individual parameters. The registry owns **identity, blend (Lerp), and JSON (de)serialisation**; it does **not** add **`RenderPass`** graph nodes. **`CompositionPass`** reads **`ColourGradingParams`**, **`VignetteParams`**, and **`ChromaticAberrationParams`** from the primary view’s stack (via **`EnginePostProcessIds`** on **`RenderContext`**) and uploads a **`CompositionUBO`** for **`composition.frag`**. Game code can register additional blendable types and consume them from the stack in custom passes.
+
+**`PostProcessRegistry::SetActiveInstance`** is set from **`RenderContext::Initialise`** so scene load and validation resolve JSON **`type`** strings against the same registry.
 
 ### Transient Resources
 
@@ -194,8 +196,8 @@ Split-screen / multiple render targets are not fully specified here: either **on
 
 ### Error policy (pipelines / resources)
 
-- **Development / non-`NDEBUG`:** Missing shaders or pipelines for **engine** paths should surface as **errors** where practical (`FindHandleChecked`, composition path). Game passes should log clearly when optional GPU state is missing.
-- **Shipping (`NDEBUG`):** Prefer **structured warnings** and **skipping** draws rather than crashing; avoid silent failure without at least one log line for unexpected missing programs.
+- **Development / non-`WAYFINDER_SHIPPING`:** Missing shaders or pipelines for **engine** paths should surface as **errors** where practical (`FindHandleChecked`, composition path). Game passes should log clearly when optional GPU state is missing.
+- **Shipping (`WAYFINDER_SHIPPING`):** Prefer **structured warnings** and **skipping** draws rather than crashing; avoid silent failure without at least one log line for unexpected missing programs.
 
 ## Testing
 

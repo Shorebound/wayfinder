@@ -211,6 +211,10 @@ set(ENGINE_ALL_SOURCES
   src/rendering/materials/Material.h
   src/rendering/materials/MaterialParameter.cpp
   src/rendering/materials/MaterialParameter.h
+  src/rendering/materials/Override.h
+  src/rendering/materials/PostProcessRegistry.cpp
+  src/rendering/materials/PostProcessRegistry.h
+  src/rendering/materials/PostProcessRegistry.inl
   src/rendering/materials/PostProcessVolume.cpp
   src/rendering/materials/PostProcessVolume.h
   src/rendering/materials/ShaderManager.cpp

@@ -3,12 +3,15 @@
 #include "app/EngineConfig.h"
 #include "core/Log.h"
 #include "rendering/backend/RenderDevice.h"
+#include "rendering/materials/PostProcessVolume.h"
 
 namespace Wayfinder
 {
     Result<void> RenderContext::Initialise(RenderDevice& device, const EngineConfig& config)
     {
         m_device = &device;
+
+        PostProcessRegistry::SetActiveInstance(&m_postProcessRegistry);
 
         m_shaderManager.Initialise(device, config.Shaders.Directory);
         m_pipelineCache.Initialise(device);
@@ -46,8 +49,19 @@ namespace Wayfinder
         return {};
     }
 
+    void RenderContext::RegisterEnginePostProcessEffects()
+    {
+        PostProcessRegistry& reg = m_postProcessRegistry;
+        m_enginePostProcessIds.ColourGrading = reg.Register<ColourGradingParams>("colour_grading");
+        m_enginePostProcessIds.Vignette = reg.Register<VignetteParams>("vignette");
+        m_enginePostProcessIds.ChromaticAberration = reg.Register<ChromaticAberrationParams>("chromatic_aberration");
+        reg.Seal();
+    }
+
     void RenderContext::Shutdown()
     {
+        PostProcessRegistry::SetActiveInstance(nullptr);
+
         if (m_nearestSampler && m_device)
         {
             m_device->DestroySampler(m_nearestSampler);

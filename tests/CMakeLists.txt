@@ -2,6 +2,7 @@ set(WAYFINDER_RENDER_TEST_NAME wayfinder_render_tests)
 
 add_executable(${WAYFINDER_RENDER_TEST_NAME}
   rendering/RenderPipelineTests.cpp
+  rendering/PostProcessRegistryTests.cpp
   rendering/RenderGraphTests.cpp
   rendering/RenderPassTests.cpp
   rendering/SubmissionDrawingTests.cpp

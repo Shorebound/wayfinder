@@ -83,12 +83,18 @@ namespace Wayfinder
                     return;
                 }
 
-                auto grading = ColourGradingParams{};
+                ColourGradingParams grading{};
+                VignetteParams vignette{};
+                ChromaticAberrationParams chromaticAberration{};
                 if (params.PrimaryView.Valid && !params.Frame.Views.empty())
                 {
-                    grading = ResolveColourGradingForView(params.Frame.Views.front().PostProcess);
+                    const PostProcessStack& stack = params.Frame.Views.front().PostProcess;
+                    const EnginePostProcessIds& ids = m_context->GetEnginePostProcessIds();
+                    grading = ResolveColourGradingForView(stack, ids.ColourGrading);
+                    vignette = ResolveVignetteForView(stack, ids.Vignette);
+                    chromaticAberration = ResolveChromaticAberrationForView(stack, ids.ChromaticAberration);
                 }
-                const CompositionUBO ubo = MakeCompositionUBO(grading);
+                const CompositionUBO ubo = MakeCompositionUBO(grading, vignette, chromaticAberration);
 
                 compProgram->Pipeline->Bind();
                 device.BindFragmentSampler(0, sceneColourTex, nearestSampler);

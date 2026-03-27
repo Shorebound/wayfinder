@@ -86,6 +86,8 @@ namespace Wayfinder
 
         m_context = &context;
 
+        context.RegisterEnginePostProcessEffects();
+
         RegisterForwardOpaquePrograms(context.GetPrograms());
 
         RegisterEnginePass(EngineRenderPhase::OpaqueMain, 0, std::make_unique<SceneOpaquePass>());

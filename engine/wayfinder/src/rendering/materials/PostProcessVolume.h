@@ -1,13 +1,18 @@
 #pragma once
 
-#include <array>
+#include "Override.h"
+#include "PostProcessRegistry.h"
+
 #include <cstddef>
+#include <cstdint>
+#include <new>
 #include <optional>
 #include <span>
 #include <string>
 #include <string_view>
-#include <variant>
 #include <vector>
+
+#include <nlohmann/json_fwd.hpp>
 
 #include "core/Types.h"
 #include "wayfinder_exports.h"
@@ -22,53 +27,93 @@ namespace Wayfinder
         Sphere
     };
 
-    /** @brief Authoring / runtime effect kind — resolved from JSON `type` strings at load time. */
-    enum class PostProcessEffectType : uint8_t
-    {
-        Unknown = 0,
-        ColourGrading,
-        Bloom,
-    };
+    struct ColourGradingParams;
+    struct VignetteParams;
+    struct ChromaticAberrationParams;
 
-    /** @brief Parameters for final-screen colour grading (lift / gamma / gain, exposure, contrast). */
-    struct ColourGradingParams
-    {
-        float ExposureStops = 0.0f;
-        float Contrast = 1.0f;
-        float Saturation = 1.0f;
-        Float3 Lift = {0.0f, 0.0f, 0.0f};
-        Float3 Gamma = {1.0f, 1.0f, 1.0f};
-        Float3 Gain = {1.0f, 1.0f, 1.0f};
-        float VignetteStrength = 0.0f;
-        float ChromaticAberrationIntensity = 0.0f;
-    };
+    // ── ADL hooks (BlendablePostProcessEffect) ─────────────────────────────
 
-    /** @brief Bloom — reserved for dedicated bloom passes (parameters only; graph passes consume these later). */
-    struct BloomParams
-    {
-        float Threshold = 1.0f;
-        float Intensity = 0.0f;
-        float Radius = 1.0f;
-    };
+    [[nodiscard]] ColourGradingParams Identity(PostProcessTag<ColourGradingParams>);
+    [[nodiscard]] ColourGradingParams Lerp(const ColourGradingParams& current, const ColourGradingParams& source, float weight);
+    void Serialise(nlohmann::json& json, const ColourGradingParams& params);
+    [[nodiscard]] ColourGradingParams Deserialise(PostProcessTag<ColourGradingParams>, const nlohmann::json& json);
 
-    /** @brief Typed payload for a single effect instance. */
-    using PostProcessEffectPayload = std::variant<std::monostate, ColourGradingParams, BloomParams>;
+    [[nodiscard]] VignetteParams Identity(PostProcessTag<VignetteParams>);
+    [[nodiscard]] VignetteParams Lerp(const VignetteParams& current, const VignetteParams& source, float weight);
+    void Serialise(nlohmann::json& json, const VignetteParams& params);
+    [[nodiscard]] VignetteParams Deserialise(PostProcessTag<VignetteParams>, const nlohmann::json& json);
+
+    [[nodiscard]] ChromaticAberrationParams Identity(PostProcessTag<ChromaticAberrationParams>);
+    [[nodiscard]] ChromaticAberrationParams Lerp(const ChromaticAberrationParams& current, const ChromaticAberrationParams& source, float weight);
+    void Serialise(nlohmann::json& json, const ChromaticAberrationParams& params);
+    [[nodiscard]] ChromaticAberrationParams Deserialise(PostProcessTag<ChromaticAberrationParams>, const nlohmann::json& json);
 
     /**
-     * @struct PostProcessEffect
-     * @brief One effect with a typed payload (no stringly-typed parameter maps at runtime).
+     * @brief Final-screen colour grading (lift / gamma / gain, exposure, contrast, saturation).
+     * Vignette and chromatic aberration are separate effect types.
+     */
+    struct ColourGradingParams
+    {
+        Override<float> ExposureStops{0.0f};
+        Override<float> Contrast{1.0f};
+        Override<float> Saturation{1.0f};
+        Override<Float3> Lift{{0.0f, 0.0f, 0.0f}};
+        Override<Float3> Gamma{{1.0f, 1.0f, 1.0f}};
+        Override<Float3> Gain{{1.0f, 1.0f, 1.0f}};
+    };
+
+    struct VignetteParams
+    {
+        Override<float> Strength{0.0f};
+    };
+
+    struct ChromaticAberrationParams
+    {
+        Override<float> Intensity{0.0f};
+    };
+
+    /**
+     * @brief One effect instance stored on a volume or in the blended stack (type-erased payload).
      */
     struct WAYFINDER_API PostProcessEffect
     {
-        PostProcessEffectType Type = PostProcessEffectType::Unknown;
+        PostProcessEffectId TypeId = INVALID_POST_PROCESS_EFFECT_ID;
         bool Enabled = true;
-        PostProcessEffectPayload Payload{};
+        alignas(16) std::byte Payload[POST_PROCESS_EFFECT_PAYLOAD_CAPACITY]{};
 
-        /** @brief Parse authoring string (e.g. JSON `type`) to enum; returns Unknown if unrecognised. */
-        static PostProcessEffectType ParseTypeString(std::string_view name);
+        void DestroyPayload(const PostProcessRegistry& registry);
+    };
 
-        /** @brief Serialise effect type for JSON / tools. */
-        static std::string_view TypeToString(PostProcessEffectType type);
+    /**
+     * @brief Blended result: at most one entry per PostProcessEffectId.
+     */
+    struct WAYFINDER_API PostProcessStack
+    {
+        std::vector<PostProcessEffect> Effects;
+
+        ~PostProcessStack();
+
+        [[nodiscard]] const PostProcessEffect* FindEffect(PostProcessEffectId id) const;
+
+        [[nodiscard]] PostProcessEffect* FindEffectMutable(PostProcessEffectId id);
+
+        /**
+         * @brief Returns existing slot or creates one with identity payload (CreateIdentity from registry).
+         */
+        [[nodiscard]] PostProcessEffect& GetOrCreate(PostProcessEffectId id, const PostProcessRegistry& registry);
+
+        void Clear(const PostProcessRegistry& registry);
+
+        template<typename T>
+        [[nodiscard]] const T* FindPayload(PostProcessEffectId id) const
+        {
+            const PostProcessEffect* e = FindEffect(id);
+            if (e == nullptr || !e->Enabled)
+            {
+                return nullptr;
+            }
+            return std::launder(reinterpret_cast<const T*>(e->Payload));
+        }
     };
 
     /**
@@ -101,25 +146,20 @@ namespace Wayfinder
         Matrix4 LocalToWorld = Matrix4(1.0f);
     };
 
-    /**
-     * @struct PostProcessStack
-     * @brief Blended result keyed by effect type (flat slots indexed by `PostProcessEffectType`).
-     */
-    struct WAYFINDER_API PostProcessStack
-    {
-        /// Enough slots for known effect types; extend when adding enum values above `Bloom`.
-        static constexpr size_t EffectSlotCount = 16;
-        std::array<std::optional<PostProcessEffect>, EffectSlotCount> Effects{};
+    WAYFINDER_API PostProcessStack BlendPostProcessVolumes(const Float3& cameraPosition, std::span<const PostProcessVolumeInstance> volumes, const PostProcessRegistry& registry);
 
-        const PostProcessEffect* FindEffect(PostProcessEffectType type) const;
-        bool HasEffect(PostProcessEffectType type) const;
-    };
+    [[nodiscard]] WAYFINDER_API ColourGradingParams ResolveColourGradingForView(const PostProcessStack& stack, PostProcessEffectId id);
+    [[nodiscard]] WAYFINDER_API VignetteParams ResolveVignetteForView(const PostProcessStack& stack, PostProcessEffectId id);
+    [[nodiscard]] WAYFINDER_API ChromaticAberrationParams ResolveChromaticAberrationForView(const PostProcessStack& stack, PostProcessEffectId id);
 
     /**
-     * @brief Evaluate all active volumes against the camera and produce a blended stack.
+     * @brief Normalise effect type string for lookup (lowercase ASCII).
      */
-    WAYFINDER_API PostProcessStack BlendPostProcessVolumes(const Float3& cameraPosition, std::span<const PostProcessVolumeInstance> volumes);
+    [[nodiscard]] WAYFINDER_API std::string NormalisePostProcessEffectTypeString(std::string_view name);
 
-    /** @brief Merge blended colour grading contributions into one struct for GPU upload. */
-    WAYFINDER_API ColourGradingParams ResolveColourGradingForView(const PostProcessStack& stack);
+    /**
+     * @brief True if the name matches a registered type (uses validation instance when set).
+     */
+    [[nodiscard]] WAYFINDER_API bool IsValidPostProcessEffectTypeName(std::string_view normalisedLower);
+
 } // namespace Wayfinder
