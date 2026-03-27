@@ -1,6 +1,8 @@
 #pragma once
 
-#include <map>
+#include <array>
+#include <cstddef>
+#include <optional>
 #include <span>
 #include <string>
 #include <string_view>
@@ -101,11 +103,13 @@ namespace Wayfinder
 
     /**
      * @struct PostProcessStack
-     * @brief Blended result keyed by effect type.
+     * @brief Blended result keyed by effect type (flat slots indexed by `PostProcessEffectType`).
      */
     struct WAYFINDER_API PostProcessStack
     {
-        std::map<PostProcessEffectType, PostProcessEffect> Effects;
+        /// Enough slots for known effect types; extend when adding enum values above `Bloom`.
+        static constexpr size_t EffectSlotCount = 16;
+        std::array<std::optional<PostProcessEffect>, EffectSlotCount> Effects{};
 
         const PostProcessEffect* FindEffect(PostProcessEffectType type) const;
         bool HasEffect(PostProcessEffectType type) const;

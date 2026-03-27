@@ -1,7 +1,9 @@
 // Wayfinder composition fragment: sample PresentSource / scene colour, apply grading, write swapchain.
 // Compiled with DXC: dxc -T ps_6_0 -E PSMain -spirv composition.frag -Fo composition.frag.spv
+// SDL_GPU convention: fragment UBOs at set 3, fragment samplers at set 2
 
-cbuffer CompositionParams : register(b0, space0)
+[[vk::binding(0, 3)]]
+cbuffer CompositionParams : register(b0, space3)
 {
     float4 ExposureContrastSaturationPad;
     float4 Lift;
@@ -29,6 +31,7 @@ float4 PSMain(PSInput input) : SV_Target
     float2 uv = input.TexCoord;
     float ab = VignetteAberrationPad.y * length(uv - 0.5);
     float2 dir = uv - 0.5;
+    // Artistic scale: maps author-facing aberration intensity to radial UV offset (see also `ColourGradingParams`).
     float2 off = dir * ab * 0.02;
     float r = SceneColourTex.Sample(PointSampler, uv - off).r;
     float g = SceneColourTex.Sample(PointSampler, uv).g;

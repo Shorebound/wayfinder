@@ -2,34 +2,19 @@
 
 #include "rendering/backend/GPUPipeline.h"
 #include "rendering/backend/RenderDevice.h"
+#include "rendering/backend/VertexFormats.h"
 #include "rendering/graph/RenderGraph.h"
 #include "rendering/graph/RenderPassCapabilities.h"
 #include "rendering/materials/PostProcessVolume.h"
 #include "rendering/materials/ShaderProgram.h"
+#include "rendering/pipeline/CompositionUBOUtils.h"
 #include "rendering/pipeline/RenderContext.h"
-#include "rendering/pipeline/ShaderUniforms.h"
 
 #include "core/Log.h"
-
-#include "rendering/backend/VertexFormats.h"
+#include "core/Types.h"
 
 namespace Wayfinder
 {
-    namespace
-    {
-        CompositionUBO MakeCompositionUBO(const ColourGradingParams& p)
-        {
-            CompositionUBO u{};
-            u.ExposureContrastSaturationPad = Float4(p.ExposureStops, p.Contrast, p.Saturation, 0.0f);
-            u.Lift = Float4(p.Lift.x, p.Lift.y, p.Lift.z, 0.0f);
-            u.Gamma = Float4(p.Gamma.x, p.Gamma.y, p.Gamma.z, 0.0f);
-            u.Gain = Float4(p.Gain.x, p.Gain.y, p.Gain.z, 0.0f);
-            u.VignetteAberrationPad = Float4(p.VignetteStrength, p.ChromaticAberrationIntensity, 0.0f, 0.0f);
-            return u;
-        }
-
-    } // namespace
-
     void CompositionPass::OnAttach(const RenderPassContext& context)
     {
         m_context = &context.Context;
@@ -49,7 +34,11 @@ namespace Wayfinder
         desc.VertexUBOSize = 0;
         desc.NeedsSceneGlobals = false;
 
-        registry.Register(desc);
+        if (!registry.Register(desc))
+        {
+            WAYFINDER_ERROR(LogRenderer, "CompositionPass: failed to register 'composition' shader program — check assets/shaders and working directory; "
+                                         "composition draws will be skipped");
+        }
     }
 
     void CompositionPass::OnDetach(const RenderPassContext& /*context*/)
@@ -65,26 +54,32 @@ namespace Wayfinder
             return;
         }
 
+        const RenderGraphHandle presentHandle = graph.FindHandle(GraphTextureId::PresentSource);
+        const bool usePresentSource = presentHandle.IsValid();
+        const RenderGraphHandle colourHandle = usePresentSource ? presentHandle : graph.FindHandleChecked(GraphTextureId::SceneColour);
+        if (!usePresentSource)
+        {
+            WAYFINDER_VERBOSE(LogRenderer, "CompositionPass: PresentSource not in graph — sampling SceneColour (register PresentSourceCopyPass or a pass "
+                                           "that writes PresentSource when you need a handoff texture).");
+        }
+
         graph.AddPass("Composition", [&](RenderGraphBuilder& builder)
         {
             builder.DeclarePassCapabilities(RenderPassCapabilities::RASTER | RenderPassCapabilities::FULLSCREEN_COMPOSITE);
-            auto present = graph.FindHandleChecked(GraphTextureId::PresentSource);
-            builder.ReadTexture(present);
-            builder.SetSwapchainOutput(LoadOp::DontCare);
+            builder.ReadTexture(colourHandle);
+            // Renderer clears the swapchain before the graph; load existing pixels then overwrite with the fullscreen triangle.
+            // Avoids a second full-frame clear and keeps the backbuffer defined if this pass's draw is skipped.
+            builder.SetSwapchainOutput(LoadOp::Load);
 
-            return [this, present, &params](RenderDevice& device, const RenderGraphResources& resources)
+            return [this, colourHandle, &params](RenderDevice& device, const RenderGraphResources& resources)
             {
-                auto sceneColourTex = resources.GetTexture(present);
+                auto sceneColourTex = resources.GetTexture(colourHandle);
 
                 const ShaderProgram* compProgram = m_context->GetPrograms().Find("composition");
                 const auto nearestSampler = m_context->GetNearestSampler();
                 if (!compProgram || !compProgram->Pipeline || !sceneColourTex || !nearestSampler)
                 {
-#if defined(NDEBUG)
-                    WAYFINDER_WARN(LogRenderer, "Composition: missing program, pipeline, present source, or sampler — skipped");
-#else
-                    WAYFINDER_ERROR(LogRenderer, "Composition: missing program, pipeline, present source, or sampler — skipped");
-#endif
+                    WAYFINDER_ERROR(LogRenderer, "Composition: missing program, pipeline, colour input, or sampler — skipped");
                     return;
                 }
 

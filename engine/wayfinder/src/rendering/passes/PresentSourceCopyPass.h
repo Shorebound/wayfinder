@@ -6,13 +6,19 @@ namespace Wayfinder
 {
     class RenderContext;
 
-    /// Copies `SceneColour` into `PresentSource` so downstream passes (including composition) always sample `PresentSource`.
+    /// Copies `SceneColour` into `PresentSource` (fullscreen draw, identity grading) so downstream passes sample a stable
+    /// handoff texture. Uses `RASTER` only — not `FULLSCREEN_COMPOSITE` (graph validates that as swapchain output).
     class PresentSourceCopyPass final : public RenderPass
     {
     public:
         std::string_view GetName() const override
         {
             return "PresentSourceCopy";
+        }
+
+        RenderPassCapabilityMask GetCapabilities() const override
+        {
+            return RenderPassCapabilities::RASTER;
         }
 
         void OnAttach(const RenderPassContext& context) override;

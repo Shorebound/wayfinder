@@ -10,10 +10,41 @@
 
 #include "app/EngineConfig.h"
 #include "core/Log.h"
+#include "core/Types.h"
+#include "rendering/RenderTypes.h"
 #include "rendering/backend/VertexFormats.h"
 
 namespace Wayfinder
 {
+    namespace
+    {
+        /**
+         * Clears the swapchain to a defined colour in the current command buffer.
+         *
+         * Call this once per frame after BeginFrame (when dimensions are valid) before BuildGraph/Execute. Swapchain images
+         * start undefined; without an initial clear, any later pass that fails to begin (or skips its draw) can leave
+         * undefined memory visible — static noise and per-frame "shimmer" as different garbage is presented each frame.
+         */
+        void ClearSwapchainToColour(RenderDevice& device, const ClearValue& clear)
+        {
+            RenderPassDescriptor rp{};
+            rp.debugName = "SwapchainInitialClear";
+            rp.targetSwapchain = true;
+            rp.numColourTargets = 1;
+            rp.colourAttachments[0].loadOp = LoadOp::Clear;
+            rp.colourAttachments[0].clearValue = clear;
+            rp.colourAttachments[0].storeOp = StoreOp::Store;
+            rp.depthAttachment.enabled = false;
+
+            if (!device.BeginRenderPass(rp))
+            {
+                WAYFINDER_ERROR(LogRenderer, "ClearSwapchainToColour: BeginRenderPass failed — swapchain may show garbage");
+                return;
+            }
+            device.EndRenderPass();
+        }
+    } // namespace
+
     Renderer::Renderer() : m_screenWidth(800), m_screenHeight(450), m_isInitialised(false)
     {
         m_renderPipeline = std::make_unique<RenderPipeline>();
@@ -177,8 +208,19 @@ namespace Wayfinder
             const Extent2D swapchainDimensions = m_device->GetSwapchainDimensions();
             const uint32_t swapW = swapchainDimensions.width;
             const uint32_t swapH = swapchainDimensions.height;
+
+            // Derive clear colour directly — ResolvePreparedPrimaryView requires Prepare() which hasn't run yet.
+            const ClearValue initialClear = (!preparedFrame.Views.empty()) ? ClearValue::FromColour(preparedFrame.Views.front().ClearColour) : ClearValue::FromColour(Colour::Black());
+
+            // Define swapchain contents before any graph pass. Do not gate on GetSwapchainDimensions(): some backends can
+            // report 0x0 briefly while a swapchain texture is still acquired; skipping the clear then leaves LoadOp::Load
+            // in Composition sampling garbage from SceneColour against an undefined backbuffer.
+            ClearSwapchainToColour(*m_device, initialClear);
+
             if (swapW != 0 && swapH != 0 && m_renderPipeline->Prepare(preparedFrame, swapW, swapH))
             {
+                const auto primaryView = Rendering::ResolvePreparedPrimaryView(preparedFrame);
+
                 RenderGraph graph;
 
                 const std::unordered_map<uint32_t, Mesh*> meshesByStride =
@@ -193,7 +235,7 @@ namespace Wayfinder
                     .SwapchainHeight = swapH,
                     .MeshesByStride = meshesByStride,
                     .ResourceCache = m_renderResources.get(),
-                    .PrimaryView = Rendering::ResolvePreparedPrimaryView(preparedFrame),
+                    .PrimaryView = primaryView,
                 };
                 m_renderPipeline->BuildGraph(graph, params, m_passes);
 

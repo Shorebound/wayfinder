@@ -6,13 +6,19 @@ namespace Wayfinder
 {
     class RenderContext;
 
-    /// Fullscreen pass: samples `PresentSource`, applies view post-processing, writes the swapchain.
+    /// Fullscreen pass: samples `PresentSource` when registered, otherwise `SceneColour`; applies view post-processing; writes
+    /// the swapchain.
     class CompositionPass final : public RenderPass
     {
     public:
         std::string_view GetName() const override
         {
             return "Composition";
+        }
+
+        RenderPassCapabilityMask GetCapabilities() const override
+        {
+            return RenderPassCapabilities::RASTER | RenderPassCapabilities::FULLSCREEN_COMPOSITE;
         }
 
         void OnAttach(const RenderPassContext& context) override;

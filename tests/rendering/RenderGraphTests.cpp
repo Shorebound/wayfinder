@@ -1,5 +1,7 @@
 #include "rendering/backend/RenderDevice.h"
 #include "rendering/graph/RenderGraph.h"
+#include "rendering/materials/PostProcessVolume.h"
+#include "rendering/pipeline/CompositionUBOUtils.h"
 #include "rendering/resources/TransientResourcePool.h"
 
 #include <doctest/doctest.h>
@@ -332,6 +334,82 @@ namespace Wayfinder::Tests
         CHECK(executionOrder[0] == "First");
         CHECK(executionOrder[1] == "Second");
         CHECK(executionOrder[2] == "Present");
+    }
+
+    TEST_CASE("SceneColour to PresentSource to swapchain executes in dependency order")
+    {
+        std::vector<std::string> executionOrder;
+        Wayfinder::RenderGraph graph;
+
+        Wayfinder::RenderGraphTextureDesc sceneDesc;
+        sceneDesc.Width = 320;
+        sceneDesc.Height = 240;
+        sceneDesc.Format = Wayfinder::TextureFormat::RGBA8_UNORM;
+        sceneDesc.DebugName = Wayfinder::GraphTextureName(Wayfinder::GraphTextureId::SceneColour);
+
+        graph.AddPass("A_SceneColour", [&](Wayfinder::RenderGraphBuilder& builder)
+        {
+            auto colour = builder.CreateTransient(sceneDesc);
+            builder.WriteColour(colour);
+            return [&executionOrder](Wayfinder::RenderDevice&, const Wayfinder::RenderGraphResources&)
+            {
+                executionOrder.push_back("A");
+            };
+        });
+
+        graph.AddPass("B_PresentSource", [&](Wayfinder::RenderGraphBuilder& builder)
+        {
+            auto scene = graph.FindHandle(Wayfinder::GraphTextureId::SceneColour);
+            builder.ReadTexture(scene);
+
+            Wayfinder::RenderGraphTextureDesc presentDesc{};
+            presentDesc.Width = 320;
+            presentDesc.Height = 240;
+            presentDesc.Format = Wayfinder::TextureFormat::RGBA8_UNORM;
+            presentDesc.DebugName = Wayfinder::GraphTextureName(Wayfinder::GraphTextureId::PresentSource);
+            auto present = builder.CreateTransient(presentDesc);
+            builder.WriteColour(present, Wayfinder::LoadOp::DontCare);
+
+            return [&executionOrder](Wayfinder::RenderDevice&, const Wayfinder::RenderGraphResources&)
+            {
+                executionOrder.push_back("B");
+            };
+        });
+
+        graph.AddPass("C_Composition", [&](Wayfinder::RenderGraphBuilder& builder)
+        {
+            auto present = graph.FindHandle(Wayfinder::GraphTextureId::PresentSource);
+            builder.ReadTexture(present);
+            builder.SetSwapchainOutput();
+            return [&executionOrder](Wayfinder::RenderDevice&, const Wayfinder::RenderGraphResources&)
+            {
+                executionOrder.push_back("C");
+            };
+        });
+
+        REQUIRE(graph.Compile());
+
+        GraphTestFixture fixture;
+        graph.Execute(*fixture.Device, fixture.Pool);
+
+        REQUIRE(executionOrder.size() == 3);
+        CHECK(executionOrder[0] == "A");
+        CHECK(executionOrder[1] == "B");
+        CHECK(executionOrder[2] == "C");
+    }
+
+    TEST_CASE("MakeCompositionUBO maps identity ColourGradingParams to composition UBO layout")
+    {
+        const Wayfinder::ColourGradingParams p{};
+        const Wayfinder::CompositionUBO u = Wayfinder::MakeCompositionUBO(p);
+        CHECK(u.ExposureContrastSaturationPad.x == doctest::Approx(0.0f));
+        CHECK(u.ExposureContrastSaturationPad.y == doctest::Approx(1.0f));
+        CHECK(u.ExposureContrastSaturationPad.z == doctest::Approx(1.0f));
+        CHECK(u.Lift.x == doctest::Approx(0.0f));
+        CHECK(u.Gamma.x == doctest::Approx(1.0f));
+        CHECK(u.Gain.x == doctest::Approx(1.0f));
+        CHECK(u.VignetteAberrationPad.x == doctest::Approx(0.0f));
+        CHECK(u.VignetteAberrationPad.y == doctest::Approx(0.0f));
     }
 
     TEST_CASE("Render graph wraps raster and compute passes in GPU debug groups")

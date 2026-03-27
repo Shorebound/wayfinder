@@ -29,7 +29,7 @@ Use passes for: post-processing effects, debug overlays, screen-space effects, c
 1. **`RenderPipeline::Prepare`** — validates views and **frame layers**, fills view matrices / frustums, culls and sorts scene submissions, and supplies **`RenderPipelineFrameParams::PrimaryView`** via `ResolvePreparedPrimaryView` from the renderer.
 2. **Early engine injectors** — every registered engine pass **except** `EngineRenderPhase::LateEngine`, ordered by **`(EngineRenderPhase, orderWithinPhase, registration sequence)`**. Phases include `PreOpaque` → `OpaqueMain` → `PostOpaque` → `Debug` → `PreComposite`. Built-ins: opaque forward at `OpaqueMain`, debug at `Debug`.
 3. **Game injectors** — each game pass in **`Renderer`’s** `m_passes` vector, in vector order.
-4. **Late engine injectors** — passes registered with **`EngineRenderPhase::LateEngine`**, ordered by **`(orderWithinPhase, registration sequence)`**. Built-ins: **`PresentSourceCopyPass`** (copies `SceneColour` → `PresentSource`), **`CompositionPass`** (samples `PresentSource`, writes swapchain).
+4. **Late engine injectors** — passes registered with **`EngineRenderPhase::LateEngine`**, ordered by **`(orderWithinPhase, registration sequence)`**. Built-in: **`CompositionPass`** (samples `PresentSource` or `SceneColour`, writes swapchain). Optional: **`PresentSourceCopyPass`** (copies `SceneColour` → `PresentSource`) — not registered by default; activate via `RegisterEnginePass(LateEngine, …)` when a game needs a stable handoff texture.
 
 **What order the GPU runs**
 

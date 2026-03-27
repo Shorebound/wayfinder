@@ -5,7 +5,6 @@
 #include "rendering/graph/RenderGraph.h"
 #include "rendering/passes/CompositionPass.h"
 #include "rendering/passes/DebugPass.h"
-#include "rendering/passes/PresentSourceCopyPass.h"
 #include "rendering/passes/SceneOpaquePass.h"
 
 #include "core/Log.h"
@@ -91,8 +90,10 @@ namespace Wayfinder
 
         RegisterEnginePass(EngineRenderPhase::OpaqueMain, 0, std::make_unique<SceneOpaquePass>());
         RegisterEnginePass(EngineRenderPhase::Debug, 0, std::make_unique<DebugPass>());
-        RegisterEnginePass(EngineRenderPhase::LateEngine, 0, std::make_unique<PresentSourceCopyPass>());
-        RegisterEnginePass(EngineRenderPhase::LateEngine, 1, std::make_unique<CompositionPass>());
+        // PresentSourceCopyPass is optional: register `RenderPipeline::RegisterEnginePass(LateEngine, 0, PresentSourceCopyPass)`
+        // when a game needs a stable PresentSource handoff. Omitting it lets Composition sample SceneColour directly and
+        // avoids an undefined PresentSource texture when the copy draw cannot run.
+        RegisterEnginePass(EngineRenderPhase::LateEngine, 0, std::make_unique<CompositionPass>());
 
         m_initialised = true;
     }

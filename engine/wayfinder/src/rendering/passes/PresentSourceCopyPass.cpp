@@ -7,27 +7,14 @@
 #include "rendering/graph/RenderPassCapabilities.h"
 #include "rendering/materials/PostProcessVolume.h"
 #include "rendering/materials/ShaderProgram.h"
+#include "rendering/pipeline/CompositionUBOUtils.h"
 #include "rendering/pipeline/RenderContext.h"
-#include "rendering/pipeline/ShaderUniforms.h"
 
 #include "core/Log.h"
+#include "core/Types.h"
 
 namespace Wayfinder
 {
-    namespace
-    {
-        CompositionUBO MakeCompositionUBO(const ColourGradingParams& p)
-        {
-            CompositionUBO u{};
-            u.ExposureContrastSaturationPad = Float4(p.ExposureStops, p.Contrast, p.Saturation, 0.0f);
-            u.Lift = Float4(p.Lift.x, p.Lift.y, p.Lift.z, 0.0f);
-            u.Gamma = Float4(p.Gamma.x, p.Gamma.y, p.Gamma.z, 0.0f);
-            u.Gain = Float4(p.Gain.x, p.Gain.y, p.Gain.z, 0.0f);
-            u.VignetteAberrationPad = Float4(p.VignetteStrength, p.ChromaticAberrationIntensity, 0.0f, 0.0f);
-            return u;
-        }
-    } // namespace
-
     void PresentSourceCopyPass::OnAttach(const RenderPassContext& context)
     {
         m_context = &context.Context;
@@ -36,6 +23,10 @@ namespace Wayfinder
         ShaderProgramDesc desc;
         desc.Name = "present_source_copy";
         desc.VertexShaderName = "fullscreen";
+        // Same SPIR-V as `composition` — identity grading so this stays a handoff blit without a separate deploy target.
+        // @todo Pipeline assumes SwapchainFormat colour targets (GPUPipelineDesc has no colourTargetFormats field).
+        //       This pass renders to RGBA8_UNORM transient; if activated, extend ShaderProgramDesc → GPUPipelineDesc
+        //       with colourTargetFormats so the pipeline matches the render target format.
         desc.FragmentShaderName = "composition";
         desc.VertexResources = {};
         desc.FragmentResources = {.numUniformBuffers = 1, .numSamplers = 1};
@@ -72,6 +63,7 @@ namespace Wayfinder
 
         graph.AddPass("PresentSourceCopy", [&](RenderGraphBuilder& builder)
         {
+            // Not FULLSCREEN_COMPOSITE: that capability is validated as "writes swapchain"; this pass writes a transient RT.
             builder.DeclarePassCapabilities(RenderPassCapabilities::RASTER);
             const auto sceneColour = graph.FindHandleChecked(GraphTextureId::SceneColour);
             builder.ReadTexture(sceneColour);
@@ -82,7 +74,8 @@ namespace Wayfinder
             presentDesc.Format = TextureFormat::RGBA8_UNORM;
             presentDesc.DebugName = GraphTextureName(GraphTextureId::PresentSource);
             const auto present = builder.CreateTransient(presentDesc);
-            builder.WriteColour(present, LoadOp::DontCare);
+            // Clear so a failed draw does not leave undefined VRAM (Composition samples this when the pass is registered).
+            builder.WriteColour(present, LoadOp::Clear, ClearValue::FromColour(Colour::Black()));
 
             return [this, sceneColour](RenderDevice& device, const RenderGraphResources& resources)
             {
@@ -91,11 +84,7 @@ namespace Wayfinder
                 const auto nearestSampler = m_context->GetNearestSampler();
                 if (!copyProgram || !copyProgram->Pipeline || !src || !nearestSampler)
                 {
-#if defined(NDEBUG)
-                    WAYFINDER_WARN(LogRenderer, "PresentSourceCopy: missing program, pipeline, texture, or sampler — skipped");
-#else
                     WAYFINDER_ERROR(LogRenderer, "PresentSourceCopy: missing program, pipeline, texture, or sampler — skipped");
-#endif
                     return;
                 }
 

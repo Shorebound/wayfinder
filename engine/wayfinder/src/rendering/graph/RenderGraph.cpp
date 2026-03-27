@@ -553,11 +553,13 @@ namespace Wayfinder
                     rpDesc.depthAttachment.storeOp = StoreOp::Store;
                 }
 
-                if (device.BeginRenderPass(rpDesc))
+                if (!device.BeginRenderPass(rpDesc))
                 {
-                    pass.Execute(device, resources);
-                    device.EndRenderPass();
+                    WAYFINDER_ERROR(LogRenderer, "RenderGraph: BeginRenderPass failed for pass '{}' — pass skipped", pass.Name.GetString());
+                    continue;
                 }
+                pass.Execute(device, resources);
+                device.EndRenderPass();
             }
             else if (pass.Type == RenderGraphPassType::Compute)
             {

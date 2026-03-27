@@ -165,13 +165,21 @@ namespace Wayfinder
 
     const PostProcessEffect* PostProcessStack::FindEffect(const PostProcessEffectType type) const
     {
-        const auto it = Effects.find(type);
-        return it != Effects.end() ? &it->second : nullptr;
+        if (type == PostProcessEffectType::Unknown)
+        {
+            return nullptr;
+        }
+        const auto i = static_cast<size_t>(type);
+        if (i >= Effects.size() || !Effects[i].has_value())
+        {
+            return nullptr;
+        }
+        return &*Effects[i];
     }
 
     bool PostProcessStack::HasEffect(const PostProcessEffectType type) const
     {
-        return Effects.contains(type);
+        return FindEffect(type) != nullptr;
     }
 
     PostProcessStack BlendPostProcessVolumes(const Float3& cameraPosition, const std::span<const PostProcessVolumeInstance> volumes)
@@ -214,16 +222,21 @@ namespace Wayfinder
                     continue;
                 }
 
-                auto it = result.Effects.find(effect.Type);
-                if (it != result.Effects.end())
+                const auto slot = static_cast<size_t>(effect.Type);
+                if (slot >= result.Effects.size())
                 {
-                    BlendPayloadInto(it->second, effect, weight);
+                    continue;
+                }
+                auto& slotEffect = result.Effects[slot];
+                if (slotEffect.has_value())
+                {
+                    BlendPayloadInto(*slotEffect, effect, weight);
                 }
                 else
                 {
                     PostProcessEffect entry;
                     BlendFirstContribution(entry, effect, weight);
-                    result.Effects.emplace(effect.Type, entry);
+                    slotEffect = entry;
                 }
             }
         }

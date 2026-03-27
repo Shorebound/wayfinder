@@ -229,6 +229,7 @@ set(ENGINE_ALL_SOURCES
   src/rendering/pipeline/RenderContext.h
   src/rendering/pipeline/ForwardOpaqueShaderPrograms.cpp
   src/rendering/pipeline/ForwardOpaqueShaderPrograms.h
+  src/rendering/pipeline/CompositionUBOUtils.h
   src/rendering/pipeline/ShaderUniforms.h
   src/rendering/pipeline/RenderPipeline.cpp
   src/rendering/pipeline/RenderPipeline.h
