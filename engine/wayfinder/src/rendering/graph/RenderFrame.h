@@ -434,13 +434,24 @@ namespace Wayfinder
          */
         FrameLayerRecord* FindSceneLayerForSubmission(const RenderMeshSubmission& submission)
         {
+            return const_cast<FrameLayerRecord*>(std::as_const(*this).FindSceneLayerForSubmission(submission));
+        }
+
+        /**
+         * @brief Finds the scene layer that accepts this mesh submission (const).
+         *
+         * @param submission Draw submission; if `ViewIndex` is unset, returns nullptr (cannot resolve).
+         * @return Pointer to the accepting scene layer, or nullptr if `ViewIndex` is unset or no layer matches.
+         */
+        const FrameLayerRecord* FindSceneLayerForSubmission(const RenderMeshSubmission& submission) const
+        {
             if (!submission.ViewIndex.has_value())
             {
                 return nullptr;
             }
 
             const size_t submissionViewIndex = *submission.ViewIndex;
-            for (FrameLayerRecord& layer : Layers)
+            for (const auto& layer : Layers)
             {
                 if (layer.ViewIndex == submissionViewIndex && layer.AcceptsSceneSubmission(submission))
                 {

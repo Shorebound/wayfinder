@@ -75,6 +75,10 @@ namespace Wayfinder::Tests
 
         Wayfinder::DrawSubmission(state, submission, viewMat, projMat, globals);
 
+        // No program bind or material UBO serialisation: early return before any draw path.
+        CHECK(state.LastBoundProgram == nullptr);
+        CHECK(state.MaterialUBOScratch.empty());
+
         pipeline.Shutdown();
         context.Shutdown();
     }
