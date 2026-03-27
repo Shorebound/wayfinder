@@ -11,7 +11,7 @@ namespace Wayfinder
     {
         m_device = &device;
 
-        VolumeEffectRegistry::SetActiveInstance(&m_volumeEffectRegistry);
+        BlendableEffectRegistry::SetActiveInstance(&m_blendableEffectRegistry);
 
         m_shaderManager.Initialise(device, config.Shaders.Directory);
         m_pipelineCache.Initialise(device);
@@ -49,9 +49,9 @@ namespace Wayfinder
         return {};
     }
 
-    void RenderContext::RegisterEngineVolumeEffects()
+    void RenderContext::RegisterEngineBlendableEffects()
     {
-        VolumeEffectRegistry& reg = m_volumeEffectRegistry;
+        BlendableEffectRegistry& reg = m_blendableEffectRegistry;
         m_engineEffectIds.ColourGrading = reg.Register<ColourGradingParams>("colour_grading");
         m_engineEffectIds.Vignette = reg.Register<VignetteParams>("vignette");
         m_engineEffectIds.ChromaticAberration = reg.Register<ChromaticAberrationParams>("chromatic_aberration");
@@ -60,7 +60,7 @@ namespace Wayfinder
 
     void RenderContext::Shutdown()
     {
-        VolumeEffectRegistry::SetActiveInstance(nullptr);
+        BlendableEffectRegistry::SetActiveInstance(nullptr);
 
         if (m_nearestSampler && m_device)
         {

@@ -86,7 +86,7 @@ namespace Wayfinder
 
         m_context = &context;
 
-        context.RegisterEngineVolumeEffects();
+        context.RegisterEngineBlendableEffects();
 
         RegisterForwardOpaquePrograms(context.GetPrograms());
 

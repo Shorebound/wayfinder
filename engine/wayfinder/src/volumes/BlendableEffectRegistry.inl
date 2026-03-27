@@ -7,18 +7,18 @@
 
 namespace Wayfinder
 {
-    template<BlendableEffect T>
-    VolumeEffectId VolumeEffectRegistry::Register(const std::string_view name)
+    template<BlendableEffectPayload T>
+    BlendableEffectId BlendableEffectRegistry::Register(const std::string_view name)
     {
-        static_assert(sizeof(T) <= VOLUME_EFFECT_PAYLOAD_CAPACITY, "Register<T>: effect type exceeds VOLUME_EFFECT_PAYLOAD_CAPACITY");
-        static_assert(alignof(T) <= 16, "Register<T>: increase VolumeEffect payload alignment if needed");
+        static_assert(sizeof(T) <= BLENDABLE_EFFECT_PAYLOAD_CAPACITY, "Register<T>: effect type exceeds BLENDABLE_EFFECT_PAYLOAD_CAPACITY");
+        static_assert(alignof(T) <= 16, "Register<T>: increase BlendableEffect payload alignment if needed");
 
         if (m_sealed)
         {
-            return INVALID_VOLUME_EFFECT_ID;
+            return INVALID_BLENDABLE_EFFECT_ID;
         }
 
-        VolumeEffectDesc desc{};
+        BlendableEffectDesc desc{};
         m_names.emplace_back(name);
         desc.Name = std::string_view{m_names.back()};
         desc.Size = sizeof(T);
@@ -51,7 +51,7 @@ namespace Wayfinder
             Serialise(json, *static_cast<const T*>(src));
         };
 
-        const VolumeEffectId id = static_cast<VolumeEffectId>(m_descs.size());
+        const BlendableEffectId id = static_cast<BlendableEffectId>(m_descs.size());
         m_descs.push_back(std::move(desc));
         return id;
     }

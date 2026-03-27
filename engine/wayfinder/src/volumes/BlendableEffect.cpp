@@ -1,6 +1,6 @@
-#include "VolumeEffect.h"
+#include "BlendableEffect.h"
 
-#include "VolumeEffectRegistry.h"
+#include "BlendableEffectRegistry.h"
 
 #include "core/Assert.h"
 #include "maths/Maths.h"
@@ -12,9 +12,9 @@
 
 namespace Wayfinder
 {
-    VolumeEffectStack::~VolumeEffectStack()
+    BlendableEffectStack::~BlendableEffectStack()
     {
-        if (const VolumeEffectRegistry* registry = VolumeEffectRegistry::GetActiveInstance())
+        if (const BlendableEffectRegistry* registry = BlendableEffectRegistry::GetActiveInstance())
         {
             Clear(*registry);
         }
@@ -24,7 +24,7 @@ namespace Wayfinder
     {
         float ComputeDistanceToVolume(const VolumeInstance& instance, const Float3& cameraPosition)
         {
-            const VolumeComponent& volume = *instance.Volume;
+            const BlendableEffectVolumeComponent& volume = *instance.Volume;
             if (volume.Shape == VolumeShape::Global)
             {
                 return 0.0f;
@@ -62,13 +62,13 @@ namespace Wayfinder
 
     } // namespace
 
-    void VolumeEffect::DestroyPayload(const VolumeEffectRegistry& registry)
+    void BlendableEffect::DestroyPayload(const BlendableEffectRegistry& registry)
     {
-        if (TypeId == INVALID_VOLUME_EFFECT_ID)
+        if (TypeId == INVALID_BLENDABLE_EFFECT_ID)
         {
             return;
         }
-        const VolumeEffectDesc* desc = registry.Find(TypeId);
+        const BlendableEffectDesc* desc = registry.Find(TypeId);
         if (desc == nullptr || desc->Destroy == nullptr)
         {
             return;
@@ -78,9 +78,9 @@ namespace Wayfinder
         desc->Destroy(Payload);
     }
 
-    const VolumeEffect* VolumeEffectStack::FindEffect(const VolumeEffectId id) const
+    const BlendableEffect* BlendableEffectStack::FindEffect(const BlendableEffectId id) const
     {
-        const auto it = std::ranges::find_if(Effects, [id](const VolumeEffect& e)
+        const auto it = std::ranges::find_if(Effects, [id](const BlendableEffect& e)
         {
             return e.TypeId == id;
         });
@@ -91,9 +91,9 @@ namespace Wayfinder
         return &*it;
     }
 
-    VolumeEffect* VolumeEffectStack::FindEffectMutable(const VolumeEffectId id)
+    BlendableEffect* BlendableEffectStack::FindEffectMutable(const BlendableEffectId id)
     {
-        const auto it = std::ranges::find_if(Effects, [id](const VolumeEffect& e)
+        const auto it = std::ranges::find_if(Effects, [id](const BlendableEffect& e)
         {
             return e.TypeId == id;
         });
@@ -104,20 +104,20 @@ namespace Wayfinder
         return &*it;
     }
 
-    VolumeEffect& VolumeEffectStack::GetOrCreate(const VolumeEffectId id, const VolumeEffectRegistry& registry)
+    BlendableEffect& BlendableEffectStack::GetOrCreate(const BlendableEffectId id, const BlendableEffectRegistry& registry)
     {
-        if (VolumeEffect* existing = FindEffectMutable(id))
+        if (BlendableEffect* existing = FindEffectMutable(id))
         {
             return *existing;
         }
 
-        const VolumeEffectDesc* desc = registry.Find(id);
+        const BlendableEffectDesc* desc = registry.Find(id);
         // NOLINTBEGIN(readability-simplify-boolean-expr)
         WAYFINDER_ASSERT(desc != nullptr);
         WAYFINDER_ASSERT(desc->CreateIdentity != nullptr);
         // NOLINTEND(readability-simplify-boolean-expr)
 
-        VolumeEffect effect{};
+        BlendableEffect effect{};
         effect.TypeId = id;
         effect.Enabled = true;
         // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
@@ -126,18 +126,18 @@ namespace Wayfinder
         return Effects.back();
     }
 
-    void VolumeEffectStack::Clear(const VolumeEffectRegistry& registry)
+    void BlendableEffectStack::Clear(const BlendableEffectRegistry& registry)
     {
-        for (VolumeEffect& e : Effects)
+        for (BlendableEffect& e : Effects)
         {
             e.DestroyPayload(registry);
         }
         Effects.clear();
     }
 
-    VolumeEffectStack BlendVolumeEffects(const Float3& cameraPosition, const std::span<const VolumeInstance> volumes, const VolumeEffectRegistry& registry)
+    BlendableEffectStack BlendVolumeEffects(const Float3& cameraPosition, const std::span<const VolumeInstance> volumes, const BlendableEffectRegistry& registry)
     {
-        VolumeEffectStack result;
+        BlendableEffectStack result;
         if (volumes.empty())
         {
             return result;
@@ -170,18 +170,18 @@ namespace Wayfinder
 
             for (const auto& effect : instance->Volume->Effects)
             {
-                if (!effect.Enabled || effect.TypeId == INVALID_VOLUME_EFFECT_ID)
+                if (!effect.Enabled || effect.TypeId == INVALID_BLENDABLE_EFFECT_ID)
                 {
                     continue;
                 }
 
-                const VolumeEffectDesc* desc = registry.Find(effect.TypeId);
+                const BlendableEffectDesc* desc = registry.Find(effect.TypeId);
                 if (desc == nullptr || desc->Blend == nullptr)
                 {
                     continue;
                 }
 
-                VolumeEffect& slot = result.GetOrCreate(effect.TypeId, registry);
+                BlendableEffect& slot = result.GetOrCreate(effect.TypeId, registry);
                 // NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
                 desc->Blend(slot.Payload, effect.Payload, weight);
                 // NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
@@ -204,7 +204,7 @@ namespace Wayfinder
 
     bool IsValidEffectTypeName(const std::string_view normalisedLower)
     {
-        if (const VolumeEffectRegistry* reg = VolumeEffectRegistry::GetActiveInstance())
+        if (const BlendableEffectRegistry* reg = BlendableEffectRegistry::GetActiveInstance())
         {
             return reg->FindIdByName(normalisedLower).has_value();
         }

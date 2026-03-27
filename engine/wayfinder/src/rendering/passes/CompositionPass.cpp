@@ -88,7 +88,7 @@ namespace Wayfinder
                 ChromaticAberrationParams chromaticAberration{};
                 if (params.PrimaryView.Valid && !params.Frame.Views.empty())
                 {
-                    const VolumeEffectStack& stack = params.Frame.Views.front().PostProcess;
+                    const BlendableEffectStack& stack = params.Frame.Views.front().PostProcess;
                     const EngineEffectIds& ids = m_context->GetEngineEffectIds();
                     grading = ResolveColourGradingForView(stack, ids.ColourGrading);
                     vignette = ResolveVignetteForView(stack, ids.Vignette);

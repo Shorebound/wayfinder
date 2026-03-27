@@ -264,11 +264,11 @@ set(ENGINE_ALL_SOURCES
 
   # Volumes
   src/volumes/Override.h
-  src/volumes/VolumeEffect.cpp
-  src/volumes/VolumeEffect.h
-  src/volumes/VolumeEffectRegistry.cpp
-  src/volumes/VolumeEffectRegistry.h
-  src/volumes/VolumeEffectRegistry.inl
+  src/volumes/BlendableEffect.cpp
+  src/volumes/BlendableEffect.h
+  src/volumes/BlendableEffectRegistry.cpp
+  src/volumes/BlendableEffectRegistry.h
+  src/volumes/BlendableEffectRegistry.inl
 
   # Scene
   src/scene/ComponentRegistry.cpp

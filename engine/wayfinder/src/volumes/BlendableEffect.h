@@ -1,7 +1,7 @@
 #pragma once
 
+#include "BlendableEffectRegistry.h"
 #include "Override.h"
-#include "VolumeEffectRegistry.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -30,39 +30,39 @@ namespace Wayfinder
     /**
      * @brief One effect instance stored on a volume or in the blended stack (type-erased payload).
      */
-    struct WAYFINDER_API VolumeEffect
+    struct WAYFINDER_API BlendableEffect
     {
-        VolumeEffectId TypeId = INVALID_VOLUME_EFFECT_ID;
+        BlendableEffectId TypeId = INVALID_BLENDABLE_EFFECT_ID;
         bool Enabled = true;
-        alignas(16) std::byte Payload[VOLUME_EFFECT_PAYLOAD_CAPACITY]{};
+        alignas(16) std::byte Payload[BLENDABLE_EFFECT_PAYLOAD_CAPACITY]{};
 
-        void DestroyPayload(const VolumeEffectRegistry& registry);
+        void DestroyPayload(const BlendableEffectRegistry& registry);
     };
 
     /**
-     * @brief Blended result: at most one entry per VolumeEffectId.
+     * @brief Blended result: at most one entry per BlendableEffectId.
      */
-    struct WAYFINDER_API VolumeEffectStack
+    struct WAYFINDER_API BlendableEffectStack
     {
-        std::vector<VolumeEffect> Effects;
+        std::vector<BlendableEffect> Effects;
 
-        ~VolumeEffectStack();
+        ~BlendableEffectStack();
 
-        [[nodiscard]] const VolumeEffect* FindEffect(VolumeEffectId id) const;
+        [[nodiscard]] const BlendableEffect* FindEffect(BlendableEffectId id) const;
 
-        [[nodiscard]] VolumeEffect* FindEffectMutable(VolumeEffectId id);
+        [[nodiscard]] BlendableEffect* FindEffectMutable(BlendableEffectId id);
 
         /**
          * @brief Returns existing slot or creates one with identity payload (CreateIdentity from registry).
          */
-        [[nodiscard]] VolumeEffect& GetOrCreate(VolumeEffectId id, const VolumeEffectRegistry& registry);
+        [[nodiscard]] BlendableEffect& GetOrCreate(BlendableEffectId id, const BlendableEffectRegistry& registry);
 
-        void Clear(const VolumeEffectRegistry& registry);
+        void Clear(const BlendableEffectRegistry& registry);
 
         template<typename T>
-        [[nodiscard]] const T* FindPayload(VolumeEffectId id) const
+        [[nodiscard]] const T* FindPayload(BlendableEffectId id) const
         {
-            const VolumeEffect* e = FindEffect(id);
+            const BlendableEffect* e = FindEffect(id);
             if (e == nullptr || !e->Enabled)
             {
                 return nullptr;
@@ -72,21 +72,21 @@ namespace Wayfinder
     };
 
     /**
-     * @struct VolumeComponent
-     * @brief ECS component placed on scene entities to define influence volumes.
+     * @struct BlendableEffectVolumeComponent
+     * @brief ECS component placed on scene entities to define influence volumes for blendable effects.
      */
-    struct VolumeComponent
+    struct BlendableEffectVolumeComponent
     {
         VolumeShape Shape = VolumeShape::Global;
         int Priority = 0;
         float BlendDistance = 0.0f;
         Float3 Dimensions = {10.0f, 10.0f, 10.0f};
         float Radius = 10.0f;
-        std::vector<VolumeEffect> Effects;
+        std::vector<BlendableEffect> Effects;
 
-        VolumeComponent() = default;
-        VolumeComponent(const VolumeComponent&) = default;
-        VolumeComponent& operator=(const VolumeComponent&) = default;
+        BlendableEffectVolumeComponent() = default;
+        BlendableEffectVolumeComponent(const BlendableEffectVolumeComponent&) = default;
+        BlendableEffectVolumeComponent& operator=(const BlendableEffectVolumeComponent&) = default;
     };
 
     /**
@@ -95,13 +95,13 @@ namespace Wayfinder
      */
     struct VolumeInstance
     {
-        const VolumeComponent* Volume = nullptr;
+        const BlendableEffectVolumeComponent* Volume = nullptr;
         Float3 WorldPosition = {0.0f, 0.0f, 0.0f};
         Float3 WorldScale = {1.0f, 1.0f, 1.0f};
         Matrix4 LocalToWorld = Matrix4(1.0f);
     };
 
-    WAYFINDER_API VolumeEffectStack BlendVolumeEffects(const Float3& cameraPosition, std::span<const VolumeInstance> volumes, const VolumeEffectRegistry& registry);
+    WAYFINDER_API BlendableEffectStack BlendVolumeEffects(const Float3& cameraPosition, std::span<const VolumeInstance> volumes, const BlendableEffectRegistry& registry);
 
     /**
      * @brief Normalise effect type string for lookup (lowercase ASCII).

@@ -3,7 +3,7 @@ set(WAYFINDER_RENDER_TEST_NAME wayfinder_render_tests)
 add_executable(${WAYFINDER_RENDER_TEST_NAME}
   rendering/RenderPipelineTests.cpp
   rendering/RenderGraphTests.cpp
-  volumes/VolumeEffectRegistryTests.cpp
+  volumes/BlendableEffectRegistryTests.cpp
   rendering/RenderPassTests.cpp
   rendering/SubmissionDrawingTests.cpp
   rendering/SceneOpaquePassTests.cpp

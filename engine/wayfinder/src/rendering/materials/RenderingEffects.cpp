@@ -1,13 +1,13 @@
 #include "RenderingEffects.h"
 
+#include "volumes/BlendableEffectRegistry.h"
 #include "volumes/Override.h"
-#include "volumes/VolumeEffectRegistry.h"
 
 #include <nlohmann/json.hpp>
 
-static_assert(sizeof(Wayfinder::ColourGradingParams) <= Wayfinder::VOLUME_EFFECT_PAYLOAD_CAPACITY);
-static_assert(sizeof(Wayfinder::VignetteParams) <= Wayfinder::VOLUME_EFFECT_PAYLOAD_CAPACITY);
-static_assert(sizeof(Wayfinder::ChromaticAberrationParams) <= Wayfinder::VOLUME_EFFECT_PAYLOAD_CAPACITY);
+static_assert(sizeof(Wayfinder::ColourGradingParams) <= Wayfinder::BLENDABLE_EFFECT_PAYLOAD_CAPACITY);
+static_assert(sizeof(Wayfinder::VignetteParams) <= Wayfinder::BLENDABLE_EFFECT_PAYLOAD_CAPACITY);
+static_assert(sizeof(Wayfinder::ChromaticAberrationParams) <= Wayfinder::BLENDABLE_EFFECT_PAYLOAD_CAPACITY);
 
 namespace Wayfinder
 {
@@ -158,7 +158,7 @@ namespace Wayfinder
 
     // ── Resolve helpers ─────────────────────────────────────────────────────
 
-    ColourGradingParams ResolveColourGradingForView(const VolumeEffectStack& stack, const VolumeEffectId id)
+    ColourGradingParams ResolveColourGradingForView(const BlendableEffectStack& stack, const BlendableEffectId id)
     {
         const auto* p = stack.FindPayload<ColourGradingParams>(id);
         if (p == nullptr)
@@ -168,7 +168,7 @@ namespace Wayfinder
         return *p;
     }
 
-    VignetteParams ResolveVignetteForView(const VolumeEffectStack& stack, const VolumeEffectId id)
+    VignetteParams ResolveVignetteForView(const BlendableEffectStack& stack, const BlendableEffectId id)
     {
         const auto* p = stack.FindPayload<VignetteParams>(id);
         if (p == nullptr)
@@ -178,7 +178,7 @@ namespace Wayfinder
         return *p;
     }
 
-    ChromaticAberrationParams ResolveChromaticAberrationForView(const VolumeEffectStack& stack, const VolumeEffectId id)
+    ChromaticAberrationParams ResolveChromaticAberrationForView(const BlendableEffectStack& stack, const BlendableEffectId id)
     {
         const auto* p = stack.FindPayload<ChromaticAberrationParams>(id);
         if (p == nullptr)

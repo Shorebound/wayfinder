@@ -1,8 +1,8 @@
 #pragma once
 
+#include "volumes/BlendableEffect.h"
+#include "volumes/BlendableEffectRegistry.h"
 #include "volumes/Override.h"
-#include "volumes/VolumeEffect.h"
-#include "volumes/VolumeEffectRegistry.h"
 
 #include "core/Types.h"
 #include "wayfinder_exports.h"
@@ -15,7 +15,7 @@ namespace Wayfinder
     struct VignetteParams;
     struct ChromaticAberrationParams;
 
-    // ── ADL hooks (BlendableEffect) ────────────────────────────────────────
+    // ── ADL hooks (BlendableEffectPayload) ────────────────────────────────
 
     [[nodiscard]] ColourGradingParams Identity(EffectTag<ColourGradingParams>);
     [[nodiscard]] ColourGradingParams Lerp(const ColourGradingParams& current, const ColourGradingParams& source, float weight);
@@ -56,8 +56,8 @@ namespace Wayfinder
         Override<float> Intensity{0.0f};
     };
 
-    [[nodiscard]] WAYFINDER_API ColourGradingParams ResolveColourGradingForView(const VolumeEffectStack& stack, VolumeEffectId id);
-    [[nodiscard]] WAYFINDER_API VignetteParams ResolveVignetteForView(const VolumeEffectStack& stack, VolumeEffectId id);
-    [[nodiscard]] WAYFINDER_API ChromaticAberrationParams ResolveChromaticAberrationForView(const VolumeEffectStack& stack, VolumeEffectId id);
+    [[nodiscard]] WAYFINDER_API ColourGradingParams ResolveColourGradingForView(const BlendableEffectStack& stack, BlendableEffectId id);
+    [[nodiscard]] WAYFINDER_API VignetteParams ResolveVignetteForView(const BlendableEffectStack& stack, BlendableEffectId id);
+    [[nodiscard]] WAYFINDER_API ChromaticAberrationParams ResolveChromaticAberrationForView(const BlendableEffectStack& stack, BlendableEffectId id);
 
 } // namespace Wayfinder

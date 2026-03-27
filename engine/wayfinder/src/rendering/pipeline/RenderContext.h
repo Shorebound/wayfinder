@@ -8,7 +8,7 @@
 #include "rendering/resources/TextureManager.h"
 #include "rendering/resources/TransientBufferAllocator.h"
 #include "rendering/resources/TransientResourcePool.h"
-#include "volumes/VolumeEffectRegistry.h"
+#include "volumes/BlendableEffectRegistry.h"
 
 #include <cassert>
 
@@ -114,13 +114,13 @@ namespace Wayfinder
             return m_nearestSampler;
         }
 
-        VolumeEffectRegistry& GetVolumeEffectRegistry()
+        BlendableEffectRegistry& GetBlendableEffectRegistry()
         {
-            return m_volumeEffectRegistry;
+            return m_blendableEffectRegistry;
         }
-        const VolumeEffectRegistry& GetVolumeEffectRegistry() const
+        const BlendableEffectRegistry& GetBlendableEffectRegistry() const
         {
-            return m_volumeEffectRegistry;
+            return m_blendableEffectRegistry;
         }
 
         const EngineEffectIds& GetEngineEffectIds() const
@@ -128,8 +128,8 @@ namespace Wayfinder
             return m_engineEffectIds;
         }
 
-        /// Registers built-in blendable volume effect types (colour grading, vignette, CA). Call once after Initialise.
-        void RegisterEngineVolumeEffects();
+        /// Registers built-in blendable effect types (colour grading, vignette, CA). Call once after Initialise.
+        void RegisterEngineBlendableEffects();
 
     private:
         RenderDevice* m_device = nullptr;
@@ -143,7 +143,7 @@ namespace Wayfinder
         MeshManager m_meshManager;
         GPUSamplerHandle m_nearestSampler{};
 
-        VolumeEffectRegistry m_volumeEffectRegistry;
+        BlendableEffectRegistry m_blendableEffectRegistry;
         EngineEffectIds m_engineEffectIds{};
     };
 

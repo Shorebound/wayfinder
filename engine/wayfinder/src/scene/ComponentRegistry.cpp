@@ -7,8 +7,8 @@
 #include "gameplay/GameplayTagRegistry.h"
 #include "scene/entity/Entity.h"
 
-#include "volumes/VolumeEffect.h"
-#include "volumes/VolumeEffectRegistry.h"
+#include "volumes/BlendableEffect.h"
+#include "volumes/BlendableEffectRegistry.h"
 
 #include <array>
 #include <charconv>
@@ -579,7 +579,7 @@ namespace Wayfinder
             return false;
         }
 
-        bool ValidatePostProcessVolume(const nlohmann::json& data, std::string& error)
+        bool ValidateBlendableEffectVolume(const nlohmann::json& data, std::string& error)
         {
             if (!ValidateOptionalEnumValue(data, "shape", {"global", "box", "sphere"}, error))
             {
@@ -865,7 +865,7 @@ namespace Wayfinder
         }
         // NOLINTEND(cppcoreguidelines-pro-bounds-avoid-unchecked-container-access)
 
-        // ── PostProcessVolumeComponent ──────────────────────────
+        // ── BlendableEffectVolumeComponent ──────────────────────
 
         std::string_view ToString(Wayfinder::VolumeShape shape)
         {
@@ -881,26 +881,26 @@ namespace Wayfinder
             return "global";
         }
 
-        Wayfinder::VolumeEffect ReadEffect(const nlohmann::json& effectData)
+        Wayfinder::BlendableEffect ReadEffect(const nlohmann::json& effectData)
         {
-            Wayfinder::VolumeEffect effect{};
-            const Wayfinder::VolumeEffectRegistry* registry = Wayfinder::VolumeEffectRegistry::GetActiveInstance();
+            Wayfinder::BlendableEffect effect{};
+            const Wayfinder::BlendableEffectRegistry* registry = Wayfinder::BlendableEffectRegistry::GetActiveInstance();
             if (registry == nullptr)
             {
-                WAYFINDER_WARN(LogScene, "ReadEffect: VolumeEffectRegistry not active — volume effect skipped");
+                WAYFINDER_WARN(LogScene, "ReadEffect: BlendableEffectRegistry not active — blendable effect skipped");
                 return effect;
             }
 
             const std::string typeStr = effectData.value("type", std::string{});
             const std::string normalised = Wayfinder::NormaliseEffectTypeString(typeStr);
-            const std::optional<Wayfinder::VolumeEffectId> idOpt = registry->FindIdByName(normalised);
+            const std::optional<Wayfinder::BlendableEffectId> idOpt = registry->FindIdByName(normalised);
             if (!idOpt.has_value())
             {
                 WAYFINDER_WARN(LogScene, "ReadEffect: unknown post-process effect type '{}' — skipped", typeStr);
                 return effect;
             }
 
-            const Wayfinder::VolumeEffectDesc* desc = registry->Find(*idOpt);
+            const Wayfinder::BlendableEffectDesc* desc = registry->Find(*idOpt);
             if (desc == nullptr || desc->Deserialise == nullptr)
             {
                 return effect;
@@ -914,9 +914,9 @@ namespace Wayfinder
             return effect;
         }
 
-        void ApplyVolumeComponent(const nlohmann::json& data, Wayfinder::Entity& entity)
+        void ApplyBlendableEffectVolumeComponent(const nlohmann::json& data, Wayfinder::Entity& entity)
         {
-            Wayfinder::VolumeComponent volume;
+            Wayfinder::BlendableEffectVolumeComponent volume;
             volume.Shape = ReadVolumeShape(data, "shape", volume.Shape);
             volume.Priority = static_cast<int>(data.value("priority", static_cast<int64_t>(volume.Priority)));
             volume.BlendDistance = ReadFloat(data, "blend_distance", volume.BlendDistance);
@@ -935,7 +935,7 @@ namespace Wayfinder
                 }
             }
 
-            entity.AddComponent<Wayfinder::VolumeComponent>(volume);
+            entity.AddComponent<Wayfinder::BlendableEffectVolumeComponent>(volume);
         }
 
         // NOLINTBEGIN(cppcoreguidelines-pro-bounds-avoid-unchecked-container-access)
@@ -1072,14 +1072,14 @@ namespace Wayfinder
             componentTables["renderable"] = std::move(componentTable);
         }
 
-        void SerialiseVolumeComponent(const Wayfinder::Entity& entity, nlohmann::json& componentTables)
+        void SerialiseBlendableEffectVolumeComponent(const Wayfinder::Entity& entity, nlohmann::json& componentTables)
         {
-            if (!entity.HasComponent<Wayfinder::VolumeComponent>())
+            if (!entity.HasComponent<Wayfinder::BlendableEffectVolumeComponent>())
             {
                 return;
             }
 
-            const auto& volume = entity.GetComponent<Wayfinder::VolumeComponent>();
+            const auto& volume = entity.GetComponent<Wayfinder::BlendableEffectVolumeComponent>();
             nlohmann::json componentTable;
             componentTable["shape"] = std::string{ToString(volume.Shape)};
             componentTable["priority"] = static_cast<int64_t>(volume.Priority);
@@ -1092,12 +1092,12 @@ namespace Wayfinder
                 nlohmann::json effectsArray = nlohmann::json::array();
                 for (const auto& effect : volume.Effects)
                 {
-                    const Wayfinder::VolumeEffectRegistry* registry = Wayfinder::VolumeEffectRegistry::GetActiveInstance();
+                    const Wayfinder::BlendableEffectRegistry* registry = Wayfinder::BlendableEffectRegistry::GetActiveInstance();
                     if (registry == nullptr)
                     {
                         break;
                     }
-                    const Wayfinder::VolumeEffectDesc* desc = registry->Find(effect.TypeId);
+                    const Wayfinder::BlendableEffectDesc* desc = registry->Find(effect.TypeId);
                     if (desc == nullptr || desc->Serialise == nullptr)
                     {
                         continue;
@@ -1118,7 +1118,7 @@ namespace Wayfinder
                 componentTable["effects"] = std::move(effectsArray);
             }
 
-            componentTables["post_process_volume"] = std::move(componentTable);
+            componentTables["blendable_effect_volume"] = std::move(componentTable);
         }
         // NOLINTEND(cppcoreguidelines-pro-bounds-avoid-unchecked-container-access)
 
@@ -1135,11 +1135,11 @@ namespace Wayfinder
                 .SerialiseFn = &SerialiseRenderOverride,
                 .ValidateFn = &ValidateRenderOverride},
             {.Key = "gameplay_tags", .RegisterFn = &RegisterComponent<Wayfinder::GameplayTagContainer>, .ApplyFn = &ApplyTags, .SerialiseFn = &SerialiseTags, .ValidateFn = &ValidateTags},
-            {.Key = "post_process_volume",
-                .RegisterFn = &RegisterComponent<Wayfinder::VolumeComponent>,
-                .ApplyFn = &ApplyVolumeComponent,
-                .SerialiseFn = &SerialiseVolumeComponent,
-                .ValidateFn = &ValidatePostProcessVolume},
+            {.Key = "blendable_effect_volume",
+                .RegisterFn = &RegisterComponent<Wayfinder::BlendableEffectVolumeComponent>,
+                .ApplyFn = &ApplyBlendableEffectVolumeComponent,
+                .SerialiseFn = &SerialiseBlendableEffectVolumeComponent,
+                .ValidateFn = &ValidateBlendableEffectVolume},
         }};
     } // anonymous namespace
 }

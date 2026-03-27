@@ -2,8 +2,8 @@
 #include "rendering/backend/RenderDevice.h"
 #include "rendering/graph/SortKey.h"
 #include "rendering/materials/Material.h"
-#include "volumes/VolumeEffect.h"
-#include "volumes/VolumeEffectRegistry.h"
+#include "volumes/BlendableEffect.h"
+#include "volumes/BlendableEffectRegistry.h"
 
 #include "assets/AssetService.h"
 #include "core/Log.h"
@@ -440,12 +440,12 @@ namespace Wayfinder
         std::vector<VolumeInstance> volumeInstances;
         scene.GetWorld().each([&volumeInstances](flecs::entity entityHandle)
         {
-            if (!entityHandle.has<VolumeComponent>())
+            if (!entityHandle.has<BlendableEffectVolumeComponent>())
             {
                 return;
             }
 
-            const auto& volume = entityHandle.get<VolumeComponent>();
+            const auto& volume = entityHandle.get<BlendableEffectVolumeComponent>();
 
             Float3 position{0.0f, 0.0f, 0.0f};
             Float3 scale{1.0f, 1.0f, 1.0f};
@@ -472,7 +472,7 @@ namespace Wayfinder
         // Blend post-process volumes per view using each view's camera position
         if (!volumeInstances.empty())
         {
-            const VolumeEffectRegistry* ppRegistry = VolumeEffectRegistry::GetActiveInstance();
+            const BlendableEffectRegistry* ppRegistry = BlendableEffectRegistry::GetActiveInstance();
             if (ppRegistry != nullptr)
             {
                 for (auto& view : frame.Views)
