@@ -16,27 +16,27 @@
 
 namespace Wayfinder
 {
-    void RenderPipeline::SortEnginePassList(std::vector<EnginePassSlot>& slots)
+    void RenderPipeline::SortPassList(std::vector<PassSlot>& slots)
     {
-        std::ranges::sort(slots, [](const EnginePassSlot& a, const EnginePassSlot& b)
+        std::ranges::sort(slots, [](const PassSlot& a, const PassSlot& b)
         {
             if (a.Phase != b.Phase)
             {
                 return static_cast<uint8_t>(a.Phase) < static_cast<uint8_t>(b.Phase);
             }
-            if (a.OrderWithinPhase != b.OrderWithinPhase)
+            if (a.Order != b.Order)
             {
-                return a.OrderWithinPhase < b.OrderWithinPhase;
+                return a.Order < b.Order;
             }
             return a.InsertSequence < b.InsertSequence;
         });
     }
 
-    void RenderPipeline::RegisterEnginePass(const EngineRenderPhase phase, const int32_t orderWithinPhase, std::unique_ptr<RenderPass> pass)
+    void RenderPipeline::RegisterPass(const RenderPhase phase, const int32_t order, std::unique_ptr<RenderPass> pass)
     {
         if (!m_context)
         {
-            WAYFINDER_ERROR(LogRenderer, "RegisterEnginePass: pipeline has no context — call Initialise first");
+            WAYFINDER_ERROR(LogRenderer, "RegisterPass: pipeline has no context — call Initialise first");
             return;
         }
         if (!pass)
@@ -47,38 +47,23 @@ namespace Wayfinder
         const RenderPassContext ctx{*m_context};
         pass->OnAttach(ctx);
 
-        EnginePassSlot slot{
+        PassSlot slot{
             .Phase = phase,
-            .OrderWithinPhase = orderWithinPhase,
-            .InsertSequence = m_nextEnginePassInsertSequence++,
+            .Order = order,
+            .InsertSequence = m_nextPassInsertSequence++,
             .Pass = std::move(pass),
         };
 
-        if (phase == EngineRenderPhase::LateEngine)
+        if (phase == RenderPhase::Present)
         {
             if (slot.Pass && !slot.Pass->IsEnabled())
             {
-                WAYFINDER_WARN(LogRenderer, "RegisterEnginePass: LateEngine pass '{}' is disabled — graph may lack a swapchain writer", slot.Pass->GetName());
+                WAYFINDER_WARN(LogRenderer, "RegisterPass: Present phase pass '{}' is disabled — graph may lack a swapchain writer", slot.Pass->GetName());
             }
-            m_lateEnginePasses.push_back(std::move(slot));
-            SortEnginePassList(m_lateEnginePasses);
         }
-        else
-        {
-            m_earlyEnginePasses.push_back(std::move(slot));
-            SortEnginePassList(m_earlyEnginePasses);
-        }
-    }
 
-    void RenderPipeline::InvokePassList(RenderGraph& graph, const RenderPipelineFrameParams& params, const std::vector<EnginePassSlot>& slots) const
-    {
-        for (const auto& slot : slots)
-        {
-            if (slot.Pass && slot.Pass->IsEnabled())
-            {
-                slot.Pass->AddPasses(graph, params);
-            }
-        }
+        m_passes.push_back(std::move(slot));
+        SortPassList(m_passes);
     }
 
     void RenderPipeline::Initialise(RenderContext& context)
@@ -94,12 +79,9 @@ namespace Wayfinder
 
         RegisterForwardOpaquePrograms(context.GetPrograms());
 
-        RegisterEnginePass(EngineRenderPhase::OpaqueMain, 0, std::make_unique<SceneOpaquePass>());
-        RegisterEnginePass(EngineRenderPhase::Debug, 0, std::make_unique<DebugPass>());
-        // PresentSourceCopyPass is optional: register `RenderPipeline::RegisterEnginePass(LateEngine, 0, PresentSourceCopyPass)`
-        // when a game needs a stable PresentSource handoff. Omitting it lets Composition sample SceneColour directly and
-        // avoids an undefined PresentSource texture when the copy draw cannot run.
-        RegisterEnginePass(EngineRenderPhase::LateEngine, 0, std::make_unique<CompositionPass>());
+        RegisterPass(RenderPhase::Opaque, 0, std::make_unique<SceneOpaquePass>());
+        RegisterPass(RenderPhase::Overlay, 0, std::make_unique<DebugPass>());
+        RegisterPass(RenderPhase::Present, 0, std::make_unique<CompositionPass>());
 
         m_initialised = true;
     }
@@ -109,14 +91,7 @@ namespace Wayfinder
         if (m_context)
         {
             const RenderPassContext ctx{*m_context};
-            for (auto& slot : m_earlyEnginePasses)
-            {
-                if (slot.Pass)
-                {
-                    slot.Pass->OnDetach(ctx);
-                }
-            }
-            for (auto& slot : m_lateEnginePasses)
+            for (auto& slot : m_passes)
             {
                 if (slot.Pass)
                 {
@@ -124,9 +99,8 @@ namespace Wayfinder
                 }
             }
         }
-        m_earlyEnginePasses.clear();
-        m_lateEnginePasses.clear();
-        m_nextEnginePassInsertSequence = 0;
+        m_passes.clear();
+        m_nextPassInsertSequence = 0;
         m_context = nullptr;
         m_initialised = false;
     }
@@ -204,19 +178,15 @@ namespace Wayfinder
         return true;
     }
 
-    void RenderPipeline::BuildGraph(RenderGraph& graph, const RenderPipelineFrameParams& params, const std::span<const std::unique_ptr<RenderPass>> gamePasses) const
+    void RenderPipeline::BuildGraph(RenderGraph& graph, const RenderPipelineFrameParams& params) const
     {
-        InvokePassList(graph, params, m_earlyEnginePasses);
-
-        for (const auto& pass : gamePasses)
+        for (const auto& slot : m_passes)
         {
-            if (pass && pass->IsEnabled())
+            if (slot.Pass && slot.Pass->IsEnabled())
             {
-                pass->AddPasses(graph, params);
+                slot.Pass->AddPasses(graph, params);
             }
         }
-
-        InvokePassList(graph, params, m_lateEnginePasses);
     }
 
 } // namespace Wayfinder

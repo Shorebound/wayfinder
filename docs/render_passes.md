@@ -11,8 +11,7 @@
 | **Graph node** | One `RenderGraph::AddPass` / `AddComputePass` entry for a frame. |
 | **`RenderPassCapabilities` / `DeclarePassCapabilities`** | Bitmask describing injector behaviour. Graph nodes call `RenderGraphBuilder::DeclarePassCapabilities` for dev-time checks in `RenderGraph::Compile`. |
 | **`PreparedPrimaryView` / `ResolvePreparedPrimaryView`** | Primary view matrices and clear colour after `Prepare` (`rendering/graph/RenderFrameUtils.h`); bundled on `RenderPipelineFrameParams::PrimaryView`. |
-| **Early engine segment** | Engine passes whose phase is **not** `LateEngine` — run **before** game injectors. |
-| **Late engine segment** | Engine passes registered with `EngineRenderPhase::LateEngine` — run **after** game injectors (e.g. present-source copy, swapchain composition). |
+| **`RenderPhase`** | Ordering band for `RenderPipeline::RegisterPass` / `Renderer::AddPass` — a single sorted list `(phase, order, registration sequence)`. |
 
 See also: [Workspace guide](workspace_guide.md) for repo layout.
 
@@ -20,16 +19,14 @@ See also: [Workspace guide](workspace_guide.md) for repo layout.
 
 A `RenderPass` is the extension point for adding custom rendering work to the engine. Passes inject one or more graph nodes into the per-frame render graph without modifying engine code.
 
-Use passes for: post-processing effects, debug overlays, screen-space effects, compute dispatches, or any rendering work that reads/writes render targets. Engine-owned work (opaque forward, debug, present-source copy, composition) uses the same `RenderPass` type.
+Use passes for: post-processing effects, debug overlays, screen-space effects, compute dispatches, or any rendering work that reads/writes render targets. Engine-owned work (opaque forward, debug, composition) uses the same `RenderPass` type.
 
 ## Registration vs execution (each frame)
 
 **Who runs `AddPasses`, and in what order**
 
 1. **`RenderPipeline::Prepare`** — validates views and **frame layers**, fills view matrices / frustums, culls and sorts scene submissions, and supplies **`RenderPipelineFrameParams::PrimaryView`** via `ResolvePreparedPrimaryView` from the renderer.
-2. **Early engine injectors** — every registered engine pass **except** `EngineRenderPhase::LateEngine`, ordered by **`(EngineRenderPhase, orderWithinPhase, registration sequence)`**. Phases include `PreOpaque` → `OpaqueMain` → `PostOpaque` → `Debug` → `PreComposite`. Built-ins: opaque forward at `OpaqueMain`, debug at `Debug`.
-3. **Game injectors** — each game pass in **`Renderer`’s** `m_passes` vector, in vector order.
-4. **Late engine injectors** — passes registered with **`EngineRenderPhase::LateEngine`**, ordered by **`(orderWithinPhase, registration sequence)`**. Built-in: **`CompositionPass`** (samples `PresentSource` or `SceneColour`, writes swapchain). Optional: **`PresentSourceCopyPass`** (copies `SceneColour` → `PresentSource`) — not registered by default; activate via `RegisterEnginePass(LateEngine, …)` when a game needs a stable handoff texture.
+2. **Unified pass list** — every registered pass (engine and game), ordered by **`(RenderPhase, order, registration sequence)`**. Phases run from **`PreOpaque`** through **`Present`** (see `RenderPipeline.h`). Built-ins: **`SceneOpaquePass`** at **`Opaque`**, **`DebugPass`** at **`Overlay`**, **`CompositionPass`** at **`Present`**.
 
 **What order the GPU runs**
 
@@ -37,12 +34,14 @@ After all graph nodes are recorded, **`RenderGraph::Compile`** topologically sor
 
 **Compile validation:** a successful compile **requires at least one** pass that calls **`SetSwapchainOutput`**. In non-`NDEBUG` builds, **more than one** swapchain writer emits a **warning** (pipelines normally use exactly one present pass).
 
-**When to use which registration API**
+**Registration API**
 
 | API | Use for |
 |-----|---------|
-| **`Renderer::RegisterEnginePass(phase, order, pass)`** | Engine modules: use **`LateEngine`** only when the pass must run **after** game `AddPasses` (e.g. final composite). |
-| **`Renderer::AddPass(pass)`** | Game / sandbox code registering custom rendering in the **game** segment (between early and late engine). |
+| **`Renderer::AddPass(phase, order, pass)`** | Game / editor passes — pick **`RenderPhase`** and optional ordering within the phase. |
+| **`Renderer::AddPass(phase, pass)`** | Same with **`order` = 0**. |
+
+All passes live in one list; there is no separate “game segment”.
 
 ## `RenderPipelineFrameParams`
 
@@ -56,16 +55,20 @@ Passed to every `AddPasses`:
 | `ResourceCache` | May be null if asset resolution is unavailable; passes must tolerate null if they depend on it. |
 | `PrimaryView` | Result of `ResolvePreparedPrimaryView(Frame)` — primary view matrices and clear colour when the first view is prepared. |
 
-## Engine pass registration
+## `RenderPhase` (summary)
 
-After `Renderer::Initialise`, optional engine modules may register injectors:
+| Phase | Typical use |
+|-------|----------------|
+| `PreOpaque` | Shadow maps, G-buffer prep, hi-Z |
+| `Opaque` | Main scene geometry |
+| `PostOpaque` | SSAO, SSR, decals |
+| `Transparent` | Alpha-blended geometry, particles |
+| `PostProcess` | Bloom, DoF, game post chain |
+| `Composite` | FXAA/TAA, optional handoff copies |
+| `Overlay` | Debug, gizmos, UI |
+| `Present` | Tonemap + swapchain (exactly one writer in typical pipelines) |
 
-```cpp
-renderer.RegisterEnginePass(Wayfinder::EngineRenderPhase::PostOpaque, 0, std::make_unique<MyEnginePass>());
-renderer.RegisterEnginePass(Wayfinder::EngineRenderPhase::LateEngine, 0, std::make_unique<MyAfterGamePass>());
-```
-
-Requires pipeline initialisation (has `RenderContext`). **`LateEngine`** passes are stored separately and invoked **after** game passes.
+After **`Renderer::Initialise`**, optional modules register injectors with **`AddPass(phase, order, pass)`** (requires an initialised renderer / pipeline context).
 
 ## Capabilities
 
@@ -127,15 +130,13 @@ namespace Wayfinder
 
 Prefer **`graph.FindHandleChecked(GraphTextureId::…)`** or **`FindHandleChecked(name)`** when the resource must exist — it logs and **asserts in non-`NDEBUG` builds** if the handle is missing. **`ReadTexture` / `WriteColour` / `WriteDepth`** log an **error** if given an invalid handle (e.g. wrong `FindHandle` result) and skip the dependency edge.
 
-## Registering a game pass
-
-Register game passes with the `Renderer` after initialisation:
+## Registering a pass
 
 ```cpp
-renderer.AddPass(std::make_unique<BloomPass>());
+renderer.AddPass(Wayfinder::RenderPhase::PostProcess, 0, std::make_unique<BloomPass>());
 ```
 
-Game `AddPasses` run **after** early engine injectors and **before** late engine injectors; the render graph still determines **GPU** order from resource dependencies.
+Passes registered earlier in the same **`(phase, order)`** run first (tie-break: registration order). The render graph still determines **GPU** order from resource dependencies where that differs.
 
 ## Enabling / Disabling
 
@@ -164,13 +165,15 @@ Passes declare what they read and write through `RenderGraphBuilder`. The graph 
 
 ### Engine graph textures (`GraphTextureId`)
 
-Stable **engine** colour/depth/present targets use `GraphTextureId` with singleton **`InternedString`** names in **`GraphTextures`** (same pattern as `FrameLayerIds`), plus **`GraphTextureIntern`** / **`GraphTextureName`** for lookups and debug names (`RenderGraph.h`):
+Stable **engine** colour/depth targets use `GraphTextureId` with singleton **`InternedString`** names in **`GraphTextures`**, plus **`GraphTextureIntern`** / **`GraphTextureName`** for lookups and debug names (`RenderGraph.h`):
 
 | Id | `GraphTextures::*` | Role |
 |----|--------------------|------|
 | `GraphTextureId::SceneColour` | `GraphTextures::SceneColour` | Main scene colour (created by the MainScene graph pass). |
 | `GraphTextureId::SceneDepth` | `GraphTextures::SceneDepth` | Main scene depth. |
-| `GraphTextureId::PresentSource` | `GraphTextures::PresentSource` | Colour buffer sampled by **`CompositionPass`** after optional post work; **`PresentSourceCopyPass`** fills it from `SceneColour` when no earlier pass writes it. |
+| `GraphTextureId::PostProcessColour` | `GraphTextures::PostProcessColour` | Latest post-process output; **`FindHandle`** / **`ImportTexture`** return the **most recently added** resource with that name so passes can chain. |
+
+**`ResolvePostProcessInput`** (`rendering/graph/PostProcessUtils.h`) returns **`PostProcessColour`** when present, otherwise **`SceneColour`** — use it when sampling input for a post chain or for **`CompositionPass`**.
 
 **`GraphTextureIntern(GraphTextureId)`** returns the shared `InternedString` for that id (no re-interning). **`GraphTextureName`** returns a **`std::string_view`** over that interned text. **`RenderGraphTextureDesc::DebugName`** is a **`std::string_view`** (assigned from literals, `GraphTextureName`, or other stable views before `CreateTransient` interns it).
 
@@ -192,7 +195,7 @@ Use `builder.CreateTransient(desc)` for intermediate textures that only live for
 
 ### Multi-view
 
-Split-screen / multiple render targets are not fully specified here: either **one graph per view** or **view-indexed resources** should be chosen explicitly before implying a single `PresentSource` for all views.
+Split-screen / multiple render targets are not fully specified here: either **one graph per view** or **view-indexed resources** should be chosen explicitly before implying a single shared handoff texture for all views.
 
 ### Error policy (pipelines / resources)
 

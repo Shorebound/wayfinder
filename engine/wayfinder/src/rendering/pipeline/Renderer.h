@@ -34,21 +34,20 @@ namespace Wayfinder
         void SetAssetService(const std::shared_ptr<AssetService>& assetService);
 
         /**
-         * @brief Registers a game or editor-owned render pass; it receives `OnAttach` immediately if the renderer is initialised.
+         * @brief Registers a render pass in the unified phase-ordered pipeline.
+         * @param phase Band used with `order` for stable ordering.
+         * @param order Lower values run earlier within the same phase.
          * @param pass Ownership of the pass instance; must not be null.
          */
-        void AddPass(std::unique_ptr<RenderPass> pass);
+        void AddPass(RenderPhase phase, int32_t order, std::unique_ptr<RenderPass> pass);
 
         /**
-         * @brief Registers an engine pass in the fixed phase ordering (opaque, debug, etc.).
-         * @param phase Band used with `orderWithinPhase` for stable ordering within the engine pipeline.
-         * @param orderWithinPhase Lower values run earlier within the same phase.
-         * @param pass Ownership of the pass instance; must not be null.
+         * @brief Registers a render pass with `order` 0 within the phase.
          */
-        void RegisterEnginePass(EngineRenderPhase phase, int32_t orderWithinPhase, std::unique_ptr<RenderPass> pass);
+        void AddPass(RenderPhase phase, std::unique_ptr<RenderPass> pass);
 
         /**
-         * @brief Removes the first pass whose dynamic type is `T` from `m_passes`.
+         * @brief Removes the first pass whose dynamic type is `T` from the pipeline.
          * @tparam T Render pass type to match.
          * @return True if a pass was removed; false if none matched.
          * @note When the renderer is initialised, calls `OnDetach` on the removed pass before erasing it.
@@ -56,21 +55,27 @@ namespace Wayfinder
         template<typename T>
         bool RemovePass()
         {
-            auto it = std::find_if(m_passes.begin(), m_passes.end(), [](const std::unique_ptr<RenderPass>& p)
+            if (!m_renderPipeline)
             {
-                return dynamic_cast<T*>(p.get()) != nullptr;
+                return false;
+            }
+
+            auto pendingIt = std::find_if(m_pendingPasses.begin(), m_pendingPasses.end(), [](const PendingPassRegistration& p)
+            {
+                return p.Pass && dynamic_cast<T*>(p.Pass.get()) != nullptr;
             });
-            if (it != m_passes.end())
+            if (pendingIt != m_pendingPasses.end())
             {
                 if (m_isInitialised && m_context)
                 {
                     auto ctx = MakePassContext();
-                    (*it)->OnDetach(ctx);
+                    pendingIt->Pass->OnDetach(ctx);
                 }
-                m_passes.erase(it);
+                m_pendingPasses.erase(pendingIt);
                 return true;
             }
-            return false;
+
+            return m_renderPipeline->RemovePass<T>();
         }
 
         /**
@@ -81,11 +86,21 @@ namespace Wayfinder
         template<typename T>
         const T* GetPass() const
         {
-            for (const auto& p : m_passes)
+            if (m_renderPipeline)
             {
-                if (auto* ptr = dynamic_cast<const T*>(p.get()))
+                if (const T* p = m_renderPipeline->GetPass<T>())
                 {
-                    return ptr;
+                    return p;
+                }
+            }
+            for (const auto& pending : m_pendingPasses)
+            {
+                if (pending.Pass)
+                {
+                    if (auto* ptr = dynamic_cast<const T*>(pending.Pass.get()))
+                    {
+                        return ptr;
+                    }
                 }
             }
             return nullptr;
@@ -99,17 +114,34 @@ namespace Wayfinder
         template<typename T>
         T* GetPass()
         {
-            for (auto& p : m_passes)
+            if (m_renderPipeline)
             {
-                if (auto* ptr = dynamic_cast<T*>(p.get()))
+                if (T* p = m_renderPipeline->GetPass<T>())
                 {
-                    return ptr;
+                    return p;
+                }
+            }
+            for (auto& pending : m_pendingPasses)
+            {
+                if (pending.Pass)
+                {
+                    if (auto* ptr = dynamic_cast<T*>(pending.Pass.get()))
+                    {
+                        return ptr;
+                    }
                 }
             }
             return nullptr;
         }
 
     private:
+        struct PendingPassRegistration
+        {
+            RenderPhase Phase = RenderPhase::Opaque;
+            int32_t Order = 0;
+            std::unique_ptr<RenderPass> Pass;
+        };
+
         std::shared_ptr<AssetService> m_assetService;
         RenderDevice* m_device = nullptr;
         std::unique_ptr<RenderContext> m_context;
@@ -118,7 +150,7 @@ namespace Wayfinder
 
         RenderPassContext MakePassContext();
 
-        std::vector<std::unique_ptr<RenderPass>> m_passes;
+        std::vector<PendingPassRegistration> m_pendingPasses;
 
         Mesh m_primitiveMesh;
         Mesh m_texturedPrimitiveMesh;

@@ -20,10 +20,10 @@ namespace Wayfinder
     /// A `RenderPass` injects one or more passes into the per-frame render graph.
     ///
     /// Usage:
-    ///   renderer.AddPass(std::make_unique<MyPass>());
+    ///   renderer.AddPass(RenderPhase::PostProcess, 0, std::make_unique<MyPass>());
     ///
-    /// Game passes are added after engine passes (MainScene, Debug). Execution order is
-    /// determined by resource dependencies in the graph, not by registration order.
+    /// Registration order follows `RenderPhase` and `order` on the pipeline; GPU execution order is
+    /// still determined by resource dependencies in the graph where they apply.
     class RenderPass
     {
     public:

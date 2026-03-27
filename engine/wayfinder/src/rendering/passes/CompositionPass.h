@@ -6,8 +6,8 @@ namespace Wayfinder
 {
     class RenderContext;
 
-    /// Fullscreen pass: samples `PresentSource` when registered, otherwise `SceneColour`; applies view post-processing; writes
-    /// the swapchain.
+    /// Fullscreen pass: samples via `ResolvePostProcessInput` (latest `PostProcessColour`, else `SceneColour`); applies view
+    /// post-processing; writes the swapchain.
     class CompositionPass final : public RenderPass
     {
     public:

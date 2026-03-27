@@ -3,6 +3,9 @@
 #include "assets/AssetService.h"
 #include "rendering/backend/RenderDevice.h"
 #include "rendering/graph/RenderFrame.h"
+#include "rendering/graph/RenderFrameUtils.h"
+#include "rendering/graph/RenderGraph.h"
+#include "rendering/graph/RenderPass.h"
 #include "rendering/graph/SortKey.h"
 #include "rendering/pipeline/RenderContext.h"
 #include "rendering/pipeline/RenderPipeline.h"
@@ -19,11 +22,36 @@
 #include <filesystem>
 #include <memory>
 #include <string>
+#include <unordered_map>
+#include <vector>
 
 namespace Wayfinder::Tests
 {
     namespace
     {
+        class OrderPass final : public Wayfinder::RenderPass
+        {
+        public:
+            OrderPass(std::string name, std::vector<std::string>* log) : m_name(std::move(name)), m_log(log) {}
+
+            std::string_view GetName() const override
+            {
+                return m_name;
+            }
+
+            void AddPasses(Wayfinder::RenderGraph& /*graph*/, const Wayfinder::RenderPipelineFrameParams& /*params*/) override
+            {
+                if (m_log != nullptr)
+                {
+                    m_log->push_back(m_name);
+                }
+            }
+
+        private:
+            std::string m_name;
+            std::vector<std::string>* m_log;
+        };
+
         Wayfinder::RenderMeshSubmission MakeSolidMesh(uint8_t sortPriority, const Wayfinder::Colour& colour)
         {
             Wayfinder::RenderMeshSubmission submission;
@@ -287,6 +315,125 @@ namespace Wayfinder::Tests
         pipeline.Shutdown();
         pipeline.Shutdown(); // Double shutdown is safe
 
+        context.Shutdown();
+    }
+
+    TEST_CASE("RenderPipeline orders RegisterPass by phase then order then registration sequence")
+    {
+        auto device = Wayfinder::RenderDevice::Create(Wayfinder::RenderBackend::Null);
+        REQUIRE(device);
+
+        Wayfinder::EngineConfig config;
+        config.Window.Width = 320;
+        config.Window.Height = 240;
+
+        Wayfinder::RenderContext context;
+        REQUIRE(context.Initialise(*device, config));
+
+        std::vector<std::string> order;
+        Wayfinder::RenderPipeline pipeline;
+        pipeline.Initialise(context);
+
+        pipeline.RegisterPass(Wayfinder::RenderPhase::PostProcess, 100, std::make_unique<OrderPass>("p100", &order));
+        pipeline.RegisterPass(Wayfinder::RenderPhase::Opaque, 0, std::make_unique<OrderPass>("o0", &order));
+        pipeline.RegisterPass(Wayfinder::RenderPhase::Present, 0, std::make_unique<OrderPass>("pr0", &order));
+        pipeline.RegisterPass(Wayfinder::RenderPhase::PostProcess, 0, std::make_unique<OrderPass>("p0", &order));
+
+        Wayfinder::RenderFrame frame;
+        Wayfinder::RenderView view;
+        view.CameraState.Position = {0.0f, 0.0f, 5.0f};
+        view.CameraState.Target = {0.0f, 0.0f, 0.0f};
+        view.CameraState.Up = {0.0f, 1.0f, 0.0f};
+        view.CameraState.FOV = 60.0f;
+        view.CameraState.NearPlane = 0.1f;
+        view.CameraState.FarPlane = 100.0f;
+        frame.AddView(view);
+        frame.AddSceneLayer(Wayfinder::FrameLayerIds::MainScene, 0, Wayfinder::RenderLayers::Main);
+        frame.AddDebugLayer(Wayfinder::FrameLayerIds::Debug, 0);
+
+        REQUIRE(pipeline.Prepare(frame, 320, 240));
+
+        static const std::unordered_map<uint32_t, Wayfinder::Mesh*> K_EMPTY_MESHES;
+        const Wayfinder::RenderPipelineFrameParams params{
+            .Frame = frame,
+            .SwapchainWidth = 320,
+            .SwapchainHeight = 240,
+            .MeshesByStride = K_EMPTY_MESHES,
+            .ResourceCache = nullptr,
+            .PrimaryView = Wayfinder::Rendering::ResolvePreparedPrimaryView(frame),
+        };
+
+        Wayfinder::RenderGraph graph;
+        pipeline.BuildGraph(graph, params);
+
+        auto indexOf = [&](const std::string& name) -> size_t
+        {
+            const auto it = std::ranges::find(order, name);
+            REQUIRE(it != order.end());
+            return static_cast<size_t>(std::distance(order.begin(), it));
+        };
+
+        CHECK(indexOf("o0") < indexOf("p0"));
+        CHECK(indexOf("p0") < indexOf("p100"));
+        CHECK(indexOf("p100") < indexOf("pr0"));
+
+        pipeline.Shutdown();
+        context.Shutdown();
+    }
+
+    TEST_CASE("RenderPipeline ties same phase and order by registration sequence")
+    {
+        auto device = Wayfinder::RenderDevice::Create(Wayfinder::RenderBackend::Null);
+        REQUIRE(device);
+
+        Wayfinder::EngineConfig config;
+        config.Window.Width = 320;
+        config.Window.Height = 240;
+
+        Wayfinder::RenderContext context;
+        REQUIRE(context.Initialise(*device, config));
+
+        std::vector<std::string> order;
+        Wayfinder::RenderPipeline pipeline;
+        pipeline.Initialise(context);
+
+        pipeline.RegisterPass(Wayfinder::RenderPhase::PostProcess, 0, std::make_unique<OrderPass>("first", &order));
+        pipeline.RegisterPass(Wayfinder::RenderPhase::PostProcess, 0, std::make_unique<OrderPass>("second", &order));
+
+        Wayfinder::RenderFrame frame;
+        Wayfinder::RenderView view;
+        view.CameraState.Position = {0.0f, 0.0f, 5.0f};
+        view.CameraState.Target = {0.0f, 0.0f, 0.0f};
+        view.CameraState.Up = {0.0f, 1.0f, 0.0f};
+        view.CameraState.FOV = 60.0f;
+        view.CameraState.NearPlane = 0.1f;
+        view.CameraState.FarPlane = 100.0f;
+        frame.AddView(view);
+        frame.AddSceneLayer(Wayfinder::FrameLayerIds::MainScene, 0, Wayfinder::RenderLayers::Main);
+        frame.AddDebugLayer(Wayfinder::FrameLayerIds::Debug, 0);
+
+        REQUIRE(pipeline.Prepare(frame, 320, 240));
+
+        static const std::unordered_map<uint32_t, Wayfinder::Mesh*> K_EMPTY_MESHES;
+        const Wayfinder::RenderPipelineFrameParams params{
+            .Frame = frame,
+            .SwapchainWidth = 320,
+            .SwapchainHeight = 240,
+            .MeshesByStride = K_EMPTY_MESHES,
+            .ResourceCache = nullptr,
+            .PrimaryView = Wayfinder::Rendering::ResolvePreparedPrimaryView(frame),
+        };
+
+        Wayfinder::RenderGraph graph;
+        pipeline.BuildGraph(graph, params);
+
+        const auto firstIt = std::ranges::find(order, "first");
+        const auto secondIt = std::ranges::find(order, "second");
+        REQUIRE(firstIt != order.end());
+        REQUIRE(secondIt != order.end());
+        CHECK(firstIt < secondIt);
+
+        pipeline.Shutdown();
         context.Shutdown();
     }
 }

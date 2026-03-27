@@ -38,8 +38,8 @@ namespace Wayfinder
     {
         SceneColour,
         SceneDepth,
-        /// Final HDR/LDR colour sampled by the swapchain composition pass (after optional post chain).
-        PresentSource,
+        /// Output of the latest post-process pass in the chain (same logical name; `FindHandle` returns the latest).
+        PostProcessColour,
     };
 
     /// Stable interned names for resources created or looked up by `GraphTextureId`.
@@ -47,7 +47,7 @@ namespace Wayfinder
     {
         inline const InternedString SceneColour = InternedString::Intern("SceneColour");
         inline const InternedString SceneDepth = InternedString::Intern("SceneDepth");
-        inline const InternedString PresentSource = InternedString::Intern("PresentSource");
+        inline const InternedString PostProcessColour = InternedString::Intern("PostProcessColour");
     }
 
     /// Resolves `GraphTextureId` to the shared `InternedString` (for lookups without re-interning).
@@ -59,8 +59,8 @@ namespace Wayfinder
             return GraphTextures::SceneColour;
         case GraphTextureId::SceneDepth:
             return GraphTextures::SceneDepth;
-        case GraphTextureId::PresentSource:
-            return GraphTextures::PresentSource;
+        case GraphTextureId::PostProcessColour:
+            return GraphTextures::PostProcessColour;
         }
         assert(false && "GraphTextureIntern: unhandled GraphTextureId");
         static const InternedString kEmpty;

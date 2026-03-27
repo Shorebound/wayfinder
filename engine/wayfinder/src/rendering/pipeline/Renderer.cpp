@@ -14,6 +14,8 @@
 #include "rendering/RenderTypes.h"
 #include "rendering/backend/VertexFormats.h"
 
+#include <unordered_map>
+
 namespace Wayfinder
 {
     namespace
@@ -91,14 +93,15 @@ namespace Wayfinder
         m_primitiveMesh = Mesh::CreatePrimitive(device);
         m_texturedPrimitiveMesh = Mesh::CreateTexturedPrimitive(device);
 
-        // AddPass consults m_isInitialised before OnAttach; set true before this loop so nested AddPass during
-        // OnAttach attaches new passes.
         m_isInitialised = true;
 
-        for (auto& pass : m_passes)
         {
-            auto ctx = MakePassContext();
-            pass->OnAttach(ctx);
+            auto pending = std::move(m_pendingPasses);
+            m_pendingPasses.clear();
+            for (auto& p : pending)
+            {
+                m_renderPipeline->RegisterPass(p.Phase, p.Order, std::move(p.Pass));
+            }
         }
 
         WAYFINDER_INFO(LogRenderer, "Renderer initialised ({}x{}, backend: {})", m_screenWidth, m_screenHeight, device.GetDeviceInfo().BackendName);
@@ -108,15 +111,7 @@ namespace Wayfinder
 
     void Renderer::Shutdown()
     {
-        for (auto& pass : m_passes)
-        {
-            if (m_isInitialised && m_context)
-            {
-                auto ctx = MakePassContext();
-                pass->OnDetach(ctx);
-            }
-        }
-        m_passes.clear();
+        m_pendingPasses.clear();
 
         m_primitiveMesh.Destroy();
         m_texturedPrimitiveMesh.Destroy();
@@ -153,27 +148,25 @@ namespace Wayfinder
         return RenderPassContext{.Context = *m_context};
     }
 
-    void Renderer::AddPass(std::unique_ptr<RenderPass> pass)
+    void Renderer::AddPass(const RenderPhase phase, const int32_t order, std::unique_ptr<RenderPass> pass)
     {
         if (!pass)
         {
             return;
         }
-        if (m_isInitialised && m_context)
+        if (m_isInitialised && m_context && m_renderPipeline)
         {
-            auto ctx = MakePassContext();
-            pass->OnAttach(ctx);
+            m_renderPipeline->RegisterPass(phase, order, std::move(pass));
         }
-        m_passes.push_back(std::move(pass));
+        else
+        {
+            m_pendingPasses.push_back(PendingPassRegistration{.Phase = phase, .Order = order, .Pass = std::move(pass)});
+        }
     }
 
-    void Renderer::RegisterEnginePass(EngineRenderPhase phase, int32_t orderWithinPhase, std::unique_ptr<RenderPass> pass)
+    void Renderer::AddPass(const RenderPhase phase, std::unique_ptr<RenderPass> pass)
     {
-        if (!m_renderPipeline)
-        {
-            return;
-        }
-        m_renderPipeline->RegisterEnginePass(phase, orderWithinPhase, std::move(pass));
+        AddPass(phase, 0, std::move(pass));
     }
 
     void Renderer::Render(const RenderFrame& frame)
@@ -237,7 +230,7 @@ namespace Wayfinder
                     .ResourceCache = m_renderResources.get(),
                     .PrimaryView = primaryView,
                 };
-                m_renderPipeline->BuildGraph(graph, params, m_passes);
+                m_renderPipeline->BuildGraph(graph, params);
 
                 if (graph.Compile())
                 {

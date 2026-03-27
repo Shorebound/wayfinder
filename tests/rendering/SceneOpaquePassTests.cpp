@@ -12,7 +12,7 @@
 
 namespace Wayfinder::Tests
 {
-    TEST_CASE("SceneOpaquePass: BuildGraph compiles with empty game passes")
+    TEST_CASE("SceneOpaquePass: BuildGraph compiles with default pipeline")
     {
         auto device = Wayfinder::RenderDevice::Create(Wayfinder::RenderBackend::Null);
         REQUIRE(device);
@@ -52,7 +52,7 @@ namespace Wayfinder::Tests
         };
 
         Wayfinder::RenderGraph graph;
-        pipeline.BuildGraph(graph, params, {});
+        pipeline.BuildGraph(graph, params);
 
         CHECK(graph.Compile());
 

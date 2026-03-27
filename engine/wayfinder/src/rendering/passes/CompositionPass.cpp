@@ -3,6 +3,7 @@
 #include "rendering/backend/GPUPipeline.h"
 #include "rendering/backend/RenderDevice.h"
 #include "rendering/backend/VertexFormats.h"
+#include "rendering/graph/PostProcessUtils.h"
 #include "rendering/graph/RenderGraph.h"
 #include "rendering/graph/RenderPassCapabilities.h"
 #include "rendering/materials/RenderingEffects.h"
@@ -64,14 +65,7 @@ namespace Wayfinder
             return;
         }
 
-        const RenderGraphHandle presentHandle = graph.FindHandle(GraphTextureId::PresentSource);
-        const bool usePresentSource = presentHandle.IsValid();
-        const RenderGraphHandle colourHandle = usePresentSource ? presentHandle : graph.FindHandleChecked(GraphTextureId::SceneColour);
-        if (!usePresentSource)
-        {
-            WAYFINDER_VERBOSE(LogRenderer, "CompositionPass: PresentSource not in graph — sampling SceneColour (register PresentSourceCopyPass or a pass "
-                                           "that writes PresentSource when you need a handoff texture).");
-        }
+        const RenderGraphHandle colourHandle = ResolvePostProcessInput(graph);
 
         graph.AddPass("Composition", [&](RenderGraphBuilder& builder)
         {

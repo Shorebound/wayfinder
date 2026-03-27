@@ -203,6 +203,7 @@ set(ENGINE_ALL_SOURCES
   src/rendering/graph/RenderPassCapabilities.h
   src/rendering/graph/RenderGraph.cpp
   src/rendering/graph/RenderGraph.h
+  src/rendering/graph/PostProcessUtils.h
   src/rendering/graph/RenderIntent.h
   src/rendering/graph/SortKey.h
 
@@ -243,8 +244,6 @@ set(ENGINE_ALL_SOURCES
   src/rendering/passes/CompositionPass.h
   src/rendering/passes/DebugPass.cpp
   src/rendering/passes/DebugPass.h
-  src/rendering/passes/PresentSourceCopyPass.cpp
-  src/rendering/passes/PresentSourceCopyPass.h
   src/rendering/passes/SceneOpaquePass.cpp
   src/rendering/passes/SceneOpaquePass.h
   src/rendering/passes/SubmissionDrawing.cpp

@@ -186,7 +186,7 @@ namespace Wayfinder
 
     RenderGraphHandle RenderGraph::ImportTexture(const InternedString& name)
     {
-        for (uint32_t i = 0; i < m_resources.size(); ++i)
+        for (auto i = static_cast<uint32_t>(m_resources.size()); i-- > 0;)
         {
             if (CheckedAt(m_resources, i).Name == name)
             {
@@ -207,7 +207,7 @@ namespace Wayfinder
     {
         const auto internedName = InternedString::Intern(name);
 
-        for (uint32_t i = 0; i < m_resources.size(); ++i)
+        for (auto i = static_cast<uint32_t>(m_resources.size()); i-- > 0;)
         {
             if (CheckedAt(m_resources, i).Name == internedName)
             {
@@ -220,7 +220,7 @@ namespace Wayfinder
     RenderGraphHandle RenderGraph::FindHandle(const GraphTextureId id) const
     {
         const InternedString& name = GraphTextureIntern(id);
-        for (uint32_t i = 0; i < m_resources.size(); ++i)
+        for (auto i = static_cast<uint32_t>(m_resources.size()); i-- > 0;)
         {
             if (CheckedAt(m_resources, i).Name == name)
             {
