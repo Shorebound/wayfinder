@@ -46,20 +46,20 @@ namespace Wayfinder
 
     void RenderResourceCache::PrepareFrame(RenderFrame& frame)
     {
-        for (FrameLayerRecord& layer : frame.Layers)
+        for (auto& layer : frame.Layers)
         {
-            for (RenderMeshSubmission& mesh : layer.Meshes)
+            for (auto& mesh : layer.Meshes)
             {
                 mesh.Material = PrepareMaterialBinding(mesh.Material);
             }
 
-            if (!layer.DebugDraw)
+            if (!layer.DebugDraw.has_value())
             {
                 continue;
             }
 
-            RenderDebugDrawList& debugDraw = *layer.DebugDraw;
-            for (RenderDebugBox& debugBox : debugDraw.Boxes)
+            auto& debugDraw = *layer.DebugDraw;
+            for (auto& debugBox : debugDraw.Boxes)
             {
                 debugBox.Material = PrepareMaterialBinding(debugBox.Material);
             }
@@ -83,7 +83,7 @@ namespace Wayfinder
             auto result = m_meshManager->GetOrLoad(*submission.Mesh.AssetId, *m_assetService);
             if (result)
             {
-                const MeshAssetGPU* gpuAsset = *result;
+                const auto* gpuAsset = *result;
                 if (submission.Mesh.SubmeshIndex < gpuAsset->Submeshes.size())
                 {
                     resource.GpuMesh = &gpuAsset->Submeshes.at(submission.Mesh.SubmeshIndex);
@@ -149,7 +149,7 @@ namespace Wayfinder
         }
 
         std::string error;
-        const MaterialAsset* materialAsset = m_assetService->LoadMaterialAsset(*binding.Ref.AssetId, error);
+        const auto* materialAsset = m_assetService->LoadMaterialAsset(*binding.Ref.AssetId, error);
         if (!materialAsset)
         {
             return resource;
@@ -178,7 +178,7 @@ namespace Wayfinder
             return;
         }
 
-        const ShaderProgram* program = m_programs->FindOrDefault(binding.ShaderName);
+        const auto* program = m_programs->FindOrDefault(binding.ShaderName);
         if (!program)
         {
             return;
