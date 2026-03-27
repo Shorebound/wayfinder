@@ -17,7 +17,7 @@
 #include "rendering/RenderTypes.h"
 #include "rendering/backend/GPUHandles.h"
 #include "rendering/materials/MaterialParameter.h"
-#include "rendering/materials/PostProcessVolume.h"
+#include "volumes/VolumeEffect.h"
 
 namespace Wayfinder
 {
@@ -203,7 +203,7 @@ namespace Wayfinder
         Camera CameraState{};
         Colour ClearColour = Colour::White();
         bool IsPrimary = true;
-        PostProcessStack PostProcess;
+        VolumeEffectStack PostProcess;
 
         /// Pre-computed matrices and frustum. Populated by RenderPipeline::Prepare().
         Matrix4 ViewMatrix = Matrix4(1.0f);

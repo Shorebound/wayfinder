@@ -7,8 +7,8 @@
 #include "gameplay/GameplayTagRegistry.h"
 #include "scene/entity/Entity.h"
 
-#include "rendering/materials/PostProcessRegistry.h"
-#include "rendering/materials/PostProcessVolume.h"
+#include "volumes/VolumeEffect.h"
+#include "volumes/VolumeEffectRegistry.h"
 
 #include <array>
 #include <charconv>
@@ -631,8 +631,8 @@ namespace Wayfinder
                     }
 
                     const std::string effectTypeStr = effectEntry.at("type").get<std::string>();
-                    const std::string normalised = Wayfinder::NormalisePostProcessEffectTypeString(effectTypeStr);
-                    if (!Wayfinder::IsValidPostProcessEffectTypeName(normalised))
+                    const std::string normalised = Wayfinder::NormaliseEffectTypeString(effectTypeStr);
+                    if (!Wayfinder::IsValidEffectTypeName(normalised))
                     {
                         error = "unknown post-process effect type: " + effectTypeStr;
                         return false;
@@ -762,7 +762,7 @@ namespace Wayfinder
             entity.AddComponent<Wayfinder::RenderableComponent>(renderable);
         }
 
-        Wayfinder::PostProcessVolumeShape ReadVolumeShape(const nlohmann::json& data, std::string_view key, Wayfinder::PostProcessVolumeShape fallback)
+        Wayfinder::VolumeShape ReadVolumeShape(const nlohmann::json& data, std::string_view key, Wayfinder::VolumeShape fallback)
         {
             if (!data.contains(key) || !data.at(key).is_string())
             {
@@ -771,15 +771,15 @@ namespace Wayfinder
             const auto value = data.at(key).get<std::string>();
             if (value == "global")
             {
-                return Wayfinder::PostProcessVolumeShape::Global;
+                return Wayfinder::VolumeShape::Global;
             }
             if (value == "box")
             {
-                return Wayfinder::PostProcessVolumeShape::Box;
+                return Wayfinder::VolumeShape::Box;
             }
             if (value == "sphere")
             {
-                return Wayfinder::PostProcessVolumeShape::Sphere;
+                return Wayfinder::VolumeShape::Sphere;
             }
             return fallback;
         }
@@ -867,40 +867,40 @@ namespace Wayfinder
 
         // ── PostProcessVolumeComponent ──────────────────────────
 
-        std::string_view ToString(Wayfinder::PostProcessVolumeShape shape)
+        std::string_view ToString(Wayfinder::VolumeShape shape)
         {
             switch (shape)
             {
-            case Wayfinder::PostProcessVolumeShape::Global:
+            case Wayfinder::VolumeShape::Global:
                 return "global";
-            case Wayfinder::PostProcessVolumeShape::Box:
+            case Wayfinder::VolumeShape::Box:
                 return "box";
-            case Wayfinder::PostProcessVolumeShape::Sphere:
+            case Wayfinder::VolumeShape::Sphere:
                 return "sphere";
             }
             return "global";
         }
 
-        Wayfinder::PostProcessEffect ReadEffect(const nlohmann::json& effectData)
+        Wayfinder::VolumeEffect ReadEffect(const nlohmann::json& effectData)
         {
-            Wayfinder::PostProcessEffect effect{};
-            const Wayfinder::PostProcessRegistry* registry = Wayfinder::PostProcessRegistry::GetActiveInstance();
+            Wayfinder::VolumeEffect effect{};
+            const Wayfinder::VolumeEffectRegistry* registry = Wayfinder::VolumeEffectRegistry::GetActiveInstance();
             if (registry == nullptr)
             {
-                WAYFINDER_WARN(LogScene, "ReadEffect: PostProcessRegistry not active — post-process effect skipped");
+                WAYFINDER_WARN(LogScene, "ReadEffect: VolumeEffectRegistry not active — volume effect skipped");
                 return effect;
             }
 
             const std::string typeStr = effectData.value("type", std::string{});
-            const std::string normalised = Wayfinder::NormalisePostProcessEffectTypeString(typeStr);
-            const std::optional<Wayfinder::PostProcessEffectId> idOpt = registry->FindIdByName(normalised);
+            const std::string normalised = Wayfinder::NormaliseEffectTypeString(typeStr);
+            const std::optional<Wayfinder::VolumeEffectId> idOpt = registry->FindIdByName(normalised);
             if (!idOpt.has_value())
             {
                 WAYFINDER_WARN(LogScene, "ReadEffect: unknown post-process effect type '{}' — skipped", typeStr);
                 return effect;
             }
 
-            const Wayfinder::PostProcessEffectDesc* desc = registry->Find(*idOpt);
+            const Wayfinder::VolumeEffectDesc* desc = registry->Find(*idOpt);
             if (desc == nullptr || desc->Deserialise == nullptr)
             {
                 return effect;
@@ -914,9 +914,9 @@ namespace Wayfinder
             return effect;
         }
 
-        void ApplyPostProcessVolume(const nlohmann::json& data, Wayfinder::Entity& entity)
+        void ApplyVolumeComponent(const nlohmann::json& data, Wayfinder::Entity& entity)
         {
-            Wayfinder::PostProcessVolumeComponent volume;
+            Wayfinder::VolumeComponent volume;
             volume.Shape = ReadVolumeShape(data, "shape", volume.Shape);
             volume.Priority = static_cast<int>(data.value("priority", static_cast<int64_t>(volume.Priority)));
             volume.BlendDistance = ReadFloat(data, "blend_distance", volume.BlendDistance);
@@ -935,7 +935,7 @@ namespace Wayfinder
                 }
             }
 
-            entity.AddComponent<Wayfinder::PostProcessVolumeComponent>(volume);
+            entity.AddComponent<Wayfinder::VolumeComponent>(volume);
         }
 
         // NOLINTBEGIN(cppcoreguidelines-pro-bounds-avoid-unchecked-container-access)
@@ -1072,14 +1072,14 @@ namespace Wayfinder
             componentTables["renderable"] = std::move(componentTable);
         }
 
-        void SerialisePostProcessVolume(const Wayfinder::Entity& entity, nlohmann::json& componentTables)
+        void SerialiseVolumeComponent(const Wayfinder::Entity& entity, nlohmann::json& componentTables)
         {
-            if (!entity.HasComponent<Wayfinder::PostProcessVolumeComponent>())
+            if (!entity.HasComponent<Wayfinder::VolumeComponent>())
             {
                 return;
             }
 
-            const auto& volume = entity.GetComponent<Wayfinder::PostProcessVolumeComponent>();
+            const auto& volume = entity.GetComponent<Wayfinder::VolumeComponent>();
             nlohmann::json componentTable;
             componentTable["shape"] = std::string{ToString(volume.Shape)};
             componentTable["priority"] = static_cast<int64_t>(volume.Priority);
@@ -1092,12 +1092,12 @@ namespace Wayfinder
                 nlohmann::json effectsArray = nlohmann::json::array();
                 for (const auto& effect : volume.Effects)
                 {
-                    const Wayfinder::PostProcessRegistry* registry = Wayfinder::PostProcessRegistry::GetActiveInstance();
+                    const Wayfinder::VolumeEffectRegistry* registry = Wayfinder::VolumeEffectRegistry::GetActiveInstance();
                     if (registry == nullptr)
                     {
                         break;
                     }
-                    const Wayfinder::PostProcessEffectDesc* desc = registry->Find(effect.TypeId);
+                    const Wayfinder::VolumeEffectDesc* desc = registry->Find(effect.TypeId);
                     if (desc == nullptr || desc->Serialise == nullptr)
                     {
                         continue;
@@ -1136,9 +1136,9 @@ namespace Wayfinder
                 .ValidateFn = &ValidateRenderOverride},
             {.Key = "gameplay_tags", .RegisterFn = &RegisterComponent<Wayfinder::GameplayTagContainer>, .ApplyFn = &ApplyTags, .SerialiseFn = &SerialiseTags, .ValidateFn = &ValidateTags},
             {.Key = "post_process_volume",
-                .RegisterFn = &RegisterComponent<Wayfinder::PostProcessVolumeComponent>,
-                .ApplyFn = &ApplyPostProcessVolume,
-                .SerialiseFn = &SerialisePostProcessVolume,
+                .RegisterFn = &RegisterComponent<Wayfinder::VolumeComponent>,
+                .ApplyFn = &ApplyVolumeComponent,
+                .SerialiseFn = &SerialiseVolumeComponent,
                 .ValidateFn = &ValidatePostProcessVolume},
         }};
     } // anonymous namespace

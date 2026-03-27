@@ -50,7 +50,7 @@ Passed to every `AddPasses`:
 
 | Field | Contract |
 |-------|----------|
-| `Frame` | The prepared `RenderFrame` (views, **layers**, lights, **per-view post-process stacks**). |
+| `Frame` | The prepared `RenderFrame` (views, **layers**, lights, **per-view volume effect stacks**). |
 | `SwapchainWidth` / `SwapchainHeight` | Current swapchain extent used for transient targets; non-zero when rendering. |
 | `MeshesByStride` | Map from vertex stride → `Mesh*` for built-in primitives used by passes that draw them. |
 | `ResourceCache` | May be null if asset resolution is unavailable; passes must tolerate null if they depend on it. |

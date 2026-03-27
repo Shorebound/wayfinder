@@ -211,12 +211,8 @@ set(ENGINE_ALL_SOURCES
   src/rendering/materials/Material.h
   src/rendering/materials/MaterialParameter.cpp
   src/rendering/materials/MaterialParameter.h
-  src/rendering/materials/Override.h
-  src/rendering/materials/PostProcessRegistry.cpp
-  src/rendering/materials/PostProcessRegistry.h
-  src/rendering/materials/PostProcessRegistry.inl
-  src/rendering/materials/PostProcessVolume.cpp
-  src/rendering/materials/PostProcessVolume.h
+  src/rendering/materials/RenderingEffects.cpp
+  src/rendering/materials/RenderingEffects.h
   src/rendering/materials/ShaderManager.cpp
   src/rendering/materials/ShaderManager.h
   src/rendering/materials/ShaderProgram.cpp
@@ -265,6 +261,14 @@ set(ENGINE_ALL_SOURCES
   src/rendering/resources/TransientBufferAllocator.h
   src/rendering/resources/TransientResourcePool.cpp
   src/rendering/resources/TransientResourcePool.h
+
+  # Volumes
+  src/volumes/Override.h
+  src/volumes/VolumeEffect.cpp
+  src/volumes/VolumeEffect.h
+  src/volumes/VolumeEffectRegistry.cpp
+  src/volumes/VolumeEffectRegistry.h
+  src/volumes/VolumeEffectRegistry.inl
 
   # Scene
   src/scene/ComponentRegistry.cpp

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "rendering/materials/PostProcessVolume.h"
+#include "rendering/materials/RenderingEffects.h"
 #include "rendering/pipeline/ShaderUniforms.h"
 
 namespace Wayfinder

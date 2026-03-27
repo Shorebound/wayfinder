@@ -2,13 +2,13 @@
 
 #include "PipelineCache.h"
 #include "core/Result.h"
-#include "rendering/materials/PostProcessRegistry.h"
 #include "rendering/materials/ShaderManager.h"
 #include "rendering/materials/ShaderProgram.h"
 #include "rendering/resources/MeshManager.h"
 #include "rendering/resources/TextureManager.h"
 #include "rendering/resources/TransientBufferAllocator.h"
 #include "rendering/resources/TransientResourcePool.h"
+#include "volumes/VolumeEffectRegistry.h"
 
 #include <cassert>
 
@@ -114,22 +114,22 @@ namespace Wayfinder
             return m_nearestSampler;
         }
 
-        PostProcessRegistry& GetPostProcessRegistry()
+        VolumeEffectRegistry& GetVolumeEffectRegistry()
         {
-            return m_postProcessRegistry;
+            return m_volumeEffectRegistry;
         }
-        const PostProcessRegistry& GetPostProcessRegistry() const
+        const VolumeEffectRegistry& GetVolumeEffectRegistry() const
         {
-            return m_postProcessRegistry;
-        }
-
-        const EnginePostProcessIds& GetEnginePostProcessIds() const
-        {
-            return m_enginePostProcessIds;
+            return m_volumeEffectRegistry;
         }
 
-        /// Registers built-in blendable post-process types (colour grading, vignette, CA). Call once after Initialise.
-        void RegisterEnginePostProcessEffects();
+        const EngineEffectIds& GetEngineEffectIds() const
+        {
+            return m_engineEffectIds;
+        }
+
+        /// Registers built-in blendable volume effect types (colour grading, vignette, CA). Call once after Initialise.
+        void RegisterEngineVolumeEffects();
 
     private:
         RenderDevice* m_device = nullptr;
@@ -143,8 +143,8 @@ namespace Wayfinder
         MeshManager m_meshManager;
         GPUSamplerHandle m_nearestSampler{};
 
-        PostProcessRegistry m_postProcessRegistry;
-        EnginePostProcessIds m_enginePostProcessIds{};
+        VolumeEffectRegistry m_volumeEffectRegistry;
+        EngineEffectIds m_engineEffectIds{};
     };
 
 } // namespace Wayfinder

@@ -7,18 +7,18 @@
 
 namespace Wayfinder
 {
-    template<BlendablePostProcessEffect T>
-    PostProcessEffectId PostProcessRegistry::Register(const std::string_view name)
+    template<BlendableEffect T>
+    VolumeEffectId VolumeEffectRegistry::Register(const std::string_view name)
     {
-        static_assert(sizeof(T) <= POST_PROCESS_EFFECT_PAYLOAD_CAPACITY, "Register<T>: effect type exceeds POST_PROCESS_EFFECT_PAYLOAD_CAPACITY");
-        static_assert(alignof(T) <= 16, "Register<T>: increase PostProcessEffect payload alignment if needed");
+        static_assert(sizeof(T) <= VOLUME_EFFECT_PAYLOAD_CAPACITY, "Register<T>: effect type exceeds VOLUME_EFFECT_PAYLOAD_CAPACITY");
+        static_assert(alignof(T) <= 16, "Register<T>: increase VolumeEffect payload alignment if needed");
 
         if (m_sealed)
         {
-            return INVALID_POST_PROCESS_EFFECT_ID;
+            return INVALID_VOLUME_EFFECT_ID;
         }
 
-        PostProcessEffectDesc desc{};
+        VolumeEffectDesc desc{};
         m_names.emplace_back(name);
         desc.Name = std::string_view{m_names.back()};
         desc.Size = sizeof(T);
@@ -26,7 +26,7 @@ namespace Wayfinder
 
         desc.CreateIdentity = [](void* dst)
         {
-            std::construct_at(static_cast<T*>(dst), Identity(PostProcessTag<T>{}));
+            std::construct_at(static_cast<T*>(dst), Identity(EffectTag<T>{}));
         };
 
         desc.Destroy = [](void* dst)
@@ -43,7 +43,7 @@ namespace Wayfinder
 
         desc.Deserialise = [](void* dst, const nlohmann::json& json)
         {
-            std::construct_at(static_cast<T*>(dst), Deserialise(PostProcessTag<T>{}, json));
+            std::construct_at(static_cast<T*>(dst), Deserialise(EffectTag<T>{}, json));
         };
 
         desc.Serialise = [](nlohmann::json& json, const void* src)
@@ -51,7 +51,7 @@ namespace Wayfinder
             Serialise(json, *static_cast<const T*>(src));
         };
 
-        const PostProcessEffectId id = static_cast<PostProcessEffectId>(m_descs.size());
+        const VolumeEffectId id = static_cast<VolumeEffectId>(m_descs.size());
         m_descs.push_back(std::move(desc));
         return id;
     }

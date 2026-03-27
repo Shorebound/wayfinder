@@ -3,7 +3,7 @@
 #include "app/EngineConfig.h"
 #include "core/Log.h"
 #include "rendering/backend/RenderDevice.h"
-#include "rendering/materials/PostProcessVolume.h"
+#include "rendering/materials/RenderingEffects.h"
 
 namespace Wayfinder
 {
@@ -11,7 +11,7 @@ namespace Wayfinder
     {
         m_device = &device;
 
-        PostProcessRegistry::SetActiveInstance(&m_postProcessRegistry);
+        VolumeEffectRegistry::SetActiveInstance(&m_volumeEffectRegistry);
 
         m_shaderManager.Initialise(device, config.Shaders.Directory);
         m_pipelineCache.Initialise(device);
@@ -49,18 +49,18 @@ namespace Wayfinder
         return {};
     }
 
-    void RenderContext::RegisterEnginePostProcessEffects()
+    void RenderContext::RegisterEngineVolumeEffects()
     {
-        PostProcessRegistry& reg = m_postProcessRegistry;
-        m_enginePostProcessIds.ColourGrading = reg.Register<ColourGradingParams>("colour_grading");
-        m_enginePostProcessIds.Vignette = reg.Register<VignetteParams>("vignette");
-        m_enginePostProcessIds.ChromaticAberration = reg.Register<ChromaticAberrationParams>("chromatic_aberration");
+        VolumeEffectRegistry& reg = m_volumeEffectRegistry;
+        m_engineEffectIds.ColourGrading = reg.Register<ColourGradingParams>("colour_grading");
+        m_engineEffectIds.Vignette = reg.Register<VignetteParams>("vignette");
+        m_engineEffectIds.ChromaticAberration = reg.Register<ChromaticAberrationParams>("chromatic_aberration");
         reg.Seal();
     }
 
     void RenderContext::Shutdown()
     {
-        PostProcessRegistry::SetActiveInstance(nullptr);
+        VolumeEffectRegistry::SetActiveInstance(nullptr);
 
         if (m_nearestSampler && m_device)
         {
