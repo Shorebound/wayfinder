@@ -53,13 +53,14 @@ namespace Wayfinder
                 mesh.Material = PrepareMaterialBinding(mesh.Material);
             }
 
-            if (!layer.DebugDraw.has_value())
+            if (!layer.DebugDraw)
             {
                 continue;
             }
 
-            auto& debugDraw = *layer.DebugDraw;
-            for (auto& debugBox : debugDraw.Boxes)
+            // somehow this triggers `unchecked access to optional value [bugprone-unchecked-optional-access,-warnings-as-errors]`
+            // NOLINTNEXTLINE(bugprone-unchecked-optional-access)
+            for (auto& debugBox : layer.DebugDraw->Boxes)
             {
                 debugBox.Material = PrepareMaterialBinding(debugBox.Material);
             }
