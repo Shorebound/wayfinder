@@ -5,7 +5,7 @@
 #include "rendering/backend/VertexFormats.h"
 #include "rendering/graph/RenderGraph.h"
 #include "rendering/graph/RenderPassCapabilities.h"
-#include "rendering/materials/PostProcessVolume.h"
+#include "rendering/materials/RenderingEffects.h"
 #include "rendering/materials/ShaderProgram.h"
 #include "rendering/pipeline/CompositionUBOUtils.h"
 #include "rendering/pipeline/RenderContext.h"
@@ -88,8 +88,8 @@ namespace Wayfinder
                 ChromaticAberrationParams chromaticAberration{};
                 if (params.PrimaryView.Valid && !params.Frame.Views.empty())
                 {
-                    const PostProcessStack& stack = params.Frame.Views.front().PostProcess;
-                    const EnginePostProcessIds& ids = m_context->GetEnginePostProcessIds();
+                    const BlendableEffectStack& stack = params.Frame.Views.front().PostProcess;
+                    const EngineEffectIds& ids = m_context->GetEngineEffectIds();
                     grading = ResolveColourGradingForView(stack, ids.ColourGrading);
                     vignette = ResolveVignetteForView(stack, ids.Vignette);
                     chromaticAberration = ResolveChromaticAberrationForView(stack, ids.ChromaticAberration);

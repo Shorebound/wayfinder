@@ -2,13 +2,13 @@
 
 #include "PipelineCache.h"
 #include "core/Result.h"
-#include "rendering/materials/PostProcessRegistry.h"
 #include "rendering/materials/ShaderManager.h"
 #include "rendering/materials/ShaderProgram.h"
 #include "rendering/resources/MeshManager.h"
 #include "rendering/resources/TextureManager.h"
 #include "rendering/resources/TransientBufferAllocator.h"
 #include "rendering/resources/TransientResourcePool.h"
+#include "volumes/BlendableEffectRegistry.h" // EngineEffectIds
 
 #include <cassert>
 
@@ -114,22 +114,13 @@ namespace Wayfinder
             return m_nearestSampler;
         }
 
-        PostProcessRegistry& GetPostProcessRegistry()
+        const EngineEffectIds& GetEngineEffectIds() const
         {
-            return m_postProcessRegistry;
-        }
-        const PostProcessRegistry& GetPostProcessRegistry() const
-        {
-            return m_postProcessRegistry;
+            return m_engineEffectIds;
         }
 
-        const EnginePostProcessIds& GetEnginePostProcessIds() const
-        {
-            return m_enginePostProcessIds;
-        }
-
-        /// Registers built-in blendable post-process types (colour grading, vignette, CA). Call once after Initialise.
-        void RegisterEnginePostProcessEffects();
+        /// Registers built-in blendable effect types (colour grading, vignette, CA). Call once after Initialise.
+        void RegisterEngineBlendableEffects();
 
     private:
         RenderDevice* m_device = nullptr;
@@ -143,8 +134,7 @@ namespace Wayfinder
         MeshManager m_meshManager;
         GPUSamplerHandle m_nearestSampler{};
 
-        PostProcessRegistry m_postProcessRegistry;
-        EnginePostProcessIds m_enginePostProcessIds{};
+        EngineEffectIds m_engineEffectIds{};
     };
 
 } // namespace Wayfinder

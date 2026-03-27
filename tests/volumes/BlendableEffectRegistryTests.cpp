@@ -1,8 +1,9 @@
 #include <doctest/doctest.h>
 
-#include "rendering/materials/Override.h"
-#include "rendering/materials/PostProcessRegistry.h"
-#include "rendering/materials/PostProcessVolume.h"
+#include "rendering/materials/RenderingEffects.h"
+#include "volumes/BlendableEffect.h"
+#include "volumes/BlendableEffectRegistry.h"
+#include "volumes/Override.h"
 
 #include <array>
 #include <nlohmann/json.hpp>
@@ -14,7 +15,7 @@ namespace
         Wayfinder::Override<float> Amount{0.0f};
     };
 
-    RegistryTestEffectParams Identity(Wayfinder::PostProcessTag<RegistryTestEffectParams>)
+    RegistryTestEffectParams Identity(Wayfinder::EffectTag<RegistryTestEffectParams>)
     {
         return RegistryTestEffectParams{};
     }
@@ -34,7 +35,7 @@ namespace
         }
     }
 
-    RegistryTestEffectParams Deserialise(Wayfinder::PostProcessTag<RegistryTestEffectParams>, const nlohmann::json& json)
+    RegistryTestEffectParams Deserialise(Wayfinder::EffectTag<RegistryTestEffectParams>, const nlohmann::json& json)
     {
         RegistryTestEffectParams p{};
         if (json.contains("amount") && json.at("amount").is_number())
@@ -46,14 +47,14 @@ namespace
 
 } // namespace
 
-TEST_CASE("PostProcessRegistry registers and finds by name")
+TEST_CASE("BlendableEffectRegistry registers and finds by name")
 {
-    Wayfinder::PostProcessRegistry registry;
-    const Wayfinder::PostProcessEffectId id = registry.Register<RegistryTestEffectParams>("test_effect");
-    CHECK(id != Wayfinder::INVALID_POST_PROCESS_EFFECT_ID);
+    Wayfinder::BlendableEffectRegistry registry;
+    const Wayfinder::BlendableEffectId id = registry.Register<RegistryTestEffectParams>("test_effect");
+    CHECK(id != Wayfinder::INVALID_BLENDABLE_EFFECT_ID);
     registry.Seal();
 
-    const Wayfinder::PostProcessEffectDesc* desc = registry.Find(id);
+    const Wayfinder::BlendableEffectDesc* desc = registry.Find(id);
     REQUIRE(desc != nullptr);
     CHECK(desc->Name == "test_effect");
 
@@ -75,17 +76,17 @@ TEST_CASE("LerpOverride leaves inactive fields unchanged")
     CHECK(blended.Contrast.Value == doctest::Approx(1.0f));
 }
 
-TEST_CASE("PostProcessRegistry blend and JSON round-trip for test effect")
+TEST_CASE("BlendableEffectRegistry blend and JSON round-trip for test effect")
 {
-    Wayfinder::PostProcessRegistry registry;
-    const Wayfinder::PostProcessEffectId id = registry.Register<RegistryTestEffectParams>("test_effect");
+    Wayfinder::BlendableEffectRegistry registry;
+    const Wayfinder::BlendableEffectId id = registry.Register<RegistryTestEffectParams>("test_effect");
     registry.Seal();
 
-    const Wayfinder::PostProcessEffectDesc* desc = registry.Find(id);
+    const Wayfinder::BlendableEffectDesc* desc = registry.Find(id);
     REQUIRE(desc != nullptr);
 
-    alignas(16) std::array<std::byte, Wayfinder::POST_PROCESS_EFFECT_PAYLOAD_CAPACITY> dst{};
-    alignas(16) std::array<std::byte, Wayfinder::POST_PROCESS_EFFECT_PAYLOAD_CAPACITY> src{};
+    alignas(16) std::array<std::byte, Wayfinder::BLENDABLE_EFFECT_PAYLOAD_CAPACITY> dst{};
+    alignas(16) std::array<std::byte, Wayfinder::BLENDABLE_EFFECT_PAYLOAD_CAPACITY> src{};
 
     desc->CreateIdentity(dst.data());
     nlohmann::json j;
@@ -103,7 +104,7 @@ TEST_CASE("PostProcessRegistry blend and JSON round-trip for test effect")
     desc->Serialise(out, dst.data());
     CHECK(out["amount"].get<float>() == doctest::Approx(2.0f));
 
-    alignas(16) std::array<std::byte, Wayfinder::POST_PROCESS_EFFECT_PAYLOAD_CAPACITY> roundTrip{};
+    alignas(16) std::array<std::byte, Wayfinder::BLENDABLE_EFFECT_PAYLOAD_CAPACITY> roundTrip{};
     desc->Deserialise(roundTrip.data(), out);
     const auto* again = std::launder(reinterpret_cast<const RegistryTestEffectParams*>(roundTrip.data()));
     REQUIRE(again != nullptr);

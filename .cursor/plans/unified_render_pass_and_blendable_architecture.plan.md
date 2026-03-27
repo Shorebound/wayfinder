@@ -2,11 +2,11 @@
 
 ## TL;DR
 
-Replace the early/game/late three-band pass system with a single unified phase-ordered pass list. Introduce a `PostProcessChain` resource convention so post-process passes chain without knowing about each other. Add TOML schema files per effect type for editor UI generation and validation. Lay the foundation for fully data-driven pipeline configuration (TOML files defining which passes are active and in what order). This is three phases: **Phase A** (immediate, code) is the unified pipeline + chain convention. **Phase B** (near-term, data+code) is effect schemas. **Phase C** (future, data-driven) is pipeline configuration from files.
+Replace the early/game/late three-band pass system with a single unified phase-ordered pass list. Introduce a `PostProcessColour` resource convention so post-process passes chain without knowing about each other. Add TOML schema files per effect type for editor UI generation and validation. Lay the foundation for fully data-driven pipeline configuration (TOML files defining which passes are active and in what order). This is three phases: **Phase A** (immediate, code) is the unified pipeline + post-process colour convention. **Phase B** (near-term, data+code) is effect schemas. **Phase C** (future, data-driven) is pipeline configuration from files.
 
 ---
 
-## Phase A: Unified Pass Pipeline + PostProcessChain Convention
+## Phase A: Unified Pass Pipeline + PostProcessColour Convention
 
 ### A.1 — Expand `EngineRenderPhase`
 
@@ -21,7 +21,7 @@ enum class RenderPhase : uint8_t
     Opaque          = 1,   // Forward/deferred main scene geometry
     PostOpaque      = 2,   // SSR, SSAO, light compositing — reads scene colour/depth/GBuffer
     Transparent     = 3,   // Transparent geometry (alpha-blended)
-    PostProcess     = 4,   // Bloom, DOF, motion blur — reads/writes PostProcessChain
+    PostProcess     = 4,   // Bloom, DOF, motion blur — reads/writes PostProcessColour
     Composite       = 5,   // Tonemapping, colour grading, FXAA — final image assembly
     Overlay         = 6,   // Debug draws, editor gizmos, UI — on top of everything
     Present         = 7,   // Swapchain blit — exactly one pass should live here
@@ -93,7 +93,7 @@ The `Renderer::Render()` call to `BuildGraph` drops the `m_passes` argument — 
 
 **File:** [engine/wayfinder/src/rendering/pipeline/RenderPipeline.cpp](engine/wayfinder/src/rendering/pipeline/RenderPipeline.cpp) `Initialise()`
 
-```
+```cpp
 RegisterPass(RenderPhase::Opaque,    0, std::make_unique<SceneOpaquePass>());
 RegisterPass(RenderPhase::Overlay,   0, std::make_unique<DebugPass>());
 RegisterPass(RenderPhase::Present,   0, std::make_unique<CompositionPass>());
@@ -101,62 +101,66 @@ RegisterPass(RenderPhase::Present,   0, std::make_unique<CompositionPass>());
 
 `CompositionPass` moves from `LateEngine` to `Present` — it's the swapchain writer. When a dedicated present-source copy pass is needed, it goes at `Composite` phase.
 
-### A.5 — Introduce `PostProcessChain` resource convention
+### A.5 — Introduce `PostProcessColour` resource convention
+
+**Implementation status:** Not yet landed. The codebase still uses `GraphTextureId::PresentSource` / `GraphTextures::PresentSource` and `CompositionPass` resolves `PresentSource` or falls back to `SceneColour` (see `CompositionPass.cpp`, `RenderGraph.h`). The snippets below describe the planned API; landing them will require updating those call sites and any `PresentSource` consumers.
 
 **File:** [engine/wayfinder/src/rendering/graph/RenderGraph.h](engine/wayfinder/src/rendering/graph/RenderGraph.h)
 
 Add to `GraphTextureId` and `GraphTextures`:
 
-```
+```cpp
 enum class GraphTextureId : uint8_t
 {
     SceneColour,
     SceneDepth,
     PresentSource,
-    PostProcessChain,  // NEW: output of the latest post-process pass
+    PostProcessColour,  // NEW: output of the latest post-process pass
 };
 
 namespace GraphTextures
 {
     // ...existing...
-    inline const InternedString PostProcessChain = InternedString::Intern("PostProcessChain");
+    inline const InternedString PostProcessColour = InternedString::Intern("PostProcessColour");
 }
 ```
 
-**Convention (documented, not enforced by code):**
-- Post-process passes in the `PostProcess` phase read `PostProcessChain` (falling back to `SceneColour` if no prior post-process pass wrote it) and write a new transient named `PostProcessChain`.
-- `CompositionPass` reads `PostProcessChain` (falling back to `SceneColour`).
-- Each write to `PostProcessChain` creates a new graph handle; the graph tracks the latest writer, so `FindHandle("PostProcessChain")` always resolves to the most recent version.
+**Convention (documented, not enforced by code until A.5–A.7 are landed):**
+- Post-process passes in the `PostProcess` phase read `PostProcessColour` (falling back to `SceneColour` if no prior post-process pass wrote it) and write a new transient named `PostProcessColour`.
+- `CompositionPass` reads `PostProcessColour` (falling back to `SceneColour`).
+- Each write to `PostProcessColour` creates a new graph handle; the graph tracks the latest writer, so `FindHandle("PostProcessColour")` always resolves to the most recent version.
 - Private intermediates (e.g. BloomHalfRes, BloomQuarterRes) use arbitrary names and are invisible to other passes.
 
-**File:** [engine/wayfinder/src/rendering/graph/RenderGraph.h](engine/wayfinder/src/rendering/graph/RenderGraph.h) or new header `PostProcessChainUtils.h`
+**File:** [engine/wayfinder/src/rendering/graph/RenderGraph.h](engine/wayfinder/src/rendering/graph/RenderGraph.h) or new header `PostProcessColourUtils.h`
 
 Add a convenience function:
 
-```
-/// Resolves the current post-process chain input: `PostProcessChain` if any prior 
+```cpp
+/// Resolves the current post-process colour input: `PostProcessColour` if any prior 
 /// post-process pass wrote it, otherwise `SceneColour`. Returns invalid handle only 
 /// if neither exists (error — scene pass didn't run).
 RenderGraphHandle ResolvePostProcessInput(const RenderGraph& graph);
 ```
 
 Implementation:
-```
+```cpp
 RenderGraphHandle ResolvePostProcessInput(const RenderGraph& graph)
 {
-    auto chain = graph.FindHandle(GraphTextureId::PostProcessChain);
-    if (chain.IsValid()) return chain;
+    auto colour = graph.FindHandle(GraphTextureId::PostProcessColour);
+    if (colour.IsValid()) return colour;
     return graph.FindHandleChecked(GraphTextureId::SceneColour);
 }
 ```
 
-### A.6 — Update `CompositionPass` to use chain
+### A.6 — Update `CompositionPass` to use `ResolvePostProcessInput`
+
+**Implementation status:** Not yet landed (same as A.5).
 
 **File:** [engine/wayfinder/src/rendering/passes/CompositionPass.cpp](engine/wayfinder/src/rendering/passes/CompositionPass.cpp)
 
 Replace the current `SceneColour`/`PresentSource` resolution with:
 
-```
+```cpp
 auto source = ResolvePostProcessInput(graph);
 ```
 
@@ -166,13 +170,13 @@ This means `CompositionPass` reads whatever the last post-process pass produced 
 
 **File:** [engine/wayfinder/src/rendering/passes/PresentSourceCopyPass.cpp](engine/wayfinder/src/rendering/passes/PresentSourceCopyPass.cpp)
 
-If still needed, register at `RenderPhase::Composite` and have it read `PostProcessChain` / `SceneColour` and write `PresentSource`. In general, this pass may become unnecessary if `CompositionPass` directly reads the chain.
+If still needed, register at `RenderPhase::Composite` and have it read `PostProcessColour` / `SceneColour` and write `PresentSource`. In general, this pass may become unnecessary if `CompositionPass` directly reads the post-process colour output.
 
 ### A.8 — Update `docs/render_passes.md`
 
 Document:
 - The new `RenderPhase` enum and what each phase is for.
-- The `PostProcessChain` convention (read chain or scene colour, write chain).
+- The `PostProcessColour` convention (read `PostProcessColour` or `SceneColour`, write `PostProcessColour`).
 - The `ResolvePostProcessInput` helper.
 - Migration from old `AddPass(pass)` / `RegisterEnginePass(phase, order, pass)` to unified `AddPass(phase, order, pass)`.
 - Example: how a game developer writes a bloom pass, registers it at `PostProcess` order 0, and it automatically chains.
@@ -184,15 +188,15 @@ Document:
 
 New test cases:
 - **Phase ordering:** Register passes at PostProcess:100, Opaque:0, Present:0, PostProcess:0 — verify `BuildGraph` invokes `AddPasses` in (Opaque:0, PostProcess:0, PostProcess:100, Present:0) order.
-- **PostProcessChain convention:** Two passes both read/write `PostProcessChain` — verify the graph compiles and the second pass reads the first pass's output (topological order enforced by `ReadTexture`/`WriteColour` on the same named resource).
-- **`ResolvePostProcessInput` returns SceneColour when no chain exists.**
-- **`ResolvePostProcessInput` returns PostProcessChain when a prior pass wrote it.**
-- **CompositionPass reads chain output correctly** (existing test updated to use new API).
+- **PostProcessColour convention:** Two passes both read/write `PostProcessColour` — verify the graph compiles and the second pass reads the first pass's output (topological order enforced by `ReadTexture`/`WriteColour` on the same named resource).
+- **`ResolvePostProcessInput` returns `SceneColour` when no `PostProcessColour` was written.**
+- **`ResolvePostProcessInput` returns PostProcessColour when a prior pass wrote it.**
+- **CompositionPass reads post-process colour output correctly** (existing test updated to use new API).
 - **Remove pass from unified list — verify phase ordering preserved.**
 
 ### A.10 — CMakeLists.txt
 
-Add any new headers (e.g. `PostProcessChainUtils.h` if created as a separate header).
+Add any new headers (e.g. `PostProcessColourUtils.h` if created as a separate header).
 
 ---
 
@@ -461,7 +465,7 @@ The pipeline loader would build a dependency graph from these declarations and t
 
 - **Single unified pass list.** No engine/game split. All passes register with `(RenderPhase, order)`. Simple, predictable, scalable.
 - **`RenderPhase` replaces `EngineRenderPhase`.** Rename reflects that game code uses the same phases. 8 phases covers everything from pre-opaque to present without being overly granular.
-- **`PostProcessChain` is a convention, not a constraint.** Passes that follow the convention chain automatically. Passes that don't (e.g. they write their own named transient) still work — other passes just can't auto-discover them without knowing the name.
+- **`PostProcessColour` is a convention, not a constraint.** Passes that follow the convention chain automatically. Passes that don't (e.g. they write their own named transient) still work — other passes just can't auto-discover them without knowing the name.
 - **Breaking API change.** `AddPass(phase, order, pass)` replaces the old `AddPass(pass)`. Clean, explicit, no ambiguity about where a pass runs.
 - **Schemas are metadata, not code generation.** The TOML schema describes an effect for tools/validation. The C++ struct is the runtime truth. Tests keep them in sync. No reflection or code gen needed.
 - **Pipeline configs are optional.** The engine works without them — passes can be registered purely from C++ code. Configs add data-driven flexibility on top.
@@ -476,18 +480,18 @@ The pipeline loader would build a dependency graph from these declarations and t
 - [engine/wayfinder/src/rendering/pipeline/RenderPipeline.cpp](engine/wayfinder/src/rendering/pipeline/RenderPipeline.cpp) — `Initialise()` updated registrations, `BuildGraph()` single-loop, `RegisterPass` replaces `RegisterEnginePass`
 - [engine/wayfinder/src/rendering/pipeline/Renderer.h](engine/wayfinder/src/rendering/pipeline/Renderer.h) — New `AddPass(phase, order, pass)`, remove old `AddPass(pass)`, remove `m_passes`
 - [engine/wayfinder/src/rendering/pipeline/Renderer.cpp](engine/wayfinder/src/rendering/pipeline/Renderer.cpp) — `Render()` drops `m_passes` arg, `AddPass` delegates to pipeline, `Shutdown` iterates pipeline's list
-- [engine/wayfinder/src/rendering/graph/RenderGraph.h](engine/wayfinder/src/rendering/graph/RenderGraph.h) — `GraphTextureId::PostProcessChain`, `GraphTextures::PostProcessChain`
+- [engine/wayfinder/src/rendering/graph/RenderGraph.h](engine/wayfinder/src/rendering/graph/RenderGraph.h) — `GraphTextureId::PostProcessColour`, `GraphTextures::PostProcessColour`
 - [engine/wayfinder/src/rendering/graph/RenderPass.h](engine/wayfinder/src/rendering/graph/RenderPass.h) — Update doc comments (no structural change)
 - [engine/wayfinder/src/rendering/passes/CompositionPass.cpp](engine/wayfinder/src/rendering/passes/CompositionPass.cpp) — Use `ResolvePostProcessInput`
-- [engine/wayfinder/src/rendering/passes/PresentSourceCopyPass.cpp](engine/wayfinder/src/rendering/passes/PresentSourceCopyPass.cpp) — Update to use chain convention
+- [engine/wayfinder/src/rendering/passes/PresentSourceCopyPass.cpp](engine/wayfinder/src/rendering/passes/PresentSourceCopyPass.cpp) — Update to use post-process colour convention
 - [docs/render_passes.md](docs/render_passes.md) — Full rewrite of registration and ordering sections
 - [tests/rendering/RenderPassTests.cpp](tests/rendering/RenderPassTests.cpp) — Update for new API, add phase ordering tests
 - [tests/rendering/RenderPipelineTests.cpp](tests/rendering/RenderPipelineTests.cpp) — Update for new API
-- [tests/rendering/RenderGraphTests.cpp](tests/rendering/RenderGraphTests.cpp) — Add PostProcessChain tests
+- [tests/rendering/RenderGraphTests.cpp](tests/rendering/RenderGraphTests.cpp) — Add PostProcessColour tests
 - [tests/rendering/SceneOpaquePassTests.cpp](tests/rendering/SceneOpaquePassTests.cpp) — Update `BuildGraph` call (no gamePasses arg)
 
 ### Phase A — New
-- `engine/wayfinder/src/rendering/graph/PostProcessChainUtils.h` — `ResolvePostProcessInput()` helper (may be inlined into RenderGraph.h instead)
+- `engine/wayfinder/src/rendering/graph/PostProcessColourUtils.h` — `ResolvePostProcessInput()` helper (may be inlined into RenderGraph.h instead)
 
 ### Phase B — New
 - `engine/wayfinder/schemas/effects/colour_grading.toml`
@@ -517,9 +521,9 @@ The pipeline loader would build a dependency graph from these declarations and t
 ### Phase A
 1. All existing tests pass with the new API (update call sites).
 2. New phase-ordering test: register 4 passes at different phases → verify `AddPasses` call order matches `(Phase, Order, InsertSequence)`.
-3. New PostProcessChain test: two passes both read/write `PostProcessChain` → graph compiles, second reads first's output.
-4. `ResolvePostProcessInput` unit test: returns `SceneColour` when no chain, `PostProcessChain` when present.
-5. Composition reads chain correctly: register a mock post-process pass that writes `PostProcessChain`, verify Composition's `ReadTexture` gets that handle.
+3. New PostProcessColour test: two passes both read/write `PostProcessColour` → graph compiles, second reads first's output.
+4. `ResolvePostProcessInput` unit test: returns `SceneColour` when no `PostProcessColour` was written, `PostProcessColour` when present.
+5. Composition reads post-process colour correctly: register a mock post-process pass that writes `PostProcessColour`, verify Composition's `ReadTexture` gets that handle.
 6. Build all configs: `cmake --build --preset debug` passes.
 7. Run `tools/lint.py` and `tools/tidy.py` — clean.
 8. Run journey sandbox — visual parity with current rendering (no post-process effects active, so SceneColour → Composition path unchanged).
@@ -543,13 +547,13 @@ The pipeline loader would build a dependency graph from these declarations and t
 
 **Verified:** `RenderGraph::FindHandle` currently does a **forward** linear scan and returns the **first** match. `AllocateResource` (called by `CreateTransient`) always appends — it never overwrites.
 
-This means if BloomPass creates `PostProcessChain` and then DOFPass creates another `PostProcessChain`, a third pass calling `FindHandle("PostProcessChain")` gets BloomPass's version, not DOFPass's.
+This means if BloomPass creates `PostProcessColour` and then DOFPass creates another `PostProcessColour`, a third pass calling `FindHandle("PostProcessColour")` gets BloomPass's version, not DOFPass's.
 
-**Required fix in Phase A:** Change `FindHandle` to do a **reverse** scan (return the **last** resource with a matching name). This is correct semantics: in a frame graph, the "current version" of a named resource is the most recently created one. This one-line change (`for (int i = size-1; i >= 0; --i)`) makes the `PostProcessChain` convention work automatically.
+**Required fix in Phase A:** Change `FindHandle` to do a **reverse** scan (return the **last** resource with a matching name). This is correct semantics: in a frame graph, the "current version" of a named resource is the most recently created one. This one-line change (`for (int i = size-1; i >= 0; --i)`) makes the `PostProcessColour` convention work automatically.
 
 **Impact on existing code:** Currently no two resources share a name (SceneColour, SceneDepth, PresentSource are each created once). The forward vs reverse scan is irrelevant when names are unique, so this change is backward-compatible.
 
-**Tests to add:** A dedicated test with two passes both writing `PostProcessChain` — verify `FindHandle` returns the second pass's handle.
+**Tests to add:** A dedicated test with two passes both writing `PostProcessColour` — verify `FindHandle` returns the second pass's handle.
 
 ---
 
