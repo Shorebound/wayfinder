@@ -48,6 +48,10 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
 
+      # Surfaces compiler diagnostics on the PR / job summary (file:line annotations).
+      - name: Register Clang problem matcher
+        run: echo "::add-matcher::${{ github.workspace }}/.github/matchers/clang.json"
+
       - name: Configure
         run: cmake --preset ci-linux
 
@@ -96,6 +100,9 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Register MSVC problem matcher
+        run: echo "::add-matcher::${{ github.workspace }}/.github/matchers/msvc.json"
+
       - name: Configure
         run: cmake --preset ci-windows
 
@@ -143,6 +150,9 @@ jobs:
 
       - name: Configure (for compile_commands.json)
         run: cmake --preset ci-linux
+
+      - name: Register Clang problem matcher
+        run: echo "::add-matcher::${{ github.workspace }}/.github/matchers/clang.json"
 
       # Phase A: Only analyse files changed in this PR / push.
       # Switch to full-source scan once baseline is clean.
