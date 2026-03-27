@@ -55,9 +55,20 @@ namespace Wayfinder
             WAYFINDER_WARN(LogRenderer, "RegisterEngineBlendableEffects: no active BlendableEffectRegistry — skipping");
             return;
         }
-        m_engineEffectIds.ColourGrading = reg->Register<ColourGradingParams>("colour_grading");
-        m_engineEffectIds.Vignette = reg->Register<VignetteParams>("vignette");
-        m_engineEffectIds.ChromaticAberration = reg->Register<ChromaticAberrationParams>("chromatic_aberration");
+        m_engineEffectIds.ColourGrading = reg->Register<ColourGradingParams>(EngineBlendableEffectNames::ColourGrading);
+        m_engineEffectIds.Vignette = reg->Register<VignetteParams>(EngineBlendableEffectNames::Vignette);
+        m_engineEffectIds.ChromaticAberration = reg->Register<ChromaticAberrationParams>(EngineBlendableEffectNames::ChromaticAberration);
+
+        if (m_engineEffectIds.ColourGrading == INVALID_BLENDABLE_EFFECT_ID || m_engineEffectIds.Vignette == INVALID_BLENDABLE_EFFECT_ID || m_engineEffectIds.ChromaticAberration == INVALID_BLENDABLE_EFFECT_ID)
+        {
+            WAYFINDER_ERROR(LogRenderer,
+                "RegisterEngineBlendableEffects: one or more engine blendable effect registrations failed "
+                "(ColourGrading={}, Vignette={}, ChromaticAberration={}) — registry not sealed",
+                m_engineEffectIds.ColourGrading, m_engineEffectIds.Vignette, m_engineEffectIds.ChromaticAberration);
+            m_engineEffectIds = {};
+            return;
+        }
+
         reg->Seal();
     }
 

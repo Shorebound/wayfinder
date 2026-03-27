@@ -43,7 +43,8 @@ namespace Wayfinder
 
         desc.Deserialise = [](void* dst, const nlohmann::json& json)
         {
-            std::construct_at(static_cast<T*>(dst), Deserialise(EffectTag<T>{}, json));
+            // Assignment overwrites an existing payload (e.g. after CreateIdentity) without double placement-new.
+            *static_cast<T*>(dst) = Deserialise(EffectTag<T>{}, json);
         };
 
         desc.Serialise = [](nlohmann::json& json, const void* src)

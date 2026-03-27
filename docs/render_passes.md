@@ -178,9 +178,9 @@ Use **`graph.FindHandle(GraphTextureId::SceneColour)`** (or `FindHandleChecked`)
 
 ### Post-processing data
 
-Scene **`PostProcessVolumeComponent`** data is blended into **`RenderView::PostProcess`** (`PostProcessStack`) during extraction. Effect types are registered at runtime in **`PostProcessRegistry`** (engine defaults: `colour_grading`, `vignette`, `chromatic_aberration`). Each effect uses a small **typed** payload struct with **`Override<T>`** fields so authors can override individual parameters. The registry owns **identity, blend (Lerp), and JSON (de)serialisation**; it does **not** add **`RenderPass`** graph nodes. **`CompositionPass`** reads **`ColourGradingParams`**, **`VignetteParams`**, and **`ChromaticAberrationParams`** from the primary view’s stack (via **`EnginePostProcessIds`** on **`RenderContext`**) and uploads a **`CompositionUBO`** for **`composition.frag`**. Game code can register additional blendable types and consume them from the stack in custom passes.
+Scene **`BlendableEffectVolumeComponent`** data is blended into **`RenderView::PostProcess`** (`BlendableEffectStack`) during extraction. Effect types are registered at runtime in **`BlendableEffectRegistry`** (engine defaults: `colour_grading`, `vignette`, `chromatic_aberration`). Each effect uses a small **typed** payload struct with **`Override<T>`** fields so authors can override individual parameters. The registry owns **identity, blend (Lerp), and JSON (de)serialisation**; it does **not** add **`RenderPass`** graph nodes. **`CompositionPass`** reads **`ColourGradingParams`**, **`VignetteParams`**, and **`ChromaticAberrationParams`** from the primary view’s stack (via **`EngineEffectIds`** on **`RenderContext`**) and uploads a **`CompositionUBO`** for **`composition.frag`**. Game code can register additional blendable types and consume them from the stack in custom passes.
 
-**`PostProcessRegistry::SetActiveInstance`** is set from **`RenderContext::Initialise`** so scene load and validation resolve JSON **`type`** strings against the same registry.
+**`BlendableEffectRegistry::SetActiveInstance`** is set from **`EngineRuntime::Initialise`** (and used during **`RenderContext::RegisterEngineBlendableEffects`**) so scene load and validation resolve JSON **`type`** strings against the same registry.
 
 ### Transient Resources
 

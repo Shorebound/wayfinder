@@ -38,6 +38,7 @@ float4 PSMain(PSInput input) : SV_Target
     float b = SceneColourTex.Sample(PointSampler, uv + off).b;
     float3 c = float3(r, g, b);
 
+    // Standard LGG-style order: exposure (stops), lift, gain, gamma (power), then contrast, then saturation (luma-based).
     c *= exp2(ExposureContrastSaturationPad.x);
     c += Lift.rgb;
     c *= Gain.rgb;

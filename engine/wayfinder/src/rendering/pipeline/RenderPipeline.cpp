@@ -56,6 +56,10 @@ namespace Wayfinder
 
         if (phase == EngineRenderPhase::LateEngine)
         {
+            if (slot.Pass && !slot.Pass->IsEnabled())
+            {
+                WAYFINDER_WARN(LogRenderer, "RegisterEnginePass: LateEngine pass '{}' is disabled — graph may lack a swapchain writer", slot.Pass->GetName());
+            }
             m_lateEnginePasses.push_back(std::move(slot));
             SortEnginePassList(m_lateEnginePasses);
         }

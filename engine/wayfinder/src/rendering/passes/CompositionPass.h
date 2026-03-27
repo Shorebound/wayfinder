@@ -25,6 +25,8 @@ namespace Wayfinder
         void OnDetach(const RenderPassContext& context) override;
         void AddPasses(RenderGraph& graph, const RenderPipelineFrameParams& params) override;
 
+        void SetEnabled(bool enabled) override;
+
     private:
         RenderContext* m_context = nullptr;
     };

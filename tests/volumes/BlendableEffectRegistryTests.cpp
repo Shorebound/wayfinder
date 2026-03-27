@@ -89,6 +89,7 @@ TEST_CASE("BlendableEffectRegistry blend and JSON round-trip for test effect")
     alignas(16) std::array<std::byte, Wayfinder::BLENDABLE_EFFECT_PAYLOAD_CAPACITY> src{};
 
     desc->CreateIdentity(dst.data());
+    desc->CreateIdentity(src.data());
     nlohmann::json j;
     j["amount"] = 4.0f;
     desc->Deserialise(src.data(), j);
@@ -105,6 +106,7 @@ TEST_CASE("BlendableEffectRegistry blend and JSON round-trip for test effect")
     CHECK(out["amount"].get<float>() == doctest::Approx(2.0f));
 
     alignas(16) std::array<std::byte, Wayfinder::BLENDABLE_EFFECT_PAYLOAD_CAPACITY> roundTrip{};
+    desc->CreateIdentity(roundTrip.data());
     desc->Deserialise(roundTrip.data(), out);
     const auto* again = std::launder(reinterpret_cast<const RegistryTestEffectParams*>(roundTrip.data()));
     REQUIRE(again != nullptr);
@@ -113,4 +115,28 @@ TEST_CASE("BlendableEffectRegistry blend and JSON round-trip for test effect")
     desc->Destroy(dst.data());
     desc->Destroy(src.data());
     desc->Destroy(roundTrip.data());
+}
+
+TEST_CASE("BlendableEffectRegistry Deserialise overwrites buffer after CreateIdentity")
+{
+    Wayfinder::BlendableEffectRegistry registry;
+    const Wayfinder::BlendableEffectId id = registry.Register<RegistryTestEffectParams>("test_effect");
+    registry.Seal();
+
+    const Wayfinder::BlendableEffectDesc* desc = registry.Find(id);
+    REQUIRE(desc != nullptr);
+
+    alignas(16) std::array<std::byte, Wayfinder::BLENDABLE_EFFECT_PAYLOAD_CAPACITY> buf{};
+    desc->CreateIdentity(buf.data());
+
+    nlohmann::json j;
+    j["amount"] = 4.0f;
+    desc->Deserialise(buf.data(), j);
+
+    const auto* params = std::launder(reinterpret_cast<const RegistryTestEffectParams*>(buf.data()));
+    REQUIRE(params != nullptr);
+    CHECK(params->Amount.Active);
+    CHECK(params->Amount.Value == doctest::Approx(4.0f));
+
+    desc->Destroy(buf.data());
 }

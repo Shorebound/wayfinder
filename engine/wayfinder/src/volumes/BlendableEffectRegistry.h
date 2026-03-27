@@ -2,6 +2,7 @@
 
 #include "wayfinder_exports.h"
 
+#include <array>
 #include <cstddef>
 #include <cstdint>
 #include <functional>
@@ -11,7 +12,7 @@
 #include <type_traits>
 #include <vector>
 
-#include <nlohmann/json.hpp>
+#include <nlohmann/json_fwd.hpp>
 
 namespace Wayfinder
 {
@@ -22,6 +23,23 @@ namespace Wayfinder
     using BlendableEffectId = uint32_t;
 
     inline constexpr BlendableEffectId INVALID_BLENDABLE_EFFECT_ID = static_cast<BlendableEffectId>(-1);
+
+    /**
+     * @brief Canonical type names for engine-registered blendable effects (single source of truth for registration and validation).
+     */
+    namespace EngineBlendableEffectNames
+    {
+        inline constexpr std::string_view ColourGrading = "colour_grading";
+        inline constexpr std::string_view Vignette = "vignette";
+        inline constexpr std::string_view ChromaticAberration = "chromatic_aberration";
+    }
+
+    /** @brief Fallback list matching `EngineBlendableEffectNames` (validation when no active registry). */
+    inline constexpr std::array<std::string_view, 3> ENGINE_DEFAULT_BLENDABLE_EFFECT_NAMES = {{
+        EngineBlendableEffectNames::ColourGrading,
+        EngineBlendableEffectNames::Vignette,
+        EngineBlendableEffectNames::ChromaticAberration,
+    }};
 
     /** @brief ADL tag for Identity / Deserialise without a T instance. */
     template<typename T>

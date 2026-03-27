@@ -109,8 +109,6 @@ namespace Wayfinder
 
         WAYFINDER_INFO(LogEngine, "Shutting down EngineRuntime");
 
-        BlendableEffectRegistry::SetActiveInstance(nullptr);
-
         if (m_renderer)
         {
             m_renderer->Shutdown();
@@ -133,6 +131,9 @@ namespace Wayfinder
 
         m_input = nullptr;
         m_time = nullptr;
+
+        // Clear after renderer/extractor teardown so shutdown paths can still use GetActiveInstance() if needed.
+        BlendableEffectRegistry::SetActiveInstance(nullptr);
     }
 
     // ── Per-frame ────────────────────────────────────────────

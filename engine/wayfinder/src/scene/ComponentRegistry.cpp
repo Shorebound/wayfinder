@@ -944,7 +944,7 @@ namespace Wayfinder
             }
 
             const Wayfinder::BlendableEffectDesc* desc = registry->Find(*idOpt);
-            if (desc == nullptr || desc->Deserialise == nullptr)
+            if (desc == nullptr || desc->Deserialise == nullptr || desc->CreateIdentity == nullptr)
             {
                 return effect;
             }
@@ -952,6 +952,7 @@ namespace Wayfinder
             effect.TypeId = *idOpt;
             effect.Enabled = effectData.value("enabled", true);
             // NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
+            desc->CreateIdentity(effect.Payload);
             desc->Deserialise(effect.Payload, effectData);
             // NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
             return effect;
@@ -1132,35 +1133,38 @@ namespace Wayfinder
 
             if (!volume.Effects.empty())
             {
-                nlohmann::json effectsArray = nlohmann::json::array();
-                for (const auto& effect : volume.Effects)
+                const Wayfinder::BlendableEffectRegistry* registry = Wayfinder::BlendableEffectRegistry::GetActiveInstance();
+                if (registry == nullptr)
                 {
-                    const Wayfinder::BlendableEffectRegistry* registry = Wayfinder::BlendableEffectRegistry::GetActiveInstance();
-                    if (registry == nullptr)
-                    {
-                        break;
-                    }
-                    const Wayfinder::BlendableEffectDesc* desc = registry->Find(effect.TypeId);
-                    if (desc == nullptr || desc->Serialise == nullptr)
-                    {
-                        continue;
-                    }
-
-                    nlohmann::json effectTable;
-                    effectTable["type"] = std::string{desc->Name};
-                    if (!effect.Enabled)
-                    {
-                        effectTable["enabled"] = false;
-                    }
-                    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
-                    desc->Serialise(effectTable, effect.Payload);
-                    // NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
-                    effectsArray.push_back(std::move(effectTable));
+                    WAYFINDER_WARN(LogScene, "SerialiseBlendableEffectVolumeComponent: BlendableEffectRegistry not active — effects not serialised");
                 }
-
-                if (!effectsArray.empty())
+                else
                 {
-                    componentTable["effects"] = std::move(effectsArray);
+                    nlohmann::json effectsArray = nlohmann::json::array();
+                    for (const auto& effect : volume.Effects)
+                    {
+                        const Wayfinder::BlendableEffectDesc* desc = registry->Find(effect.TypeId);
+                        if (desc == nullptr || desc->Serialise == nullptr)
+                        {
+                            continue;
+                        }
+
+                        nlohmann::json effectTable;
+                        effectTable["type"] = std::string{desc->Name};
+                        if (!effect.Enabled)
+                        {
+                            effectTable["enabled"] = false;
+                        }
+                        // NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
+                        desc->Serialise(effectTable, effect.Payload);
+                        // NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
+                        effectsArray.push_back(std::move(effectTable));
+                    }
+
+                    if (!effectsArray.empty())
+                    {
+                        componentTable["effects"] = std::move(effectsArray);
+                    }
                 }
             }
 

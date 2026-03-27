@@ -3,6 +3,7 @@
 #include "BlendableEffectRegistry.h"
 
 #include "core/Assert.h"
+#include "core/Log.h"
 #include "maths/Maths.h"
 
 #include <algorithm>
@@ -17,6 +18,16 @@ namespace Wayfinder
         if (const BlendableEffectRegistry* registry = BlendableEffectRegistry::GetActiveInstance())
         {
             Clear(*registry);
+            return;
+        }
+        if (!Effects.empty())
+        {
+            // Type-erased payloads require registry.Find(TypeId)->Destroy; without an active registry we cannot run destructors safely.
+            WAYFINDER_WARN(LogRenderer,
+                "BlendableEffectStack at {}: destroyed with {} effect(s) while BlendableEffectRegistry::GetActiveInstance() is null — "
+                "payloads were not destroyed. Clear the stack while a registry is active, or clear the active registry only after stacks are gone.",
+                static_cast<void*>(this), Effects.size());
+            WAYFINDER_ASSERT(false);
         }
     }
 
@@ -208,7 +219,14 @@ namespace Wayfinder
         {
             return reg->FindIdByName(normalisedLower).has_value();
         }
-        return normalisedLower == "colour_grading" || normalisedLower == "vignette" || normalisedLower == "chromatic_aberration";
+        for (const std::string_view engineName : ENGINE_DEFAULT_BLENDABLE_EFFECT_NAMES)
+        {
+            if (normalisedLower == engineName)
+            {
+                return true;
+            }
+        }
+        return false;
     }
 
 } // namespace Wayfinder

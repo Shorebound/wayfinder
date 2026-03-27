@@ -480,6 +480,13 @@ namespace Wayfinder
                     view.PostProcess = BlendVolumeEffects(view.CameraState.Position, volumeInstances, *ppRegistry);
                 }
             }
+            else
+            {
+                WAYFINDER_WARN(LogRenderer,
+                    "SceneRenderExtractor: skipped blendable volume blending for scene '{}' ({} volume instances) — "
+                    "BlendableEffectRegistry has no active instance",
+                    frame.SceneName, volumeInstances.size());
+            }
         }
 
         return frame;

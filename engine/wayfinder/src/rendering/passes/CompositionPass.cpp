@@ -46,6 +46,16 @@ namespace Wayfinder
         m_context = nullptr;
     }
 
+    void CompositionPass::SetEnabled(const bool enabled)
+    {
+        if (!enabled)
+        {
+            WAYFINDER_WARN(LogRenderer, "CompositionPass: disabling is not allowed — this pass writes the swapchain; keeping Composition enabled");
+            return;
+        }
+        RenderPass::SetEnabled(true);
+    }
+
     void CompositionPass::AddPasses(RenderGraph& graph, const RenderPipelineFrameParams& params)
     {
         if (!m_context)

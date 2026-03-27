@@ -53,7 +53,7 @@ namespace Wayfinder
         {
             return m_enabled;
         }
-        void SetEnabled(bool enabled)
+        virtual void SetEnabled(bool enabled)
         {
             m_enabled = enabled;
         }

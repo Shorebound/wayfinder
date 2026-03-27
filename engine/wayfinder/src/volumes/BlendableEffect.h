@@ -87,6 +87,8 @@ namespace Wayfinder
         BlendableEffectVolumeComponent() = default;
         BlendableEffectVolumeComponent(const BlendableEffectVolumeComponent&) = default;
         BlendableEffectVolumeComponent& operator=(const BlendableEffectVolumeComponent&) = default;
+        BlendableEffectVolumeComponent(BlendableEffectVolumeComponent&&) noexcept = default;
+        BlendableEffectVolumeComponent& operator=(BlendableEffectVolumeComponent&&) noexcept = default;
     };
 
     /**
