@@ -77,10 +77,18 @@ namespace Wayfinder
         /// @pre Valid only after Initialise() and before Shutdown().
         Renderer& GetRenderer();
 
+        /**
+         * @brief Returns the runtime's `BlendableEffectRegistry` (`m_blendableEffectRegistry`).
+         * @pre Valid only after Initialise() and before Shutdown().
+         */
         BlendableEffectRegistry& GetBlendableEffectRegistry()
         {
             return m_blendableEffectRegistry;
         }
+        /**
+         * @brief Returns the runtime's `BlendableEffectRegistry` (`m_blendableEffectRegistry`).
+         * @pre Valid only after Initialise() and before Shutdown().
+         */
         const BlendableEffectRegistry& GetBlendableEffectRegistry() const
         {
             return m_blendableEffectRegistry;

@@ -13,6 +13,7 @@
 #include <array>
 #include <charconv>
 #include <format>
+#include <limits>
 #include <sstream>
 #include <string>
 #include <string_view>
@@ -348,6 +349,35 @@ namespace Wayfinder
             return true;
         }
 
+        /**
+         * @brief Validates an optional JSON integer field fits in `int` (matches casts used when reading the field).
+         */
+        bool ValidateOptionalInt32Field(const nlohmann::json& data, std::string_view key, std::string& error)
+        {
+            if (!data.contains(key))
+            {
+                return true;
+            }
+
+            const auto& node = data.at(key);
+            if (!node.is_number_integer())
+            {
+                error = std::format("field '{}' must be an integer", key);
+                return false;
+            }
+
+            const int64_t value = node.get<int64_t>();
+            constexpr auto MIN = static_cast<int64_t>(std::numeric_limits<int>::min());
+            constexpr auto MAX = static_cast<int64_t>(std::numeric_limits<int>::max());
+            if (value < MIN || value > MAX)
+            {
+                error = std::format("field '{}' must be between {} and {} (inclusive); value is out of range for a 32-bit signed integer", key, MIN, MAX);
+                return false;
+            }
+
+            return true;
+        }
+
         bool ValidateOptionalVector3(const nlohmann::json& data, std::string_view key, std::string& error)
         {
             if (!data.contains(key))
@@ -586,7 +616,7 @@ namespace Wayfinder
                 return false;
             }
 
-            if (!ValidateOptionalInteger(data, "priority", error))
+            if (!ValidateOptionalInt32Field(data, "priority", error))
             {
                 return false;
             }
@@ -632,9 +662,22 @@ namespace Wayfinder
 
                     const std::string effectTypeStr = effectEntry.at("type").get<std::string>();
                     const std::string normalised = Wayfinder::NormaliseEffectTypeString(effectTypeStr);
-                    if (!Wayfinder::IsValidEffectTypeName(normalised))
+                    const Wayfinder::BlendableEffectRegistry* effectRegistry = Wayfinder::BlendableEffectRegistry::GetActiveInstance();
+                    if (effectRegistry == nullptr)
+                    {
+                        error = "cannot validate blendable effect '" + effectTypeStr + "': BlendableEffectRegistry is not active";
+                        return false;
+                    }
+                    const std::optional<Wayfinder::BlendableEffectId> effectIdOpt = effectRegistry->FindIdByName(normalised);
+                    if (!effectIdOpt.has_value())
                     {
                         error = "unknown blendable effect type: " + effectTypeStr;
+                        return false;
+                    }
+                    const Wayfinder::BlendableEffectDesc* effectDesc = effectRegistry->Find(*effectIdOpt);
+                    if (effectDesc == nullptr || effectDesc->Deserialise == nullptr)
+                    {
+                        error = "blendable effect '" + effectTypeStr + "' cannot be loaded (missing Deserialise callback)";
                         return false;
                     }
 
@@ -1115,7 +1158,10 @@ namespace Wayfinder
                     effectsArray.push_back(std::move(effectTable));
                 }
 
-                componentTable["effects"] = std::move(effectsArray);
+                if (!effectsArray.empty())
+                {
+                    componentTable["effects"] = std::move(effectsArray);
+                }
             }
 
             componentTables["blendable_effect_volume"] = std::move(componentTable);

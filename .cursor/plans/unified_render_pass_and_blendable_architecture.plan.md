@@ -93,7 +93,7 @@ The `Renderer::Render()` call to `BuildGraph` drops the `m_passes` argument — 
 
 **File:** [engine/wayfinder/src/rendering/pipeline/RenderPipeline.cpp](engine/wayfinder/src/rendering/pipeline/RenderPipeline.cpp) `Initialise()`
 
-```
+```cpp
 RegisterPass(RenderPhase::Opaque,    0, std::make_unique<SceneOpaquePass>());
 RegisterPass(RenderPhase::Overlay,   0, std::make_unique<DebugPass>());
 RegisterPass(RenderPhase::Present,   0, std::make_unique<CompositionPass>());
@@ -103,11 +103,13 @@ RegisterPass(RenderPhase::Present,   0, std::make_unique<CompositionPass>());
 
 ### A.5 — Introduce `PostProcessColour` resource convention
 
+**Implementation status:** Not yet landed. The codebase still uses `GraphTextureId::PresentSource` / `GraphTextures::PresentSource` and `CompositionPass` resolves `PresentSource` or falls back to `SceneColour` (see `CompositionPass.cpp`, `RenderGraph.h`). The snippets below describe the planned API; landing them will require updating those call sites and any `PresentSource` consumers.
+
 **File:** [engine/wayfinder/src/rendering/graph/RenderGraph.h](engine/wayfinder/src/rendering/graph/RenderGraph.h)
 
 Add to `GraphTextureId` and `GraphTextures`:
 
-```
+```cpp
 enum class GraphTextureId : uint8_t
 {
     SceneColour,
@@ -123,7 +125,7 @@ namespace GraphTextures
 }
 ```
 
-**Convention (documented, not enforced by code):**
+**Convention (documented, not enforced by code until A.5–A.7 are landed):**
 - Post-process passes in the `PostProcess` phase read `PostProcessColour` (falling back to `SceneColour` if no prior post-process pass wrote it) and write a new transient named `PostProcessColour`.
 - `CompositionPass` reads `PostProcessColour` (falling back to `SceneColour`).
 - Each write to `PostProcessColour` creates a new graph handle; the graph tracks the latest writer, so `FindHandle("PostProcessColour")` always resolves to the most recent version.
@@ -133,7 +135,7 @@ namespace GraphTextures
 
 Add a convenience function:
 
-```
+```cpp
 /// Resolves the current post-process colour input: `PostProcessColour` if any prior 
 /// post-process pass wrote it, otherwise `SceneColour`. Returns invalid handle only 
 /// if neither exists (error — scene pass didn't run).
@@ -141,7 +143,7 @@ RenderGraphHandle ResolvePostProcessInput(const RenderGraph& graph);
 ```
 
 Implementation:
-```
+```cpp
 RenderGraphHandle ResolvePostProcessInput(const RenderGraph& graph)
 {
     auto colour = graph.FindHandle(GraphTextureId::PostProcessColour);
@@ -152,11 +154,13 @@ RenderGraphHandle ResolvePostProcessInput(const RenderGraph& graph)
 
 ### A.6 — Update `CompositionPass` to use `ResolvePostProcessInput`
 
+**Implementation status:** Not yet landed (same as A.5).
+
 **File:** [engine/wayfinder/src/rendering/passes/CompositionPass.cpp](engine/wayfinder/src/rendering/passes/CompositionPass.cpp)
 
 Replace the current `SceneColour`/`PresentSource` resolution with:
 
-```
+```cpp
 auto source = ResolvePostProcessInput(graph);
 ```
 
