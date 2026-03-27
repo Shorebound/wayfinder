@@ -1,6 +1,7 @@
 #pragma once
 
 #include "core/Result.h"
+#include "volumes/BlendableEffectRegistry.h"
 
 #include <memory>
 
@@ -76,6 +77,15 @@ namespace Wayfinder
         /// @pre Valid only after Initialise() and before Shutdown().
         Renderer& GetRenderer();
 
+        BlendableEffectRegistry& GetBlendableEffectRegistry()
+        {
+            return m_blendableEffectRegistry;
+        }
+        const BlendableEffectRegistry& GetBlendableEffectRegistry() const
+        {
+            return m_blendableEffectRegistry;
+        }
+
         // ── Context bundle for external consumers (editor) ───
         EngineContext BuildContext() const;
 
@@ -89,6 +99,8 @@ namespace Wayfinder
         std::unique_ptr<RenderDevice> m_device;
         std::unique_ptr<Renderer> m_renderer;
         std::unique_ptr<SceneRenderExtractor> m_extractor;
+
+        BlendableEffectRegistry m_blendableEffectRegistry;
     };
 
 } // namespace Wayfinder

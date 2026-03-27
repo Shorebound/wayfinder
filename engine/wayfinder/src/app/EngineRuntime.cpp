@@ -12,6 +12,7 @@
 #include "rendering/pipeline/Renderer.h"
 #include "rendering/pipeline/SceneRenderExtractor.h"
 #include "scene/Scene.h"
+#include "volumes/BlendableEffectRegistry.h"
 
 #include <cassert>
 
@@ -29,6 +30,9 @@ namespace Wayfinder
     Result<void> EngineRuntime::Initialise()
     {
         WAYFINDER_INFO(LogEngine, "Initialising EngineRuntime");
+
+        // Blendable effect registry — available to all subsystems (scene, rendering, etc.)
+        BlendableEffectRegistry::SetActiveInstance(&m_blendableEffectRegistry);
 
         // Platform services
         m_input = Input::Create(m_config.Backends.Platform);
@@ -104,6 +108,8 @@ namespace Wayfinder
         }
 
         WAYFINDER_INFO(LogEngine, "Shutting down EngineRuntime");
+
+        BlendableEffectRegistry::SetActiveInstance(nullptr);
 
         if (m_renderer)
         {

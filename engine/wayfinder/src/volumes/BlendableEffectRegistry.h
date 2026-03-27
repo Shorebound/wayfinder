@@ -95,7 +95,7 @@ namespace Wayfinder
         }
 
         /**
-         * @brief Active registry for scene load / validation (set from RenderContext::Initialise).
+         * @brief Active registry for scene load / validation (set from EngineRuntime::Initialise).
          */
         static void SetActiveInstance(BlendableEffectRegistry* registry);
         [[nodiscard]] static BlendableEffectRegistry* GetActiveInstance();

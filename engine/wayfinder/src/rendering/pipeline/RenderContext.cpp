@@ -11,8 +11,6 @@ namespace Wayfinder
     {
         m_device = &device;
 
-        BlendableEffectRegistry::SetActiveInstance(&m_blendableEffectRegistry);
-
         m_shaderManager.Initialise(device, config.Shaders.Directory);
         m_pipelineCache.Initialise(device);
         m_programRegistry.Initialise(device, m_shaderManager, m_pipelineCache);
@@ -51,17 +49,20 @@ namespace Wayfinder
 
     void RenderContext::RegisterEngineBlendableEffects()
     {
-        BlendableEffectRegistry& reg = m_blendableEffectRegistry;
-        m_engineEffectIds.ColourGrading = reg.Register<ColourGradingParams>("colour_grading");
-        m_engineEffectIds.Vignette = reg.Register<VignetteParams>("vignette");
-        m_engineEffectIds.ChromaticAberration = reg.Register<ChromaticAberrationParams>("chromatic_aberration");
-        reg.Seal();
+        auto* reg = BlendableEffectRegistry::GetActiveInstance();
+        if (!reg)
+        {
+            WAYFINDER_WARN(LogRenderer, "RegisterEngineBlendableEffects: no active BlendableEffectRegistry — skipping");
+            return;
+        }
+        m_engineEffectIds.ColourGrading = reg->Register<ColourGradingParams>("colour_grading");
+        m_engineEffectIds.Vignette = reg->Register<VignetteParams>("vignette");
+        m_engineEffectIds.ChromaticAberration = reg->Register<ChromaticAberrationParams>("chromatic_aberration");
+        reg->Seal();
     }
 
     void RenderContext::Shutdown()
     {
-        BlendableEffectRegistry::SetActiveInstance(nullptr);
-
         if (m_nearestSampler && m_device)
         {
             m_device->DestroySampler(m_nearestSampler);

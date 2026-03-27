@@ -8,7 +8,7 @@
 #include "rendering/resources/TextureManager.h"
 #include "rendering/resources/TransientBufferAllocator.h"
 #include "rendering/resources/TransientResourcePool.h"
-#include "volumes/BlendableEffectRegistry.h"
+#include "volumes/BlendableEffectRegistry.h" // EngineEffectIds
 
 #include <cassert>
 
@@ -114,15 +114,6 @@ namespace Wayfinder
             return m_nearestSampler;
         }
 
-        BlendableEffectRegistry& GetBlendableEffectRegistry()
-        {
-            return m_blendableEffectRegistry;
-        }
-        const BlendableEffectRegistry& GetBlendableEffectRegistry() const
-        {
-            return m_blendableEffectRegistry;
-        }
-
         const EngineEffectIds& GetEngineEffectIds() const
         {
             return m_engineEffectIds;
@@ -143,7 +134,6 @@ namespace Wayfinder
         MeshManager m_meshManager;
         GPUSamplerHandle m_nearestSampler{};
 
-        BlendableEffectRegistry m_blendableEffectRegistry;
         EngineEffectIds m_engineEffectIds{};
     };
 
