@@ -184,8 +184,6 @@ set(ENGINE_ALL_SOURCES
   src/rendering/backend/GPUBuffer.cpp
   src/rendering/backend/GPUBuffer.h
   src/rendering/backend/GPUHandles.h
-  src/rendering/backend/GPUPipeline.cpp
-  src/rendering/backend/GPUPipeline.h
   src/rendering/backend/RenderDevice.h
   src/rendering/backend/VertexFormats.h
   src/rendering/backend/null/NullDevice.cpp
@@ -199,11 +197,10 @@ set(ENGINE_ALL_SOURCES
   src/rendering/graph/RenderFrame.h
   src/rendering/graph/RenderFrameUtils.cpp
   src/rendering/graph/RenderFrameUtils.h
-  src/rendering/graph/RenderPass.h
-  src/rendering/graph/RenderPassCapabilities.h
+  src/rendering/graph/RenderFeature.h
+  src/rendering/graph/RenderCapabilities.h
   src/rendering/graph/RenderGraph.cpp
   src/rendering/graph/RenderGraph.h
-  src/rendering/graph/PostProcessUtils.h
   src/rendering/graph/RenderIntent.h
   src/rendering/graph/SortKey.h
 
@@ -226,14 +223,13 @@ set(ENGINE_ALL_SOURCES
   # Rendering — Pipeline
   src/rendering/pipeline/PipelineCache.cpp
   src/rendering/pipeline/PipelineCache.h
-  src/rendering/pipeline/RenderContext.cpp
-  src/rendering/pipeline/RenderContext.h
-  src/rendering/pipeline/ForwardOpaqueShaderPrograms.cpp
-  src/rendering/pipeline/ForwardOpaqueShaderPrograms.h
-  src/rendering/pipeline/CompositionUBOUtils.h
-  src/rendering/pipeline/ShaderUniforms.h
-  src/rendering/pipeline/RenderPipeline.cpp
-  src/rendering/pipeline/RenderPipeline.h
+  src/rendering/pipeline/RenderServices.cpp
+  src/rendering/pipeline/RenderServices.h
+  src/rendering/pipeline/BuiltInShaderPrograms.cpp
+  src/rendering/pipeline/BuiltInShaderPrograms.h
+  src/rendering/pipeline/BuiltInUBOs.h
+  src/rendering/pipeline/FrameComposer.cpp
+  src/rendering/pipeline/FrameComposer.h
   src/rendering/pipeline/Renderer.cpp
   src/rendering/pipeline/Renderer.h
   src/rendering/pipeline/SceneRenderExtractor.cpp
@@ -250,8 +246,8 @@ set(ENGINE_ALL_SOURCES
   src/rendering/passes/SubmissionDrawing.h
 
   # Rendering — Resources
-  src/rendering/resources/RenderResources.cpp
-  src/rendering/resources/RenderResources.h
+  src/rendering/resources/RenderResourceCache.cpp
+  src/rendering/resources/RenderResourceCache.h
   src/rendering/resources/MeshManager.cpp
   src/rendering/resources/MeshManager.h
   src/rendering/resources/TextureManager.cpp

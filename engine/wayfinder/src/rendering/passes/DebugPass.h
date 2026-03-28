@@ -1,15 +1,15 @@
 #pragma once
 
-#include "rendering/backend/GPUPipeline.h"
+#include "rendering/backend/GPUHandles.h"
 #include "rendering/backend/VertexFormats.h"
-#include "rendering/graph/RenderPass.h"
+#include "rendering/graph/RenderFeature.h"
 
 #include <vector>
 
 namespace Wayfinder
 {
     /// Debug overlay: grid, lines, unlit wire boxes (reads scene colour/depth).
-    class DebugPass final : public RenderPass
+    class DebugPass final : public RenderFeature
     {
     public:
         /** Parameters for world-grid line generation (shared with unit tests). */
@@ -24,15 +24,15 @@ namespace Wayfinder
             return "Debug";
         }
 
-        RenderPassCapabilityMask GetCapabilities() const override
+        RenderCapabilityMask GetCapabilities() const override
         {
-            return RenderPassCapabilities::RASTER | RenderPassCapabilities::RASTER_OVERLAY_OR_DEBUG;
+            return RenderCapabilities::RASTER | RenderCapabilities::RASTER_OVERLAY_OR_DEBUG;
         }
 
-        void OnAttach(const RenderPassContext& context) override;
-        void OnDetach(const RenderPassContext& context) override;
+        void OnAttach(const RenderFeatureContext& context) override;
+        void OnDetach(const RenderFeatureContext& context) override;
 
-        void AddPasses(RenderGraph& graph, const RenderPipelineFrameParams& params) override;
+        void AddPasses(RenderGraph& graph, const FrameRenderParams& params) override;
 
         /**
          * @brief Appends world-grid line vertices (same formula as the render path). Used by unit tests.
@@ -40,8 +40,8 @@ namespace Wayfinder
         static void AppendWorldGridLineVertices(std::vector<VertexPosColour>& lineVertices, WorldGridSpec spec);
 
     private:
-        RenderContext* m_context = nullptr;
-        GPUPipeline m_debugLinePipeline;
+        RenderServices* m_context = nullptr;
+        GPUPipelineHandle m_debugLinePipeline;
     };
 
 } // namespace Wayfinder

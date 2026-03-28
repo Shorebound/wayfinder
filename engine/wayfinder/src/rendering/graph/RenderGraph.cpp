@@ -1,7 +1,7 @@
 #include "RenderGraph.h"
 #include "core/Log.h"
 #include "rendering/backend/RenderDevice.h"
-#include "rendering/graph/RenderPassCapabilities.h"
+#include "rendering/graph/RenderCapabilities.h"
 #include "rendering/resources/TransientResourcePool.h"
 
 #include <algorithm>
@@ -146,7 +146,7 @@ namespace Wayfinder
         pass.SwapchainWrite = RenderGraph::SwapchainWriteInfo{.Load = load, .Clear = clear};
     }
 
-    void RenderGraphBuilder::DeclarePassCapabilities(const RenderPassCapabilityMask mask)
+    void RenderGraphBuilder::DeclarePassCapabilities(const RenderCapabilityMask mask)
     {
         auto& pass = CheckedAt(m_graph.m_passes, m_passIndex);
         pass.DeclaredCapabilities = mask;
@@ -385,22 +385,22 @@ namespace Wayfinder
             {
                 continue;
             }
-            const RenderPassCapabilityMask caps = *pass.DeclaredCapabilities;
-            if ((caps & RenderPassCapabilities::RASTER_SCENE_GEOMETRY) != 0)
+            const RenderCapabilityMask caps = *pass.DeclaredCapabilities;
+            if ((caps & RenderCapabilities::RASTER_SCENE_GEOMETRY) != 0)
             {
                 if (pass.NumColourWrites == 0 && !pass.DepthWrite.has_value())
                 {
                     WAYFINDER_WARN(LogRenderer, "RenderGraph: pass '{}' declared RASTER_SCENE_GEOMETRY but has no colour or depth attachment", pass.Name.GetString());
                 }
             }
-            if ((caps & RenderPassCapabilities::RASTER_OVERLAY_OR_DEBUG) != 0)
+            if ((caps & RenderCapabilities::RASTER_OVERLAY_OR_DEBUG) != 0)
             {
                 if (pass.NumColourWrites == 0)
                 {
                     WAYFINDER_WARN(LogRenderer, "RenderGraph: pass '{}' declared RASTER_OVERLAY_OR_DEBUG but has no colour attachment", pass.Name.GetString());
                 }
             }
-            if ((caps & RenderPassCapabilities::FULLSCREEN_COMPOSITE) != 0)
+            if ((caps & RenderCapabilities::FULLSCREEN_COMPOSITE) != 0)
             {
                 if (!pass.SwapchainWrite.has_value())
                 {

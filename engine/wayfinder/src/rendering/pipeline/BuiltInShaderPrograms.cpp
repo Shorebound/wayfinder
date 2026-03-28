@@ -1,12 +1,12 @@
-#include "ForwardOpaqueShaderPrograms.h"
+#include "BuiltInShaderPrograms.h"
 
 #include "rendering/backend/VertexFormats.h"
 #include "rendering/materials/ShaderProgram.h"
-#include "rendering/pipeline/ShaderUniforms.h"
+#include "rendering/pipeline/BuiltInUBOs.h"
 
 namespace Wayfinder
 {
-    void RegisterForwardOpaquePrograms(ShaderProgramRegistry& registry)
+    void RegisterBuiltInShaderPrograms(ShaderProgramRegistry& registry)
     {
         {
             ShaderProgramDesc desc;

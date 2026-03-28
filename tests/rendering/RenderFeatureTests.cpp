@@ -1,13 +1,13 @@
 #include "app/EngineConfig.h"
 #include "rendering/backend/RenderDevice.h"
+#include "rendering/graph/RenderFeature.h"
 #include "rendering/graph/RenderFrame.h"
 #include "rendering/graph/RenderFrameUtils.h"
 #include "rendering/graph/RenderGraph.h"
-#include "rendering/graph/RenderPass.h"
-#include "rendering/pipeline/RenderPipelineFrameParams.h"
+#include "rendering/pipeline/BuiltInUBOs.h"
+#include "rendering/pipeline/FrameRenderParams.h"
 #include "rendering/pipeline/Renderer.h"
-#include "rendering/pipeline/ShaderUniforms.h"
-#include "rendering/resources/RenderResources.h"
+#include "rendering/resources/RenderResourceCache.h"
 #include "rendering/resources/TransientResourcePool.h"
 
 #include <doctest/doctest.h>
@@ -15,7 +15,6 @@
 #include <array>
 #include <memory>
 #include <string>
-#include <unordered_map>
 #include <vector>
 
 // Test doubles and doctest CHECK patterns (file-wide suppressions for test code).
@@ -26,14 +25,14 @@ namespace Wayfinder::Tests
 {
     namespace
     {
-        Wayfinder::RenderPipelineFrameParams MakeTestParams(Wayfinder::RenderFrame& frame, uint32_t w = 800, uint32_t h = 600)
+        Wayfinder::FrameRenderParams MakeTestParams(Wayfinder::RenderFrame& frame, uint32_t w = 800, uint32_t h = 600)
         {
-            static const std::unordered_map<uint32_t, Wayfinder::Mesh*> K_EMPTY_MESHES;
-            return Wayfinder::RenderPipelineFrameParams{
+            static const Wayfinder::BuiltInMeshTable K_EMPTY_MESHES{};
+            return Wayfinder::FrameRenderParams{
                 .Frame = frame,
                 .SwapchainWidth = w,
                 .SwapchainHeight = h,
-                .MeshesByStride = K_EMPTY_MESHES,
+                .BuiltInMeshes = K_EMPTY_MESHES,
                 .ResourceCache = nullptr,
                 .PrimaryView = Wayfinder::Rendering::ResolvePreparedPrimaryView(frame),
             };
@@ -155,7 +154,7 @@ namespace Wayfinder::Tests
         };
     } // namespace
 
-    class TestPass : public Wayfinder::RenderPass
+    class TestPass : public Wayfinder::RenderFeature
     {
     public:
         explicit TestPass(std::string name, std::vector<std::string>& log) : m_name(std::move(name)), m_log(log) {}
@@ -165,7 +164,7 @@ namespace Wayfinder::Tests
             return m_name;
         }
 
-        void AddPasses(Wayfinder::RenderGraph& graph, const Wayfinder::RenderPipelineFrameParams& /*params*/) override
+        void AddPasses(Wayfinder::RenderGraph& graph, const Wayfinder::FrameRenderParams& /*params*/) override
         {
             m_log.push_back(std::string(m_name) + "::AddPasses");
 
@@ -179,12 +178,12 @@ namespace Wayfinder::Tests
             });
         }
 
-        void OnAttach(const Wayfinder::RenderPassContext&) override
+        void OnAttach(const Wayfinder::RenderFeatureContext&) override
         {
             m_log.push_back(std::string(m_name) + "::OnAttach");
         }
 
-        void OnDetach(const Wayfinder::RenderPassContext&) override
+        void OnDetach(const Wayfinder::RenderFeatureContext&) override
         {
             m_log.push_back(std::string(m_name) + "::OnDetach");
         }
@@ -194,7 +193,7 @@ namespace Wayfinder::Tests
         std::vector<std::string>& m_log;
     };
 
-    class OverlayPass : public Wayfinder::RenderPass
+    class OverlayPass : public Wayfinder::RenderFeature
     {
     public:
         std::string_view GetName() const override
@@ -202,7 +201,7 @@ namespace Wayfinder::Tests
             return "Overlay";
         }
 
-        void AddPasses(Wayfinder::RenderGraph& graph, const Wayfinder::RenderPipelineFrameParams& /*params*/) override
+        void AddPasses(Wayfinder::RenderGraph& graph, const Wayfinder::FrameRenderParams& /*params*/) override
         {
             graph.AddPass("OverlayPass", [&](Wayfinder::RenderGraphBuilder& builder)
             {
@@ -232,7 +231,7 @@ namespace Wayfinder::Tests
         bool m_executed = false;
     };
 
-    TEST_CASE("RenderPass default state")
+    TEST_CASE("RenderFeature default state")
     {
         std::vector<std::string> log;
         TestPass pass("Test", log);
@@ -281,7 +280,7 @@ namespace Wayfinder::Tests
         auto passA = std::make_unique<TestPass>("PassA", log);
         auto passB = std::make_unique<TestPass>("PassB", log);
 
-        std::vector<std::unique_ptr<Wayfinder::RenderPass>> passes;
+        std::vector<std::unique_ptr<Wayfinder::RenderFeature>> passes;
         passes.push_back(std::move(passA));
         passes.push_back(std::move(passB));
 
@@ -363,7 +362,7 @@ namespace Wayfinder::Tests
     {
         std::vector<std::string> log;
 
-        std::vector<std::unique_ptr<Wayfinder::RenderPass>> passes;
+        std::vector<std::unique_ptr<Wayfinder::RenderFeature>> passes;
         passes.push_back(std::make_unique<TestPass>("Removable", log));
         passes.push_back(std::make_unique<TestPass>("Persistent", log));
 
@@ -428,7 +427,7 @@ namespace Wayfinder::Tests
     {
         Wayfinder::RenderFrame frame;
         const size_t viewIndex = frame.AddView(Wayfinder::RenderView{});
-        Wayfinder::FrameLayerRecord& scenePass = frame.AddSceneLayer(Wayfinder::FrameLayerIds::MainScene, viewIndex, Wayfinder::RenderLayers::Main);
+        Wayfinder::FrameLayer& scenePass = frame.AddSceneLayer(Wayfinder::FrameLayerIds::MainScene, viewIndex, Wayfinder::RenderGroups::Main);
 
         Wayfinder::RenderMeshSubmission submission;
         submission.Mesh.Origin = Wayfinder::RenderResourceOrigin::BuiltIn;

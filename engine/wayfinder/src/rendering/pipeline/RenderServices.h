@@ -1,9 +1,11 @@
 #pragma once
 
+#include "FrameRenderParams.h"
 #include "PipelineCache.h"
 #include "core/Result.h"
 #include "rendering/materials/ShaderManager.h"
 #include "rendering/materials/ShaderProgram.h"
+#include "rendering/mesh/Mesh.h"
 #include "rendering/resources/MeshManager.h"
 #include "rendering/resources/TextureManager.h"
 #include "rendering/resources/TransientBufferAllocator.h"
@@ -17,19 +19,19 @@ namespace Wayfinder
     class RenderDevice;
     struct EngineConfig;
 
-    /// Owns the shared GPU resource infrastructure used by the render pipeline,
-    /// render passes, and anything else that needs to create or look up GPU resources.
+    /// Owns the shared GPU resource infrastructure used by the frame composer,
+    /// render features, and anything else that needs to create or look up GPU resources.
     /// Created once at initialisation, passed by reference to subsystems.
-    class WAYFINDER_API RenderContext
+    class WAYFINDER_API RenderServices
     {
     public:
-        RenderContext() = default;
-        ~RenderContext() = default;
+        RenderServices() = default;
+        ~RenderServices() = default;
 
-        RenderContext(const RenderContext&) = delete;
-        RenderContext& operator=(const RenderContext&) = delete;
-        RenderContext(RenderContext&&) = delete;
-        RenderContext& operator=(RenderContext&&) = delete;
+        RenderServices(const RenderServices&) = delete;
+        RenderServices& operator=(const RenderServices&) = delete;
+        RenderServices(RenderServices&&) = delete;
+        RenderServices& operator=(RenderServices&&) = delete;
 
         Result<void> Initialise(RenderDevice& device, const EngineConfig& config);
         void Shutdown();
@@ -37,12 +39,12 @@ namespace Wayfinder
         // ── Accessors ────────────────────────────────────────
         RenderDevice& GetDevice()
         {
-            assert(m_device && "RenderContext::GetDevice called before Initialise");
+            assert(m_device && "RenderServices::GetDevice called before Initialise");
             return *m_device;
         }
         const RenderDevice& GetDevice() const
         {
-            assert(m_device && "RenderContext::GetDevice called before Initialise");
+            assert(m_device && "RenderServices::GetDevice called before Initialise");
             return *m_device;
         }
 
@@ -119,6 +121,12 @@ namespace Wayfinder
             return m_engineEffectIds;
         }
 
+        /** @brief Returns the built-in primitive mesh table (indexed by `BuiltInMeshId`). */
+        const BuiltInMeshTable& GetBuiltInMeshes() const
+        {
+            return m_builtInMeshPtrs;
+        }
+
         /// Registers built-in blendable effect types (colour grading, vignette, CA). Call once after Initialise.
         void RegisterEngineBlendableEffects();
 
@@ -137,6 +145,10 @@ namespace Wayfinder
         TextureManager m_textureManager;
         MeshManager m_meshManager;
         GPUSamplerHandle m_nearestSampler{};
+
+        Mesh m_primitiveMesh;
+        Mesh m_texturedPrimitiveMesh;
+        BuiltInMeshTable m_builtInMeshPtrs{};
 
         EngineEffectIds m_engineEffectIds{};
     };

@@ -1,6 +1,6 @@
 #include "app/EngineConfig.h"
 #include "rendering/backend/RenderDevice.h"
-#include "rendering/pipeline/RenderContext.h"
+#include "rendering/pipeline/RenderServices.h"
 
 #include <doctest/doctest.h>
 
@@ -18,22 +18,22 @@ namespace Wayfinder::Tests
         }
     } // namespace
 
-    TEST_CASE("RenderContext initialises and shuts down with NullDevice")
+    TEST_CASE("RenderServices initialises and shuts down with NullDevice")
     {
         auto device = Wayfinder::RenderDevice::Create(Wayfinder::RenderBackend::Null);
         REQUIRE(device);
 
-        Wayfinder::RenderContext context;
+        Wayfinder::RenderServices context;
         CHECK(context.Initialise(*device, MakeTestConfig()));
         context.Shutdown();
     }
 
-    TEST_CASE("RenderContext getters return valid references after init")
+    TEST_CASE("RenderServices getters return valid references after init")
     {
         auto device = Wayfinder::RenderDevice::Create(Wayfinder::RenderBackend::Null);
         REQUIRE(device);
 
-        Wayfinder::RenderContext context;
+        Wayfinder::RenderServices context;
         REQUIRE(context.Initialise(*device, MakeTestConfig()));
 
         CHECK(&context.GetDevice() == device.get());
@@ -51,27 +51,27 @@ namespace Wayfinder::Tests
         context.Shutdown();
     }
 
-    TEST_CASE("RenderContext double shutdown is safe")
+    TEST_CASE("RenderServices double shutdown is safe")
     {
         auto device = Wayfinder::RenderDevice::Create(Wayfinder::RenderBackend::Null);
         REQUIRE(device);
 
-        Wayfinder::RenderContext context;
+        Wayfinder::RenderServices context;
         REQUIRE(context.Initialise(*device, MakeTestConfig()));
 
         context.Shutdown();
         context.Shutdown(); // Should not crash
     }
 
-    TEST_CASE("RenderContext program registry is functional after init")
+    TEST_CASE("RenderServices program registry is functional after init")
     {
         auto device = Wayfinder::RenderDevice::Create(Wayfinder::RenderBackend::Null);
         REQUIRE(device);
 
-        Wayfinder::RenderContext context;
+        Wayfinder::RenderServices context;
         REQUIRE(context.Initialise(*device, MakeTestConfig()));
 
-        // Contract: RenderPipeline::Initialise depends on being able to call
+        // Contract: FrameComposer::Initialise depends on being able to call
         // Register. With NullDevice, pipeline creation fails (no shader files),
         // but the registry itself is functional and doesn't crash.
         Wayfinder::ShaderProgramDesc desc;

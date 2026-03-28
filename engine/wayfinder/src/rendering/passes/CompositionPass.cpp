@@ -1,22 +1,20 @@
 #include "CompositionPass.h"
 
-#include "rendering/backend/GPUPipeline.h"
 #include "rendering/backend/RenderDevice.h"
 #include "rendering/backend/VertexFormats.h"
-#include "rendering/graph/PostProcessUtils.h"
+#include "rendering/graph/RenderCapabilities.h"
 #include "rendering/graph/RenderGraph.h"
-#include "rendering/graph/RenderPassCapabilities.h"
 #include "rendering/materials/RenderingEffects.h"
 #include "rendering/materials/ShaderProgram.h"
-#include "rendering/pipeline/CompositionUBOUtils.h"
-#include "rendering/pipeline/RenderContext.h"
+#include "rendering/pipeline/BuiltInUBOs.h"
+#include "rendering/pipeline/RenderServices.h"
 
 #include "core/Log.h"
 #include "core/Types.h"
 
 namespace Wayfinder
 {
-    void CompositionPass::OnAttach(const RenderPassContext& context)
+    void CompositionPass::OnAttach(const RenderFeatureContext& context)
     {
         m_context = &context.Context;
         auto& registry = context.Context.GetPrograms();
@@ -42,7 +40,7 @@ namespace Wayfinder
         }
     }
 
-    void CompositionPass::OnDetach(const RenderPassContext& /*context*/)
+    void CompositionPass::OnDetach(const RenderFeatureContext& /*context*/)
     {
         m_context = nullptr;
     }
@@ -54,10 +52,10 @@ namespace Wayfinder
             WAYFINDER_WARN(LogRenderer, "CompositionPass: disabling is not allowed — this pass writes the swapchain; keeping Composition enabled");
             return;
         }
-        RenderPass::SetEnabled(true);
+        RenderFeature::SetEnabled(true);
     }
 
-    void CompositionPass::AddPasses(RenderGraph& graph, const RenderPipelineFrameParams& params)
+    void CompositionPass::AddPasses(RenderGraph& graph, const FrameRenderParams& params)
     {
         if (!m_context)
         {
@@ -69,7 +67,7 @@ namespace Wayfinder
 
         graph.AddPass("Composition", [&](RenderGraphBuilder& builder)
         {
-            builder.DeclarePassCapabilities(RenderPassCapabilities::RASTER | RenderPassCapabilities::FULLSCREEN_COMPOSITE);
+            builder.DeclarePassCapabilities(RenderCapabilities::RASTER | RenderCapabilities::FULLSCREEN_COMPOSITE);
             builder.ReadTexture(colourHandle);
             // Renderer clears the swapchain before the graph; load existing pixels then overwrite with the fullscreen triangle.
             // Avoids a second full-frame clear and keeps the backbuffer defined if this pass's draw is skipped.
@@ -81,7 +79,7 @@ namespace Wayfinder
 
                 const ShaderProgram* compProgram = m_context->GetPrograms().Find("composition");
                 const auto nearestSampler = m_context->GetNearestSampler();
-                if (!compProgram || !compProgram->Pipeline || !sceneColourTex || !nearestSampler)
+                if (!compProgram || !compProgram->Pipeline.IsValid() || !sceneColourTex || !nearestSampler)
                 {
                     WAYFINDER_ERROR(LogRenderer, "Composition: missing program, pipeline, colour input, or sampler — skipped");
                     return;
@@ -100,7 +98,7 @@ namespace Wayfinder
                 }
                 const CompositionUBO ubo = MakeCompositionUBO(grading, vignette, chromaticAberration);
 
-                compProgram->Pipeline->Bind();
+                device.BindPipeline(compProgram->Pipeline);
                 device.BindFragmentSampler(0, sceneColourTex, nearestSampler);
                 device.PushFragmentUniform(0, &ubo, sizeof(CompositionUBO));
                 device.DrawPrimitives(3);

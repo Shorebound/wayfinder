@@ -2,9 +2,8 @@
 
 #include "core/Result.h"
 #include "rendering/RenderTypes.h"
-#include "rendering/graph/RenderPass.h"
-#include "rendering/mesh/Mesh.h"
-#include "rendering/pipeline/RenderPipeline.h"
+#include "rendering/graph/RenderFeature.h"
+#include "rendering/pipeline/FrameComposer.h"
 
 #include <algorithm>
 #include <memory>
@@ -14,7 +13,7 @@
 namespace Wayfinder
 {
     class AssetService;
-    class RenderContext;
+    class RenderServices;
     class RenderDevice;
     struct EngineConfig;
     struct RenderFrame;
@@ -47,12 +46,12 @@ namespace Wayfinder
          * @param order Lower values run earlier within the same phase.
          * @param pass Ownership of the pass instance; must not be null.
          */
-        void AddPass(RenderPhase phase, int32_t order, std::unique_ptr<RenderPass> pass);
+        void AddPass(RenderPhase phase, int32_t order, std::unique_ptr<RenderFeature> pass);
 
         /**
-         * @brief Registers a render pass with `order` 0 within the phase.
+         * @brief Registers a render feature with `order` 0 within the phase.
          */
-        void AddPass(RenderPhase phase, std::unique_ptr<RenderPass> pass);
+        void AddPass(RenderPhase phase, std::unique_ptr<RenderFeature> pass);
 
         /**
          * @brief Removes the first pass whose dynamic type is `T` from the pipeline.
@@ -71,7 +70,7 @@ namespace Wayfinder
             {
                 if (m_isInitialised && m_context)
                 {
-                    auto ctx = MakePassContext();
+                    auto ctx = MakeFeatureContext();
                     pendingIt->Pass->OnDetach(ctx);
                 }
                 m_pendingPasses.erase(pendingIt);
@@ -146,21 +145,18 @@ namespace Wayfinder
         {
             RenderPhase Phase = RenderPhase::Opaque;
             int32_t Order = 0;
-            std::unique_ptr<RenderPass> Pass;
+            std::unique_ptr<RenderFeature> Pass;
         };
 
         std::shared_ptr<AssetService> m_assetService;
         RenderDevice* m_device = nullptr;
-        std::unique_ptr<RenderContext> m_context;
-        std::unique_ptr<RenderPipeline> m_renderPipeline;
+        std::unique_ptr<RenderServices> m_context;
+        std::unique_ptr<FrameComposer> m_renderPipeline;
         std::unique_ptr<RenderResourceCache> m_renderResources;
 
-        RenderPassContext MakePassContext();
+        RenderFeatureContext MakeFeatureContext();
 
         std::vector<PendingPassRegistration> m_pendingPasses;
-
-        Mesh m_primitiveMesh;
-        Mesh m_texturedPrimitiveMesh;
 
         int m_screenWidth;
         int m_screenHeight;

@@ -4,7 +4,7 @@
 #include "rendering/ArenaFunction.h"
 #include "rendering/FrameAllocator.h"
 #include "rendering/RenderTypes.h"
-#include "rendering/graph/RenderPassCapabilities.h"
+#include "rendering/graph/RenderCapabilities.h"
 
 #include <cassert>
 #include <concepts>
@@ -120,7 +120,7 @@ namespace Wayfinder
         void SetSwapchainOutput(LoadOp load = LoadOp::Clear, ClearValue clear = {});
 
         /// Optional metadata for dev-time validation in `Compile` (matches `RenderPass::GetCapabilities` when set).
-        void DeclarePassCapabilities(RenderPassCapabilityMask mask);
+        void DeclarePassCapabilities(RenderCapabilityMask mask);
 
     private:
         friend class RenderGraph;
@@ -245,7 +245,7 @@ namespace Wayfinder
             bool Culled = false;
             uint32_t SortOrder = UINT32_MAX;
 
-            std::optional<RenderPassCapabilityMask> DeclaredCapabilities;
+            std::optional<RenderCapabilityMask> DeclaredCapabilities;
         };
 
         RenderGraphHandle AllocateResource(const RenderGraphTextureDesc& desc, InternedString name = {});
@@ -290,6 +290,18 @@ namespace Wayfinder
             std::is_invocable_r_v<void, decltype(executeFn), RenderDevice&, const RenderGraphResources&>, "AddComputePass: setup must return a callable matching void(RenderDevice&, const RenderGraphResources&)");
 
         m_passes.back().Execute = RenderGraphExecuteFn(m_allocator, std::move(executeFn));
+    }
+
+    /// Returns PostProcessColour if any prior pass wrote it, else SceneColour.
+    /// Invalid handle only if neither exists (scene pass didn't run).
+    inline RenderGraphHandle ResolvePostProcessInput(const RenderGraph& graph)
+    {
+        const RenderGraphHandle post = graph.FindHandle(GraphTextureId::PostProcessColour);
+        if (post.IsValid())
+        {
+            return post;
+        }
+        return graph.FindHandleChecked(GraphTextureId::SceneColour);
     }
 
 } // namespace Wayfinder

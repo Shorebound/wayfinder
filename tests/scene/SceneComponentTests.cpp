@@ -9,7 +9,7 @@
 #include <doctest/doctest.h>
 #include <nlohmann/json.hpp>
 
-/// ── MeshComponent ────────────────────────────────────────
+/// â”€â”€ MeshComponent â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 namespace Wayfinder::Tests
 {
     // GLM / nlohmann::json patterns in tests trigger cppcoreguidelines noise.
@@ -24,7 +24,7 @@ namespace Wayfinder::Tests
         CHECK(mesh.Dimensions.z == doctest::Approx(1.0f));
     }
 
-    /// ── MaterialComponent has no render-state fields ─────────
+    /// â”€â”€ MaterialComponent has no render-state fields â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     TEST_CASE("MaterialComponent has no wireframe field")
     {
@@ -39,7 +39,7 @@ namespace Wayfinder::Tests
         CHECK_FALSE(material.MaterialAssetId.has_value());
     }
 
-    /// ── RenderOverrideComponent ──────────────────────────────
+    /// â”€â”€ RenderOverrideComponent â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     TEST_CASE("RenderOverrideComponent defaults to no overrides")
     {
@@ -94,7 +94,7 @@ namespace Wayfinder::Tests
         scene.Shutdown();
     }
 
-    /// ── Serialisation round-trip ─────────────────────────────
+    /// â”€â”€ Serialisation round-trip â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     TEST_CASE("RenderOverrideComponent serialisation round-trip with wireframe=true")
     {
@@ -184,7 +184,7 @@ namespace Wayfinder::Tests
         entity.AddComponent<Wayfinder::TransformComponent>(Wayfinder::TransformComponent{});
         entity.AddComponent<Wayfinder::RenderOverrideComponent>(Wayfinder::RenderOverrideComponent{});
 
-        /// Serialise — component with no fields set should not emit a table.
+        /// Serialise â€” component with no fields set should not emit a table.
         nlohmann::json componentTables = nlohmann::json::object();
         registry.SerialiseComponents(entity, componentTables);
 
@@ -223,7 +223,7 @@ namespace Wayfinder::Tests
         scene.Shutdown();
     }
 
-    /// ── Validation rejects malformed authoring ───────────────
+    /// â”€â”€ Validation rejects malformed authoring â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     TEST_CASE("Validation rejects non-boolean wireframe in render_override")
     {
@@ -238,7 +238,7 @@ namespace Wayfinder::Tests
         CHECK_FALSE(error.empty());
     }
 
-    /// ── Extractor reads RenderOverrideComponent ──────────────
+    /// â”€â”€ Extractor reads RenderOverrideComponent â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     TEST_CASE("Extractor uses RenderOverrideComponent for wireframe")
     {
@@ -257,7 +257,7 @@ namespace Wayfinder::Tests
         cameraComponent.Target = {0.0f, 0.5f, 0.0f};
         camera.AddComponent<Wayfinder::CameraComponent>(cameraComponent);
 
-        // Entity with wireframe override enabled — should get SolidAndWireframe fill mode
+        // Entity with wireframe override enabled â€” should get SolidAndWireframe fill mode
         Wayfinder::Entity wireframeCube = scene.CreateEntity("WireframeCube");
         wireframeCube.AddComponent<Wayfinder::TransformComponent>(Wayfinder::TransformComponent{{-2.0f, 0.5f, 0.0f}});
         wireframeCube.AddComponent<Wayfinder::MeshComponent>(Wayfinder::MeshComponent{});
@@ -266,7 +266,7 @@ namespace Wayfinder::Tests
         wireframeOverride.Wireframe = true;
         wireframeCube.AddComponent<Wayfinder::RenderOverrideComponent>(wireframeOverride);
 
-        // Entity with wireframe override disabled — should get Solid fill mode
+        // Entity with wireframe override disabled â€” should get Solid fill mode
         Wayfinder::Entity solidCube = scene.CreateEntity("SolidCube");
         solidCube.AddComponent<Wayfinder::TransformComponent>(Wayfinder::TransformComponent{{0.0f, 0.5f, 0.0f}});
         solidCube.AddComponent<Wayfinder::MeshComponent>(Wayfinder::MeshComponent{});
@@ -275,14 +275,14 @@ namespace Wayfinder::Tests
         solidOverride.Wireframe = false;
         solidCube.AddComponent<Wayfinder::RenderOverrideComponent>(solidOverride);
 
-        // Entity with RenderOverrideComponent but no Wireframe set — FillMode left unset
+        // Entity with RenderOverrideComponent but no Wireframe set â€” FillMode left unset
         Wayfinder::Entity emptyOverrideCube = scene.CreateEntity("EmptyOverrideCube");
         emptyOverrideCube.AddComponent<Wayfinder::TransformComponent>(Wayfinder::TransformComponent{{1.0f, 0.5f, 0.0f}});
         emptyOverrideCube.AddComponent<Wayfinder::MeshComponent>(Wayfinder::MeshComponent{});
         emptyOverrideCube.AddComponent<Wayfinder::RenderableComponent>(Wayfinder::RenderableComponent{});
         emptyOverrideCube.AddComponent<Wayfinder::RenderOverrideComponent>(Wayfinder::RenderOverrideComponent{});
 
-        // Entity without RenderOverrideComponent — FillMode left unset (no override)
+        // Entity without RenderOverrideComponent â€” FillMode left unset (no override)
         Wayfinder::Entity defaultCube = scene.CreateEntity("DefaultCube");
         defaultCube.AddComponent<Wayfinder::TransformComponent>(Wayfinder::TransformComponent{{2.0f, 0.5f, 0.0f}});
         defaultCube.AddComponent<Wayfinder::MeshComponent>(Wayfinder::MeshComponent{});
@@ -292,17 +292,17 @@ namespace Wayfinder::Tests
 
         const Wayfinder::SceneRenderExtractor extractor;
         const Wayfinder::RenderFrame frame = extractor.Extract(scene);
-        const Wayfinder::FrameLayerRecord* mainLayer = frame.FindLayer(Wayfinder::FrameLayerIds::MainScene);
+        const Wayfinder::FrameLayer* mainLayer = frame.FindLayer(Wayfinder::FrameLayerIds::MainScene);
 
         scene.Shutdown();
 
         REQUIRE(mainLayer != nullptr);
         REQUIRE(mainLayer->Meshes.size() == 4);
 
-        // Verify: wireframe=true → SolidAndWireframe,
-        //         wireframe=false → Solid,
-        //         wireframe unset (component present) → FillMode unset,
-        //         no component → FillMode unset.
+        // Verify: wireframe=true â†’ SolidAndWireframe,
+        //         wireframe=false â†’ Solid,
+        //         wireframe unset (component present) â†’ FillMode unset,
+        //         no component â†’ FillMode unset.
         int countSolid = 0;
         int countSolidAndWireframe = 0;
         int countUnset = 0;

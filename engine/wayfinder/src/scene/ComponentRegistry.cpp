@@ -166,20 +166,20 @@ namespace Wayfinder
             return "point";
         }
 
-        Wayfinder::InternedString ReadRenderLayer(const nlohmann::json& data, std::string_view key, const Wayfinder::InternedString& fallback)
+        Wayfinder::InternedString ReadRenderGroup(const nlohmann::json& data, std::string_view key, const Wayfinder::InternedString& fallback)
         {
             if (!data.contains(key) || !data.at(key).is_string())
             {
                 return fallback;
             }
 
-            const auto layer = data.at(key).get<std::string>();
-            if (layer.empty())
+            const auto group = data.at(key).get<std::string>();
+            if (group.empty())
             {
                 return fallback;
             }
 
-            return Wayfinder::InternedString::Intern(layer);
+            return Wayfinder::InternedString::Intern(group);
         }
 
         Wayfinder::MeshPrimitive ReadPrimitive(const nlohmann::json& data, std::string_view key, Wayfinder::MeshPrimitive fallback)
@@ -810,7 +810,7 @@ namespace Wayfinder
         {
             Wayfinder::RenderableComponent renderable;
             renderable.Visible = data.value("visible", renderable.Visible);
-            renderable.Layer = ReadRenderLayer(data, "layer", renderable.Layer);
+            renderable.Group = ReadRenderGroup(data, "group", renderable.Group);
 
             const int64_t sortPriority = data.value("sort_priority", static_cast<int64_t>(renderable.SortPriority));
             renderable.SortPriority = ClampToByte(sortPriority);
@@ -1126,7 +1126,7 @@ namespace Wayfinder
             const auto& renderable = entity.GetComponent<Wayfinder::RenderableComponent>();
             nlohmann::json componentTable;
             componentTable["visible"] = renderable.Visible;
-            componentTable["layer"] = renderable.Layer.GetString();
+            componentTable["group"] = renderable.Group.GetString();
             componentTable["sort_priority"] = static_cast<int64_t>(renderable.SortPriority);
             componentTables["renderable"] = std::move(componentTable);
         }

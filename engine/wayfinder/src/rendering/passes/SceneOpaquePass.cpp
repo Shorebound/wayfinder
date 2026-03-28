@@ -4,11 +4,11 @@
 
 #include "rendering/backend/RenderDevice.h"
 #include "rendering/backend/VertexFormats.h"
+#include "rendering/graph/RenderCapabilities.h"
 #include "rendering/graph/RenderFrameUtils.h"
 #include "rendering/graph/RenderGraph.h"
-#include "rendering/graph/RenderPassCapabilities.h"
 #include "rendering/materials/ShaderProgram.h"
-#include "rendering/pipeline/RenderContext.h"
+#include "rendering/pipeline/RenderServices.h"
 
 #include "core/Log.h"
 #include "maths/Maths.h"
@@ -42,12 +42,12 @@ namespace Wayfinder
         }
     } // namespace
 
-    void SceneOpaquePass::OnAttach(const RenderPassContext& context)
+    void SceneOpaquePass::OnAttach(const RenderFeatureContext& context)
     {
         m_context = &context.Context;
     }
 
-    void SceneOpaquePass::AddPasses(RenderGraph& graph, const RenderPipelineFrameParams& params)
+    void SceneOpaquePass::AddPasses(RenderGraph& graph, const FrameRenderParams& params)
     {
         if (!m_context)
         {
@@ -81,7 +81,7 @@ namespace Wayfinder
 
         graph.AddPass("MainScene", [&, viewMat = view, projMat = projection, hasCamera](RenderGraphBuilder& builder)
         {
-            builder.DeclarePassCapabilities(RenderPassCapabilities::RASTER | RenderPassCapabilities::RASTER_SCENE_GEOMETRY);
+            builder.DeclarePassCapabilities(RenderCapabilities::RASTER | RenderCapabilities::RASTER_SCENE_GEOMETRY);
             auto colour = builder.CreateTransient(colourDesc);
             auto depth = builder.CreateTransient(depthDesc);
             builder.WriteColour(colour, LoadOp::Clear, ClearValue::FromColour(clearColour));

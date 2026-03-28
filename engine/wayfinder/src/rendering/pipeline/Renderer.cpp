@@ -1,20 +1,17 @@
 #include "Renderer.h"
 
-#include "RenderContext.h"
+#include "RenderServices.h"
 #include "core/Result.h"
 #include "rendering/backend/RenderDevice.h"
 #include "rendering/graph/RenderFrame.h"
 #include "rendering/graph/RenderFrameUtils.h"
 #include "rendering/graph/RenderGraph.h"
-#include "rendering/resources/RenderResources.h"
+#include "rendering/resources/RenderResourceCache.h"
 
 #include "app/EngineConfig.h"
 #include "core/Log.h"
 #include "core/Types.h"
 #include "rendering/RenderTypes.h"
-#include "rendering/backend/VertexFormats.h"
-
-#include <unordered_map>
 
 namespace Wayfinder
 {
@@ -49,7 +46,7 @@ namespace Wayfinder
 
     Renderer::Renderer() : m_screenWidth(800), m_screenHeight(450), m_isInitialised(false)
     {
-        m_renderPipeline = std::make_unique<RenderPipeline>();
+        m_renderPipeline = std::make_unique<FrameComposer>();
         m_renderResources = std::make_unique<RenderResourceCache>();
     }
 
@@ -77,10 +74,10 @@ namespace Wayfinder
         m_device = &device;
         m_screenWidth = static_cast<int>(config.Window.Width);
         m_screenHeight = static_cast<int>(config.Window.Height);
-        m_context = std::make_unique<RenderContext>();
+        m_context = std::make_unique<RenderServices>();
         if (auto result = m_context->Initialise(device, config); !result)
         {
-            WAYFINDER_WARN(LogRenderer, "Renderer: Failed to initialise RenderContext — {}", result.error().GetMessage());
+            WAYFINDER_WARN(LogRenderer, "Renderer: Failed to initialise RenderServices — {}", result.error().GetMessage());
             return std::unexpected(result.error());
         }
 
@@ -89,9 +86,6 @@ namespace Wayfinder
         m_renderResources->SetTextureManager(&m_context->GetTextures());
         m_renderResources->SetMeshManager(&m_context->GetMeshes());
         m_renderResources->SetProgramRegistry(&m_context->GetPrograms());
-
-        m_primitiveMesh = Mesh::CreatePrimitive(device);
-        m_texturedPrimitiveMesh = Mesh::CreateTexturedPrimitive(device);
 
         m_isInitialised = true;
 
@@ -113,9 +107,6 @@ namespace Wayfinder
     {
         m_pendingPasses.clear();
 
-        m_primitiveMesh.Destroy();
-        m_texturedPrimitiveMesh.Destroy();
-
         m_renderPipeline->Shutdown();
 
         if (m_context)
@@ -124,7 +115,7 @@ namespace Wayfinder
             m_context.reset();
         }
 
-        m_renderPipeline = std::make_unique<RenderPipeline>();
+        m_renderPipeline = std::make_unique<FrameComposer>();
         m_renderResources = std::make_unique<RenderResourceCache>();
         if (m_assetService)
         {
@@ -151,12 +142,12 @@ namespace Wayfinder
         }
     }
 
-    RenderPassContext Renderer::MakePassContext()
+    RenderFeatureContext Renderer::MakeFeatureContext()
     {
-        return RenderPassContext{.Context = *m_context};
+        return RenderFeatureContext{.Context = *m_context};
     }
 
-    void Renderer::AddPass(const RenderPhase phase, const int32_t order, std::unique_ptr<RenderPass> pass)
+    void Renderer::AddPass(const RenderPhase phase, const int32_t order, std::unique_ptr<RenderFeature> pass)
     {
         if (!pass)
         {
@@ -172,7 +163,7 @@ namespace Wayfinder
         }
     }
 
-    void Renderer::AddPass(const RenderPhase phase, std::unique_ptr<RenderPass> pass)
+    void Renderer::AddPass(const RenderPhase phase, std::unique_ptr<RenderFeature> pass)
     {
         AddPass(phase, 0, std::move(pass));
     }
@@ -231,17 +222,11 @@ namespace Wayfinder
 
                 RenderGraph graph;
 
-                const std::unordered_map<uint32_t, Mesh*> meshesByStride =
-                {
-                    {VertexLayouts::PosNormalColour.stride, &m_primitiveMesh},
-                    {VertexLayouts::PosNormalUVTangent.stride, &m_texturedPrimitiveMesh},
-                };
-
-                const RenderPipelineFrameParams params{
+                const FrameRenderParams params{
                     .Frame = preparedFrame,
                     .SwapchainWidth = swapW,
                     .SwapchainHeight = swapH,
-                    .MeshesByStride = meshesByStride,
+                    .BuiltInMeshes = m_context->GetBuiltInMeshes(),
                     .ResourceCache = m_renderResources.get(),
                     .PrimaryView = primaryView,
                 };

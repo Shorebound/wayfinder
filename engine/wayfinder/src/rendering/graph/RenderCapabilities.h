@@ -4,9 +4,9 @@
 
 namespace Wayfinder
 {
-    /// Bitmask describing what a `RenderPass` injector may do. Used for documentation, dev validation in
+    /// Bitmask describing what a `RenderFeature` injector may do. Used for documentation, dev validation in
     /// `RenderGraph::Compile` when declared on the builder, and future scheduling (compute queues, profiling buckets).
-    namespace RenderPassCapabilities
+    namespace RenderCapabilities
     {
         inline constexpr uint32_t RASTER = 1u << 0;
         /// Scene mesh submissions (opaque / forward-style geometry).
@@ -19,6 +19,6 @@ namespace Wayfinder
         inline constexpr uint32_t COMPUTE = 1u << 4;
     }
 
-    using RenderPassCapabilityMask = uint32_t;
+    using RenderCapabilityMask = uint32_t;
 
 } // namespace Wayfinder

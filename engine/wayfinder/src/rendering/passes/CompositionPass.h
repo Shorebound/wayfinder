@@ -1,14 +1,14 @@
 #pragma once
 
-#include "rendering/graph/RenderPass.h"
+#include "rendering/graph/RenderFeature.h"
 
 namespace Wayfinder
 {
-    class RenderContext;
+    class RenderServices;
 
     /// Fullscreen pass: samples via `ResolvePostProcessInput` (latest `PostProcessColour`, else `SceneColour`); applies view
     /// post-processing; writes the swapchain.
-    class CompositionPass final : public RenderPass
+    class CompositionPass final : public RenderFeature
     {
     public:
         std::string_view GetName() const override
@@ -16,18 +16,18 @@ namespace Wayfinder
             return "Composition";
         }
 
-        RenderPassCapabilityMask GetCapabilities() const override
+        RenderCapabilityMask GetCapabilities() const override
         {
-            return RenderPassCapabilities::RASTER | RenderPassCapabilities::FULLSCREEN_COMPOSITE;
+            return RenderCapabilities::RASTER | RenderCapabilities::FULLSCREEN_COMPOSITE;
         }
 
-        void OnAttach(const RenderPassContext& context) override;
-        void OnDetach(const RenderPassContext& context) override;
-        void AddPasses(RenderGraph& graph, const RenderPipelineFrameParams& params) override;
+        void OnAttach(const RenderFeatureContext& context) override;
+        void OnDetach(const RenderFeatureContext& context) override;
+        void AddPasses(RenderGraph& graph, const FrameRenderParams& params) override;
 
         void SetEnabled(bool enabled) override;
 
     private:
-        RenderContext* m_context = nullptr;
+        RenderServices* m_context = nullptr;
     };
 } // namespace Wayfinder

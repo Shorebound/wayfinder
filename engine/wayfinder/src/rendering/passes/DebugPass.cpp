@@ -2,12 +2,13 @@
 
 #include "rendering/backend/RenderDevice.h"
 #include "rendering/backend/VertexFormats.h"
+#include "rendering/graph/RenderCapabilities.h"
 #include "rendering/graph/RenderGraph.h"
-#include "rendering/graph/RenderPassCapabilities.h"
 #include "rendering/materials/ShaderProgram.h"
 #include "rendering/mesh/Mesh.h"
-#include "rendering/pipeline/RenderContext.h"
-#include "rendering/pipeline/ShaderUniforms.h"
+#include "rendering/pipeline/BuiltInUBOs.h"
+#include "rendering/pipeline/PipelineCache.h"
+#include "rendering/pipeline/RenderServices.h"
 #include "rendering/resources/TransientBufferAllocator.h"
 
 #include "core/Log.h"
@@ -35,7 +36,7 @@ namespace Wayfinder
         /**
          * @brief Resolves view/projection for a layer — same rules as \ref SceneOpaquePass (primary defaults, optional per-view override).
          */
-        ResolvedViewForLayer ResolveViewMatricesForLayer(const RenderPipelineFrameParams& params, size_t viewIndex)
+        ResolvedViewForLayer ResolveViewMatricesForLayer(const FrameRenderParams& params, size_t viewIndex)
         {
             ResolvedViewForLayer r;
             const auto& primary = params.PrimaryView;
@@ -73,10 +74,9 @@ namespace Wayfinder
         }
     }
 
-    void DebugPass::OnAttach(const RenderPassContext& context)
+    void DebugPass::OnAttach(const RenderFeatureContext& context)
     {
         m_context = &context.Context;
-        auto& device = m_context->GetDevice();
 
         GPUPipelineDesc desc{};
         desc.vertexShaderName = "debug_unlit";
@@ -89,19 +89,20 @@ namespace Wayfinder
         desc.depthTestEnabled = false;
         desc.depthWriteEnabled = false;
 
-        if (!m_debugLinePipeline.Create(device, m_context->GetShaders(), desc, &m_context->GetPipelines()))
+        m_debugLinePipeline = m_context->GetPipelines().GetOrCreate(m_context->GetShaders(), desc);
+        if (!m_debugLinePipeline.IsValid())
         {
             WAYFINDER_WARN(LogRenderer, "DebugPass: Failed to create debug line pipeline");
         }
     }
 
-    void DebugPass::OnDetach(const RenderPassContext& /*context*/)
+    void DebugPass::OnDetach(const RenderFeatureContext& /*context*/)
     {
-        m_debugLinePipeline.Destroy();
+        m_debugLinePipeline = {};
         m_context = nullptr;
     }
 
-    void DebugPass::AddPasses(RenderGraph& graph, const RenderPipelineFrameParams& params)
+    void DebugPass::AddPasses(RenderGraph& graph, const FrameRenderParams& params)
     {
         if (!m_context)
         {
@@ -111,7 +112,7 @@ namespace Wayfinder
 
         graph.AddPass("Debug", [&](RenderGraphBuilder& builder)
         {
-            builder.DeclarePassCapabilities(RenderPassCapabilities::RASTER | RenderPassCapabilities::RASTER_OVERLAY_OR_DEBUG);
+            builder.DeclarePassCapabilities(RenderCapabilities::RASTER | RenderCapabilities::RASTER_OVERLAY_OR_DEBUG);
             auto colour = graph.FindHandleChecked(GraphTextureId::SceneColour);
             auto depth = graph.FindHandleChecked(GraphTextureId::SceneDepth);
             builder.WriteColour(colour, LoadOp::Load);
@@ -128,8 +129,7 @@ namespace Wayfinder
                 auto& transientAllocator = m_context->GetTransientBuffers();
                 auto& registry = m_context->GetPrograms();
 
-                const auto debugMeshIt = params.MeshesByStride.find(VertexLayouts::PosNormalColour.stride);
-                const Mesh* primitiveMeshPtr = (debugMeshIt != params.MeshesByStride.end()) ? debugMeshIt->second : nullptr;
+                const Mesh* primitiveMeshPtr = params.BuiltInMeshes[static_cast<size_t>(BuiltInMeshId::PrimitiveColour)];
 
                 std::unordered_map<size_t, std::vector<VertexPosColour>> lineBuckets;
                 std::unordered_map<size_t, std::vector<RenderDebugBox>> boxBuckets;
@@ -184,7 +184,7 @@ namespace Wayfinder
                         const UnlitTransformUBO transformUBO{.Mvp = resolved.Proj * resolved.View};
                         const DebugMaterialUBO materialUBO{.BaseColour = Float4(1.0f)};
 
-                        debugLinePipeline.Bind();
+                        device.BindPipeline(debugLinePipeline);
                         device.BindVertexBuffer(alloc.Buffer, {.offsetInBytes = alloc.Offset});
                         device.PushVertexUniform(0, &transformUBO, sizeof(UnlitTransformUBO));
                         device.PushFragmentUniform(0, &materialUBO, sizeof(DebugMaterialUBO));
@@ -193,7 +193,7 @@ namespace Wayfinder
                 }
 
                 const ShaderProgram* unlitProgram = registry.Find("unlit");
-                if (!unlitProgram || !unlitProgram->Pipeline || !primitiveMeshPtr || !primitiveMeshPtr->IsValid())
+                if (!unlitProgram || !unlitProgram->Pipeline.IsValid() || !primitiveMeshPtr || !primitiveMeshPtr->IsValid())
                 {
                     return;
                 }
@@ -213,7 +213,7 @@ namespace Wayfinder
                     return;
                 }
 
-                unlitProgram->Pipeline->Bind();
+                device.BindPipeline(unlitProgram->Pipeline);
                 primitiveMeshPtr->Bind(device);
 
                 for (const auto& [viewIndex, boxes] : boxBuckets)

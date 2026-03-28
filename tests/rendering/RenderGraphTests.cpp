@@ -1,8 +1,7 @@
 #include "rendering/backend/RenderDevice.h"
-#include "rendering/graph/PostProcessUtils.h"
 #include "rendering/graph/RenderGraph.h"
 #include "rendering/materials/RenderingEffects.h"
-#include "rendering/pipeline/CompositionUBOUtils.h"
+#include "rendering/pipeline/BuiltInUBOs.h"
 #include "rendering/resources/TransientResourcePool.h"
 
 #include <doctest/doctest.h>

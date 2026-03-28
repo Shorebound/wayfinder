@@ -1,8 +1,8 @@
 #pragma once
 
 #include "core/Types.h"
+#include "rendering/graph/RenderFeature.h"
 #include "rendering/graph/RenderFrame.h"
-#include "rendering/graph/RenderPass.h"
 
 #include <cstdint>
 #include <memory>
@@ -14,7 +14,7 @@ namespace Wayfinder
     class AssetService;
     class Mesh;
     class MeshManager;
-    class RenderContext;
+    class RenderServices;
     class RenderDevice;
     class RenderGraph;
     class RenderResourceCache;
@@ -38,11 +38,11 @@ namespace Wayfinder
     };
 
     /** @brief Validates, sorts, and builds the render graph for a frame. */
-    class WAYFINDER_API RenderPipeline
+    class WAYFINDER_API FrameComposer
     {
     public:
         /** @brief Registers built-in shader programs and default passes; stores context for BuildGraph. */
-        void Initialise(RenderContext& context);
+        void Initialise(RenderServices& services);
         void Shutdown();
 
         /**
@@ -52,7 +52,7 @@ namespace Wayfinder
          * @param pass Ownership of the pass instance; must not be null.
          * @note Requires Initialise to have been called.
          */
-        void RegisterPass(RenderPhase phase, int32_t order, std::unique_ptr<RenderPass> pass);
+        void RegisterPass(RenderPhase phase, int32_t order, std::unique_ptr<RenderFeature> pass);
 
         /**
          * @brief Validates views/layers, pre-computes view matrices and frustums,
@@ -69,7 +69,7 @@ namespace Wayfinder
          * @param graph The render graph to populate.
          * @param params Frame parameters for pass execution.
          */
-        void BuildGraph(RenderGraph& graph, const RenderPipelineFrameParams& params) const;
+        void BuildGraph(RenderGraph& graph, const FrameRenderParams& params) const;
 
         /**
          * @brief Returns the first pass whose dynamic type is @p T, if any.
@@ -125,7 +125,7 @@ namespace Wayfinder
             {
                 return false;
             }
-            const RenderPassContext ctx{*m_context};
+            const RenderFeatureContext ctx{*m_context};
             for (auto it = m_passes.begin(); it != m_passes.end(); ++it)
             {
                 if (it->Pass && dynamic_cast<T*>(it->Pass.get()) != nullptr)
@@ -144,12 +144,12 @@ namespace Wayfinder
             RenderPhase Phase = RenderPhase::Opaque;
             int32_t Order = 0;
             uint32_t InsertSequence = 0;
-            std::unique_ptr<RenderPass> Pass;
+            std::unique_ptr<RenderFeature> Pass;
         };
 
         static void SortPassList(std::vector<PassSlot>& slots);
 
-        RenderContext* m_context = nullptr;
+        RenderServices* m_context = nullptr;
         std::vector<PassSlot> m_passes;
         uint32_t m_nextPassInsertSequence = 0;
         bool m_initialised = false;

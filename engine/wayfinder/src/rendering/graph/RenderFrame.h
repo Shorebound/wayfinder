@@ -60,7 +60,7 @@ namespace Wayfinder
     /**
      * @brief CPU-side descriptor used by `RenderResourceCache` to look up or create a mesh resource.
      *
-     * This is a logical identifier, not a generational handle — it is never passed to the GPU directly.
+     * This is a logical identifier, not a generational handle â€” it is never passed to the GPU directly.
      * For the type-safe generational handle see `RenderMeshHandle` in `GPUHandles.h`.
      *
      * @param Origin  Whether this mesh comes from the built-in geometry library or an asset file.
@@ -80,7 +80,7 @@ namespace Wayfinder
     /**
      * @brief CPU-side descriptor used by `RenderResourceCache` to look up or create a material resource.
      *
-     * This is a logical identifier, not a generational handle — it is never passed to the GPU directly.
+     * This is a logical identifier, not a generational handle â€” it is never passed to the GPU directly.
      * For the type-safe generational handle see `RenderMaterialHandle` in `GPUHandles.h`.
      *
      * @param Origin  Whether this material comes from the built-in material library or an asset file.
@@ -95,7 +95,7 @@ namespace Wayfinder
         uint64_t StableKey = 0;
     };
 
-    // Render-state overrides — rasterizer configuration, separate from material surface params.
+    // Render-state overrides â€” rasterizer configuration, separate from material surface params.
     struct RenderStateOverrides
     {
         std::optional<RenderFillMode> FillMode;
@@ -128,7 +128,7 @@ namespace Wayfinder
         RenderMaterialDomain Domain = RenderMaterialDomain::Surface;
         std::string ShaderName = "unlit";
 
-        // Generic parameter bag — the shader program's declarations determine UBO layout.
+        // Generic parameter bag â€” the shader program's declarations determine UBO layout.
         MaterialParameterBlock Parameters;
 
         // Per-entity overrides applied on top of the asset-loaded parameters.
@@ -137,7 +137,7 @@ namespace Wayfinder
 
         RenderStateOverrides StateOverrides;
 
-        // Texture bindings — maps slot names to asset IDs (authored in material JSON).
+        // Texture bindings â€” maps slot names to asset IDs (authored in material JSON).
         TextureBindingSet Textures;
 
         // Resolved GPU handles for texture bindings (populated at render time).
@@ -153,11 +153,11 @@ namespace Wayfinder
         AxisAlignedBounds WorldBounds{};
         BoundingSphere WorldSphere{};
         bool Visible = true;
-        RenderLayerId Layer = RenderLayers::Main;
+        RenderGroupId Group = RenderGroups::Main;
         uint8_t SortPriority = 128;
         uint64_t SortKey = 0;
         /**
-         * @brief Which view's scene layers this submission targets (must match `FrameLayerRecord::ViewIndex` when set).
+         * @brief Which view's scene layers this submission targets (must match `FrameLayer::ViewIndex` when set).
          *
          * Unset means the submission does not target a view; `FindSceneLayerForSubmission` rejects such submissions.
          */
@@ -205,7 +205,7 @@ namespace Wayfinder
         bool IsPrimary = true;
         BlendableEffectStack PostProcess;
 
-        /// Pre-computed matrices and frustum. Populated by RenderPipeline::Prepare().
+        /// Pre-computed matrices and frustum. Populated by FrameComposer::Prepare().
         Matrix4 ViewMatrix = Matrix4(1.0f);
         Matrix4 ProjectionMatrix = Matrix4(1.0f);
         Frustum ViewFrustum{};
@@ -213,7 +213,7 @@ namespace Wayfinder
     };
 
     /**
-     * @brief Discriminator for `FrameLayerRecord::Kind` — scene mesh layers vs debug overlay layers.
+     * @brief Discriminator for `FrameLayer::Kind` â€” scene mesh layers vs debug overlay layers.
      */
     enum class FrameLayerKind
     {
@@ -226,14 +226,14 @@ namespace Wayfinder
     /**
      * @brief CPU-side layer record (meshes, debug draw, etc.).
      *
-     * Not to be confused with `RenderPass` graph injectors in `rendering/graph/RenderPass.h`.
+     * Not to be confused with `RenderFeature` graph injectors in `rendering/graph/RenderFeature.h`.
      */
-    struct FrameLayerRecord
+    struct FrameLayer
     {
         FrameLayerId Id = FrameLayerIds::MainScene;
         FrameLayerKind Kind = FrameLayerKind::Scene;
         size_t ViewIndex = 0;
-        std::optional<RenderLayerId> SceneLayer;
+        std::optional<RenderGroupId> SceneGroup;
         std::vector<RenderMeshSubmission> Meshes;
         std::optional<RenderDebugDrawList> DebugDraw;
         bool Enabled = true;
@@ -245,7 +245,7 @@ namespace Wayfinder
                 return false;
             }
 
-            return !SceneLayer || submission.Layer == *SceneLayer;
+            return !SceneGroup || submission.Group == *SceneGroup;
         }
     };
 
@@ -254,7 +254,7 @@ namespace Wayfinder
         std::string SceneName;
         std::filesystem::path AssetRoot;
         std::vector<RenderView> Views;
-        std::vector<FrameLayerRecord> Layers;
+        std::vector<FrameLayer> Layers;
         std::vector<RenderLightSubmission> Lights;
 
         size_t AddView(const RenderView& view)
@@ -264,19 +264,19 @@ namespace Wayfinder
         }
 
         /**
-         * @brief Registers a scene `FrameLayerRecord` for a view and render layer (e.g. main vs overlay).
+         * @brief Registers a scene `FrameLayer` for a view and render layer (e.g. main vs overlay).
          *
          * @param id Frame layer id (e.g. `FrameLayerIds::MainScene`).
          * @param viewIndex Index into `Views`; must be in range.
-         * @param sceneLayer Which `RenderLayerId` this record accepts (see `AcceptsSceneSubmission`).
+         * @param sceneGroup Which `RenderGroupId` this record accepts (see `AcceptsSceneSubmission`).
          * @return Reference to the new record in `Layers`.
          *
-         * @warning The returned `FrameLayerRecord&` refers to an element inside `Layers`. It is
+         * @warning The returned `FrameLayer&` refers to an element inside `Layers`. It is
          *          invalidated if `Layers` reallocates (for example when pushing more layers). Do not
          *          store this reference across operations that may grow `Layers`; keep an index or id
          *          and resolve via `FindLayer` instead.
          */
-        FrameLayerRecord& AddSceneLayer(const FrameLayerId& id, size_t viewIndex, const RenderLayerId& sceneLayer)
+        FrameLayer& AddSceneLayer(const FrameLayerId& id, size_t viewIndex, const RenderGroupId& sceneGroup)
         {
             WAYFINDER_ASSERT(viewIndex < Views.size(), "AddSceneLayer: viewIndex out of range for Views");
             for (const auto& existing : Layers)
@@ -286,37 +286,37 @@ namespace Wayfinder
                     WAYFINDER_ASSERT(false, "AddSceneLayer: duplicate FrameLayerId for the same viewIndex");
                 }
             }
-            const std::optional<RenderLayerId> sceneTarget{sceneLayer};
+            const std::optional<RenderGroupId> sceneTarget{sceneGroup};
             for (const auto& existing : Layers)
             {
-                if (existing.Kind == FrameLayerKind::Scene && existing.ViewIndex == viewIndex && existing.SceneLayer == sceneTarget)
+                if (existing.Kind == FrameLayerKind::Scene && existing.ViewIndex == viewIndex && existing.SceneGroup == sceneTarget)
                 {
-                    WAYFINDER_ASSERT(false, "AddSceneLayer: duplicate scene layer registration for the same viewIndex and RenderLayerId");
+                    WAYFINDER_ASSERT(false, "AddSceneLayer: duplicate scene group registration for the same viewIndex and RenderGroupId");
                 }
             }
 
-            FrameLayerRecord layer;
+            FrameLayer layer;
             layer.Id = id;
             layer.Kind = FrameLayerKind::Scene;
             layer.ViewIndex = viewIndex;
-            layer.SceneLayer = sceneLayer;
+            layer.SceneGroup = sceneGroup;
             Layers.push_back(std::move(layer));
             return Layers.back();
         }
 
         /**
-         * @brief Registers a debug `FrameLayerRecord` for a view (lines, boxes, grid).
+         * @brief Registers a debug `FrameLayer` for a view (lines, boxes, grid).
          *
          * @param id Frame layer id (e.g. `FrameLayerIds::Debug`).
          * @param viewIndex Index into `Views`; must be in range.
          * @return Reference to the new record in `Layers`.
          *
-         * @warning The returned `FrameLayerRecord&` refers to an element inside `Layers`. It is
+         * @warning The returned `FrameLayer&` refers to an element inside `Layers`. It is
          *          invalidated if `Layers` reallocates (for example when pushing more layers). Do not
          *          store this reference across operations that may grow `Layers`; keep an index or id
          *          and resolve via `FindLayer` instead.
          */
-        FrameLayerRecord& AddDebugLayer(const FrameLayerId& id, size_t viewIndex)
+        FrameLayer& AddDebugLayer(const FrameLayerId& id, size_t viewIndex)
         {
             WAYFINDER_ASSERT(viewIndex < Views.size(), "AddDebugLayer: viewIndex out of range for Views");
             for (const auto& existing : Layers)
@@ -327,7 +327,7 @@ namespace Wayfinder
                 }
             }
 
-            FrameLayerRecord layer;
+            FrameLayer layer;
             layer.Id = id;
             layer.Kind = FrameLayerKind::Debug;
             layer.ViewIndex = viewIndex;
@@ -342,11 +342,11 @@ namespace Wayfinder
          * @param id Layer id to find.
          * @return Pointer to the single matching layer, or nullptr if none or if the same id appears on more than one view.
          *
-         * If the same id appears on more than one view, returns nullptr — use `FindLayer(id, viewIndex)` instead.
+         * If the same id appears on more than one view, returns nullptr â€” use `FindLayer(id, viewIndex)` instead.
          */
-        FrameLayerRecord* FindLayer(const FrameLayerId& id)
+        FrameLayer* FindLayer(const FrameLayerId& id)
         {
-            FrameLayerRecord* match = nullptr;
+            FrameLayer* match = nullptr;
             for (auto& layer : Layers)
             {
                 if (layer.Id == id)
@@ -368,9 +368,9 @@ namespace Wayfinder
          * @param id Layer id to find.
          * @return Pointer to the single matching layer, or nullptr if none or if the same id appears on more than one view.
          */
-        const FrameLayerRecord* FindLayer(const FrameLayerId& id) const
+        const FrameLayer* FindLayer(const FrameLayerId& id) const
         {
-            const FrameLayerRecord* match = nullptr;
+            const FrameLayer* match = nullptr;
             for (const auto& layer : Layers)
             {
                 if (layer.Id == id)
@@ -390,12 +390,12 @@ namespace Wayfinder
          * @brief Resolves a layer by id and view index.
          *
          * @param id Layer id to find.
-         * @param viewIndex View index; must match `FrameLayerRecord::ViewIndex`.
+         * @param viewIndex View index; must match `FrameLayer::ViewIndex`.
          * @return Pointer to the matching layer, or nullptr.
          */
-        FrameLayerRecord* FindLayer(const FrameLayerId& id, size_t viewIndex)
+        FrameLayer* FindLayer(const FrameLayerId& id, size_t viewIndex)
         {
-            for (FrameLayerRecord& layer : Layers)
+            for (FrameLayer& layer : Layers)
             {
                 if (layer.Id == id && layer.ViewIndex == viewIndex)
                 {
@@ -410,12 +410,12 @@ namespace Wayfinder
          * @brief Resolves a layer by id and view index (const).
          *
          * @param id Layer id to find.
-         * @param viewIndex View index; must match `FrameLayerRecord::ViewIndex`.
+         * @param viewIndex View index; must match `FrameLayer::ViewIndex`.
          * @return Pointer to the matching layer, or nullptr.
          */
-        const FrameLayerRecord* FindLayer(const FrameLayerId& id, size_t viewIndex) const
+        const FrameLayer* FindLayer(const FrameLayerId& id, size_t viewIndex) const
         {
-            for (const FrameLayerRecord& layer : Layers)
+            for (const FrameLayer& layer : Layers)
             {
                 if (layer.Id == id && layer.ViewIndex == viewIndex)
                 {
@@ -432,9 +432,9 @@ namespace Wayfinder
          * @param submission Draw submission; if `ViewIndex` is unset, returns nullptr (cannot resolve).
          * @return Pointer to the accepting scene layer, or nullptr if `ViewIndex` is unset or no layer matches.
          */
-        FrameLayerRecord* FindSceneLayerForSubmission(const RenderMeshSubmission& submission)
+        FrameLayer* FindSceneLayerForSubmission(const RenderMeshSubmission& submission)
         {
-            return const_cast<FrameLayerRecord*>(std::as_const(*this).FindSceneLayerForSubmission(submission));
+            return const_cast<FrameLayer*>(std::as_const(*this).FindSceneLayerForSubmission(submission));
         }
 
         /**
@@ -443,7 +443,7 @@ namespace Wayfinder
          * @param submission Draw submission; if `ViewIndex` is unset, returns nullptr (cannot resolve).
          * @return Pointer to the accepting scene layer, or nullptr if `ViewIndex` is unset or no layer matches.
          */
-        const FrameLayerRecord* FindSceneLayerForSubmission(const RenderMeshSubmission& submission) const
+        const FrameLayer* FindSceneLayerForSubmission(const RenderMeshSubmission& submission) const
         {
             if (!submission.ViewIndex.has_value())
             {

@@ -13,7 +13,6 @@
 
 namespace Wayfinder
 {
-    class GPUPipeline;
     class Mesh;
     class PipelineCache;
     class ShaderManager;
@@ -77,7 +76,7 @@ namespace Wayfinder
     struct ShaderProgram
     {
         ShaderProgramDesc Desc;
-        GPUPipeline* Pipeline = nullptr; // Owned by the registry
+        GPUPipelineHandle Pipeline{}; // Owned by PipelineCache
     };
 
     // ── Shader Program Registry ──────────────────────────────
@@ -115,8 +114,6 @@ namespace Wayfinder
         PipelineCache* m_cache = nullptr;
 
         std::unordered_map<std::string, ShaderProgram, TransparentStringHash, std::equal_to<>> m_programs;
-        // Owned pipelines (not from cache) that need explicit destruction
-        std::vector<GPUPipeline*> m_ownedPipelines;
     };
 
 } // namespace Wayfinder

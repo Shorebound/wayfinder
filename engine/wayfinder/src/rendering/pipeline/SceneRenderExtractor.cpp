@@ -46,9 +46,9 @@ namespace Wayfinder
             return result;
         }
 
-        Wayfinder::SortLayer MapLayer(const Wayfinder::RenderLayerId& layer)
+        Wayfinder::SortLayer MapGroup(const Wayfinder::RenderGroupId& group)
         {
-            if (layer == Wayfinder::RenderLayers::Overlay)
+            if (group == Wayfinder::RenderGroups::Overlay)
             {
                 return Wayfinder::SortLayer::Overlay;
             }
@@ -172,43 +172,47 @@ namespace Wayfinder
         }
 
     } // namespace
-}
 
-namespace Wayfinder
-{
-    RenderFrame SceneRenderExtractor::Extract(const Scene& scene) const
+    namespace
     {
-        RenderFrame frame;
-        frame.SceneName = scene.GetName();
-        frame.AssetRoot = scene.GetAssetRoot();
-
-        std::optional<size_t> primaryViewIndex;
-        if (scene.GetWorld().has<ActiveCameraStateComponent>())
+        std::optional<size_t> ExtractViews(const flecs::world& world, RenderFrame& frame)
         {
-            const auto& activeCamera = scene.GetWorld().get<ActiveCameraStateComponent>();
-            if (activeCamera.IsValid)
+            if (!world.has<ActiveCameraStateComponent>())
             {
-                RenderView view;
-                view.CameraState.Position = activeCamera.Position;
-                view.CameraState.Target = activeCamera.Target;
-                view.CameraState.Up = activeCamera.Up;
-                view.CameraState.FOV = activeCamera.FieldOfView;
-                view.CameraState.ProjectionType = static_cast<int>(activeCamera.Projection);
-                primaryViewIndex = frame.AddView(view);
-                const size_t viewIndex = *primaryViewIndex;
-                frame.AddSceneLayer(FrameLayerIds::MainScene, viewIndex, RenderLayers::Main);
-                frame.AddSceneLayer(FrameLayerIds::OverlayScene, viewIndex, RenderLayers::Overlay);
-                FrameLayerRecord& debugLayer = frame.AddDebugLayer(FrameLayerIds::Debug, viewIndex);
-                if (debugLayer.DebugDraw)
-                {
-                    debugLayer.DebugDraw->ShowWorldGrid = true;
-                }
+                return std::nullopt;
             }
+
+            const auto& activeCamera = world.get<ActiveCameraStateComponent>();
+            if (!activeCamera.IsValid)
+            {
+                return std::nullopt;
+            }
+
+            RenderView view;
+            view.CameraState.Position = activeCamera.Position;
+            view.CameraState.Target = activeCamera.Target;
+            view.CameraState.Up = activeCamera.Up;
+            view.CameraState.FOV = activeCamera.FieldOfView;
+            view.CameraState.ProjectionType = static_cast<int>(activeCamera.Projection);
+            const size_t viewIndex = frame.AddView(view);
+            frame.AddSceneLayer(FrameLayerIds::MainScene, viewIndex, RenderGroups::Main);
+            frame.AddSceneLayer(FrameLayerIds::OverlayScene, viewIndex, RenderGroups::Overlay);
+            FrameLayer& debugLayer = frame.AddDebugLayer(FrameLayerIds::Debug, viewIndex);
+            if (debugLayer.DebugDraw)
+            {
+                debugLayer.DebugDraw->ShowWorldGrid = true;
+            }
+
+            return viewIndex;
         }
 
-        if (primaryViewIndex.has_value())
+        void ExtractMeshSubmissions(const Scene& scene, RenderFrame& frame, std::optional<size_t> primaryViewIndex)
         {
-            // Compute view matrix for sort-key depth calculation (only needed when layer-backed mesh extraction runs).
+            if (!primaryViewIndex.has_value())
+            {
+                return;
+            }
+
             auto cameraView = Matrix4(1.0f);
             if (scene.GetWorld().has<ActiveCameraStateComponent>())
             {
@@ -238,12 +242,10 @@ namespace Wayfinder
                     localToWorld = worldTransform.LocalToWorld;
                 }
 
-                // Compute camera-space Z for depth sorting (shared by all submesh submissions)
                 const Float3 worldPosition = Maths::TransformPoint(localToWorld, {0.0f, 0.0f, 0.0f});
                 const Float3 cameraSpacePosition = Maths::TransformPoint(cameraView, worldPosition);
                 const float cameraSpaceZ = cameraSpacePosition.z; // NOLINT(cppcoreguidelines-pro-type-union-access)
 
-                // Resolve entity-level material (fallback for all submeshes)
                 RenderMaterialBinding entityMaterial{};
                 entityMaterial.Ref.Origin = RenderResourceOrigin::BuiltIn;
                 entityMaterial.Ref.StableKey = K_BUILT_IN_SURFACE_MATERIAL_KEY;
@@ -267,7 +269,6 @@ namespace Wayfinder
                     }
                 }
 
-                // Resolve render-state overrides
                 RenderStateOverrides stateOverrides{};
                 if (entityHandle.has<RenderOverrideComponent>())
                 {
@@ -278,7 +279,6 @@ namespace Wayfinder
                     }
                 }
 
-                /// Emit a single submission with the given mesh ref, material, and world-space bounds.
                 auto emitSubmission = [&](const RenderMeshRef& meshRef, const RenderMaterialBinding& material, const AxisAlignedBounds& worldBounds)
                 {
                     RenderMeshSubmission submission;
@@ -290,19 +290,19 @@ namespace Wayfinder
                     const auto materialState = ResolveMaterialState(submission.Material, scene);
                     submission.Material.ShaderName = materialState.ShaderName;
                     submission.Visible = renderable.Visible;
-                    submission.Layer = renderable.Layer;
+                    submission.Group = renderable.Group;
                     submission.SortPriority = renderable.SortPriority;
                     submission.LocalToWorld = localToWorld;
                     submission.WorldBounds = worldBounds;
                     submission.WorldSphere = ComputeBoundingSphere(worldBounds);
-                    const SortLayer sortLayer = materialState.Blend.Enabled ? SortLayer::Transparent : MapLayer(submission.Layer);
+                    const SortLayer sortLayer = materialState.Blend.Enabled ? SortLayer::Transparent : MapGroup(submission.Group);
                     submission.SortKey = SortKeyBuilder::Build(sortLayer, BlendGroupBits(materialState.Blend), MaterialIdBits(submission.Material), cameraSpaceZ, submission.SortPriority);
 
                     submission.ViewIndex = primaryViewIndex;
-                    FrameLayerRecord* owningLayer = frame.FindSceneLayerForSubmission(submission);
+                    FrameLayer* owningLayer = frame.FindSceneLayerForSubmission(submission);
                     if (!owningLayer)
                     {
-                        WAYFINDER_WARN(LogRenderer, "SceneRenderExtractor skipped mesh submission because no scene layer matched layer '{0}' in frame '{1}'.", submission.Layer, frame.SceneName);
+                        WAYFINDER_WARN(LogRenderer, "SceneRenderExtractor skipped mesh submission because no scene group matched group '{0}' in frame '{1}'.", submission.Group, frame.SceneName);
                         return;
                     }
 
@@ -311,7 +311,6 @@ namespace Wayfinder
 
                 if (mesh.MeshAssetId)
                 {
-                    // Asset mesh — load metadata once, emit one submission per submesh
                     const MeshAsset* meshAsset = nullptr;
                     const auto& assetService = scene.GetAssetService();
                     if (assetService)
@@ -330,7 +329,6 @@ namespace Wayfinder
                         meshRef.StableKey = MakeStableKey(*mesh.MeshAssetId, submeshIdx);
                         meshRef.SubmeshIndex = submeshIdx;
 
-                        // Resolve per-submesh material: slot binding → entity material → built-in
                         RenderMaterialBinding submeshMaterial = entityMaterial;
 
                         uint32_t materialSlot = submeshIdx;
@@ -355,7 +353,6 @@ namespace Wayfinder
                 }
                 else
                 {
-                    // Built-in primitive — single submission with bounds derived from dimensions
                     RenderMeshRef meshRef;
                     meshRef.Origin = RenderResourceOrigin::BuiltIn;
                     meshRef.StableKey = K_BUILT_IN_BOX_MESH_KEY;
@@ -369,109 +366,115 @@ namespace Wayfinder
             });
         }
 
-        scene.GetWorld().each([&frame, primaryViewIndex](flecs::entity entityHandle)
+        void ExtractLights(const flecs::world& world, RenderFrame& frame, std::optional<size_t> primaryViewIndex)
         {
-            if (!entityHandle.has<TransformComponent>() || !entityHandle.has<LightComponent>())
+            world.each([&frame, primaryViewIndex](flecs::entity entityHandle)
             {
-                return;
-            }
-
-            const auto& transform = entityHandle.get<TransformComponent>();
-            const auto& light = entityHandle.get<LightComponent>();
-
-            Matrix4 localToWorld = transform.GetLocalMatrix();
-            Float3 position = transform.Local.Position;
-            if (entityHandle.has<WorldTransformComponent>())
-            {
-                const auto& worldTransform = entityHandle.get<WorldTransformComponent>();
-                localToWorld = worldTransform.LocalToWorld;
-                position = worldTransform.Position;
-            }
-
-            const Float3 direction = Maths::Normalize(Maths::TransformDirection(localToWorld, {0.0f, 0.0f, -1.0f}));
-
-            RenderLightSubmission submission;
-            submission.Type = light.Type == LightType::Directional ? RenderLightType::Directional : RenderLightType::Point;
-            submission.Position = position;
-            submission.Direction = direction;
-            submission.Tint = light.Tint;
-            submission.Intensity = light.Intensity;
-            submission.Range = light.Range;
-            submission.DebugDraw = light.DebugDraw;
-            frame.Lights.push_back(submission);
-
-            if (light.DebugDraw && primaryViewIndex.has_value())
-            {
-                const float debugSize = light.Type == LightType::Directional ? 0.6f : 0.3f;
-                const Matrix4 debugTransform = Maths::ComposeTransform({
-                    .Position = position,
-                    .RotationDegrees = {0.0f, 0.0f, 0.0f},
-                    .Scale = {debugSize, debugSize, debugSize},
-                });
-
-                RenderDebugBox debugBox;
-                debugBox.LocalToWorld = debugTransform;
-                debugBox.Dimensions = {1.0f, 1.0f, 1.0f};
-                debugBox.Material.Ref.Origin = RenderResourceOrigin::BuiltIn;
-                debugBox.Material.Ref.StableKey = 100ull;
-                debugBox.Material.Domain = RenderMaterialDomain::Debug;
-                debugBox.Material.Parameters.SetColour("base_colour", LinearColour::FromColour(light.Tint));
-
-                FrameLayerRecord* debugLayer = frame.FindLayer(FrameLayerIds::Debug, *primaryViewIndex);
-                if (debugLayer && debugLayer->DebugDraw)
+                if (!entityHandle.has<TransformComponent>() || !entityHandle.has<LightComponent>())
                 {
-                    debugLayer->DebugDraw->Boxes.push_back(debugBox);
+                    return;
+                }
 
-                    if (light.Type == LightType::Directional)
+                const auto& transform = entityHandle.get<TransformComponent>();
+                const auto& light = entityHandle.get<LightComponent>();
+
+                Matrix4 localToWorld = transform.GetLocalMatrix();
+                Float3 position = transform.Local.Position;
+                if (entityHandle.has<WorldTransformComponent>())
+                {
+                    const auto& worldTransform = entityHandle.get<WorldTransformComponent>();
+                    localToWorld = worldTransform.LocalToWorld;
+                    position = worldTransform.Position;
+                }
+
+                const Float3 direction = Maths::Normalize(Maths::TransformDirection(localToWorld, {0.0f, 0.0f, -1.0f}));
+
+                RenderLightSubmission submission;
+                submission.Type = light.Type == LightType::Directional ? RenderLightType::Directional : RenderLightType::Point;
+                submission.Position = position;
+                submission.Direction = direction;
+                submission.Tint = light.Tint;
+                submission.Intensity = light.Intensity;
+                submission.Range = light.Range;
+                submission.DebugDraw = light.DebugDraw;
+                frame.Lights.push_back(submission);
+
+                if (light.DebugDraw && primaryViewIndex.has_value())
+                {
+                    const float debugSize = light.Type == LightType::Directional ? 0.6f : 0.3f;
+                    const Matrix4 debugTransform = Maths::ComposeTransform({
+                        .Position = position,
+                        .RotationDegrees = {0.0f, 0.0f, 0.0f},
+                        .Scale = {debugSize, debugSize, debugSize},
+                    });
+
+                    RenderDebugBox debugBox;
+                    debugBox.LocalToWorld = debugTransform;
+                    debugBox.Dimensions = {1.0f, 1.0f, 1.0f};
+                    debugBox.Material.Ref.Origin = RenderResourceOrigin::BuiltIn;
+                    debugBox.Material.Ref.StableKey = 100ull;
+                    debugBox.Material.Domain = RenderMaterialDomain::Debug;
+                    debugBox.Material.Parameters.SetColour("base_colour", LinearColour::FromColour(light.Tint));
+
+                    FrameLayer* debugLayer = frame.FindLayer(FrameLayerIds::Debug, *primaryViewIndex);
+                    if (debugLayer && debugLayer->DebugDraw)
                     {
-                        const Float3 lineEnd = Maths::Add(position, Maths::Scale(direction, 1.5f));
-                        RenderDebugLine debugLine;
-                        debugLine.Start = position;
-                        debugLine.End = lineEnd;
-                        debugLine.Tint = light.Tint;
+                        debugLayer->DebugDraw->Boxes.push_back(debugBox);
 
-                        debugLayer->DebugDraw->Lines.push_back(debugLine);
+                        if (light.Type == LightType::Directional)
+                        {
+                            const Float3 lineEnd = Maths::Add(position, Maths::Scale(direction, 1.5f));
+                            RenderDebugLine debugLine;
+                            debugLine.Start = position;
+                            debugLine.End = lineEnd;
+                            debugLine.Tint = light.Tint;
+
+                            debugLayer->DebugDraw->Lines.push_back(debugLine);
+                        }
                     }
                 }
-            }
-        });
+            });
+        }
 
-        // Extract post-process volumes (global volumes may have no transform)
-        std::vector<VolumeInstance> volumeInstances;
-        scene.GetWorld().each([&volumeInstances](flecs::entity entityHandle)
+        void ExtractPostProcessVolumes(const Scene& scene, RenderFrame& frame)
         {
-            if (!entityHandle.has<BlendableEffectVolumeComponent>())
+            std::vector<VolumeInstance> volumeInstances;
+            scene.GetWorld().each([&volumeInstances](flecs::entity entityHandle)
+            {
+                if (!entityHandle.has<BlendableEffectVolumeComponent>())
+                {
+                    return;
+                }
+
+                const auto& volume = entityHandle.get<BlendableEffectVolumeComponent>();
+
+                Float3 position{0.0f, 0.0f, 0.0f};
+                Float3 scale{1.0f, 1.0f, 1.0f};
+                auto localToWorld = Matrix4(1.0f);
+
+                if (entityHandle.has<WorldTransformComponent>())
+                {
+                    const auto& worldTransform = entityHandle.get<WorldTransformComponent>();
+                    position = worldTransform.Position;
+                    scale = worldTransform.Scale;
+                    localToWorld = worldTransform.LocalToWorld;
+                }
+                else if (entityHandle.has<TransformComponent>())
+                {
+                    const auto& transform = entityHandle.get<TransformComponent>();
+                    position = transform.Local.Position;
+                    scale = transform.Local.Scale;
+                    localToWorld = transform.GetLocalMatrix();
+                }
+
+                volumeInstances.push_back({.Volume = &volume, .WorldPosition = position, .WorldScale = scale, .LocalToWorld = localToWorld});
+            });
+
+            if (volumeInstances.empty())
             {
                 return;
             }
 
-            const auto& volume = entityHandle.get<BlendableEffectVolumeComponent>();
-
-            Float3 position{0.0f, 0.0f, 0.0f};
-            Float3 scale{1.0f, 1.0f, 1.0f};
-            auto localToWorld = Matrix4(1.0f);
-
-            if (entityHandle.has<WorldTransformComponent>())
-            {
-                const auto& worldTransform = entityHandle.get<WorldTransformComponent>();
-                position = worldTransform.Position;
-                scale = worldTransform.Scale;
-                localToWorld = worldTransform.LocalToWorld;
-            }
-            else if (entityHandle.has<TransformComponent>())
-            {
-                const auto& transform = entityHandle.get<TransformComponent>();
-                position = transform.Local.Position;
-                scale = transform.Local.Scale;
-                localToWorld = transform.GetLocalMatrix();
-            }
-
-            volumeInstances.push_back({.Volume = &volume, .WorldPosition = position, .WorldScale = scale, .LocalToWorld = localToWorld});
-        });
-
-        // Blend post-process volumes per view using each view's camera position
-        if (!volumeInstances.empty())
-        {
             const BlendableEffectRegistry* ppRegistry = BlendableEffectRegistry::GetActiveInstance();
             if (ppRegistry != nullptr)
             {
@@ -483,11 +486,24 @@ namespace Wayfinder
             else
             {
                 WAYFINDER_WARN(LogRenderer,
-                    "SceneRenderExtractor: skipped blendable volume blending for scene '{}' ({} volume instances) — "
-                    "BlendableEffectRegistry has no active instance",
+                    "SceneRenderExtractor: skipped blendable volume blending for scene '{}' ({} volume instances) "
+                    "\xe2\x80\x94 BlendableEffectRegistry has no active instance",
                     frame.SceneName, volumeInstances.size());
             }
         }
+
+    } // namespace
+
+    RenderFrame SceneRenderExtractor::Extract(const Scene& scene) const
+    {
+        RenderFrame frame;
+        frame.SceneName = scene.GetName();
+        frame.AssetRoot = scene.GetAssetRoot();
+
+        const auto primaryViewIndex = ExtractViews(scene.GetWorld(), frame);
+        ExtractMeshSubmissions(scene, frame, primaryViewIndex);
+        ExtractLights(scene.GetWorld(), frame, primaryViewIndex);
+        ExtractPostProcessVolumes(scene, frame);
 
         return frame;
     }
