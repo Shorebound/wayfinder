@@ -2,6 +2,7 @@
 
 #include "EngineConfig.h"
 #include "EngineRuntime.h"
+#include "FpsOverlayLayer.h"
 #include "LayerStack.h"
 #include "core/Assert.h"
 #include "core/Log.h"
@@ -108,6 +109,11 @@ namespace Wayfinder
         // 7. Plugin startup lifecycle
         m_pluginRegistry->NotifyStartup();
         m_pluginsStarted = true;
+
+#if !defined(WAYFINDER_SHIPPING)
+        // Frame stats in the window title (no in-engine text pipeline yet).
+        m_layerStack->PushOverlay(std::make_unique<FpsOverlayLayer>(m_runtime->GetWindow()));
+#endif
 
         m_running = true;
         return {};

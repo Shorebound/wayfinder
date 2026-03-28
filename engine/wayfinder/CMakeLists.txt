@@ -52,6 +52,8 @@ set(ENGINE_ALL_SOURCES
   src/app/EngineRuntime.cpp
   src/app/EngineRuntime.h
   src/app/EntryPoint.h
+  src/app/FpsOverlayLayer.cpp
+  src/app/FpsOverlayLayer.h
   src/app/Layer.h
   src/app/LayerStack.cpp
   src/app/LayerStack.h
