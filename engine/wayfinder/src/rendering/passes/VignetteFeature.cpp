@@ -12,6 +12,8 @@
 #include "core/Log.h"
 #include "core/Types.h"
 
+#include <array>
+
 namespace Wayfinder
 {
     namespace
@@ -20,7 +22,7 @@ namespace Wayfinder
         struct alignas(16) VignetteUBO
         {
             float Strength = 0.0f;
-            float _pad[3]{};
+            std::array<float, 3> Pad{};
         };
         static_assert(sizeof(VignetteUBO) == 16);
     } // namespace
@@ -87,7 +89,7 @@ namespace Wayfinder
         {
             stack = &params.Frame.Views[params.PrimaryView.ViewIndex].PostProcess;
         }
-        BlendableEffectStack emptyStack{};
+        const BlendableEffectStack emptyStack{};
         const BlendableEffectStack& s = stack ? *stack : emptyStack;
         const auto vignette = ResolveEffect<VignetteParams>(s, m_effectId);
         if (vignette.Strength.Value <= 0.0f)

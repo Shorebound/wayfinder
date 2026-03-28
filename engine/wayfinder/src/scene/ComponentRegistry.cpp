@@ -992,7 +992,8 @@ namespace Wayfinder
         {
             Wayfinder::BlendableEffectVolumeComponent volume;
             volume.Shape = ReadVolumeShape(data, "shape", volume.Shape);
-            volume.Priority = std::clamp(data.value("priority", static_cast<int64_t>(volume.Priority)), static_cast<int64_t>(std::numeric_limits<int>::min()), static_cast<int64_t>(std::numeric_limits<int>::max()));
+            volume.Priority =
+                static_cast<int>(std::clamp(data.value("priority", static_cast<int64_t>(volume.Priority)), static_cast<int64_t>(std::numeric_limits<int>::min()), static_cast<int64_t>(std::numeric_limits<int>::max())));
             volume.BlendDistance = ReadFloat(data, "blend_distance", volume.BlendDistance);
             volume.Dimensions = ReadVector3(data, "dimensions", volume.Dimensions);
             volume.Radius = ReadFloat(data, "radius", volume.Radius);
@@ -1189,7 +1190,7 @@ namespace Wayfinder
                     for (const auto& effect : volume.Effects)
                     {
                         const Wayfinder::BlendableEffectDesc* desc = registry->Find(effect.TypeId);
-                        WAYFINDER_ASSERT(desc != nullptr && desc->Serialise != nullptr);
+                        WAYFINDER_ASSERT(desc && desc->Serialise);
 
                         nlohmann::json effectTable;
                         effectTable["type"] = std::string{desc->Name};

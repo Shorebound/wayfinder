@@ -103,7 +103,7 @@ namespace Wayfinder
             {
                 stack = &params.Frame.Views[params.PrimaryView.ViewIndex].PostProcess;
             }
-            BlendableEffectStack emptyStack{};
+            const BlendableEffectStack emptyStack{};
             const BlendableEffectStack& s = stack ? *stack : emptyStack;
             grading = ResolveEffect<ColourGradingParams>(s, m_effectId);
         }

@@ -86,7 +86,7 @@ namespace Wayfinder
         {
             stack = &params.Frame.Views[params.PrimaryView.ViewIndex].PostProcess;
         }
-        BlendableEffectStack emptyStack{};
+        const BlendableEffectStack emptyStack{};
         const BlendableEffectStack& s = stack ? *stack : emptyStack;
         const auto ca = ResolveEffect<ChromaticAberrationParams>(s, m_effectId);
         if (ca.Intensity.Value <= 0.0f)

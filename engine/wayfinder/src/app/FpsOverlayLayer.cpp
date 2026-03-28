@@ -9,7 +9,7 @@ namespace Wayfinder
     namespace
     {
         /// How often to refresh the title (stable averages, low churn).
-        constexpr float kRefreshIntervalSeconds = 0.5f;
+        constexpr float REFRESH_INTERVAL_SECONDS = 0.5f;
     } // namespace
 
     FpsOverlayLayer::FpsOverlayLayer(Window& window) : m_window(&window) {}
@@ -43,7 +43,7 @@ namespace Wayfinder
         m_accumSeconds += deltaTime;
         ++m_framesInWindow;
 
-        if (m_accumSeconds < kRefreshIntervalSeconds)
+        if (m_accumSeconds < REFRESH_INTERVAL_SECONDS)
         {
             return;
         }

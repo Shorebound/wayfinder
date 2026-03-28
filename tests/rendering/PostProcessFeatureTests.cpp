@@ -9,6 +9,7 @@
 
 #include "core/Types.h"
 
+#include <array>
 #include <cstddef>
 
 #include <doctest/doctest.h>
@@ -100,7 +101,7 @@ namespace Wayfinder::Tests
         struct alignas(16) VignetteUBO
         {
             float Strength = 0.0f;
-            float _pad[3]{};
+            std::array<float, 3> Pad{};
         };
         static_assert(sizeof(VignetteUBO) == 16);
         CHECK(offsetof(VignetteUBO, Strength) == 0);
