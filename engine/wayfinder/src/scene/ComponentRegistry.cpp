@@ -669,7 +669,11 @@ namespace Wayfinder
                     const Wayfinder::BlendableEffectRegistry* effectRegistry = Wayfinder::BlendableEffectRegistry::GetActiveInstance();
                     if (effectRegistry == nullptr)
                     {
-                        WAYFINDER_WARN(LogScene, "ComponentRegistry: no active BlendableEffectRegistry — skipping blendable effect type name validation");
+                        if (!Wayfinder::IsValidEffectTypeName(normalised, nullptr))
+                        {
+                            error = "invalid blendable effect type name: " + effectTypeStr;
+                            return false;
+                        }
                     }
                     else
                     {
@@ -680,9 +684,9 @@ namespace Wayfinder
                             return false;
                         }
                         const Wayfinder::BlendableEffectDesc* effectDesc = effectRegistry->Find(*effectIdOpt);
-                        if (effectDesc == nullptr || effectDesc->Deserialise == nullptr || effectDesc->CreateIdentity == nullptr)
+                        if (effectDesc == nullptr || effectDesc->Deserialise == nullptr || effectDesc->CreateIdentity == nullptr || effectDesc->Serialise == nullptr)
                         {
-                            error = "blendable effect '" + effectTypeStr + "' cannot be loaded (missing Deserialise or CreateIdentity callback)";
+                            error = "blendable effect '" + effectTypeStr + "' cannot be loaded (missing Deserialise, CreateIdentity, or Serialise callback)";
                             return false;
                         }
                     }
@@ -992,8 +996,16 @@ namespace Wayfinder
         {
             Wayfinder::BlendableEffectVolumeComponent volume;
             volume.Shape = ReadVolumeShape(data, "shape", volume.Shape);
-            volume.Priority =
-                static_cast<int>(std::clamp(data.value("priority", static_cast<int64_t>(volume.Priority)), static_cast<int64_t>(std::numeric_limits<int>::min()), static_cast<int64_t>(std::numeric_limits<int>::max())));
+            if (data.contains("priority"))
+            {
+                const auto& priorityNode = data.at("priority");
+                if (!priorityNode.is_number_integer())
+                {
+                    throw std::runtime_error("SceneComponentRegistry::ApplyComponents: blendable_effect_volume 'priority' must be a JSON integer");
+                }
+                const int64_t priorityValue = priorityNode.get<int64_t>();
+                volume.Priority = static_cast<int>(std::clamp(priorityValue, static_cast<int64_t>(std::numeric_limits<int>::min()), static_cast<int64_t>(std::numeric_limits<int>::max())));
+            }
             volume.BlendDistance = ReadFloat(data, "blend_distance", volume.BlendDistance);
             volume.Dimensions = ReadVector3(data, "dimensions", volume.Dimensions);
             volume.Radius = ReadFloat(data, "radius", volume.Radius);
@@ -1173,39 +1185,37 @@ namespace Wayfinder
                 const Wayfinder::BlendableEffectRegistry* registry = Wayfinder::BlendableEffectRegistry::GetActiveInstance();
                 if (registry == nullptr)
                 {
-                    WAYFINDER_WARN(LogScene, "SerialiseBlendableEffectVolumeComponent: BlendableEffectRegistry not active — effects not serialised");
+                    throw std::runtime_error("SerialiseBlendableEffectVolumeComponent: BlendableEffectRegistry not active — refusing to write partial volume data (effects present)");
                 }
-                else
+
+                for (const auto& effect : volume.Effects)
                 {
-                    for (const auto& effect : volume.Effects)
+                    const Wayfinder::BlendableEffectDesc* desc = registry->Find(effect.TypeId);
+                    if (desc == nullptr || desc->Serialise == nullptr)
                     {
-                        const Wayfinder::BlendableEffectDesc* desc = registry->Find(effect.TypeId);
-                        if (desc == nullptr || desc->Serialise == nullptr)
-                        {
-                            throw std::runtime_error(std::format("SerialiseBlendableEffectVolumeComponent: effect type id {} has no Serialise callback — refusing to write partial volume data", effect.TypeId));
-                        }
+                        throw std::runtime_error(std::format("SerialiseBlendableEffectVolumeComponent: effect type id {} has no Serialise callback — refusing to write partial volume data", effect.TypeId));
                     }
-
-                    nlohmann::json effectsArray = nlohmann::json::array();
-                    for (const auto& effect : volume.Effects)
-                    {
-                        const Wayfinder::BlendableEffectDesc* desc = registry->Find(effect.TypeId);
-                        WAYFINDER_ASSERT(desc && desc->Serialise);
-
-                        nlohmann::json effectTable;
-                        effectTable["type"] = std::string{desc->Name};
-                        if (!effect.Enabled)
-                        {
-                            effectTable["enabled"] = false;
-                        }
-                        // NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
-                        desc->Serialise(effectTable, effect.Payload);
-                        // NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
-                        effectsArray.push_back(std::move(effectTable));
-                    }
-
-                    componentTable["effects"] = std::move(effectsArray);
                 }
+
+                nlohmann::json effectsArray = nlohmann::json::array();
+                for (const auto& effect : volume.Effects)
+                {
+                    const Wayfinder::BlendableEffectDesc* desc = registry->Find(effect.TypeId);
+                    WAYFINDER_ASSERT(desc && desc->Serialise);
+
+                    nlohmann::json effectTable;
+                    effectTable["type"] = std::string{desc->Name};
+                    if (!effect.Enabled)
+                    {
+                        effectTable["enabled"] = false;
+                    }
+                    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
+                    desc->Serialise(effectTable, effect.Payload);
+                    // NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
+                    effectsArray.push_back(std::move(effectTable));
+                }
+
+                componentTable["effects"] = std::move(effectsArray);
             }
 
             componentTables["blendable_effect_volume"] = std::move(componentTable);

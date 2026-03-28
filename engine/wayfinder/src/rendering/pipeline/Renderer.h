@@ -51,7 +51,10 @@ namespace Wayfinder
         void AddPass(RenderPhase phase, int32_t order, std::unique_ptr<RenderFeature> pass);
 
         /**
-         * @brief Registers a render feature with `order` 0 within the phase.
+         * @brief Registers a render feature with default order within the phase.
+         * @param phase Band used with `order` for stable ordering.
+         * @param pass Ownership of the pass instance; must not be null.
+         * @note Order is `0` (same as calling `AddPass(phase, 0, std::move(pass))`).
          */
         void AddPass(RenderPhase phase, std::unique_ptr<RenderFeature> pass);
 
@@ -103,7 +106,7 @@ namespace Wayfinder
     private:
         std::shared_ptr<AssetService> m_assetService;
         RenderDevice* m_device = nullptr;
-        std::unique_ptr<RenderServices> m_context;
+        std::unique_ptr<RenderServices> m_services;
         std::unique_ptr<RenderOrchestrator> m_renderPipeline;
         std::unique_ptr<RenderResourceCache> m_renderResources;
 

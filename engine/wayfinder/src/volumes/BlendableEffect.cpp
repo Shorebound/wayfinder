@@ -208,7 +208,25 @@ namespace Wayfinder
         {
             return registry->FindIdByName(normalisedLower).has_value();
         }
-        // No registry — cannot validate; treat as valid so callers without a registry are not blocked.
+        // No registry — enforce a stable snake_case identifier so scene data stays loadable once a registry exists.
+        if (normalisedLower.empty())
+        {
+            return false;
+        }
+        const auto first = static_cast<unsigned char>(normalisedLower[0]);
+        if (std::islower(first) == 0)
+        {
+            return false;
+        }
+        for (std::size_t i = 1; i < normalisedLower.size(); ++i)
+        {
+            const auto c = static_cast<unsigned char>(normalisedLower[i]);
+            if (std::islower(c) != 0 || std::isdigit(c) != 0 || c == '_')
+            {
+                continue;
+            }
+            return false;
+        }
         return true;
     }
 

@@ -119,7 +119,8 @@ namespace Wayfinder
     [[nodiscard]] WAYFINDER_API std::string NormaliseEffectTypeString(std::string_view name);
 
     /**
-     * @brief True if the name matches a registered type (uses validation instance when set).
+     * @brief True if the name is valid: when `registry` is set, the name must be registered; otherwise it must match
+     *        lowercase snake_case rules (`[a-z][a-z0-9_]*`).
      */
     [[nodiscard]] WAYFINDER_API bool IsValidEffectTypeName(std::string_view normalisedLower, const BlendableEffectRegistry* registry = nullptr);
 

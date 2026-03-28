@@ -44,7 +44,7 @@ namespace Wayfinder
         }
     } // namespace
 
-    void RegisterSceneShaderPrograms(ShaderProgramRegistry& registry)
+    bool RegisterSceneShaderPrograms(ShaderProgramRegistry& registry)
     {
         {
             ShaderProgramDesc desc;
@@ -65,7 +65,11 @@ namespace Wayfinder
             desc.VertexUBOSize = sizeof(UnlitTransformUBO);
             desc.NeedsSceneGlobals = false;
 
-            registry.Register(desc);
+            if (!registry.Register(desc))
+            {
+                WAYFINDER_ERROR(LogRenderer, "RegisterSceneShaderPrograms: failed to register shader program '{}'", desc.Name);
+                return false;
+            }
         }
 
         {
@@ -88,7 +92,11 @@ namespace Wayfinder
             desc.VertexUBOSize = sizeof(UnlitTransformUBO);
             desc.NeedsSceneGlobals = false;
 
-            registry.Register(desc);
+            if (!registry.Register(desc))
+            {
+                WAYFINDER_ERROR(LogRenderer, "RegisterSceneShaderPrograms: failed to register shader program '{}'", desc.Name);
+                return false;
+            }
         }
 
         {
@@ -110,7 +118,11 @@ namespace Wayfinder
             desc.VertexUBOSize = sizeof(TransformUBO);
             desc.NeedsSceneGlobals = true;
 
-            registry.Register(desc);
+            if (!registry.Register(desc))
+            {
+                WAYFINDER_ERROR(LogRenderer, "RegisterSceneShaderPrograms: failed to register shader program '{}'", desc.Name);
+                return false;
+            }
         }
 
         {
@@ -133,8 +145,14 @@ namespace Wayfinder
             desc.NeedsSceneGlobals = true;
             desc.TextureSlots = {{.Name = "diffuse", .BindingSlot = 0}};
 
-            registry.Register(desc);
+            if (!registry.Register(desc))
+            {
+                WAYFINDER_ERROR(LogRenderer, "RegisterSceneShaderPrograms: failed to register shader program '{}'", desc.Name);
+                return false;
+            }
         }
+
+        return true;
     }
 
     void SceneOpaquePass::OnAttach(const RenderFeatureContext& context)

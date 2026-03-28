@@ -197,13 +197,14 @@ namespace Wayfinder
 
     void Application::PropagateToLayers(Event& event)
     {
-        for (auto it = m_layerStack->rbegin(); it != m_layerStack->rend(); ++it)
+        // make this the modern version
+        for (auto& layer : *m_layerStack)
         {
             if (event.Handled)
             {
                 break;
             }
-            (*it)->OnEvent(event);
+            layer->OnEvent(event);
         }
     }
 

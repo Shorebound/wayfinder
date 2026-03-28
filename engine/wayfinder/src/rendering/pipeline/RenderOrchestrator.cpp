@@ -84,11 +84,15 @@ namespace Wayfinder
 
         m_context = &services;
 
-        RegisterSceneShaderPrograms(services.GetPrograms());
+        if (!RegisterSceneShaderPrograms(services.GetPrograms()))
+        {
+            // Headless/Null backends often lack .spv assets; passes still attach so ordering/graph tests can run.
+            WAYFINDER_ERROR(LogRenderer, "RenderOrchestrator: one or more scene shader programs failed to register — pipeline may be incomplete");
+        }
 
         RegisterPass(RenderPhase::Opaque, 0, std::make_unique<SceneOpaquePass>());
         RegisterPass(RenderPhase::PostProcess, 800, std::make_unique<ChromaticAberrationFeature>());
-        RegisterPass(RenderPhase::PostProcess, 900, std::make_unique<VignetteFeature>());
+        RegisterPass(RenderPhase::PostProcess, 900, std::make_unique<Rendering::VignetteFeature>());
         RegisterPass(RenderPhase::Composite, 0, std::make_unique<ColourGradingFeature>());
         RegisterPass(RenderPhase::Overlay, 0, std::make_unique<DebugPass>());
         RegisterPass(RenderPhase::Present, 0, std::make_unique<CompositionPass>());

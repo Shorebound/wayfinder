@@ -6,7 +6,10 @@
 namespace Wayfinder
 {
     class RenderServices;
+}
 
+namespace Wayfinder::Rendering
+{
     /**
      * @brief Post-process vignette (edge darkening). Self-registers blendable type and shader in OnAttach.
      */
@@ -29,4 +32,4 @@ namespace Wayfinder
         BlendableEffectId m_effectId = INVALID_BLENDABLE_EFFECT_ID;
     };
 
-} // namespace Wayfinder
+} // namespace Wayfinder::Rendering

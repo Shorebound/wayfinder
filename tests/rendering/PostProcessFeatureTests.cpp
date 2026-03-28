@@ -58,7 +58,7 @@ namespace Wayfinder::Tests
         RenderServices services;
         REQUIRE(services.Initialise(*device, MakeTestConfig(), &registry));
 
-        VignetteFeature feature;
+        Wayfinder::Rendering::VignetteFeature feature;
         const RenderFeatureContext ctx{services};
         feature.OnAttach(ctx);
 

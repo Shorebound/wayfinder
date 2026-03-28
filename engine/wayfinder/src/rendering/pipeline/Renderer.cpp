@@ -45,18 +45,18 @@ namespace Wayfinder
         m_device = &device;
         m_screenWidth = static_cast<int>(config.Window.Width);
         m_screenHeight = static_cast<int>(config.Window.Height);
-        m_context = std::make_unique<RenderServices>();
-        if (auto result = m_context->Initialise(device, config, registry); !result)
+        m_services = std::make_unique<RenderServices>();
+        if (auto result = m_services->Initialise(device, config, registry); !result)
         {
             WAYFINDER_WARN(LogRenderer, "Renderer: Failed to initialise RenderServices — {}", result.error().GetMessage());
             return std::unexpected(result.error());
         }
 
-        m_renderPipeline->Initialise(*m_context);
+        m_renderPipeline->Initialise(*m_services);
 
-        m_renderResources->SetTextureManager(&m_context->GetTextures());
-        m_renderResources->SetMeshManager(&m_context->GetMeshes());
-        m_renderResources->SetProgramRegistry(&m_context->GetPrograms());
+        m_renderResources->SetTextureManager(&m_services->GetTextures());
+        m_renderResources->SetMeshManager(&m_services->GetMeshes());
+        m_renderResources->SetProgramRegistry(&m_services->GetPrograms());
 
         m_isInitialised = true;
 
@@ -69,10 +69,10 @@ namespace Wayfinder
     {
         m_renderPipeline->Shutdown();
 
-        if (m_context)
+        if (m_services)
         {
-            m_context->Shutdown();
-            m_context.reset();
+            m_services->Shutdown();
+            m_services.reset();
         }
 
         m_renderPipeline = std::make_unique<RenderOrchestrator>();
@@ -96,9 +96,9 @@ namespace Wayfinder
 
     void Renderer::SealBlendableEffects()
     {
-        if (m_context)
+        if (m_services)
         {
-            m_context->SealBlendableEffects();
+            m_services->SealBlendableEffects();
         }
     }
 
@@ -127,9 +127,9 @@ namespace Wayfinder
         }
 
         // Auto-seal the blendable effect registry on first render if not yet sealed.
-        if (m_context)
+        if (m_services)
         {
-            m_context->SealBlendableEffects();
+            m_services->SealBlendableEffects();
         }
 
         if (!m_device->BeginFrame())
@@ -147,7 +147,7 @@ namespace Wayfinder
 
             const GPUDebugScope frameDebugScope(*m_device, frameDebugName);
 
-            m_context->GetTransientBuffers().BeginFrame();
+            m_services->GetTransientBuffers().BeginFrame();
 
             RenderFrame preparedFrame = frame;
             if (m_renderResources)
@@ -169,7 +169,7 @@ namespace Wayfinder
                     .Frame = preparedFrame,
                     .SwapchainWidth = swapW,
                     .SwapchainHeight = swapH,
-                    .BuiltInMeshes = m_context->GetBuiltInMeshes(),
+                    .BuiltInMeshes = m_services->GetBuiltInMeshes(),
                     .ResourceCache = m_renderResources.get(),
                     .PrimaryView = primaryView,
                 };
@@ -177,7 +177,7 @@ namespace Wayfinder
 
                 if (graph.Compile())
                 {
-                    graph.Execute(*m_device, m_context->GetTransientPool());
+                    graph.Execute(*m_device, m_services->GetTransientPool());
                 }
             }
         }
