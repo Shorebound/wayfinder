@@ -3,6 +3,7 @@
 #include "wayfinder_exports.h"
 
 #include <array>
+#include <concepts>
 #include <cstddef>
 #include <cstdint>
 #include <functional>
@@ -60,7 +61,7 @@ namespace Wayfinder
      */
     struct BlendableEffectDesc
     {
-        std::string_view Name{};
+        std::string Name{};
         std::size_t Size = 0;
         std::size_t Align = 0;
 
@@ -72,7 +73,7 @@ namespace Wayfinder
     };
 
     template<typename T>
-    concept BlendableEffectPayload = std::is_nothrow_destructible_v<T> && requires(const T& a, const T& b, float w, nlohmann::json& jout, const nlohmann::json& jin) {
+    concept BlendableEffectPayload = std::is_trivially_copyable_v<T> && std::is_nothrow_destructible_v<T> && requires(const T& a, const T& b, float w, nlohmann::json& jout, const nlohmann::json& jin) {
         { Identity(EffectTag<T>{}) } -> std::same_as<T>;
         { Lerp(a, b, w) } -> std::same_as<T>;
         { Deserialise(EffectTag<T>{}, jin) } -> std::same_as<T>;
@@ -120,7 +121,6 @@ namespace Wayfinder
 
     private:
         std::vector<BlendableEffectDesc> m_descs;
-        std::vector<std::string> m_names; // Owns storage for Name string_view
         bool m_sealed = false;
     };
 

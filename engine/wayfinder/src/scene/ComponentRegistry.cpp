@@ -10,6 +10,7 @@
 #include "volumes/BlendableEffect.h"
 #include "volumes/BlendableEffectRegistry.h"
 
+#include <algorithm>
 #include <array>
 #include <charconv>
 #include <format>
@@ -665,20 +666,31 @@ namespace Wayfinder
                     const Wayfinder::BlendableEffectRegistry* effectRegistry = Wayfinder::BlendableEffectRegistry::GetActiveInstance();
                     if (effectRegistry == nullptr)
                     {
-                        error = "cannot validate blendable effect '" + effectTypeStr + "': BlendableEffectRegistry is not active";
-                        return false;
+                        // No active registry — fall back to the built-in effect name list for validation.
+                        const bool knownBuiltin = std::any_of(Wayfinder::ENGINE_DEFAULT_BLENDABLE_EFFECT_NAMES.begin(), Wayfinder::ENGINE_DEFAULT_BLENDABLE_EFFECT_NAMES.end(), [&normalised](const std::string_view name)
+                        {
+                            return name == normalised;
+                        });
+                        if (!knownBuiltin)
+                        {
+                            error = "unknown blendable effect type: " + effectTypeStr;
+                            return false;
+                        }
                     }
-                    const std::optional<Wayfinder::BlendableEffectId> effectIdOpt = effectRegistry->FindIdByName(normalised);
-                    if (!effectIdOpt.has_value())
+                    else
                     {
-                        error = "unknown blendable effect type: " + effectTypeStr;
-                        return false;
-                    }
-                    const Wayfinder::BlendableEffectDesc* effectDesc = effectRegistry->Find(*effectIdOpt);
-                    if (effectDesc == nullptr || effectDesc->Deserialise == nullptr)
-                    {
-                        error = "blendable effect '" + effectTypeStr + "' cannot be loaded (missing Deserialise callback)";
-                        return false;
+                        const std::optional<Wayfinder::BlendableEffectId> effectIdOpt = effectRegistry->FindIdByName(normalised);
+                        if (!effectIdOpt.has_value())
+                        {
+                            error = "unknown blendable effect type: " + effectTypeStr;
+                            return false;
+                        }
+                        const Wayfinder::BlendableEffectDesc* effectDesc = effectRegistry->Find(*effectIdOpt);
+                        if (effectDesc == nullptr || effectDesc->Deserialise == nullptr)
+                        {
+                            error = "blendable effect '" + effectTypeStr + "' cannot be loaded (missing Deserialise callback)";
+                            return false;
+                        }
                     }
 
                     for (const auto& [key, value] : effectEntry.items())
@@ -924,14 +936,13 @@ namespace Wayfinder
             return "global";
         }
 
-        Wayfinder::BlendableEffect ReadEffect(const nlohmann::json& effectData)
+        std::optional<Wayfinder::BlendableEffect> ReadEffect(const nlohmann::json& effectData)
         {
-            Wayfinder::BlendableEffect effect{};
             const Wayfinder::BlendableEffectRegistry* registry = Wayfinder::BlendableEffectRegistry::GetActiveInstance();
             if (registry == nullptr)
             {
                 WAYFINDER_WARN(LogScene, "ReadEffect: BlendableEffectRegistry not active — blendable effect skipped");
-                return effect;
+                return std::nullopt;
             }
 
             const std::string typeStr = effectData.value("type", std::string{});
@@ -940,15 +951,16 @@ namespace Wayfinder
             if (!idOpt.has_value())
             {
                 WAYFINDER_WARN(LogScene, "ReadEffect: unknown effect type '{}' — skipped", typeStr);
-                return effect;
+                return std::nullopt;
             }
 
             const Wayfinder::BlendableEffectDesc* desc = registry->Find(*idOpt);
             if (desc == nullptr || desc->Deserialise == nullptr || desc->CreateIdentity == nullptr)
             {
-                return effect;
+                return std::nullopt;
             }
 
+            Wayfinder::BlendableEffect effect{};
             effect.TypeId = *idOpt;
             effect.Enabled = effectData.value("enabled", true);
             // NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
@@ -974,7 +986,10 @@ namespace Wayfinder
                 {
                     if (i.is_object())
                     {
-                        volume.Effects.push_back(ReadEffect(i));
+                        if (auto effect = ReadEffect(i))
+                        {
+                            volume.Effects.push_back(std::move(*effect));
+                        }
                     }
                 }
             }

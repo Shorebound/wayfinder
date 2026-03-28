@@ -19,8 +19,12 @@ namespace Wayfinder
     class RenderGraph;
     class RenderResourceCache;
 
-    /// Fixed ordering bands for `RenderPass` injectors. Plugins register into these phases
-    /// with `order` for stable ordering within a band.
+    /**
+     * @brief Fixed ordering bands for render pass registration.
+     *
+     * Plugins register into a phase with an `order` value for stable ordering within the band.
+     * Phases are executed in ascending numeric order.
+     */
     enum class RenderPhase : uint8_t
     {
         PreOpaque = 0,   // Shadow maps, GBuffer prep, hi-Z
@@ -33,26 +37,45 @@ namespace Wayfinder
         Present = 7,     // Tonemapping + swapchain blit (exactly one pass)
     };
 
-    /// Validates, sorts, and builds the render graph for a frame.
+    /** @brief Validates, sorts, and builds the render graph for a frame. */
     class WAYFINDER_API RenderPipeline
     {
     public:
-        /// Registers built-in shader programs and stores context for BuildGraph.
+        /** @brief Registers built-in shader programs and default passes; stores context for BuildGraph. */
         void Initialise(RenderContext& context);
         void Shutdown();
 
-        /// Registers a pass. Requires `Initialise` to have run.
-        /// Passes are ordered by `(phase, order, registration order)`.
+        /**
+         * @brief Registers a pass into the phase-ordered pipeline.
+         * @param phase Band used with @p order for stable ordering.
+         * @param order Lower values run earlier within the same phase.
+         * @param pass Ownership of the pass instance; must not be null.
+         * @note Requires Initialise to have been called.
+         */
         void RegisterPass(RenderPhase phase, int32_t order, std::unique_ptr<RenderPass> pass);
 
-        /// Validates views/layers, pre-computes view matrices and frustums,
-        /// frustum-culls submissions, then sorts by sort key.
-        /// Returns false if the frame is invalid and should be skipped.
+        /**
+         * @brief Validates views/layers, pre-computes view matrices and frustums,
+         *        frustum-culls submissions, then sorts by sort key.
+         * @param frame The render frame to prepare (modified in place).
+         * @param swapchainWidth Current swapchain width in pixels.
+         * @param swapchainHeight Current swapchain height in pixels.
+         * @return False if the frame is invalid and should be skipped.
+         */
         bool Prepare(RenderFrame& frame, uint32_t swapchainWidth, uint32_t swapchainHeight) const;
 
-        /// Builds the render graph from the unified ordered pass list.
+        /**
+         * @brief Builds the render graph from the unified ordered pass list.
+         * @param graph The render graph to populate.
+         * @param params Frame parameters for pass execution.
+         */
         void BuildGraph(RenderGraph& graph, const RenderPipelineFrameParams& params) const;
 
+        /**
+         * @brief Returns the first pass whose dynamic type is @p T, if any.
+         * @tparam T Render pass type to match.
+         * @return Pointer to the pass, or nullptr when no matching pass is registered.
+         */
         template<typename T>
         const T* GetPass() const
         {
@@ -69,6 +92,11 @@ namespace Wayfinder
             return nullptr;
         }
 
+        /**
+         * @brief Returns the first pass whose dynamic type is @p T, if any (non-const).
+         * @tparam T Render pass type to match.
+         * @return Pointer to the pass, or nullptr when no matching pass is registered.
+         */
         template<typename T>
         T* GetPass()
         {
@@ -85,6 +113,11 @@ namespace Wayfinder
             return nullptr;
         }
 
+        /**
+         * @brief Removes the first pass whose dynamic type is @p T from the pipeline.
+         * @tparam T Render pass type to match.
+         * @return True if a pass was removed; false if none matched or context is unavailable.
+         */
         template<typename T>
         bool RemovePass()
         {

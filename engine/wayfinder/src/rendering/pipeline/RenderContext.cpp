@@ -68,7 +68,20 @@ namespace Wayfinder
             m_engineEffectIds = {};
             return;
         }
+    }
 
+    void RenderContext::SealBlendableEffects()
+    {
+        auto* reg = BlendableEffectRegistry::GetActiveInstance();
+        if (!reg)
+        {
+            WAYFINDER_WARN(LogRenderer, "SealBlendableEffects: no active BlendableEffectRegistry — nothing to seal");
+            return;
+        }
+        if (reg->IsSealed())
+        {
+            return;
+        }
         reg->Seal();
     }
 

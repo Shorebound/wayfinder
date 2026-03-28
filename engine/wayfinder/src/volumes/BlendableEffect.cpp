@@ -15,20 +15,9 @@ namespace Wayfinder
 {
     BlendableEffectStack::~BlendableEffectStack()
     {
-        if (const BlendableEffectRegistry* registry = BlendableEffectRegistry::GetActiveInstance())
-        {
-            Clear(*registry);
-            return;
-        }
-        if (!Effects.empty())
-        {
-            // Type-erased payloads require registry.Find(TypeId)->Destroy; without an active registry we cannot run destructors safely.
-            WAYFINDER_WARN(LogRenderer,
-                "BlendableEffectStack at {}: destroyed with {} effect(s) while BlendableEffectRegistry::GetActiveInstance() is null — "
-                "payloads were not destroyed. Clear the stack while a registry is active, or clear the active registry only after stacks are gone.",
-                static_cast<void*>(this), Effects.size());
-            WAYFINDER_ASSERT(false);
-        }
+        // Payloads are constrained to trivially copyable (and therefore trivially destructible)
+        // by the BlendableEffectPayload concept, so clearing the vector is sufficient.
+        Effects.clear();
     }
 
     namespace

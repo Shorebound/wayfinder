@@ -19,8 +19,7 @@ namespace Wayfinder
         }
 
         BlendableEffectDesc desc{};
-        m_names.emplace_back(name);
-        desc.Name = std::string_view{m_names.back()};
+        desc.Name = std::string{name};
         desc.Size = sizeof(T);
         desc.Align = alignof(T);
 

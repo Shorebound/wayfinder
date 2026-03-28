@@ -34,6 +34,14 @@ namespace Wayfinder
         void SetAssetService(const std::shared_ptr<AssetService>& assetService);
 
         /**
+         * @brief Seals the blendable effect registry, preventing further registrations.
+         *
+         * Call after all game/editor blendable effect types have been registered.
+         * Engine types are registered during Initialise; this finalises the registry.
+         */
+        void SealBlendableEffects();
+
+        /**
          * @brief Registers a render pass in the unified phase-ordered pipeline.
          * @param phase Band used with `order` for stable ordering.
          * @param order Lower values run earlier within the same phase.
@@ -55,11 +63,6 @@ namespace Wayfinder
         template<typename T>
         bool RemovePass()
         {
-            if (!m_renderPipeline)
-            {
-                return false;
-            }
-
             auto pendingIt = std::find_if(m_pendingPasses.begin(), m_pendingPasses.end(), [](const PendingPassRegistration& p)
             {
                 return p.Pass && dynamic_cast<T*>(p.Pass.get()) != nullptr;
@@ -75,7 +78,11 @@ namespace Wayfinder
                 return true;
             }
 
-            return m_renderPipeline->RemovePass<T>();
+            if (m_renderPipeline)
+            {
+                return m_renderPipeline->RemovePass<T>();
+            }
+            return false;
         }
 
         /**

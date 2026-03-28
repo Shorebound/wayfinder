@@ -122,6 +122,10 @@ namespace Wayfinder
         /// Registers built-in blendable effect types (colour grading, vignette, CA). Call once after Initialise.
         void RegisterEngineBlendableEffects();
 
+        /// Seals the active BlendableEffectRegistry, preventing further registrations.
+        /// Call after all external (game/editor) effect types have been registered.
+        void SealBlendableEffects();
+
     private:
         RenderDevice* m_device = nullptr;
 

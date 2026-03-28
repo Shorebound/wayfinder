@@ -143,6 +143,14 @@ namespace Wayfinder
         }
     }
 
+    void Renderer::SealBlendableEffects()
+    {
+        if (m_context)
+        {
+            m_context->SealBlendableEffects();
+        }
+    }
+
     RenderPassContext Renderer::MakePassContext()
     {
         return RenderPassContext{.Context = *m_context};
@@ -175,6 +183,13 @@ namespace Wayfinder
         {
             return;
         }
+
+        // Auto-seal the blendable effect registry on first render if not yet sealed.
+        if (m_context)
+        {
+            m_context->SealBlendableEffects();
+        }
+
         if (!m_device->BeginFrame())
         {
             return;
