@@ -30,6 +30,10 @@ namespace Wayfinder
     /**
      * @brief One effect instance stored on a volume or in the blended stack (type-erased payload).
      */
+#ifdef WAYFINDER_COMPILER_MSVC
+#pragma warning(push)
+#pragma warning(disable : 4324) // alignas(16) payload forces tail padding; layout is intentional
+#endif
     struct WAYFINDER_API BlendableEffect
     {
         alignas(16) std::byte Payload[BLENDABLE_EFFECT_PAYLOAD_CAPACITY]{};
@@ -38,6 +42,9 @@ namespace Wayfinder
 
         void DestroyPayload(const BlendableEffectRegistry& registry);
     };
+#ifdef WAYFINDER_COMPILER_MSVC
+#pragma warning(pop)
+#endif
 
     /**
      * @brief Blended result: at most one entry per BlendableEffectId.
@@ -60,6 +67,7 @@ namespace Wayfinder
         void Clear(const BlendableEffectRegistry& registry);
 
         template<typename T>
+            requires BlendableEffectPayload<T>
         [[nodiscard]] const T* FindPayload(BlendableEffectId id) const
         {
             const BlendableEffect* e = FindEffect(id);

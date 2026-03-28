@@ -4,6 +4,11 @@
 
 namespace Wayfinder
 {
+    class ShaderProgramRegistry;
+
+    /// Registers built-in scene mesh programs (`unlit`, `basic_lit`, …). Call during renderer bootstrap before passes attach.
+    void RegisterSceneShaderPrograms(ShaderProgramRegistry& registry);
+
     /// Opaque scene geometry: transient colour/depth, scene submissions via `DrawSubmission`.
     class SceneOpaquePass final : public RenderFeature
     {

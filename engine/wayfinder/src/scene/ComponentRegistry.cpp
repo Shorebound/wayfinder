@@ -17,6 +17,7 @@
 #include <limits>
 #include <ranges>
 #include <sstream>
+#include <stdexcept>
 #include <string>
 #include <string_view>
 
@@ -944,7 +945,13 @@ namespace Wayfinder
                 return std::nullopt;
             }
 
-            const std::string typeStr = effectData.value("type", std::string{});
+            if (!effectData.contains("type") || !effectData.at("type").is_string())
+            {
+                WAYFINDER_WARN(LogScene, "ReadEffect: missing or non-string \"type\" — skipped");
+                return std::nullopt;
+            }
+
+            const std::string typeStr = effectData.at("type").get<std::string>();
             const std::string normalised = Wayfinder::NormaliseEffectTypeString(typeStr);
             const std::optional<Wayfinder::BlendableEffectId> idOpt = registry->FindIdByName(normalised);
             if (!idOpt.has_value())
@@ -961,7 +968,19 @@ namespace Wayfinder
 
             Wayfinder::BlendableEffect effect{};
             effect.TypeId = *idOpt;
-            effect.Enabled = effectData.value("enabled", true);
+            if (effectData.contains("enabled"))
+            {
+                if (!effectData.at("enabled").is_boolean())
+                {
+                    WAYFINDER_WARN(LogScene, "ReadEffect: \"enabled\" must be a boolean — skipped");
+                    return std::nullopt;
+                }
+                effect.Enabled = effectData.at("enabled").get<bool>();
+            }
+            else
+            {
+                effect.Enabled = true;
+            }
             // NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
             desc->CreateIdentity(effect.Payload);
             desc->Deserialise(effect.Payload, effectData);
@@ -1157,14 +1176,20 @@ namespace Wayfinder
                 }
                 else
                 {
-                    nlohmann::json effectsArray = nlohmann::json::array();
                     for (const auto& effect : volume.Effects)
                     {
                         const Wayfinder::BlendableEffectDesc* desc = registry->Find(effect.TypeId);
                         if (desc == nullptr || desc->Serialise == nullptr)
                         {
-                            continue;
+                            throw std::runtime_error(std::format("SerialiseBlendableEffectVolumeComponent: effect type id {} has no Serialise callback — refusing to write partial volume data", effect.TypeId));
                         }
+                    }
+
+                    nlohmann::json effectsArray = nlohmann::json::array();
+                    for (const auto& effect : volume.Effects)
+                    {
+                        const Wayfinder::BlendableEffectDesc* desc = registry->Find(effect.TypeId);
+                        WAYFINDER_ASSERT(desc != nullptr && desc->Serialise != nullptr);
 
                         nlohmann::json effectTable;
                         effectTable["type"] = std::string{desc->Name};
@@ -1178,10 +1203,7 @@ namespace Wayfinder
                         effectsArray.push_back(std::move(effectTable));
                     }
 
-                    if (!effectsArray.empty())
-                    {
-                        componentTable["effects"] = std::move(effectsArray);
-                    }
+                    componentTable["effects"] = std::move(effectsArray);
                 }
             }
 

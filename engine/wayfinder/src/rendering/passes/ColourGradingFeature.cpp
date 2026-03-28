@@ -99,9 +99,9 @@ namespace Wayfinder
         if (m_effectId != INVALID_BLENDABLE_EFFECT_ID)
         {
             const BlendableEffectStack* stack = nullptr;
-            if (params.PrimaryView.Valid && !params.Frame.Views.empty())
+            if (params.PrimaryView.Valid && params.PrimaryView.ViewIndex < params.Frame.Views.size())
             {
-                stack = &params.Frame.Views.front().PostProcess;
+                stack = &params.Frame.Views[params.PrimaryView.ViewIndex].PostProcess;
             }
             BlendableEffectStack emptyStack{};
             const BlendableEffectStack& s = stack ? *stack : emptyStack;

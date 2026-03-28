@@ -9,16 +9,18 @@ namespace Wayfinder
 
 namespace Wayfinder::Rendering
 {
-    /// Resolved camera state for the primary view (`Views.front()` when that view is prepared).
+    /// Resolved camera state for the primary view (`ViewIndex` into `RenderFrame::Views` when that view is prepared).
     struct PreparedPrimaryView
     {
         Matrix4 ViewMatrix = Matrix4(1.0f);
         Matrix4 ProjectionMatrix = Matrix4(1.0f);
         Colour ClearColour = Colour::White();
+        /// Index into `RenderFrame::Views` for the view this snapshot was taken from (see `ResolvePreparedPrimaryView`).
+        size_t ViewIndex = 0;
         bool Valid = false;
     };
 
-    /** @brief Primary view matrices and clear colour when `Views.front()` is prepared; otherwise `Valid` is false. */
+    /** @brief Primary view matrices and clear colour when the resolved primary `RenderView` is prepared; otherwise `Valid` is false. */
     [[nodiscard]] PreparedPrimaryView ResolvePreparedPrimaryView(const RenderFrame& frame);
 
 } // namespace Wayfinder::Rendering

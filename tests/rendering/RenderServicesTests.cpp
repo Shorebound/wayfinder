@@ -79,7 +79,7 @@ namespace Wayfinder::Tests
         desc.VertexShaderName = "test_vert";
         desc.FragmentShaderName = "test_frag";
         // Register returns false with NullDevice (no shaders), but must not crash
-        context.GetPrograms().Register(desc);
+        CHECK_FALSE(context.GetPrograms().Register(desc));
 
         context.Shutdown();
     }

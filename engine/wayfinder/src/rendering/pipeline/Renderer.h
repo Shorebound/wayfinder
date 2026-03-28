@@ -37,6 +37,8 @@ namespace Wayfinder
          *
          * Call after all game/editor blendable effect types have been registered.
          * Engine types are registered during Initialise; this finalises the registry.
+         * `Render()` also seals automatically if the registry is not yet sealed, so this is only
+         * required when something must observe a sealed registry before the first `Render()` call.
          */
         void SealBlendableEffects();
 

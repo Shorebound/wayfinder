@@ -84,6 +84,8 @@ namespace Wayfinder
 
         m_context = &services;
 
+        RegisterSceneShaderPrograms(services.GetPrograms());
+
         RegisterPass(RenderPhase::Opaque, 0, std::make_unique<SceneOpaquePass>());
         RegisterPass(RenderPhase::PostProcess, 800, std::make_unique<ChromaticAberrationFeature>());
         RegisterPass(RenderPhase::PostProcess, 900, std::make_unique<VignetteFeature>());
@@ -139,7 +141,13 @@ namespace Wayfinder
             return false;
         }
 
-        const float aspect = (swapchainHeight > 0) ? static_cast<float>(swapchainWidth) / static_cast<float>(swapchainHeight) : 1.0f;
+        if (swapchainWidth == 0 || swapchainHeight == 0)
+        {
+            WAYFINDER_WARN(LogRenderer, "RenderOrchestrator: swapchain extent is zero — skipping frame '{}'", frame.SceneName);
+            return false;
+        }
+
+        const float aspect = static_cast<float>(swapchainWidth) / static_cast<float>(swapchainHeight);
 
         for (RenderView& view : frame.Views)
         {

@@ -274,13 +274,15 @@ namespace Wayfinder
 
             m_pluginRegistry = nullptr;
 
+            // Layers may touch the window in OnDetach (e.g. FpsOverlayLayer restoring the title) — tear down
+            // before EngineRuntime::Shutdown invalidates the Window.
+            m_layerStack = nullptr;
+
             if (m_runtime)
             {
                 m_runtime->Shutdown();
                 m_runtime = nullptr;
             }
-
-            m_layerStack = nullptr;
             m_config = nullptr;
             m_project = nullptr;
         }

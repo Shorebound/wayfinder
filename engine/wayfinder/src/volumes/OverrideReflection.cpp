@@ -1,5 +1,7 @@
 #include "OverrideReflection.h"
 
+#include "core/Log.h"
+
 #include <nlohmann/json.hpp>
 
 namespace Wayfinder
@@ -32,7 +34,15 @@ namespace Wayfinder
     {
         if (auto it = json.find(key); it != json.end() && it->is_array() && it->size() >= 3)
         {
-            field = Override<Float3>::Set(Float3{(*it)[0].get<float>(), (*it)[1].get<float>(), (*it)[2].get<float>()});
+            const auto& e0 = (*it)[0];
+            const auto& e1 = (*it)[1];
+            const auto& e2 = (*it)[2];
+            if (!e0.is_number() || !e1.is_number() || !e2.is_number())
+            {
+                WAYFINDER_WARN(LogScene, "ReadOverrideField: key \"{}\" — expected three numeric array elements", key);
+                return;
+            }
+            field = Override<Float3>::Set(Float3{e0.get<float>(), e1.get<float>(), e2.get<float>()});
         }
     }
 
