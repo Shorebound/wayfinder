@@ -32,9 +32,9 @@ namespace Wayfinder
      */
     struct WAYFINDER_API BlendableEffect
     {
+        alignas(16) std::byte Payload[BLENDABLE_EFFECT_PAYLOAD_CAPACITY]{};
         BlendableEffectId TypeId = INVALID_BLENDABLE_EFFECT_ID;
         bool Enabled = true;
-        alignas(16) std::byte Payload[BLENDABLE_EFFECT_PAYLOAD_CAPACITY]{};
 
         void DestroyPayload(const BlendableEffectRegistry& registry);
     };
