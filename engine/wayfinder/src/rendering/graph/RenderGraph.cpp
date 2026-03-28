@@ -7,7 +7,7 @@
 #include <algorithm>
 #include <cassert>
 #include <cstdint>
-#include <queue>
+#include <cstring>
 #include <string>
 
 namespace Wayfinder
@@ -283,8 +283,15 @@ namespace Wayfinder
         // ── Build dependency graph ───────────────────────────
         // Dependencies are recorded during setup (ReadTexture, WriteColour+Load, WriteDepth+Load).
         // Deduplicate edges to avoid inflated in-degrees.
-        std::vector<std::vector<uint32_t>> adjacency(passCount);
-        std::vector<uint32_t> inDegree(passCount, 0);
+        //
+        // Arena-allocated flat adjacency matrix (passCount x passCount) — eliminates
+        // per-frame heap vectors. Pass counts are small (<20), so O(V^2) scan is fine.
+        const size_t matrixSize = static_cast<size_t>(passCount) * passCount;
+        auto* adjacency = static_cast<bool*>(m_allocator.Allocate(matrixSize * sizeof(bool), alignof(bool)));
+        std::memset(adjacency, 0, matrixSize * sizeof(bool));
+
+        auto* inDegree = static_cast<uint32_t*>(m_allocator.Allocate(passCount * sizeof(uint32_t), alignof(uint32_t)));
+        std::memset(inDegree, 0, passCount * sizeof(uint32_t));
 
         for (uint32_t b = 0; b < passCount; ++b)
         {
@@ -296,36 +303,41 @@ namespace Wayfinder
             {
                 if (a < passCount && a != b)
                 {
-                    CheckedAt(adjacency, a).push_back(b);
-                    ++CheckedAt(inDegree, b);
+                    adjacency[a * passCount + b] = true;
+                    ++inDegree[b];
                 }
             }
         }
 
         // ── Topological sort (Kahn's algorithm) ──────────────
-        std::queue<uint32_t> ready;
+        auto* readyQueue = static_cast<uint32_t*>(m_allocator.Allocate(passCount * sizeof(uint32_t), alignof(uint32_t)));
+        uint32_t readyHead = 0;
+        uint32_t readyTail = 0;
+
         for (uint32_t i = 0; i < passCount; ++i)
         {
-            if (CheckedAt(inDegree, i) == 0)
+            if (inDegree[i] == 0)
             {
-                ready.push(i);
+                readyQueue[readyTail++] = i;
             }
         }
 
         m_executionOrder.clear();
         m_executionOrder.reserve(passCount);
 
-        while (!ready.empty())
+        while (readyHead < readyTail)
         {
-            const uint32_t current = ready.front();
-            ready.pop();
+            const uint32_t current = readyQueue[readyHead++];
             m_executionOrder.push_back(current);
 
-            for (const uint32_t next : CheckedAt(adjacency, current))
+            for (uint32_t next = 0; next < passCount; ++next)
             {
-                if (--CheckedAt(inDegree, next) == 0)
+                if (adjacency[current * passCount + next])
                 {
-                    ready.push(next);
+                    if (--inDegree[next] == 0)
+                    {
+                        readyQueue[readyTail++] = next;
+                    }
                 }
             }
         }
@@ -339,14 +351,15 @@ namespace Wayfinder
         // ── Dead pass culling ────────────────────────────────
         // A pass is alive if it writes to the swapchain, or if any alive
         // pass reads a resource it produces.
-        std::vector<bool> alive(passCount, false);
+        auto* alive = static_cast<bool*>(m_allocator.Allocate(passCount * sizeof(bool), alignof(bool)));
+        std::memset(alive, 0, passCount * sizeof(bool));
 
         // Seed: passes that write to the swapchain are always alive
         for (uint32_t i = 0; i < passCount; ++i)
         {
             if (CheckedAt(m_passes, i).SwapchainWrite)
             {
-                CheckedAt(alive, i) = true;
+                alive[i] = true;
             }
         }
 
@@ -357,15 +370,15 @@ namespace Wayfinder
             changed = false;
             for (uint32_t i = 0; i < passCount; ++i)
             {
-                if (!CheckedAt(alive, i))
+                if (!alive[i])
                 {
                     continue;
                 }
                 for (const uint32_t dep : CheckedAt(m_passes, i).DependsOn)
                 {
-                    if (dep < passCount && !CheckedAt(alive, dep))
+                    if (dep < passCount && !alive[dep])
                     {
-                        CheckedAt(alive, dep) = true;
+                        alive[dep] = true;
                         changed = true;
                     }
                 }
@@ -374,7 +387,7 @@ namespace Wayfinder
 
         for (uint32_t i = 0; i < passCount; ++i)
         {
-            CheckedAt(m_passes, i).Culled = !CheckedAt(alive, i);
+            CheckedAt(m_passes, i).Culled = !alive[i];
         }
 
 #if !defined(NDEBUG)

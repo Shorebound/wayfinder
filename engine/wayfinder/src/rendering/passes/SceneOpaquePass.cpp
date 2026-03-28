@@ -183,7 +183,10 @@ namespace Wayfinder
         RenderGraphTextureDesc colourDesc;
         colourDesc.Width = swapW;
         colourDesc.Height = swapH;
-        colourDesc.Format = TextureFormat::RGBA8_UNORM;
+        /// @todo Verify all downstream readers of SceneColour (composition, post-process
+        /// features) handle RGBA16_FLOAT correctly — some blit/tonemap shaders may
+        /// assume RGBA8 range or precision.
+        colourDesc.Format = TextureFormat::RGBA16_FLOAT;
         colourDesc.DebugName = GraphTextureName(GraphTextureId::SceneColour);
 
         RenderGraphTextureDesc depthDesc;

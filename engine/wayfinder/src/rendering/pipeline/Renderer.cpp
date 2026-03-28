@@ -177,6 +177,7 @@ namespace Wayfinder
 
                 if (graph.Compile())
                 {
+                    m_device->FlushUploads();
                     graph.Execute(*m_device, m_services->GetTransientPool());
                 }
             }

@@ -3,6 +3,8 @@
 #include "core/ResourcePool.h"
 #include "rendering/backend/RenderDevice.h"
 
+#include <optional>
+
 struct SDL_Window;
 struct SDL_GPUDevice;
 struct SDL_GPUCommandBuffer;
@@ -12,6 +14,7 @@ struct SDL_GPUComputePass;
 struct SDL_GPUShader;
 struct SDL_GPUGraphicsPipeline;
 struct SDL_GPUBuffer;
+struct SDL_GPUTransferBuffer;
 struct SDL_GPUSampler;
 struct SDL_GPUComputePipeline;
 
@@ -57,6 +60,7 @@ namespace Wayfinder
         GPUBufferHandle CreateBuffer(const BufferCreateDesc& desc) override;
         void DestroyBuffer(GPUBufferHandle buffer) override;
         void UploadToBuffer(GPUBufferHandle buffer, const void* data, BufferUploadRegion region) override;
+        void FlushUploads() override;
 
         void BindVertexBuffer(GPUBufferHandle buffer, VertexBufferBindingDesc binding = {}) override;
         void BindIndexBuffer(GPUBufferHandle buffer, IndexElementSize indexSize, uint32_t offsetInBytes = 0) override;
@@ -130,6 +134,47 @@ namespace Wayfinder
         ResourcePool<GPUComputePipelineTag, SDL_GPUComputePipeline*> m_computePipelinePool;
 
         std::unique_ptr<IMipGenerator> m_mipGenerator;
+
+        // ── Staging Ring Buffer ──────────────────────────────
+        // Batches UploadToBuffer / UploadToTexture into one copy pass.
+        /// @note Not thread-safe — all staging and flush calls must happen on the
+        /// render thread. If multi-threaded upload is needed later, the ring
+        /// will need per-thread sub-allocators or a lock.
+        static constexpr uint32_t STAGING_RING_CAPACITY = 4 * 1024 * 1024; // 4 MB
+
+        struct PendingBufferCopy
+        {
+            uint32_t ringOffset;
+            uint32_t size;
+            SDL_GPUBuffer* dstBuffer;
+            uint32_t dstOffset;
+        };
+
+        struct PendingTextureCopy
+        {
+            uint32_t ringOffset;
+            uint32_t size;
+            SDL_GPUTexture* dstTexture;
+            uint32_t width;
+            uint32_t height;
+            uint32_t pixelsPerRow;
+            uint32_t rowsPerLayer;
+            uint32_t mipLevel;
+        };
+
+        SDL_GPUTransferBuffer* m_stagingRing = nullptr;
+        void* m_stagingMapped = nullptr;
+        uint32_t m_stagingCursor = 0;
+
+        std::vector<PendingBufferCopy> m_pendingBufferCopies;
+        std::vector<PendingTextureCopy> m_pendingTextureCopies;
+
+        void UploadToBufferDedicated(SDL_GPUBuffer* buffer, const void* data, BufferUploadRegion region);
+        void UploadToTextureDedicated(SDL_GPUTexture* texture, const void* pixelData, uint32_t width, uint32_t height, uint32_t bytesPerRow, uint32_t mipLevel);
+
+        /// Try to append data into the staging ring. Returns the ring offset on
+        /// success, or std::nullopt if the data doesn't fit (even after one flush).
+        std::optional<uint32_t> TryStageToRing(const void* data, uint32_t sizeInBytes);
     };
 
 } // namespace Wayfinder

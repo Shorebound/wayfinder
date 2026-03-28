@@ -280,6 +280,15 @@ namespace Wayfinder
         virtual void DestroyBuffer(GPUBufferHandle buffer) = 0;
         virtual void UploadToBuffer(GPUBufferHandle buffer, const void* data, BufferUploadRegion region) = 0;
 
+        /**
+         * @brief Submit all pending staged uploads in a single GPU copy pass.
+         *
+         * Backends that batch uploads internally should override this to flush.
+         * Called once per frame after PrepareFrame and before render graph execution.
+         * The default implementation is a no-op for backends without staging.
+         */
+        virtual void FlushUploads() {}
+
         // ── Draw Commands ────────────────────────────────────────
 
         virtual void BindVertexBuffer(GPUBufferHandle buffer, VertexBufferBindingDesc binding = {}) = 0;

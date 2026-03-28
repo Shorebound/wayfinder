@@ -74,16 +74,29 @@ namespace Wayfinder
 
             state.MaterialUBOScratch.assign(program->Desc.MaterialUBOSize, 0);
 
-            MaterialParameterBlock mergedParams = submission.Material.Parameters;
-            if (submission.Material.HasOverrides)
+            // When flat Slots are pre-built (with overrides already baked in by
+            // PrepareFrame), SerialiseToUBO reads linearly — no hash lookups, no
+            // per-draw merge copy.  Falls back to named lookup for non-asset materials.
+            //
+            // Correctness contract: if HasOverrides is true and Slots is non-empty,
+            // we assume RenderResourceCache::PrepareMaterialBinding has already baked
+            // the overrides into Slots. If a submission is constructed outside the
+            // cache path with HasOverrides + pre-built Slots, overrides will be
+            // silently ignored.
+            if (submission.Material.HasOverrides && submission.Material.Parameters.Slots.empty())
             {
+                // Legacy path: overrides weren't baked by PrepareFrame
+                MaterialParameterBlock mergedParams = submission.Material.Parameters;
                 for (const auto& [name, value] : submission.Material.Overrides.Values)
                 {
                     mergedParams.Values[name] = value;
                 }
+                mergedParams.SerialiseToUBO(program->Desc.MaterialParams, state.MaterialUBOScratch.data(), static_cast<uint32_t>(state.MaterialUBOScratch.size()));
             }
-
-            mergedParams.SerialiseToUBO(program->Desc.MaterialParams, state.MaterialUBOScratch.data(), static_cast<uint32_t>(state.MaterialUBOScratch.size()));
+            else
+            {
+                submission.Material.Parameters.SerialiseToUBO(program->Desc.MaterialParams, state.MaterialUBOScratch.data(), static_cast<uint32_t>(state.MaterialUBOScratch.size()));
+            }
             device.PushFragmentUniform(0, state.MaterialUBOScratch.data(), static_cast<uint32_t>(state.MaterialUBOScratch.size()));
 
             if (program->Desc.NeedsSceneGlobals)

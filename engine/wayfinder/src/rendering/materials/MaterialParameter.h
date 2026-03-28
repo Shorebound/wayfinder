@@ -52,6 +52,15 @@ namespace Wayfinder
         /// Heterogeneous lookup avoids allocating a temporary `std::string` on `find` / `contains` when the key exists.
         std::unordered_map<std::string, MaterialParamValue, TransparentStringHash, std::equal_to<>> Values;
 
+        /// Flat slot-indexed storage, built from a shader program's declarations.
+        /// When non-empty, SerialiseToUBO reads from here (O(n), no hash lookups).
+        ///
+        /// @note Slots are only valid between BuildSlots() and the next mutation of
+        /// Values (SetFloat, SetVec3, etc.). Callers that modify Values after
+        /// BuildSlots must call BuildSlots again, or clear Slots to fall back to
+        /// the named-lookup path.
+        std::vector<MaterialParamValue> Slots;
+
     private:
         void SetParameter(std::string_view name, MaterialParamValue value)
         {
@@ -95,6 +104,15 @@ namespace Wayfinder
         {
             return Values.contains(name);
         }
+
+        /// Populate the flat Slots vector from the named Values map using the
+        /// given shader declarations. Each slot corresponds to a declaration in
+        /// order. Missing values use the declaration's default.
+        void BuildSlots(const std::vector<MaterialParamDecl>& decls);
+
+        /// Apply named overrides from another block into the flat Slots, using
+        /// the declarations to resolve name → slot index.
+        void ApplyOverrides(const MaterialParameterBlock& overrides, const std::vector<MaterialParamDecl>& decls);
 
         // Write all parameters into a byte buffer using the given declarations.
         // Unknown parameters are skipped; missing parameters use the declaration's default.

@@ -130,8 +130,20 @@ namespace Wayfinder
         // Apply per-entity overrides on top of asset-loaded parameters
         if (binding.HasOverrides)
         {
-            resolved.HasOverrides = true;
-            resolved.Overrides = binding.Overrides;
+            // When flat Slots are available, merge overrides directly into them.
+            // Otherwise fall back to carrying the Overrides block for SubmissionDrawing.
+            if (!resolved.Parameters.Slots.empty() && m_programs)
+            {
+                if (const auto* program = m_programs->FindOrDefault(resolved.ShaderName))
+                {
+                    resolved.Parameters.ApplyOverrides(binding.Overrides, program->Desc.MaterialParams);
+                }
+            }
+            else
+            {
+                resolved.HasOverrides = true;
+                resolved.Overrides = binding.Overrides;
+            }
         }
 
         if (binding.StateOverrides.FillMode)
@@ -164,6 +176,15 @@ namespace Wayfinder
         resource.Binding.ShaderName = materialAsset->ShaderName;
         resource.Binding.Parameters = materialAsset->Parameters;
         resource.Binding.HasOverrides = false;
+
+        // Build flat slot-indexed parameters from the shader program's declarations
+        if (m_programs)
+        {
+            if (const auto* program = m_programs->FindOrDefault(materialAsset->ShaderName))
+            {
+                resource.Binding.Parameters.BuildSlots(program->Desc.MaterialParams);
+            }
+        }
 
         // Replace texture bindings with the material asset's authored textures
         resource.Binding.Textures.Slots = materialAsset->Textures;

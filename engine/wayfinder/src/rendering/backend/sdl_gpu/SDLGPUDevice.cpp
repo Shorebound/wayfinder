@@ -197,6 +197,17 @@ namespace Wayfinder
 
         m_mipGenerator = std::make_unique<BlitMipGenerator>();
 
+        // Create persistent staging ring for batched uploads
+        SDL_GPUTransferBufferCreateInfo stagingInfo{};
+        stagingInfo.usage = SDL_GPU_TRANSFERBUFFERUSAGE_UPLOAD;
+        stagingInfo.size = STAGING_RING_CAPACITY;
+
+        m_stagingRing = SDL_CreateGPUTransferBuffer(m_device, &stagingInfo);
+        if (!m_stagingRing)
+        {
+            WAYFINDER_WARN(LogRenderer, "SDLGPUDevice: Failed to create staging ring — uploads will use dedicated buffers");
+        }
+
         return {};
     }
 
@@ -241,6 +252,20 @@ namespace Wayfinder
             });
             m_texturePool.Clear();
 
+            if (m_stagingRing)
+            {
+                if (m_stagingMapped)
+                {
+                    SDL_UnmapGPUTransferBuffer(m_device, m_stagingRing);
+                    m_stagingMapped = nullptr;
+                }
+                SDL_ReleaseGPUTransferBuffer(m_device, m_stagingRing);
+                m_stagingRing = nullptr;
+                m_stagingCursor = 0;
+            }
+            m_pendingBufferCopies.clear();
+            m_pendingTextureCopies.clear();
+
             if (m_depthTexture)
             {
                 SDL_ReleaseGPUTexture(m_device, m_depthTexture);
@@ -269,6 +294,14 @@ namespace Wayfinder
             return false;
         }
 
+        // Map the staging ring for this frame's uploads (cycle=true lets the
+        // driver internally double-buffer so we don't stall on the previous frame).
+        if (m_stagingRing && !m_stagingMapped)
+        {
+            m_stagingMapped = SDL_MapGPUTransferBuffer(m_device, m_stagingRing, true);
+            m_stagingCursor = 0;
+        }
+
         if (!SDL_AcquireGPUSwapchainTexture(m_commandBuffer, m_window, &m_swapchainTexture, &m_swapchainWidth, &m_swapchainHeight))
         {
             WAYFINDER_ERROR(LogRenderer, "SDLGPUDevice: Failed to acquire swapchain texture — {}", SDL_GetError());
@@ -292,6 +325,17 @@ namespace Wayfinder
 
     void SDLGPUDevice::EndFrame()
     {
+        // Flush any uploads that weren't consumed (e.g. graph failed to compile).
+        FlushUploads();
+
+        // Unmap the staging ring — it will be re-mapped next BeginFrame.
+        if (m_stagingMapped)
+        {
+            SDL_UnmapGPUTransferBuffer(m_device, m_stagingRing);
+            m_stagingMapped = nullptr;
+            m_stagingCursor = 0;
+        }
+
         if (m_commandBuffer)
         {
             SDL_SubmitGPUCommandBuffer(m_commandBuffer);
@@ -799,6 +843,39 @@ namespace Wayfinder
         }
     }
 
+    std::optional<uint32_t> SDLGPUDevice::TryStageToRing(const void* data, uint32_t sizeInBytes)
+    {
+        if (!m_stagingMapped || sizeInBytes > STAGING_RING_CAPACITY)
+        {
+            return std::nullopt;
+        }
+
+        /// @todo 4-byte alignment is sufficient for buffer copies but may not
+        /// satisfy driver requirements for all texture formats (e.g. RGBA16_FLOAT
+        /// = 8 bytes/texel). Consider format-aware alignment if transfer artefacts
+        /// appear on some drivers.
+        auto tryAppend = [&]() -> std::optional<uint32_t>
+        {
+            const uint32_t aligned = (m_stagingCursor + 3u) & ~3u;
+            if (aligned + sizeInBytes > STAGING_RING_CAPACITY)
+            {
+                return std::nullopt;
+            }
+            std::memcpy(static_cast<uint8_t*>(m_stagingMapped) + aligned, data, sizeInBytes);
+            m_stagingCursor = aligned + sizeInBytes;
+            return aligned;
+        };
+
+        if (auto offset = tryAppend())
+        {
+            return offset;
+        }
+
+        // Ring is full — flush what we have and try once more
+        FlushUploads();
+        return tryAppend();
+    }
+
     void SDLGPUDevice::UploadToBuffer(GPUBufferHandle buffer, const void* data, BufferUploadRegion region)
     {
         auto* pBuffer = m_bufferPool.Get(buffer);
@@ -807,7 +884,24 @@ namespace Wayfinder
             return;
         }
 
-        // Create a staging transfer buffer
+        // Try to stage into the ring buffer
+        if (const auto offset = TryStageToRing(data, region.sizeInBytes))
+        {
+            m_pendingBufferCopies.push_back({
+                .ringOffset = *offset,
+                .size = region.sizeInBytes,
+                .dstBuffer = *pBuffer,
+                .dstOffset = region.dstOffsetInBytes,
+            });
+            return;
+        }
+
+        // Oversized or no ring — use dedicated transfer
+        UploadToBufferDedicated(*pBuffer, data, region);
+    }
+
+    void SDLGPUDevice::UploadToBufferDedicated(SDL_GPUBuffer* buffer, const void* data, BufferUploadRegion region)
+    {
         SDL_GPUTransferBufferCreateInfo transferInfo{};
         transferInfo.usage = SDL_GPU_TRANSFERBUFFERUSAGE_UPLOAD;
         transferInfo.size = region.sizeInBytes;
@@ -819,7 +913,6 @@ namespace Wayfinder
             return;
         }
 
-        // Map, copy, unmap
         void* mapped = SDL_MapGPUTransferBuffer(m_device, transferBuffer, false);
         if (!mapped)
         {
@@ -831,7 +924,6 @@ namespace Wayfinder
         std::memcpy(mapped, data, region.sizeInBytes);
         SDL_UnmapGPUTransferBuffer(m_device, transferBuffer);
 
-        // Upload via a dedicated command buffer + copy pass
         SDL_GPUCommandBuffer* cmdBuf = SDL_AcquireGPUCommandBuffer(m_device);
         if (!cmdBuf)
         {
@@ -847,7 +939,7 @@ namespace Wayfinder
         src.offset = 0;
 
         SDL_GPUBufferRegion dst{};
-        dst.buffer = *pBuffer;
+        dst.buffer = buffer;
         dst.offset = region.dstOffsetInBytes;
         dst.size = region.sizeInBytes;
 
@@ -1107,7 +1199,31 @@ namespace Wayfinder
 
         const uint32_t totalBytes = bytesPerRow * height;
 
-        // Create a staging transfer buffer
+        // Try to stage into the ring buffer
+        if (const auto offset = TryStageToRing(pixelData, totalBytes))
+        {
+            m_pendingTextureCopies.push_back({
+                .ringOffset = *offset,
+                .size = totalBytes,
+                .dstTexture = pEntry->texture,
+                .width = width,
+                .height = height,
+                .pixelsPerRow = width,
+                .rowsPerLayer = height,
+                .mipLevel = mipLevel,
+            });
+            return;
+        }
+
+        // Oversized or no ring — use dedicated transfer
+        UploadToTextureDedicated(pEntry->texture, pixelData, width, height, bytesPerRow, mipLevel);
+    }
+
+    // NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
+    void SDLGPUDevice::UploadToTextureDedicated(SDL_GPUTexture* texture, const void* pixelData, uint32_t width, uint32_t height, uint32_t bytesPerRow, uint32_t mipLevel)
+    {
+        const uint32_t totalBytes = bytesPerRow * height;
+
         SDL_GPUTransferBufferCreateInfo transferInfo{};
         transferInfo.usage = SDL_GPU_TRANSFERBUFFERUSAGE_UPLOAD;
         transferInfo.size = totalBytes;
@@ -1119,7 +1235,6 @@ namespace Wayfinder
             return;
         }
 
-        // Map, copy, unmap
         void* mapped = SDL_MapGPUTransferBuffer(m_device, transferBuffer, false);
         if (!mapped)
         {
@@ -1131,7 +1246,6 @@ namespace Wayfinder
         std::memcpy(mapped, pixelData, totalBytes);
         SDL_UnmapGPUTransferBuffer(m_device, transferBuffer);
 
-        // Upload via a dedicated command buffer + copy pass
         SDL_GPUCommandBuffer* cmdBuf = SDL_AcquireGPUCommandBuffer(m_device);
         if (!cmdBuf)
         {
@@ -1149,7 +1263,7 @@ namespace Wayfinder
         src.rows_per_layer = height;
 
         SDL_GPUTextureRegion dst{};
-        dst.texture = pEntry->texture;
+        dst.texture = texture;
         dst.mip_level = mipLevel;
         dst.w = width;
         dst.h = height;
@@ -1162,6 +1276,83 @@ namespace Wayfinder
         SDL_ReleaseGPUTransferBuffer(m_device, transferBuffer);
     }
 
+    void SDLGPUDevice::FlushUploads()
+    {
+        if (!m_device || (m_pendingBufferCopies.empty() && m_pendingTextureCopies.empty()))
+        {
+            return;
+        }
+
+        // Unmap before issuing the copy pass
+        if (m_stagingMapped)
+        {
+            SDL_UnmapGPUTransferBuffer(m_device, m_stagingRing);
+            m_stagingMapped = nullptr;
+        }
+
+        SDL_GPUCommandBuffer* cmdBuf = SDL_AcquireGPUCommandBuffer(m_device);
+        if (!cmdBuf)
+        {
+            WAYFINDER_ERROR(LogRenderer, "SDLGPUDevice::FlushUploads: Failed to acquire command buffer — {}", SDL_GetError());
+            m_pendingBufferCopies.clear();
+            m_pendingTextureCopies.clear();
+            return;
+        }
+
+        SDL_GPUCopyPass* copyPass = SDL_BeginGPUCopyPass(cmdBuf);
+
+        for (const auto& copy : m_pendingBufferCopies)
+        {
+            SDL_GPUTransferBufferLocation src{};
+            src.transfer_buffer = m_stagingRing;
+            src.offset = copy.ringOffset;
+
+            SDL_GPUBufferRegion dst{};
+            dst.buffer = copy.dstBuffer;
+            dst.offset = copy.dstOffset;
+            dst.size = copy.size;
+
+            SDL_UploadToGPUBuffer(copyPass, &src, &dst, false);
+        }
+
+        for (const auto& copy : m_pendingTextureCopies)
+        {
+            SDL_GPUTextureTransferInfo src{};
+            src.transfer_buffer = m_stagingRing;
+            src.offset = copy.ringOffset;
+            src.pixels_per_row = copy.pixelsPerRow;
+            src.rows_per_layer = copy.rowsPerLayer;
+
+            SDL_GPUTextureRegion dst{};
+            dst.texture = copy.dstTexture;
+            dst.mip_level = copy.mipLevel;
+            dst.w = copy.width;
+            dst.h = copy.height;
+            dst.d = 1;
+
+            SDL_UploadToGPUTexture(copyPass, &src, &dst, false);
+        }
+
+        SDL_EndGPUCopyPass(copyPass);
+        SDL_SubmitGPUCommandBuffer(cmdBuf);
+
+        m_pendingBufferCopies.clear();
+        m_pendingTextureCopies.clear();
+
+        // Re-map for any subsequent uploads this frame.
+        // cycle=true tells SDL to internally provide a fresh backing allocation so
+        // we don't stall on the copy pass we just submitted. If a driver's cycle
+        // implementation doesn't actually double-buffer, this could cause a GPU
+        // read-after-write hazard.
+        /// @todo Confirm SDL_GPU cycle=true guarantees a new backing allocation
+        /// for transfer buffers on all target backends (Vulkan, D3D12, Metal).
+        if (m_stagingRing)
+        {
+            m_stagingMapped = SDL_MapGPUTransferBuffer(m_device, m_stagingRing, true);
+            m_stagingCursor = 0;
+        }
+    }
+
     void SDLGPUDevice::GenerateMipmaps(GPUTextureHandle texture)
     {
         auto* pEntry = m_texturePool.Get(texture);
@@ -1169,6 +1360,9 @@ namespace Wayfinder
         {
             return;
         }
+
+        // Flush pending uploads so texture data is committed before mip generation
+        FlushUploads();
 
         if (m_mipGenerator)
         {

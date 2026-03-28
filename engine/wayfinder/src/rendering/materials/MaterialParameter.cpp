@@ -58,10 +58,53 @@ namespace Wayfinder
         }
     }
 
+    void MaterialParameterBlock::BuildSlots(const std::vector<MaterialParamDecl>& decls)
+    {
+        Slots.resize(decls.size());
+        for (size_t i = 0; i < decls.size(); ++i)
+        {
+            const auto it = Values.find(decls[i].Name);
+            Slots[i] = (it != Values.end()) ? it->second : decls[i].Default;
+        }
+    }
+
+    void MaterialParameterBlock::ApplyOverrides(const MaterialParameterBlock& overrides, const std::vector<MaterialParamDecl>& decls)
+    {
+        for (size_t i = 0; i < decls.size(); ++i)
+        {
+            const auto it = overrides.Values.find(decls[i].Name);
+            if (it != overrides.Values.end())
+            {
+                if (i < Slots.size())
+                {
+                    Slots[i] = it->second;
+                }
+            }
+        }
+    }
+
     void MaterialParameterBlock::SerialiseToUBO(const std::vector<MaterialParamDecl>& decls, void* outBuffer, uint32_t bufferSize) const
     {
         auto* bytes = static_cast<uint8_t*>(outBuffer);
 
+        if (!Slots.empty())
+        {
+            // Fast path: read from pre-built flat slots (no hash lookups)
+            for (size_t i = 0; i < decls.size(); ++i)
+            {
+                const auto& decl = decls[i];
+                if (decl.Offset >= bufferSize)
+                {
+                    continue;
+                }
+                const uint32_t remaining = bufferSize - decl.Offset;
+                const MaterialParamValue& value = (i < Slots.size()) ? Slots[i] : decl.Default;
+                WriteValue(value, bytes + decl.Offset, remaining);
+            }
+            return;
+        }
+
+        // Fallback: named lookup (authoring path)
         for (const auto& decl : decls)
         {
             if (decl.Offset >= bufferSize)

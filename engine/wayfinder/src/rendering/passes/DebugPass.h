@@ -3,7 +3,11 @@
 #include "rendering/backend/GPUHandles.h"
 #include "rendering/backend/VertexFormats.h"
 #include "rendering/graph/RenderFeature.h"
+#include "rendering/graph/RenderFrame.h"
+#include "rendering/resources/TransientBufferAllocator.h"
 
+#include <array>
+#include <cstdint>
 #include <vector>
 
 namespace Wayfinder
@@ -40,8 +44,25 @@ namespace Wayfinder
         static void AppendWorldGridLineVertices(std::vector<VertexPosColour>& lineVertices, WorldGridSpec spec);
 
     private:
+        static constexpr uint32_t MAX_DEBUG_VIEWS = 4;
+
+        /// Pre-computed per-view debug draw data, built during AddPasses setup
+        /// and consumed by the execute lambda. Avoids per-frame hash map allocations.
+        struct PerViewDebugDraw
+        {
+            size_t ViewIndex = 0;
+            TransientAllocation LineAlloc{};
+            uint32_t LineVertexCount = 0;
+            uint32_t BoxStart = 0;
+            uint32_t BoxCount = 0;
+        };
+
         RenderServices* m_context = nullptr;
         GPUPipelineHandle m_debugLinePipeline;
+
+        /// Scratch buffers retained across frames to avoid repeated heap allocation.
+        std::vector<VertexPosColour> m_scratchLines;
+        std::vector<RenderDebugBox> m_scratchBoxes;
     };
 
 } // namespace Wayfinder
