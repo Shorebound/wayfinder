@@ -40,7 +40,7 @@ namespace Wayfinder
 
     RenderCapabilityMask ColourGradingFeature::GetCapabilities() const
     {
-        return RenderCapabilities::RASTER | RenderCapabilities::FULLSCREEN_COMPOSITE;
+        return RenderCapabilities::RASTER;
     }
 
     void ColourGradingFeature::OnAttach(const RenderFeatureContext& context)
@@ -115,7 +115,7 @@ namespace Wayfinder
 
         graph.AddPass("ColourGrading", [this, inputHandle, w, h, ubo](RenderGraphBuilder& builder)
         {
-            builder.DeclarePassCapabilities(RenderCapabilities::RASTER | RenderCapabilities::FULLSCREEN_COMPOSITE);
+            builder.DeclarePassCapabilities(RenderCapabilities::RASTER);
             builder.ReadTexture(inputHandle);
             const RenderGraphHandle output = CreatePostProcessOutput(builder, w, h);
             builder.WriteColour(output, LoadOp::DontCare);

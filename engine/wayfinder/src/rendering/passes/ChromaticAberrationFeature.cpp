@@ -26,7 +26,7 @@ namespace Wayfinder
 
     RenderCapabilityMask ChromaticAberrationFeature::GetCapabilities() const
     {
-        return RenderCapabilities::RASTER | RenderCapabilities::FULLSCREEN_COMPOSITE;
+        return RenderCapabilities::RASTER;
     }
 
     void ChromaticAberrationFeature::OnAttach(const RenderFeatureContext& context)
@@ -100,7 +100,7 @@ namespace Wayfinder
 
         graph.AddPass("ChromaticAberration", [this, inputHandle, w, h, ca](RenderGraphBuilder& builder)
         {
-            builder.DeclarePassCapabilities(RenderCapabilities::RASTER | RenderCapabilities::FULLSCREEN_COMPOSITE);
+            builder.DeclarePassCapabilities(RenderCapabilities::RASTER);
             builder.ReadTexture(inputHandle);
             const RenderGraphHandle output = CreatePostProcessOutput(builder, w, h);
             builder.WriteColour(output, LoadOp::DontCare);

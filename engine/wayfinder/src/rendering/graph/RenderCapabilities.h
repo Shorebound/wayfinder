@@ -13,7 +13,7 @@ namespace Wayfinder
         inline constexpr uint32_t RASTER_SCENE_GEOMETRY = 1u << 1;
         /// Overlays, debug draws, non-scene raster work.
         inline constexpr uint32_t RASTER_OVERLAY_OR_DEBUG = 1u << 2;
-        /// Fullscreen composite / post-style injectors (reserved).
+        /// Fullscreen pass that writes the swapchain (must call `SetSwapchainOutput` — validated in `RenderGraph::Compile`).
         inline constexpr uint32_t FULLSCREEN_COMPOSITE = 1u << 3;
         /// Compute graph nodes (reserved).
         inline constexpr uint32_t COMPUTE = 1u << 4;

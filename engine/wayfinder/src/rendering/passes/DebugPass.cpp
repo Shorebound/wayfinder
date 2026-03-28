@@ -110,12 +110,14 @@ namespace Wayfinder
             return;
         }
 
+        // Overlay must write the same colour target `CompositionPass` will sample (post chain), not `SceneColour`.
+        const RenderGraphHandle colourHandle = ResolvePostProcessInput(graph);
+
         graph.AddPass("Debug", [&](RenderGraphBuilder& builder)
         {
             builder.DeclarePassCapabilities(RenderCapabilities::RASTER | RenderCapabilities::RASTER_OVERLAY_OR_DEBUG);
-            auto colour = graph.FindHandleChecked(GraphTextureId::SceneColour);
             auto depth = graph.FindHandleChecked(GraphTextureId::SceneDepth);
-            builder.WriteColour(colour, LoadOp::Load);
+            builder.WriteColour(colourHandle, LoadOp::Load);
             builder.WriteDepth(depth, LoadOp::Load);
 
             return [this, &params](RenderDevice& device, const RenderGraphResources& /*resources*/)

@@ -27,7 +27,7 @@ namespace Wayfinder
 
     RenderCapabilityMask VignetteFeature::GetCapabilities() const
     {
-        return RenderCapabilities::RASTER | RenderCapabilities::FULLSCREEN_COMPOSITE;
+        return RenderCapabilities::RASTER;
     }
 
     void VignetteFeature::OnAttach(const RenderFeatureContext& context)
@@ -101,7 +101,7 @@ namespace Wayfinder
 
         graph.AddPass("Vignette", [this, inputHandle, w, h, vignette](RenderGraphBuilder& builder)
         {
-            builder.DeclarePassCapabilities(RenderCapabilities::RASTER | RenderCapabilities::FULLSCREEN_COMPOSITE);
+            builder.DeclarePassCapabilities(RenderCapabilities::RASTER);
             builder.ReadTexture(inputHandle);
             const RenderGraphHandle output = CreatePostProcessOutput(builder, w, h);
             builder.WriteColour(output, LoadOp::DontCare);
