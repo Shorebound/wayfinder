@@ -113,6 +113,6 @@ namespace Wayfinder
     /**
      * @brief True if the name matches a registered type (uses validation instance when set).
      */
-    [[nodiscard]] WAYFINDER_API bool IsValidEffectTypeName(std::string_view normalisedLower);
+    [[nodiscard]] WAYFINDER_API bool IsValidEffectTypeName(std::string_view normalisedLower, const BlendableEffectRegistry* registry = nullptr);
 
 } // namespace Wayfinder

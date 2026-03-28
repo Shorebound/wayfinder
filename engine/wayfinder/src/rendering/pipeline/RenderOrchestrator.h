@@ -38,7 +38,7 @@ namespace Wayfinder
     };
 
     /** @brief Validates, sorts, and builds the render graph for a frame. */
-    class WAYFINDER_API FrameComposer
+    class WAYFINDER_API RenderOrchestrator
     {
     public:
         /** @brief Registers built-in shader programs and default passes; stores context for BuildGraph. */
@@ -47,10 +47,11 @@ namespace Wayfinder
 
         /**
          * @brief Registers a pass into the phase-ordered pipeline.
+         *
+         * If called before Initialise, the pass is deferred and flushed on Initialise.
          * @param phase Band used with @p order for stable ordering.
          * @param order Lower values run earlier within the same phase.
          * @param pass Ownership of the pass instance; must not be null.
-         * @note Requires Initialise to have been called.
          */
         void RegisterPass(RenderPhase phase, int32_t order, std::unique_ptr<RenderFeature> pass);
 
@@ -89,6 +90,16 @@ namespace Wayfinder
                     }
                 }
             }
+            for (const auto& slot : m_pendingPasses)
+            {
+                if (slot.Pass)
+                {
+                    if (auto* ptr = dynamic_cast<const T*>(slot.Pass.get()))
+                    {
+                        return ptr;
+                    }
+                }
+            }
             return nullptr;
         }
 
@@ -110,17 +121,37 @@ namespace Wayfinder
                     }
                 }
             }
+            for (auto& slot : m_pendingPasses)
+            {
+                if (slot.Pass)
+                {
+                    if (auto* ptr = dynamic_cast<T*>(slot.Pass.get()))
+                    {
+                        return ptr;
+                    }
+                }
+            }
             return nullptr;
         }
 
         /**
          * @brief Removes the first pass whose dynamic type is @p T from the pipeline.
          * @tparam T Render pass type to match.
-         * @return True if a pass was removed; false if none matched or context is unavailable.
+         * @return True if a pass was removed; false if none matched.
          */
         template<typename T>
         bool RemovePass()
         {
+            // Search pending passes first (no OnDetach — not yet attached).
+            for (auto it = m_pendingPasses.begin(); it != m_pendingPasses.end(); ++it)
+            {
+                if (it->Pass && dynamic_cast<T*>(it->Pass.get()) != nullptr)
+                {
+                    m_pendingPasses.erase(it);
+                    return true;
+                }
+            }
+
             if (!m_context)
             {
                 return false;
@@ -151,6 +182,7 @@ namespace Wayfinder
 
         RenderServices* m_context = nullptr;
         std::vector<PassSlot> m_passes;
+        std::vector<PassSlot> m_pendingPasses;
         uint32_t m_nextPassInsertSequence = 0;
         bool m_initialised = false;
     };

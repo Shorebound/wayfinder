@@ -436,7 +436,7 @@ namespace Wayfinder
             });
         }
 
-        void ExtractPostProcessVolumes(const Scene& scene, RenderFrame& frame)
+        void ExtractPostProcessVolumes(const Scene& scene, RenderFrame& frame, const BlendableEffectRegistry* registry)
         {
             std::vector<VolumeInstance> volumeInstances;
             scene.GetWorld().each([&volumeInstances](flecs::entity entityHandle)
@@ -475,7 +475,7 @@ namespace Wayfinder
                 return;
             }
 
-            const BlendableEffectRegistry* ppRegistry = BlendableEffectRegistry::GetActiveInstance();
+            const BlendableEffectRegistry* ppRegistry = registry;
             if (ppRegistry != nullptr)
             {
                 for (auto& view : frame.Views)
@@ -487,14 +487,14 @@ namespace Wayfinder
             {
                 WAYFINDER_WARN(LogRenderer,
                     "SceneRenderExtractor: skipped blendable volume blending for scene '{}' ({} volume instances) "
-                    "\xe2\x80\x94 BlendableEffectRegistry has no active instance",
+                    "\xe2\x80\x94 no BlendableEffectRegistry provided",
                     frame.SceneName, volumeInstances.size());
             }
         }
 
     } // namespace
 
-    RenderFrame SceneRenderExtractor::Extract(const Scene& scene) const
+    RenderFrame SceneRenderExtractor::Extract(const Scene& scene, const BlendableEffectRegistry* registry) const
     {
         RenderFrame frame;
         frame.SceneName = scene.GetName();
@@ -503,7 +503,7 @@ namespace Wayfinder
         const auto primaryViewIndex = ExtractViews(scene.GetWorld(), frame);
         ExtractMeshSubmissions(scene, frame, primaryViewIndex);
         ExtractLights(scene.GetWorld(), frame, primaryViewIndex);
-        ExtractPostProcessVolumes(scene, frame);
+        ExtractPostProcessVolumes(scene, frame, registry);
 
         return frame;
     }

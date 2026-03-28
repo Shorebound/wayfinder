@@ -25,7 +25,7 @@ namespace Wayfinder
 
         desc.CreateIdentity = [](void* dst)
         {
-            std::construct_at(static_cast<T*>(dst), Identity(EffectTag<T>{}));
+            std::construct_at(static_cast<T*>(dst), BlendableEffectTraits<T>::Identity());
         };
 
         desc.Destroy = [](void* dst)
@@ -37,18 +37,17 @@ namespace Wayfinder
         {
             auto& d = *static_cast<T*>(dst);
             const auto& s = *static_cast<const T*>(src);
-            d = Lerp(d, s, weight);
+            d = BlendableEffectTraits<T>::Lerp(d, s, weight);
         };
 
         desc.Deserialise = [](void* dst, const nlohmann::json& json)
         {
-            // Assignment overwrites an existing payload (e.g. after CreateIdentity) without double placement-new.
-            *static_cast<T*>(dst) = Deserialise(EffectTag<T>{}, json);
+            *static_cast<T*>(dst) = BlendableEffectTraits<T>::Deserialise(json);
         };
 
         desc.Serialise = [](nlohmann::json& json, const void* src)
         {
-            Serialise(json, *static_cast<const T*>(src));
+            BlendableEffectTraits<T>::Serialise(json, *static_cast<const T*>(src));
         };
 
         const BlendableEffectId id = static_cast<BlendableEffectId>(m_descs.size());

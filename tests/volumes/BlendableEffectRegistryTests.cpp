@@ -4,46 +4,20 @@
 #include "volumes/BlendableEffect.h"
 #include "volumes/BlendableEffectRegistry.h"
 #include "volumes/Override.h"
+#include "volumes/OverrideReflection.h"
 
 #include <array>
 #include <nlohmann/json.hpp>
+#include <tuple>
 
 namespace
 {
     struct RegistryTestEffectParams
     {
         Wayfinder::Override<float> Amount{0.0f};
+
+        static constexpr auto FIELDS = std::make_tuple(Wayfinder::FieldDesc{&RegistryTestEffectParams::Amount, std::string_view{"amount"}});
     };
-
-    RegistryTestEffectParams Identity(Wayfinder::EffectTag<RegistryTestEffectParams>)
-    {
-        return RegistryTestEffectParams{};
-    }
-
-    RegistryTestEffectParams Lerp(const RegistryTestEffectParams& current, const RegistryTestEffectParams& source, const float weight)
-    {
-        RegistryTestEffectParams out{};
-        out.Amount = Wayfinder::LerpOverride(current.Amount, source.Amount, weight);
-        return out;
-    }
-
-    void Serialise(nlohmann::json& json, const RegistryTestEffectParams& params)
-    {
-        if (params.Amount.Active)
-        {
-            json["amount"] = params.Amount.Value;
-        }
-    }
-
-    RegistryTestEffectParams Deserialise(Wayfinder::EffectTag<RegistryTestEffectParams>, const nlohmann::json& json)
-    {
-        RegistryTestEffectParams p{};
-        if (json.contains("amount") && json.at("amount").is_number())
-        {
-            p.Amount = Wayfinder::Override<float>::Set(json.at("amount").get<float>());
-        }
-        return p;
-    }
 
 } // namespace
 
@@ -69,7 +43,7 @@ TEST_CASE("LerpOverride leaves inactive fields unchanged")
     Wayfinder::ColourGradingParams source{};
     source.ExposureStops = Wayfinder::Override<float>::Set(2.0f);
 
-    const Wayfinder::ColourGradingParams blended = Wayfinder::Lerp(current, source, 0.5f);
+    const Wayfinder::ColourGradingParams blended = Wayfinder::BlendableEffectTraits<Wayfinder::ColourGradingParams>::Lerp(current, source, 0.5f);
     CHECK(blended.ExposureStops.Active);
     CHECK(blended.ExposureStops.Value == doctest::Approx(1.0f));
     CHECK(!blended.Contrast.Active);

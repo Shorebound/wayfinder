@@ -1,5 +1,6 @@
 #pragma once
 
+#include "volumes/BlendableEffectTraits.h"
 #include "wayfinder_exports.h"
 
 #include <array>
@@ -42,10 +43,6 @@ namespace Wayfinder
         EngineBlendableEffectNames::ChromaticAberration,
     }};
 
-    /** @brief ADL tag for Identity / Deserialise without a T instance. */
-    template<typename T>
-    struct EffectTag {};
-
     /**
      * @brief Engine-registered effect ids for fast lookup (no string table at runtime).
      */
@@ -74,10 +71,10 @@ namespace Wayfinder
 
     template<typename T>
     concept BlendableEffectPayload = std::is_trivially_copyable_v<T> && std::is_nothrow_destructible_v<T> && requires(const T& a, const T& b, float w, nlohmann::json& jout, const nlohmann::json& jin) {
-        { Identity(EffectTag<T>{}) } -> std::same_as<T>;
-        { Lerp(a, b, w) } -> std::same_as<T>;
-        { Deserialise(EffectTag<T>{}, jin) } -> std::same_as<T>;
-        { Serialise(jout, a) } -> std::same_as<void>;
+        { BlendableEffectTraits<T>::Identity() } -> std::same_as<T>;
+        { BlendableEffectTraits<T>::Lerp(a, b, w) } -> std::same_as<T>;
+        { BlendableEffectTraits<T>::Deserialise(jin) } -> std::same_as<T>;
+        BlendableEffectTraits<T>::Serialise(jout, a);
     };
 
     /**
@@ -114,7 +111,10 @@ namespace Wayfinder
         }
 
         /**
-         * @brief Active registry for scene load / validation (set from EngineRuntime::Initialise).
+         * @brief Global instance for scene load / validation (set from EngineRuntime::Initialise).
+         *
+         * @todo Remove once ComponentRegistry's function-pointer-based Apply/Validate/Serialise
+         *       chain supports a context parameter. All other consumers now use DI.
          */
         static void SetActiveInstance(BlendableEffectRegistry* registry);
         [[nodiscard]] static BlendableEffectRegistry* GetActiveInstance();

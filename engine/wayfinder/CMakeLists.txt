@@ -228,8 +228,8 @@ set(ENGINE_ALL_SOURCES
   src/rendering/pipeline/BuiltInShaderPrograms.cpp
   src/rendering/pipeline/BuiltInShaderPrograms.h
   src/rendering/pipeline/BuiltInUBOs.h
-  src/rendering/pipeline/FrameComposer.cpp
-  src/rendering/pipeline/FrameComposer.h
+  src/rendering/pipeline/RenderOrchestrator.cpp
+  src/rendering/pipeline/RenderOrchestrator.h
   src/rendering/pipeline/Renderer.cpp
   src/rendering/pipeline/Renderer.h
   src/rendering/pipeline/SceneRenderExtractor.cpp
@@ -259,11 +259,14 @@ set(ENGINE_ALL_SOURCES
 
   # Volumes
   src/volumes/Override.h
+  src/volumes/OverrideReflection.cpp
+  src/volumes/OverrideReflection.h
   src/volumes/BlendableEffect.cpp
   src/volumes/BlendableEffect.h
   src/volumes/BlendableEffectRegistry.cpp
   src/volumes/BlendableEffectRegistry.h
   src/volumes/BlendableEffectRegistry.inl
+  src/volumes/BlendableEffectTraits.h
 
   # Scene
   src/scene/ComponentRegistry.cpp

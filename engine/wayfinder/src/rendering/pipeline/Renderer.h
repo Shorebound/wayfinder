@@ -3,9 +3,8 @@
 #include "core/Result.h"
 #include "rendering/RenderTypes.h"
 #include "rendering/graph/RenderFeature.h"
-#include "rendering/pipeline/FrameComposer.h"
+#include "rendering/pipeline/RenderOrchestrator.h"
 
-#include <algorithm>
 #include <memory>
 #include <string>
 #include <vector>
@@ -13,6 +12,7 @@
 namespace Wayfinder
 {
     class AssetService;
+    class BlendableEffectRegistry;
     class RenderServices;
     class RenderDevice;
     struct EngineConfig;
@@ -26,7 +26,7 @@ namespace Wayfinder
         Renderer();
         ~Renderer() noexcept;
 
-        Result<void> Initialise(RenderDevice& device, const EngineConfig& config);
+        Result<void> Initialise(RenderDevice& device, const EngineConfig& config, BlendableEffectRegistry* registry = nullptr);
         void Shutdown();
 
         void Render(const RenderFrame& frame);
@@ -57,26 +57,10 @@ namespace Wayfinder
          * @brief Removes the first pass whose dynamic type is `T` from the pipeline.
          * @tparam T Render pass type to match.
          * @return True if a pass was removed; false if none matched.
-         * @note When the renderer is initialised, calls `OnDetach` on the removed pass before erasing it.
          */
         template<typename T>
         bool RemovePass()
         {
-            auto pendingIt = std::find_if(m_pendingPasses.begin(), m_pendingPasses.end(), [](const PendingPassRegistration& p)
-            {
-                return p.Pass && dynamic_cast<T*>(p.Pass.get()) != nullptr;
-            });
-            if (pendingIt != m_pendingPasses.end())
-            {
-                if (m_isInitialised && m_context)
-                {
-                    auto ctx = MakeFeatureContext();
-                    pendingIt->Pass->OnDetach(ctx);
-                }
-                m_pendingPasses.erase(pendingIt);
-                return true;
-            }
-
             if (m_renderPipeline)
             {
                 return m_renderPipeline->RemovePass<T>();
@@ -94,20 +78,7 @@ namespace Wayfinder
         {
             if (m_renderPipeline)
             {
-                if (const T* p = m_renderPipeline->GetPass<T>())
-                {
-                    return p;
-                }
-            }
-            for (const auto& pending : m_pendingPasses)
-            {
-                if (pending.Pass)
-                {
-                    if (auto* ptr = dynamic_cast<const T*>(pending.Pass.get()))
-                    {
-                        return ptr;
-                    }
-                }
+                return m_renderPipeline->GetPass<T>();
             }
             return nullptr;
         }
@@ -122,41 +93,17 @@ namespace Wayfinder
         {
             if (m_renderPipeline)
             {
-                if (T* p = m_renderPipeline->GetPass<T>())
-                {
-                    return p;
-                }
-            }
-            for (auto& pending : m_pendingPasses)
-            {
-                if (pending.Pass)
-                {
-                    if (auto* ptr = dynamic_cast<T*>(pending.Pass.get()))
-                    {
-                        return ptr;
-                    }
-                }
+                return m_renderPipeline->GetPass<T>();
             }
             return nullptr;
         }
 
     private:
-        struct PendingPassRegistration
-        {
-            RenderPhase Phase = RenderPhase::Opaque;
-            int32_t Order = 0;
-            std::unique_ptr<RenderFeature> Pass;
-        };
-
         std::shared_ptr<AssetService> m_assetService;
         RenderDevice* m_device = nullptr;
         std::unique_ptr<RenderServices> m_context;
-        std::unique_ptr<FrameComposer> m_renderPipeline;
+        std::unique_ptr<RenderOrchestrator> m_renderPipeline;
         std::unique_ptr<RenderResourceCache> m_renderResources;
-
-        RenderFeatureContext MakeFeatureContext();
-
-        std::vector<PendingPassRegistration> m_pendingPasses;
 
         int m_screenWidth;
         int m_screenHeight;

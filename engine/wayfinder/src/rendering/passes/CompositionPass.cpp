@@ -45,16 +45,6 @@ namespace Wayfinder
         m_context = nullptr;
     }
 
-    void CompositionPass::SetEnabled(const bool enabled)
-    {
-        if (!enabled)
-        {
-            WAYFINDER_WARN(LogRenderer, "CompositionPass: disabling is not allowed — this pass writes the swapchain; keeping Composition enabled");
-            return;
-        }
-        RenderFeature::SetEnabled(true);
-    }
-
     void CompositionPass::AddPasses(RenderGraph& graph, const FrameRenderParams& params)
     {
         if (!m_context)
@@ -69,9 +59,10 @@ namespace Wayfinder
         {
             builder.DeclarePassCapabilities(RenderCapabilities::RASTER | RenderCapabilities::FULLSCREEN_COMPOSITE);
             builder.ReadTexture(colourHandle);
-            // Renderer clears the swapchain before the graph; load existing pixels then overwrite with the fullscreen triangle.
-            // Avoids a second full-frame clear and keeps the backbuffer defined if this pass's draw is skipped.
-            builder.SetSwapchainOutput(LoadOp::Load);
+
+            // Derive the clear colour from the primary view (falls back to black).
+            const Colour clearColour = (params.PrimaryView.Valid && !params.Frame.Views.empty()) ? params.Frame.Views.front().ClearColour : Colour::Black();
+            builder.SetSwapchainOutput(LoadOp::Clear, ClearValue::FromColour(clearColour));
 
             return [this, colourHandle, &params](RenderDevice& device, const RenderGraphResources& resources)
             {

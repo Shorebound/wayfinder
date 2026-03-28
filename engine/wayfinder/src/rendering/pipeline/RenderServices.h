@@ -33,7 +33,7 @@ namespace Wayfinder
         RenderServices(RenderServices&&) = delete;
         RenderServices& operator=(RenderServices&&) = delete;
 
-        Result<void> Initialise(RenderDevice& device, const EngineConfig& config);
+        Result<void> Initialise(RenderDevice& device, const EngineConfig& config, BlendableEffectRegistry* registry = nullptr);
         void Shutdown();
 
         // ── Accessors ────────────────────────────────────────
@@ -137,6 +137,7 @@ namespace Wayfinder
 
     private:
         RenderDevice* m_device = nullptr;
+        BlendableEffectRegistry* m_blendableEffectRegistry = nullptr;
 
         ShaderManager m_shaderManager;
         PipelineCache m_pipelineCache;

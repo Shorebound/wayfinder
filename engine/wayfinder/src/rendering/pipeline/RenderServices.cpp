@@ -7,9 +7,10 @@
 
 namespace Wayfinder
 {
-    Result<void> RenderServices::Initialise(RenderDevice& device, const EngineConfig& config)
+    Result<void> RenderServices::Initialise(RenderDevice& device, const EngineConfig& config, BlendableEffectRegistry* registry)
     {
         m_device = &device;
+        m_blendableEffectRegistry = registry;
 
         m_shaderManager.Initialise(device, config.Shaders.Directory);
         m_pipelineCache.Initialise(device);
@@ -55,12 +56,12 @@ namespace Wayfinder
 
     void RenderServices::RegisterEngineBlendableEffects()
     {
-        auto* reg = BlendableEffectRegistry::GetActiveInstance();
-        if (!reg)
+        if (!m_blendableEffectRegistry)
         {
-            WAYFINDER_WARN(LogRenderer, "RegisterEngineBlendableEffects: no active BlendableEffectRegistry — skipping");
+            WAYFINDER_WARN(LogRenderer, "RegisterEngineBlendableEffects: no BlendableEffectRegistry — skipping");
             return;
         }
+        auto* reg = m_blendableEffectRegistry;
         m_engineEffectIds.ColourGrading = reg->Register<ColourGradingParams>(EngineBlendableEffectNames::ColourGrading);
         m_engineEffectIds.Vignette = reg->Register<VignetteParams>(EngineBlendableEffectNames::Vignette);
         m_engineEffectIds.ChromaticAberration = reg->Register<ChromaticAberrationParams>(EngineBlendableEffectNames::ChromaticAberration);
@@ -78,12 +79,12 @@ namespace Wayfinder
 
     void RenderServices::SealBlendableEffects()
     {
-        auto* reg = BlendableEffectRegistry::GetActiveInstance();
-        if (!reg)
+        if (!m_blendableEffectRegistry)
         {
-            WAYFINDER_WARN(LogRenderer, "SealBlendableEffects: no active BlendableEffectRegistry — nothing to seal");
+            WAYFINDER_WARN(LogRenderer, "SealBlendableEffects: no BlendableEffectRegistry — nothing to seal");
             return;
         }
+        auto* reg = m_blendableEffectRegistry;
         if (reg->IsSealed())
         {
             return;
@@ -96,6 +97,8 @@ namespace Wayfinder
         m_builtInMeshPtrs = {};
         m_primitiveMesh.Destroy();
         m_texturedPrimitiveMesh.Destroy();
+
+        m_blendableEffectRegistry = nullptr;
 
         if (m_nearestSampler && m_device)
         {

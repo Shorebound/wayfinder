@@ -3,7 +3,7 @@
 #include "rendering/graph/RenderFrame.h"
 #include "rendering/graph/RenderFrameUtils.h"
 #include "rendering/passes/SubmissionDrawing.h"
-#include "rendering/pipeline/FrameComposer.h"
+#include "rendering/pipeline/RenderOrchestrator.h"
 #include "rendering/pipeline/RenderServices.h"
 
 #include <doctest/doctest.h>
@@ -22,7 +22,7 @@ namespace Wayfinder::Tests
         Wayfinder::RenderServices context;
         REQUIRE(context.Initialise(*device, config));
 
-        Wayfinder::FrameComposer pipeline;
+        Wayfinder::RenderOrchestrator pipeline;
         pipeline.Initialise(context);
 
         Wayfinder::RenderFrame frame;

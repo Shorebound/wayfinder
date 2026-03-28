@@ -18,8 +18,7 @@ This project is greenfield. Breaking changes, rewrites, and architectural pivots
 - **Performance with clarity** — efficient code that stays readable. Optimise measured bottlenecks, not hunches.
 - **Production-quality framing from the start.** implementations can be minimal, but interfaces, data flow, and error handling must be sound enough to build on. Code should look like it belongs in a shipping engine. If a proposal, plan, or implementation doesn't meet that bar, rework it before moving on.
 
-- **Modern design** Use current best practices, not legacy habits. This applies to language features, architecture, and API design equally.
-- **Favour unconventional when it's better.** Don't default to "the way engines usually do it" without reason. Be willing to explore — but justify departures.
+- **Modern design** — current best practices for language, architecture, and APIs; prefer unconventional approaches when they are better, but justify departures from “how engines usually do it.”
 
 - **Dynamic over baked** — prefer runtime computation over offline preprocessing.
 - **Data flows down, events flow up** — systems read data and produce data. Side effects go through event bus or command queue.
@@ -63,8 +62,8 @@ Use doctest. Follow existing patterns in `tests/`.
 - Names describe behaviour, not functions.
 
 ## Validation
-- Code must pass it's relevant tests, `tools/lint.py` and `tools/tidy.py` to be valid.
-- `//NOLINTBEGIN`/`//NOLINTEND` blocks are fine for all test code or if solutions are not obvious or solvable (such as inescapable third-party issues).
+- Code must pass its relevant tests, `tools/lint.py --changed` and `tools/tidy.py --changed` to be valid.
+- `//NOLINTBEGIN`/`//NOLINTEND` blocks are fine for tests or if solutions are not obvious or solvable (such as inescapable third-party issues).
 
 ## Code Style
 
@@ -102,41 +101,20 @@ All engine code lives in `Wayfinder`. Subdirectories under `engine/wayfinder/src
 
 - `/** … */` Javadoc-style (with `@brief`, `@param`, `@return`, `@todo`, etc.) for public API and types.
 - `///` for inline implementation notes.
+- **Provisional code** — when something is clearly not production-ready (tutorial-style glue, hard-coded registrations, default pipelines wired in one place, lists that will grow without a real extension point), mark it so it is not mistaken for the intended architecture. Put this in Javadoc on the function or type, or in a nearby `///` line:
+  - **`@prototype`** — scaffolding to unblock development; the real design should be data-driven, modular, or game-owned. Add one line: what should replace it, or a GitHub issue reference (e.g. `#156`).
+  - **`@todo`** — planned follow-up; link `#nnn` when an issue exists.
+  - **`@fixme`** — incorrect or fragile; fix before treating the work as done.
 
 ## Commits, Branches & Issues
 
-All work tracked via GitHub Issues on `Shorebound/wayfinder`.
-See `docs/github_issues.md` for labels, milestones, relationships, and the GraphQL API reference.
+All work tracked via GitHub Issues on `Shorebound/wayfinder`. See `docs/github_issues.md` for labels, milestones, relationships, GraphQL notes, and full `gh-issues` examples.
 
-Branches: `<scope>/<issue_number>-<short-kebab-slug>`
+Branches: `<scope>/<issue_number>-<short-kebab-slug>`  
 PR titles and commits: `<type>(<scope>): <description>`
 - Types: `feat`, `fix`, `refactor`, `test`, `chore`, `docs`, `all`
-- Scopes: `rendering`, `core`, `scene`, `assets`, `tools`, `build`,
-  `physics`, `audio`, `platform`
+- Scopes: `rendering`, `core`, `scene`, `assets`, `tools`, `build`, `physics`, `audio`, `platform`
 
-### Relationships
+Dependencies use **blocked-by/blocking** and **sub-issues**. Manage them with `tools/gh-issues.py` (`blocked-by`, `blocking`, `sub-issue`, `show`, `tree`, `chain`, `ready`, `status`, `orphans`, and remove helpers).
 
-Dependencies use GitHub's native **blocked-by/blocking** and **sub-issues**. 
-Use `gh-issues` (`tools/gh-issues.py`) to manage relationships:
-
-```bash
-python tools/gh-issues.py blocked-by 12 7      # #12 is blocked by #7
-python tools/gh-issues.py blocking 7 12,15     # #7 is blocking #12 and #15
-python tools/gh-issues.py sub-issue 10 41,42   # #41, #42 are sub-issues of #10
-python tools/gh-issues.py show 12              # relationships + completion status
-python tools/gh-issues.py show 12,15,20        # compact table for multiple issues
-python tools/gh-issues.py tree 10              # sub-issue hierarchy with progress
-python tools/gh-issues.py chain 12             # walk blocked-by chain, find critical path
-python tools/gh-issues.py ready                # all open unblocked issues
-python tools/gh-issues.py status --milestone "Phase 1: Foundation"  # milestone progress
-python tools/gh-issues.py orphans              # issues with no parent or milestone
-python tools/gh-issues.py remove-blocked-by 12 7  # undo: #12 no longer blocked by #7
-python tools/gh-issues.py remove-sub-issue 10 41  # undo: #41 no longer sub-issue of #10
-```
-### Workflow
-
-- **Starting a task:** run `show` to check for unresolved blockers. If blocked, run `chain` to find the critical path.
-- **Picking work:** run `ready` for all unblocked issues, or `status --milestone "..."` for milestone priorities.
-- **Completing a task:** close the issue and check if any issues it was blocking are now unblocked.
-- **Breaking down a large issue:** create new issues for the sub-tasks, then use `sub-issue` to link them to the parent.
-- **Writing issue bodies:** keep bodies lean — labels carry metadata, sub-issues carry task breakdowns. Follow the template in `docs/github_issues.md`.
+**Workflow:** `show` / `chain` before starting if blockers matter; `ready` or `status --milestone` to pick work; close issues and check what unblocked; split large work with sub-issues; keep issue bodies lean (template in `docs/github_issues.md`).

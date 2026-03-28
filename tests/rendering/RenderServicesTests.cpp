@@ -71,7 +71,7 @@ namespace Wayfinder::Tests
         Wayfinder::RenderServices context;
         REQUIRE(context.Initialise(*device, MakeTestConfig()));
 
-        // Contract: FrameComposer::Initialise depends on being able to call
+        // Contract: RenderOrchestrator::Initialise depends on being able to call
         // Register. With NullDevice, pipeline creation fails (no shader files),
         // but the registry itself is functional and doesn't crash.
         Wayfinder::ShaderProgramDesc desc;

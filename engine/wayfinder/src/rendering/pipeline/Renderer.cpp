@@ -13,43 +13,11 @@
 #include "core/Types.h"
 #include "rendering/RenderTypes.h"
 
-#include <algorithm>
-
 namespace Wayfinder
 {
-    namespace
-    {
-        /**
-         * Clears the swapchain to a defined colour in the current command buffer.
-         *
-         * Call this once per frame after BeginFrame (when dimensions are valid) before BuildGraph/Execute. Swapchain images
-         * start undefined; without an initial clear, any later pass that fails to begin (or skips its draw) can leave
-         * undefined memory visible — static noise and per-frame "shimmer" as different garbage is presented each frame.
-         */
-        bool ClearSwapchainToColour(RenderDevice& device, const ClearValue& clear)
-        {
-            RenderPassDescriptor rp{};
-            rp.debugName = "SwapchainInitialClear";
-            rp.targetSwapchain = true;
-            rp.numColourTargets = 1;
-            rp.colourAttachments[0].loadOp = LoadOp::Clear;
-            rp.colourAttachments[0].clearValue = clear;
-            rp.colourAttachments[0].storeOp = StoreOp::Store;
-            rp.depthAttachment.enabled = false;
-
-            if (!device.BeginRenderPass(rp))
-            {
-                WAYFINDER_ERROR(LogRenderer, "ClearSwapchainToColour: BeginRenderPass failed — swapchain may show garbage");
-                return false;
-            }
-            device.EndRenderPass();
-            return true;
-        }
-    } // namespace
-
     Renderer::Renderer() : m_screenWidth(800), m_screenHeight(450), m_isInitialised(false)
     {
-        m_renderPipeline = std::make_unique<FrameComposer>();
+        m_renderPipeline = std::make_unique<RenderOrchestrator>();
         m_renderResources = std::make_unique<RenderResourceCache>();
     }
 
@@ -72,13 +40,13 @@ namespace Wayfinder
         }
     }
 
-    Result<void> Renderer::Initialise(RenderDevice& device, const EngineConfig& config)
+    Result<void> Renderer::Initialise(RenderDevice& device, const EngineConfig& config, BlendableEffectRegistry* registry)
     {
         m_device = &device;
         m_screenWidth = static_cast<int>(config.Window.Width);
         m_screenHeight = static_cast<int>(config.Window.Height);
         m_context = std::make_unique<RenderServices>();
-        if (auto result = m_context->Initialise(device, config); !result)
+        if (auto result = m_context->Initialise(device, config, registry); !result)
         {
             WAYFINDER_WARN(LogRenderer, "Renderer: Failed to initialise RenderServices — {}", result.error().GetMessage());
             return std::unexpected(result.error());
@@ -92,15 +60,6 @@ namespace Wayfinder
 
         m_isInitialised = true;
 
-        {
-            auto pending = std::move(m_pendingPasses);
-            m_pendingPasses.clear();
-            for (auto& p : pending)
-            {
-                m_renderPipeline->RegisterPass(p.Phase, p.Order, std::move(p.Pass));
-            }
-        }
-
         WAYFINDER_INFO(LogRenderer, "Renderer initialised ({}x{}, backend: {})", m_screenWidth, m_screenHeight, device.GetDeviceInfo().BackendName);
 
         return {};
@@ -108,8 +67,6 @@ namespace Wayfinder
 
     void Renderer::Shutdown()
     {
-        m_pendingPasses.clear();
-
         m_renderPipeline->Shutdown();
 
         if (m_context)
@@ -118,7 +75,7 @@ namespace Wayfinder
             m_context.reset();
         }
 
-        m_renderPipeline = std::make_unique<FrameComposer>();
+        m_renderPipeline = std::make_unique<RenderOrchestrator>();
         m_renderResources = std::make_unique<RenderResourceCache>();
         if (m_assetService)
         {
@@ -145,24 +102,15 @@ namespace Wayfinder
         }
     }
 
-    RenderFeatureContext Renderer::MakeFeatureContext()
-    {
-        return RenderFeatureContext{.Context = *m_context};
-    }
-
     void Renderer::AddPass(const RenderPhase phase, const int32_t order, std::unique_ptr<RenderFeature> pass)
     {
         if (!pass)
         {
             return;
         }
-        if (m_isInitialised && m_context && m_renderPipeline)
+        if (m_renderPipeline)
         {
             m_renderPipeline->RegisterPass(phase, order, std::move(pass));
-        }
-        else
-        {
-            m_pendingPasses.push_back(PendingPassRegistration{.Phase = phase, .Order = order, .Pass = std::move(pass)});
         }
     }
 
@@ -210,22 +158,6 @@ namespace Wayfinder
             const Extent2D swapchainDimensions = m_device->GetSwapchainDimensions();
             const uint32_t swapW = swapchainDimensions.width;
             const uint32_t swapH = swapchainDimensions.height;
-
-            // Derive clear colour from the primary view — ResolvePreparedPrimaryView requires Prepare() which hasn't run yet.
-            const auto primaryIt = std::ranges::find_if(preparedFrame.Views, [](const RenderView& v)
-            {
-                return v.IsPrimary;
-            });
-            const ClearValue initialClear = (primaryIt != preparedFrame.Views.end()) ? ClearValue::FromColour(primaryIt->ClearColour) : ClearValue::FromColour(Colour::Black());
-
-            // Define swapchain contents before any graph pass. Do not gate on GetSwapchainDimensions(): some backends can
-            // report 0x0 briefly while a swapchain texture is still acquired; skipping the clear then leaves LoadOp::Load
-            // in Composition sampling garbage from SceneColour against an undefined backbuffer.
-            if (!ClearSwapchainToColour(*m_device, initialClear))
-            {
-                m_device->EndFrame();
-                return;
-            }
 
             if (swapW != 0 && swapH != 0 && m_renderPipeline->Prepare(preparedFrame, swapW, swapH))
             {

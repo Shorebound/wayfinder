@@ -7,7 +7,7 @@
 #include "rendering/graph/RenderFrameUtils.h"
 #include "rendering/graph/RenderGraph.h"
 #include "rendering/graph/SortKey.h"
-#include "rendering/pipeline/FrameComposer.h"
+#include "rendering/pipeline/RenderOrchestrator.h"
 #include "rendering/pipeline/RenderServices.h"
 #include "rendering/pipeline/SceneRenderExtractor.h"
 #include "rendering/resources/RenderResourceCache.h"
@@ -92,7 +92,7 @@ namespace Wayfinder::Tests
         // NOLINTNEXTLINE(misc-const-correctness)
         Wayfinder::RenderResourceCache resources;
         auto device = Wayfinder::RenderDevice::Create(Wayfinder::RenderBackend::Null);
-        const Wayfinder::FrameComposer pipeline;
+        const Wayfinder::RenderOrchestrator pipeline;
 
         // Should not crash â€” Prepare returns false for empty frames
         pipeline.Prepare(frame, 1280, 720);
@@ -246,7 +246,7 @@ namespace Wayfinder::Tests
         CHECK((mainPass->Meshes[0].SortKey >> 62) == static_cast<uint64_t>(Wayfinder::SortLayer::Transparent));
         CHECK((mainPass->Meshes[1].SortKey >> 62) == static_cast<uint64_t>(Wayfinder::SortLayer::Transparent));
 
-        const Wayfinder::FrameComposer pipeline;
+        const Wayfinder::RenderOrchestrator pipeline;
         REQUIRE(pipeline.Prepare(frame, 1280, 720));
 
         mainPass = frame.FindLayer(Wayfinder::FrameLayerIds::MainScene);
@@ -274,7 +274,7 @@ namespace Wayfinder::Tests
         CHECK(resolved.Geometry.Type == Wayfinder::RenderGeometryType::Box);
     }
 
-    TEST_CASE("FrameComposer::Initialise registers built-in programs")
+    TEST_CASE("RenderOrchestrator::Initialise registers built-in programs")
     {
         auto device = Wayfinder::RenderDevice::Create(Wayfinder::RenderBackend::Null);
         REQUIRE(device);
@@ -286,7 +286,7 @@ namespace Wayfinder::Tests
         Wayfinder::RenderServices context;
         REQUIRE(context.Initialise(*device, config));
 
-        Wayfinder::FrameComposer pipeline;
+        Wayfinder::RenderOrchestrator pipeline;
         // Initialise must not crash â€” it registers programs via the context.
         // With NullDevice, pipeline creation fails (no shader files on disk),
         // so Find returns nullptr. The contract being tested is that Initialise
@@ -297,7 +297,7 @@ namespace Wayfinder::Tests
         context.Shutdown();
     }
 
-    TEST_CASE("FrameComposer::Shutdown is safe after Initialise")
+    TEST_CASE("RenderOrchestrator::Shutdown is safe after Initialise")
     {
         auto device = Wayfinder::RenderDevice::Create(Wayfinder::RenderBackend::Null);
         REQUIRE(device);
@@ -309,7 +309,7 @@ namespace Wayfinder::Tests
         Wayfinder::RenderServices context;
         REQUIRE(context.Initialise(*device, config));
 
-        Wayfinder::FrameComposer pipeline;
+        Wayfinder::RenderOrchestrator pipeline;
         pipeline.Initialise(context);
         pipeline.Shutdown();
         pipeline.Shutdown(); // Double shutdown is safe
@@ -317,7 +317,7 @@ namespace Wayfinder::Tests
         context.Shutdown();
     }
 
-    TEST_CASE("FrameComposer orders RegisterPass by phase then order then registration sequence")
+    TEST_CASE("RenderOrchestrator orders RegisterPass by phase then order then registration sequence")
     {
         auto device = Wayfinder::RenderDevice::Create(Wayfinder::RenderBackend::Null);
         REQUIRE(device);
@@ -330,7 +330,7 @@ namespace Wayfinder::Tests
         REQUIRE(context.Initialise(*device, config));
 
         std::vector<std::string> order;
-        Wayfinder::FrameComposer pipeline;
+        Wayfinder::RenderOrchestrator pipeline;
         pipeline.Initialise(context);
 
         pipeline.RegisterPass(Wayfinder::RenderPhase::PostProcess, 100, std::make_unique<OrderPass>("p100", &order));
@@ -380,7 +380,7 @@ namespace Wayfinder::Tests
         context.Shutdown();
     }
 
-    TEST_CASE("FrameComposer ties same phase and order by registration sequence")
+    TEST_CASE("RenderOrchestrator ties same phase and order by registration sequence")
     {
         auto device = Wayfinder::RenderDevice::Create(Wayfinder::RenderBackend::Null);
         REQUIRE(device);
@@ -393,7 +393,7 @@ namespace Wayfinder::Tests
         REQUIRE(context.Initialise(*device, config));
 
         std::vector<std::string> order;
-        Wayfinder::FrameComposer pipeline;
+        Wayfinder::RenderOrchestrator pipeline;
         pipeline.Initialise(context);
 
         pipeline.RegisterPass(Wayfinder::RenderPhase::PostProcess, 0, std::make_unique<OrderPass>("first", &order));

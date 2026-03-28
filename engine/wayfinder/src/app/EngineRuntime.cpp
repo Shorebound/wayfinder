@@ -89,7 +89,7 @@ namespace Wayfinder
         m_renderer = std::make_unique<Renderer>();
         m_extractor = std::make_unique<SceneRenderExtractor>();
 
-        if (auto result = m_renderer->Initialise(*m_device, m_config); !result)
+        if (auto result = m_renderer->Initialise(*m_device, m_config, &m_blendableEffectRegistry); !result)
         {
             WAYFINDER_ERROR(LogEngine, "EngineRuntime: Failed to initialise Renderer — {}", result.error().GetMessage());
             Shutdown();
@@ -156,7 +156,7 @@ namespace Wayfinder
     {
         if (m_renderer && m_extractor)
         {
-            m_renderer->Render(m_extractor->Extract(scene));
+            m_renderer->Render(m_extractor->Extract(scene, &m_blendableEffectRegistry));
         }
     }
 

@@ -1,6 +1,6 @@
-#include "RenderPipeline.h"
+#include "RenderOrchestrator.h"
 
-#include "ForwardOpaqueShaderPrograms.h"
+#include "BuiltInShaderPrograms.h"
 #include "RenderServices.h"
 #include "rendering/graph/RenderGraph.h"
 #include "rendering/passes/CompositionPass.h"
@@ -16,7 +16,7 @@
 
 namespace Wayfinder
 {
-    void RenderPipeline::SortPassList(std::vector<PassSlot>& slots)
+    void RenderOrchestrator::SortPassList(std::vector<PassSlot>& slots)
     {
         std::ranges::sort(slots, [](const PassSlot& a, const PassSlot& b)
         {
@@ -32,15 +32,22 @@ namespace Wayfinder
         });
     }
 
-    void RenderPipeline::RegisterPass(const RenderPhase phase, const int32_t order, std::unique_ptr<RenderFeature> pass)
+    void RenderOrchestrator::RegisterPass(const RenderPhase phase, const int32_t order, std::unique_ptr<RenderFeature> pass)
     {
-        if (!m_context)
-        {
-            WAYFINDER_ERROR(LogRenderer, "RegisterPass: pipeline has no context — call Initialise first");
-            return;
-        }
         if (!pass)
         {
+            return;
+        }
+
+        if (!m_context)
+        {
+            // Not yet initialised — defer until Initialise flushes.
+            m_pendingPasses.push_back(PassSlot{
+                .Phase = phase,
+                .Order = order,
+                .InsertSequence = m_nextPassInsertSequence++,
+                .Pass = std::move(pass),
+            });
             return;
         }
 
@@ -66,7 +73,7 @@ namespace Wayfinder
         SortPassList(m_passes);
     }
 
-    void RenderPipeline::Initialise(RenderServices& services)
+    void RenderOrchestrator::Initialise(RenderServices& services)
     {
         if (m_initialised)
         {
@@ -77,16 +84,27 @@ namespace Wayfinder
 
         services.RegisterEngineBlendableEffects();
 
-        RegisterForwardOpaquePrograms(services.GetPrograms());
+        RegisterBuiltInShaderPrograms(services.GetPrograms());
 
         RegisterPass(RenderPhase::Opaque, 0, std::make_unique<SceneOpaquePass>());
         RegisterPass(RenderPhase::Overlay, 0, std::make_unique<DebugPass>());
         RegisterPass(RenderPhase::Present, 0, std::make_unique<CompositionPass>());
 
+        // Flush passes that were registered before Initialise (deferred).
+        if (!m_pendingPasses.empty())
+        {
+            auto deferred = std::move(m_pendingPasses);
+            m_pendingPasses.clear();
+            for (auto& slot : deferred)
+            {
+                RegisterPass(slot.Phase, slot.Order, std::move(slot.Pass));
+            }
+        }
+
         m_initialised = true;
     }
 
-    void RenderPipeline::Shutdown()
+    void RenderOrchestrator::Shutdown()
     {
         if (m_context)
         {
@@ -100,22 +118,23 @@ namespace Wayfinder
             }
         }
         m_passes.clear();
+        m_pendingPasses.clear();
         m_nextPassInsertSequence = 0;
         m_context = nullptr;
         m_initialised = false;
     }
 
-    bool RenderPipeline::Prepare(RenderFrame& frame, const uint32_t swapchainWidth, const uint32_t swapchainHeight) const
+    bool RenderOrchestrator::Prepare(RenderFrame& frame, const uint32_t swapchainWidth, const uint32_t swapchainHeight) const
     {
         if (frame.Views.empty())
         {
-            WAYFINDER_WARN(LogRenderer, "RenderPipeline: frame '{}' has no views — skipped", frame.SceneName);
+            WAYFINDER_WARN(LogRenderer, "RenderOrchestrator: frame '{}' has no views — skipped", frame.SceneName);
             return false;
         }
 
         if (frame.Layers.empty())
         {
-            WAYFINDER_WARN(LogRenderer, "RenderPipeline: frame '{}' has no layers — skipped", frame.SceneName);
+            WAYFINDER_WARN(LogRenderer, "RenderOrchestrator: frame '{}' has no layers — skipped", frame.SceneName);
             return false;
         }
 
@@ -150,7 +169,7 @@ namespace Wayfinder
 
             if (layer.ViewIndex >= frame.Views.size())
             {
-                WAYFINDER_WARN(LogRenderer, "RenderPipeline: layer '{}' references invalid view index {}", layer.Id, layer.ViewIndex);
+                WAYFINDER_WARN(LogRenderer, "RenderOrchestrator: layer '{}' references invalid view index {}", layer.Id, layer.ViewIndex);
                 layer.Enabled = false;
                 continue;
             }
@@ -178,7 +197,7 @@ namespace Wayfinder
         return true;
     }
 
-    void RenderPipeline::BuildGraph(RenderGraph& graph, const RenderPipelineFrameParams& params) const
+    void RenderOrchestrator::BuildGraph(RenderGraph& graph, const FrameRenderParams& params) const
     {
         for (const auto& slot : m_passes)
         {
