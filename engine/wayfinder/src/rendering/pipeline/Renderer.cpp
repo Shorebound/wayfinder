@@ -13,6 +13,8 @@
 #include "core/Types.h"
 #include "rendering/RenderTypes.h"
 
+#include <algorithm>
+
 namespace Wayfinder
 {
     namespace
@@ -24,7 +26,7 @@ namespace Wayfinder
          * start undefined; without an initial clear, any later pass that fails to begin (or skips its draw) can leave
          * undefined memory visible — static noise and per-frame "shimmer" as different garbage is presented each frame.
          */
-        void ClearSwapchainToColour(RenderDevice& device, const ClearValue& clear)
+        bool ClearSwapchainToColour(RenderDevice& device, const ClearValue& clear)
         {
             RenderPassDescriptor rp{};
             rp.debugName = "SwapchainInitialClear";
@@ -38,9 +40,10 @@ namespace Wayfinder
             if (!device.BeginRenderPass(rp))
             {
                 WAYFINDER_ERROR(LogRenderer, "ClearSwapchainToColour: BeginRenderPass failed — swapchain may show garbage");
-                return;
+                return false;
             }
             device.EndRenderPass();
+            return true;
         }
     } // namespace
 
@@ -208,13 +211,21 @@ namespace Wayfinder
             const uint32_t swapW = swapchainDimensions.width;
             const uint32_t swapH = swapchainDimensions.height;
 
-            // Derive clear colour directly — ResolvePreparedPrimaryView requires Prepare() which hasn't run yet.
-            const ClearValue initialClear = (!preparedFrame.Views.empty()) ? ClearValue::FromColour(preparedFrame.Views.front().ClearColour) : ClearValue::FromColour(Colour::Black());
+            // Derive clear colour from the primary view — ResolvePreparedPrimaryView requires Prepare() which hasn't run yet.
+            const auto primaryIt = std::ranges::find_if(preparedFrame.Views, [](const RenderView& v)
+            {
+                return v.IsPrimary;
+            });
+            const ClearValue initialClear = (primaryIt != preparedFrame.Views.end()) ? ClearValue::FromColour(primaryIt->ClearColour) : ClearValue::FromColour(Colour::Black());
 
             // Define swapchain contents before any graph pass. Do not gate on GetSwapchainDimensions(): some backends can
             // report 0x0 briefly while a swapchain texture is still acquired; skipping the clear then leaves LoadOp::Load
             // in Composition sampling garbage from SceneColour against an undefined backbuffer.
-            ClearSwapchainToColour(*m_device, initialClear);
+            if (!ClearSwapchainToColour(*m_device, initialClear))
+            {
+                m_device->EndFrame();
+                return;
+            }
 
             if (swapW != 0 && swapH != 0 && m_renderPipeline->Prepare(preparedFrame, swapW, swapH))
             {

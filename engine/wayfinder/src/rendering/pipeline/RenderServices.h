@@ -124,6 +124,7 @@ namespace Wayfinder
         /** @brief Returns the built-in primitive mesh table (indexed by `BuiltInMeshId`). */
         const BuiltInMeshTable& GetBuiltInMeshes() const
         {
+            assert(m_device && "RenderServices::GetBuiltInMeshes called before Initialise");
             return m_builtInMeshPtrs;
         }
 

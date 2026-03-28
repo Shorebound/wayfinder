@@ -23,8 +23,8 @@ namespace Wayfinder
 
     inline constexpr size_t BUILT_IN_MESH_COUNT = static_cast<size_t>(BuiltInMeshId::COUNT);
 
-    /** @brief Fixed-size array mapping `BuiltInMeshId` → `Mesh*`. */
-    using BuiltInMeshTable = std::array<Mesh*, BUILT_IN_MESH_COUNT>;
+    /** @brief Fixed-size array mapping `BuiltInMeshId` → `const Mesh*`. */
+    using BuiltInMeshTable = std::array<const Mesh*, BUILT_IN_MESH_COUNT>;
 
     /// Per-frame inputs passed to BuildGraph and to each `RenderFeature::AddPasses`, bundled into a struct to
     /// keep the signature clean.

@@ -15,6 +15,7 @@
 #include <charconv>
 #include <format>
 #include <limits>
+#include <ranges>
 #include <sstream>
 #include <string>
 #include <string_view>
@@ -540,7 +541,8 @@ namespace Wayfinder
 
         bool ValidateRenderable(const nlohmann::json& data, std::string& error)
         {
-            return ValidateOptionalBool(data, "visible", error) && ValidateOptionalNonEmptyString(data, "layer", error) && ValidateOptionalInteger(data, "sort_priority", error);
+            return ValidateOptionalBool(data, "visible", error) && ValidateOptionalNonEmptyString(data, "group", error) && ValidateOptionalNonEmptyString(data, "layer", error) &&
+                   ValidateOptionalInteger(data, "sort_priority", error);
         }
 
         bool ValidateEffectParameter(std::string_view key, const nlohmann::json& node, std::string& error)
@@ -667,7 +669,7 @@ namespace Wayfinder
                     if (effectRegistry == nullptr)
                     {
                         // No active registry — fall back to the built-in effect name list for validation.
-                        const bool knownBuiltin = std::any_of(Wayfinder::ENGINE_DEFAULT_BLENDABLE_EFFECT_NAMES.begin(), Wayfinder::ENGINE_DEFAULT_BLENDABLE_EFFECT_NAMES.end(), [&normalised](const std::string_view name)
+                        const bool knownBuiltin = std::ranges::any_of(Wayfinder::ENGINE_DEFAULT_BLENDABLE_EFFECT_NAMES, [&normalised](const std::string_view name)
                         {
                             return name == normalised;
                         });
@@ -686,9 +688,9 @@ namespace Wayfinder
                             return false;
                         }
                         const Wayfinder::BlendableEffectDesc* effectDesc = effectRegistry->Find(*effectIdOpt);
-                        if (effectDesc == nullptr || effectDesc->Deserialise == nullptr)
+                        if (effectDesc == nullptr || effectDesc->Deserialise == nullptr || effectDesc->CreateIdentity == nullptr)
                         {
-                            error = "blendable effect '" + effectTypeStr + "' cannot be loaded (missing Deserialise callback)";
+                            error = "blendable effect '" + effectTypeStr + "' cannot be loaded (missing Deserialise or CreateIdentity callback)";
                             return false;
                         }
                     }
@@ -974,7 +976,7 @@ namespace Wayfinder
         {
             Wayfinder::BlendableEffectVolumeComponent volume;
             volume.Shape = ReadVolumeShape(data, "shape", volume.Shape);
-            volume.Priority = static_cast<int>(data.value("priority", static_cast<int64_t>(volume.Priority)));
+            volume.Priority = std::clamp(data.value("priority", static_cast<int64_t>(volume.Priority)), static_cast<int64_t>(std::numeric_limits<int>::min()), static_cast<int64_t>(std::numeric_limits<int>::max()));
             volume.BlendDistance = ReadFloat(data, "blend_distance", volume.BlendDistance);
             volume.Dimensions = ReadVector3(data, "dimensions", volume.Dimensions);
             volume.Radius = ReadFloat(data, "radius", volume.Radius);
@@ -988,7 +990,7 @@ namespace Wayfinder
                     {
                         if (auto effect = ReadEffect(i))
                         {
-                            volume.Effects.push_back(std::move(*effect));
+                            volume.Effects.push_back(*effect);
                         }
                     }
                 }
@@ -1126,7 +1128,10 @@ namespace Wayfinder
             const auto& renderable = entity.GetComponent<Wayfinder::RenderableComponent>();
             nlohmann::json componentTable;
             componentTable["visible"] = renderable.Visible;
-            componentTable["group"] = renderable.Group.GetString();
+            if (!renderable.Group.IsEmpty())
+            {
+                componentTable["group"] = renderable.Group.GetString();
+            }
             componentTable["sort_priority"] = static_cast<int64_t>(renderable.SortPriority);
             componentTables["renderable"] = std::move(componentTable);
         }

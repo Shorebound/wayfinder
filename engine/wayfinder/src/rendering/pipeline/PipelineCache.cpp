@@ -134,6 +134,7 @@ namespace Wayfinder
         pipeDesc.depthTestEnabled = desc.depthTestEnabled;
         pipeDesc.depthWriteEnabled = desc.depthWriteEnabled;
         pipeDesc.numColourTargets = desc.numColourTargets;
+        std::copy_n(desc.colourTargetFormats.begin(), desc.numColourTargets, pipeDesc.colourTargetFormats.begin());
         std::copy_n(desc.colourTargetBlends.begin(), desc.numColourTargets, pipeDesc.colourTargetBlends.begin());
 
         return GetOrCreate(pipeDesc);

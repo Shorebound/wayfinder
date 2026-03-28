@@ -36,7 +36,7 @@ namespace Wayfinder
     {
         if (!m_context)
         {
-            WAYFINDER_ERROR(LogRenderer, "RegisterPass: pipeline has no context â€” call Initialise first");
+            WAYFINDER_ERROR(LogRenderer, "RegisterPass: pipeline has no context — call Initialise first");
             return;
         }
         if (!pass)
@@ -58,7 +58,7 @@ namespace Wayfinder
         {
             if (slot.Pass && !slot.Pass->IsEnabled())
             {
-                WAYFINDER_WARN(LogRenderer, "RegisterPass: Present phase pass '{}' is disabled â€” graph may lack a swapchain writer", slot.Pass->GetName());
+                WAYFINDER_WARN(LogRenderer, "RegisterPass: Present phase pass '{}' is disabled — graph may lack a swapchain writer", slot.Pass->GetName());
             }
         }
 
@@ -109,13 +109,13 @@ namespace Wayfinder
     {
         if (frame.Views.empty())
         {
-            WAYFINDER_WARN(LogRenderer, "FrameComposer: frame '{}' has no views â€” skipped", frame.SceneName);
+            WAYFINDER_WARN(LogRenderer, "FrameComposer: frame '{}' has no views — skipped", frame.SceneName);
             return false;
         }
 
         if (frame.Layers.empty())
         {
-            WAYFINDER_WARN(LogRenderer, "FrameComposer: frame '{}' has no layers â€” skipped", frame.SceneName);
+            WAYFINDER_WARN(LogRenderer, "FrameComposer: frame '{}' has no layers — skipped", frame.SceneName);
             return false;
         }
 

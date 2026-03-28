@@ -6,6 +6,7 @@
 #include <string>
 #include <string_view>
 #include <unordered_map>
+#include <utility>
 #include <vector>
 
 #include "RenderIntent.h"
@@ -95,11 +96,15 @@ namespace Wayfinder
         uint64_t StableKey = 0;
     };
 
-    // Render-state overrides â€” rasterizer configuration, separate from material surface params.
+    /**
+     * @brief Render-state overrides — rasterizer configuration, separate from material surface params.
+     *
+     * @todo Future: blend mode, double-sided, stencil ref, etc.
+     */
     struct RenderStateOverrides
     {
+        /** @brief Optional fill-mode override (solid, wireframe, or both). */
         std::optional<RenderFillMode> FillMode;
-        // Future: blend mode, double-sided, stencil ref, etc.
     };
 
     /// Maps named texture slots (e.g. "diffuse") to texture asset IDs.

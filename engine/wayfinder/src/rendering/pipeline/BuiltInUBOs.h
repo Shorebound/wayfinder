@@ -52,6 +52,8 @@ namespace Wayfinder
         Float4 Gain{};
         Float4 VignetteAberrationPad{}; ///< x = vignette strength, y = chromatic aberration intensity
     };
+    static_assert(std::is_standard_layout_v<CompositionUBO>, "CompositionUBO must be standard layout for GPU upload");
+    static_assert(std::is_trivially_copyable_v<CompositionUBO>, "CompositionUBO must be trivially copyable for GPU upload");
     static_assert(sizeof(CompositionUBO) == 80, "CompositionUBO must match composition.frag cbuffer");
 
     /**

@@ -19,7 +19,10 @@ namespace Wayfinder
         }
 
         void OnAttach(const RenderFeatureContext& context) override;
-        void OnDetach(const RenderFeatureContext& /*context*/) override {}
+        void OnDetach(const RenderFeatureContext& /*context*/) override
+        {
+            m_context = nullptr;
+        }
 
         void AddPasses(RenderGraph& graph, const FrameRenderParams& params) override;
 
