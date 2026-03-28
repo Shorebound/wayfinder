@@ -10,7 +10,7 @@
 #include "rendering/resources/TextureManager.h"
 #include "rendering/resources/TransientBufferAllocator.h"
 #include "rendering/resources/TransientResourcePool.h"
-#include "volumes/BlendableEffectRegistry.h" // EngineEffectIds
+#include "volumes/BlendableEffectRegistry.h"
 
 #include <cassert>
 
@@ -116,9 +116,14 @@ namespace Wayfinder
             return m_nearestSampler;
         }
 
-        const EngineEffectIds& GetEngineEffectIds() const
+        /** @brief Registry pointer from engine initialisation; may be null in headless tests. */
+        BlendableEffectRegistry* GetBlendableEffectRegistry()
         {
-            return m_engineEffectIds;
+            return m_blendableEffectRegistry;
+        }
+        const BlendableEffectRegistry* GetBlendableEffectRegistry() const
+        {
+            return m_blendableEffectRegistry;
         }
 
         /** @brief Returns the built-in primitive mesh table (indexed by `BuiltInMeshId`). */
@@ -127,9 +132,6 @@ namespace Wayfinder
             assert(m_device && "RenderServices::GetBuiltInMeshes called before Initialise");
             return m_builtInMeshPtrs;
         }
-
-        /// Registers built-in blendable effect types (colour grading, vignette, CA). Call once after Initialise.
-        void RegisterEngineBlendableEffects();
 
         /// Seals the active BlendableEffectRegistry, preventing further registrations.
         /// Call after all external (game/editor) effect types have been registered.
@@ -151,8 +153,6 @@ namespace Wayfinder
         Mesh m_primitiveMesh;
         Mesh m_texturedPrimitiveMesh;
         BuiltInMeshTable m_builtInMeshPtrs{};
-
-        EngineEffectIds m_engineEffectIds{};
     };
 
 } // namespace Wayfinder

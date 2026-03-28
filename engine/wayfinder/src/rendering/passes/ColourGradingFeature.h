@@ -1,24 +1,24 @@
 #pragma once
 
 #include "rendering/graph/RenderFeature.h"
+#include "volumes/BlendableEffectRegistry.h"
 
 namespace Wayfinder
 {
     class RenderServices;
 
-    /// Fullscreen pass: samples via `ResolvePostProcessInput` (latest `PostProcessColour`, else `SceneColour`); writes the swapchain (no colour grading).
-    class CompositionPass final : public RenderFeature
+    /**
+     * @brief Tonemapping and colour grading (lift/gamma/gain, contrast, saturation). Self-registers blendable type and shader in OnAttach.
+     */
+    class ColourGradingFeature final : public RenderFeature
     {
     public:
         std::string_view GetName() const override
         {
-            return "Composition";
+            return "ColourGrading";
         }
 
-        RenderCapabilityMask GetCapabilities() const override
-        {
-            return RenderCapabilities::RASTER | RenderCapabilities::FULLSCREEN_COMPOSITE;
-        }
+        RenderCapabilityMask GetCapabilities() const override;
 
         void OnAttach(const RenderFeatureContext& context) override;
         void OnDetach(const RenderFeatureContext& context) override;
@@ -26,5 +26,7 @@ namespace Wayfinder
 
     private:
         RenderServices* m_context = nullptr;
+        BlendableEffectId m_effectId = INVALID_BLENDABLE_EFFECT_ID;
     };
+
 } // namespace Wayfinder

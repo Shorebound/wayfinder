@@ -3,7 +3,6 @@
 #include "volumes/BlendableEffectTraits.h"
 #include "wayfinder_exports.h"
 
-#include <array>
 #include <concepts>
 #include <cstddef>
 #include <cstdint>
@@ -25,33 +24,6 @@ namespace Wayfinder
     using BlendableEffectId = uint32_t;
 
     inline constexpr BlendableEffectId INVALID_BLENDABLE_EFFECT_ID = static_cast<BlendableEffectId>(-1);
-
-    /**
-     * @brief Canonical type names for engine-registered blendable effects (single source of truth for registration and validation).
-     */
-    namespace EngineBlendableEffectNames
-    {
-        inline constexpr std::string_view ColourGrading = "colour_grading";
-        inline constexpr std::string_view Vignette = "vignette";
-        inline constexpr std::string_view ChromaticAberration = "chromatic_aberration";
-    }
-
-    /** @brief Fallback list matching `EngineBlendableEffectNames` (validation when no active registry). */
-    inline constexpr std::array<std::string_view, 3> ENGINE_DEFAULT_BLENDABLE_EFFECT_NAMES = {{
-        EngineBlendableEffectNames::ColourGrading,
-        EngineBlendableEffectNames::Vignette,
-        EngineBlendableEffectNames::ChromaticAberration,
-    }};
-
-    /**
-     * @brief Engine-registered effect ids for fast lookup (no string table at runtime).
-     */
-    struct EngineEffectIds
-    {
-        BlendableEffectId ColourGrading = INVALID_BLENDABLE_EFFECT_ID;
-        BlendableEffectId Vignette = INVALID_BLENDABLE_EFFECT_ID;
-        BlendableEffectId ChromaticAberration = INVALID_BLENDABLE_EFFECT_ID;
-    };
 
     /**
      * @brief Type-erased descriptor for a blendable effect type.

@@ -31,10 +31,10 @@ namespace Wayfinder
         Opaque = 1,      // Main scene geometry (SceneOpaquePass)
         PostOpaque = 2,  // SSAO, SSR, decals, light clustering
         Transparent = 3, // Alpha-blended geometry, particles, volumetrics
-        PostProcess = 4, // Bloom, DoF, motion blur, film grain, game effects
-        Composite = 5,   // FXAA/TAA, optional present-source copy
+        PostProcess = 4, // Per-pixel and spatial effects: chromatic aberration, vignette, bloom, DOF
+        Composite = 5,   // Colour-space transforms: tonemapping, colour grading
         Overlay = 6,     // Debug, editor gizmos, UI
-        Present = 7,     // Tonemapping + swapchain blit (exactly one pass)
+        Present = 7,     // Pure swapchain blit (exactly one pass)
     };
 
     /** @brief Validates, sorts, and builds the render graph for a frame. */

@@ -1,12 +1,9 @@
 #include "CompositionPass.h"
 
-#include "rendering/backend/RenderDevice.h"
 #include "rendering/backend/VertexFormats.h"
 #include "rendering/graph/RenderCapabilities.h"
 #include "rendering/graph/RenderGraph.h"
-#include "rendering/materials/RenderingEffects.h"
 #include "rendering/materials/ShaderProgram.h"
-#include "rendering/pipeline/BuiltInUBOs.h"
 #include "rendering/pipeline/RenderServices.h"
 
 #include "core/Log.h"
@@ -20,11 +17,11 @@ namespace Wayfinder
         auto& registry = context.Context.GetPrograms();
 
         ShaderProgramDesc desc;
-        desc.Name = "composition";
+        desc.Name = "composition_blit";
         desc.VertexShaderName = "fullscreen";
-        desc.FragmentShaderName = "composition";
+        desc.FragmentShaderName = "fullscreen_copy";
         desc.VertexResources = {};
-        desc.FragmentResources = {.numUniformBuffers = 1, .numSamplers = 1};
+        desc.FragmentResources = {.numUniformBuffers = 0, .numSamplers = 1};
         desc.VertexLayout = VertexLayouts::Empty;
         desc.Cull = CullMode::None;
         desc.DepthTest = false;
@@ -35,7 +32,7 @@ namespace Wayfinder
 
         if (!registry.Register(desc))
         {
-            WAYFINDER_ERROR(LogRenderer, "CompositionPass: failed to register 'composition' shader program — check assets/shaders and working directory; "
+            WAYFINDER_ERROR(LogRenderer, "CompositionPass: failed to register 'composition_blit' shader program — check assets/shaders and working directory; "
                                          "composition draws will be skipped");
         }
     }
@@ -60,15 +57,14 @@ namespace Wayfinder
             builder.DeclarePassCapabilities(RenderCapabilities::RASTER | RenderCapabilities::FULLSCREEN_COMPOSITE);
             builder.ReadTexture(colourHandle);
 
-            // Derive the clear colour from the primary view (falls back to black).
             const Colour clearColour = (params.PrimaryView.Valid && !params.Frame.Views.empty()) ? params.Frame.Views.front().ClearColour : Colour::Black();
             builder.SetSwapchainOutput(LoadOp::Clear, ClearValue::FromColour(clearColour));
 
-            return [this, colourHandle, &params](RenderDevice& device, const RenderGraphResources& resources)
+            return [this, colourHandle](RenderDevice& device, const RenderGraphResources& resources)
             {
                 auto sceneColourTex = resources.GetTexture(colourHandle);
 
-                const ShaderProgram* compProgram = m_context->GetPrograms().Find("composition");
+                const ShaderProgram* compProgram = m_context->GetPrograms().Find("composition_blit");
                 const auto nearestSampler = m_context->GetNearestSampler();
                 if (!compProgram || !compProgram->Pipeline.IsValid() || !sceneColourTex || !nearestSampler)
                 {
@@ -76,22 +72,8 @@ namespace Wayfinder
                     return;
                 }
 
-                ColourGradingParams grading{};
-                VignetteParams vignette{};
-                ChromaticAberrationParams chromaticAberration{};
-                if (params.PrimaryView.Valid && !params.Frame.Views.empty())
-                {
-                    const BlendableEffectStack& stack = params.Frame.Views.front().PostProcess;
-                    const EngineEffectIds& ids = m_context->GetEngineEffectIds();
-                    grading = ResolveColourGradingForView(stack, ids.ColourGrading);
-                    vignette = ResolveVignetteForView(stack, ids.Vignette);
-                    chromaticAberration = ResolveChromaticAberrationForView(stack, ids.ChromaticAberration);
-                }
-                const CompositionUBO ubo = MakeCompositionUBO(grading, vignette, chromaticAberration);
-
                 device.BindPipeline(compProgram->Pipeline);
                 device.BindFragmentSampler(0, sceneColourTex, nearestSampler);
-                device.PushFragmentUniform(0, &ubo, sizeof(CompositionUBO));
                 device.DrawPrimitives(3);
             };
         });

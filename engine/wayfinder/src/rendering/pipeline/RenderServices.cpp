@@ -3,7 +3,6 @@
 #include "app/EngineConfig.h"
 #include "core/Log.h"
 #include "rendering/backend/RenderDevice.h"
-#include "rendering/materials/RenderingEffects.h"
 
 namespace Wayfinder
 {
@@ -52,29 +51,6 @@ namespace Wayfinder
         m_builtInMeshPtrs[static_cast<size_t>(BuiltInMeshId::PrimitiveTextured)] = &m_texturedPrimitiveMesh;
 
         return {};
-    }
-
-    void RenderServices::RegisterEngineBlendableEffects()
-    {
-        if (!m_blendableEffectRegistry)
-        {
-            WAYFINDER_WARN(LogRenderer, "RegisterEngineBlendableEffects: no BlendableEffectRegistry — skipping");
-            return;
-        }
-        auto* reg = m_blendableEffectRegistry;
-        m_engineEffectIds.ColourGrading = reg->Register<ColourGradingParams>(EngineBlendableEffectNames::ColourGrading);
-        m_engineEffectIds.Vignette = reg->Register<VignetteParams>(EngineBlendableEffectNames::Vignette);
-        m_engineEffectIds.ChromaticAberration = reg->Register<ChromaticAberrationParams>(EngineBlendableEffectNames::ChromaticAberration);
-
-        if (m_engineEffectIds.ColourGrading == INVALID_BLENDABLE_EFFECT_ID || m_engineEffectIds.Vignette == INVALID_BLENDABLE_EFFECT_ID || m_engineEffectIds.ChromaticAberration == INVALID_BLENDABLE_EFFECT_ID)
-        {
-            WAYFINDER_ERROR(LogRenderer,
-                "RegisterEngineBlendableEffects: one or more engine blendable effect registrations failed "
-                "(ColourGrading={}, Vignette={}, ChromaticAberration={}) — registry not sealed",
-                m_engineEffectIds.ColourGrading, m_engineEffectIds.Vignette, m_engineEffectIds.ChromaticAberration);
-            m_engineEffectIds = {};
-            return;
-        }
     }
 
     void RenderServices::SealBlendableEffects()

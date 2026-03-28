@@ -208,15 +208,8 @@ namespace Wayfinder
         {
             return registry->FindIdByName(normalisedLower).has_value();
         }
-        // No registry provided — fall back to built-in effect names.
-        for (const std::string_view engineName : ENGINE_DEFAULT_BLENDABLE_EFFECT_NAMES)
-        {
-            if (normalisedLower == engineName)
-            {
-                return true;
-            }
-        }
-        return false;
+        // No registry — cannot validate; treat as valid so callers without a registry are not blocked.
+        return true;
     }
 
 } // namespace Wayfinder

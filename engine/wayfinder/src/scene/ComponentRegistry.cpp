@@ -668,16 +668,7 @@ namespace Wayfinder
                     const Wayfinder::BlendableEffectRegistry* effectRegistry = Wayfinder::BlendableEffectRegistry::GetActiveInstance();
                     if (effectRegistry == nullptr)
                     {
-                        // No active registry — fall back to the built-in effect name list for validation.
-                        const bool knownBuiltin = std::ranges::any_of(Wayfinder::ENGINE_DEFAULT_BLENDABLE_EFFECT_NAMES, [&normalised](const std::string_view name)
-                        {
-                            return name == normalised;
-                        });
-                        if (!knownBuiltin)
-                        {
-                            error = "unknown blendable effect type: " + effectTypeStr;
-                            return false;
-                        }
+                        WAYFINDER_WARN(LogScene, "ComponentRegistry: no active BlendableEffectRegistry — skipping blendable effect type name validation");
                     }
                     else
                     {

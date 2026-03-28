@@ -1,8 +1,9 @@
 #include "rendering/backend/RenderDevice.h"
 #include "rendering/graph/RenderGraph.h"
 #include "rendering/materials/RenderingEffects.h"
-#include "rendering/pipeline/BuiltInUBOs.h"
 #include "rendering/resources/TransientResourcePool.h"
+#include "volumes/BlendableEffect.h"
+#include "volumes/BlendableEffectUtils.h"
 
 #include <doctest/doctest.h>
 
@@ -398,20 +399,12 @@ namespace Wayfinder::Tests
         CHECK(executionOrder[2] == "C");
     }
 
-    TEST_CASE("MakeCompositionUBO maps identity post-process params to composition UBO layout")
+    TEST_CASE("ResolveEffect returns identity for empty stack and invalid id")
     {
-        const Wayfinder::ColourGradingParams grading{};
-        const Wayfinder::VignetteParams vignette{};
-        const Wayfinder::ChromaticAberrationParams chromaticAberration{};
-        const Wayfinder::CompositionUBO u = Wayfinder::MakeCompositionUBO(grading, vignette, chromaticAberration);
-        CHECK(u.ExposureContrastSaturationPad.x == doctest::Approx(0.0f));
-        CHECK(u.ExposureContrastSaturationPad.y == doctest::Approx(1.0f));
-        CHECK(u.ExposureContrastSaturationPad.z == doctest::Approx(1.0f));
-        CHECK(u.Lift.x == doctest::Approx(0.0f));
-        CHECK(u.Gamma.x == doctest::Approx(1.0f));
-        CHECK(u.Gain.x == doctest::Approx(1.0f));
-        CHECK(u.VignetteAberrationPad.x == doctest::Approx(0.0f));
-        CHECK(u.VignetteAberrationPad.y == doctest::Approx(0.0f));
+        Wayfinder::BlendableEffectStack stack{};
+        const Wayfinder::ColourGradingParams g = Wayfinder::ResolveEffect<Wayfinder::ColourGradingParams>(stack, 0);
+        CHECK(g.Contrast.Value == doctest::Approx(1.0f));
+        CHECK(g.ExposureStops.Value == doctest::Approx(0.0f));
     }
 
     TEST_CASE("Render graph wraps raster and compute passes in GPU debug groups")

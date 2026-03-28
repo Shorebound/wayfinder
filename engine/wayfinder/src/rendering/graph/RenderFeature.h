@@ -54,6 +54,7 @@ namespace Wayfinder
          * @brief Called when the feature is first registered.
          *
          * Use the context to register shader programs, create pipelines, or acquire GPU resources.
+         * Blendable effect types must be registered here; the registry is sealed on first `Renderer::Render()`.
          */
         virtual void OnAttach(const RenderFeatureContext& /*context*/) {}
 

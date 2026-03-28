@@ -1,11 +1,13 @@
 #include "RenderOrchestrator.h"
 
-#include "BuiltInShaderPrograms.h"
 #include "RenderServices.h"
 #include "rendering/graph/RenderGraph.h"
+#include "rendering/passes/ChromaticAberrationFeature.h"
+#include "rendering/passes/ColourGradingFeature.h"
 #include "rendering/passes/CompositionPass.h"
 #include "rendering/passes/DebugPass.h"
 #include "rendering/passes/SceneOpaquePass.h"
+#include "rendering/passes/VignetteFeature.h"
 
 #include "core/Log.h"
 #include "maths/Frustum.h"
@@ -82,11 +84,10 @@ namespace Wayfinder
 
         m_context = &services;
 
-        services.RegisterEngineBlendableEffects();
-
-        RegisterBuiltInShaderPrograms(services.GetPrograms());
-
         RegisterPass(RenderPhase::Opaque, 0, std::make_unique<SceneOpaquePass>());
+        RegisterPass(RenderPhase::PostProcess, 800, std::make_unique<ChromaticAberrationFeature>());
+        RegisterPass(RenderPhase::PostProcess, 900, std::make_unique<VignetteFeature>());
+        RegisterPass(RenderPhase::Composite, 0, std::make_unique<ColourGradingFeature>());
         RegisterPass(RenderPhase::Overlay, 0, std::make_unique<DebugPass>());
         RegisterPass(RenderPhase::Present, 0, std::make_unique<CompositionPass>());
 

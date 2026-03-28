@@ -304,4 +304,18 @@ namespace Wayfinder
         return graph.FindHandleChecked(GraphTextureId::SceneColour);
     }
 
+    /**
+     * @brief Creates a new PostProcessColour transient for the next link in the chain.
+     * Always RGBA16_FLOAT to avoid banding between passes (pre-tonemapped HDR data).
+     */
+    inline RenderGraphHandle CreatePostProcessOutput(RenderGraphBuilder& builder, uint32_t width, uint32_t height)
+    {
+        return builder.CreateTransient({
+            .Width = width,
+            .Height = height,
+            .Format = TextureFormat::RGBA16_FLOAT,
+            .DebugName = GraphTextureName(GraphTextureId::PostProcessColour),
+        });
+    }
+
 } // namespace Wayfinder

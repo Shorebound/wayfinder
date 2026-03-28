@@ -225,8 +225,6 @@ set(ENGINE_ALL_SOURCES
   src/rendering/pipeline/PipelineCache.h
   src/rendering/pipeline/RenderServices.cpp
   src/rendering/pipeline/RenderServices.h
-  src/rendering/pipeline/BuiltInShaderPrograms.cpp
-  src/rendering/pipeline/BuiltInShaderPrograms.h
   src/rendering/pipeline/BuiltInUBOs.h
   src/rendering/pipeline/RenderOrchestrator.cpp
   src/rendering/pipeline/RenderOrchestrator.h
@@ -236,12 +234,18 @@ set(ENGINE_ALL_SOURCES
   src/rendering/pipeline/SceneRenderExtractor.h
 
   # Rendering — Passes
+  src/rendering/passes/ChromaticAberrationFeature.cpp
+  src/rendering/passes/ChromaticAberrationFeature.h
+  src/rendering/passes/ColourGradingFeature.cpp
+  src/rendering/passes/ColourGradingFeature.h
   src/rendering/passes/CompositionPass.cpp
   src/rendering/passes/CompositionPass.h
   src/rendering/passes/DebugPass.cpp
   src/rendering/passes/DebugPass.h
   src/rendering/passes/SceneOpaquePass.cpp
   src/rendering/passes/SceneOpaquePass.h
+  src/rendering/passes/VignetteFeature.cpp
+  src/rendering/passes/VignetteFeature.h
   src/rendering/passes/SubmissionDrawing.cpp
   src/rendering/passes/SubmissionDrawing.h
 
@@ -267,6 +271,7 @@ set(ENGINE_ALL_SOURCES
   src/volumes/BlendableEffectRegistry.h
   src/volumes/BlendableEffectRegistry.inl
   src/volumes/BlendableEffectTraits.h
+  src/volumes/BlendableEffectUtils.h
 
   # Scene
   src/scene/ComponentRegistry.cpp

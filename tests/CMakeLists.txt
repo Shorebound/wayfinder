@@ -7,6 +7,7 @@ add_executable(${WAYFINDER_RENDER_TEST_NAME}
   rendering/RenderFeatureTests.cpp
   rendering/SubmissionDrawingTests.cpp
   rendering/SceneOpaquePassTests.cpp
+  rendering/PostProcessFeatureTests.cpp
   rendering/DebugPassTests.cpp
   rendering/RenderServicesTests.cpp
   rendering/BlendStateTests.cpp

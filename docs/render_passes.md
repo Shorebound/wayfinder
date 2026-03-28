@@ -1,207 +1,202 @@
-# Render Features
+# Render pipeline and render features
 
-## Glossary (read this first)
+This document explains how frame rendering is structured in Wayfinder, what a **render feature** is, and how to add one—especially post-process work that reads **blendable effect** data from the scene.
+
+For repository layout and build commands, see [Workspace guide](workspace_guide.md).
+
+---
+
+## What you are extending
+
+The renderer builds a **render graph** each frame: a list of GPU passes with explicit texture reads and writes. The graph is **compiled** (dependency order, dead-pass culling) and then **executed**.
+
+**Render features** are the plug-in points. A feature subclasses `RenderFeature` (`engine/wayfinder/src/rendering/graph/RenderFeature.h`), registers with a **phase** and optional **order**, and each frame calls `AddPasses` to append one or more graph passes. Engine code and game/editor code use the same type; the default pipeline is assembled in `RenderOrchestrator::Initialise` (`engine/wayfinder/src/rendering/pipeline/RenderOrchestrator.cpp`).
+
+Rough flow each frame:
+
+1. **Prepare** — `RenderOrchestrator::Prepare` validates views, fills layer records, culls and sorts draws, and supplies `FrameRenderParams::PrimaryView` for graph code.
+2. **Build graph** — For every registered feature in phase order, `AddPasses` runs (if the feature is enabled) and records passes and resource dependencies.
+3. **Compile & execute** — `RenderGraph::Compile` orders passes by dependencies; `Execute` runs them on the GPU.
+
+**CPU registration order** (phase → order → insert sequence) only orders when **`AddPasses` runs**. **GPU order** follows **resource dependencies** (`ReadTexture`, `WriteColour`, etc.). If two passes do not depend on each other, the compiler may order them arbitrarily—declare every read/write you rely on.
+
+---
+
+## Terminology
 
 | Term | Meaning |
 |------|---------|
-| **`FrameLayerRecord` / `RenderFrame::Layers`** | CPU-side per-view layer of mesh submissions and/or debug draws (`RenderFrame.h`). **Not** the graph injector. |
-| **`RenderLayerId` / `RenderLayers::Main`** | Scene **sorting** layer (e.g. main vs overlay) on a `RenderMeshSubmission`. |
-| **`FrameLayerId` / `FrameLayerIds::MainScene`** | Which **logical layer record** (main_scene, overlay_scene, debug, …). |
-| **`RenderFeature` (graph injector)** | Subclass of `rendering/graph/RenderFeature.h` — registers `AddPasses` to inject **graph nodes**. Engine and game use the same type. |
-| **Graph node** | One `RenderGraph::AddPass` / `AddComputePass` entry for a frame. |
-| **`RenderCapabilities` / `DeclarePassCapabilities`** | Bitmask describing injector behaviour. Graph nodes call `RenderGraphBuilder::DeclarePassCapabilities` for dev-time checks in `RenderGraph::Compile`. |
-| **`PreparedPrimaryView` / `ResolvePreparedPrimaryView`** | Primary view matrices and clear colour after `Prepare` (`rendering/graph/RenderFrameUtils.h`); bundled on `FrameRenderParams::PrimaryView`. |
-| **`RenderPhase`** | Ordering band for `RenderOrchestrator::RegisterPass` / `Renderer::AddPass` — a single sorted list `(phase, order, registration sequence)`. |
+| **`RenderFeature`** | Injectable unit that adds graph passes via `AddPasses`. |
+| **`RenderPhase`** | Fixed band for **registration** ordering (`PreOpaque` … `Present`). See `RenderOrchestrator.h`. |
+| **`FrameRenderParams`** | Per-frame bundle passed into `AddPasses` (frame, swapchain size, built-in meshes, resource cache, primary view). `FrameRenderParams.h`. |
+| **`RenderFrame` / `RenderView`** | CPU-side frame description; each view has a **`BlendableEffectStack`** at `RenderView::PostProcess` for post-process parameters blended from volumes. |
+| **`FrameLayerRecord` / `FrameLayerId`** | Per-view layer of mesh submissions (main scene, overlay, debug, …). Distinct from **`RenderLayerId`** on a mesh (sorting layer). |
+| **`GraphTextureId`** | Stable names for main colour/depth and the post chain handoff (`SceneColour`, `SceneDepth`, `PostProcessColour`). |
+| **Blendable effect** | A typed, name-registered parameter struct blended from `BlendableEffectVolumeComponent` instances into `BlendableEffectStack`, then read in shaders/features. |
 
-See also: [Workspace guide](workspace_guide.md) for repo layout.
+---
 
-## Purpose
+## Default pipeline (engine)
 
-A `RenderFeature` is the extension point for adding custom rendering work to the engine. Features inject one or more graph nodes into the per-frame render graph without modifying engine code.
+After `RenderOrchestrator::Initialise`, the built-in registration order is:
 
-Use features for: post-processing effects, debug overlays, screen-space effects, compute dispatches, or any rendering work that reads/writes render targets. Engine-owned work (opaque forward, debug, composition) uses the same `RenderFeature` type.
+| Phase | Order | Feature |
+|-------|------|---------|
+| `Opaque` | 0 | `SceneOpaquePass` — writes `SceneColour` / `SceneDepth`. |
+| `PostProcess` | 800 | `ChromaticAberrationFeature` |
+| `PostProcess` | 900 | `VignetteFeature` |
+| `Composite` | 0 | `ColourGradingFeature` |
+| `Overlay` | 0 | `DebugPass` |
+| `Present` | 0 | `CompositionPass` — samples the latest post-process input and **writes the swapchain** (`SetSwapchainOutput`). |
 
-## Registration vs execution (each frame)
+Game or editor code adds more features with `Renderer::AddPass` (see below). Lower **`order`** in the same phase runs **earlier** among features.
 
-**Who runs `AddPasses`, and in what order**
+### Phase guide (what to register where)
 
-1. **`RenderOrchestrator::Prepare`** — validates views and **frame layers**, fills view matrices / frustums, culls and sorts scene submissions, and supplies **`FrameRenderParams::PrimaryView`** via `ResolvePreparedPrimaryView` from the renderer.
-2. **Unified pass list** — every registered feature (engine and game), ordered by **`(RenderPhase, order, registration sequence)`**. Phases run from **`PreOpaque`** through **`Present`** (see `RenderOrchestrator.h`). Built-ins: **`SceneOpaquePass`** at **`Opaque`**, **`DebugPass`** at **`Overlay`**, **`CompositionPass`** at **`Present`**.
+| `RenderPhase` | Typical content |
+|---------------|-----------------|
+| `PreOpaque` | Shadow maps, G-buffer prep, hi-Z. |
+| `Opaque` | Main scene geometry. |
+| `PostOpaque` | SSAO, SSR, decals. |
+| `Transparent` | Alpha-blended geometry, particles. |
+| `PostProcess` | Fullscreen or spatial effects that chain through **`PostProcessColour`** (bloom, aberration, vignette, …). |
+| `Composite` | Colour-space / grading-style work that still feeds the same handoff texture before present. |
+| `Overlay` | Debug, gizmos, UI. |
+| `Present` | Normally **one** pass that calls **`SetSwapchainOutput`** (the built-in `CompositionPass`). |
 
-**What order the GPU runs**
+---
 
-After all graph nodes are recorded, **`RenderGraph::Compile`** topologically sorts passes using **resource dependencies** (`ReadTexture`, `WriteColour` with `LoadOp::Load`, `WriteDepth` with `LoadOp::Load`, etc.). Where dependencies do not constrain order, the sort is stable but you should not rely on incidental ordering—declare reads/writes explicitly.
+## Registering and controlling features
 
-**Compile validation:** a successful compile **requires at least one** pass that calls **`SetSwapchainOutput`**. In non-`NDEBUG` builds, **more than one** swapchain writer emits a **warning** (pipelines normally use exactly one present pass).
+### API
 
-**Registration API**
+Use **`Renderer`** from game or editor code:
 
-| API | Use for |
-|-----|---------|
-| **`Renderer::AddPass(phase, order, pass)`** | Game / editor features — pick **`RenderPhase`** and optional ordering within the phase. |
-| **`Renderer::AddPass(phase, pass)`** | Same with **`order` = 0**. |
+- **`AddPass(RenderPhase, int32_t order, std::unique_ptr<RenderFeature>)`** — preferred when you need ordering within a phase.
+- **`AddPass(RenderPhase, std::unique_ptr<RenderFeature>)`** — same as `order == 0`.
 
-All features live in one list; there is no separate "game segment". Passes registered before `Renderer::Initialise` are deferred and flushed automatically when the orchestrator initialises.
+Passes registered **before** `Renderer::Initialise` are **deferred** and attached when the orchestrator initialises.
 
-## `FrameRenderParams`
-
-Passed to every `AddPasses`:
-
-| Field | Contract |
-|-------|----------|
-| `Frame` | The prepared `RenderFrame` (views, **layers**, lights, **per-view volume effect stacks**). |
-| `SwapchainWidth` / `SwapchainHeight` | Current swapchain extent used for transient targets; non-zero when rendering. |
-| `BuiltInMeshes` | Fixed-size `BuiltInMeshTable` mapping `BuiltInMeshId` → `const Mesh*` for built-in primitives. |
-| `ResourceCache` | May be null if asset resolution is unavailable; passes must tolerate null if they depend on it. |
-| `PrimaryView` | Result of `ResolvePreparedPrimaryView(Frame)` — primary view matrices and clear colour when the first view is prepared. |
-
-## `RenderPhase` (summary)
-
-| Phase | Typical use |
-|-------|----------------|
-| `PreOpaque` | Shadow maps, G-buffer prep, hi-Z |
-| `Opaque` | Main scene geometry |
-| `PostOpaque` | SSAO, SSR, decals |
-| `Transparent` | Alpha-blended geometry, particles |
-| `PostProcess` | Bloom, DoF, game post chain |
-| `Composite` | FXAA/TAA, optional handoff copies |
-| `Overlay` | Debug, gizmos, UI |
-| `Present` | Tonemap + swapchain (exactly one writer in typical pipelines) |
-
-After **`Renderer::Initialise`**, optional modules register features with **`AddPass(phase, order, pass)`**. Features may also be registered before `Initialise` — they are deferred and attached once the orchestrator has a context.
-
-## Capabilities
-
-Inside **`graph.AddPass`** / **`AddComputePass`** setup, call **`builder.DeclarePassCapabilities(mask)`** when the graph node should be checked in **non-`NDEBUG`** `Compile` (e.g. scene geometry must attach colour or depth; overlay/debug must attach colour; fullscreen composite must call `SetSwapchainOutput`). Omit for passes that do not need these checks.
-
-## Creating a Feature
-
-Subclass `RenderFeature` and implement the required virtual methods:
+### Enable and disable
 
 ```cpp
-#include "rendering/graph/RenderFeature.h"
-#include "rendering/graph/RenderGraph.h"
-#include "rendering/pipeline/FrameRenderParams.h"
-
-namespace Wayfinder
+auto* feature = renderer.GetPass<MyFeature>();
+if (feature)
 {
-    class BloomPass : public RenderFeature
-    {
-    public:
-        std::string_view GetName() const override
-        {
-            return "Bloom";
-        }
-
-        void AddPasses(RenderGraph& graph, const FrameRenderParams& params) override
-        {
-            graph.AddPass("BloomDownsample", [&](RenderGraphBuilder& builder)
-            {
-                auto sceneColour = graph.FindHandle(GraphTextureId::SceneColour);
-                builder.ReadTexture(sceneColour);
-
-                auto halfRes = builder.CreateTransient({
-                    .Width = params.SwapchainWidth / 2,
-                    .Height = params.SwapchainHeight / 2,
-                    .Format = TextureFormat::RGBA16_FLOAT,
-                    .DebugName = "BloomHalfRes",
-                });
-                builder.WriteColour(halfRes);
-                return [](RenderDevice&, const RenderGraphResources&)
-                {
-                };
-            });
-        }
-
-        void OnAttach(const RenderFeatureContext& ctx) override
-        {
-            (void)ctx.Context;
-            // Register shader programs, create pipelines, etc.
-        }
-
-        void OnDetach(const RenderFeatureContext& ctx) override
-        {
-            (void)ctx.Context;
-            // Release GPU resources.
-        }
-    };
+    feature->SetEnabled(false); // AddPasses is not called; no graph nodes for this feature.
 }
 ```
 
-Prefer **`graph.FindHandleChecked(GraphTextureId::…)`** or **`FindHandleChecked(name)`** when the resource must exist — it logs and **asserts in non-`NDEBUG` builds** if the handle is missing. **`ReadTexture` / `WriteColour` / `WriteDepth`** log an **error** if given an invalid handle (e.g. wrong `FindHandle` result) and skip the dependency edge.
-
-## Registering a feature
+### Removal
 
 ```cpp
-renderer.AddPass(Wayfinder::RenderPhase::PostProcess, 0, std::make_unique<BloomPass>());
+renderer.RemovePass<MyFeature>(); // OnDetach runs for attached passes.
 ```
 
-Features registered earlier in the same **`(phase, order)`** run first (tie-break: registration order). The render graph still determines **GPU** order from resource dependencies where that differs.
+### Compile rule (swapchain)
 
-## Enabling / Disabling
+A successful graph compile expects **at least one** pass that calls **`SetSwapchainOutput`**. In non-`NDEBUG` builds, more than one swapchain writer typically produces a **warning**. The default `CompositionPass` satisfies this.
 
-Features can be toggled at runtime without removal:
+---
 
-```cpp
-auto* bloom = renderer.GetPass<BloomPass>();
-if (bloom) bloom->SetEnabled(false);
-```
+## `FrameRenderParams` (contract for `AddPasses`)
 
-Disabled features have their `AddPasses` skipped entirely — no graph nodes are created.
+| Field | Role |
+|-------|------|
+| `Frame` | `RenderFrame`: views, layers, lights, per-view post stacks. |
+| `SwapchainWidth` / `SwapchainHeight` | Extents for transient targets; non-zero when rendering. |
+| `BuiltInMeshes` | `BuiltInMeshTable`: engine primitives for passes that draw them. |
+| `ResourceCache` | May be null; passes that need asset meshes must tolerate null. |
+| `PrimaryView` | From `Rendering::ResolvePreparedPrimaryView` — matrices and related defaults for the primary view. |
 
-## Removing a Feature
+---
 
-```cpp
-renderer.RemovePass<BloomPass>();
-```
+## Graph resources and the post-process chain
 
-`OnDetach` is called before the feature is destroyed, giving it an opportunity to release GPU resources.
+### Engine texture names (`GraphTextureId`)
 
-## Key Concepts
+These use stable interned names (see `RenderGraph.h`):
 
-### Resource Dependencies
+| Id | Role |
+|----|------|
+| `SceneColour` | Main HDR-ish scene target from `SceneOpaquePass`. |
+| `SceneDepth` | Scene depth. |
+| `PostProcessColour` | **Logical name for the latest post-process output.** Each new transient created with this debug name becomes the handle returned by `FindHandle(PostProcessColour)` until another resource replaces it in the graph. |
 
-Features declare what they read and write through `RenderGraphBuilder`. The graph uses these declarations to determine execution order (topological sort) and to cull dead passes that produce resources nobody reads.
+Use **`graph.FindHandle(GraphTextureId::…)`** or **`FindHandleChecked`** when the resource must exist (checked variant logs and asserts in development when missing).
 
-### Engine graph textures (`GraphTextureId`)
+### Chaining post-process passes
 
-Stable **engine** colour/depth targets use `GraphTextureId` with singleton **`InternedString`** names in **`GraphTextures`**, plus **`GraphTextureIntern`** / **`GraphTextureName`** for lookups and debug names (`RenderGraph.h`):
+- **`ResolvePostProcessInput(graph)`** — Returns the handle for **`PostProcessColour`** if any prior pass created it this frame; otherwise **`SceneColour`** (via `FindHandleChecked` for scene colour). Use this as the fullscreen **input** after the opaque pass.
+- **`CreatePostProcessOutput(builder, width, height)`** — Allocates a new **`PostProcessColour`** transient in **`RGBA16_FLOAT`** (handoff between post steps; reduces banding).
 
-| Id | `GraphTextures::*` | Role |
-|----|--------------------|------|
-| `GraphTextureId::SceneColour` | `GraphTextures::SceneColour` | Main scene colour (created by the MainScene graph pass). |
-| `GraphTextureId::SceneDepth` | `GraphTextures::SceneDepth` | Main scene depth. |
-| `GraphTextureId::PostProcessColour` | `GraphTextures::PostProcessColour` | Latest post-process output; **`FindHandle`** / **`ImportTexture`** return the **most recently added** resource with that name so features can chain. |
+The built-in **`CompositionPass`** only **samples** `ResolvePostProcessInput` and blits to the swapchain (`fullscreen` + `fullscreen_copy` program `composition_blit`). It does **not** read blendable stacks; colour grading, vignette, and chromatic aberration are separate features earlier in the pipeline.
 
-**`ResolvePostProcessInput`** (`rendering/graph/PostProcessUtils.h`) returns **`PostProcessColour`** when present, otherwise **`SceneColour`** — use it when sampling input for a post chain or for **`CompositionPass`**.
+### Capabilities (dev-time checks)
 
-**`GraphTextureIntern(GraphTextureId)`** returns the shared `InternedString` for that id (no re-interning). **`GraphTextureName`** returns a **`std::string_view`** over that interned text. **`RenderGraphTextureDesc::DebugName`** is a **`std::string_view`** (assigned from literals, `GraphTextureName`, or other stable views before `CreateTransient` interns it).
+`RenderFeature::GetCapabilities()` describes the feature for documentation and tooling. Per **graph pass**, call **`builder.DeclarePassCapabilities(mask)`** inside the pass setup so `RenderGraph::Compile` can validate behaviour in non-`NDEBUG` builds (e.g. fullscreen composite, scene geometry). Omit if the pass does not need checks.
 
-Use **`graph.FindHandle(GraphTextureId::SceneColour)`** (or `FindHandleChecked`) after those resources exist in the graph. Arbitrary transient textures still use string names on `RenderGraphTextureDesc::DebugName` and `FindHandle("…")`.
+---
 
-### Post-processing data
+## Blendable effects (scene → GPU)
 
-Scene **`BlendableEffectVolumeComponent`** data is blended into **`RenderView::PostProcess`** (`BlendableEffectStack`) during extraction. Effect types are registered at runtime in **`BlendableEffectRegistry`** (engine defaults: `colour_grading`, `vignette`, `chromatic_aberration`). Each effect uses a small **typed** payload struct with **`Override<T>`** fields so authors can override individual parameters. The registry owns **identity, blend (Lerp), and JSON (de)serialisation** via **`BlendableEffectTraits<T>`** (see `volumes/BlendableEffectTraits.h`). Effect structs declare a `static constexpr auto FIELDS` tuple of **`FieldDesc`** entries (see `volumes/OverrideReflection.h`); the default trait specialisation derives all four operations from those fields. Explicit trait specialisations handle edge cases like legacy JSON keys.
+Volumes and stacks are the data path from level design to your shader parameters.
 
-The registry is injected via `RenderServices` (constructor DI) for rendering and extraction paths. **`CompositionPass`** reads **`ColourGradingParams`**, **`VignetteParams`**, and **`ChromaticAberrationParams`** from the primary view's stack (via **`EngineEffectIds`** on **`RenderServices`**) and uploads a **`CompositionUBO`** for **`composition.frag`**. Game code can register additional blendable types and consume them from the stack in custom features.
+### Data flow
 
-### Transient Resources
+1. **`BlendableEffectVolumeComponent`** (`volumes/BlendableEffect.h`) holds effect instances referencing registered types by name.
+2. During scene extraction, volumes contribute to **`RenderView::PostProcess`** as a **`BlendableEffectStack`** (weighted blend of payloads).
+3. A post feature resolves its payload for the view (see below) and pushes uniforms / constants in the execute lambda.
 
-Use `builder.CreateTransient(desc)` for intermediate textures that only live for one frame. The engine's `TransientResourcePool` reuses GPU allocations across frames to minimize allocation overhead.
+### Registry and sealing
 
-### RenderFeatureContext
+- **`BlendableEffectRegistry`** (`volumes/BlendableEffectRegistry.h`) stores **effect type identity**, **blend (Lerp)**, and **JSON (de)serialisation** for each registered payload type.
+- **`Renderer::Render`** calls **`SealBlendableEffects()`** on the **first** frame if not already sealed. You may call **`Renderer::SealBlendableEffects()`** yourself after all types are registered.
+- Register **only** from **`RenderFeature::OnAttach`** (or other init that runs before the first render / seal)—not mid-frame.
 
-`OnAttach` and `OnDetach` receive a `RenderFeatureContext` with a reference to the full `RenderServices` (`Context`). Use `ctx.Context` to reach `GetDevice()`, `GetPrograms()`, `GetShaders()`, `GetPipelines()`, `GetNearestSampler()`, transient buffers, and other shared infrastructure.
+Access the registry from **`RenderServices`** via **`GetBlendableEffectRegistry()`** on the `RenderFeatureContext`. **`BlendableEffectRegistry::SetActiveInstance` / `GetActiveInstance`** exist for legacy/global consumers (e.g. some component validation); prefer dependency injection where possible.
 
-### Multi-view
+### Registering a payload type
 
-Split-screen / multiple render targets are not fully specified here: either **one graph per view** or **view-indexed resources** should be chosen explicitly before implying a single shared handoff texture for all views.
+1. Define a **trivially copyable** payload struct (often with **`Override<T>`** fields for artist overrides). See **`RenderingEffects.h`** for built-in examples (`ChromaticAberrationParams`, `VignetteParams`, `ColourGradingParams`).
+2. Provide **`BlendableEffectTraits<T>`** — often via **`FIELDS`** reflection (`OverrideReflection.h`); specialise only when you need legacy JSON keys or non-default behaviour.
+3. In **`OnAttach`**: `ctx.Context.GetBlendableEffectRegistry()->Register<MyPayload>("my_effect_name")` and store the returned **`BlendableEffectId`** if you need it for stack lookups.
 
-### Error policy (pipelines / resources)
+### Resolving parameters in `AddPasses`
 
-- **Development / non-`WAYFINDER_SHIPPING`:** Missing shaders or pipelines for **engine** paths should surface as **errors** where practical (`FindHandleChecked`, composition path). Game features should log clearly when optional GPU state is missing.
-- **Shipping (`WAYFINDER_SHIPPING`):** Prefer **structured warnings** and **skipping** draws rather than crashing; avoid silent failure without at least one log line for unexpected missing programs.
+Use **`ResolveEffect<TPayload>(stack, effectId)`** from **`volumes/BlendableEffectUtils.h`**: returns the blended payload or **identity** if the effect is absent.
+
+Built-in post features typically take **`params.Frame.Views.front().PostProcess`** when **`PrimaryView.Valid`** and the view list is non-empty; otherwise they use an empty stack. **Multi-view** post-process is not fully generalised—if you add split-screen, decide per-view stacks and resources explicitly.
+
+### Shaders and programs
+
+Register **`ShaderProgramDesc`** entries in **`OnAttach`** through **`RenderServices::GetPrograms()`**, matching your fragment shader and UBO layout. See **`ChromaticAberrationFeature.cpp`** for a full minimal pattern (register blendable type, register program, read stack in `AddPasses`, early-out on identity / zero intensity, `ResolvePostProcessInput` → `CreatePostProcessOutput`, fullscreen draw in execute lambda).
+
+---
+
+## Implementing a new `RenderFeature`
+
+1. **Subclass** `RenderFeature`: implement **`GetName()`**, **`AddPasses(...)`**, and usually **`OnAttach` / `OnDetach`** for programs and registry.
+2. **Register** with `Renderer::AddPass` at the appropriate **`RenderPhase`** and **`order`**.
+3. In **`AddPasses`**, for each GPU pass:
+   - Declare **reads** and **writes** on `RenderGraphBuilder`.
+   - Return a lambda **`void(RenderDevice&, const RenderGraphResources&)`** that binds pipelines, samplers, and draws (or dispatch for compute).
+4. If the feature uses blendable data, **register the type in `OnAttach`** and **resolve** from `RenderView::PostProcess` in `AddPasses`.
+5. For post chains, use **`ResolvePostProcessInput`** and **`CreatePostProcessOutput`** so later passes and `CompositionPass` see a consistent handoff.
+
+Disabled features skip `AddPasses` entirely—no graph nodes, no cost beyond the feature object.
+
+---
 
 ## Testing
 
-Features can be tested headlessly using `NullDevice`, which implements the full `RenderDevice` interface as no-ops. See `tests/rendering/RenderFeatureTests.cpp` for examples.
+- Use the **Null** backend and **`RenderDevice::Create(RenderBackend::Null)`** for headless tests; no window or GPU required.
+- **`tests/rendering/RenderFeatureTests.cpp`** — general feature patterns.
+- **`tests/rendering/PostProcessFeatureTests.cpp`** — registration of built-in post features, blendable names, and shader program names.
+
+---
+
+## Error handling notes
+
+- **Development:** Prefer **`FindHandleChecked`**, clear logs when optional GPU state is missing, and use **`DeclarePassCapabilities`** to catch mis-wired passes early.
+- **Shipping (`WAYFINDER_SHIPPING`):** Prefer structured warnings and skipping draws over crashing; avoid silent failure without a log line when something unexpected is missing.

@@ -33,7 +33,7 @@ namespace Wayfinder
     };
 
     /**
-     * @brief Screen-edge darkening strength; consumed by the composition pass when registered.
+     * @brief Screen-edge darkening strength; consumed by `VignetteFeature` when registered.
      */
     struct VignetteParams
     {
@@ -43,7 +43,7 @@ namespace Wayfinder
     };
 
     /**
-     * @brief RGB channel separation intensity; consumed by the composition pass when registered.
+     * @brief RGB channel separation intensity; consumed by `ChromaticAberrationFeature` when registered.
      */
     struct ChromaticAberrationParams
     {
@@ -87,27 +87,5 @@ namespace Wayfinder
             return p;
         }
     };
-
-    /**
-     * @brief Resolves colour grading parameters for a view from the blended stack.
-     * @param stack Blended effect stack for the view.
-     * @param id Engine-registered colour grading effect id.
-     * @return Resolved parameters, or identity values if the payload is missing.
-     */
-    [[nodiscard]] WAYFINDER_API ColourGradingParams ResolveColourGradingForView(const BlendableEffectStack& stack, BlendableEffectId id);
-    /**
-     * @brief Resolves vignette parameters for a view from the blended stack.
-     * @param stack Blended effect stack for the view.
-     * @param id Engine-registered vignette effect id.
-     * @return Resolved parameters, or identity values if the payload is missing.
-     */
-    [[nodiscard]] WAYFINDER_API VignetteParams ResolveVignetteForView(const BlendableEffectStack& stack, BlendableEffectId id);
-    /**
-     * @brief Resolves chromatic aberration parameters for a view from the blended stack.
-     * @param stack Blended effect stack for the view.
-     * @param id Engine-registered chromatic aberration effect id.
-     * @return Resolved parameters, or identity values if the payload is missing.
-     */
-    [[nodiscard]] WAYFINDER_API ChromaticAberrationParams ResolveChromaticAberrationForView(const BlendableEffectStack& stack, BlendableEffectId id);
 
 } // namespace Wayfinder
