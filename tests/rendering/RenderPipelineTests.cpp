@@ -131,7 +131,7 @@ namespace Wayfinder::Tests
         cube.AddComponent<Wayfinder::TransformComponent>(Wayfinder::TransformComponent{{0.0f, 0.5f, 0.0f}});
         cube.AddComponent<Wayfinder::MeshComponent>(Wayfinder::MeshComponent{});
         Wayfinder::RenderableComponent renderable;
-        renderable.Layer = Wayfinder::RenderLayers::Main;
+        renderable.Group = Wayfinder::RenderGroups::Main;
         cube.AddComponent<Wayfinder::RenderableComponent>(renderable);
 
         Wayfinder::Entity light = scene.CreateEntity("Light");
@@ -145,8 +145,8 @@ namespace Wayfinder::Tests
 
         const Wayfinder::SceneRenderExtractor extractor;
         const Wayfinder::RenderFrame frame = extractor.Extract(scene);
-        const Wayfinder::FrameLayerRecord* mainPass = frame.FindLayer(Wayfinder::FrameLayerIds::MainScene);
-        const Wayfinder::FrameLayerRecord* debugPass = frame.FindLayer(Wayfinder::FrameLayerIds::Debug);
+        const Wayfinder::FrameLayer* mainPass = frame.FindLayer(Wayfinder::FrameLayerIds::MainScene);
+        const Wayfinder::FrameLayer* debugPass = frame.FindLayer(Wayfinder::FrameLayerIds::Debug);
 
         scene.Shutdown();
 
@@ -185,7 +185,7 @@ namespace Wayfinder::Tests
 
         const Wayfinder::SceneRenderExtractor extractor;
         const Wayfinder::RenderFrame frame = extractor.Extract(scene);
-        const Wayfinder::FrameLayerRecord* mainPass = frame.FindLayer(Wayfinder::FrameLayerIds::MainScene);
+        const Wayfinder::FrameLayer* mainPass = frame.FindLayer(Wayfinder::FrameLayerIds::MainScene);
 
         scene.Shutdown();
 
@@ -225,7 +225,7 @@ namespace Wayfinder::Tests
             cube.AddComponent<Wayfinder::MeshComponent>(Wayfinder::MeshComponent{});
 
             Wayfinder::RenderableComponent renderable;
-            renderable.Layer = Wayfinder::RenderLayers::Main;
+            renderable.Group = Wayfinder::RenderGroups::Main;
             cube.AddComponent<Wayfinder::RenderableComponent>(renderable);
 
             Wayfinder::MaterialComponent material;
@@ -240,7 +240,7 @@ namespace Wayfinder::Tests
 
         const Wayfinder::SceneRenderExtractor extractor;
         Wayfinder::RenderFrame frame = extractor.Extract(scene);
-        Wayfinder::FrameLayerRecord* mainPass = frame.FindLayer(Wayfinder::FrameLayerIds::MainScene);
+        Wayfinder::FrameLayer* mainPass = frame.FindLayer(Wayfinder::FrameLayerIds::MainScene);
 
         REQUIRE(mainPass != nullptr);
         REQUIRE(mainPass->Meshes.size() == 2);
@@ -263,7 +263,7 @@ namespace Wayfinder::Tests
     {
         Wayfinder::RenderFrame frame;
         const size_t viewIndex = frame.AddView(Wayfinder::RenderView{});
-        Wayfinder::FrameLayerRecord& scenePass = frame.AddSceneLayer(Wayfinder::FrameLayerIds::MainScene, viewIndex, Wayfinder::RenderLayers::Main);
+        Wayfinder::FrameLayer& scenePass = frame.AddSceneLayer(Wayfinder::FrameLayerIds::MainScene, viewIndex, Wayfinder::RenderGroups::Main);
         scenePass.Meshes.push_back(MakeSolidMesh(100, Wayfinder::Colour::Red()));
         scenePass.Meshes.push_back(MakeSolidMesh(10, Wayfinder::Colour::Blue()));
 
@@ -348,7 +348,7 @@ namespace Wayfinder::Tests
         view.CameraState.NearPlane = 0.1f;
         view.CameraState.FarPlane = 100.0f;
         frame.AddView(view);
-        frame.AddSceneLayer(Wayfinder::FrameLayerIds::MainScene, 0, Wayfinder::RenderLayers::Main);
+        frame.AddSceneLayer(Wayfinder::FrameLayerIds::MainScene, 0, Wayfinder::RenderGroups::Main);
         frame.AddDebugLayer(Wayfinder::FrameLayerIds::Debug, 0);
 
         REQUIRE(pipeline.Prepare(frame, 320, 240));
@@ -409,7 +409,7 @@ namespace Wayfinder::Tests
         view.CameraState.NearPlane = 0.1f;
         view.CameraState.FarPlane = 100.0f;
         frame.AddView(view);
-        frame.AddSceneLayer(Wayfinder::FrameLayerIds::MainScene, 0, Wayfinder::RenderLayers::Main);
+        frame.AddSceneLayer(Wayfinder::FrameLayerIds::MainScene, 0, Wayfinder::RenderGroups::Main);
         frame.AddDebugLayer(Wayfinder::FrameLayerIds::Debug, 0);
 
         REQUIRE(pipeline.Prepare(frame, 320, 240));

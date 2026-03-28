@@ -141,7 +141,7 @@ namespace Wayfinder
             view.Prepared = true;
         }
 
-        for (FrameLayerRecord& layer : frame.Layers)
+        for (FrameLayer& layer : frame.Layers)
         {
             if (!layer.Enabled || layer.Id.IsEmpty())
             {

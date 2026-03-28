@@ -814,6 +814,12 @@ namespace Wayfinder
             renderable.Visible = data.value("visible", renderable.Visible);
             renderable.Group = ReadRenderGroup(data, "group", renderable.Group);
 
+            /// Fall back to legacy "layer" key when "group" was not present.
+            if (!data.contains("group"))
+            {
+                renderable.Group = ReadRenderGroup(data, "layer", renderable.Group);
+            }
+
             const int64_t sortPriority = data.value("sort_priority", static_cast<int64_t>(renderable.SortPriority));
             renderable.SortPriority = ClampToByte(sortPriority);
             entity.AddComponent<Wayfinder::RenderableComponent>(renderable);
