@@ -28,8 +28,16 @@ Add the ability to bind read-only storage buffers accessible from vertex shaders
 
 **Changes:**
 - `RenderDevice.h` — add `virtual void BindVertexStorageBuffers(uint32_t firstSlot, std::span<const GPUBufferHandle> buffers) = 0;`
+  Note: SDL3's `SDL_BindGPUVertexStorageBuffers` does not accept per-buffer byte offsets at bind time. Element offsets into the storage buffer are handled at draw time via the `firstInstance` parameter (see Step A2-offset below).
 - `SDLGPUDevice.cpp` — implement via `SDL_BindGPUVertexStorageBuffers(m_renderPass, firstSlot, sdlBindings, count)`. Resolve handles to `SDL_GPUBuffer*`, build `SDL_GPUBuffer*[]`.
 - `NullDevice.h` — add empty override.
+
+**Step A2-offset — Expose firstInstance in DrawIndexed:**
+The existing `DrawIndexed` signature omits `firstInstance` (hard-coded to 0 in `SDL_DrawGPUIndexedPrimitives`). Batched draws need it so each batch reads from the correct offset in the instance storage buffer (`InstanceModels[SV_InstanceID + firstInstance]`).
+- `RenderDevice.h` — add `uint32_t firstInstance = 0` parameter to `DrawIndexed`.
+- `SDLGPUDevice.cpp` — forward `firstInstance` as the last argument to `SDL_DrawGPUIndexedPrimitives`.
+- `NullDevice.h` — update override signature.
+- Callers issuing batched draws pass `InstanceDataAllocation.offset / sizeof(InstanceData)` as `firstInstance`.
 
 **Files:**
 - `engine/wayfinder/src/rendering/backend/RenderDevice.h`
@@ -103,11 +111,17 @@ Two submissions can only batch if they have identical material state (same param
 - Add `uint64_t ContentHash() const` to `RenderMaterialBinding` that hashes: `ShaderName` + `Parameters` content + `Textures` content + `StateOverrides`. This can be computed once during extraction (in `SceneRenderExtractor`) and cached on the submission.
 - Alternative: use the existing 16-bit `MaterialIdBits` from the sort key — submissions in the same material-ID group already share shader + material identity. Verify this is sufficient (it encodes shader name + material ref, but may not capture per-entity overrides).
 
-**Recommendation:** Use `MaterialIdBits` from the sort key as the fast path. If `HasOverrides == true`, don't batch (overrides make equality checking expensive and overridden entities are rare). This avoids needing a new hash.
+**Recommendation:** Use `MaterialIdBits` from the sort key as the fast path for grouping, then perform a secondary full-identity check before merging into the same batch. `MaterialIdBits` is only 16 bits and hash collisions are possible in scenes with many materials. The secondary check compares the full `RenderMaterialBinding::Ref` (material asset reference / UUID) to confirm identity. If `HasOverrides == true`, never batch — overrides make equality checking expensive and overridden entities are rare.
+
+Summary of the batch compatibility check:
+1. Fast reject: different `MaterialIdBits` in the sort key → different batch.
+2. Override guard: `HasOverrides == true` on either submission → do not batch.
+3. Full identity: compare `Material.Ref` (or cached content hash) — if they differ despite matching `MaterialIdBits`, do not batch (hash collision).
+4. Mesh identity: same `Mesh.StableKey` + `Mesh.SubmeshIndex`.
 
 **Files:**
-- `engine/wayfinder/src/rendering/pipeline/RenderOrchestrator.cpp` — batch compatibility check uses sort key material bits + mesh stable key
-- No new files needed if using sort key material ID
+- `engine/wayfinder/src/rendering/pipeline/RenderOrchestrator.cpp` — batch compatibility check uses sort key material bits + full material identity + mesh stable key
+- No new files needed if using sort key material ID + Ref comparison
 
 ---
 

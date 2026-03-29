@@ -5,6 +5,7 @@
 #include "rendering/graph/RenderFeature.h"
 #include "rendering/pipeline/RenderOrchestrator.h"
 
+#include <concepts>
 #include <memory>
 #include <string>
 #include <vector>
@@ -26,6 +27,15 @@ namespace Wayfinder
         Renderer();
         ~Renderer() noexcept;
 
+        /**
+         * @brief Initialises the renderer, creating internal services, resource caches, and the render pipeline.
+         * @param device The render device used for GPU resource creation and command submission.
+         * @param config Engine configuration (screen dimensions, etc.).
+         * @param registry Optional blendable effect registry for external effect type registration.
+         *                 Caller retains ownership. nullptr is valid and means no external blendable
+         *                 registration will be performed. Must outlive the Renderer if provided.
+         * @return Success, or an error describing the initialisation failure.
+         */
         Result<void> Initialise(RenderDevice& device, const EngineConfig& config, BlendableEffectRegistry* registry = nullptr);
         void Shutdown();
 
@@ -64,6 +74,7 @@ namespace Wayfinder
          * @return True if a pass was removed; false if none matched.
          */
         template<typename T>
+            requires std::derived_from<T, RenderFeature>
         bool RemovePass()
         {
             if (m_renderPipeline)
@@ -79,6 +90,7 @@ namespace Wayfinder
          * @return Pointer to the pass, or nullptr when no matching pass is registered.
          */
         template<typename T>
+            requires std::derived_from<T, RenderFeature>
         const T* GetPass() const
         {
             if (m_renderPipeline)
@@ -95,6 +107,7 @@ namespace Wayfinder
          * @return Pointer to the pass, or nullptr when no matching pass is registered.
          */
         template<typename T>
+            requires std::derived_from<T, RenderFeature>
         T* GetPass()
         {
             if (m_renderPipeline)

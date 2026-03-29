@@ -78,6 +78,12 @@ namespace Wayfinder
             return;
         }
 
+        if (Slots.size() != decls.size())
+        {
+            WAYFINDER_ERROR(LogRenderer, "ApplyOverrides: Slots size ({}) != decls size ({}) — call BuildSlots with the correct declarations before ApplyOverrides", Slots.size(), decls.size());
+            return;
+        }
+
         for (size_t i = 0; i < decls.size(); ++i)
         {
             const auto it = overrides.Values.find(decls[i].Name);
