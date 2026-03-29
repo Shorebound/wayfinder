@@ -9,18 +9,23 @@ set(SLANG_VERSION "2026.5.1" CACHE STRING "Slang SDK version")
 if(WIN32)
     set(_SLANG_PLATFORM "windows-x86_64")
     set(_SLANG_EXT "zip")
+    set(_SLANG_SHA256 "4bbf0f1338f13cb0baf2cc10da62ea92d186c9ea3219c73d6d3516bf1bf3cd49")
 elseif(APPLE)
     if(CMAKE_SYSTEM_PROCESSOR MATCHES "arm64|aarch64")
         set(_SLANG_PLATFORM "macos-aarch64")
+        set(_SLANG_SHA256 "ac9f824c3e37c0543f7baa5df55176ecd41210c53a3c57a966ecaeade122cfbd")
     else()
         set(_SLANG_PLATFORM "macos-x86_64")
+        set(_SLANG_SHA256 "9bd8858cd8d334f258e5b0dade93e63610797f0afc2c7042aa49b471f3be96c1")
     endif()
     set(_SLANG_EXT "tar.gz")
 else()
     if(CMAKE_SYSTEM_PROCESSOR MATCHES "aarch64|arm64|ARM64")
         set(_SLANG_PLATFORM "linux-aarch64")
+        set(_SLANG_SHA256 "cb3de59f2bf88cb6e70a6e9283664a255eef7188d824ccfc0865a2b317a1609b")
     else()
         set(_SLANG_PLATFORM "linux-x86_64")
+        set(_SLANG_SHA256 "836deb3c8fa8006c4088662c97d3c24ad1fe82051d811de84431fca67a76677b")
     endif()
     set(_SLANG_EXT "tar.gz")
 endif()
@@ -38,7 +43,7 @@ endif()
 
 FetchContent_Declare(slang_sdk
     URL      "${_SLANG_URL}"
-    URL_HASH SHA256=4bbf0f1338f13cb0baf2cc10da62ea92d186c9ea3219c73d6d3516bf1bf3cd49
+    URL_HASH SHA256=${_SLANG_SHA256}
     DOWNLOAD_EXTRACT_TIMESTAMP TRUE
 )
 FetchContent_MakeAvailable(slang_sdk)
