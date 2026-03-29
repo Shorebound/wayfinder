@@ -182,6 +182,8 @@ namespace Wayfinder
                 {
                     vd.BoxStart = static_cast<uint32_t>(m_scratchBoxes.size());
                 }
+
+                // NOLINTNEXTLINE(bugprone-unchecked-optional-access) — we check DebugDraw above
                 m_scratchBoxes.insert(m_scratchBoxes.end(), layer.DebugDraw->Boxes.begin(), layer.DebugDraw->Boxes.end());
                 vd.BoxCount = static_cast<uint32_t>(m_scratchBoxes.size()) - vd.BoxStart;
             }
