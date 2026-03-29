@@ -38,7 +38,7 @@ This file documents common mistakes, confusion points, and non-obvious behaviour
 
 ## Rendering
 
-- **Shader directory vs working directory.** `EngineConfig` uses a relative `shaders.directory` (default `assets/shaders`). `ShaderManager` resolves relative paths with `SDL_GetBasePath()` (directory containing the executable), **not** the process current working directory. Otherwise launching from Visual Studio / Cursor with CWD set to `sandbox/journey` fails to find SPIR-V next to the binary, and fullscreen/composition pipelines never register (`missing program, pipeline, …`).
+- **Shader directory vs working directory.** `EngineConfig` uses a relative `shaders.directory` (default `assets/shaders`). `ShaderManager` resolves relative paths with `SDL_GetBasePath()` (directory containing the executable), **not** the process current working directory. Otherwise, launching from Visual Studio / Cursor with CWD set to `sandbox/journey` fails to find SPIR-V next to the binary, and fullscreen/composition pipelines never register (`missing program, pipeline, …`).
 - **SDL_GPU SPIR-V binding convention:** Vertex samplers = set 0, vertex UBOs = set 1, fragment samplers = set 2, fragment UBOs = set 3. Slang sources use `Sampler2D<T>` with `[[vk::binding(N, 2)]]` for combined image/sampler slots (matches `VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER`).
 - **`NullDevice` is real.** It's used for headless testing and tools. `CreateTexture()` and `CreateSampler()` return distinguishable valid handles (incrementing counter). All other `Create*()` methods return `{}` (invalid handles). Code that runs in tests must handle null-device gracefully.
 

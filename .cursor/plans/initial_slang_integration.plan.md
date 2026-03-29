@@ -40,7 +40,11 @@ elseif(APPLE)
     endif()
     set(_SLANG_EXT "tar.gz")
 else()
-    set(_SLANG_PLATFORM "linux-x86_64")
+    if(CMAKE_SYSTEM_PROCESSOR MATCHES "aarch64|arm64|ARM64")
+        set(_SLANG_PLATFORM "linux-aarch64")
+    else()
+        set(_SLANG_PLATFORM "linux-x86_64")
+    endif()
     set(_SLANG_EXT "tar.gz")
 endif()
 
@@ -90,11 +94,13 @@ Add `include(WayfinderSlang)` in the root `CMakeLists.txt` after `include(Wayfin
 
 The current function compiles one `.vert`/`.frag` file per invocation via DXC. The new function compiles combined `.slang` files (each containing both `VSMain` and `PSMain`) — or module-only files (no entry points, compile to `.slang-module`).
 
-Slangc supports two entry points in one invocation:
-```
+**Implementation (`WayfinderShaders.cmake`):** each program runs **two** `slangc` invocations: one with `-stage vertex -entry VSMain` and one with `-stage fragment -entry PSMain`, each emitting its own `.spv` inside a single `add_custom_command`. That keeps vertex and fragment failures isolated, avoids depending on multi-entry `slangc` behaviour, and plays cleanly with CMake dependency and log output. Slang also supports listing two entry points in one command (handy for quick experiments):
+
+```shell
 slangc basic_lit.slang -target spirv -entry VSMain -o basic_lit.vert.spv -entry PSMain -o basic_lit.frag.spv
 ```
-The `-o` binds to the preceding `-entry`, and `[shader("vertex")]`/`[shader("fragment")]` attributes in source provide stage info.
+
+The `-o` binds to the preceding `-entry`, and `[shader("vertex")]`/`[shader("fragment")]` attributes in source provide stage info; the in-tree build still prefers explicit `-stage` per invocation as above.
 
 **New `wayfinder_compile_shaders()` signature:**
 
@@ -107,25 +113,39 @@ The `-o` binds to the preceding `-entry`, and `[shader("vertex")]`/`[shader("fra
 # )
 ```
 
-**Per PROGRAM file**, generate `add_custom_command`:
-```
-${SLANGC_EXECUTABLE}
-    ${SHADER_SOURCE}
+**Per PROGRAM file**, generate `add_custom_command` with **two** `COMMAND` lines (vertex then fragment), matching `WayfinderShaders.cmake`:
+
+```cmake
+${SLANGC_EXECUTABLE} "${PROGRAM_SOURCE}"
     -target spirv
     -emit-spirv-directly
-    -entry VSMain -o ${STAGING_DIR}/${NAME}.vert.spv
-    -entry PSMain -o ${STAGING_DIR}/${NAME}.frag.spv
-    -I ${MODULE_DIR}
+    -fvk-use-entrypoint-name
+    -stage vertex
+    -entry VSMain
+    -o "${VERT_SPV}"
+    -I "${MODULE_CACHE_DIR}"
+    -I "${ARG_MODULE_DIR}"
+${SLANGC_EXECUTABLE} "${PROGRAM_SOURCE}"
+    -target spirv
+    -emit-spirv-directly
+    -fvk-use-entrypoint-name
+    -stage fragment
+    -entry PSMain
+    -o "${FRAG_SPV}"
+    -I "${MODULE_CACHE_DIR}"
+    -I "${ARG_MODULE_DIR}"
 ```
-`DEPENDS` should include the source file **and** all module files (so module changes trigger recompile).
 
-**Per MODULE file**, generate `add_custom_command`:
+`DEPENDS` should include the program source **and** precompiled `.slang-module` outputs (and thus module sources), so module changes trigger recompile.
+
+**Per MODULE file**, generate `add_custom_command` that writes `${MODULE_STEM}.slang-module` under a module cache directory (programs use `-I` that directory first so slang picks up IR before raw `.slang`):
+
+```cmake
+${SLANGC_EXECUTABLE} "${MODULE_SOURCE}"
+    -o "${MODULE_BIN}"
 ```
-${SLANGC_EXECUTABLE}
-    ${MODULE_SOURCE}
-    -o ${STAGING_DIR}/${NAME}.slang-module
-```
-Precompiled modules aren't strictly needed (programs `import` source files directly), but they speed up incremental builds when multiple programs share the same module. **This is optional for Phase 2 — start without it.**
+
+Precompiled modules speed up incremental builds when several programs share the same module; the current scripts always precompile listed `MODULES`.
 
 **Special case — module-only (fullscreen vertex):** The `fullscreen.slang` module exports the `FullscreenTriangle` function but has no entry points itself. Programs importing it inline the function, so `fullscreen.slang` never needs its own `.spv`.
 
@@ -151,7 +171,7 @@ Alternatively, we could keep `fullscreen.slang` as a standalone vertex-only prog
 
 ### 3.1 New directory layout
 
-```
+```text
 engine/wayfinder/shaders/
 ├── modules/                       ← shared Slang modules
 │   ├── transforms.slang           ← TransformData (mvp, model)
@@ -260,7 +280,7 @@ VSOutput VSMain(VSInput input)
 {
     VSOutput output;
     output.Position = mul(transform.mvp, float4(input.Position, 1.0));
-    output.Normal   = normalize(mul((float3x3)transform.model, input.Normal));
+    output.Normal   = normalize(mul(NormalMatrixFromModel(transform.model), input.Normal));
     output.Colour   = input.Colour;
     return output;
 }
@@ -406,7 +426,7 @@ Entry points remain `VSMain`/`PSMain`. No code changes needed.
 
 ## Implementation Order
 
-```
+```text
 1. cmake/WayfinderSlang.cmake           (SDK download, SLANGC_EXECUTABLE)
 2. cmake/WayfinderShaders.cmake         (rewrite for slangc, new function signature)
 3. CMakeLists.txt                       (include WayfinderSlang)
@@ -488,7 +508,7 @@ Entry points remain `VSMain`/`PSMain`. No code changes needed.
 | **Module import path resolution** | slangc can't find modules at build time | `-I ${SHADER_MODULE_DIR}` in cmake command. Test with one program first. |
 | **FetchContent download fails in CI** | Build breaks | Cache the SDK directory by `SLANG_VERSION` hash. `FETCHCONTENT_FULLY_DISCONNECTED` for offline re-builds. |
 | **Slang version breaks on update** | Silent regression | Pinned version. CalVer. Add SHA256 hash to `URL_HASH` after first download for integrity. |
-| **Two entry points in one slangc invocation** | Might not work for all programs | Tested syntax: `slangc foo.slang -target spirv -entry VSMain -o foo.vert.spv -entry PSMain -o foo.frag.spv` — confirmed by Slang docs ("Working with Multiples"). Fallback: two separate invocations per program. |
+| **Two entry points in one slangc invocation** | Might not work for all programs | Wayfinder uses **two invocations per program** (`-stage vertex` / `-stage fragment`) in `WayfinderShaders.cmake` for robustness; a single command with two `-entry`/`-o` pairs remains valid Slang for quick tests. |
 
 ---
 

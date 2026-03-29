@@ -37,7 +37,7 @@ VSOutput VSMain(VSInput input)
 {
     VSOutput output;
     output.Position = mul(transform.mvp, float4(input.Position, 1.0));
-    output.Normal = normalize(mul((float3x3)transform.model, input.Normal));
+    output.Normal = normalize(mul(NormalMatrixFromModel(transform.model), input.Normal));
     output.UV = input.UV;
     return output;
 }

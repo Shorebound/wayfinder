@@ -39,6 +39,7 @@ function(wayfinder_compile_shaders)
         add_custom_command(
             OUTPUT "${MODULE_BIN}"
             COMMAND ${SLANGC_EXECUTABLE} "${MODULE_SOURCE}"
+                -I "${ARG_MODULE_DIR}"
                 -o "${MODULE_BIN}"
             DEPENDS "${MODULE_SOURCE}"
             COMMENT "Precompiling Slang module ${MODULE_STEM}"

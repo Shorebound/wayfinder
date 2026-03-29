@@ -25,12 +25,16 @@ float4 PSMain(FullscreenOutput input) : SV_Target
     float2 uv = input.TexCoord;
     float3 c = SceneColourTex.Sample(uv).rgb;
 
+    float3 eps = float3(1e-5, 1e-5, 1e-5);
+    float3 invGamma = 1.0 / max(grading.Gamma.rgb, eps);
+
     c *= exp2(grading.ExposureContrastSaturationPad.x);
     c += grading.Lift.rgb;
     c *= grading.Gain.rgb;
-    c = pow(max(c, float3(1e-5, 1e-5, 1e-5)), 1.0 / max(grading.Gamma.rgb, float3(1e-5, 1e-5, 1e-5)));
+    c = pow(max(c, eps), invGamma);
     c = (c - 0.5) * grading.ExposureContrastSaturationPad.y + 0.5;
-    float luma = dot(c, float3(0.2126, 0.7152, 0.0722));
+    float3 lumaWeights = float3(0.2126, 0.7152, 0.0722);
+    float luma = dot(c, lumaWeights);
     c = lerp(float3(luma, luma, luma), c, grading.ExposureContrastSaturationPad.z);
 
     return float4(c, 1.0);
