@@ -136,6 +136,7 @@ endif()
 
 # --- Dependencies ---
 include(WayfinderDependencies)
+include(WayfinderSlang)
 
 set(DEPS_FOLDER_NAME "ThirdParty")
 set(SDL3_SUBFOLDER "${DEPS_FOLDER_NAME}/SDL3") 

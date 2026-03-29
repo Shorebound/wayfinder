@@ -12,7 +12,7 @@ namespace Wayfinder
     // ── Shader Variant System ────────────────────────────────
 
     // Bitmask of compile-time shader features.
-    // Each bit corresponds to a #define passed to DXC at compile time.
+    // Each bit corresponds to a #define passed to the shader compiler at build time.
     // Variant 0 is the base (no defines).
     using ShaderVariantKey = uint32_t;
 

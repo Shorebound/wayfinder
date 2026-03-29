@@ -1,15 +1,36 @@
 #include "ShaderManager.h"
 #include "core/Log.h"
 
+#include <SDL3/SDL.h>
+
 #include <filesystem>
 #include <fstream>
 
 namespace Wayfinder
 {
+    namespace
+    {
+        /** Relative shader paths in config are resolved against the application base path (directory containing the executable), not CWD — so IDEs can use a project working directory without breaking packaged assets
+         * next to the binary. */
+        [[nodiscard]] std::string ResolveShaderDirectory(std::string_view shaderDirectory)
+        {
+            std::filesystem::path dir(shaderDirectory);
+            if (dir.is_absolute())
+            {
+                return dir.string();
+            }
+            if (const char* base = SDL_GetBasePath())
+            {
+                return (std::filesystem::path(base) / dir).lexically_normal().string();
+            }
+            return std::string(shaderDirectory);
+        }
+    } // namespace
+
     void ShaderManager::Initialise(RenderDevice& device, std::string_view shaderDirectory)
     {
         m_device = &device;
-        m_shaderDir.assign(shaderDirectory.begin(), shaderDirectory.end());
+        m_shaderDir = ResolveShaderDirectory(shaderDirectory);
         WAYFINDER_INFO(LogRenderer, "ShaderManager: initialised with directory '{}'", m_shaderDir);
     }
 
