@@ -199,7 +199,7 @@ namespace Wayfinder
     {
         // Iterate in reverse: overlays (pushed via PushOverlay, at the back) receive
         // events first and can mark them handled before underlying layers see them.
-        for (auto* layer : *m_layerStack | std::views::reverse)
+        for (auto& layer : *m_layerStack | std::views::reverse)
         {
             if (event.Handled)
             {
