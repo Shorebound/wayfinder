@@ -197,14 +197,15 @@ namespace Wayfinder
 
     void Application::PropagateToLayers(Event& event)
     {
-        // make this the modern version
-        for (auto& layer : *m_layerStack)
+        // Iterate in reverse: overlays (pushed via PushOverlay, at the back) receive
+        // events first and can mark them handled before underlying layers see them.
+        for (auto it = m_layerStack->rbegin(); it != m_layerStack->rend(); ++it)
         {
             if (event.Handled)
             {
                 break;
             }
-            layer->OnEvent(event);
+            (*it)->OnEvent(event);
         }
     }
 

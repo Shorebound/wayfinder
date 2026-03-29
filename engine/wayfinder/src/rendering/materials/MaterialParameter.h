@@ -72,6 +72,7 @@ namespace Wayfinder
             {
                 Values.emplace(std::string(name), std::move(value));
             }
+            Slots.clear(); // Invalidate flat cache — caller must BuildSlots again.
         }
 
     public:
@@ -105,17 +106,35 @@ namespace Wayfinder
             return Values.contains(name);
         }
 
-        /// Populate the flat Slots vector from the named Values map using the
-        /// given shader declarations. Each slot corresponds to a declaration in
-        /// order. Missing values use the declaration's default.
+        /**
+         * @brief Populate the flat Slots vector from the named Values map.
+         *
+         * Each slot corresponds to a declaration in order. Missing values use
+         * the declaration's default.
+         * @param decls Shader parameter declarations defining the expected layout.
+         */
         void BuildSlots(const std::vector<MaterialParamDecl>& decls);
 
-        /// Apply named overrides from another block into the flat Slots, using
-        /// the declarations to resolve name → slot index.
+        /**
+         * @brief Apply named overrides from another block into the flat Slots.
+         *
+         * Uses the declarations to resolve name to slot index. Slots must be
+         * populated via BuildSlots before calling this.
+         * @param overrides Source block of named overrides to apply.
+         * @param decls Shader parameter declarations used to resolve names.
+         */
         void ApplyOverrides(const MaterialParameterBlock& overrides, const std::vector<MaterialParamDecl>& decls);
 
-        // Write all parameters into a byte buffer using the given declarations.
-        // Unknown parameters are skipped; missing parameters use the declaration's default.
+        /**
+         * @brief Write all parameters into a byte buffer using the given declarations.
+         *
+         * Uses the fast Slots path when available (exact size match with decls),
+         * otherwise falls back to named Values lookup. Unknown parameters are
+         * skipped; missing parameters use the declaration's default.
+         * @param decls Shader parameter declarations defining offsets and types.
+         * @param outBuffer Destination byte buffer.
+         * @param bufferSize Size of the destination buffer in bytes.
+         */
         void SerialiseToUBO(const std::vector<MaterialParamDecl>& decls, void* outBuffer, uint32_t bufferSize) const;
     };
 

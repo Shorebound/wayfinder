@@ -70,7 +70,7 @@ After the existing sort pass in `Prepare()`, add a `BatchSubmissions()` step tha
 4. Submissions with `InstanceCount == 1` (unbatched) still work — they write one transform into the storage buffer and draw with `instanceCount = 1`, OR fall back to the current UBO push path.
 
 **New types:**
-```
+```cpp
 struct InstanceData {
     Matrix4 Model;      // World transform
     Matrix4 Mvp;        // Pre-computed MVP (avoids per-instance matrix multiply in shader)
@@ -79,7 +79,7 @@ struct InstanceData {
 ```
 
 Or, to reduce bandwidth and do the multiply in shader:
-```
+```cpp
 struct InstanceData {
     Matrix4 Model;      // 64 bytes — shader computes MVP = ViewProj * Model
 };

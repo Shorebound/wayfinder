@@ -97,7 +97,16 @@ namespace Wayfinder::Rendering
             return;
         }
 
-        const RenderGraphHandle inputHandle = ResolvePostProcessInput(graph);
+        RenderGraphHandle inputHandle = graph.FindHandle(GraphTextureId::PostProcessColour);
+        if (!inputHandle.IsValid())
+        {
+            inputHandle = graph.FindHandle(GraphTextureId::SceneColour);
+        }
+        if (!inputHandle.IsValid())
+        {
+            return; // No upstream colour available — skip vignette.
+        }
+
         const uint32_t w = params.SwapchainWidth;
         const uint32_t h = params.SwapchainHeight;
 

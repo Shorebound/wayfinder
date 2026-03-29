@@ -1,5 +1,7 @@
 #include "MaterialParameter.h"
 
+#include "core/Log.h"
+
 #include <cstring>
 
 namespace Wayfinder
@@ -70,6 +72,12 @@ namespace Wayfinder
 
     void MaterialParameterBlock::ApplyOverrides(const MaterialParameterBlock& overrides, const std::vector<MaterialParamDecl>& decls)
     {
+        if (Slots.empty())
+        {
+            WAYFINDER_WARN(LogRenderer, "ApplyOverrides: Slots is empty — call BuildSlots before ApplyOverrides");
+            return;
+        }
+
         for (size_t i = 0; i < decls.size(); ++i)
         {
             const auto it = overrides.Values.find(decls[i].Name);
@@ -87,7 +95,7 @@ namespace Wayfinder
     {
         auto* bytes = static_cast<uint8_t*>(outBuffer);
 
-        if (!Slots.empty())
+        if (!Slots.empty() && Slots.size() == decls.size())
         {
             // Fast path: read from pre-built flat slots (no hash lookups)
             for (size_t i = 0; i < decls.size(); ++i)
@@ -98,7 +106,7 @@ namespace Wayfinder
                     continue;
                 }
                 const uint32_t remaining = bufferSize - decl.Offset;
-                const MaterialParamValue& value = (i < Slots.size()) ? Slots[i] : decl.Default;
+                const MaterialParamValue& value = Slots[i];
                 WriteValue(value, bytes + decl.Offset, remaining);
             }
             return;

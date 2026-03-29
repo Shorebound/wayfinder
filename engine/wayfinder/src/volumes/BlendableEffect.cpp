@@ -176,7 +176,7 @@ namespace Wayfinder
                 }
 
                 const BlendableEffectDesc* desc = registry.Find(effect.TypeId);
-                if (desc == nullptr || desc->Blend == nullptr)
+                if (desc == nullptr || desc->CreateIdentity == nullptr || desc->Blend == nullptr)
                 {
                     continue;
                 }

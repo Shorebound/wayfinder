@@ -98,14 +98,29 @@ namespace Wayfinder
         RegisterPass(RenderPhase::Present, 0, std::make_unique<CompositionPass>());
 
         // Flush passes that were registered before Initialise (deferred).
+        // Insert directly with their captured InsertSequence to preserve original
+        // call order for equal Phase/Order entries (RegisterPass would reassign it).
         if (!m_pendingPasses.empty())
         {
             auto deferred = std::move(m_pendingPasses);
             m_pendingPasses.clear();
+
+            const RenderFeatureContext ctx{*m_context};
             for (auto& slot : deferred)
             {
-                RegisterPass(slot.Phase, slot.Order, std::move(slot.Pass));
+                if (slot.Pass)
+                {
+                    slot.Pass->OnAttach(ctx);
+
+                    if (slot.Phase == RenderPhase::Present && !slot.Pass->IsEnabled())
+                    {
+                        WAYFINDER_WARN(LogRenderer, "RegisterPass: Present phase pass '{}' is disabled — graph may lack a swapchain writer", slot.Pass->GetName());
+                    }
+
+                    m_passes.push_back(std::move(slot));
+                }
             }
+            SortPassList(m_passes);
         }
 
         m_initialised = true;

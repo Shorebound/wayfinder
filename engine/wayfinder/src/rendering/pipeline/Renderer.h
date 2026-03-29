@@ -83,7 +83,8 @@ namespace Wayfinder
         {
             if (m_renderPipeline)
             {
-                return m_renderPipeline->GetPass<T>();
+                const auto* rp = m_renderPipeline.get();
+                return rp->GetPass<T>();
             }
             return nullptr;
         }

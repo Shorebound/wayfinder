@@ -568,7 +568,7 @@ namespace Wayfinder
 
                 if (!device.BeginRenderPass(rpDesc))
                 {
-                    WAYFINDER_ERROR(LogRenderer, "RenderGraph: BeginRenderPass failed for pass '{}' — pass skipped", pass.Name.GetString());
+                    WAYFINDER_WARN(LogRenderer, "RenderGraph: BeginRenderPass failed for pass '{}' — pass skipped", pass.Name.GetString());
                     continue;
                 }
                 pass.Execute(device, resources);
