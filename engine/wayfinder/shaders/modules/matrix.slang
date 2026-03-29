@@ -5,15 +5,17 @@ module matrix;
 // as a straightforward cofactor expansion; 4×4 uses a block-style expansion that avoids the
 // full naive 4×4 cofactor blow-up.
 
-/// @brief Full inverse of a 2×2 matrix (general purpose).
+/// @brief Full inverse of a 2x2 matrix (general purpose).
 public float2x2 MatrixInverse(float2x2 m)
 {
     float det = m._11 * m._22 - m._12 * m._21;
+    if (abs(det) < 1e-6)
+        return float2x2(1, 0, 0, 1);
     float invD = 1.0 / det;
     return float2x2(m._22, -m._12, -m._21, m._11) * invD;
 }
 
-/// @brief Full inverse of a 3×3 matrix (general purpose).
+/// @brief Full inverse of a 3x3 matrix (general purpose).
 public float3x3 MatrixInverse(float3x3 m)
 {
     float3x3 inv;
@@ -30,6 +32,8 @@ public float3x3 MatrixInverse(float3x3 m)
     inv._33 = (m._11 * m._22 - m._12 * m._21);
 
     float det = m._11 * inv._11 + m._12 * inv._21 + m._13 * inv._31;
+    if (abs(det) < 1e-6)
+        return float3x3(1, 0, 0, 0, 1, 0, 0, 0, 1);
     return inv * (1.0 / det);
 }
 
@@ -55,6 +59,8 @@ public float4x4 MatrixInverse(float4x4 m)
     float b11 = a22 * a33 - a23 * a32;
 
     float det = b00 * b11 - b01 * b10 + b02 * b09 + b03 * b08 - b04 * b07 + b05 * b06;
+    if (abs(det) < 1e-6)
+        return float4x4(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1);
     float invD = 1.0 / det;
 
     float4x4 inv;

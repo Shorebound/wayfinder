@@ -37,7 +37,8 @@ if(SLANG_SDK_CACHE_DIR)
 endif()
 
 FetchContent_Declare(slang_sdk
-    URL "${_SLANG_URL}"
+    URL      "${_SLANG_URL}"
+    URL_HASH SHA256=4bbf0f1338f13cb0baf2cc10da62ea92d186c9ea3219c73d6d3516bf1bf3cd49
     DOWNLOAD_EXTRACT_TIMESTAMP TRUE
 )
 FetchContent_MakeAvailable(slang_sdk)

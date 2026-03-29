@@ -29,6 +29,7 @@ function(wayfinder_compile_shaders)
     # Compile .slang modules to .slang-module IR binaries so program
     # compilation skips re-parsing module source on every invocation.
     set(MODULE_CACHE_DIR "${CMAKE_CURRENT_BINARY_DIR}/precompiled_modules")
+    file(REMOVE_RECURSE "${MODULE_CACHE_DIR}")
     file(MAKE_DIRECTORY "${MODULE_CACHE_DIR}/modules")
 
     set(_PRECOMPILED_MODULES "")
@@ -85,15 +86,18 @@ function(wayfinder_compile_shaders)
     endforeach()
 
     if(SPV_OUTPUTS)
-        add_custom_target(${ARG_TARGET}_shaders ALL DEPENDS ${SPV_OUTPUTS})
-        add_dependencies(${ARG_TARGET} ${ARG_TARGET}_shaders)
-
-        add_custom_command(TARGET ${ARG_TARGET} POST_BUILD
-            COMMAND ${CMAKE_COMMAND} -E copy_directory
-                "${STAGING_DIR}"
-                "${ARG_OUTPUT_DIR}"
-            COMMENT "Copying compiled shaders to output directory"
+        set(_SHADER_STAMP "${CMAKE_CURRENT_BINARY_DIR}/shader_sync.stamp")
+        add_custom_command(
+            OUTPUT "${_SHADER_STAMP}"
+            DEPENDS ${SPV_OUTPUTS}
+            COMMAND ${CMAKE_COMMAND} -E remove_directory "${ARG_OUTPUT_DIR}"
+            COMMAND ${CMAKE_COMMAND} -E make_directory "${ARG_OUTPUT_DIR}"
+            COMMAND ${CMAKE_COMMAND} -E copy_directory "${STAGING_DIR}" "${ARG_OUTPUT_DIR}"
+            COMMAND ${CMAKE_COMMAND} -E touch "${_SHADER_STAMP}"
+            COMMENT "Syncing compiled shaders to output directory"
             VERBATIM
         )
+        add_custom_target(${ARG_TARGET}_shaders ALL DEPENDS "${_SHADER_STAMP}")
+        add_dependencies(${ARG_TARGET} ${ARG_TARGET}_shaders)
     endif()
 endfunction()
