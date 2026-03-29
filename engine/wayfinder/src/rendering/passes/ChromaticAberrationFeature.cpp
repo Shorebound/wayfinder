@@ -74,6 +74,29 @@ namespace Wayfinder
         m_effectId = INVALID_BLENDABLE_EFFECT_ID;
     }
 
+    void ChromaticAberrationFeature::OnShadersReloaded(const RenderFeatureContext& context)
+    {
+        auto& programs = context.Context.GetPrograms();
+        ShaderProgramDesc desc;
+        desc.Name = "chromatic_aberration";
+        desc.VertexShaderName = "chromatic_aberration";
+        desc.FragmentShaderName = "chromatic_aberration";
+        desc.VertexResources = {};
+        desc.FragmentResources = {.numUniformBuffers = 1, .numSamplers = 1};
+        desc.VertexLayout = VertexLayouts::Empty;
+        desc.Cull = CullMode::None;
+        desc.DepthTest = false;
+        desc.DepthWrite = false;
+        desc.MaterialUBOSize = sizeof(ChromaticAberrationUBO);
+        desc.VertexUBOSize = 0;
+        desc.NeedsSceneGlobals = false;
+
+        if (!programs.Register(desc))
+        {
+            WAYFINDER_ERROR(LogRenderer, "ChromaticAberrationFeature: failed to re-register chromatic_aberration shader program");
+        }
+    }
+
     void ChromaticAberrationFeature::AddPasses(RenderGraph& graph, const FrameRenderParams& params)
     {
         if (!m_context || m_effectId == INVALID_BLENDABLE_EFFECT_ID)

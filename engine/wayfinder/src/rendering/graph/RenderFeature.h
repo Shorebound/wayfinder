@@ -61,6 +61,17 @@ namespace Wayfinder
         /** @brief Called when the feature is removed. Use the context for cleanup. */
         virtual void OnDetach(const RenderFeatureContext& /*context*/) {}
 
+        /**
+         * @brief Called after a shader reload to re-register programs and recreate pipelines.
+         *
+         * The default implementation delegates to OnAttach, which is correct for most passes.
+         * Override only if your reload logic differs from initial attachment.
+         */
+        virtual void OnShadersReloaded(const RenderFeatureContext& context)
+        {
+            OnAttach(context);
+        }
+
         /** @return True if this feature is enabled and will inject passes. */
         bool IsEnabled() const
         {

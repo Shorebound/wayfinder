@@ -16,7 +16,7 @@ This project is greenfield. Breaking changes, rewrites, and architectural pivots
 
 - **Elegant by default.** Strive for APIs and systems that feel clean and satisfying to use. If two approaches are otherwise equal, pick the one that reads better and composes more naturally.
 - **Performance with clarity** — efficient code that stays readable. Optimise measured bottlenecks, not hunches.
-- **Production-quality framing from the start.** implementations can be minimal, but interfaces, data flow, and error handling must be sound enough to build on. Code should look like it belongs in a shipping engine. If a proposal, plan, or implementation doesn't meet that bar, rework it before moving on.
+- **Production-quality framing from the start.** implementations can be minimal, but the architecture, interfaces, data flow, and error handling must be sound enough to build on. Code should look like it belongs in a shipping engine. We do not want tutorial/prototype code. If a proposal, plan, or implementation doesn't meet that bar, rework it before moving on.
 
 - **Modern design** — current best practices for language, architecture, and APIs; prefer unconventional approaches when they are better, but justify departures from “how engines usually do it.”
 

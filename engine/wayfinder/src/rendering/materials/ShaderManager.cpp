@@ -1,38 +1,18 @@
 #include "ShaderManager.h"
 #include "SlangCompiler.h"
 #include "core/Log.h"
-
-#include <SDL3/SDL.h>
+#include "platform/Paths.h"
 
 #include <filesystem>
 #include <fstream>
 
 namespace Wayfinder
 {
-    namespace
-    {
-        /** Relative shader paths in config are resolved against the application base path (directory containing the executable), not CWD — so IDEs can use a project working directory without breaking packaged assets
-         * next to the binary. */
-        [[nodiscard]] std::string ResolveShaderDirectory(std::string_view shaderDirectory)
-        {
-            const std::filesystem::path dir(shaderDirectory);
-            if (dir.is_absolute())
-            {
-                return dir.string();
-            }
-            if (const char* base = SDL_GetBasePath())
-            {
-                return (std::filesystem::path(base) / dir).lexically_normal().string();
-            }
-            return std::string(shaderDirectory);
-        }
-    } // namespace
-
     void ShaderManager::Initialise(RenderDevice& device, std::string_view shaderDirectory, SlangCompiler* compiler)
     {
         m_device = &device;
         m_compiler = compiler;
-        m_shaderDir = ResolveShaderDirectory(shaderDirectory);
+        m_shaderDir = ResolvePathFromBase(shaderDirectory);
         WAYFINDER_INFO(LogRenderer, "ShaderManager: initialised with directory '{}'", m_shaderDir);
     }
 
@@ -148,6 +128,18 @@ namespace Wayfinder
     {
         std::string filePath = (std::filesystem::path(m_shaderDir) / (std::string(name) + ".comp.spv")).string();
         std::vector<uint8_t> bytecode = ReadFile(filePath);
+
+#if !defined(WAYFINDER_SHIPPING)
+        if (bytecode.empty() && m_compiler && m_compiler->IsInitialised())
+        {
+            auto compileResult = m_compiler->Compile(name, "CSMain", ShaderStage::Compute);
+            if (compileResult)
+            {
+                bytecode = std::move(compileResult->Bytecode);
+            }
+        }
+#endif
+
         if (bytecode.empty())
         {
             WAYFINDER_ERROR(LogRenderer, "ShaderManager: Failed to load compute shader '{}'", filePath);

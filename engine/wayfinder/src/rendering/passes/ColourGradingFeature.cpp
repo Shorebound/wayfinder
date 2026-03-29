@@ -93,6 +93,29 @@ namespace Wayfinder
         m_effectId = INVALID_BLENDABLE_EFFECT_ID;
     }
 
+    void ColourGradingFeature::OnShadersReloaded(const RenderFeatureContext& context)
+    {
+        auto& programs = context.Context.GetPrograms();
+        ShaderProgramDesc desc;
+        desc.Name = "colour_grading";
+        desc.VertexShaderName = "colour_grading";
+        desc.FragmentShaderName = "colour_grading";
+        desc.VertexResources = {};
+        desc.FragmentResources = {.numUniformBuffers = 1, .numSamplers = 1};
+        desc.VertexLayout = VertexLayouts::Empty;
+        desc.Cull = CullMode::None;
+        desc.DepthTest = false;
+        desc.DepthWrite = false;
+        desc.MaterialUBOSize = sizeof(ColourGradingUBO);
+        desc.VertexUBOSize = 0;
+        desc.NeedsSceneGlobals = false;
+
+        if (!programs.Register(desc))
+        {
+            WAYFINDER_ERROR(LogRenderer, "ColourGradingFeature: failed to re-register colour_grading shader program");
+        }
+    }
+
     void ColourGradingFeature::AddPasses(RenderGraph& graph, const FrameRenderParams& params)
     {
         if (!m_context)

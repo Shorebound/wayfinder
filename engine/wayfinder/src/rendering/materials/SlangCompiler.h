@@ -61,7 +61,16 @@ namespace Wayfinder
          * @param stage Shader stage (Vertex, Fragment, or Compute).
          * @return SPIR-V bytecode on success, or an Error with diagnostic details.
          */
-        Result<CompileResult> Compile(std::string_view sourceName, std::string_view entryPoint, ShaderStage stage) const;
+        Result<CompileResult> Compile(std::string_view sourceName, std::string_view entryPoint, ShaderStage stage);
+
+        /**
+         * @brief Destroys and recreates the internal compilation session.
+         *
+         * Slang caches loaded modules inside its ISession, so editing an imported
+         * module won't take effect until the session is recycled. Call this before
+         * recompiling after source changes (e.g. during ReloadShaders).
+         */
+        Result<void> ResetSession();
 
         [[nodiscard]] bool IsInitialised() const;
 
@@ -69,6 +78,7 @@ namespace Wayfinder
         struct Impl;
         std::unique_ptr<Impl> m_impl;
         std::string m_sourceDirectory;
+        std::vector<std::string> m_searchPaths;
     };
 
 } // namespace Wayfinder

@@ -4,6 +4,7 @@
 #include <slang-com-ptr.h>
 #include <slang.h>
 
+#include <array>
 #include <filesystem>
 #include <format>
 
@@ -33,6 +34,7 @@ namespace Wayfinder
         }
 
         m_sourceDirectory = std::string(desc.sourceDirectory);
+        m_searchPaths.assign(desc.searchPaths.begin(), desc.searchPaths.end());
 
         if (!std::filesystem::exists(m_sourceDirectory))
         {
@@ -54,24 +56,24 @@ namespace Wayfinder
         targetDesc.profile = impl->GlobalSession->findProfile("spirv_1_5");
 
         // Match the offline slangc flags: -emit-spirv-directly -fvk-use-entrypoint-name
-        slang::CompilerOptionEntry options[] =
+        std::array options =
         {
-            {slang::CompilerOptionName::EmitSpirvDirectly, {.intValue0 = 1}},
-            {slang::CompilerOptionName::VulkanUseEntryPointName, {.intValue0 = 1}},
+            slang::CompilerOptionEntry{.name = slang::CompilerOptionName::EmitSpirvDirectly, .value = {.intValue0 = 1}},
+            slang::CompilerOptionEntry{.name = slang::CompilerOptionName::VulkanUseEntryPointName, .value = {.intValue0 = 1}},
         };
 
         slang::SessionDesc sessionDesc = {};
         sessionDesc.targets = &targetDesc;
         sessionDesc.targetCount = 1;
-        sessionDesc.compilerOptionEntries = options;
-        sessionDesc.compilerOptionEntryCount = static_cast<uint32_t>(std::size(options));
+        sessionDesc.compilerOptionEntries = options.data();
+        sessionDesc.compilerOptionEntryCount = static_cast<uint32_t>(options.size());
 
         // Build search paths: source directory first, then any additional paths
         std::vector<const char*> searchPathPtrs;
         searchPathPtrs.reserve(1 + desc.searchPaths.size());
         searchPathPtrs.push_back(m_sourceDirectory.c_str());
         // Pin additional path strings so pointers remain valid during session creation
-        std::vector<std::string> searchPathStorage(desc.searchPaths.begin(), desc.searchPaths.end());
+        const std::vector<std::string> searchPathStorage(desc.searchPaths.begin(), desc.searchPaths.end());
         for (const auto& path : searchPathStorage)
         {
             searchPathPtrs.push_back(path.c_str());
@@ -98,11 +100,58 @@ namespace Wayfinder
             WAYFINDER_INFO(LogRenderer, "SlangCompiler: shut down");
         }
         m_sourceDirectory.clear();
+        m_searchPaths.clear();
     }
 
     bool SlangCompiler::IsInitialised() const
     {
         return m_impl != nullptr;
+    }
+
+    Result<void> SlangCompiler::ResetSession()
+    {
+        if (!m_impl)
+        {
+            return MakeError("SlangCompiler not initialised");
+        }
+
+        // Destroy the old session (releases cached modules) and create a fresh one.
+        m_impl->Session = nullptr;
+
+        slang::TargetDesc targetDesc = {};
+        targetDesc.format = SLANG_SPIRV;
+        targetDesc.profile = m_impl->GlobalSession->findProfile("spirv_1_5");
+
+        std::array options =
+        {
+            slang::CompilerOptionEntry{.name = slang::CompilerOptionName::EmitSpirvDirectly, .value = {.intValue0 = 1}},
+            slang::CompilerOptionEntry{.name = slang::CompilerOptionName::VulkanUseEntryPointName, .value = {.intValue0 = 1}},
+        };
+
+        slang::SessionDesc sessionDesc = {};
+        sessionDesc.targets = &targetDesc;
+        sessionDesc.targetCount = 1;
+        sessionDesc.compilerOptionEntries = options.data();
+        sessionDesc.compilerOptionEntryCount = static_cast<uint32_t>(options.size());
+
+        std::vector<const char*> searchPathPtrs;
+        searchPathPtrs.reserve(1 + m_searchPaths.size());
+        searchPathPtrs.push_back(m_sourceDirectory.c_str());
+        for (const auto& path : m_searchPaths)
+        {
+            searchPathPtrs.push_back(path.c_str());
+        }
+        sessionDesc.searchPaths = searchPathPtrs.data();
+        sessionDesc.searchPathCount = static_cast<SlangInt>(searchPathPtrs.size());
+
+        const SlangResult result = m_impl->GlobalSession->createSession(sessionDesc, m_impl->Session.writeRef());
+        if (SLANG_FAILED(result))
+        {
+            return MakeError("Failed to recreate Slang compilation session");
+        }
+
+        WAYFINDER_INFO(LogRenderer, "SlangCompiler: session reset (module cache cleared)");
+        return {};
     }
 
     namespace
@@ -151,7 +200,7 @@ namespace Wayfinder
         }
     } // namespace
 
-    Result<SlangCompiler::CompileResult> SlangCompiler::Compile(const std::string_view sourceName, const std::string_view entryPoint, ShaderStage stage) const
+    Result<SlangCompiler::CompileResult> SlangCompiler::Compile(const std::string_view sourceName, const std::string_view entryPoint, ShaderStage stage)
     {
         if (!m_impl)
         {
@@ -200,10 +249,12 @@ namespace Wayfinder
         }
 
         // 3. Compose the program (module + entry point)
-        slang::IComponentType* components[] = {module, entryPointObj.get()};
+        // NOLINTBEGIN(misc-const-correctness): Slang API expects non-const IComponentType*
+        std::array<slang::IComponentType*, 2> components = {module, entryPointObj.get()};
+        // NOLINTEND(misc-const-correctness)
         Slang::ComPtr<slang::IComponentType> composedProgram;
         diagnostics = nullptr;
-        result = m_impl->Session->createCompositeComponentType(components, static_cast<SlangInt>(std::size(components)), composedProgram.writeRef(), diagnostics.writeRef());
+        result = m_impl->Session->createCompositeComponentType(components.data(), static_cast<SlangInt>(components.size()), composedProgram.writeRef(), diagnostics.writeRef());
         if (SLANG_FAILED(result))
         {
             WAYFINDER_ERROR(LogRenderer, "SlangCompiler: failed to compose program for '{}':'{}'", sourcePath, entryPoint);

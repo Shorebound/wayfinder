@@ -1,32 +1,16 @@
 #include "RenderServices.h"
 
+#include "RenderOrchestrator.h"
 #include "app/EngineConfig.h"
 #include "core/Log.h"
+#include "platform/Paths.h"
 #include "rendering/backend/RenderDevice.h"
-
-#include <SDL3/SDL.h>
-
-#include <filesystem>
+#include "rendering/materials/SlangCompiler.h"
 
 namespace Wayfinder
 {
-    namespace
-    {
-        /// Resolve a path relative to the executable base directory (same logic as ShaderManager).
-        [[nodiscard]] std::string ResolvePathFromBase(std::string_view path)
-        {
-            const std::filesystem::path dir(path);
-            if (dir.is_absolute())
-            {
-                return dir.string();
-            }
-            if (const char* base = SDL_GetBasePath())
-            {
-                return (std::filesystem::path(base) / dir).lexically_normal().string();
-            }
-            return std::string(path);
-        }
-    } // namespace
+    RenderServices::RenderServices() = default;
+    RenderServices::~RenderServices() = default;
 
     Result<void> RenderServices::Initialise(RenderDevice& device, const EngineConfig& config, BlendableEffectRegistry* registry)
     {
@@ -37,19 +21,22 @@ namespace Wayfinder
         SlangCompiler* compilerPtr = nullptr;
         if (!config.Shaders.SourceDirectory.empty())
         {
+            m_slangCompiler = std::make_unique<SlangCompiler>();
+
             SlangCompiler::InitDesc compilerDesc;
             const std::string resolvedSourceDir = ResolvePathFromBase(config.Shaders.SourceDirectory);
             compilerDesc.sourceDirectory = resolvedSourceDir;
 
-            auto compilerResult = m_slangCompiler.Initialise(compilerDesc);
+            auto compilerResult = m_slangCompiler->Initialise(compilerDesc);
             if (compilerResult)
             {
-                compilerPtr = &m_slangCompiler;
+                compilerPtr = m_slangCompiler.get();
                 WAYFINDER_INFO(LogRenderer, "RenderServices: Slang runtime compiler initialised");
             }
             else
             {
                 WAYFINDER_WARN(LogRenderer, "RenderServices: Slang runtime compiler failed to initialise: {}", compilerResult.error().GetMessage());
+                m_slangCompiler.reset();
                 // Non-fatal: fall back to pre-compiled .spv only
             }
         }
@@ -132,17 +119,32 @@ namespace Wayfinder
         m_programRegistry.Shutdown();
         m_pipelineCache.Shutdown();
         m_shaderManager.Shutdown();
-        m_slangCompiler.Shutdown();
+        m_slangCompiler.reset();
 
         m_device = nullptr;
     }
 
-    void RenderServices::ReloadShaders()
+    void RenderServices::ReloadShaders(RenderOrchestrator* orchestrator)
     {
+        // Reset the Slang session so cached modules are discarded
+        if (m_slangCompiler && m_slangCompiler->IsInitialised())
+        {
+            auto result = m_slangCompiler->ResetSession();
+            if (!result)
+            {
+                WAYFINDER_ERROR(LogRenderer, "RenderServices::ReloadShaders: Slang session reset failed: {}", result.error().GetMessage());
+            }
+        }
+
         m_pipelineCache.InvalidateAll();
         m_programRegistry.InvalidateAll();
         m_shaderManager.ReloadShaders();
         WAYFINDER_INFO(LogRenderer, "RenderServices: all shaders and pipelines invalidated");
+
+        if (orchestrator)
+        {
+            orchestrator->RebuildPipelines();
+        }
     }
 
 } // namespace Wayfinder

@@ -33,15 +33,22 @@ target_include_directories(${WAYFINDER_RENDER_TEST_NAME}
 add_test(NAME ${WAYFINDER_RENDER_TEST_NAME} COMMAND ${WAYFINDER_RENDER_TEST_NAME})
 set_target_properties(${WAYFINDER_RENDER_TEST_NAME} PROPERTIES FOLDER "${TESTS_DIRECTORY}")
 
-# Copy Slang runtime DLLs next to render test executable
+# Copy Slang runtime DLLs needed for runtime compilation next to render test executable
 if(WIN32 AND DEFINED SLANG_BIN_DIR)
-    file(GLOB _SLANG_TEST_DLLS "${SLANG_BIN_DIR}/*.dll")
+    set(_SLANG_TEST_DLLS
+        "${SLANG_BIN_DIR}/slang.dll"
+        "${SLANG_BIN_DIR}/slang-rt.dll"
+        "${SLANG_BIN_DIR}/slang-compiler.dll"
+        "${SLANG_BIN_DIR}/slang-glslang.dll"
+    )
     foreach(_DLL ${_SLANG_TEST_DLLS})
-        add_custom_command(TARGET ${WAYFINDER_RENDER_TEST_NAME} POST_BUILD
-            COMMAND ${CMAKE_COMMAND} -E copy_if_different
-                "${_DLL}" "$<TARGET_FILE_DIR:${WAYFINDER_RENDER_TEST_NAME}>"
-            VERBATIM
-        )
+        if(EXISTS "${_DLL}")
+            add_custom_command(TARGET ${WAYFINDER_RENDER_TEST_NAME} POST_BUILD
+                COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                    "${_DLL}" "$<TARGET_FILE_DIR:${WAYFINDER_RENDER_TEST_NAME}>"
+                VERBATIM
+            )
+        endif()
     endforeach()
 endif()
 

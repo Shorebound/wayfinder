@@ -156,6 +156,7 @@ set(ENGINE_ALL_SOURCES
   # Platform
   src/platform/BackendConfig.h
   src/platform/Input.h
+  src/platform/Paths.h
   src/platform/KeyCodes.h
   src/platform/MouseCodes.h
   src/platform/Time.h

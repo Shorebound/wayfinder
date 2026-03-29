@@ -22,6 +22,7 @@ namespace Wayfinder
 
         void OnAttach(const RenderFeatureContext& context) override;
         void OnDetach(const RenderFeatureContext& context) override;
+        void OnShadersReloaded(const RenderFeatureContext& context) override;
         void AddPasses(RenderGraph& graph, const FrameRenderParams& params) override;
 
     private:

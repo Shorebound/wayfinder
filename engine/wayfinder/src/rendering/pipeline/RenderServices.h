@@ -5,7 +5,6 @@
 #include "core/Result.h"
 #include "rendering/materials/ShaderManager.h"
 #include "rendering/materials/ShaderProgram.h"
-#include "rendering/materials/SlangCompiler.h"
 #include "rendering/mesh/Mesh.h"
 #include "rendering/resources/MeshManager.h"
 #include "rendering/resources/TextureManager.h"
@@ -14,10 +13,12 @@
 #include "volumes/BlendableEffectRegistry.h"
 
 #include <cassert>
+#include <memory>
 
 namespace Wayfinder
 {
     class RenderDevice;
+    class SlangCompiler;
     struct EngineConfig;
 
     /// Owns the shared GPU resource infrastructure used by the frame composer,
@@ -26,8 +27,8 @@ namespace Wayfinder
     class WAYFINDER_API RenderServices
     {
     public:
-        RenderServices() = default;
-        ~RenderServices() = default;
+        RenderServices();
+        ~RenderServices();
 
         RenderServices(const RenderServices&) = delete;
         RenderServices& operator=(const RenderServices&) = delete;
@@ -38,13 +39,17 @@ namespace Wayfinder
         void Shutdown();
 
         /**
-         * @brief Invalidates all shaders, programs and pipelines.
+         * @brief Invalidates all shaders, programs and pipelines, then rebuilds.
          *
-         * The next frame will lazily recompile all needed shaders (from .spv or .slang)
-         * and recreate pipelines. Call RenderOrchestrator::RebuildPipelines() afterwards
-         * to re-register shader programs.
+         * Resets the Slang session (clearing cached modules), destroys all GPU
+         * shader/pipeline handles, and - if an orchestrator is provided -
+         * re-registers every shader program and per-pass pipeline.
+         *
+         * @param orchestrator  Optional. When non-null, RebuildPipelines() is
+         *                      called automatically so the system is left in a
+         *                      fully valid state for the next frame.
          */
-        void ReloadShaders();
+        void ReloadShaders(class RenderOrchestrator* orchestrator = nullptr);
 
         // ── Accessors ────────────────────────────────────────
         RenderDevice& GetDevice()
@@ -151,7 +156,7 @@ namespace Wayfinder
         RenderDevice* m_device = nullptr;
         BlendableEffectRegistry* m_blendableEffectRegistry = nullptr;
 
-        SlangCompiler m_slangCompiler;
+        std::unique_ptr<SlangCompiler> m_slangCompiler;
         ShaderManager m_shaderManager;
         PipelineCache m_pipelineCache;
         ShaderProgramRegistry m_programRegistry;

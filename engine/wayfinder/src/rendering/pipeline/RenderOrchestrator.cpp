@@ -134,14 +134,23 @@ namespace Wayfinder
             return;
         }
 
+        // Re-register scene shader programs (unlit, basic_lit, etc.)
         if (!RegisterSceneShaderPrograms(m_context->GetPrograms()))
         {
             WAYFINDER_ERROR(LogRenderer, "RenderOrchestrator::RebuildPipelines: one or more shader programs failed to re-register");
         }
-        else
+
+        // Re-register per-pass shader programs and recreate cached pipelines
+        const RenderFeatureContext ctx{*m_context};
+        for (auto& slot : m_passes)
         {
-            WAYFINDER_INFO(LogRenderer, "RenderOrchestrator::RebuildPipelines: shader programs re-registered");
+            if (slot.Pass)
+            {
+                slot.Pass->OnShadersReloaded(ctx);
+            }
         }
+
+        WAYFINDER_INFO(LogRenderer, "RenderOrchestrator::RebuildPipelines: shader programs and pipelines re-registered");
     }
 
     void RenderOrchestrator::Shutdown()
