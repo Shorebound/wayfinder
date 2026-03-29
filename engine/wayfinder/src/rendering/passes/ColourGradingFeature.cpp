@@ -13,6 +13,11 @@
 #include "core/Log.h"
 #include "core/Types.h"
 
+#ifdef WAYFINDER_COMPILER_MSVC
+#pragma warning(push)
+#pragma warning(disable : 4324) // lambda closure padded due to captured alignas(16) UBO
+#endif
+
 namespace Wayfinder
 {
     namespace
@@ -138,5 +143,9 @@ namespace Wayfinder
             };
         });
     }
+
+#ifdef WAYFINDER_COMPILER_MSVC
+#pragma warning(pop)
+#endif
 
 } // namespace Wayfinder
