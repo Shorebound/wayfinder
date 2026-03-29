@@ -66,10 +66,10 @@ namespace Wayfinder
         bool Prepare(RenderFrame& frame, uint32_t swapchainWidth, uint32_t swapchainHeight) const;
 
         /**
-         * @brief Re-registers all built-in shader programs after a shader reload.
+         * @brief Re-registers all shader programs after a shader reload.
          *
+         * Collects `GetShaderPrograms()` from every registered feature and re-registers them.
          * Call after ShaderManager, PipelineCache, and ShaderProgramRegistry have been invalidated.
-         * Re-creates pipelines from freshly compiled shaders.
          */
         void RebuildPipelines();
 

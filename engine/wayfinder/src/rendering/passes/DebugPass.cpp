@@ -7,7 +7,6 @@
 #include "rendering/materials/ShaderProgram.h"
 #include "rendering/mesh/Mesh.h"
 #include "rendering/pipeline/BuiltInUBOs.h"
-#include "rendering/pipeline/PipelineCache.h"
 #include "rendering/pipeline/RenderServices.h"
 #include "rendering/resources/TransientBufferAllocator.h"
 
@@ -73,31 +72,29 @@ namespace Wayfinder
         }
     }
 
+    std::vector<ShaderProgramDesc> DebugPass::GetShaderPrograms() const
+    {
+        ShaderProgramDesc desc;
+        desc.Name = "debug_unlit";
+        desc.VertexShaderName = "debug_unlit";
+        desc.FragmentShaderName = "debug_unlit";
+        desc.VertexResources = {.numUniformBuffers = 1};
+        desc.FragmentResources = {.numUniformBuffers = 1};
+        desc.VertexLayout = VertexLayouts::PosColour;
+        desc.Primitive = PrimitiveType::LineList;
+        desc.Cull = CullMode::None;
+        desc.DepthTest = false;
+        desc.DepthWrite = false;
+        return {std::move(desc)};
+    }
+
     void DebugPass::OnAttach(const RenderFeatureContext& context)
     {
         m_context = &context.Context;
-
-        GPUPipelineDesc desc{};
-        desc.vertexShaderName = "debug_unlit";
-        desc.fragmentShaderName = "debug_unlit";
-        desc.vertexResources = {.numUniformBuffers = 1};
-        desc.fragmentResources = {.numUniformBuffers = 1};
-        desc.vertexLayout = VertexLayouts::PosColour;
-        desc.primitiveType = PrimitiveType::LineList;
-        desc.cullMode = CullMode::None;
-        desc.depthTestEnabled = false;
-        desc.depthWriteEnabled = false;
-
-        m_debugLinePipeline = m_context->GetPipelines().GetOrCreate(m_context->GetShaders(), desc);
-        if (!m_debugLinePipeline.IsValid())
-        {
-            WAYFINDER_WARN(LogRenderer, "DebugPass: Failed to create debug line pipeline");
-        }
     }
 
     void DebugPass::OnDetach(const RenderFeatureContext& /*context*/)
     {
-        m_debugLinePipeline = {};
         m_context = nullptr;
     }
 
@@ -214,8 +211,9 @@ namespace Wayfinder
                     return;
                 }
 
-                auto& debugLinePipeline = m_debugLinePipeline;
                 auto& registry = m_context->GetPrograms();
+                const ShaderProgram* debugProgram = registry.Find("debug_unlit");
+                const GPUPipelineHandle debugLinePipeline = debugProgram ? debugProgram->Pipeline : GPUPipelineHandle{};
                 const Mesh* primitiveMeshPtr = params.BuiltInMeshes[static_cast<size_t>(BuiltInMeshId::PrimitiveColour)];
 
                 // ── Draw lines ───────────────────────────────

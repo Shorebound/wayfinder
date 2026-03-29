@@ -29,25 +29,8 @@ namespace Wayfinder
         return RenderCapabilities::RASTER;
     }
 
-    void ChromaticAberrationFeature::OnAttach(const RenderFeatureContext& context)
+    std::vector<ShaderProgramDesc> ChromaticAberrationFeature::GetShaderPrograms() const
     {
-        m_context = &context.Context;
-        auto* reg = m_context->GetBlendableEffectRegistry();
-        if (!reg)
-        {
-            WAYFINDER_WARN(LogRenderer, "ChromaticAberrationFeature: no BlendableEffectRegistry — effect not registered");
-            m_effectId = INVALID_BLENDABLE_EFFECT_ID;
-        }
-        else
-        {
-            m_effectId = reg->Register<ChromaticAberrationParams>("chromatic_aberration");
-            if (m_effectId == INVALID_BLENDABLE_EFFECT_ID)
-            {
-                WAYFINDER_ERROR(LogRenderer, "ChromaticAberrationFeature: failed to register chromatic_aberration blendable type");
-            }
-        }
-
-        auto& programs = m_context->GetPrograms();
         ShaderProgramDesc desc;
         desc.Name = "chromatic_aberration";
         desc.VertexShaderName = "chromatic_aberration";
@@ -61,40 +44,27 @@ namespace Wayfinder
         desc.MaterialUBOSize = sizeof(ChromaticAberrationUBO);
         desc.VertexUBOSize = 0;
         desc.NeedsSceneGlobals = false;
+        return {std::move(desc)};
+    }
 
-        if (!programs.Register(desc))
+    void ChromaticAberrationFeature::OnRegisterEffects(BlendableEffectRegistry& registry)
+    {
+        m_effectId = registry.Register<ChromaticAberrationParams>("chromatic_aberration");
+        if (m_effectId == INVALID_BLENDABLE_EFFECT_ID)
         {
-            WAYFINDER_ERROR(LogRenderer, "ChromaticAberrationFeature: failed to register chromatic_aberration shader program");
+            WAYFINDER_ERROR(LogRenderer, "ChromaticAberrationFeature: failed to register chromatic_aberration blendable type");
         }
+    }
+
+    void ChromaticAberrationFeature::OnAttach(const RenderFeatureContext& context)
+    {
+        m_context = &context.Context;
     }
 
     void ChromaticAberrationFeature::OnDetach(const RenderFeatureContext& /*context*/)
     {
         m_context = nullptr;
         m_effectId = INVALID_BLENDABLE_EFFECT_ID;
-    }
-
-    void ChromaticAberrationFeature::OnShadersReloaded(const RenderFeatureContext& context)
-    {
-        auto& programs = context.Context.GetPrograms();
-        ShaderProgramDesc desc;
-        desc.Name = "chromatic_aberration";
-        desc.VertexShaderName = "chromatic_aberration";
-        desc.FragmentShaderName = "chromatic_aberration";
-        desc.VertexResources = {};
-        desc.FragmentResources = {.numUniformBuffers = 1, .numSamplers = 1};
-        desc.VertexLayout = VertexLayouts::Empty;
-        desc.Cull = CullMode::None;
-        desc.DepthTest = false;
-        desc.DepthWrite = false;
-        desc.MaterialUBOSize = sizeof(ChromaticAberrationUBO);
-        desc.VertexUBOSize = 0;
-        desc.NeedsSceneGlobals = false;
-
-        if (!programs.Register(desc))
-        {
-            WAYFINDER_ERROR(LogRenderer, "ChromaticAberrationFeature: failed to re-register chromatic_aberration shader program");
-        }
     }
 
     void ChromaticAberrationFeature::AddPasses(RenderGraph& graph, const FrameRenderParams& params)

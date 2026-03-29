@@ -1,6 +1,5 @@
 #pragma once
 
-#include "rendering/backend/GPUHandles.h"
 #include "rendering/backend/VertexFormats.h"
 #include "rendering/graph/RenderFeature.h"
 #include "rendering/graph/RenderFrame.h"
@@ -33,6 +32,7 @@ namespace Wayfinder
             return RenderCapabilities::RASTER | RenderCapabilities::RASTER_OVERLAY_OR_DEBUG;
         }
 
+        std::vector<ShaderProgramDesc> GetShaderPrograms() const override;
         void OnAttach(const RenderFeatureContext& context) override;
         void OnDetach(const RenderFeatureContext& context) override;
 
@@ -58,7 +58,6 @@ namespace Wayfinder
         };
 
         RenderServices* m_context = nullptr;
-        GPUPipelineHandle m_debugLinePipeline;
 
         /// Scratch buffers retained across frames to avoid repeated heap allocation.
         std::vector<VertexPosColour> m_scratchLines;

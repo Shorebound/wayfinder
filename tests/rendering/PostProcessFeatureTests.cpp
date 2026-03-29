@@ -1,8 +1,12 @@
 #include "app/EngineConfig.h"
 #include "rendering/backend/RenderDevice.h"
 #include "rendering/graph/RenderFeature.h"
+#include "rendering/materials/ShaderProgram.h"
 #include "rendering/passes/ChromaticAberrationFeature.h"
 #include "rendering/passes/ColourGradingFeature.h"
+#include "rendering/passes/CompositionPass.h"
+#include "rendering/passes/DebugPass.h"
+#include "rendering/passes/SceneOpaquePass.h"
 #include "rendering/passes/VignetteFeature.h"
 #include "rendering/pipeline/RenderServices.h"
 #include "volumes/BlendableEffectRegistry.h"
@@ -11,6 +15,7 @@
 
 #include <array>
 #include <cstddef>
+#include <string>
 
 #include <doctest/doctest.h>
 
@@ -38,12 +43,11 @@ namespace Wayfinder::Tests
         REQUIRE(services.Initialise(*device, MakeTestConfig(), &registry));
 
         ChromaticAberrationFeature feature;
+        feature.OnRegisterEffects(registry);
         const RenderFeatureContext ctx{services};
         feature.OnAttach(ctx);
 
         REQUIRE(registry.FindIdByName("chromatic_aberration").has_value());
-        // Shader program entry exists only when `ShaderProgramRegistry::Register` creates a pipeline;
-        // with NullDevice and no shader assets that step may fail while blendable registration still succeeds.
 
         feature.OnDetach(ctx);
         services.Shutdown();
@@ -59,6 +63,7 @@ namespace Wayfinder::Tests
         REQUIRE(services.Initialise(*device, MakeTestConfig(), &registry));
 
         Wayfinder::Rendering::VignetteFeature feature;
+        feature.OnRegisterEffects(registry);
         const RenderFeatureContext ctx{services};
         feature.OnAttach(ctx);
 
@@ -78,6 +83,7 @@ namespace Wayfinder::Tests
         REQUIRE(services.Initialise(*device, MakeTestConfig(), &registry));
 
         ColourGradingFeature feature;
+        feature.OnRegisterEffects(registry);
         const RenderFeatureContext ctx{services};
         feature.OnAttach(ctx);
 
@@ -119,6 +125,61 @@ namespace Wayfinder::Tests
         CHECK(offsetof(ColourGradingUBO, Lift) == 16);
         CHECK(offsetof(ColourGradingUBO, Gamma) == 32);
         CHECK(offsetof(ColourGradingUBO, Gain) == 48);
+    }
+
+    TEST_CASE("GetShaderPrograms returns expected descriptors for each feature")
+    {
+        SUBCASE("SceneOpaquePass returns 4 scene programs")
+        {
+            SceneOpaquePass pass;
+            const auto programs = pass.GetShaderPrograms();
+            REQUIRE(programs.size() == 4);
+            CHECK(programs[0].Name == "unlit");
+            CHECK(programs[1].Name == "unlit_blended");
+            CHECK(programs[2].Name == "basic_lit");
+            CHECK(programs[3].Name == "textured_lit");
+        }
+
+        SUBCASE("ChromaticAberrationFeature returns 1 program")
+        {
+            ChromaticAberrationFeature feature;
+            const auto programs = feature.GetShaderPrograms();
+            REQUIRE(programs.size() == 1);
+            CHECK(programs[0].Name == "chromatic_aberration");
+        }
+
+        SUBCASE("VignetteFeature returns 1 program")
+        {
+            Rendering::VignetteFeature feature;
+            const auto programs = feature.GetShaderPrograms();
+            REQUIRE(programs.size() == 1);
+            CHECK(programs[0].Name == "vignette");
+        }
+
+        SUBCASE("ColourGradingFeature returns 1 program")
+        {
+            ColourGradingFeature feature;
+            const auto programs = feature.GetShaderPrograms();
+            REQUIRE(programs.size() == 1);
+            CHECK(programs[0].Name == "colour_grading");
+        }
+
+        SUBCASE("CompositionPass returns 1 program")
+        {
+            CompositionPass pass;
+            const auto programs = pass.GetShaderPrograms();
+            REQUIRE(programs.size() == 1);
+            CHECK(programs[0].Name == "composition_blit");
+        }
+
+        SUBCASE("DebugPass returns 1 program with LineList primitive")
+        {
+            DebugPass pass;
+            const auto programs = pass.GetShaderPrograms();
+            REQUIRE(programs.size() == 1);
+            CHECK(programs[0].Name == "debug_unlit");
+            CHECK(programs[0].Primitive == PrimitiveType::LineList);
+        }
     }
 
 } // namespace Wayfinder::Tests

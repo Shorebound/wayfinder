@@ -20,9 +20,10 @@ namespace Wayfinder
 
         RenderCapabilityMask GetCapabilities() const override;
 
+        std::vector<ShaderProgramDesc> GetShaderPrograms() const override;
+        void OnRegisterEffects(BlendableEffectRegistry& registry) override;
         void OnAttach(const RenderFeatureContext& context) override;
         void OnDetach(const RenderFeatureContext& context) override;
-        void OnShadersReloaded(const RenderFeatureContext& context) override;
         void AddPasses(RenderGraph& graph, const FrameRenderParams& params) override;
 
     private:

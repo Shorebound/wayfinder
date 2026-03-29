@@ -32,25 +32,8 @@ namespace Wayfinder::Rendering
         return RenderCapabilities::RASTER;
     }
 
-    void VignetteFeature::OnAttach(const RenderFeatureContext& context)
+    std::vector<ShaderProgramDesc> VignetteFeature::GetShaderPrograms() const
     {
-        m_context = &context.Context;
-        auto* reg = m_context->GetBlendableEffectRegistry();
-        if (!reg)
-        {
-            WAYFINDER_WARN(LogRenderer, "VignetteFeature: no BlendableEffectRegistry — effect not registered");
-            m_effectId = INVALID_BLENDABLE_EFFECT_ID;
-        }
-        else
-        {
-            m_effectId = reg->Register<VignetteParams>("vignette");
-            if (m_effectId == INVALID_BLENDABLE_EFFECT_ID)
-            {
-                WAYFINDER_ERROR(LogRenderer, "VignetteFeature: failed to register vignette blendable type");
-            }
-        }
-
-        auto& programs = m_context->GetPrograms();
         ShaderProgramDesc desc;
         desc.Name = "vignette";
         desc.VertexShaderName = "vignette";
@@ -64,40 +47,27 @@ namespace Wayfinder::Rendering
         desc.MaterialUBOSize = sizeof(VignetteUBO);
         desc.VertexUBOSize = 0;
         desc.NeedsSceneGlobals = false;
+        return {std::move(desc)};
+    }
 
-        if (!programs.Register(desc))
+    void VignetteFeature::OnRegisterEffects(BlendableEffectRegistry& registry)
+    {
+        m_effectId = registry.Register<VignetteParams>("vignette");
+        if (m_effectId == INVALID_BLENDABLE_EFFECT_ID)
         {
-            WAYFINDER_ERROR(LogRenderer, "VignetteFeature: failed to register vignette shader program");
+            WAYFINDER_ERROR(LogRenderer, "VignetteFeature: failed to register vignette blendable type");
         }
+    }
+
+    void VignetteFeature::OnAttach(const RenderFeatureContext& context)
+    {
+        m_context = &context.Context;
     }
 
     void VignetteFeature::OnDetach(const RenderFeatureContext& /*context*/)
     {
         m_context = nullptr;
         m_effectId = INVALID_BLENDABLE_EFFECT_ID;
-    }
-
-    void VignetteFeature::OnShadersReloaded(const RenderFeatureContext& context)
-    {
-        auto& programs = context.Context.GetPrograms();
-        ShaderProgramDesc desc;
-        desc.Name = "vignette";
-        desc.VertexShaderName = "vignette";
-        desc.FragmentShaderName = "vignette";
-        desc.VertexResources = {};
-        desc.FragmentResources = {.numUniformBuffers = 1, .numSamplers = 1};
-        desc.VertexLayout = VertexLayouts::Empty;
-        desc.Cull = CullMode::None;
-        desc.DepthTest = false;
-        desc.DepthWrite = false;
-        desc.MaterialUBOSize = sizeof(VignetteUBO);
-        desc.VertexUBOSize = 0;
-        desc.NeedsSceneGlobals = false;
-
-        if (!programs.Register(desc))
-        {
-            WAYFINDER_ERROR(LogRenderer, "VignetteFeature: failed to re-register vignette shader program");
-        }
     }
 
     void VignetteFeature::AddPasses(RenderGraph& graph, const FrameRenderParams& params)

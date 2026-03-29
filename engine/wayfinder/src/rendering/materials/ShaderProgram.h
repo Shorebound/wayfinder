@@ -48,6 +48,7 @@ namespace Wayfinder
         bool DepthTest = true;
         bool DepthWrite = true;
         BlendState Blend{};
+        PrimitiveType Primitive = PrimitiveType::TriangleList;
 
         // Fragment material UBO layout — declared parameter list.
         // The renderer calls SerialiseToUBO with these declarations.

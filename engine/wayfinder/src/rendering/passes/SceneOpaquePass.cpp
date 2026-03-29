@@ -44,8 +44,11 @@ namespace Wayfinder
         }
     } // namespace
 
-    bool RegisterSceneShaderPrograms(ShaderProgramRegistry& registry)
+    std::vector<ShaderProgramDesc> SceneOpaquePass::GetShaderPrograms() const
     {
+        std::vector<ShaderProgramDesc> programs;
+        programs.reserve(4);
+
         {
             ShaderProgramDesc desc;
             desc.Name = "unlit";
@@ -64,12 +67,7 @@ namespace Wayfinder
             desc.MaterialUBOSize = 16;
             desc.VertexUBOSize = sizeof(UnlitTransformUBO);
             desc.NeedsSceneGlobals = false;
-
-            if (!registry.Register(desc))
-            {
-                WAYFINDER_ERROR(LogRenderer, "RegisterSceneShaderPrograms: failed to register shader program '{}'", desc.Name);
-                return false;
-            }
+            programs.push_back(std::move(desc));
         }
 
         {
@@ -91,12 +89,7 @@ namespace Wayfinder
             desc.MaterialUBOSize = 16;
             desc.VertexUBOSize = sizeof(UnlitTransformUBO);
             desc.NeedsSceneGlobals = false;
-
-            if (!registry.Register(desc))
-            {
-                WAYFINDER_ERROR(LogRenderer, "RegisterSceneShaderPrograms: failed to register shader program '{}'", desc.Name);
-                return false;
-            }
+            programs.push_back(std::move(desc));
         }
 
         {
@@ -117,12 +110,7 @@ namespace Wayfinder
             desc.MaterialUBOSize = 16;
             desc.VertexUBOSize = sizeof(TransformUBO);
             desc.NeedsSceneGlobals = true;
-
-            if (!registry.Register(desc))
-            {
-                WAYFINDER_ERROR(LogRenderer, "RegisterSceneShaderPrograms: failed to register shader program '{}'", desc.Name);
-                return false;
-            }
+            programs.push_back(std::move(desc));
         }
 
         {
@@ -144,15 +132,10 @@ namespace Wayfinder
             desc.VertexUBOSize = sizeof(TransformUBO);
             desc.NeedsSceneGlobals = true;
             desc.TextureSlots = {{.Name = "diffuse", .BindingSlot = 0}};
-
-            if (!registry.Register(desc))
-            {
-                WAYFINDER_ERROR(LogRenderer, "RegisterSceneShaderPrograms: failed to register shader program '{}'", desc.Name);
-                return false;
-            }
+            programs.push_back(std::move(desc));
         }
 
-        return true;
+        return programs;
     }
 
     void SceneOpaquePass::OnAttach(const RenderFeatureContext& context)

@@ -51,6 +51,7 @@ namespace Wayfinder
         pipelineDesc.cullMode = desc.Cull;
         pipelineDesc.depthTestEnabled = desc.DepthTest;
         pipelineDesc.depthWriteEnabled = desc.DepthWrite;
+        pipelineDesc.primitiveType = desc.Primitive;
         pipelineDesc.colourTargetBlends.front() = desc.Blend;
 
         const GPUPipelineHandle pipeline = m_cache->GetOrCreate(*m_shaders, pipelineDesc);
