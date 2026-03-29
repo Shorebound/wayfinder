@@ -14,7 +14,7 @@ namespace Wayfinder
          * next to the binary. */
         [[nodiscard]] std::string ResolveShaderDirectory(std::string_view shaderDirectory)
         {
-            std::filesystem::path dir(shaderDirectory);
+            const std::filesystem::path dir(shaderDirectory);
             if (dir.is_absolute())
             {
                 return dir.string();
