@@ -52,6 +52,15 @@ namespace Wayfinder
         /// Heterogeneous lookup avoids allocating a temporary `std::string` on `find` / `contains` when the key exists.
         std::unordered_map<std::string, MaterialParamValue, TransparentStringHash, std::equal_to<>> Values;
 
+        /// Flat slot-indexed storage, built from a shader program's declarations.
+        /// When non-empty, SerialiseToUBO reads from here (O(n), no hash lookups).
+        ///
+        /// @note Slots are only valid between BuildSlots() and the next mutation of
+        /// Values (SetFloat, SetVec3, etc.). Callers that modify Values after
+        /// BuildSlots must call BuildSlots again, or clear Slots to fall back to
+        /// the named-lookup path.
+        std::vector<MaterialParamValue> Slots;
+
     private:
         void SetParameter(std::string_view name, MaterialParamValue value)
         {
@@ -63,6 +72,7 @@ namespace Wayfinder
             {
                 Values.emplace(std::string(name), std::move(value));
             }
+            Slots.clear(); // Invalidate flat cache — caller must BuildSlots again.
         }
 
     public:
@@ -96,8 +106,35 @@ namespace Wayfinder
             return Values.contains(name);
         }
 
-        // Write all parameters into a byte buffer using the given declarations.
-        // Unknown parameters are skipped; missing parameters use the declaration's default.
+        /**
+         * @brief Populate the flat Slots vector from the named Values map.
+         *
+         * Each slot corresponds to a declaration in order. Missing values use
+         * the declaration's default.
+         * @param decls Shader parameter declarations defining the expected layout.
+         */
+        void BuildSlots(const std::vector<MaterialParamDecl>& decls);
+
+        /**
+         * @brief Apply named overrides from another block into the flat Slots.
+         *
+         * Uses the declarations to resolve name to slot index. Slots must be
+         * populated via BuildSlots before calling this.
+         * @param overrides Source block of named overrides to apply.
+         * @param decls Shader parameter declarations used to resolve names.
+         */
+        void ApplyOverrides(const MaterialParameterBlock& overrides, const std::vector<MaterialParamDecl>& decls);
+
+        /**
+         * @brief Write all parameters into a byte buffer using the given declarations.
+         *
+         * Uses the fast Slots path when available (exact size match with decls),
+         * otherwise falls back to named Values lookup. Unknown parameters are
+         * skipped; missing parameters use the declaration's default.
+         * @param decls Shader parameter declarations defining offsets and types.
+         * @param outBuffer Destination byte buffer.
+         * @param bufferSize Size of the destination buffer in bytes.
+         */
         void SerialiseToUBO(const std::vector<MaterialParamDecl>& decls, void* outBuffer, uint32_t bufferSize) const;
     };
 

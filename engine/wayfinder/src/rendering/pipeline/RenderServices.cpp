@@ -1,4 +1,4 @@
-#include "RenderContext.h"
+#include "RenderServices.h"
 
 #include "app/EngineConfig.h"
 #include "core/Log.h"
@@ -6,9 +6,10 @@
 
 namespace Wayfinder
 {
-    Result<void> RenderContext::Initialise(RenderDevice& device, const EngineConfig& config)
+    Result<void> RenderServices::Initialise(RenderDevice& device, const EngineConfig& config, BlendableEffectRegistry* registry)
     {
         m_device = &device;
+        m_blendableEffectRegistry = registry;
 
         m_shaderManager.Initialise(device, config.Shaders.Directory);
         m_pipelineCache.Initialise(device);
@@ -18,19 +19,19 @@ namespace Wayfinder
         // May fail on Null backend (no real GPU buffers) — non-fatal in that case.
         if (!m_transientAllocator.Initialise(device, 4u * 1024u * 1024u, 1u * 1024u * 1024u))
         {
-            WAYFINDER_WARN(LogRenderer, "RenderContext: Failed to initialise transient buffer allocator");
+            WAYFINDER_WARN(LogRenderer, "RenderServices: Failed to initialise transient buffer allocator");
         }
 
         m_transientPool.Initialise(device);
 
         if (!m_textureManager.Initialise(device))
         {
-            WAYFINDER_WARN(LogRenderer, "RenderContext: Failed to initialise TextureManager");
+            WAYFINDER_WARN(LogRenderer, "RenderServices: Failed to initialise TextureManager");
         }
 
         if (!m_meshManager.Initialise(device))
         {
-            WAYFINDER_WARN(LogRenderer, "RenderContext: Failed to initialise MeshManager");
+            WAYFINDER_WARN(LogRenderer, "RenderServices: Failed to initialise MeshManager");
         }
 
         // Nearest-point sampler for composition blit
@@ -43,11 +44,38 @@ namespace Wayfinder
             m_nearestSampler = device.CreateSampler(samplerDesc);
         }
 
+        // Built-in primitive meshes for non-asset draw submissions.
+        m_primitiveMesh = Mesh::CreatePrimitive(device);
+        m_texturedPrimitiveMesh = Mesh::CreateTexturedPrimitive(device);
+        m_builtInMeshPtrs[static_cast<size_t>(BuiltInMeshId::PrimitiveColour)] = &m_primitiveMesh;
+        m_builtInMeshPtrs[static_cast<size_t>(BuiltInMeshId::PrimitiveTextured)] = &m_texturedPrimitiveMesh;
+
         return {};
     }
 
-    void RenderContext::Shutdown()
+    void RenderServices::SealBlendableEffects()
     {
+        if (!m_blendableEffectRegistry)
+        {
+            WAYFINDER_WARN(LogRenderer, "SealBlendableEffects: no BlendableEffectRegistry — nothing to seal");
+            return;
+        }
+        auto* reg = m_blendableEffectRegistry;
+        if (reg->IsSealed())
+        {
+            return;
+        }
+        reg->Seal();
+    }
+
+    void RenderServices::Shutdown()
+    {
+        m_builtInMeshPtrs = {};
+        m_primitiveMesh.Destroy();
+        m_texturedPrimitiveMesh.Destroy();
+
+        m_blendableEffectRegistry = nullptr;
+
         if (m_nearestSampler && m_device)
         {
             m_device->DestroySampler(m_nearestSampler);

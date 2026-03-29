@@ -52,6 +52,8 @@ set(ENGINE_ALL_SOURCES
   src/app/EngineRuntime.cpp
   src/app/EngineRuntime.h
   src/app/EntryPoint.h
+  src/app/FpsOverlayLayer.cpp
+  src/app/FpsOverlayLayer.h
   src/app/Layer.h
   src/app/LayerStack.cpp
   src/app/LayerStack.h
@@ -184,8 +186,6 @@ set(ENGINE_ALL_SOURCES
   src/rendering/backend/GPUBuffer.cpp
   src/rendering/backend/GPUBuffer.h
   src/rendering/backend/GPUHandles.h
-  src/rendering/backend/GPUPipeline.cpp
-  src/rendering/backend/GPUPipeline.h
   src/rendering/backend/RenderDevice.h
   src/rendering/backend/VertexFormats.h
   src/rendering/backend/null/NullDevice.cpp
@@ -199,8 +199,8 @@ set(ENGINE_ALL_SOURCES
   src/rendering/graph/RenderFrame.h
   src/rendering/graph/RenderFrameUtils.cpp
   src/rendering/graph/RenderFrameUtils.h
-  src/rendering/graph/RenderPass.h
-  src/rendering/graph/RenderPassCapabilities.h
+  src/rendering/graph/RenderFeature.h
+  src/rendering/graph/RenderCapabilities.h
   src/rendering/graph/RenderGraph.cpp
   src/rendering/graph/RenderGraph.h
   src/rendering/graph/RenderIntent.h
@@ -211,8 +211,8 @@ set(ENGINE_ALL_SOURCES
   src/rendering/materials/Material.h
   src/rendering/materials/MaterialParameter.cpp
   src/rendering/materials/MaterialParameter.h
-  src/rendering/materials/PostProcessVolume.cpp
-  src/rendering/materials/PostProcessVolume.h
+  src/rendering/materials/RenderingEffects.cpp
+  src/rendering/materials/RenderingEffects.h
   src/rendering/materials/ShaderManager.cpp
   src/rendering/materials/ShaderManager.h
   src/rendering/materials/ShaderProgram.cpp
@@ -225,29 +225,35 @@ set(ENGINE_ALL_SOURCES
   # Rendering — Pipeline
   src/rendering/pipeline/PipelineCache.cpp
   src/rendering/pipeline/PipelineCache.h
-  src/rendering/pipeline/RenderContext.cpp
-  src/rendering/pipeline/RenderContext.h
-  src/rendering/pipeline/ForwardOpaqueShaderPrograms.cpp
-  src/rendering/pipeline/ForwardOpaqueShaderPrograms.h
-  src/rendering/pipeline/ShaderUniforms.h
-  src/rendering/pipeline/RenderPipeline.cpp
-  src/rendering/pipeline/RenderPipeline.h
+  src/rendering/pipeline/RenderServices.cpp
+  src/rendering/pipeline/RenderServices.h
+  src/rendering/pipeline/BuiltInUBOs.h
+  src/rendering/pipeline/RenderOrchestrator.cpp
+  src/rendering/pipeline/RenderOrchestrator.h
   src/rendering/pipeline/Renderer.cpp
   src/rendering/pipeline/Renderer.h
   src/rendering/pipeline/SceneRenderExtractor.cpp
   src/rendering/pipeline/SceneRenderExtractor.h
 
   # Rendering — Passes
+  src/rendering/passes/ChromaticAberrationFeature.cpp
+  src/rendering/passes/ChromaticAberrationFeature.h
+  src/rendering/passes/ColourGradingFeature.cpp
+  src/rendering/passes/ColourGradingFeature.h
+  src/rendering/passes/CompositionPass.cpp
+  src/rendering/passes/CompositionPass.h
   src/rendering/passes/DebugPass.cpp
   src/rendering/passes/DebugPass.h
   src/rendering/passes/SceneOpaquePass.cpp
   src/rendering/passes/SceneOpaquePass.h
+  src/rendering/passes/VignetteFeature.cpp
+  src/rendering/passes/VignetteFeature.h
   src/rendering/passes/SubmissionDrawing.cpp
   src/rendering/passes/SubmissionDrawing.h
 
   # Rendering — Resources
-  src/rendering/resources/RenderResources.cpp
-  src/rendering/resources/RenderResources.h
+  src/rendering/resources/RenderResourceCache.cpp
+  src/rendering/resources/RenderResourceCache.h
   src/rendering/resources/MeshManager.cpp
   src/rendering/resources/MeshManager.h
   src/rendering/resources/TextureManager.cpp
@@ -256,6 +262,18 @@ set(ENGINE_ALL_SOURCES
   src/rendering/resources/TransientBufferAllocator.h
   src/rendering/resources/TransientResourcePool.cpp
   src/rendering/resources/TransientResourcePool.h
+
+  # Volumes
+  src/volumes/Override.h
+  src/volumes/OverrideReflection.cpp
+  src/volumes/OverrideReflection.h
+  src/volumes/BlendableEffect.cpp
+  src/volumes/BlendableEffect.h
+  src/volumes/BlendableEffectRegistry.cpp
+  src/volumes/BlendableEffectRegistry.h
+  src/volumes/BlendableEffectRegistry.inl
+  src/volumes/BlendableEffectTraits.h
+  src/volumes/BlendableEffectUtils.h
 
   # Scene
   src/scene/ComponentRegistry.cpp

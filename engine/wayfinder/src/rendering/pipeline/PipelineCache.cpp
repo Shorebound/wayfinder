@@ -1,6 +1,8 @@
 #include "PipelineCache.h"
 #include "core/Log.h"
+#include "rendering/materials/ShaderManager.h"
 
+#include <algorithm>
 #include <functional>
 
 namespace Wayfinder
@@ -98,6 +100,44 @@ namespace Wayfinder
         }
 
         return h;
+    }
+
+    GPUPipelineHandle PipelineCache::GetOrCreate(ShaderManager& shaders, const GPUPipelineDesc& desc)
+    {
+        if (!m_device)
+        {
+            return GPUPipelineHandle::Invalid();
+        }
+
+        const GPUShaderHandle vs = shaders.GetShader(desc.vertexShaderName, ShaderStage::Vertex, desc.vertexResources);
+        const GPUShaderHandle fs = shaders.GetShader(desc.fragmentShaderName, ShaderStage::Fragment, desc.fragmentResources);
+        if (!vs || !fs)
+        {
+            WAYFINDER_ERROR(LogRenderer, "PipelineCache: Failed to resolve shaders '{}' / '{}'", desc.vertexShaderName, desc.fragmentShaderName);
+            return GPUPipelineHandle::Invalid();
+        }
+
+        if (desc.numColourTargets == 0 || desc.numColourTargets > MAX_COLOUR_TARGETS)
+        {
+            WAYFINDER_ERROR(LogRenderer, "PipelineCache: numColourTargets={} is out of range [1, {}]", desc.numColourTargets, MAX_COLOUR_TARGETS);
+            return GPUPipelineHandle::Invalid();
+        }
+
+        PipelineCreateDesc pipeDesc{};
+        pipeDesc.vertexShader = vs;
+        pipeDesc.fragmentShader = fs;
+        pipeDesc.vertexLayout = desc.vertexLayout;
+        pipeDesc.primitiveType = desc.primitiveType;
+        pipeDesc.cullMode = desc.cullMode;
+        pipeDesc.fillMode = desc.fillMode;
+        pipeDesc.frontFace = desc.frontFace;
+        pipeDesc.depthTestEnabled = desc.depthTestEnabled;
+        pipeDesc.depthWriteEnabled = desc.depthWriteEnabled;
+        pipeDesc.numColourTargets = desc.numColourTargets;
+        std::copy_n(desc.colourTargetFormats.begin(), desc.numColourTargets, pipeDesc.colourTargetFormats.begin());
+        std::copy_n(desc.colourTargetBlends.begin(), desc.numColourTargets, pipeDesc.colourTargetBlends.begin());
+
+        return GetOrCreate(pipeDesc);
     }
 
 } // namespace Wayfinder

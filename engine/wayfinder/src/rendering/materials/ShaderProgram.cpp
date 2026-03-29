@@ -3,7 +3,6 @@
 #include "ShaderManager.h"
 #include "core/Log.h"
 
-#include "rendering/backend/GPUPipeline.h"
 #include "rendering/pipeline/PipelineCache.h"
 #include <string>
 
@@ -23,12 +22,6 @@ namespace Wayfinder
 
     void ShaderProgramRegistry::Shutdown()
     {
-        for (auto* pipeline : m_ownedPipelines)
-        {
-            pipeline->Destroy();
-            delete pipeline;
-        }
-        m_ownedPipelines.clear();
         m_programs.clear();
         m_device = nullptr;
         m_shaders = nullptr;
@@ -60,15 +53,12 @@ namespace Wayfinder
         pipelineDesc.depthWriteEnabled = desc.DepthWrite;
         pipelineDesc.colourTargetBlends.front() = desc.Blend;
 
-        auto* pipeline = new GPUPipeline();
-        if (!pipeline->Create(*m_device, *m_shaders, pipelineDesc, m_cache))
+        const GPUPipelineHandle pipeline = m_cache->GetOrCreate(*m_shaders, pipelineDesc);
+        if (!pipeline.IsValid())
         {
             WAYFINDER_ERROR(LogRenderer, "ShaderProgramRegistry: Failed to create pipeline for '{}'", desc.Name);
-            delete pipeline;
             return false;
         }
-
-        m_ownedPipelines.push_back(pipeline);
 
         ShaderProgram program;
         program.Desc = desc;

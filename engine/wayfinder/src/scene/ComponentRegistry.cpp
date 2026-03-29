@@ -7,10 +7,17 @@
 #include "gameplay/GameplayTagRegistry.h"
 #include "scene/entity/Entity.h"
 
+#include "volumes/BlendableEffect.h"
+#include "volumes/BlendableEffectRegistry.h"
+
+#include <algorithm>
 #include <array>
 #include <charconv>
 #include <format>
+#include <limits>
+#include <ranges>
 #include <sstream>
+#include <stdexcept>
 #include <string>
 #include <string_view>
 
@@ -161,20 +168,20 @@ namespace Wayfinder
             return "point";
         }
 
-        Wayfinder::InternedString ReadRenderLayer(const nlohmann::json& data, std::string_view key, const Wayfinder::InternedString& fallback)
+        Wayfinder::InternedString ReadRenderGroup(const nlohmann::json& data, std::string_view key, const Wayfinder::InternedString& fallback)
         {
             if (!data.contains(key) || !data.at(key).is_string())
             {
                 return fallback;
             }
 
-            const auto layer = data.at(key).get<std::string>();
-            if (layer.empty())
+            const auto group = data.at(key).get<std::string>();
+            if (group.empty())
             {
                 return fallback;
             }
 
-            return Wayfinder::InternedString::Intern(layer);
+            return Wayfinder::InternedString::Intern(group);
         }
 
         Wayfinder::MeshPrimitive ReadPrimitive(const nlohmann::json& data, std::string_view key, Wayfinder::MeshPrimitive fallback)
@@ -345,6 +352,35 @@ namespace Wayfinder
             return true;
         }
 
+        /**
+         * @brief Validates an optional JSON integer field fits in `int` (matches casts used when reading the field).
+         */
+        bool ValidateOptionalInt32Field(const nlohmann::json& data, std::string_view key, std::string& error)
+        {
+            if (!data.contains(key))
+            {
+                return true;
+            }
+
+            const auto& node = data.at(key);
+            if (!node.is_number_integer())
+            {
+                error = std::format("field '{}' must be an integer", key);
+                return false;
+            }
+
+            const int64_t value = node.get<int64_t>();
+            constexpr auto MIN = static_cast<int64_t>(std::numeric_limits<int>::min());
+            constexpr auto MAX = static_cast<int64_t>(std::numeric_limits<int>::max());
+            if (value < MIN || value > MAX)
+            {
+                error = std::format("field '{}' must be between {} and {} (inclusive); value is out of range for a 32-bit signed integer", key, MIN, MAX);
+                return false;
+            }
+
+            return true;
+        }
+
         bool ValidateOptionalVector3(const nlohmann::json& data, std::string_view key, std::string& error)
         {
             if (!data.contains(key))
@@ -506,7 +542,8 @@ namespace Wayfinder
 
         bool ValidateRenderable(const nlohmann::json& data, std::string& error)
         {
-            return ValidateOptionalBool(data, "visible", error) && ValidateOptionalNonEmptyString(data, "layer", error) && ValidateOptionalInteger(data, "sort_priority", error);
+            return ValidateOptionalBool(data, "visible", error) && ValidateOptionalNonEmptyString(data, "group", error) && ValidateOptionalNonEmptyString(data, "layer", error) &&
+                   ValidateOptionalInteger(data, "sort_priority", error);
         }
 
         bool ValidateEffectParameter(std::string_view key, const nlohmann::json& node, std::string& error)
@@ -576,14 +613,14 @@ namespace Wayfinder
             return false;
         }
 
-        bool ValidatePostProcessVolume(const nlohmann::json& data, std::string& error)
+        bool ValidateBlendableEffectVolume(const nlohmann::json& data, std::string& error)
         {
             if (!ValidateOptionalEnumValue(data, "shape", {"global", "box", "sphere"}, error))
             {
                 return false;
             }
 
-            if (!ValidateOptionalInteger(data, "priority", error))
+            if (!ValidateOptionalInt32Field(data, "priority", error))
             {
                 return false;
             }
@@ -625,6 +662,33 @@ namespace Wayfinder
                     {
                         error = "each effect must have a non-empty 'type' string";
                         return false;
+                    }
+
+                    const std::string effectTypeStr = effectEntry.at("type").get<std::string>();
+                    const std::string normalised = Wayfinder::NormaliseEffectTypeString(effectTypeStr);
+                    const Wayfinder::BlendableEffectRegistry* effectRegistry = Wayfinder::BlendableEffectRegistry::GetActiveInstance();
+                    if (effectRegistry == nullptr)
+                    {
+                        if (!Wayfinder::IsValidEffectTypeName(normalised, nullptr))
+                        {
+                            error = "invalid blendable effect type name: " + effectTypeStr;
+                            return false;
+                        }
+                    }
+                    else
+                    {
+                        const std::optional<Wayfinder::BlendableEffectId> effectIdOpt = effectRegistry->FindIdByName(normalised);
+                        if (!effectIdOpt.has_value())
+                        {
+                            error = "unknown blendable effect type: " + effectTypeStr;
+                            return false;
+                        }
+                        const Wayfinder::BlendableEffectDesc* effectDesc = effectRegistry->Find(*effectIdOpt);
+                        if (effectDesc == nullptr || effectDesc->Deserialise == nullptr || effectDesc->CreateIdentity == nullptr || effectDesc->Serialise == nullptr)
+                        {
+                            error = "blendable effect '" + effectTypeStr + "' cannot be loaded (missing Deserialise, CreateIdentity, or Serialise callback)";
+                            return false;
+                        }
                     }
 
                     for (const auto& [key, value] : effectEntry.items())
@@ -744,14 +808,20 @@ namespace Wayfinder
         {
             Wayfinder::RenderableComponent renderable;
             renderable.Visible = data.value("visible", renderable.Visible);
-            renderable.Layer = ReadRenderLayer(data, "layer", renderable.Layer);
+            renderable.Group = ReadRenderGroup(data, "group", renderable.Group);
+
+            /// Fall back to legacy "layer" key when "group" was not present.
+            if (!data.contains("group"))
+            {
+                renderable.Group = ReadRenderGroup(data, "layer", renderable.Group);
+            }
 
             const int64_t sortPriority = data.value("sort_priority", static_cast<int64_t>(renderable.SortPriority));
             renderable.SortPriority = ClampToByte(sortPriority);
             entity.AddComponent<Wayfinder::RenderableComponent>(renderable);
         }
 
-        Wayfinder::PostProcessVolumeShape ReadVolumeShape(const nlohmann::json& data, std::string_view key, Wayfinder::PostProcessVolumeShape fallback)
+        Wayfinder::VolumeShape ReadVolumeShape(const nlohmann::json& data, std::string_view key, Wayfinder::VolumeShape fallback)
         {
             if (!data.contains(key) || !data.at(key).is_string())
             {
@@ -760,15 +830,15 @@ namespace Wayfinder
             const auto value = data.at(key).get<std::string>();
             if (value == "global")
             {
-                return Wayfinder::PostProcessVolumeShape::Global;
+                return Wayfinder::VolumeShape::Global;
             }
             if (value == "box")
             {
-                return Wayfinder::PostProcessVolumeShape::Box;
+                return Wayfinder::VolumeShape::Box;
             }
             if (value == "sphere")
             {
-                return Wayfinder::PostProcessVolumeShape::Sphere;
+                return Wayfinder::VolumeShape::Sphere;
             }
             return fallback;
         }
@@ -854,88 +924,88 @@ namespace Wayfinder
         }
         // NOLINTEND(cppcoreguidelines-pro-bounds-avoid-unchecked-container-access)
 
-        // ── PostProcessVolumeComponent ──────────────────────────
+        // ── BlendableEffectVolumeComponent ──────────────────────
 
-        std::string_view ToString(Wayfinder::PostProcessVolumeShape shape)
+        std::string_view ToString(Wayfinder::VolumeShape shape)
         {
             switch (shape)
             {
-            case Wayfinder::PostProcessVolumeShape::Global:
+            case Wayfinder::VolumeShape::Global:
                 return "global";
-            case Wayfinder::PostProcessVolumeShape::Box:
+            case Wayfinder::VolumeShape::Box:
                 return "box";
-            case Wayfinder::PostProcessVolumeShape::Sphere:
+            case Wayfinder::VolumeShape::Sphere:
                 return "sphere";
             }
             return "global";
         }
 
-        Wayfinder::PostProcessParamValue ReadEffectParam(const nlohmann::json& node)
+        std::optional<Wayfinder::BlendableEffect> ReadEffect(const nlohmann::json& effectData)
         {
-            if (node.is_number_float())
+            const Wayfinder::BlendableEffectRegistry* registry = Wayfinder::BlendableEffectRegistry::GetActiveInstance();
+            if (registry == nullptr)
             {
-                return node.get<float>();
-            }
-            if (node.is_number_integer())
-            {
-                return static_cast<int32_t>(node.get<int64_t>());
+                WAYFINDER_WARN(LogScene, "ReadEffect: BlendableEffectRegistry not active — blendable effect skipped");
+                return std::nullopt;
             }
 
-            if (node.is_array())
+            if (!effectData.contains("type") || !effectData.at("type").is_string())
             {
-                // All-integer arrays → Colour; otherwise → Float3
-                bool allInts = true;
-                for (const auto& i : node)
-                {
-                    if (!i.is_number_integer())
-                    {
-                        allInts = false;
-                        break;
-                    }
-                }
-
-                if (allInts)
-                {
-                    Wayfinder::Colour c{};
-                    c.r = ClampColourChannel(node.at(0).get<int64_t>());
-                    c.g = ClampColourChannel(node.at(1).get<int64_t>());
-                    c.b = ClampColourChannel(node.at(2).get<int64_t>());
-                    c.a = node.size() >= 4 ? ClampColourChannel(node.at(3).get<int64_t>()) : 255;
-                    return c;
-                }
-
-                if (node.size() >= 3)
-                {
-                    return Wayfinder::Float3{ReadArrayFloat(node, 0, 0.0f), ReadArrayFloat(node, 1, 0.0f), ReadArrayFloat(node, 2, 0.0f)};
-                }
+                WAYFINDER_WARN(LogScene, "ReadEffect: missing or non-string \"type\" — skipped");
+                return std::nullopt;
             }
 
-            return 0.0f;
-        }
-
-        Wayfinder::PostProcessEffect ReadEffect(const nlohmann::json& effectData)
-        {
-            Wayfinder::PostProcessEffect effect;
-            effect.Type = effectData.value("type", std::string{});
-            effect.Enabled = effectData.value("enabled", true);
-
-            for (const auto& [key, value] : effectData.items())
+            const std::string typeStr = effectData.at("type").get<std::string>();
+            const std::string normalised = Wayfinder::NormaliseEffectTypeString(typeStr);
+            const std::optional<Wayfinder::BlendableEffectId> idOpt = registry->FindIdByName(normalised);
+            if (!idOpt.has_value())
             {
-                if (key == "type" || key == "enabled")
-                {
-                    continue;
-                }
-                effect.Parameters[key] = ReadEffectParam(value);
+                WAYFINDER_WARN(LogScene, "ReadEffect: unknown effect type '{}' — skipped", typeStr);
+                return std::nullopt;
             }
 
+            const Wayfinder::BlendableEffectDesc* desc = registry->Find(*idOpt);
+            if (desc == nullptr || desc->Deserialise == nullptr || desc->CreateIdentity == nullptr)
+            {
+                return std::nullopt;
+            }
+
+            Wayfinder::BlendableEffect effect{};
+            effect.TypeId = *idOpt;
+            if (effectData.contains("enabled"))
+            {
+                if (!effectData.at("enabled").is_boolean())
+                {
+                    WAYFINDER_WARN(LogScene, "ReadEffect: \"enabled\" must be a boolean — skipped");
+                    return std::nullopt;
+                }
+                effect.Enabled = effectData.at("enabled").get<bool>();
+            }
+            else
+            {
+                effect.Enabled = true;
+            }
+            // NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
+            desc->CreateIdentity(effect.Payload);
+            desc->Deserialise(effect.Payload, effectData);
+            // NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
             return effect;
         }
 
-        void ApplyPostProcessVolume(const nlohmann::json& data, Wayfinder::Entity& entity)
+        void ApplyBlendableEffectVolumeComponent(const nlohmann::json& data, Wayfinder::Entity& entity)
         {
-            Wayfinder::PostProcessVolumeComponent volume;
+            Wayfinder::BlendableEffectVolumeComponent volume;
             volume.Shape = ReadVolumeShape(data, "shape", volume.Shape);
-            volume.Priority = static_cast<int>(data.value("priority", static_cast<int64_t>(volume.Priority)));
+            if (data.contains("priority"))
+            {
+                const auto& priorityNode = data.at("priority");
+                if (!priorityNode.is_number_integer())
+                {
+                    throw std::runtime_error("SceneComponentRegistry::ApplyComponents: blendable_effect_volume 'priority' must be a JSON integer");
+                }
+                const int64_t priorityValue = priorityNode.get<int64_t>();
+                volume.Priority = static_cast<int>(std::clamp(priorityValue, static_cast<int64_t>(std::numeric_limits<int>::min()), static_cast<int64_t>(std::numeric_limits<int>::max())));
+            }
             volume.BlendDistance = ReadFloat(data, "blend_distance", volume.BlendDistance);
             volume.Dimensions = ReadVector3(data, "dimensions", volume.Dimensions);
             volume.Radius = ReadFloat(data, "radius", volume.Radius);
@@ -947,12 +1017,15 @@ namespace Wayfinder
                 {
                     if (i.is_object())
                     {
-                        volume.Effects.push_back(ReadEffect(i));
+                        if (auto effect = ReadEffect(i))
+                        {
+                            volume.Effects.push_back(*effect);
+                        }
                     }
                 }
             }
 
-            entity.AddComponent<Wayfinder::PostProcessVolumeComponent>(volume);
+            entity.AddComponent<Wayfinder::BlendableEffectVolumeComponent>(volume);
         }
 
         // NOLINTBEGIN(cppcoreguidelines-pro-bounds-avoid-unchecked-container-access)
@@ -1084,43 +1157,22 @@ namespace Wayfinder
             const auto& renderable = entity.GetComponent<Wayfinder::RenderableComponent>();
             nlohmann::json componentTable;
             componentTable["visible"] = renderable.Visible;
-            componentTable["layer"] = renderable.Layer.GetString();
+            if (!renderable.Group.IsEmpty())
+            {
+                componentTable["group"] = renderable.Group.GetString();
+            }
             componentTable["sort_priority"] = static_cast<int64_t>(renderable.SortPriority);
             componentTables["renderable"] = std::move(componentTable);
         }
 
-        void WriteEffectParam(nlohmann::json& obj, const std::string& key, const Wayfinder::PostProcessParamValue& value)
+        void SerialiseBlendableEffectVolumeComponent(const Wayfinder::Entity& entity, nlohmann::json& componentTables)
         {
-            std::visit([&](const auto& v)
-            {
-                using T = std::decay_t<decltype(v)>;
-                if constexpr (std::is_same_v<T, float>)
-                {
-                    obj[key] = v;
-                }
-                else if constexpr (std::is_same_v<T, int32_t>)
-                {
-                    obj[key] = static_cast<int64_t>(v);
-                }
-                else if constexpr (std::is_same_v<T, Wayfinder::Float3>)
-                {
-                    obj[key] = WriteVector3(v);
-                }
-                else if constexpr (std::is_same_v<T, Wayfinder::Colour>)
-                {
-                    obj[key] = WriteColour(v);
-                }
-            }, value);
-        }
-
-        void SerialisePostProcessVolume(const Wayfinder::Entity& entity, nlohmann::json& componentTables)
-        {
-            if (!entity.HasComponent<Wayfinder::PostProcessVolumeComponent>())
+            if (!entity.HasComponent<Wayfinder::BlendableEffectVolumeComponent>())
             {
                 return;
             }
 
-            const auto& volume = entity.GetComponent<Wayfinder::PostProcessVolumeComponent>();
+            const auto& volume = entity.GetComponent<Wayfinder::BlendableEffectVolumeComponent>();
             nlohmann::json componentTable;
             componentTable["shape"] = std::string{ToString(volume.Shape)};
             componentTable["priority"] = static_cast<int64_t>(volume.Priority);
@@ -1130,28 +1182,43 @@ namespace Wayfinder
 
             if (!volume.Effects.empty())
             {
+                const Wayfinder::BlendableEffectRegistry* registry = Wayfinder::BlendableEffectRegistry::GetActiveInstance();
+                if (registry == nullptr)
+                {
+                    throw std::runtime_error("SerialiseBlendableEffectVolumeComponent: BlendableEffectRegistry not active — refusing to write partial volume data (effects present)");
+                }
+
+                for (const auto& effect : volume.Effects)
+                {
+                    const Wayfinder::BlendableEffectDesc* desc = registry->Find(effect.TypeId);
+                    if (desc == nullptr || desc->Serialise == nullptr)
+                    {
+                        throw std::runtime_error(std::format("SerialiseBlendableEffectVolumeComponent: effect type id {} has no Serialise callback — refusing to write partial volume data", effect.TypeId));
+                    }
+                }
+
                 nlohmann::json effectsArray = nlohmann::json::array();
                 for (const auto& effect : volume.Effects)
                 {
+                    const Wayfinder::BlendableEffectDesc* desc = registry->Find(effect.TypeId);
+                    WAYFINDER_ASSERT(desc && desc->Serialise);
+
                     nlohmann::json effectTable;
-                    effectTable["type"] = effect.Type;
+                    effectTable["type"] = std::string{desc->Name};
                     if (!effect.Enabled)
                     {
                         effectTable["enabled"] = false;
                     }
-
-                    for (const auto& [key, value] : effect.Parameters)
-                    {
-                        WriteEffectParam(effectTable, key, value);
-                    }
-
+                    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
+                    desc->Serialise(effectTable, effect.Payload);
+                    // NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
                     effectsArray.push_back(std::move(effectTable));
                 }
 
                 componentTable["effects"] = std::move(effectsArray);
             }
 
-            componentTables["post_process_volume"] = std::move(componentTable);
+            componentTables["blendable_effect_volume"] = std::move(componentTable);
         }
         // NOLINTEND(cppcoreguidelines-pro-bounds-avoid-unchecked-container-access)
 
@@ -1168,11 +1235,11 @@ namespace Wayfinder
                 .SerialiseFn = &SerialiseRenderOverride,
                 .ValidateFn = &ValidateRenderOverride},
             {.Key = "gameplay_tags", .RegisterFn = &RegisterComponent<Wayfinder::GameplayTagContainer>, .ApplyFn = &ApplyTags, .SerialiseFn = &SerialiseTags, .ValidateFn = &ValidateTags},
-            {.Key = "post_process_volume",
-                .RegisterFn = &RegisterComponent<Wayfinder::PostProcessVolumeComponent>,
-                .ApplyFn = &ApplyPostProcessVolume,
-                .SerialiseFn = &SerialisePostProcessVolume,
-                .ValidateFn = &ValidatePostProcessVolume},
+            {.Key = "blendable_effect_volume",
+                .RegisterFn = &RegisterComponent<Wayfinder::BlendableEffectVolumeComponent>,
+                .ApplyFn = &ApplyBlendableEffectVolumeComponent,
+                .SerialiseFn = &SerialiseBlendableEffectVolumeComponent,
+                .ValidateFn = &ValidateBlendableEffectVolume},
         }};
     } // anonymous namespace
 }

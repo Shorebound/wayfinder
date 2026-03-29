@@ -4,11 +4,13 @@
 
 #include "rendering/backend/RenderDevice.h"
 #include "rendering/backend/VertexFormats.h"
+#include "rendering/graph/RenderCapabilities.h"
 #include "rendering/graph/RenderFrameUtils.h"
 #include "rendering/graph/RenderGraph.h"
-#include "rendering/graph/RenderPassCapabilities.h"
+#include "rendering/materials/MaterialParameter.h"
 #include "rendering/materials/ShaderProgram.h"
-#include "rendering/pipeline/RenderContext.h"
+#include "rendering/pipeline/BuiltInUBOs.h"
+#include "rendering/pipeline/RenderServices.h"
 
 #include "core/Log.h"
 #include "maths/Maths.h"
@@ -42,12 +44,123 @@ namespace Wayfinder
         }
     } // namespace
 
-    void SceneOpaquePass::OnAttach(const RenderPassContext& context)
+    bool RegisterSceneShaderPrograms(ShaderProgramRegistry& registry)
+    {
+        {
+            ShaderProgramDesc desc;
+            desc.Name = "unlit";
+            desc.VertexShaderName = "unlit";
+            desc.FragmentShaderName = "unlit";
+            desc.VertexResources = {.numUniformBuffers = 1};
+            desc.FragmentResources = {.numUniformBuffers = 1};
+            desc.VertexLayout = VertexLayouts::PosNormalColour;
+            desc.Cull = CullMode::Back;
+            desc.DepthTest = true;
+            desc.DepthWrite = true;
+            desc.MaterialParams =
+            {
+                {.Name = "base_colour", .Type = MaterialParamType::Colour, .Offset = 0, .Default = LinearColour::White()},
+            };
+            desc.MaterialUBOSize = 16;
+            desc.VertexUBOSize = sizeof(UnlitTransformUBO);
+            desc.NeedsSceneGlobals = false;
+
+            if (!registry.Register(desc))
+            {
+                WAYFINDER_ERROR(LogRenderer, "RegisterSceneShaderPrograms: failed to register shader program '{}'", desc.Name);
+                return false;
+            }
+        }
+
+        {
+            ShaderProgramDesc desc;
+            desc.Name = "unlit_blended";
+            desc.VertexShaderName = "unlit";
+            desc.FragmentShaderName = "unlit";
+            desc.VertexResources = {.numUniformBuffers = 1};
+            desc.FragmentResources = {.numUniformBuffers = 1};
+            desc.VertexLayout = VertexLayouts::PosNormalColour;
+            desc.Cull = CullMode::Back;
+            desc.DepthTest = true;
+            desc.DepthWrite = false;
+            desc.Blend = BlendPresets::AlphaBlend();
+            desc.MaterialParams =
+            {
+                {.Name = "base_colour", .Type = MaterialParamType::Colour, .Offset = 0, .Default = LinearColour::White()},
+            };
+            desc.MaterialUBOSize = 16;
+            desc.VertexUBOSize = sizeof(UnlitTransformUBO);
+            desc.NeedsSceneGlobals = false;
+
+            if (!registry.Register(desc))
+            {
+                WAYFINDER_ERROR(LogRenderer, "RegisterSceneShaderPrograms: failed to register shader program '{}'", desc.Name);
+                return false;
+            }
+        }
+
+        {
+            ShaderProgramDesc desc;
+            desc.Name = "basic_lit";
+            desc.VertexShaderName = "basic_lit";
+            desc.FragmentShaderName = "basic_lit";
+            desc.VertexResources = {.numUniformBuffers = 1};
+            desc.FragmentResources = {.numUniformBuffers = 2};
+            desc.VertexLayout = VertexLayouts::PosNormalColour;
+            desc.Cull = CullMode::Back;
+            desc.DepthTest = true;
+            desc.DepthWrite = true;
+            desc.MaterialParams =
+            {
+                {.Name = "base_colour", .Type = MaterialParamType::Colour, .Offset = 0, .Default = LinearColour::White()},
+            };
+            desc.MaterialUBOSize = 16;
+            desc.VertexUBOSize = sizeof(TransformUBO);
+            desc.NeedsSceneGlobals = true;
+
+            if (!registry.Register(desc))
+            {
+                WAYFINDER_ERROR(LogRenderer, "RegisterSceneShaderPrograms: failed to register shader program '{}'", desc.Name);
+                return false;
+            }
+        }
+
+        {
+            ShaderProgramDesc desc;
+            desc.Name = "textured_lit";
+            desc.VertexShaderName = "textured_lit";
+            desc.FragmentShaderName = "textured_lit";
+            desc.VertexResources = {.numUniformBuffers = 1};
+            desc.FragmentResources = {.numUniformBuffers = 2, .numSamplers = 1};
+            desc.VertexLayout = VertexLayouts::PosNormalUVTangent;
+            desc.Cull = CullMode::Back;
+            desc.DepthTest = true;
+            desc.DepthWrite = true;
+            desc.MaterialParams =
+            {
+                {.Name = "base_colour", .Type = MaterialParamType::Colour, .Offset = 0, .Default = LinearColour::White()},
+            };
+            desc.MaterialUBOSize = 16;
+            desc.VertexUBOSize = sizeof(TransformUBO);
+            desc.NeedsSceneGlobals = true;
+            desc.TextureSlots = {{.Name = "diffuse", .BindingSlot = 0}};
+
+            if (!registry.Register(desc))
+            {
+                WAYFINDER_ERROR(LogRenderer, "RegisterSceneShaderPrograms: failed to register shader program '{}'", desc.Name);
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    void SceneOpaquePass::OnAttach(const RenderFeatureContext& context)
     {
         m_context = &context.Context;
     }
 
-    void SceneOpaquePass::AddPasses(RenderGraph& graph, const RenderPipelineFrameParams& params)
+    void SceneOpaquePass::AddPasses(RenderGraph& graph, const FrameRenderParams& params)
     {
         if (!m_context)
         {
@@ -70,7 +183,10 @@ namespace Wayfinder
         RenderGraphTextureDesc colourDesc;
         colourDesc.Width = swapW;
         colourDesc.Height = swapH;
-        colourDesc.Format = TextureFormat::RGBA8_UNORM;
+        /// @todo Verify all downstream readers of SceneColour (composition, post-process
+        /// features) handle RGBA16_FLOAT correctly — some blit/tonemap shaders may
+        /// assume RGBA8 range or precision.
+        colourDesc.Format = TextureFormat::RGBA16_FLOAT;
         colourDesc.DebugName = GraphTextureName(GraphTextureId::SceneColour);
 
         RenderGraphTextureDesc depthDesc;
@@ -81,7 +197,7 @@ namespace Wayfinder
 
         graph.AddPass("MainScene", [&, viewMat = view, projMat = projection, hasCamera](RenderGraphBuilder& builder)
         {
-            builder.DeclarePassCapabilities(RenderPassCapabilities::RASTER | RenderPassCapabilities::RASTER_SCENE_GEOMETRY);
+            builder.DeclarePassCapabilities(RenderCapabilities::RASTER | RenderCapabilities::RASTER_SCENE_GEOMETRY);
             auto colour = builder.CreateTransient(colourDesc);
             auto depth = builder.CreateTransient(depthDesc);
             builder.WriteColour(colour, LoadOp::Clear, ClearValue::FromColour(clearColour));

@@ -3,12 +3,10 @@
 #include "rendering/graph/RenderFrame.h"
 #include "rendering/graph/RenderFrameUtils.h"
 #include "rendering/passes/SubmissionDrawing.h"
-#include "rendering/pipeline/RenderContext.h"
-#include "rendering/pipeline/RenderPipeline.h"
+#include "rendering/pipeline/RenderOrchestrator.h"
+#include "rendering/pipeline/RenderServices.h"
 
 #include <doctest/doctest.h>
-
-#include <unordered_map>
 
 namespace Wayfinder::Tests
 {
@@ -21,10 +19,10 @@ namespace Wayfinder::Tests
         config.Window.Width = 320;
         config.Window.Height = 240;
 
-        Wayfinder::RenderContext context;
+        Wayfinder::RenderServices context;
         REQUIRE(context.Initialise(*device, config));
 
-        Wayfinder::RenderPipeline pipeline;
+        Wayfinder::RenderOrchestrator pipeline;
         pipeline.Initialise(context);
 
         Wayfinder::RenderFrame frame;
@@ -36,16 +34,16 @@ namespace Wayfinder::Tests
         view.CameraState.NearPlane = 0.1f;
         view.CameraState.FarPlane = 100.0f;
         frame.AddView(view);
-        frame.AddSceneLayer(Wayfinder::FrameLayerIds::MainScene, 0, Wayfinder::RenderLayers::Main);
+        frame.AddSceneLayer(Wayfinder::FrameLayerIds::MainScene, 0, Wayfinder::RenderGroups::Main);
 
         REQUIRE(pipeline.Prepare(frame, 320, 240));
 
-        static const std::unordered_map<uint32_t, Wayfinder::Mesh*> K_EMPTY_MESHES;
-        const Wayfinder::RenderPipelineFrameParams params{
+        static const Wayfinder::BuiltInMeshTable K_EMPTY_MESHES{};
+        const Wayfinder::FrameRenderParams params{
             .Frame = frame,
             .SwapchainWidth = 320,
             .SwapchainHeight = 240,
-            .MeshesByStride = K_EMPTY_MESHES,
+            .BuiltInMeshes = K_EMPTY_MESHES,
             .ResourceCache = nullptr,
             .PrimaryView = Wayfinder::Rendering::ResolvePreparedPrimaryView(frame),
         };

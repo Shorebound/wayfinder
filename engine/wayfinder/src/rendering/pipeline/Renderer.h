@@ -2,11 +2,10 @@
 
 #include "core/Result.h"
 #include "rendering/RenderTypes.h"
-#include "rendering/graph/RenderPass.h"
-#include "rendering/mesh/Mesh.h"
-#include "rendering/pipeline/RenderPipeline.h"
+#include "rendering/graph/RenderFeature.h"
+#include "rendering/pipeline/RenderOrchestrator.h"
 
-#include <algorithm>
+#include <concepts>
 #include <memory>
 #include <string>
 #include <vector>
@@ -14,7 +13,8 @@
 namespace Wayfinder
 {
     class AssetService;
-    class RenderContext;
+    class BlendableEffectRegistry;
+    class RenderServices;
     class RenderDevice;
     struct EngineConfig;
     struct RenderFrame;
@@ -27,48 +27,59 @@ namespace Wayfinder
         Renderer();
         ~Renderer() noexcept;
 
-        Result<void> Initialise(RenderDevice& device, const EngineConfig& config);
+        /**
+         * @brief Initialises the renderer, creating internal services, resource caches, and the render pipeline.
+         * @param device The render device used for GPU resource creation and command submission.
+         * @param config Engine configuration (screen dimensions, etc.).
+         * @param registry Optional blendable effect registry for external effect type registration.
+         *                 Caller retains ownership. nullptr is valid and means no external blendable
+         *                 registration will be performed. Must outlive the Renderer if provided.
+         * @return Success, or an error describing the initialisation failure.
+         */
+        Result<void> Initialise(RenderDevice& device, const EngineConfig& config, BlendableEffectRegistry* registry = nullptr);
         void Shutdown();
 
         void Render(const RenderFrame& frame);
         void SetAssetService(const std::shared_ptr<AssetService>& assetService);
 
         /**
-         * @brief Registers a game or editor-owned render pass; it receives `OnAttach` immediately if the renderer is initialised.
-         * @param pass Ownership of the pass instance; must not be null.
+         * @brief Seals the blendable effect registry, preventing further registrations.
+         *
+         * Call after all game/editor blendable effect types have been registered.
+         * Engine types are registered during Initialise; this finalises the registry.
+         * `Render()` also seals automatically if the registry is not yet sealed, so this is only
+         * required when something must observe a sealed registry before the first `Render()` call.
          */
-        void AddPass(std::unique_ptr<RenderPass> pass);
+        void SealBlendableEffects();
 
         /**
-         * @brief Registers an engine pass in the fixed phase ordering (opaque, debug, etc.).
-         * @param phase Band used with `orderWithinPhase` for stable ordering within the engine pipeline.
-         * @param orderWithinPhase Lower values run earlier within the same phase.
+         * @brief Registers a render pass in the unified phase-ordered pipeline.
+         * @param phase Band used with `order` for stable ordering.
+         * @param order Lower values run earlier within the same phase.
          * @param pass Ownership of the pass instance; must not be null.
          */
-        void RegisterEnginePass(EngineRenderPhase phase, int32_t orderWithinPhase, std::unique_ptr<RenderPass> pass);
+        void AddPass(RenderPhase phase, int32_t order, std::unique_ptr<RenderFeature> pass);
 
         /**
-         * @brief Removes the first pass whose dynamic type is `T` from `m_passes`.
+         * @brief Registers a render feature with default order within the phase.
+         * @param phase Band used with `order` for stable ordering.
+         * @param pass Ownership of the pass instance; must not be null.
+         * @note Order is `0` (same as calling `AddPass(phase, 0, std::move(pass))`).
+         */
+        void AddPass(RenderPhase phase, std::unique_ptr<RenderFeature> pass);
+
+        /**
+         * @brief Removes the first pass whose dynamic type is `T` from the pipeline.
          * @tparam T Render pass type to match.
          * @return True if a pass was removed; false if none matched.
-         * @note When the renderer is initialised, calls `OnDetach` on the removed pass before erasing it.
          */
         template<typename T>
+            requires std::derived_from<T, RenderFeature>
         bool RemovePass()
         {
-            auto it = std::find_if(m_passes.begin(), m_passes.end(), [](const std::unique_ptr<RenderPass>& p)
+            if (m_renderPipeline)
             {
-                return dynamic_cast<T*>(p.get()) != nullptr;
-            });
-            if (it != m_passes.end())
-            {
-                if (m_isInitialised && m_context)
-                {
-                    auto ctx = MakePassContext();
-                    (*it)->OnDetach(ctx);
-                }
-                m_passes.erase(it);
-                return true;
+                return m_renderPipeline->RemovePass<T>();
             }
             return false;
         }
@@ -79,14 +90,13 @@ namespace Wayfinder
          * @return Pointer to the pass, or nullptr when no matching pass is registered.
          */
         template<typename T>
+            requires std::derived_from<T, RenderFeature>
         const T* GetPass() const
         {
-            for (const auto& p : m_passes)
+            if (m_renderPipeline)
             {
-                if (auto* ptr = dynamic_cast<const T*>(p.get()))
-                {
-                    return ptr;
-                }
+                const auto* rp = m_renderPipeline.get();
+                return rp->GetPass<T>();
             }
             return nullptr;
         }
@@ -97,14 +107,12 @@ namespace Wayfinder
          * @return Pointer to the pass, or nullptr when no matching pass is registered.
          */
         template<typename T>
+            requires std::derived_from<T, RenderFeature>
         T* GetPass()
         {
-            for (auto& p : m_passes)
+            if (m_renderPipeline)
             {
-                if (auto* ptr = dynamic_cast<T*>(p.get()))
-                {
-                    return ptr;
-                }
+                return m_renderPipeline->GetPass<T>();
             }
             return nullptr;
         }
@@ -112,16 +120,9 @@ namespace Wayfinder
     private:
         std::shared_ptr<AssetService> m_assetService;
         RenderDevice* m_device = nullptr;
-        std::unique_ptr<RenderContext> m_context;
-        std::unique_ptr<RenderPipeline> m_renderPipeline;
+        std::unique_ptr<RenderServices> m_services;
+        std::unique_ptr<RenderOrchestrator> m_renderPipeline;
         std::unique_ptr<RenderResourceCache> m_renderResources;
-
-        RenderPassContext MakePassContext();
-
-        std::vector<std::unique_ptr<RenderPass>> m_passes;
-
-        Mesh m_primitiveMesh;
-        Mesh m_texturedPrimitiveMesh;
 
         int m_screenWidth;
         int m_screenHeight;

@@ -1,8 +1,8 @@
 #pragma once
 
 #include "core/Types.h"
-#include "rendering/pipeline/RenderPipelineFrameParams.h"
-#include "rendering/pipeline/ShaderUniforms.h"
+#include "rendering/pipeline/BuiltInUBOs.h"
+#include "rendering/pipeline/FrameRenderParams.h"
 
 #include <cstdint>
 #include <vector>
@@ -23,7 +23,7 @@ namespace Wayfinder
         PipelineCache& Pipelines;
         ShaderManager& Shaders;
         ShaderProgramRegistry& Programs;
-        const RenderPipelineFrameParams& Params;
+        const FrameRenderParams& Params;
         const ShaderProgram* LastBoundProgram = nullptr;
         std::vector<uint8_t> MaterialUBOScratch;
     };

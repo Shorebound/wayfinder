@@ -2,6 +2,7 @@
 
 #include "EngineConfig.h"
 #include "EngineRuntime.h"
+#include "FpsOverlayLayer.h"
 #include "LayerStack.h"
 #include "core/Assert.h"
 #include "core/Log.h"
@@ -109,6 +110,11 @@ namespace Wayfinder
         m_pluginRegistry->NotifyStartup();
         m_pluginsStarted = true;
 
+#if !defined(WAYFINDER_SHIPPING)
+        // Frame stats in the window title (no in-engine text pipeline yet).
+        m_layerStack->PushOverlay(std::make_unique<FpsOverlayLayer>(m_runtime->GetWindow()));
+#endif
+
         m_running = true;
         return {};
     }
@@ -191,13 +197,16 @@ namespace Wayfinder
 
     void Application::PropagateToLayers(Event& event)
     {
-        for (auto it = m_layerStack->rbegin(); it != m_layerStack->rend(); ++it)
+        // Iterate in reverse: overlays (pushed via PushOverlay, at the back) receive
+        // events first and can mark them handled before underlying layers see them.
+        for (auto& layer : *m_layerStack | std::views::reverse)
         {
             if (event.Handled)
             {
                 break;
             }
-            (*it)->OnEvent(event);
+
+            layer->OnEvent(event);
         }
     }
 
@@ -268,13 +277,15 @@ namespace Wayfinder
 
             m_pluginRegistry = nullptr;
 
+            // Layers may touch the window in OnDetach (e.g. FpsOverlayLayer restoring the title) — tear down
+            // before EngineRuntime::Shutdown invalidates the Window.
+            m_layerStack = nullptr;
+
             if (m_runtime)
             {
                 m_runtime->Shutdown();
                 m_runtime = nullptr;
             }
-
-            m_layerStack = nullptr;
             m_config = nullptr;
             m_project = nullptr;
         }

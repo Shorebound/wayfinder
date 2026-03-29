@@ -1,13 +1,15 @@
 set(WAYFINDER_RENDER_TEST_NAME wayfinder_render_tests)
 
 add_executable(${WAYFINDER_RENDER_TEST_NAME}
-  rendering/RenderPipelineTests.cpp
+  rendering/RenderOrchestratorTests.cpp
   rendering/RenderGraphTests.cpp
-  rendering/RenderPassTests.cpp
+  volumes/BlendableEffectRegistryTests.cpp
+  rendering/RenderFeatureTests.cpp
   rendering/SubmissionDrawingTests.cpp
   rendering/SceneOpaquePassTests.cpp
+  rendering/PostProcessFeatureTests.cpp
   rendering/DebugPassTests.cpp
-  rendering/RenderContextTests.cpp
+  rendering/RenderServicesTests.cpp
   rendering/BlendStateTests.cpp
   rendering/FrameAllocatorTests.cpp
   rendering/TextureManagerTests.cpp

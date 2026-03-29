@@ -17,7 +17,7 @@ namespace Wayfinder
      * @brief Manages GPU texture lifetimes, fallback textures, and sampler deduplication.
      *
      * Owns all GPU texture and sampler handles created for asset-loaded textures.
-     * Created once at initialisation as part of RenderContext.
+     * Created once at initialisation as part of RenderServices.
      */
     class WAYFINDER_API TextureManager
     {

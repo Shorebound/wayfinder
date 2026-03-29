@@ -205,6 +205,39 @@
         "friction": 0.4,
         "restitution": 0.85
       }
+    },
+    {
+      "id": "d0c9e8f7-a6b5-4c3d-2e1f-0a9b8c7d6e5f",
+      "name": "GlobalPostFxDebug",
+      "parent_id": "d43f13fe-fd18-46ad-9e2a-10d9cd0f6f9c",
+      "transform": {
+        "position": [0.0, 0.0, 0.0],
+        "rotation": [0.0, 0.0, 0.0],
+        "scale": [1.0, 1.0, 1.0]
+      },
+      "blendable_effect_volume": {
+        "shape": "global",
+        "priority": 0,
+        "effects": [
+          {
+            "type": "chromatic_aberration",
+            "intensity": 0.14
+          },
+          {
+            "type": "vignette",
+            "strength": 0.82
+          },
+          {
+            "type": "colour_grading",
+            "exposure_stops": 0.4,
+            "contrast": 1.12,
+            "saturation": 1.55,
+            "lift": [0.04, 0.02, -0.02],
+            "gamma": [1.0, 1.0, 1.0],
+            "gain": [1.02, 1.0, 0.98]
+          }
+        ]
+      }
     }
   ]
 }

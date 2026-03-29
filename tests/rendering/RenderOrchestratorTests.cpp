@@ -2,12 +2,15 @@
 #include "app/EngineConfig.h"
 #include "assets/AssetService.h"
 #include "rendering/backend/RenderDevice.h"
+#include "rendering/graph/RenderFeature.h"
 #include "rendering/graph/RenderFrame.h"
+#include "rendering/graph/RenderFrameUtils.h"
+#include "rendering/graph/RenderGraph.h"
 #include "rendering/graph/SortKey.h"
-#include "rendering/pipeline/RenderContext.h"
-#include "rendering/pipeline/RenderPipeline.h"
+#include "rendering/pipeline/RenderOrchestrator.h"
+#include "rendering/pipeline/RenderServices.h"
 #include "rendering/pipeline/SceneRenderExtractor.h"
-#include "rendering/resources/RenderResources.h"
+#include "rendering/resources/RenderResourceCache.h"
 #include "scene/Components.h"
 #include "scene/RuntimeComponentRegistry.h"
 #include "scene/Scene.h"
@@ -19,11 +22,35 @@
 #include <filesystem>
 #include <memory>
 #include <string>
+#include <vector>
 
 namespace Wayfinder::Tests
 {
     namespace
     {
+        class OrderPass final : public Wayfinder::RenderFeature
+        {
+        public:
+            OrderPass(std::string name, std::vector<std::string>* log) : m_name(std::move(name)), m_log(log) {}
+
+            std::string_view GetName() const override
+            {
+                return m_name;
+            }
+
+            void AddPasses(Wayfinder::RenderGraph& /*graph*/, const Wayfinder::FrameRenderParams& /*params*/) override
+            {
+                if (m_log != nullptr)
+                {
+                    m_log->push_back(m_name);
+                }
+            }
+
+        private:
+            std::string m_name;
+            std::vector<std::string>* m_log;
+        };
+
         Wayfinder::RenderMeshSubmission MakeSolidMesh(uint8_t sortPriority, const Wayfinder::Colour& colour)
         {
             Wayfinder::RenderMeshSubmission submission;
@@ -65,9 +92,9 @@ namespace Wayfinder::Tests
         // NOLINTNEXTLINE(misc-const-correctness)
         Wayfinder::RenderResourceCache resources;
         auto device = Wayfinder::RenderDevice::Create(Wayfinder::RenderBackend::Null);
-        const Wayfinder::RenderPipeline pipeline;
+        const Wayfinder::RenderOrchestrator pipeline;
 
-        // Should not crash — Prepare returns false for empty frames
+        // Should not crash â€” Prepare returns false for empty frames
         pipeline.Prepare(frame, 1280, 720);
     }
 
@@ -103,7 +130,7 @@ namespace Wayfinder::Tests
         cube.AddComponent<Wayfinder::TransformComponent>(Wayfinder::TransformComponent{{0.0f, 0.5f, 0.0f}});
         cube.AddComponent<Wayfinder::MeshComponent>(Wayfinder::MeshComponent{});
         Wayfinder::RenderableComponent renderable;
-        renderable.Layer = Wayfinder::RenderLayers::Main;
+        renderable.Group = Wayfinder::RenderGroups::Main;
         cube.AddComponent<Wayfinder::RenderableComponent>(renderable);
 
         Wayfinder::Entity light = scene.CreateEntity("Light");
@@ -117,8 +144,8 @@ namespace Wayfinder::Tests
 
         const Wayfinder::SceneRenderExtractor extractor;
         const Wayfinder::RenderFrame frame = extractor.Extract(scene);
-        const Wayfinder::FrameLayerRecord* mainPass = frame.FindLayer(Wayfinder::FrameLayerIds::MainScene);
-        const Wayfinder::FrameLayerRecord* debugPass = frame.FindLayer(Wayfinder::FrameLayerIds::Debug);
+        const Wayfinder::FrameLayer* mainPass = frame.FindLayer(Wayfinder::FrameLayerIds::MainScene);
+        const Wayfinder::FrameLayer* debugPass = frame.FindLayer(Wayfinder::FrameLayerIds::Debug);
 
         scene.Shutdown();
 
@@ -157,7 +184,7 @@ namespace Wayfinder::Tests
 
         const Wayfinder::SceneRenderExtractor extractor;
         const Wayfinder::RenderFrame frame = extractor.Extract(scene);
-        const Wayfinder::FrameLayerRecord* mainPass = frame.FindLayer(Wayfinder::FrameLayerIds::MainScene);
+        const Wayfinder::FrameLayer* mainPass = frame.FindLayer(Wayfinder::FrameLayerIds::MainScene);
 
         scene.Shutdown();
 
@@ -197,7 +224,7 @@ namespace Wayfinder::Tests
             cube.AddComponent<Wayfinder::MeshComponent>(Wayfinder::MeshComponent{});
 
             Wayfinder::RenderableComponent renderable;
-            renderable.Layer = Wayfinder::RenderLayers::Main;
+            renderable.Group = Wayfinder::RenderGroups::Main;
             cube.AddComponent<Wayfinder::RenderableComponent>(renderable);
 
             Wayfinder::MaterialComponent material;
@@ -212,14 +239,14 @@ namespace Wayfinder::Tests
 
         const Wayfinder::SceneRenderExtractor extractor;
         Wayfinder::RenderFrame frame = extractor.Extract(scene);
-        Wayfinder::FrameLayerRecord* mainPass = frame.FindLayer(Wayfinder::FrameLayerIds::MainScene);
+        Wayfinder::FrameLayer* mainPass = frame.FindLayer(Wayfinder::FrameLayerIds::MainScene);
 
         REQUIRE(mainPass != nullptr);
         REQUIRE(mainPass->Meshes.size() == 2);
         CHECK((mainPass->Meshes[0].SortKey >> 62) == static_cast<uint64_t>(Wayfinder::SortLayer::Transparent));
         CHECK((mainPass->Meshes[1].SortKey >> 62) == static_cast<uint64_t>(Wayfinder::SortLayer::Transparent));
 
-        const Wayfinder::RenderPipeline pipeline;
+        const Wayfinder::RenderOrchestrator pipeline;
         REQUIRE(pipeline.Prepare(frame, 1280, 720));
 
         mainPass = frame.FindLayer(Wayfinder::FrameLayerIds::MainScene);
@@ -235,7 +262,7 @@ namespace Wayfinder::Tests
     {
         Wayfinder::RenderFrame frame;
         const size_t viewIndex = frame.AddView(Wayfinder::RenderView{});
-        Wayfinder::FrameLayerRecord& scenePass = frame.AddSceneLayer(Wayfinder::FrameLayerIds::MainScene, viewIndex, Wayfinder::RenderLayers::Main);
+        Wayfinder::FrameLayer& scenePass = frame.AddSceneLayer(Wayfinder::FrameLayerIds::MainScene, viewIndex, Wayfinder::RenderGroups::Main);
         scenePass.Meshes.push_back(MakeSolidMesh(100, Wayfinder::Colour::Red()));
         scenePass.Meshes.push_back(MakeSolidMesh(10, Wayfinder::Colour::Blue()));
 
@@ -247,7 +274,7 @@ namespace Wayfinder::Tests
         CHECK(resolved.Geometry.Type == Wayfinder::RenderGeometryType::Box);
     }
 
-    TEST_CASE("RenderPipeline::Initialise registers built-in programs")
+    TEST_CASE("RenderOrchestrator::Initialise registers built-in programs")
     {
         auto device = Wayfinder::RenderDevice::Create(Wayfinder::RenderBackend::Null);
         REQUIRE(device);
@@ -256,11 +283,11 @@ namespace Wayfinder::Tests
         config.Window.Width = 320;
         config.Window.Height = 240;
 
-        Wayfinder::RenderContext context;
+        Wayfinder::RenderServices context;
         REQUIRE(context.Initialise(*device, config));
 
-        Wayfinder::RenderPipeline pipeline;
-        // Initialise must not crash — it registers programs via the context.
+        Wayfinder::RenderOrchestrator pipeline;
+        // Initialise must not crash â€” it registers programs via the context.
         // With NullDevice, pipeline creation fails (no shader files on disk),
         // so Find returns nullptr. The contract being tested is that Initialise
         // calls Register for each built-in program without crashing.
@@ -270,7 +297,7 @@ namespace Wayfinder::Tests
         context.Shutdown();
     }
 
-    TEST_CASE("RenderPipeline::Shutdown is safe after Initialise")
+    TEST_CASE("RenderOrchestrator::Shutdown is safe after Initialise")
     {
         auto device = Wayfinder::RenderDevice::Create(Wayfinder::RenderBackend::Null);
         REQUIRE(device);
@@ -279,14 +306,133 @@ namespace Wayfinder::Tests
         config.Window.Width = 320;
         config.Window.Height = 240;
 
-        Wayfinder::RenderContext context;
+        Wayfinder::RenderServices context;
         REQUIRE(context.Initialise(*device, config));
 
-        Wayfinder::RenderPipeline pipeline;
+        Wayfinder::RenderOrchestrator pipeline;
         pipeline.Initialise(context);
         pipeline.Shutdown();
         pipeline.Shutdown(); // Double shutdown is safe
 
+        context.Shutdown();
+    }
+
+    TEST_CASE("RenderOrchestrator orders RegisterPass by phase then order then registration sequence")
+    {
+        auto device = Wayfinder::RenderDevice::Create(Wayfinder::RenderBackend::Null);
+        REQUIRE(device);
+
+        Wayfinder::EngineConfig config;
+        config.Window.Width = 320;
+        config.Window.Height = 240;
+
+        Wayfinder::RenderServices context;
+        REQUIRE(context.Initialise(*device, config));
+
+        std::vector<std::string> order;
+        Wayfinder::RenderOrchestrator pipeline;
+        pipeline.Initialise(context);
+
+        pipeline.RegisterPass(Wayfinder::RenderPhase::PostProcess, 100, std::make_unique<OrderPass>("p100", &order));
+        pipeline.RegisterPass(Wayfinder::RenderPhase::Opaque, 0, std::make_unique<OrderPass>("o0", &order));
+        pipeline.RegisterPass(Wayfinder::RenderPhase::Present, 0, std::make_unique<OrderPass>("pr0", &order));
+        pipeline.RegisterPass(Wayfinder::RenderPhase::PostProcess, 0, std::make_unique<OrderPass>("p0", &order));
+
+        Wayfinder::RenderFrame frame;
+        Wayfinder::RenderView view;
+        view.CameraState.Position = {0.0f, 0.0f, 5.0f};
+        view.CameraState.Target = {0.0f, 0.0f, 0.0f};
+        view.CameraState.Up = {0.0f, 1.0f, 0.0f};
+        view.CameraState.FOV = 60.0f;
+        view.CameraState.NearPlane = 0.1f;
+        view.CameraState.FarPlane = 100.0f;
+        frame.AddView(view);
+        frame.AddSceneLayer(Wayfinder::FrameLayerIds::MainScene, 0, Wayfinder::RenderGroups::Main);
+        frame.AddDebugLayer(Wayfinder::FrameLayerIds::Debug, 0);
+
+        REQUIRE(pipeline.Prepare(frame, 320, 240));
+
+        static const Wayfinder::BuiltInMeshTable K_EMPTY_MESHES{};
+        const Wayfinder::FrameRenderParams params{
+            .Frame = frame,
+            .SwapchainWidth = 320,
+            .SwapchainHeight = 240,
+            .BuiltInMeshes = K_EMPTY_MESHES,
+            .ResourceCache = nullptr,
+            .PrimaryView = Wayfinder::Rendering::ResolvePreparedPrimaryView(frame),
+        };
+
+        Wayfinder::RenderGraph graph;
+        pipeline.BuildGraph(graph, params);
+
+        auto indexOf = [&](const std::string& name) -> size_t
+        {
+            const auto it = std::ranges::find(order, name);
+            REQUIRE(it != order.end());
+            return static_cast<size_t>(std::distance(order.begin(), it));
+        };
+
+        CHECK(indexOf("o0") < indexOf("p0"));
+        CHECK(indexOf("p0") < indexOf("p100"));
+        CHECK(indexOf("p100") < indexOf("pr0"));
+
+        pipeline.Shutdown();
+        context.Shutdown();
+    }
+
+    TEST_CASE("RenderOrchestrator ties same phase and order by registration sequence")
+    {
+        auto device = Wayfinder::RenderDevice::Create(Wayfinder::RenderBackend::Null);
+        REQUIRE(device);
+
+        Wayfinder::EngineConfig config;
+        config.Window.Width = 320;
+        config.Window.Height = 240;
+
+        Wayfinder::RenderServices context;
+        REQUIRE(context.Initialise(*device, config));
+
+        std::vector<std::string> order;
+        Wayfinder::RenderOrchestrator pipeline;
+        pipeline.Initialise(context);
+
+        pipeline.RegisterPass(Wayfinder::RenderPhase::PostProcess, 0, std::make_unique<OrderPass>("first", &order));
+        pipeline.RegisterPass(Wayfinder::RenderPhase::PostProcess, 0, std::make_unique<OrderPass>("second", &order));
+
+        Wayfinder::RenderFrame frame;
+        Wayfinder::RenderView view;
+        view.CameraState.Position = {0.0f, 0.0f, 5.0f};
+        view.CameraState.Target = {0.0f, 0.0f, 0.0f};
+        view.CameraState.Up = {0.0f, 1.0f, 0.0f};
+        view.CameraState.FOV = 60.0f;
+        view.CameraState.NearPlane = 0.1f;
+        view.CameraState.FarPlane = 100.0f;
+        frame.AddView(view);
+        frame.AddSceneLayer(Wayfinder::FrameLayerIds::MainScene, 0, Wayfinder::RenderGroups::Main);
+        frame.AddDebugLayer(Wayfinder::FrameLayerIds::Debug, 0);
+
+        REQUIRE(pipeline.Prepare(frame, 320, 240));
+
+        static const Wayfinder::BuiltInMeshTable K_EMPTY_MESHES{};
+        const Wayfinder::FrameRenderParams params{
+            .Frame = frame,
+            .SwapchainWidth = 320,
+            .SwapchainHeight = 240,
+            .BuiltInMeshes = K_EMPTY_MESHES,
+            .ResourceCache = nullptr,
+            .PrimaryView = Wayfinder::Rendering::ResolvePreparedPrimaryView(frame),
+        };
+
+        Wayfinder::RenderGraph graph;
+        pipeline.BuildGraph(graph, params);
+
+        const auto firstIt = std::ranges::find(order, "first");
+        const auto secondIt = std::ranges::find(order, "second");
+        REQUIRE(firstIt != order.end());
+        REQUIRE(secondIt != order.end());
+        CHECK(firstIt < secondIt);
+
+        pipeline.Shutdown();
         context.Shutdown();
     }
 }

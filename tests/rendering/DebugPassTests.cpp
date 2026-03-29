@@ -22,7 +22,7 @@ namespace Wayfinder::Tests
     TEST_CASE("Debug layer is absent when frame has no debug layer (extractor omits debug draws)")
     {
         Wayfinder::RenderFrame frame;
-        Wayfinder::FrameLayerRecord* debug = frame.FindLayer(Wayfinder::FrameLayerIds::Debug);
+        Wayfinder::FrameLayer* debug = frame.FindLayer(Wayfinder::FrameLayerIds::Debug);
         CHECK(debug == nullptr);
     }
 } // namespace Wayfinder::Tests

@@ -13,6 +13,7 @@ namespace Wayfinder::Rendering
         }
 
         const RenderView& primary = frame.Views.front();
+        out.ViewIndex = 0;
         out.ViewMatrix = primary.ViewMatrix;
         out.ProjectionMatrix = primary.ProjectionMatrix;
         out.ClearColour = primary.ClearColour;

@@ -4,13 +4,13 @@
 
 namespace Wayfinder
 {
-    /// Scene sorting layer (e.g. main vs overlay), not the logical frame layer record id.
-    using RenderLayerId = InternedString;
+    /// Scene sorting group (e.g. main vs overlay), not the logical frame layer id.
+    using RenderGroupId = InternedString;
 
-    /// Identifies a CPU-side frame layer record (`FrameLayerRecord`), e.g. main_scene vs debug.
+    /// Identifies a CPU-side frame layer (`FrameLayer`), e.g. main_scene vs debug.
     using FrameLayerId = InternedString;
 
-    namespace RenderLayers
+    namespace RenderGroups
     {
         inline const InternedString Main = InternedString::Intern("main");
         inline const InternedString Overlay = InternedString::Intern("overlay");

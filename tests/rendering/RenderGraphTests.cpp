@@ -1,6 +1,9 @@
 #include "rendering/backend/RenderDevice.h"
 #include "rendering/graph/RenderGraph.h"
+#include "rendering/materials/RenderingEffects.h"
 #include "rendering/resources/TransientResourcePool.h"
+#include "volumes/BlendableEffect.h"
+#include "volumes/BlendableEffectUtils.h"
 
 #include <doctest/doctest.h>
 
@@ -199,6 +202,27 @@ namespace Wayfinder::Tests
         CHECK_FALSE(graph.Compile());
     }
 
+    TEST_CASE("Graph with raster passes but no swapchain writer does not compile")
+    {
+        Wayfinder::RenderGraph graph;
+        Wayfinder::RenderGraphTextureDesc desc;
+        desc.Width = 64;
+        desc.Height = 64;
+        desc.Format = Wayfinder::TextureFormat::RGBA8_UNORM;
+        desc.DebugName = "NoPresent";
+
+        graph.AddPass("OnlyRT", [&](Wayfinder::RenderGraphBuilder& builder)
+        {
+            auto t = builder.CreateTransient(desc);
+            builder.WriteColour(t);
+            return [](Wayfinder::RenderDevice&, const Wayfinder::RenderGraphResources&)
+            {
+            };
+        });
+
+        CHECK_FALSE(graph.Compile());
+    }
+
     TEST_CASE("Single pass targeting swapchain compiles")
     {
         Wayfinder::RenderGraph graph;
@@ -311,6 +335,76 @@ namespace Wayfinder::Tests
         CHECK(executionOrder[0] == "First");
         CHECK(executionOrder[1] == "Second");
         CHECK(executionOrder[2] == "Present");
+    }
+
+    TEST_CASE("SceneColour to PostProcessColour to swapchain executes in dependency order")
+    {
+        std::vector<std::string> executionOrder;
+        Wayfinder::RenderGraph graph;
+
+        Wayfinder::RenderGraphTextureDesc sceneDesc;
+        sceneDesc.Width = 320;
+        sceneDesc.Height = 240;
+        sceneDesc.Format = Wayfinder::TextureFormat::RGBA8_UNORM;
+        sceneDesc.DebugName = Wayfinder::GraphTextureName(Wayfinder::GraphTextureId::SceneColour);
+
+        graph.AddPass("A_SceneColour", [&](Wayfinder::RenderGraphBuilder& builder)
+        {
+            auto colour = builder.CreateTransient(sceneDesc);
+            builder.WriteColour(colour);
+            return [&executionOrder](Wayfinder::RenderDevice&, const Wayfinder::RenderGraphResources&)
+            {
+                executionOrder.push_back("A");
+            };
+        });
+
+        graph.AddPass("B_PostProcessColour", [&](Wayfinder::RenderGraphBuilder& builder)
+        {
+            auto scene = graph.FindHandle(Wayfinder::GraphTextureId::SceneColour);
+            builder.ReadTexture(scene);
+
+            Wayfinder::RenderGraphTextureDesc presentDesc{};
+            presentDesc.Width = 320;
+            presentDesc.Height = 240;
+            presentDesc.Format = Wayfinder::TextureFormat::RGBA8_UNORM;
+            presentDesc.DebugName = Wayfinder::GraphTextureName(Wayfinder::GraphTextureId::PostProcessColour);
+            auto present = builder.CreateTransient(presentDesc);
+            builder.WriteColour(present, Wayfinder::LoadOp::DontCare);
+
+            return [&executionOrder](Wayfinder::RenderDevice&, const Wayfinder::RenderGraphResources&)
+            {
+                executionOrder.push_back("B");
+            };
+        });
+
+        graph.AddPass("C_Composition", [&](Wayfinder::RenderGraphBuilder& builder)
+        {
+            auto present = graph.FindHandle(Wayfinder::GraphTextureId::PostProcessColour);
+            builder.ReadTexture(present);
+            builder.SetSwapchainOutput();
+            return [&executionOrder](Wayfinder::RenderDevice&, const Wayfinder::RenderGraphResources&)
+            {
+                executionOrder.push_back("C");
+            };
+        });
+
+        REQUIRE(graph.Compile());
+
+        GraphTestFixture fixture;
+        graph.Execute(*fixture.Device, fixture.Pool);
+
+        REQUIRE(executionOrder.size() == 3);
+        CHECK(executionOrder[0] == "A");
+        CHECK(executionOrder[1] == "B");
+        CHECK(executionOrder[2] == "C");
+    }
+
+    TEST_CASE("ResolveEffect returns identity for empty stack and invalid id")
+    {
+        Wayfinder::BlendableEffectStack stack{};
+        const Wayfinder::ColourGradingParams g = Wayfinder::ResolveEffect<Wayfinder::ColourGradingParams>(stack, 0);
+        CHECK(g.Contrast.Value == doctest::Approx(1.0f));
+        CHECK(g.ExposureStops.Value == doctest::Approx(0.0f));
     }
 
     TEST_CASE("Render graph wraps raster and compute passes in GPU debug groups")
@@ -584,6 +678,7 @@ namespace Wayfinder::Tests
     {
         CHECK(Wayfinder::GraphTextures::SceneColour == Wayfinder::InternedString::Intern("SceneColour"));
         CHECK(Wayfinder::GraphTextures::SceneDepth == Wayfinder::InternedString::Intern("SceneDepth"));
+        CHECK(Wayfinder::GraphTextures::PostProcessColour == Wayfinder::InternedString::Intern("PostProcessColour"));
 
         Wayfinder::RenderGraph graph;
 
@@ -603,7 +698,7 @@ namespace Wayfinder::Tests
         CHECK_FALSE(unknown.IsValid());
     }
 
-    TEST_CASE("Duplicate import returns same handle")
+    TEST_CASE("Duplicate import returns same handle when only one resource exists")
     {
         Wayfinder::RenderGraph graph;
 
@@ -611,6 +706,192 @@ namespace Wayfinder::Tests
         auto second = graph.ImportTexture("MyTexture");
 
         CHECK(first == second);
+    }
+
+    TEST_CASE("FindHandle returns latest resource when multiple share a GraphTextureId name")
+    {
+        Wayfinder::RenderGraph graph;
+
+        Wayfinder::RenderGraphTextureDesc desc{};
+        desc.Width = 64;
+        desc.Height = 64;
+        desc.Format = Wayfinder::TextureFormat::RGBA8_UNORM;
+        desc.DebugName = Wayfinder::GraphTextureName(Wayfinder::GraphTextureId::SceneColour);
+
+        graph.AddPass("First", [&](Wayfinder::RenderGraphBuilder& builder)
+        {
+            auto h = builder.CreateTransient(desc);
+            builder.WriteColour(h);
+            return [](Wayfinder::RenderDevice&, const Wayfinder::RenderGraphResources&)
+            {
+            };
+        });
+
+        graph.AddPass("Second", [&](Wayfinder::RenderGraphBuilder& builder)
+        {
+            auto h = builder.CreateTransient(desc);
+            builder.WriteColour(h);
+            return [](Wayfinder::RenderDevice&, const Wayfinder::RenderGraphResources&)
+            {
+            };
+        });
+
+        auto latest = graph.FindHandle(Wayfinder::GraphTextureId::SceneColour);
+        REQUIRE(latest.IsValid());
+        CHECK(latest.Index == 1u);
+    }
+
+    TEST_CASE("ImportTexture returns latest resource when duplicate names exist")
+    {
+        Wayfinder::RenderGraph graph;
+
+        Wayfinder::RenderGraphTextureDesc desc{};
+        desc.Width = 64;
+        desc.Height = 64;
+        desc.Format = Wayfinder::TextureFormat::RGBA8_UNORM;
+        desc.DebugName = "SharedName";
+
+        graph.AddPass("First", [&](Wayfinder::RenderGraphBuilder& builder)
+        {
+            auto h = builder.CreateTransient(desc);
+            builder.WriteColour(h);
+            return [](Wayfinder::RenderDevice&, const Wayfinder::RenderGraphResources&)
+            {
+            };
+        });
+
+        graph.AddPass("Second", [&](Wayfinder::RenderGraphBuilder& builder)
+        {
+            auto h = builder.CreateTransient(desc);
+            builder.WriteColour(h);
+            return [](Wayfinder::RenderDevice&, const Wayfinder::RenderGraphResources&)
+            {
+            };
+        });
+
+        auto imported = graph.ImportTexture(Wayfinder::InternedString::Intern("SharedName"));
+        REQUIRE(imported.IsValid());
+        CHECK(imported.Index == 1u);
+    }
+
+    TEST_CASE("ResolvePostProcessInput returns SceneColour when no PostProcessColour exists")
+    {
+        Wayfinder::RenderGraph graph;
+
+        Wayfinder::RenderGraphTextureDesc sceneDesc{};
+        sceneDesc.Width = 320;
+        sceneDesc.Height = 240;
+        sceneDesc.Format = Wayfinder::TextureFormat::RGBA8_UNORM;
+        sceneDesc.DebugName = Wayfinder::GraphTextureName(Wayfinder::GraphTextureId::SceneColour);
+
+        graph.AddPass("Scene", [&](Wayfinder::RenderGraphBuilder& builder)
+        {
+            auto h = builder.CreateTransient(sceneDesc);
+            builder.WriteColour(h);
+            return [](Wayfinder::RenderDevice&, const Wayfinder::RenderGraphResources&)
+            {
+            };
+        });
+
+        const Wayfinder::RenderGraphHandle resolved = Wayfinder::ResolvePostProcessInput(graph);
+        const Wayfinder::RenderGraphHandle scene = graph.FindHandle(Wayfinder::GraphTextureId::SceneColour);
+        CHECK(resolved == scene);
+    }
+
+    TEST_CASE("ResolvePostProcessInput returns PostProcessColour when present")
+    {
+        Wayfinder::RenderGraph graph;
+
+        Wayfinder::RenderGraphTextureDesc sceneDesc{};
+        sceneDesc.Width = 320;
+        sceneDesc.Height = 240;
+        sceneDesc.Format = Wayfinder::TextureFormat::RGBA8_UNORM;
+        sceneDesc.DebugName = Wayfinder::GraphTextureName(Wayfinder::GraphTextureId::SceneColour);
+
+        Wayfinder::RenderGraphTextureDesc postDesc{};
+        postDesc.Width = 320;
+        postDesc.Height = 240;
+        postDesc.Format = Wayfinder::TextureFormat::RGBA8_UNORM;
+        postDesc.DebugName = Wayfinder::GraphTextureName(Wayfinder::GraphTextureId::PostProcessColour);
+
+        graph.AddPass("Scene", [&](Wayfinder::RenderGraphBuilder& builder)
+        {
+            auto h = builder.CreateTransient(sceneDesc);
+            builder.WriteColour(h);
+            return [](Wayfinder::RenderDevice&, const Wayfinder::RenderGraphResources&)
+            {
+            };
+        });
+
+        graph.AddPass("Post", [&](Wayfinder::RenderGraphBuilder& builder)
+        {
+            auto h = builder.CreateTransient(postDesc);
+            builder.WriteColour(h);
+            return [](Wayfinder::RenderDevice&, const Wayfinder::RenderGraphResources&)
+            {
+            };
+        });
+
+        const Wayfinder::RenderGraphHandle resolved = Wayfinder::ResolvePostProcessInput(graph);
+        const Wayfinder::RenderGraphHandle post = graph.FindHandle(Wayfinder::GraphTextureId::PostProcessColour);
+        CHECK(resolved == post);
+    }
+
+    TEST_CASE("PostProcessColour chain: second pass reads first pass output via ResolvePostProcessInput")
+    {
+        Wayfinder::RenderGraph graph;
+
+        Wayfinder::RenderGraphTextureDesc sceneDesc{};
+        sceneDesc.Width = 320;
+        sceneDesc.Height = 240;
+        sceneDesc.Format = Wayfinder::TextureFormat::RGBA8_UNORM;
+        sceneDesc.DebugName = Wayfinder::GraphTextureName(Wayfinder::GraphTextureId::SceneColour);
+
+        Wayfinder::RenderGraphTextureDesc postDesc{};
+        postDesc.Width = 320;
+        postDesc.Height = 240;
+        postDesc.Format = Wayfinder::TextureFormat::RGBA8_UNORM;
+        postDesc.DebugName = Wayfinder::GraphTextureName(Wayfinder::GraphTextureId::PostProcessColour);
+
+        graph.AddPass("Scene", [&](Wayfinder::RenderGraphBuilder& builder)
+        {
+            auto h = builder.CreateTransient(sceneDesc);
+            builder.WriteColour(h);
+            return [](Wayfinder::RenderDevice&, const Wayfinder::RenderGraphResources&)
+            {
+            };
+        });
+
+        graph.AddPass("PostA", [&](Wayfinder::RenderGraphBuilder& builder)
+        {
+            builder.ReadTexture(Wayfinder::ResolvePostProcessInput(graph));
+            auto h = builder.CreateTransient(postDesc);
+            builder.WriteColour(h);
+            return [](Wayfinder::RenderDevice&, const Wayfinder::RenderGraphResources&)
+            {
+            };
+        });
+
+        graph.AddPass("PostB", [&](Wayfinder::RenderGraphBuilder& builder)
+        {
+            builder.ReadTexture(Wayfinder::ResolvePostProcessInput(graph));
+            auto h = builder.CreateTransient(postDesc);
+            builder.WriteColour(h);
+            return [](Wayfinder::RenderDevice&, const Wayfinder::RenderGraphResources&)
+            {
+            };
+        });
+
+        graph.AddPass("Present", [&](Wayfinder::RenderGraphBuilder& builder)
+        {
+            builder.ReadTexture(Wayfinder::ResolvePostProcessInput(graph));
+            builder.SetSwapchainOutput();
+            return [](Wayfinder::RenderDevice&, const Wayfinder::RenderGraphResources&)
+            {
+            };
+        });
+
+        CHECK(graph.Compile());
     }
 
     TEST_CASE("Render graph names remain valid when provided by temporary strings")

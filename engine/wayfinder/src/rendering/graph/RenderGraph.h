@@ -4,7 +4,7 @@
 #include "rendering/ArenaFunction.h"
 #include "rendering/FrameAllocator.h"
 #include "rendering/RenderTypes.h"
-#include "rendering/graph/RenderPassCapabilities.h"
+#include "rendering/graph/RenderCapabilities.h"
 
 #include <cassert>
 #include <concepts>
@@ -38,6 +38,8 @@ namespace Wayfinder
     {
         SceneColour,
         SceneDepth,
+        /// Output of the latest post-process pass in the chain (same logical name; `FindHandle` returns the latest).
+        PostProcessColour,
     };
 
     /// Stable interned names for resources created or looked up by `GraphTextureId`.
@@ -45,6 +47,7 @@ namespace Wayfinder
     {
         inline const InternedString SceneColour = InternedString::Intern("SceneColour");
         inline const InternedString SceneDepth = InternedString::Intern("SceneDepth");
+        inline const InternedString PostProcessColour = InternedString::Intern("PostProcessColour");
     }
 
     /// Resolves `GraphTextureId` to the shared `InternedString` (for lookups without re-interning).
@@ -56,6 +59,8 @@ namespace Wayfinder
             return GraphTextures::SceneColour;
         case GraphTextureId::SceneDepth:
             return GraphTextures::SceneDepth;
+        case GraphTextureId::PostProcessColour:
+            return GraphTextures::PostProcessColour;
         }
         assert(false && "GraphTextureIntern: unhandled GraphTextureId");
         static const InternedString kEmpty;
@@ -115,7 +120,7 @@ namespace Wayfinder
         void SetSwapchainOutput(LoadOp load = LoadOp::Clear, ClearValue clear = {});
 
         /// Optional metadata for dev-time validation in `Compile` (matches `RenderPass::GetCapabilities` when set).
-        void DeclarePassCapabilities(RenderPassCapabilityMask mask);
+        void DeclarePassCapabilities(RenderCapabilityMask mask);
 
     private:
         friend class RenderGraph;
@@ -240,7 +245,7 @@ namespace Wayfinder
             bool Culled = false;
             uint32_t SortOrder = UINT32_MAX;
 
-            std::optional<RenderPassCapabilityMask> DeclaredCapabilities;
+            std::optional<RenderCapabilityMask> DeclaredCapabilities;
         };
 
         RenderGraphHandle AllocateResource(const RenderGraphTextureDesc& desc, InternedString name = {});
@@ -285,6 +290,32 @@ namespace Wayfinder
             std::is_invocable_r_v<void, decltype(executeFn), RenderDevice&, const RenderGraphResources&>, "AddComputePass: setup must return a callable matching void(RenderDevice&, const RenderGraphResources&)");
 
         m_passes.back().Execute = RenderGraphExecuteFn(m_allocator, std::move(executeFn));
+    }
+
+    /// Returns PostProcessColour if any prior pass wrote it, else SceneColour.
+    /// Invalid handle only if neither exists (scene pass didn't run).
+    inline RenderGraphHandle ResolvePostProcessInput(const RenderGraph& graph)
+    {
+        const RenderGraphHandle post = graph.FindHandle(GraphTextureId::PostProcessColour);
+        if (post.IsValid())
+        {
+            return post;
+        }
+        return graph.FindHandleChecked(GraphTextureId::SceneColour);
+    }
+
+    /**
+     * @brief Creates a new PostProcessColour transient for the next link in the chain.
+     * Always RGBA16_FLOAT to avoid banding between passes (pre-tonemapped HDR data).
+     */
+    inline RenderGraphHandle CreatePostProcessOutput(RenderGraphBuilder& builder, uint32_t width, uint32_t height)
+    {
+        return builder.CreateTransient({
+            .Width = width,
+            .Height = height,
+            .Format = TextureFormat::RGBA16_FLOAT,
+            .DebugName = GraphTextureName(GraphTextureId::PostProcessColour),
+        });
     }
 
 } // namespace Wayfinder

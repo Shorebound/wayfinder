@@ -12,6 +12,7 @@
 #include "rendering/pipeline/Renderer.h"
 #include "rendering/pipeline/SceneRenderExtractor.h"
 #include "scene/Scene.h"
+#include "volumes/BlendableEffectRegistry.h"
 
 #include <cassert>
 
@@ -29,6 +30,9 @@ namespace Wayfinder
     Result<void> EngineRuntime::Initialise()
     {
         WAYFINDER_INFO(LogEngine, "Initialising EngineRuntime");
+
+        // Blendable effect registry — available to all subsystems (scene, rendering, etc.)
+        BlendableEffectRegistry::SetActiveInstance(&m_blendableEffectRegistry);
 
         // Platform services
         m_input = Input::Create(m_config.Backends.Platform);
@@ -85,7 +89,7 @@ namespace Wayfinder
         m_renderer = std::make_unique<Renderer>();
         m_extractor = std::make_unique<SceneRenderExtractor>();
 
-        if (auto result = m_renderer->Initialise(*m_device, m_config); !result)
+        if (auto result = m_renderer->Initialise(*m_device, m_config, &m_blendableEffectRegistry); !result)
         {
             WAYFINDER_ERROR(LogEngine, "EngineRuntime: Failed to initialise Renderer — {}", result.error().GetMessage());
             Shutdown();
@@ -127,6 +131,9 @@ namespace Wayfinder
 
         m_input = nullptr;
         m_time = nullptr;
+
+        // Clear after renderer/extractor teardown so shutdown paths can still use GetActiveInstance() if needed.
+        BlendableEffectRegistry::SetActiveInstance(nullptr);
     }
 
     // ── Per-frame ────────────────────────────────────────────
@@ -149,7 +156,7 @@ namespace Wayfinder
     {
         if (m_renderer && m_extractor)
         {
-            m_renderer->Render(m_extractor->Extract(scene));
+            m_renderer->Render(m_extractor->Extract(scene, &m_blendableEffectRegistry));
         }
     }
 

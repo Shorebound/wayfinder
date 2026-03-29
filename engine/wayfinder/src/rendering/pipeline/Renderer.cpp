@@ -1,22 +1,23 @@
 #include "Renderer.h"
 
-#include "RenderContext.h"
+#include "RenderServices.h"
 #include "core/Result.h"
 #include "rendering/backend/RenderDevice.h"
 #include "rendering/graph/RenderFrame.h"
 #include "rendering/graph/RenderFrameUtils.h"
 #include "rendering/graph/RenderGraph.h"
-#include "rendering/resources/RenderResources.h"
+#include "rendering/resources/RenderResourceCache.h"
 
 #include "app/EngineConfig.h"
 #include "core/Log.h"
-#include "rendering/backend/VertexFormats.h"
+#include "core/Types.h"
+#include "rendering/RenderTypes.h"
 
 namespace Wayfinder
 {
     Renderer::Renderer() : m_screenWidth(800), m_screenHeight(450), m_isInitialised(false)
     {
-        m_renderPipeline = std::make_unique<RenderPipeline>();
+        m_renderPipeline = std::make_unique<RenderOrchestrator>();
         m_renderResources = std::make_unique<RenderResourceCache>();
     }
 
@@ -39,36 +40,25 @@ namespace Wayfinder
         }
     }
 
-    Result<void> Renderer::Initialise(RenderDevice& device, const EngineConfig& config)
+    Result<void> Renderer::Initialise(RenderDevice& device, const EngineConfig& config, BlendableEffectRegistry* registry)
     {
         m_device = &device;
         m_screenWidth = static_cast<int>(config.Window.Width);
         m_screenHeight = static_cast<int>(config.Window.Height);
-        m_context = std::make_unique<RenderContext>();
-        if (auto result = m_context->Initialise(device, config); !result)
+        m_services = std::make_unique<RenderServices>();
+        if (auto result = m_services->Initialise(device, config, registry); !result)
         {
-            WAYFINDER_WARN(LogRenderer, "Renderer: Failed to initialise RenderContext — {}", result.error().GetMessage());
+            WAYFINDER_WARN(LogRenderer, "Renderer: Failed to initialise RenderServices — {}", result.error().GetMessage());
             return std::unexpected(result.error());
         }
 
-        m_renderPipeline->Initialise(*m_context);
+        m_renderPipeline->Initialise(*m_services);
 
-        m_renderResources->SetTextureManager(&m_context->GetTextures());
-        m_renderResources->SetMeshManager(&m_context->GetMeshes());
-        m_renderResources->SetProgramRegistry(&m_context->GetPrograms());
+        m_renderResources->SetTextureManager(&m_services->GetTextures());
+        m_renderResources->SetMeshManager(&m_services->GetMeshes());
+        m_renderResources->SetProgramRegistry(&m_services->GetPrograms());
 
-        m_primitiveMesh = Mesh::CreatePrimitive(device);
-        m_texturedPrimitiveMesh = Mesh::CreateTexturedPrimitive(device);
-
-        // AddPass consults m_isInitialised before OnAttach; set true before this loop so nested AddPass during
-        // OnAttach attaches new passes.
         m_isInitialised = true;
-
-        for (auto& pass : m_passes)
-        {
-            auto ctx = MakePassContext();
-            pass->OnAttach(ctx);
-        }
 
         WAYFINDER_INFO(LogRenderer, "Renderer initialised ({}x{}, backend: {})", m_screenWidth, m_screenHeight, device.GetDeviceInfo().BackendName);
 
@@ -77,28 +67,15 @@ namespace Wayfinder
 
     void Renderer::Shutdown()
     {
-        for (auto& pass : m_passes)
-        {
-            if (m_isInitialised && m_context)
-            {
-                auto ctx = MakePassContext();
-                pass->OnDetach(ctx);
-            }
-        }
-        m_passes.clear();
-
-        m_primitiveMesh.Destroy();
-        m_texturedPrimitiveMesh.Destroy();
-
         m_renderPipeline->Shutdown();
 
-        if (m_context)
+        if (m_services)
         {
-            m_context->Shutdown();
-            m_context.reset();
+            m_services->Shutdown();
+            m_services.reset();
         }
 
-        m_renderPipeline = std::make_unique<RenderPipeline>();
+        m_renderPipeline = std::make_unique<RenderOrchestrator>();
         m_renderResources = std::make_unique<RenderResourceCache>();
         if (m_assetService)
         {
@@ -117,32 +94,29 @@ namespace Wayfinder
         }
     }
 
-    RenderPassContext Renderer::MakePassContext()
+    void Renderer::SealBlendableEffects()
     {
-        return RenderPassContext{.Context = *m_context};
+        if (m_services)
+        {
+            m_services->SealBlendableEffects();
+        }
     }
 
-    void Renderer::AddPass(std::unique_ptr<RenderPass> pass)
+    void Renderer::AddPass(const RenderPhase phase, const int32_t order, std::unique_ptr<RenderFeature> pass)
     {
         if (!pass)
         {
             return;
         }
-        if (m_isInitialised && m_context)
+        if (m_renderPipeline)
         {
-            auto ctx = MakePassContext();
-            pass->OnAttach(ctx);
+            m_renderPipeline->RegisterPass(phase, order, std::move(pass));
         }
-        m_passes.push_back(std::move(pass));
     }
 
-    void Renderer::RegisterEnginePass(EngineRenderPhase phase, int32_t orderWithinPhase, std::unique_ptr<RenderPass> pass)
+    void Renderer::AddPass(const RenderPhase phase, std::unique_ptr<RenderFeature> pass)
     {
-        if (!m_renderPipeline)
-        {
-            return;
-        }
-        m_renderPipeline->RegisterEnginePass(phase, orderWithinPhase, std::move(pass));
+        AddPass(phase, 0, std::move(pass));
     }
 
     void Renderer::Render(const RenderFrame& frame)
@@ -151,6 +125,13 @@ namespace Wayfinder
         {
             return;
         }
+
+        // Auto-seal the blendable effect registry on first render if not yet sealed.
+        if (m_services)
+        {
+            m_services->SealBlendableEffects();
+        }
+
         if (!m_device->BeginFrame())
         {
             return;
@@ -166,7 +147,7 @@ namespace Wayfinder
 
             const GPUDebugScope frameDebugScope(*m_device, frameDebugName);
 
-            m_context->GetTransientBuffers().BeginFrame();
+            m_services->GetTransientBuffers().BeginFrame();
 
             RenderFrame preparedFrame = frame;
             if (m_renderResources)
@@ -177,29 +158,27 @@ namespace Wayfinder
             const Extent2D swapchainDimensions = m_device->GetSwapchainDimensions();
             const uint32_t swapW = swapchainDimensions.width;
             const uint32_t swapH = swapchainDimensions.height;
+
             if (swapW != 0 && swapH != 0 && m_renderPipeline->Prepare(preparedFrame, swapW, swapH))
             {
+                const auto primaryView = Rendering::ResolvePreparedPrimaryView(preparedFrame);
+
                 RenderGraph graph;
 
-                const std::unordered_map<uint32_t, Mesh*> meshesByStride =
-                {
-                    {VertexLayouts::PosNormalColour.stride, &m_primitiveMesh},
-                    {VertexLayouts::PosNormalUVTangent.stride, &m_texturedPrimitiveMesh},
-                };
-
-                const RenderPipelineFrameParams params{
+                const FrameRenderParams params{
                     .Frame = preparedFrame,
                     .SwapchainWidth = swapW,
                     .SwapchainHeight = swapH,
-                    .MeshesByStride = meshesByStride,
+                    .BuiltInMeshes = m_services->GetBuiltInMeshes(),
                     .ResourceCache = m_renderResources.get(),
-                    .PrimaryView = Rendering::ResolvePreparedPrimaryView(preparedFrame),
+                    .PrimaryView = primaryView,
                 };
-                m_renderPipeline->BuildGraph(graph, params, m_passes);
+                m_renderPipeline->BuildGraph(graph, params);
 
                 if (graph.Compile())
                 {
-                    graph.Execute(*m_device, m_context->GetTransientPool());
+                    m_device->FlushUploads();
+                    graph.Execute(*m_device, m_services->GetTransientPool());
                 }
             }
         }

@@ -8,7 +8,6 @@
 #include "core/Types.h"
 #include "maths/Maths.h"
 #include "rendering/graph/RenderIntent.h"
-#include "rendering/materials/PostProcessVolume.h"
 
 namespace Wayfinder
 {
@@ -149,7 +148,7 @@ namespace Wayfinder
     struct RenderableComponent
     {
         bool Visible = true;
-        RenderLayerId Layer = RenderLayers::Main;
+        RenderGroupId Group = RenderGroups::Main;
         uint8_t SortPriority = 128;
 
         RenderableComponent() = default;

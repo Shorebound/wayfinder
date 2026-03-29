@@ -1,7 +1,6 @@
-// Wayfinder Composition Fragment Shader
-// Reads SceneColour texture and writes to swapchain (simple blit).
-// Compiled with DXC: dxc -T ps_6_0 -E PSMain -spirv composition.frag -Fo composition.frag.spv
-// SDL_GPU convention: fragment sampled textures at set 2
+// Passthrough fullscreen copy: sample scene colour, no UBO.
+// Compiled with DXC: dxc -T ps_6_0 -E PSMain -spirv fullscreen_copy.frag -Fo fullscreen_copy.frag.spv
+// SDL_GPU convention: fragment samplers at set 2 (matches other fullscreen passes)
 
 [[vk::combinedImageSampler]]
 [[vk::binding(0, 2)]]
