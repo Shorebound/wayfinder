@@ -17,7 +17,7 @@ This document explains how the repository is organised, what targets currently m
 | `apps/beacon/` | Launcher (future) |
 | `tools/expedition/`, `tools/navigator/`, `tools/surveyor/` | Future tools |
 | `tests/` | Engine tests |
-| `cmake/` | `WayfinderCommon.cmake` (flags/definitions), `WayfinderDependencies.cmake` (CPM), `GetCPM.cmake` (bootstrap) |
+| `cmake/` | `WayfinderCommon.cmake` (flags/definitions), `WayfinderDependencies.cmake` (CPM), `WayfinderSlang.cmake` (prebuilt `slangc` SDK), `WayfinderShaders.cmake` (Slang → SPIR-V for the sandbox), `GetCPM.cmake` (bootstrap) |
 
 
 ### Engine

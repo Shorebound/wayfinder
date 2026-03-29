@@ -411,7 +411,7 @@ The path from current code to vertex shader skinning requires two additions to `
    }
    ```
 
-The shader side (declaring `StructuredBuffer<float4x4>`) compiles through the existing DXC → SPIR-V pipeline. `ShaderCreateDesc` already has `numStorageBuffers` for declaring the binding count.
+The shader side (declaring `StructuredBuffer<float4x4>`) compiles through the existing Slang → SPIR-V pipeline. `ShaderCreateDesc` already has `numStorageBuffers` for declaring the binding count.
 
 The upload path is identical to any other buffer: create transfer buffer, map, copy bone matrices, unmap, upload via copy pass. The `TransientBufferAllocator` could be extended to support per-frame storage buffer allocation for bone palettes (they change every frame).
 
@@ -479,7 +479,7 @@ Summary of what the rendering backend supports today and what needs to be added 
 |---|---|---|
 | Vertex / index buffer create + upload | Working | `SDLGPUDevice::CreateBuffer`, `UploadToBuffer` |
 | Per-frame transient buffer allocation | Working | `TransientBufferAllocator` — ring buffers for dynamic geometry |
-| Shader compilation (HLSL → SPIR-V) | Working | DXC + `WayfinderShaders.cmake`, `ShaderManager` loads `.spv` |
+| Shader compilation (Slang → SPIR-V) | Working | `slangc` + `WayfinderShaders.cmake`, `ShaderManager` loads `.spv` |
 | Storage buffer declaration on shaders | Working | `ShaderCreateDesc::numStorageBuffers`, `ShaderResourceCounts` |
 | Render graph with compute passes | Working | `RenderGraph::AddComputePass()`, tested in `RenderGraphTests` |
 | Compute pipeline create/destroy | Working | `CreateComputePipeline` wraps `SDL_CreateGPUComputePipeline` |
@@ -546,7 +546,7 @@ Skeletal characters submit bind-pose geometry; the vertex shader applies per-ins
 - Extend `CreateBuffer` → map to `SDL_GPU_BUFFERUSAGE_GRAPHICS_STORAGE_READ`
 - Add `RenderDevice::BindVertexStorageBuffers()` → wraps `SDL_BindGPUVertexStorageBuffers()`
 - Add `BLENDWEIGHT` / `BLENDINDICES` to `VertexFormats.h`
-- Write `skinned_lit.vert` shader (DXC → SPIR-V, same pipeline as existing shaders)
+- Write `skinned_lit.slang` shader (Slang → SPIR-V, same pipeline as existing shaders)
 - Per-frame bone palette upload via `TransientBufferAllocator` or dedicated bone buffer
 
 **Requires on the CPU side:** skeleton hierarchy component, animation keyframe evaluation, bone matrix palette generation. These are animation system concerns — the GPU plumbing is independent.
@@ -570,7 +570,7 @@ Fix the two compute infrastructure gaps (buffer usage flags + compute pass resou
 **Infrastructure needed:**
 - Extend `BeginComputePass()` to accept storage buffer/texture binding arrays
 - Extend `BufferUsage` → add `ComputeStorageRead`, `ComputeStorageWrite`
-- Compile first `.comp` shaders through DXC → SPIR-V (same build pipeline, just `cs_6_0` profile)
+- Compile first `.comp` shaders through Slang → SPIR-V (same build pipeline; stage profile TBD)
 
 ### Stage 6: GPU-Driven (If Needed)
 

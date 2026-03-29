@@ -18,7 +18,7 @@ namespace Wayfinder
 
         ShaderProgramDesc desc;
         desc.Name = "composition_blit";
-        desc.VertexShaderName = "fullscreen";
+        desc.VertexShaderName = "fullscreen_copy";
         desc.FragmentShaderName = "fullscreen_copy";
         desc.VertexResources = {};
         desc.FragmentResources = {.numUniformBuffers = 0, .numSamplers = 1};

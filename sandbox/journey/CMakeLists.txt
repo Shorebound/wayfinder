@@ -56,13 +56,14 @@ add_custom_command(TARGET ${SANDBOX_NAME} POST_BUILD
 
 # --- Shader Compilation ---
 include(WayfinderShaders)
-file(GLOB SHADER_SOURCES CONFIGURE_DEPENDS
-    "${CMAKE_SOURCE_DIR}/engine/wayfinder/shaders/*.vert"
-    "${CMAKE_SOURCE_DIR}/engine/wayfinder/shaders/*.frag"
-)
+set(_SHADER_ROOT "${CMAKE_SOURCE_DIR}/engine/wayfinder/shaders")
+file(GLOB SHADER_PROGRAMS CONFIGURE_DEPENDS "${_SHADER_ROOT}/*.slang")
+file(GLOB SHADER_MODULES CONFIGURE_DEPENDS "${_SHADER_ROOT}/modules/*.slang")
 wayfinder_compile_shaders(
     TARGET ${SANDBOX_NAME}
-    SHADERS ${SHADER_SOURCES}
+    PROGRAMS ${SHADER_PROGRAMS}
+    MODULES ${SHADER_MODULES}
+    MODULE_DIR "${_SHADER_ROOT}"
     OUTPUT_DIR "$<TARGET_FILE_DIR:${SANDBOX_NAME}>/assets/shaders"
 )
 

@@ -22,7 +22,7 @@ namespace Wayfinder
 {
     namespace
     {
-        /// Matches `colour_grading.frag` cbuffer (std140).
+        /// Matches `colour_grading.slang` fragment UBO (std140).
         struct alignas(16) ColourGradingUBO
         {
             Float4 ExposureContrastSaturation{};
@@ -69,7 +69,7 @@ namespace Wayfinder
         auto& programs = m_context->GetPrograms();
         ShaderProgramDesc desc;
         desc.Name = "colour_grading";
-        desc.VertexShaderName = "fullscreen";
+        desc.VertexShaderName = "colour_grading";
         desc.FragmentShaderName = "colour_grading";
         desc.VertexResources = {};
         desc.FragmentResources = {.numUniformBuffers = 1, .numSamplers = 1};

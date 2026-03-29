@@ -18,7 +18,7 @@ namespace Wayfinder::Rendering
 {
     namespace
     {
-        /// Matches `vignette.frag` cbuffer (std140).
+        /// Matches `vignette.slang` fragment UBO (std140).
         struct alignas(16) VignetteUBO
         {
             float Strength = 0.0f;
@@ -53,7 +53,7 @@ namespace Wayfinder::Rendering
         auto& programs = m_context->GetPrograms();
         ShaderProgramDesc desc;
         desc.Name = "vignette";
-        desc.VertexShaderName = "fullscreen";
+        desc.VertexShaderName = "vignette";
         desc.FragmentShaderName = "vignette";
         desc.VertexResources = {};
         desc.FragmentResources = {.numUniformBuffers = 1, .numSamplers = 1};

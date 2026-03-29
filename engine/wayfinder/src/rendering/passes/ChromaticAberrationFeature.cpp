@@ -16,7 +16,7 @@ namespace Wayfinder
 {
     namespace
     {
-        /// Matches `chromatic_aberration.frag` cbuffer (std140).
+        /// Matches `chromatic_aberration.slang` fragment UBO (std140).
         struct alignas(16) ChromaticAberrationUBO
         {
             Float4 IntensityPad{};
@@ -50,7 +50,7 @@ namespace Wayfinder
         auto& programs = m_context->GetPrograms();
         ShaderProgramDesc desc;
         desc.Name = "chromatic_aberration";
-        desc.VertexShaderName = "fullscreen";
+        desc.VertexShaderName = "chromatic_aberration";
         desc.FragmentShaderName = "chromatic_aberration";
         desc.VertexResources = {};
         desc.FragmentResources = {.numUniformBuffers = 1, .numSamplers = 1};
