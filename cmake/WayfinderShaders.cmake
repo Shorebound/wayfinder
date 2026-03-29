@@ -91,10 +91,6 @@ function(wayfinder_compile_shaders)
             COMMAND ${CMAKE_COMMAND} -E remove_directory "${ARG_OUTPUT_DIR}"
             COMMAND ${CMAKE_COMMAND} -E make_directory "${ARG_OUTPUT_DIR}"
             COMMAND ${CMAKE_COMMAND} -E copy_directory "${STAGING_DIR}" "${ARG_OUTPUT_DIR}"
-            COMMAND ${CMAKE_COMMAND} -E remove_directory "${STAGING_DIR}"
-            COMMAND ${CMAKE_COMMAND} -E make_directory "${STAGING_DIR}"
-            COMMAND ${CMAKE_COMMAND} -E remove_directory "${MODULE_CACHE_DIR}"
-            COMMAND ${CMAKE_COMMAND} -E make_directory "${MODULE_CACHE_DIR}/modules"
             COMMAND ${CMAKE_COMMAND} -E touch "${_SHADER_STAMP}"
             COMMENT "Syncing compiled shaders to output directory"
             VERBATIM

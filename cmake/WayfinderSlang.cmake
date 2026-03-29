@@ -37,7 +37,12 @@ message(STATUS "Fetching Slang SDK ${SLANG_VERSION} for ${_SLANG_PLATFORM}")
 
 # Redirect FetchContent to a cacheable directory when SLANG_SDK_CACHE_DIR is set.
 if(SLANG_SDK_CACHE_DIR)
-    set(_SLANG_PREV_FC_BASE_DIR "${FETCHCONTENT_BASE_DIR}")
+    if(DEFINED FETCHCONTENT_BASE_DIR)
+        set(_SLANG_PREV_FC_BASE_DIR "${FETCHCONTENT_BASE_DIR}")
+        set(_SLANG_FC_WAS_DEFINED TRUE)
+    else()
+        set(_SLANG_FC_WAS_DEFINED FALSE)
+    endif()
     set(FETCHCONTENT_BASE_DIR "${SLANG_SDK_CACHE_DIR}")
 endif()
 
@@ -49,7 +54,11 @@ FetchContent_Declare(slang_sdk
 FetchContent_MakeAvailable(slang_sdk)
 
 if(SLANG_SDK_CACHE_DIR)
-    set(FETCHCONTENT_BASE_DIR "${_SLANG_PREV_FC_BASE_DIR}")
+    if(_SLANG_FC_WAS_DEFINED)
+        set(FETCHCONTENT_BASE_DIR "${_SLANG_PREV_FC_BASE_DIR}")
+    else()
+        unset(FETCHCONTENT_BASE_DIR)
+    endif()
 endif()
 
 if(WIN32)
