@@ -6,6 +6,8 @@
 - **Per-instance data:** Storage buffer + `SV_InstanceID` (not instance-rate vertex buffer). More extensible, no pipeline/vertex-layout churn, aligns with draw_model_architecture.md roadmap.
 - **Batch detection:** Post-sort scan (not sort key modification). Current sort key groups by material, and identical mesh+material submissions are naturally adjacent within a material group. No depth precision sacrifice.
 - **Scope:** Opaque geometry only (SceneOpaquePass). Design notes for transparent included.
+- **Prerequisite: Slang migration.** Instanced shader variants should be written in Slang (not HLSL/DXC) since the shader language migration is planned first. This avoids writing HLSL that gets immediately rewritten.
+- **Prerequisite: Render Graph Buffer Resources (#99).** `BufferUsage` bitmask, storage buffer binding methods, and `firstInstance` on `DrawIndexed` are shared infrastructure. #99 should land first; this plan then adds `BindVertexStorageBuffers()` and the storage ring on top.
 
 ---
 
@@ -13,6 +15,8 @@
 
 ### Step A1 — BufferUsage::GraphicsStorageRead flag
 Extend `BufferUsage` from a plain enum to a flags enum so buffers can be created with combined usage (e.g., Vertex | GraphicsStorageRead).
+
+**Note:** This step overlaps with Render Graph Buffer Resources (#99) Phase 1.1, which converts `BufferUsage` to a full bitmask with all storage flags. If #99 lands first (recommended), this step is already done — just verify `GraphicsStorageRead` is included in #99's flag set.
 
 **Changes:**
 - `RenderDevice.h` `BufferUsage` — add `GraphicsStorageRead = 0x04` (or similar). Consider bitfield approach.
@@ -55,7 +59,7 @@ Add a third ring buffer for per-frame instance/storage data, or generalise the a
 
 **Files:**
 - `engine/wayfinder/src/rendering/resources/TransientBufferAllocator.h` + `.cpp`
-- Callers of `Initialise()` — pass new capacity parameter (likely `RenderServices` or `RenderContext`)
+- Callers of `Initialise()` — pass new capacity parameter (likely `RenderServices`)
 
 ---
 
@@ -148,9 +152,9 @@ Modify `DrawSubmission()` in SubmissionDrawing.cpp to handle instanced draws.
 - `engine/wayfinder/src/rendering/passes/SubmissionDrawing.h` — may need updated state struct
 
 ### Step C2 — Shader Modifications
-Modify vertex shaders to support instanced rendering via storage buffer.
+Modify vertex shaders to support instanced rendering via storage buffer. Written in Slang (post-migration from HLSL/DXC).
 
-**Changes for `textured_lit.vert` and `basic_lit.vert` (lit shaders with Model matrix):**
+**Changes for `textured_lit` and `basic_lit` (lit shaders with Model matrix):**
 ```hlsl
 // New: shared view-projection (replaces per-draw MVP)
 [[vk::binding(0, 1)]]
@@ -174,17 +178,17 @@ VSOutput VSMain(VSInput input, uint instanceId : SV_InstanceID)
 }
 ```
 
-**Strategy:** Create instanced variants of shaders (`textured_lit_instanced.vert`, `basic_lit_instanced.vert`) rather than modifying the originals. The `ShaderProgramDesc` for each program can reference the instanced variant. The `DrawSubmission()` dual path selects the appropriate program.
+**Strategy:** Create instanced variants of shaders (`textured_lit_instanced.slang`, `basic_lit_instanced.slang`) rather than modifying the originals. The `ShaderProgramDesc` for each program can reference the instanced variant. The `DrawSubmission()` dual path selects the appropriate program.
 
-**Alternative:** Use a single shader with a preprocessor define (`#ifdef INSTANCED`) or a push constant flag. DXC supports `-D INSTANCED` at compile time. Add instanced shader variants to CMake shader compilation.
+**Alternative:** Use a single shader with a preprocessor define (`#ifdef INSTANCED`) or a push constant flag. Slang supports compile-time specialisation and generics which could cleanly express this.
 
 **Recommended:** Separate instanced shader files. Cleaner, no runtime branching, easy to reason about. The ShaderProgramRegistry gets `"textured_lit_instanced"` as an additional program whose desc sets `numStorageBuffers = 1`.
 
 **Files:**
-- `engine/wayfinder/shaders/textured_lit_instanced.vert` — new file (copy of textured_lit.vert, modified for SV_InstanceID + storage buffer)
-- `engine/wayfinder/shaders/basic_lit_instanced.vert` — new file
-- `engine/wayfinder/shaders/unlit_instanced.vert` — new file (if unlit objects are batched)
-- `cmake/WayfinderShaders.cmake` or the CMakeLists.txt shader list — add new shader files
+- `engine/wayfinder/shaders/textured_lit_instanced.slang` — new file (instanced variant with SV_InstanceID + storage buffer)
+- `engine/wayfinder/shaders/basic_lit_instanced.slang` — new file
+- `engine/wayfinder/shaders/unlit_instanced.slang` — new file (if unlit objects are batched)
+- Shader compilation CMake — add new shader files
 - ShaderProgramRegistry registration — register instanced programs with `numStorageBuffers = 1` in vertex resources
 
 ### Step C3 — Program Selection for Instanced Draws
@@ -277,8 +281,8 @@ Transparent geometry is back-to-front sorted, and draw order matters for correct
 - `engine/wayfinder/src/rendering/graph/RenderFrame.h` — RenderMeshSubmission fields
 - `engine/wayfinder/src/rendering/pipeline/RenderOrchestrator.h` + `.cpp` — BatchSubmissions(), Prepare()
 - `engine/wayfinder/src/rendering/passes/SubmissionDrawing.h` + `.cpp` — instanced draw path
-- `engine/wayfinder/shaders/textured_lit_instanced.vert` — new instanced shader
-- `engine/wayfinder/shaders/basic_lit_instanced.vert` — new instanced shader
+- `engine/wayfinder/shaders/textured_lit_instanced.slang` — new instanced shader
+- `engine/wayfinder/shaders/basic_lit_instanced.slang` — new instanced shader
 - `tests/rendering/RenderOrchestratorTests.cpp` — batch merging tests
 - `tests/rendering/SubmissionDrawingTests.cpp` — instanced draw tests
 - `engine/wayfinder/CMakeLists.txt` — new source files
@@ -288,6 +292,7 @@ Transparent geometry is back-to-front sorted, and draw order matters for correct
 
 ## Decisions
 
+- **Prerequisite ordering:** Slang migration → Render Graph Buffers (#99) → this plan. #99 provides `BufferUsage` bitmask and compute storage binding; this plan adds vertex-stage storage binding and the batching logic on top.
 - **Storage buffer over instance-rate vertex buffer:** More extensible, no pipeline descriptor changes, aligns with engine roadmap.
 - **Post-sort scan over sort key modification:** Material sort already clusters same-material submissions; mesh identity check within those groups catches batches. No depth precision loss.
 - **Separate instanced shaders over preprocessor variants:** Cleaner separation, no runtime branching.

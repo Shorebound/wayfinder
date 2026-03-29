@@ -79,7 +79,7 @@ The render graph only tracks textures. Add first-class buffer resources (storage
 - File: `engine/wayfinder/src/rendering/backend/null/NullDevice.h`
   - Update `BeginComputePass` signature. No-op implementations.
   - Add `BindComputeStorageBuffers` no-op.
-  - **Fix `CreateBuffer`** to return valid distinguishable handles (`{.Index = m_nextId++, .Generation = 1}`) — currently returns `{}` (invalid), which would break buffer resource tests.
+  - `CreateBuffer` already returns valid distinguishable handles (`{.Index = m_nextId++, .Generation = 1}`) — no fix needed.
 
 **1.3 — Optionally add graphics-side storage binding methods**
 - `BindVertexStorageBuffers()`, `BindFragmentStorageBuffers()` — wrapping `SDL_BindGPUVertexStorageBuffers()`/`SDL_BindGPUFragmentStorageBuffers()`.
@@ -191,7 +191,7 @@ The render graph only tracks textures. Add first-class buffer resources (storage
 
 **4.4 — Update call sites**
 - `RenderGraph::Execute()` signature changes to accept both pools. Update `Renderer::Render()` where `Execute` is called.
-- `RenderContext` should own the `TransientBufferPool` alongside `TransientResourcePool`.
+- `RenderServices` should own the `TransientBufferPool` alongside `TransientResourcePool`.
 
 ### Phase 5: Tests
 *Depends on Phase 4.*
@@ -227,8 +227,8 @@ The render graph only tracks textures. Add first-class buffer resources (storage
 - `engine/wayfinder/src/rendering/backend/null/NullDevice.h` — No-op implementations, fix `CreateBuffer` handles
 - `engine/wayfinder/src/rendering/resources/TransientBufferPool.h/.cpp` — New file: buffer pool
 - `engine/wayfinder/src/rendering/resources/TransientResourcePool.h` — Reference for pool design
-- `engine/wayfinder/src/rendering/RenderContext.h/.cpp` — Own TransientBufferPool
-- `engine/wayfinder/src/rendering/Renderer.h/.cpp` — Pass buffer pool to Execute
+- `engine/wayfinder/src/rendering/pipeline/RenderServices.h/.cpp` — Own TransientBufferPool
+- `engine/wayfinder/src/rendering/pipeline/Renderer.h/.cpp` — Pass buffer pool to Execute
 - `engine/wayfinder/src/rendering/RenderTypes.h` — Reference for TextureUsage bitmask pattern
 - `tests/rendering/RenderGraphTests.cpp` — New buffer resource tests
 - `engine/wayfinder/CMakeLists.txt` — Add TransientBufferPool source files
@@ -248,7 +248,7 @@ The render graph only tracks textures. Add first-class buffer resources (storage
 - BufferUsage bitmask extension (full set of flags)
 - ComputePassDescriptor and storage buffer binding (read-only + read-write)
 - TransientBufferPool
-- NullDevice fix for buffer handles
+- NullDevice buffer handles (already valid — no fix needed)
 - Tests covering all Definition of Done criteria
 
 **Excluded:**

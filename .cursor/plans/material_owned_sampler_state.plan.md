@@ -1,12 +1,12 @@
 # Plan: Material-Owned Sampler State (Issue #120)
 
 ## TL;DR
-Sampler configuration (filter, address mode) currently lives on `TextureAsset` and is read during material resolution in `RenderResources::ResolveTextureBindings()`. This prevents the same texture from being sampled differently by different materials. Move sampler authority to the material descriptor, with a layered fallback chain: material per-slot → material default → shader slot default → engine default. Extract the sampler cache from `TextureManager` into a standalone `SamplerCache`.
+Sampler configuration (filter, address mode) currently lives on `TextureAsset` and is read during material resolution in `RenderResourceCache::ResolveTextureBindings()`. This prevents the same texture from being sampled differently by different materials. Move sampler authority to the material descriptor, with a layered fallback chain: material per-slot → material default → shader slot default → engine default. Extract the sampler cache from `TextureManager` into a standalone `SamplerCache`.
 
 ## Current State
 - `TextureAsset` stores `Filter` and `AddressMode` (parsed from texture JSON)
 - `TextureManager::GetOrCreateSampler()` has a FNV-1a hash-based sampler cache
-- `RenderResources::ResolveTextureBindings()` reads the *texture's* filter/address mode to build `SamplerCreateDesc`, auto-enables trilinear+aniso for linear+mips textures
+- `RenderResourceCache::ResolveTextureBindings()` reads the *texture's* filter/address mode to build `SamplerCreateDesc`, auto-enables trilinear+aniso for linear+mips textures
 - `MaterialAsset` has no sampler configuration — just `Textures` map (slot name → AssetId)
 - `TextureSlotDecl` is just `Name + BindingSlot`, no sampler info
 - `TextureBindingSet` just maps slot names to AssetIds
@@ -60,7 +60,7 @@ Same two fields as current `TextureAsset` — intentionally simple. The auto-tri
 - Both are optional — existing materials work unchanged via engine defaults
 
 ### SamplerCache — Extracted from TextureManager
-Standalone class owning the `unordered_map<uint64_t, GPUSamplerHandle>` and FNV-1a hash. Owned by `RenderContext` alongside `TextureManager`, `PipelineCache`, etc. Fulfils issue requirement: "TextureManager no longer creates or caches samplers."
+Standalone class owning the `unordered_map<uint64_t, GPUSamplerHandle>` and FNV-1a hash. Owned by `RenderServices` alongside `TextureManager`, `PipelineCache`, etc. Fulfils issue requirement: "TextureManager no longer creates or caches samplers."
 
 ---
 
@@ -93,8 +93,8 @@ Standalone class owning the `unordered_map<uint64_t, GPUSamplerHandle>` and FNV-
 - Same FNV-1a hash, same `unordered_map<uint64_t, GPUSamplerHandle>` cache
 - `Initialise(RenderDevice&)`, `Shutdown()`, `GetOrCreate(const SamplerCreateDesc&) → GPUSamplerHandle`
 
-**Step 6.** Wire `SamplerCache` into `RenderContext`
-- `RenderContext` owns `std::unique_ptr<SamplerCache>`
+**Step 6.** Wire `SamplerCache` into `RenderServices`
+- `RenderServices` owns `std::unique_ptr<SamplerCache>`
 - Initialised/shutdown alongside other shared resources
 - Expose via `GetSamplerCache() → SamplerCache&`
 
@@ -104,7 +104,7 @@ Standalone class owning the `unordered_map<uint64_t, GPUSamplerHandle>` and FNV-
 
 **Step 8.** Wire `SamplerCache` into `RenderResourceCache`
 - Add `SetSamplerCache(SamplerCache*)` method
-- Update `Renderer` initialisation to pass the sampler cache through
+- Update `Renderer` initialisation to pass the sampler cache from `RenderServices`
 
 ### Phase 3: Resolution Logic
 
@@ -114,11 +114,11 @@ Standalone class owning the `unordered_map<uint64_t, GPUSamplerHandle>` and FNV-
 - Validate slot names against `textures` keys (warn on mismatch)
 - `ParseSamplerDesc()` helper: reads `filter` (nearest/linear) and `address_mode` (repeat/clamp/mirrored_repeat)
 
-**Step 10.** Update `CreateMaterialResource()` in `RenderResources.cpp`
+**Step 10.** Update `CreateMaterialResource()` in `RenderResourceCache.cpp`
 - Copy `MaterialAsset::Samplers` → `TextureBindingSet::Samplers`
 - Copy `MaterialAsset::DefaultSampler` → `TextureBindingSet::DefaultSampler`
 
-**Step 11.** Rewrite `ResolveTextureBindings()` in `RenderResources.cpp`
+**Step 11.** Rewrite `ResolveTextureBindings()` in `RenderResourceCache.cpp`
 - For each texture slot:
   1. Look up per-slot sampler from `binding.Textures.Samplers[slotName]`
   2. Fallback to `binding.Textures.DefaultSampler`
@@ -129,9 +129,10 @@ Standalone class owning the `unordered_map<uint64_t, GPUSamplerHandle>` and FNV-
 - Remove the `TextureAsset*` fetch that was only used for sampler info (texture GPU handle still loaded via `GetOrLoad`)
 - Note: `hasMips` still comes from the loaded texture metadata (needed for auto-trilinear/aniso)
 
-**Step 12.** Update `RenderPipeline.cpp` — composition pass sampler
-- The nearest sampler for the composition blit currently comes from `RenderContext::GetNearestSampler()`
-- This is NOT a material-owned sampler — it's a system sampler. No change needed, but verify it still works through `SamplerCache`.
+**Step 12.** Verify composition pass sampler
+- The nearest sampler for the composition blit currently comes from `RenderServices::GetNearestSampler()`
+- The composition pipeline is now a standalone `CompositionPass` RenderFeature (in `rendering/passes/CompositionPass.h/.cpp`), not inline in a monolithic `RenderPipeline`.
+- This is NOT a material-owned sampler — it's a system/pipeline sampler. No change needed, but verify it still works through `SamplerCache`.
 
 ### Phase 4: Content Migration
 
@@ -197,13 +198,13 @@ Standalone class owning the `unordered_map<uint64_t, GPUSamplerHandle>` and FNV-
 - `engine/wayfinder/src/rendering/materials/Material.cpp` — parse samplers from JSON
 - `engine/wayfinder/src/rendering/materials/ShaderProgram.h` — add `DefaultSampler` to `TextureSlotDecl`
 - `engine/wayfinder/src/rendering/graph/RenderFrame.h` — add samplers to `TextureBindingSet`
-- `engine/wayfinder/src/rendering/resources/RenderResources.h` — add `SetSamplerCache()`
-- `engine/wayfinder/src/rendering/resources/RenderResources.cpp` — rewrite `ResolveTextureBindings()`
+- `engine/wayfinder/src/rendering/resources/RenderResourceCache.h` — add `SetSamplerCache()`
+- `engine/wayfinder/src/rendering/resources/RenderResourceCache.cpp` — rewrite `ResolveTextureBindings()`
 - `engine/wayfinder/src/rendering/resources/TextureManager.h` — remove `GetOrCreateSampler()`, `m_samplerCache`
 - `engine/wayfinder/src/rendering/resources/TextureManager.cpp` — remove sampler caching code
-- `engine/wayfinder/src/rendering/pipeline/RenderContext.h` — own `SamplerCache`
-- `engine/wayfinder/src/rendering/pipeline/RenderContext.cpp` — init/shutdown `SamplerCache`
-- `engine/wayfinder/src/rendering/pipeline/Renderer.cpp` — wire `SamplerCache` into `RenderResourceCache`
+- `engine/wayfinder/src/rendering/pipeline/RenderServices.h` — own `SamplerCache`
+- `engine/wayfinder/src/rendering/pipeline/RenderServices.cpp` — init/shutdown `SamplerCache`
+- `engine/wayfinder/src/rendering/pipeline/Renderer.cpp` — wire `SamplerCache` from `RenderServices` into `RenderResourceCache`
 - `sandbox/journey/assets/materials/textured_crate_material.json` — add sampler block
 - `tests/rendering/TextureManagerTests.cpp` — remove sampler tests
 
@@ -232,7 +233,7 @@ Standalone class owning the `unordered_map<uint64_t, GPUSamplerHandle>` and FNV-
 - **SamplerCache extracted from TextureManager** per issue requirement ("TextureManager no longer creates or caches samplers").
 - **Engine default is Linear + Repeat** with auto-trilinear+aniso@4x for linear+mips textures. Matches current behaviour for the common case.
 - **`TextureAsset` filter/address_mode fields not consulted during rendering** post-migration. Clean break from texture-driven samplers.
-- **Composition blit sampler** (nearest, clamp) owned by `RenderContext` is NOT material-owned — it's a system/pipeline sampler. No change.
+- **Composition blit sampler** (nearest, clamp) owned by `RenderServices` is NOT material-owned — it's a system/pipeline sampler. `CompositionPass` RenderFeature reads it via `RenderServices::GetNearestSampler()`. No change.
 
 ## Further Considerations
 1. **Shader slot defaults**: Currently planned but no shader programs will populate them initially. Useful when we add specialised shaders (e.g., a normal map shader that defaults to linear+clamp). Could be deferred if it complicates the initial implementation. **Recommendation**: Include the field now (it's one `optional`), populate later.
