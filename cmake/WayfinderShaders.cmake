@@ -22,14 +22,12 @@ function(wayfinder_compile_shaders)
     endif()
 
     set(STAGING_DIR "${CMAKE_CURRENT_BINARY_DIR}/compiled_shaders")
-    file(REMOVE_RECURSE "${STAGING_DIR}")
     file(MAKE_DIRECTORY "${STAGING_DIR}")
 
     # ── Module precompilation ──────────────────────────────────────
     # Compile .slang modules to .slang-module IR binaries so program
     # compilation skips re-parsing module source on every invocation.
     set(MODULE_CACHE_DIR "${CMAKE_CURRENT_BINARY_DIR}/precompiled_modules")
-    file(REMOVE_RECURSE "${MODULE_CACHE_DIR}")
     file(MAKE_DIRECTORY "${MODULE_CACHE_DIR}/modules")
 
     set(_PRECOMPILED_MODULES "")
@@ -93,6 +91,10 @@ function(wayfinder_compile_shaders)
             COMMAND ${CMAKE_COMMAND} -E remove_directory "${ARG_OUTPUT_DIR}"
             COMMAND ${CMAKE_COMMAND} -E make_directory "${ARG_OUTPUT_DIR}"
             COMMAND ${CMAKE_COMMAND} -E copy_directory "${STAGING_DIR}" "${ARG_OUTPUT_DIR}"
+            COMMAND ${CMAKE_COMMAND} -E remove_directory "${STAGING_DIR}"
+            COMMAND ${CMAKE_COMMAND} -E make_directory "${STAGING_DIR}"
+            COMMAND ${CMAKE_COMMAND} -E remove_directory "${MODULE_CACHE_DIR}"
+            COMMAND ${CMAKE_COMMAND} -E make_directory "${MODULE_CACHE_DIR}/modules"
             COMMAND ${CMAKE_COMMAND} -E touch "${_SHADER_STAMP}"
             COMMENT "Syncing compiled shaders to output directory"
             VERBATIM
