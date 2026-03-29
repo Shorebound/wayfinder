@@ -11,7 +11,9 @@
 
 namespace Wayfinder
 {
-    /// Debug overlay: grid, lines, unlit wire boxes (reads scene colour/depth).
+    /// Debug overlay: grid, lines, solid debug boxes (reads scene colour/depth).
+    /// Registers two programs: `debug_unlit` (PosColour, LineList) for lines and
+    /// `debug_solid` (PosNormalColour, TriangleList) for built-in box meshes.
     class DebugPass final : public RenderFeature
     {
     public:
@@ -55,12 +57,14 @@ namespace Wayfinder
             uint32_t LineVertexCount = 0;
             uint32_t BoxStart = 0;
             uint32_t BoxCount = 0;
+
+            /// Temporary line buffer; built per-view during setup, cleared after upload.
+            std::vector<VertexPosColour> ScratchLines;
         };
 
         RenderServices* m_context = nullptr;
 
-        /// Scratch buffers retained across frames to avoid repeated heap allocation.
-        std::vector<VertexPosColour> m_scratchLines;
+        /// Scratch buffer for box data; persists until the next frame's AddPasses.
         std::vector<RenderDebugBox> m_scratchBoxes;
     };
 

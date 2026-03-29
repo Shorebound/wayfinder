@@ -159,8 +159,6 @@ namespace Wayfinder
 
         const auto& primary = params.PrimaryView;
         const Colour clearColour = primary.ClearColour;
-        const Matrix4 view = primary.ViewMatrix;
-        const Matrix4 projection = primary.ProjectionMatrix;
         const bool hasCamera = primary.Valid;
 
         const SceneGlobalsUBO sceneGlobals = BuildSceneGlobals(preparedFrame);
@@ -180,7 +178,7 @@ namespace Wayfinder
         depthDesc.Format = TextureFormat::D32_FLOAT;
         depthDesc.DebugName = GraphTextureName(GraphTextureId::SceneDepth);
 
-        graph.AddPass("MainScene", [&, viewMat = view, projMat = projection, hasCamera](RenderGraphBuilder& builder)
+        graph.AddPass("MainScene", [&, hasCamera](RenderGraphBuilder& builder)
         {
             builder.DeclarePassCapabilities(RenderCapabilities::RASTER | RenderCapabilities::RASTER_SCENE_GEOMETRY);
             auto colour = builder.CreateTransient(colourDesc);
@@ -188,7 +186,7 @@ namespace Wayfinder
             builder.WriteColour(colour, LoadOp::Clear, ClearValue::FromColour(clearColour));
             builder.WriteDepth(depth, LoadOp::Clear, 1.0f);
 
-            return [this, &params, viewMat, projMat, sceneGlobals, hasCamera](RenderDevice& device, const RenderGraphResources& /*resources*/)
+            return [this, &params, sceneGlobals, hasCamera](RenderDevice& device, const RenderGraphResources& /*resources*/)
             {
                 if (!hasCamera || !m_context)
                 {
@@ -210,19 +208,15 @@ namespace Wayfinder
                         continue;
                     }
 
-                    Matrix4 passView = viewMat;
-                    Matrix4 passProj = projMat;
-
-                    if (layer.ViewIndex < params.Frame.Views.size() && params.Frame.Views.at(layer.ViewIndex).Prepared)
+                    const auto resolved = Rendering::ResolveViewForLayer(params, layer.ViewIndex);
+                    if (!resolved.Ok)
                     {
-                        const auto& pv = params.Frame.Views.at(layer.ViewIndex);
-                        passView = pv.ViewMatrix;
-                        passProj = pv.ProjectionMatrix;
+                        continue;
                     }
 
                     for (const auto& submission : layer.Meshes)
                     {
-                        DrawSubmission(state, submission, passView, passProj, sceneGlobals);
+                        DrawSubmission(state, submission, resolved.View, resolved.Proj, sceneGlobals);
                     }
                 }
             };

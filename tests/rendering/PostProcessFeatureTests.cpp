@@ -172,12 +172,13 @@ namespace Wayfinder::Tests
             CHECK(programs[0].Name == "composition_blit");
         }
 
-        SUBCASE("DebugPass returns 1 program")
+        SUBCASE("DebugPass returns 2 programs")
         {
             DebugPass pass;
             const auto programs = pass.GetShaderPrograms();
-            REQUIRE(programs.size() == 1);
+            REQUIRE(programs.size() == 2);
             CHECK(programs[0].Name == "debug_unlit");
+            CHECK(programs[1].Name == "debug_solid");
         }
     }
 
