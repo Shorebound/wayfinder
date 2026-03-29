@@ -25,15 +25,37 @@ function(wayfinder_compile_shaders)
     file(REMOVE_RECURSE "${STAGING_DIR}")
     file(MAKE_DIRECTORY "${STAGING_DIR}")
 
-    set(_ALL_MODULE_DEPS ${ARG_MODULES})
+    # ── Module precompilation ──────────────────────────────────────
+    # Compile .slang modules to .slang-module IR binaries so program
+    # compilation skips re-parsing module source on every invocation.
+    set(MODULE_CACHE_DIR "${CMAKE_CURRENT_BINARY_DIR}/precompiled_modules")
+    file(MAKE_DIRECTORY "${MODULE_CACHE_DIR}/modules")
 
+    set(_PRECOMPILED_MODULES "")
+    foreach(MODULE_SOURCE ${ARG_MODULES})
+        get_filename_component(MODULE_STEM "${MODULE_SOURCE}" NAME_WE)
+        set(MODULE_BIN "${MODULE_CACHE_DIR}/modules/${MODULE_STEM}.slang-module")
+
+        add_custom_command(
+            OUTPUT "${MODULE_BIN}"
+            COMMAND ${SLANGC_EXECUTABLE} "${MODULE_SOURCE}"
+                -o "${MODULE_BIN}"
+            DEPENDS "${MODULE_SOURCE}"
+            COMMENT "Precompiling Slang module ${MODULE_STEM}"
+            VERBATIM
+        )
+        list(APPEND _PRECOMPILED_MODULES "${MODULE_BIN}")
+    endforeach()
+
+    # ── Program compilation ────────────────────────────────────────
+    # -I MODULE_CACHE_DIR first so slangc picks up .slang-module over .slang source.
+    # -fvk-use-entrypoint-name: keep VSMain/PSMain in SPIR-V (Slang defaults to "main").
+    set(SPV_OUTPUTS "")
     foreach(PROGRAM_SOURCE ${ARG_PROGRAMS})
         get_filename_component(PROGRAM_STEM "${PROGRAM_SOURCE}" NAME_WE)
         set(VERT_SPV "${STAGING_DIR}/${PROGRAM_STEM}.vert.spv")
         set(FRAG_SPV "${STAGING_DIR}/${PROGRAM_STEM}.frag.spv")
 
-        # One slangc invocation per entry point (current slangc rejects multiple -o for -target spirv).
-        # -fvk-use-entrypoint-name: keep VSMain/PSMain in SPIR-V (Slang defaults to "main").
         add_custom_command(
             OUTPUT ${VERT_SPV} ${FRAG_SPV}
             COMMAND ${SLANGC_EXECUTABLE} "${PROGRAM_SOURCE}"
@@ -43,6 +65,7 @@ function(wayfinder_compile_shaders)
                 -stage vertex
                 -entry VSMain
                 -o "${VERT_SPV}"
+                -I "${MODULE_CACHE_DIR}"
                 -I "${ARG_MODULE_DIR}"
             COMMAND ${SLANGC_EXECUTABLE} "${PROGRAM_SOURCE}"
                 -target spirv
@@ -51,8 +74,9 @@ function(wayfinder_compile_shaders)
                 -stage fragment
                 -entry PSMain
                 -o "${FRAG_SPV}"
+                -I "${MODULE_CACHE_DIR}"
                 -I "${ARG_MODULE_DIR}"
-            DEPENDS ${PROGRAM_SOURCE} ${_ALL_MODULE_DEPS}
+            DEPENDS ${PROGRAM_SOURCE} ${_PRECOMPILED_MODULES}
             COMMENT "Compiling Slang ${PROGRAM_STEM} -> SPIR-V"
             VERBATIM
         )

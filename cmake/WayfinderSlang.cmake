@@ -1,4 +1,7 @@
 # cmake/WayfinderSlang.cmake — Download prebuilt Slang SDK (slangc) via FetchContent
+#
+# Optional: set SLANG_SDK_CACHE_DIR to redirect the download to a stable
+# directory outside the build tree (useful for CI caching).
 include(FetchContent)
 
 set(SLANG_VERSION "2026.5.1" CACHE STRING "Slang SDK version")
@@ -23,11 +26,21 @@ set(_SLANG_URL "https://github.com/shader-slang/slang/releases/download/v${SLANG
 
 message(STATUS "Fetching Slang SDK ${SLANG_VERSION} for ${_SLANG_PLATFORM}")
 
+# Redirect FetchContent to a cacheable directory when SLANG_SDK_CACHE_DIR is set.
+if(SLANG_SDK_CACHE_DIR)
+    set(_SLANG_PREV_FC_BASE_DIR "${FETCHCONTENT_BASE_DIR}")
+    set(FETCHCONTENT_BASE_DIR "${SLANG_SDK_CACHE_DIR}")
+endif()
+
 FetchContent_Declare(slang_sdk
     URL "${_SLANG_URL}"
     DOWNLOAD_EXTRACT_TIMESTAMP TRUE
 )
 FetchContent_MakeAvailable(slang_sdk)
+
+if(SLANG_SDK_CACHE_DIR)
+    set(FETCHCONTENT_BASE_DIR "${_SLANG_PREV_FC_BASE_DIR}")
+endif()
 
 if(WIN32)
     set(SLANGC_EXECUTABLE "${slang_sdk_SOURCE_DIR}/bin/slangc.exe" CACHE FILEPATH "Path to slangc" FORCE)

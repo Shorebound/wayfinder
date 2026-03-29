@@ -40,6 +40,12 @@ jobs:
           key: cpm-${{ runner.os }}-${{ hashFiles('cmake/WayfinderDependencies.cmake') }}
           restore-keys: cpm-${{ runner.os }}-
 
+      - name: Cache Slang SDK
+        uses: actions/cache@v4
+        with:
+          path: .slang-cache
+          key: slang-${{ runner.os }}-${{ hashFiles('cmake/WayfinderSlang.cmake') }}
+
       - name: Setup build environment
         uses: ./.github/actions/setup-linux-build
 
@@ -89,6 +95,12 @@ jobs:
           path: thirdparty
           key: cpm-${{ runner.os }}-${{ hashFiles('cmake/WayfinderDependencies.cmake') }}
           restore-keys: cpm-${{ runner.os }}-
+
+      - name: Cache Slang SDK
+        uses: actions/cache@v4
+        with:
+          path: .slang-cache
+          key: slang-${{ runner.os }}-${{ hashFiles('cmake/WayfinderSlang.cmake') }}
 
       - name: Register MSVC problem matcher
         run: echo "::add-matcher::${{ github.workspace }}/.github/matchers/msvc.json"
