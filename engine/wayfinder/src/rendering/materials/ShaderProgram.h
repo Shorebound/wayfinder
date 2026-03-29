@@ -108,6 +108,10 @@ namespace Wayfinder
         // NOLINTNEXTLINE(bugprone-easily-swappable-parameters) — primary name vs fallback shader name
         const ShaderProgram* FindOrDefault(std::string_view name, std::string_view fallback = "unlit") const;
 
+        /// Clears all registered programs. Used by ReloadShaders so programs can be re-registered
+        /// with freshly compiled shaders.
+        void InvalidateAll();
+
     private:
         RenderDevice* m_device = nullptr;
         ShaderManager* m_shaders = nullptr;

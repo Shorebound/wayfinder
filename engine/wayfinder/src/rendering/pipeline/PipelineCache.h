@@ -46,6 +46,10 @@ namespace Wayfinder
         void Initialise(RenderDevice& device);
         void Shutdown();
 
+        /// Destroys all cached pipelines and clears the cache.
+        /// Used by ReloadShaders to force pipeline recreation.
+        void InvalidateAll();
+
         /// Returns an existing pipeline for this configuration, or creates and caches a new one.
         /// The cache owns the returned handle — callers must not destroy it.
         GPUPipelineHandle GetOrCreate(const PipelineCreateDesc& desc);

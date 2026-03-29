@@ -4,14 +4,57 @@
 #include "core/Log.h"
 #include "rendering/backend/RenderDevice.h"
 
+#include <SDL3/SDL.h>
+
+#include <filesystem>
+
 namespace Wayfinder
 {
+    namespace
+    {
+        /// Resolve a path relative to the executable base directory (same logic as ShaderManager).
+        [[nodiscard]] std::string ResolvePathFromBase(std::string_view path)
+        {
+            const std::filesystem::path dir(path);
+            if (dir.is_absolute())
+            {
+                return dir.string();
+            }
+            if (const char* base = SDL_GetBasePath())
+            {
+                return (std::filesystem::path(base) / dir).lexically_normal().string();
+            }
+            return std::string(path);
+        }
+    } // namespace
+
     Result<void> RenderServices::Initialise(RenderDevice& device, const EngineConfig& config, BlendableEffectRegistry* registry)
     {
         m_device = &device;
         m_blendableEffectRegistry = registry;
 
-        m_shaderManager.Initialise(device, config.Shaders.Directory);
+        // Initialise Slang runtime compiler if a source directory is configured
+        SlangCompiler* compilerPtr = nullptr;
+        if (!config.Shaders.SourceDirectory.empty())
+        {
+            SlangCompiler::InitDesc compilerDesc;
+            const std::string resolvedSourceDir = ResolvePathFromBase(config.Shaders.SourceDirectory);
+            compilerDesc.sourceDirectory = resolvedSourceDir;
+
+            auto compilerResult = m_slangCompiler.Initialise(compilerDesc);
+            if (compilerResult)
+            {
+                compilerPtr = &m_slangCompiler;
+                WAYFINDER_INFO(LogRenderer, "RenderServices: Slang runtime compiler initialised");
+            }
+            else
+            {
+                WAYFINDER_WARN(LogRenderer, "RenderServices: Slang runtime compiler failed to initialise: {}", compilerResult.error().GetMessage());
+                // Non-fatal: fall back to pre-compiled .spv only
+            }
+        }
+
+        m_shaderManager.Initialise(device, config.Shaders.Directory, compilerPtr);
         m_pipelineCache.Initialise(device);
         m_programRegistry.Initialise(device, m_shaderManager, m_pipelineCache);
 
@@ -89,8 +132,17 @@ namespace Wayfinder
         m_programRegistry.Shutdown();
         m_pipelineCache.Shutdown();
         m_shaderManager.Shutdown();
+        m_slangCompiler.Shutdown();
 
         m_device = nullptr;
+    }
+
+    void RenderServices::ReloadShaders()
+    {
+        m_pipelineCache.InvalidateAll();
+        m_programRegistry.InvalidateAll();
+        m_shaderManager.ReloadShaders();
+        WAYFINDER_INFO(LogRenderer, "RenderServices: all shaders and pipelines invalidated");
     }
 
 } // namespace Wayfinder

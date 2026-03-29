@@ -9,6 +9,8 @@
 
 namespace Wayfinder
 {
+    class SlangCompiler;
+
     // ── Shader Variant System ────────────────────────────────
 
     // Bitmask of compile-time shader features.
@@ -39,8 +41,17 @@ namespace Wayfinder
         ShaderManager(const ShaderManager&) = delete;
         ShaderManager& operator=(const ShaderManager&) = delete;
 
-        void Initialise(RenderDevice& device, std::string_view shaderDirectory);
+        void Initialise(RenderDevice& device, std::string_view shaderDirectory, SlangCompiler* compiler = nullptr);
         void Shutdown();
+
+        /**
+         * @brief Invalidates all cached GPU shaders.
+         *
+         * Destroys every cached shader handle and clears the map.
+         * The next GetShader() call will reload from .spv or recompile from .slang.
+         * Callers must also invalidate pipelines that reference the old handles.
+         */
+        void ReloadShaders();
 
         // Loads bytecode from "<shaderDirectory>/<name>.vert.spv" or "<name>.frag.spv",
         // creates a GPU shader, and caches it. Returns nullptr on failure.
@@ -79,6 +90,7 @@ namespace Wayfinder
         static std::vector<uint8_t> ReadFile(const std::string& path);
 
         RenderDevice* m_device = nullptr;
+        SlangCompiler* m_compiler = nullptr;
         std::string m_shaderDir;
         std::unordered_map<ShaderKey, GPUShaderHandle, ShaderKeyHash> m_cache;
     };

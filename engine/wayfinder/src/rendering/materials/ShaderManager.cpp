@@ -1,4 +1,5 @@
 #include "ShaderManager.h"
+#include "SlangCompiler.h"
 #include "core/Log.h"
 
 #include <SDL3/SDL.h>
@@ -27,9 +28,10 @@ namespace Wayfinder
         }
     } // namespace
 
-    void ShaderManager::Initialise(RenderDevice& device, std::string_view shaderDirectory)
+    void ShaderManager::Initialise(RenderDevice& device, std::string_view shaderDirectory, SlangCompiler* compiler)
     {
         m_device = &device;
+        m_compiler = compiler;
         m_shaderDir = ResolveShaderDirectory(shaderDirectory);
         WAYFINDER_INFO(LogRenderer, "ShaderManager: initialised with directory '{}'", m_shaderDir);
     }
@@ -44,7 +46,24 @@ namespace Wayfinder
             }
         }
         m_cache.clear();
+        m_compiler = nullptr;
         m_device = nullptr;
+    }
+
+    void ShaderManager::ReloadShaders()
+    {
+        if (m_device)
+        {
+            for (auto& [key, handle] : m_cache)
+            {
+                if (handle.IsValid())
+                {
+                    m_device->DestroyShader(handle);
+                }
+            }
+        }
+        m_cache.clear();
+        WAYFINDER_INFO(LogRenderer, "ShaderManager: shader cache invalidated - shaders will recompile on next use");
     }
 
     GPUShaderHandle ShaderManager::GetShader(const std::string_view name, ShaderStage stage, const ShaderResourceCounts& resources, ShaderVariantKey variant)
@@ -62,9 +81,24 @@ namespace Wayfinder
         std::string filePath = (std::filesystem::path(m_shaderDir) / (std::string(name) + stageSuffix)).string();
 
         std::vector<uint8_t> bytecode = ReadFile(filePath);
+
+        // Fallback: runtime Slang compilation when .spv is not found
+#if !defined(WAYFINDER_SHIPPING)
+        if (bytecode.empty() && m_compiler && m_compiler->IsInitialised())
+        {
+            const char* entryPoint = (stage == ShaderStage::Vertex) ? "VSMain" : "PSMain";
+            auto compileResult = m_compiler->Compile(name, entryPoint, stage);
+            if (compileResult)
+            {
+                bytecode = std::move(compileResult->Bytecode);
+            }
+            // Error already logged by SlangCompiler
+        }
+#endif
+
         if (bytecode.empty())
         {
-            WAYFINDER_ERROR(LogRenderer, "ShaderManager: Failed to load '{}'", filePath);
+            WAYFINDER_ERROR(LogRenderer, "ShaderManager: failed to load '{}'", filePath);
             return GPUShaderHandle::Invalid();
         }
 
@@ -86,7 +120,7 @@ namespace Wayfinder
         }
 
         m_cache[key] = handle;
-        WAYFINDER_INFO(LogRenderer, "ShaderManager: Loaded '{}'", filePath);
+        WAYFINDER_INFO(LogRenderer, "ShaderManager: loaded '{}'", filePath);
         return handle;
     }
 

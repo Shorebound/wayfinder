@@ -89,4 +89,12 @@ namespace Wayfinder
         return nullptr;
     }
 
+    void ShaderProgramRegistry::InvalidateAll()
+    {
+        // Pipeline handles are owned by PipelineCache (invalidated separately).
+        // Just clear the program map so Register() can recreate entries.
+        m_programs.clear();
+        WAYFINDER_INFO(LogRenderer, "ShaderProgramRegistry: all programs invalidated");
+    }
+
 } // namespace Wayfinder

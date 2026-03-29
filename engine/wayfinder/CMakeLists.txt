@@ -217,6 +217,8 @@ set(ENGINE_ALL_SOURCES
   src/rendering/materials/ShaderManager.h
   src/rendering/materials/ShaderProgram.cpp
   src/rendering/materials/ShaderProgram.h
+  src/rendering/materials/SlangCompiler.cpp
+  src/rendering/materials/SlangCompiler.h
 
   # Rendering — Mesh
   src/rendering/mesh/Mesh.cpp
@@ -342,6 +344,7 @@ target_link_libraries(${ENGINE_NAME}
       Jolt
     PRIVATE
       SDL3_image::SDL3_image-static
+      Slang::slang
 )
 
 if(WAYFINDER_ENABLE_PROFILING)

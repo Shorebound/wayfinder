@@ -5,6 +5,7 @@
 #include "core/Result.h"
 #include "rendering/materials/ShaderManager.h"
 #include "rendering/materials/ShaderProgram.h"
+#include "rendering/materials/SlangCompiler.h"
 #include "rendering/mesh/Mesh.h"
 #include "rendering/resources/MeshManager.h"
 #include "rendering/resources/TextureManager.h"
@@ -35,6 +36,15 @@ namespace Wayfinder
 
         Result<void> Initialise(RenderDevice& device, const EngineConfig& config, BlendableEffectRegistry* registry = nullptr);
         void Shutdown();
+
+        /**
+         * @brief Invalidates all shaders, programs and pipelines.
+         *
+         * The next frame will lazily recompile all needed shaders (from .spv or .slang)
+         * and recreate pipelines. Call RenderOrchestrator::RebuildPipelines() afterwards
+         * to re-register shader programs.
+         */
+        void ReloadShaders();
 
         // ── Accessors ────────────────────────────────────────
         RenderDevice& GetDevice()
@@ -141,6 +151,7 @@ namespace Wayfinder
         RenderDevice* m_device = nullptr;
         BlendableEffectRegistry* m_blendableEffectRegistry = nullptr;
 
+        SlangCompiler m_slangCompiler;
         ShaderManager m_shaderManager;
         PipelineCache m_pipelineCache;
         ShaderProgramRegistry m_programRegistry;

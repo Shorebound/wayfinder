@@ -14,6 +14,7 @@ add_executable(${WAYFINDER_RENDER_TEST_NAME}
   rendering/FrameAllocatorTests.cpp
   rendering/TextureManagerTests.cpp
   rendering/MeshManagerTests.cpp
+  rendering/SlangCompilerTests.cpp
 )
 
 wayfinder_set_output_directories(${WAYFINDER_RENDER_TEST_NAME})
@@ -22,6 +23,7 @@ target_link_libraries(${WAYFINDER_RENDER_TEST_NAME}
   PRIVATE
     ${ENGINE_NAME}
     doctest::doctest_with_main
+    Slang::slang
 )
 
 target_include_directories(${WAYFINDER_RENDER_TEST_NAME}
@@ -30,6 +32,18 @@ target_include_directories(${WAYFINDER_RENDER_TEST_NAME}
 
 add_test(NAME ${WAYFINDER_RENDER_TEST_NAME} COMMAND ${WAYFINDER_RENDER_TEST_NAME})
 set_target_properties(${WAYFINDER_RENDER_TEST_NAME} PROPERTIES FOLDER "${TESTS_DIRECTORY}")
+
+# Copy Slang runtime DLLs next to render test executable
+if(WIN32 AND DEFINED SLANG_BIN_DIR)
+    file(GLOB _SLANG_TEST_DLLS "${SLANG_BIN_DIR}/*.dll")
+    foreach(_DLL ${_SLANG_TEST_DLLS})
+        add_custom_command(TARGET ${WAYFINDER_RENDER_TEST_NAME} POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                "${_DLL}" "$<TARGET_FILE_DIR:${WAYFINDER_RENDER_TEST_NAME}>"
+            VERBATIM
+        )
+    endforeach()
+endif()
 
 # ── Core Tests ────────────────────────────────────────────
 

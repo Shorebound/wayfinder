@@ -126,6 +126,24 @@ namespace Wayfinder
         m_initialised = true;
     }
 
+    void RenderOrchestrator::RebuildPipelines()
+    {
+        if (!m_context || !m_initialised)
+        {
+            WAYFINDER_WARN(LogRenderer, "RenderOrchestrator::RebuildPipelines called before Initialise");
+            return;
+        }
+
+        if (!RegisterSceneShaderPrograms(m_context->GetPrograms()))
+        {
+            WAYFINDER_ERROR(LogRenderer, "RenderOrchestrator::RebuildPipelines: one or more shader programs failed to re-register");
+        }
+        else
+        {
+            WAYFINDER_INFO(LogRenderer, "RenderOrchestrator::RebuildPipelines: shader programs re-registered");
+        }
+    }
+
     void RenderOrchestrator::Shutdown()
     {
         if (m_context)

@@ -67,6 +67,19 @@ wayfinder_compile_shaders(
     OUTPUT_DIR "$<TARGET_FILE_DIR:${SANDBOX_NAME}>/assets/shaders"
 )
 
+# --- Copy Slang Runtime DLLs (Development/Debug only) ---
+if(WIN32 AND DEFINED SLANG_BIN_DIR AND EXISTS "${SLANG_BIN_DIR}")
+    file(GLOB _SLANG_DLLS "${SLANG_BIN_DIR}/*.dll")
+    foreach(_DLL ${_SLANG_DLLS})
+        add_custom_command(TARGET ${SANDBOX_NAME} POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E $<IF:$<CONFIG:Shipping>,true,copy_if_different>
+                "${_DLL}" "$<TARGET_FILE_DIR:${SANDBOX_NAME}>"
+            COMMENT "Copying Slang DLL: ${_DLL}"
+            VERBATIM
+        )
+    endforeach()
+endif()
+
 # --- Platform Specifics for THIS Executable ---
 # Web Configurations (using standard CMake variable)
 if (CMAKE_SYSTEM_NAME STREQUAL "Emscripten")
