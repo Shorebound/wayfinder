@@ -114,6 +114,7 @@ namespace Wayfinder
 
         // Create built-in features. Queue directly rather than through RegisterPass
         // so the batch lifecycle below handles effects, programs, and attach in order.
+        // @todo: this shouldn't be done in here, we should be able to compose this through TOML/JSON or something else without hardcoding built-in features in the orchestrator.
         auto addBuiltIn = [&](const RenderPhase phase, const int32_t order, std::unique_ptr<RenderFeature> pass)
         {
             m_passes.push_back(PassSlot{

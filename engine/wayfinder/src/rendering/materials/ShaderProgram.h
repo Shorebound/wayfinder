@@ -48,7 +48,6 @@ namespace Wayfinder
         bool DepthTest = true;
         bool DepthWrite = true;
         BlendState Blend{};
-        PrimitiveType Primitive = PrimitiveType::TriangleList;
 
         // Fragment material UBO layout — declared parameter list.
         // The renderer calls SerialiseToUBO with these declarations.
@@ -113,12 +112,20 @@ namespace Wayfinder
         /// with freshly compiled shaders.
         void InvalidateAll();
 
+        /// Returns a pipeline variant for the named program with a different primitive topology.
+        /// Caches the result so repeated calls with the same (name, topology) are free.
+        /// Returns an invalid handle if the program is not found or pipeline creation fails.
+        GPUPipelineHandle GetVariantPipeline(std::string_view name, PrimitiveType topology);
+
     private:
         RenderDevice* m_device = nullptr;
         ShaderManager* m_shaders = nullptr;
         PipelineCache* m_cache = nullptr;
 
         std::unordered_map<std::string, ShaderProgram, TransparentStringHash, std::equal_to<>> m_programs;
+
+        /// Variant pipelines keyed by (program name hash, PrimitiveType).
+        std::unordered_map<size_t, GPUPipelineHandle> m_variantPipelines;
     };
 
 } // namespace Wayfinder

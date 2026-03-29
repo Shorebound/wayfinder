@@ -81,7 +81,6 @@ namespace Wayfinder
         desc.VertexResources = {.numUniformBuffers = 1};
         desc.FragmentResources = {.numUniformBuffers = 1};
         desc.VertexLayout = VertexLayouts::PosColour;
-        desc.Primitive = PrimitiveType::LineList;
         desc.Cull = CullMode::None;
         desc.DepthTest = false;
         desc.DepthWrite = false;
@@ -213,7 +212,7 @@ namespace Wayfinder
 
                 auto& registry = m_context->GetPrograms();
                 const ShaderProgram* debugProgram = registry.Find("debug_unlit");
-                const GPUPipelineHandle debugLinePipeline = debugProgram ? debugProgram->Pipeline : GPUPipelineHandle{};
+                const GPUPipelineHandle debugLinePipeline = registry.GetVariantPipeline("debug_unlit", PrimitiveType::LineList);
                 const Mesh* primitiveMeshPtr = params.BuiltInMeshes[static_cast<size_t>(BuiltInMeshId::PrimitiveColour)];
 
                 // ── Draw lines ───────────────────────────────
@@ -242,8 +241,7 @@ namespace Wayfinder
                 }
 
                 // ── Draw boxes ───────────────────────────────
-                const ShaderProgram* unlitProgram = registry.Find("unlit");
-                if (!unlitProgram || !unlitProgram->Pipeline.IsValid() || !primitiveMeshPtr || !primitiveMeshPtr->IsValid())
+                if (!debugProgram || !debugProgram->Pipeline.IsValid() || !primitiveMeshPtr || !primitiveMeshPtr->IsValid())
                 {
                     return;
                 }
@@ -263,7 +261,7 @@ namespace Wayfinder
                     return;
                 }
 
-                device.BindPipeline(unlitProgram->Pipeline);
+                device.BindPipeline(debugProgram->Pipeline);
                 primitiveMeshPtr->Bind(device);
 
                 for (uint32_t v = 0; v < viewCount; ++v)

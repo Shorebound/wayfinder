@@ -24,6 +24,11 @@ namespace Wayfinder
 {
     namespace
     {
+        /**
+         * @prototype Build scene globals from frame lights.
+         * Falls back to a hardcoded default directional light when no light is submitted.
+         * Should be replaced by data-driven scene defaults (e.g. from scene config or environment settings).
+         */
         SceneGlobalsUBO BuildSceneGlobals(const RenderFrame& frame)
         {
             SceneGlobalsUBO globals;
@@ -39,6 +44,7 @@ namespace Wayfinder
                 }
             }
 
+            /// @prototype Hardcoded fallback light direction -- replace with data-driven scene defaults.
             globals.LightDirection = Maths::Normalize(Float3{-0.4f, -0.7f, -0.5f});
             return globals;
         }
@@ -64,7 +70,6 @@ namespace Wayfinder
             {
                 {.Name = "base_colour", .Type = MaterialParamType::Colour, .Offset = 0, .Default = LinearColour::White()},
             };
-            desc.MaterialUBOSize = 16;
             desc.VertexUBOSize = sizeof(UnlitTransformUBO);
             desc.NeedsSceneGlobals = false;
             programs.push_back(std::move(desc));
@@ -86,7 +91,6 @@ namespace Wayfinder
             {
                 {.Name = "base_colour", .Type = MaterialParamType::Colour, .Offset = 0, .Default = LinearColour::White()},
             };
-            desc.MaterialUBOSize = 16;
             desc.VertexUBOSize = sizeof(UnlitTransformUBO);
             desc.NeedsSceneGlobals = false;
             programs.push_back(std::move(desc));
@@ -107,7 +111,6 @@ namespace Wayfinder
             {
                 {.Name = "base_colour", .Type = MaterialParamType::Colour, .Offset = 0, .Default = LinearColour::White()},
             };
-            desc.MaterialUBOSize = 16;
             desc.VertexUBOSize = sizeof(TransformUBO);
             desc.NeedsSceneGlobals = true;
             programs.push_back(std::move(desc));
@@ -128,7 +131,6 @@ namespace Wayfinder
             {
                 {.Name = "base_colour", .Type = MaterialParamType::Colour, .Offset = 0, .Default = LinearColour::White()},
             };
-            desc.MaterialUBOSize = 16;
             desc.VertexUBOSize = sizeof(TransformUBO);
             desc.NeedsSceneGlobals = true;
             desc.TextureSlots = {{.Name = "diffuse", .BindingSlot = 0}};
@@ -147,7 +149,7 @@ namespace Wayfinder
     {
         if (!m_context)
         {
-            WAYFINDER_WARN(LogRenderer, "SceneOpaquePass: no context — skipped");
+            WAYFINDER_WARN(LogRenderer, "SceneOpaquePass: no context! Skipped");
             return;
         }
 

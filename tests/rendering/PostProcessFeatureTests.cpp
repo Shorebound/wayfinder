@@ -172,13 +172,12 @@ namespace Wayfinder::Tests
             CHECK(programs[0].Name == "composition_blit");
         }
 
-        SUBCASE("DebugPass returns 1 program with LineList primitive")
+        SUBCASE("DebugPass returns 1 program")
         {
             DebugPass pass;
             const auto programs = pass.GetShaderPrograms();
             REQUIRE(programs.size() == 1);
             CHECK(programs[0].Name == "debug_unlit");
-            CHECK(programs[0].Primitive == PrimitiveType::LineList);
         }
     }
 
