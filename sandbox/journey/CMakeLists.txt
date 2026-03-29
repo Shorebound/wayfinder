@@ -67,6 +67,30 @@ wayfinder_compile_shaders(
     OUTPUT_DIR "$<TARGET_FILE_DIR:${SANDBOX_NAME}>/assets/shaders"
 )
 
+# --- Copy Slang Runtime DLLs (Development/Debug only) ---
+# Only the DLLs needed for runtime compilation are copied; the full SDK
+# contains gfx.dll, slang-llvm.dll, etc. that we don't use (~110 MB saved).
+# The $<IF:$<CONFIG:Shipping>,true,copy_if_different> trick makes the command
+# a no-op in Shipping (CMake's 'true' command succeeds without side effects).
+if(WIN32 AND DEFINED SLANG_BIN_DIR AND EXISTS "${SLANG_BIN_DIR}")
+    set(_SLANG_DLLS
+        "${SLANG_BIN_DIR}/slang.dll"
+        "${SLANG_BIN_DIR}/slang-rt.dll"
+        "${SLANG_BIN_DIR}/slang-compiler.dll"
+        "${SLANG_BIN_DIR}/slang-glslang.dll"
+    )
+    foreach(_DLL ${_SLANG_DLLS})
+        if(EXISTS "${_DLL}")
+            add_custom_command(TARGET ${SANDBOX_NAME} POST_BUILD
+                COMMAND ${CMAKE_COMMAND} -E $<IF:$<CONFIG:Shipping>,true,copy_if_different>
+                    "${_DLL}" "$<TARGET_FILE_DIR:${SANDBOX_NAME}>"
+                COMMENT "Copying Slang DLL: ${_DLL}"
+                VERBATIM
+            )
+        endif()
+    endforeach()
+endif()
+
 # --- Platform Specifics for THIS Executable ---
 # Web Configurations (using standard CMake variable)
 if (CMAKE_SYSTEM_NAME STREQUAL "Emscripten")

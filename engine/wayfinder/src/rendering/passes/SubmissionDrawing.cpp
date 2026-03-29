@@ -31,7 +31,7 @@ namespace Wayfinder
             pipeDesc.vertexShader = vs;
             pipeDesc.fragmentShader = fs;
             pipeDesc.vertexLayout = desc.VertexLayout;
-            pipeDesc.primitiveType = PrimitiveType::TriangleList;
+            pipeDesc.primitiveType = PrimitiveType::TriangleList; // Wireframe always uses triangles
             pipeDesc.cullMode = desc.Cull;
             pipeDesc.fillMode = FillMode::Line;
             pipeDesc.frontFace = FrontFace::CounterClockwise;
@@ -128,12 +128,12 @@ namespace Wayfinder
             {
                 return meshResource ? meshResource->GpuMesh : nullptr;
             }
-            const uint32_t stride = program->Desc.VertexLayout.stride;
-            if (stride == VertexLayouts::PosNormalColour.stride)
+            const auto& layout = program->Desc.VertexLayout;
+            if (VertexLayoutsMatch(layout, VertexLayouts::PosNormalColour))
             {
                 return params.BuiltInMeshes[static_cast<size_t>(BuiltInMeshId::PrimitiveColour)];
             }
-            if (stride == VertexLayouts::PosNormalUVTangent.stride)
+            if (VertexLayoutsMatch(layout, VertexLayouts::PosNormalUVTangent))
             {
                 return params.BuiltInMeshes[static_cast<size_t>(BuiltInMeshId::PrimitiveTextured)];
             }

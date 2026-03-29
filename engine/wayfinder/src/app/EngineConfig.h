@@ -19,6 +19,7 @@ namespace Wayfinder
     struct ShaderConfig
     {
         std::string Directory = "assets/shaders";
+        std::string SourceDirectory; ///< .slang source root for runtime compilation (empty = disabled)
     };
 
     /**

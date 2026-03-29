@@ -111,6 +111,13 @@ namespace Wayfinder
                         config.Shaders.Directory = *v;
                     }
                 }
+                if (const auto* sourceDir = shaders->get("source_directory"); sourceDir != nullptr)
+                {
+                    if (auto v = sourceDir->value<std::string>())
+                    {
+                        config.Shaders.SourceDirectory = *v;
+                    }
+                }
             }
 
             if (const auto* physics = tbl.get_as<toml::table>("physics"))

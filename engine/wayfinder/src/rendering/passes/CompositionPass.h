@@ -20,6 +20,7 @@ namespace Wayfinder
             return RenderCapabilities::RASTER | RenderCapabilities::FULLSCREEN_COMPOSITE;
         }
 
+        std::vector<ShaderProgramDesc> GetShaderPrograms() const override;
         void OnAttach(const RenderFeatureContext& context) override;
         void OnDetach(const RenderFeatureContext& context) override;
         void AddPasses(RenderGraph& graph, const FrameRenderParams& params) override;

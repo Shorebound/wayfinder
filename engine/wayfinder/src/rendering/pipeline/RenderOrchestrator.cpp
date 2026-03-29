@@ -2,12 +2,14 @@
 
 #include "RenderServices.h"
 #include "rendering/graph/RenderGraph.h"
+#include "rendering/materials/ShaderProgram.h"
 #include "rendering/passes/ChromaticAberrationFeature.h"
 #include "rendering/passes/ColourGradingFeature.h"
 #include "rendering/passes/CompositionPass.h"
 #include "rendering/passes/DebugPass.h"
 #include "rendering/passes/SceneOpaquePass.h"
 #include "rendering/passes/VignetteFeature.h"
+#include "volumes/BlendableEffectRegistry.h"
 
 #include "core/Log.h"
 #include "maths/Frustum.h"
@@ -18,6 +20,21 @@
 
 namespace Wayfinder
 {
+    namespace
+    {
+        /// Collects shader programs from a feature and registers them with the registry.
+        void RegisterFeaturePrograms(RenderFeature& feature, ShaderProgramRegistry& registry)
+        {
+            for (auto& desc : feature.GetShaderPrograms())
+            {
+                if (!registry.Register(desc))
+                {
+                    WAYFINDER_WARN(LogRenderer, "RenderOrchestrator: failed to register shader program '{}' from feature '{}'", desc.Name, feature.GetName());
+                }
+            }
+        }
+    } // namespace
+
     void RenderOrchestrator::SortPassList(std::vector<PassSlot>& slots)
     {
         std::ranges::sort(slots, [](const PassSlot& a, const PassSlot& b)
@@ -54,6 +71,17 @@ namespace Wayfinder
         }
 
         const RenderFeatureContext ctx{*m_context};
+        auto& registry = m_context->GetPrograms();
+
+        // Late-registered feature: register effects if registry not yet sealed.
+        if (auto* effectReg = m_context->GetBlendableEffectRegistry())
+        {
+            pass->OnRegisterEffects(*effectReg);
+        }
+
+        // Register shader programs from the feature.
+        RegisterFeaturePrograms(*pass, registry);
+
         pass->OnAttach(ctx);
 
         PassSlot slot{
@@ -84,46 +112,99 @@ namespace Wayfinder
 
         m_context = &services;
 
-        if (!RegisterSceneShaderPrograms(services.GetPrograms()))
+        // Create built-in features. Queue directly rather than through RegisterPass
+        // so the batch lifecycle below handles effects, programs, and attach in order.
+        // @todo: this shouldn't be done in here, we should be able to compose this through TOML/JSON or something else without hardcoding built-in features in the orchestrator.
+        auto addBuiltIn = [&](const RenderPhase phase, const int32_t order, std::unique_ptr<RenderFeature> pass)
         {
-            // Headless/Null backends often lack .spv assets; passes still attach so ordering/graph tests can run.
-            WAYFINDER_ERROR(LogRenderer, "RenderOrchestrator: one or more scene shader programs failed to register — pipeline may be incomplete");
-        }
+            m_passes.push_back(PassSlot{
+                .Phase = phase,
+                .Order = order,
+                .InsertSequence = m_nextPassInsertSequence++,
+                .Pass = std::move(pass),
+            });
+        };
 
-        RegisterPass(RenderPhase::Opaque, 0, std::make_unique<SceneOpaquePass>());
-        RegisterPass(RenderPhase::PostProcess, 800, std::make_unique<ChromaticAberrationFeature>());
-        RegisterPass(RenderPhase::PostProcess, 900, std::make_unique<Rendering::VignetteFeature>());
-        RegisterPass(RenderPhase::Composite, 0, std::make_unique<ColourGradingFeature>());
-        RegisterPass(RenderPhase::Overlay, 0, std::make_unique<DebugPass>());
-        RegisterPass(RenderPhase::Present, 0, std::make_unique<CompositionPass>());
+        addBuiltIn(RenderPhase::Opaque, 0, std::make_unique<SceneOpaquePass>());
+        addBuiltIn(RenderPhase::PostProcess, 800, std::make_unique<ChromaticAberrationFeature>());
+        addBuiltIn(RenderPhase::PostProcess, 900, std::make_unique<Rendering::VignetteFeature>());
+        addBuiltIn(RenderPhase::Composite, 0, std::make_unique<ColourGradingFeature>());
+        addBuiltIn(RenderPhase::Overlay, 0, std::make_unique<DebugPass>());
+        addBuiltIn(RenderPhase::Present, 0, std::make_unique<CompositionPass>());
 
         // Flush passes that were registered before Initialise (deferred).
-        // Insert directly with their captured InsertSequence to preserve original
-        // call order for equal Phase/Order entries (RegisterPass would reassign it).
         if (!m_pendingPasses.empty())
         {
             auto deferred = std::move(m_pendingPasses);
             m_pendingPasses.clear();
-
-            const RenderFeatureContext ctx{*m_context};
             for (auto& slot : deferred)
             {
                 if (slot.Pass)
                 {
-                    slot.Pass->OnAttach(ctx);
-
                     if (slot.Phase == RenderPhase::Present && !slot.Pass->IsEnabled())
                     {
-                        WAYFINDER_WARN(LogRenderer, "RegisterPass: Present phase pass '{}' is disabled — graph may lack a swapchain writer", slot.Pass->GetName());
+                        WAYFINDER_WARN(LogRenderer, "RegisterPass: Present phase pass '{}' is disabled -- graph may lack a swapchain writer", slot.Pass->GetName());
                     }
-
                     m_passes.push_back(std::move(slot));
                 }
             }
             SortPassList(m_passes);
         }
 
+        // 1. Register blendable effects (before seal).
+        if (auto* effectReg = m_context->GetBlendableEffectRegistry())
+        {
+            for (auto& slot : m_passes)
+            {
+                if (slot.Pass)
+                {
+                    slot.Pass->OnRegisterEffects(*effectReg);
+                }
+            }
+        }
+
+        // 2. Collect and register shader programs from all features.
+        auto& programs = m_context->GetPrograms();
+        for (auto& slot : m_passes)
+        {
+            if (slot.Pass)
+            {
+                RegisterFeaturePrograms(*slot.Pass, programs);
+            }
+        }
+
+        // 3. OnAttach for runtime init.
+        const RenderFeatureContext ctx{*m_context};
+        for (auto& slot : m_passes)
+        {
+            if (slot.Pass)
+            {
+                slot.Pass->OnAttach(ctx);
+            }
+        }
+
         m_initialised = true;
+    }
+
+    void RenderOrchestrator::RebuildPipelines()
+    {
+        if (!m_context || !m_initialised)
+        {
+            WAYFINDER_WARN(LogRenderer, "RenderOrchestrator::RebuildPipelines called before Initialise");
+            return;
+        }
+
+        // Collect and re-register shader programs from all features.
+        auto& programs = m_context->GetPrograms();
+        for (auto& slot : m_passes)
+        {
+            if (slot.Pass)
+            {
+                RegisterFeaturePrograms(*slot.Pass, programs);
+            }
+        }
+
+        WAYFINDER_INFO(LogRenderer, "RenderOrchestrator::RebuildPipelines: shader programs and pipelines re-registered");
     }
 
     void RenderOrchestrator::Shutdown()

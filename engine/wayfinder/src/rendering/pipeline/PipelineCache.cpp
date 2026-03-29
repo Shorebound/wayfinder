@@ -14,6 +14,12 @@ namespace Wayfinder
 
     void PipelineCache::Shutdown()
     {
+        InvalidateAll();
+        m_device = nullptr;
+    }
+
+    void PipelineCache::InvalidateAll()
+    {
         if (m_device)
         {
             for (auto& [hash, handle] : m_cache)
@@ -26,7 +32,6 @@ namespace Wayfinder
         }
 
         m_cache.clear();
-        m_device = nullptr;
     }
 
     GPUPipelineHandle PipelineCache::GetOrCreate(const PipelineCreateDesc& desc)

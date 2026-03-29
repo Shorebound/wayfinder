@@ -11,11 +11,8 @@
 
 namespace Wayfinder
 {
-    void CompositionPass::OnAttach(const RenderFeatureContext& context)
+    std::vector<ShaderProgramDesc> CompositionPass::GetShaderPrograms() const
     {
-        m_context = &context.Context;
-        auto& registry = context.Context.GetPrograms();
-
         ShaderProgramDesc desc;
         desc.Name = "composition_blit";
         desc.VertexShaderName = "fullscreen_copy";
@@ -29,12 +26,12 @@ namespace Wayfinder
         desc.MaterialUBOSize = 0;
         desc.VertexUBOSize = 0;
         desc.NeedsSceneGlobals = false;
+        return {std::move(desc)};
+    }
 
-        if (!registry.Register(desc))
-        {
-            WAYFINDER_ERROR(LogRenderer, "CompositionPass: failed to register 'composition_blit' shader program — check assets/shaders and working directory; "
-                                         "composition draws will be skipped");
-        }
+    void CompositionPass::OnAttach(const RenderFeatureContext& context)
+    {
+        m_context = &context.Context;
     }
 
     void CompositionPass::OnDetach(const RenderFeatureContext& /*context*/)

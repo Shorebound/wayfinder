@@ -24,6 +24,11 @@ namespace Wayfinder
 {
     namespace
     {
+        /**
+         * @prototype Build scene globals from frame lights.
+         * Falls back to a hardcoded default directional light when no light is submitted.
+         * Should be replaced by data-driven scene defaults (e.g. from scene config or environment settings).
+         */
         SceneGlobalsUBO BuildSceneGlobals(const RenderFrame& frame)
         {
             SceneGlobalsUBO globals;
@@ -39,13 +44,17 @@ namespace Wayfinder
                 }
             }
 
+            /// @prototype Hardcoded fallback light direction -- replace with data-driven scene defaults.
             globals.LightDirection = Maths::Normalize(Float3{-0.4f, -0.7f, -0.5f});
             return globals;
         }
     } // namespace
 
-    bool RegisterSceneShaderPrograms(ShaderProgramRegistry& registry)
+    std::vector<ShaderProgramDesc> SceneOpaquePass::GetShaderPrograms() const
     {
+        std::vector<ShaderProgramDesc> programs;
+        programs.reserve(4);
+
         {
             ShaderProgramDesc desc;
             desc.Name = "unlit";
@@ -61,15 +70,9 @@ namespace Wayfinder
             {
                 {.Name = "base_colour", .Type = MaterialParamType::Colour, .Offset = 0, .Default = LinearColour::White()},
             };
-            desc.MaterialUBOSize = 16;
             desc.VertexUBOSize = sizeof(UnlitTransformUBO);
             desc.NeedsSceneGlobals = false;
-
-            if (!registry.Register(desc))
-            {
-                WAYFINDER_ERROR(LogRenderer, "RegisterSceneShaderPrograms: failed to register shader program '{}'", desc.Name);
-                return false;
-            }
+            programs.push_back(std::move(desc));
         }
 
         {
@@ -88,15 +91,9 @@ namespace Wayfinder
             {
                 {.Name = "base_colour", .Type = MaterialParamType::Colour, .Offset = 0, .Default = LinearColour::White()},
             };
-            desc.MaterialUBOSize = 16;
             desc.VertexUBOSize = sizeof(UnlitTransformUBO);
             desc.NeedsSceneGlobals = false;
-
-            if (!registry.Register(desc))
-            {
-                WAYFINDER_ERROR(LogRenderer, "RegisterSceneShaderPrograms: failed to register shader program '{}'", desc.Name);
-                return false;
-            }
+            programs.push_back(std::move(desc));
         }
 
         {
@@ -114,15 +111,9 @@ namespace Wayfinder
             {
                 {.Name = "base_colour", .Type = MaterialParamType::Colour, .Offset = 0, .Default = LinearColour::White()},
             };
-            desc.MaterialUBOSize = 16;
             desc.VertexUBOSize = sizeof(TransformUBO);
             desc.NeedsSceneGlobals = true;
-
-            if (!registry.Register(desc))
-            {
-                WAYFINDER_ERROR(LogRenderer, "RegisterSceneShaderPrograms: failed to register shader program '{}'", desc.Name);
-                return false;
-            }
+            programs.push_back(std::move(desc));
         }
 
         {
@@ -140,19 +131,13 @@ namespace Wayfinder
             {
                 {.Name = "base_colour", .Type = MaterialParamType::Colour, .Offset = 0, .Default = LinearColour::White()},
             };
-            desc.MaterialUBOSize = 16;
             desc.VertexUBOSize = sizeof(TransformUBO);
             desc.NeedsSceneGlobals = true;
             desc.TextureSlots = {{.Name = "diffuse", .BindingSlot = 0}};
-
-            if (!registry.Register(desc))
-            {
-                WAYFINDER_ERROR(LogRenderer, "RegisterSceneShaderPrograms: failed to register shader program '{}'", desc.Name);
-                return false;
-            }
+            programs.push_back(std::move(desc));
         }
 
-        return true;
+        return programs;
     }
 
     void SceneOpaquePass::OnAttach(const RenderFeatureContext& context)
@@ -164,7 +149,7 @@ namespace Wayfinder
     {
         if (!m_context)
         {
-            WAYFINDER_WARN(LogRenderer, "SceneOpaquePass: no context — skipped");
+            WAYFINDER_WARN(LogRenderer, "SceneOpaquePass: no context! Skipped");
             return;
         }
 
@@ -174,8 +159,6 @@ namespace Wayfinder
 
         const auto& primary = params.PrimaryView;
         const Colour clearColour = primary.ClearColour;
-        const Matrix4 view = primary.ViewMatrix;
-        const Matrix4 projection = primary.ProjectionMatrix;
         const bool hasCamera = primary.Valid;
 
         const SceneGlobalsUBO sceneGlobals = BuildSceneGlobals(preparedFrame);
@@ -195,7 +178,7 @@ namespace Wayfinder
         depthDesc.Format = TextureFormat::D32_FLOAT;
         depthDesc.DebugName = GraphTextureName(GraphTextureId::SceneDepth);
 
-        graph.AddPass("MainScene", [&, viewMat = view, projMat = projection, hasCamera](RenderGraphBuilder& builder)
+        graph.AddPass("MainScene", [&, hasCamera](RenderGraphBuilder& builder)
         {
             builder.DeclarePassCapabilities(RenderCapabilities::RASTER | RenderCapabilities::RASTER_SCENE_GEOMETRY);
             auto colour = builder.CreateTransient(colourDesc);
@@ -203,7 +186,7 @@ namespace Wayfinder
             builder.WriteColour(colour, LoadOp::Clear, ClearValue::FromColour(clearColour));
             builder.WriteDepth(depth, LoadOp::Clear, 1.0f);
 
-            return [this, &params, viewMat, projMat, sceneGlobals, hasCamera](RenderDevice& device, const RenderGraphResources& /*resources*/)
+            return [this, &params, sceneGlobals, hasCamera](RenderDevice& device, const RenderGraphResources& /*resources*/)
             {
                 if (!hasCamera || !m_context)
                 {
@@ -225,19 +208,15 @@ namespace Wayfinder
                         continue;
                     }
 
-                    Matrix4 passView = viewMat;
-                    Matrix4 passProj = projMat;
-
-                    if (layer.ViewIndex < params.Frame.Views.size() && params.Frame.Views.at(layer.ViewIndex).Prepared)
+                    const auto resolved = Rendering::ResolveViewForLayer(params, layer.ViewIndex);
+                    if (!resolved.Ok)
                     {
-                        const auto& pv = params.Frame.Views.at(layer.ViewIndex);
-                        passView = pv.ViewMatrix;
-                        passProj = pv.ProjectionMatrix;
+                        continue;
                     }
 
                     for (const auto& submission : layer.Meshes)
                     {
-                        DrawSubmission(state, submission, passView, passProj, sceneGlobals);
+                        DrawSubmission(state, submission, resolved.View, resolved.Proj, sceneGlobals);
                     }
                 }
             };

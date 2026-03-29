@@ -70,6 +70,24 @@ namespace Wayfinder
         uint32_t attribCount = 0;
     };
 
+    /// Returns true when two layouts describe the same vertex format
+    /// (same stride, count, and per-attribute location/offset/format).
+    inline bool VertexLayoutsMatch(const VertexLayout& a, const VertexLayout& b)
+    {
+        if (a.stride != b.stride || a.attribCount != b.attribCount)
+        {
+            return false;
+        }
+        for (uint32_t i = 0; i < a.attribCount; ++i)
+        {
+            if (a.attribs[i].location != b.attribs[i].location || a.attribs[i].offset != b.attribs[i].offset || a.attribs[i].format != b.attribs[i].format)
+            {
+                return false;
+            }
+        }
+        return true;
+    }
+
     // ── Pre-built Layouts ────────────────────────────────────
 
     namespace VertexLayouts

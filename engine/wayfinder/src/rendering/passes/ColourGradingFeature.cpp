@@ -48,25 +48,8 @@ namespace Wayfinder
         return RenderCapabilities::RASTER;
     }
 
-    void ColourGradingFeature::OnAttach(const RenderFeatureContext& context)
+    std::vector<ShaderProgramDesc> ColourGradingFeature::GetShaderPrograms() const
     {
-        m_context = &context.Context;
-        auto* reg = m_context->GetBlendableEffectRegistry();
-        if (!reg)
-        {
-            WAYFINDER_WARN(LogRenderer, "ColourGradingFeature: no BlendableEffectRegistry — effect not registered");
-            m_effectId = INVALID_BLENDABLE_EFFECT_ID;
-        }
-        else
-        {
-            m_effectId = reg->Register<ColourGradingParams>("colour_grading");
-            if (m_effectId == INVALID_BLENDABLE_EFFECT_ID)
-            {
-                WAYFINDER_ERROR(LogRenderer, "ColourGradingFeature: failed to register colour_grading blendable type");
-            }
-        }
-
-        auto& programs = m_context->GetPrograms();
         ShaderProgramDesc desc;
         desc.Name = "colour_grading";
         desc.VertexShaderName = "colour_grading";
@@ -80,11 +63,21 @@ namespace Wayfinder
         desc.MaterialUBOSize = sizeof(ColourGradingUBO);
         desc.VertexUBOSize = 0;
         desc.NeedsSceneGlobals = false;
+        return {std::move(desc)};
+    }
 
-        if (!programs.Register(desc))
+    void ColourGradingFeature::OnRegisterEffects(BlendableEffectRegistry& registry)
+    {
+        m_effectId = registry.Register<ColourGradingParams>("colour_grading");
+        if (m_effectId == INVALID_BLENDABLE_EFFECT_ID)
         {
-            WAYFINDER_ERROR(LogRenderer, "ColourGradingFeature: failed to register colour_grading shader program");
+            WAYFINDER_ERROR(LogRenderer, "ColourGradingFeature: failed to register colour_grading blendable type");
         }
+    }
+
+    void ColourGradingFeature::OnAttach(const RenderFeatureContext& context)
+    {
+        m_context = &context.Context;
     }
 
     void ColourGradingFeature::OnDetach(const RenderFeatureContext& /*context*/)

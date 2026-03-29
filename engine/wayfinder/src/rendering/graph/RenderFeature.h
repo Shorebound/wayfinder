@@ -4,11 +4,14 @@
 #include "rendering/pipeline/FrameRenderParams.h"
 
 #include <string_view>
+#include <vector>
 
 namespace Wayfinder
 {
+    class BlendableEffectRegistry;
     class RenderServices;
     class RenderGraph;
+    struct ShaderProgramDesc;
 
     /** @brief Services made available to features during OnAttach / OnDetach. */
     struct RenderFeatureContext
@@ -57,6 +60,25 @@ namespace Wayfinder
          * Blendable effect types must be registered here; the registry is sealed on first `Renderer::Render()`.
          */
         virtual void OnAttach(const RenderFeatureContext& /*context*/) {}
+
+        /**
+         * @brief Returns shader program descriptors this feature requires.
+         *
+         * Called by the orchestrator at init and after each shader reload. Pure data - no side effects.
+         * The orchestrator registers the returned descriptors with the ShaderProgramRegistry.
+         */
+        virtual std::vector<ShaderProgramDesc> GetShaderPrograms() const
+        {
+            return {};
+        }
+
+        /**
+         * @brief Called once before the BlendableEffectRegistry is sealed.
+         *
+         * Register blendable effect types here. This is called before OnAttach, and only once
+         * during the feature's lifetime (effect types cannot be added after the first frame).
+         */
+        virtual void OnRegisterEffects(BlendableEffectRegistry& /*registry*/) {}
 
         /** @brief Called when the feature is removed. Use the context for cleanup. */
         virtual void OnDetach(const RenderFeatureContext& /*context*/) {}
