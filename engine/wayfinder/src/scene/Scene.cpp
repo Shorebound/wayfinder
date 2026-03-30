@@ -20,10 +20,10 @@ namespace Wayfinder
     {
         void LogDocumentErrors(const std::vector<std::string>& errors, const std::string& filePath)
         {
-            Wayfinder::LogScene.GetLogger()->LogFormat(Wayfinder::LogVerbosity::Error, "Scene validation failed for {0} with {1} issue(s)", filePath, errors.size());
+            Log::Error(LogScene, "Scene validation failed for {} with {} issue(s)", filePath, errors.size());
             for (const std::string& error : errors)
             {
-                Wayfinder::LogScene.GetLogger()->LogFormat(Wayfinder::LogVerbosity::Error, "  - {0}", error);
+                Log::Error(LogScene, "  - {}", error);
             }
         }
 

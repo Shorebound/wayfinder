@@ -893,7 +893,7 @@ namespace Wayfinder
             }
             else if (data.contains("tags") && data.at("tags").is_array() && !data.at("tags").empty())
             {
-                Wayfinder::LogScene.GetLogger()->LogFormat(Wayfinder::LogVerbosity::Warning, "Entity specifies {0} tag(s) but no GameplayTagRegistry is available — tags will be ignored.", data.at("tags").size());
+                Log::Warn(LogScene, "Entity specifies {} tag(s) but no GameplayTagRegistry is available - tags will be ignored.", data.at("tags").size());
             }
             entity.AddComponent<Wayfinder::GameplayTagContainer>(container);
         }
@@ -1201,7 +1201,7 @@ namespace Wayfinder
                 for (const auto& effect : volume.Effects)
                 {
                     const Wayfinder::BlendableEffectDesc* desc = registry->Find(effect.TypeId);
-                    WAYFINDER_ASSERT(desc && desc->Serialise);
+                    WAYFINDER_ASSERT(desc && desc->Serialise, "BlendableEffectDesc missing or has no Serialise function");
 
                     nlohmann::json effectTable;
                     effectTable["type"] = std::string{desc->Name};
