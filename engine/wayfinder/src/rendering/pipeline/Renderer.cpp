@@ -33,11 +33,11 @@ namespace Wayfinder
             }
             catch (const std::exception& exception)
             {
-                WAYFINDER_WARN(LogRenderer, "Renderer shutdown suppressed exception during destruction: {}", exception.what());
+                Log::Warn(LogRenderer, "Renderer shutdown suppressed exception during destruction: {}", exception.what());
             }
             catch (...)
             {
-                WAYFINDER_WARN(LogRenderer, "Renderer shutdown suppressed unknown exception during destruction.");
+                Log::Warn(LogRenderer, "Renderer shutdown suppressed unknown exception during destruction.");
             }
         }
     }
@@ -55,7 +55,7 @@ namespace Wayfinder
         m_services = std::make_unique<RenderServices>();
         if (auto result = m_services->Initialise(device, config, registry); !result)
         {
-            WAYFINDER_WARN(LogRenderer, "Renderer: Failed to initialise RenderServices -- {}", result.error().GetMessage());
+            Log::Warn(LogRenderer, "Renderer: Failed to initialise RenderServices -- {}", result.error().GetMessage());
             return std::unexpected(result.error());
         }
 
@@ -68,7 +68,7 @@ namespace Wayfinder
 
         m_isInitialised = true;
 
-        WAYFINDER_INFO(LogRenderer, "Renderer initialised ({}x{}, backend: {})", m_screenWidth, m_screenHeight, device.GetDeviceInfo().BackendName);
+        Log::Info(LogRenderer, "Renderer initialised ({}x{}, backend: {})", m_screenWidth, m_screenHeight, device.GetDeviceInfo().BackendName);
 
         return {};
     }

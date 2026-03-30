@@ -95,13 +95,13 @@ namespace Wayfinder
                 }
                 else
                 {
-                    WAYFINDER_WARN(LogRenderer, "RenderResourceCache: SubmeshIndex {} out of range (asset has {} submeshes)", submission.Mesh.SubmeshIndex, gpuAsset->Submeshes.size());
+                    Log::Warn(LogRenderer, "RenderResourceCache: SubmeshIndex {} out of range (asset has {} submeshes)", submission.Mesh.SubmeshIndex, gpuAsset->Submeshes.size());
                     resource.GpuMesh = &m_meshManager->GetFallbackMesh();
                 }
             }
             else
             {
-                WAYFINDER_WARN(LogRenderer, "RenderResourceCache: {}", result.error().GetMessage());
+                Log::Warn(LogRenderer, "RenderResourceCache: {}", result.error().GetMessage());
                 resource.GpuMesh = &m_meshManager->GetFallbackMesh();
             }
         }
@@ -261,7 +261,7 @@ namespace Wayfinder
         {
             if (!consumedSlots.contains(slotName))
             {
-                WAYFINDER_WARN(
+                Log::Warn(
                     LogRenderer, "RenderResourceCache: Material '{}' shader '{}' has no slot '{}' — texture ignored", binding.Ref.AssetId ? binding.Ref.AssetId->ToString() : "<unknown>", binding.ShaderName, slotName);
             }
         }

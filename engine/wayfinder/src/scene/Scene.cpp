@@ -219,7 +219,7 @@ namespace Wayfinder
             return;
         }
 
-        WAYFINDER_INFO(LogScene, "Shutting down scene: {0}", m_name);
+        Log::Info(LogScene, "Shutting down scene: {0}", m_name);
 
         ClearEntities(false);
 
@@ -279,7 +279,7 @@ namespace Wayfinder
         RegisterEntityId(handle, sceneObjectId);
         RegisterEntityName(handle, uniqueName);
 
-        WAYFINDER_INFO(LogScene, "Created entity: {0} (ID: {1})", uniqueName, handle.id());
+        Log::Info(LogScene, "Created entity: {0} (ID: {1})", uniqueName, handle.id());
 
         return Entity{handle, this};
     }
@@ -388,7 +388,7 @@ namespace Wayfinder
                 const auto parentIdIt = createdEntitiesById.find(*definition.ParentId);
                 if (childIt == createdEntitiesById.end() || parentIdIt == createdEntitiesById.end())
                 {
-                    WAYFINDER_WARN(LogScene, "Could not resolve hierarchy link {0} -> {1}", definition.Name, definition.ParentId->ToString());
+                    Log::Warn(LogScene, "Could not resolve hierarchy link {0} -> {1}", definition.Name, definition.ParentId->ToString());
                     continue;
                 }
 
@@ -399,7 +399,7 @@ namespace Wayfinder
             m_sourcePath = sourcePath;
             m_assetRoot = assetRoot;
 
-            WAYFINDER_INFO(LogScene, "Loaded scene data from: {0}", filePathStr);
+            Log::Info(LogScene, "Loaded scene data from: {0}", filePathStr);
 
             // Apply scene settings as a world singleton
             SceneSettings settings;
@@ -411,7 +411,7 @@ namespace Wayfinder
         catch (const std::exception& error)
         {
             rollbackLoad();
-            WAYFINDER_ERROR(LogScene, "Failed to load scene file {0}: {1}", filePathStr, error.what());
+            Log::Error(LogScene, "Failed to load scene file {0}: {1}", filePathStr, error.what());
             return MakeError(std::format("Failed to load scene file: {}", error.what()));
         }
     }
@@ -435,7 +435,7 @@ namespace Wayfinder
                 const Entity entity{entityHandle, this};
                 if (!entity.HasSceneObjectId())
                 {
-                    WAYFINDER_WARN(LogScene, "Skipping scene entity without SceneObjectId during save: {0}", entity.GetName());
+                    Log::Warn(LogScene, "Skipping scene entity without SceneObjectId during save: {0}", entity.GetName());
                     return;
                 }
 
@@ -465,16 +465,16 @@ namespace Wayfinder
             std::string error;
             if (!SaveSceneDocument(document, filePathStr, error))
             {
-                WAYFINDER_ERROR(LogScene, "{0}", error);
+                Log::Error(LogScene, "{0}", error);
                 return MakeError(error);
             }
 
-            WAYFINDER_INFO(LogScene, "Saved scene data to: {0}", filePathStr);
+            Log::Info(LogScene, "Saved scene data to: {0}", filePathStr);
             return {};
         }
         catch (const std::exception& error)
         {
-            WAYFINDER_ERROR(LogScene, "Failed to save scene file {0}: {1}", filePathStr, error.what());
+            Log::Error(LogScene, "Failed to save scene file {0}: {1}", filePathStr, error.what());
             return MakeError(std::format("Failed to save scene file: {}", error.what()));
         }
     }

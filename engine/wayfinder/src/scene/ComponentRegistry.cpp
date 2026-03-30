@@ -945,13 +945,13 @@ namespace Wayfinder
             const Wayfinder::BlendableEffectRegistry* registry = Wayfinder::BlendableEffectRegistry::GetActiveInstance();
             if (registry == nullptr)
             {
-                WAYFINDER_WARN(LogScene, "ReadEffect: BlendableEffectRegistry not active — blendable effect skipped");
+                Log::Warn(LogScene, "ReadEffect: BlendableEffectRegistry not active — blendable effect skipped");
                 return std::nullopt;
             }
 
             if (!effectData.contains("type") || !effectData.at("type").is_string())
             {
-                WAYFINDER_WARN(LogScene, "ReadEffect: missing or non-string \"type\" — skipped");
+                Log::Warn(LogScene, "ReadEffect: missing or non-string \"type\" — skipped");
                 return std::nullopt;
             }
 
@@ -960,7 +960,7 @@ namespace Wayfinder
             const std::optional<Wayfinder::BlendableEffectId> idOpt = registry->FindIdByName(normalised);
             if (!idOpt.has_value())
             {
-                WAYFINDER_WARN(LogScene, "ReadEffect: unknown effect type '{}' — skipped", typeStr);
+                Log::Warn(LogScene, "ReadEffect: unknown effect type '{}' — skipped", typeStr);
                 return std::nullopt;
             }
 
@@ -976,7 +976,7 @@ namespace Wayfinder
             {
                 if (!effectData.at("enabled").is_boolean())
                 {
-                    WAYFINDER_WARN(LogScene, "ReadEffect: \"enabled\" must be a boolean — skipped");
+                    Log::Warn(LogScene, "ReadEffect: \"enabled\" must be a boolean — skipped");
                     return std::nullopt;
                 }
                 effect.Enabled = effectData.at("enabled").get<bool>();

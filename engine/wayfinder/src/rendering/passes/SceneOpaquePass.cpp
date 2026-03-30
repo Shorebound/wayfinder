@@ -154,7 +154,7 @@ namespace Wayfinder
     {
         if (!m_context)
         {
-            WAYFINDER_WARN(LogRenderer, "SceneOpaquePass: no context! Skipped");
+            Log::Warn(LogRenderer, "SceneOpaquePass: no context! Skipped");
             return;
         }
 

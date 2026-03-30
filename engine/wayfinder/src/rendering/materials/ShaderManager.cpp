@@ -14,7 +14,7 @@ namespace Wayfinder
         m_device = &device;
         m_compiler = compiler;
         m_shaderDir = Platform::ResolvePathFromBase(shaderDirectory);
-        WAYFINDER_INFO(LogRenderer, "ShaderManager: initialised with directory '{}'", m_shaderDir);
+        Log::Info(LogRenderer, "ShaderManager: initialised with directory '{}'", m_shaderDir);
     }
 
     void ShaderManager::Shutdown()
@@ -44,7 +44,7 @@ namespace Wayfinder
             }
         }
         m_cache.clear();
-        WAYFINDER_INFO(LogRenderer, "ShaderManager: shader cache invalidated - shaders will recompile on next use");
+        Log::Info(LogRenderer, "ShaderManager: shader cache invalidated - shaders will recompile on next use");
     }
 
     GPUShaderHandle ShaderManager::GetShader(const std::string_view name, ShaderStage stage, const ShaderResourceCounts& resources, ShaderVariantKey variant)
@@ -82,11 +82,11 @@ namespace Wayfinder
         {
             if (slangAttempted)
             {
-                WAYFINDER_ERROR(LogRenderer, "ShaderManager: failed to load '{}' - runtime Slang compilation was attempted but produced no bytecode", filePath);
+                Log::Error(LogRenderer, "ShaderManager: failed to load '{}' - runtime Slang compilation was attempted but produced no bytecode", filePath);
             }
             else
             {
-                WAYFINDER_ERROR(LogRenderer, "ShaderManager: failed to load '{}' - no pre-compiled .spv found", filePath);
+                Log::Error(LogRenderer, "ShaderManager: failed to load '{}' - no pre-compiled .spv found", filePath);
             }
             return GPUShaderHandle::Invalid();
         }
@@ -104,12 +104,12 @@ namespace Wayfinder
         GPUShaderHandle handle = m_device->CreateShader(desc);
         if (!handle)
         {
-            WAYFINDER_ERROR(LogRenderer, "ShaderManager: GPU shader creation failed for '{}'", filePath);
+            Log::Error(LogRenderer, "ShaderManager: GPU shader creation failed for '{}'", filePath);
             return GPUShaderHandle::Invalid();
         }
 
         m_cache[key] = handle;
-        WAYFINDER_INFO(LogRenderer, "ShaderManager: loaded '{}'", filePath);
+        Log::Info(LogRenderer, "ShaderManager: loaded '{}'", filePath);
         return handle;
     }
 
@@ -151,7 +151,7 @@ namespace Wayfinder
 
         if (bytecode.empty())
         {
-            WAYFINDER_ERROR(LogRenderer, "ShaderManager: Failed to load compute shader '{}'", filePath);
+            Log::Error(LogRenderer, "ShaderManager: Failed to load compute shader '{}'", filePath);
         }
         return bytecode;
     }

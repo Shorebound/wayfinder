@@ -27,7 +27,7 @@ namespace Wayfinder
         m_definitions.push_back({.Name = std::string(name), .Comment = std::string(comment), .SourceFile = "(code)"});
         m_index[m_definitions.back().Name] = idx;
 
-        WAYFINDER_INFO(LogEngine, "GameplayTagRegistry: registered tag '{}'{}", name, comment.empty() ? "" : " — " + std::string(comment));
+        Log::Info(LogEngine, "GameplayTagRegistry: registered tag '{}'{}", name, comment.empty() ? "" : " — " + std::string(comment));
 
         return GameplayTag::FromName(name);
     }
@@ -42,7 +42,7 @@ namespace Wayfinder
             const toml::array* tags = data.get_as<toml::array>("tags");
             if (!tags)
             {
-                WAYFINDER_WARN(LogEngine, "Tag file '{}' contains no [[tags]] array", canonical);
+                Log::Warn(LogEngine, "Tag file '{}' contains no [[tags]] array", canonical);
                 return 0;
             }
 
@@ -59,7 +59,7 @@ namespace Wayfinder
                 const auto name = nameNode != nullptr ? nameNode->value<std::string>() : std::optional<std::string>{};
                 if (!name || name->empty())
                 {
-                    WAYFINDER_WARN(LogEngine, "Tag file '{}': skipping entry without 'name'", canonical);
+                    Log::Warn(LogEngine, "Tag file '{}': skipping entry without 'name'", canonical);
                     continue;
                 }
 
@@ -93,12 +93,12 @@ namespace Wayfinder
             }
 
             m_loadedFiles.push_back(canonical);
-            WAYFINDER_INFO(LogEngine, "GameplayTagRegistry: loaded {} tag(s) from '{}'", count, canonical);
+            Log::Info(LogEngine, "GameplayTagRegistry: loaded {} tag(s) from '{}'", count, canonical);
             return count;
         }
         catch (const toml::parse_error& err)
         {
-            WAYFINDER_ERROR(LogEngine, "Failed to parse tag file '{}': {}", canonical, err.description());
+            Log::Error(LogEngine, "Failed to parse tag file '{}': {}", canonical, err.description());
             return -1;
         }
     }
@@ -124,14 +124,14 @@ namespace Wayfinder
         // Remove from loaded file list
         std::erase(m_loadedFiles, canonical);
 
-        WAYFINDER_INFO(LogEngine, "GameplayTagRegistry: unloaded tag file '{}'", canonical);
+        Log::Info(LogEngine, "GameplayTagRegistry: unloaded tag file '{}'", canonical);
     }
 
     GameplayTag GameplayTagRegistry::RequestTag(const std::string_view name) const
     {
         if (!IsRegistered(name))
         {
-            WAYFINDER_WARN(LogEngine,
+            Log::Warn(LogEngine,
                 "GameplayTagRegistry: requested unregistered tag '{}'. "
                 "Register it in a tag file or via PluginRegistry::RegisterTag().",
                 name);

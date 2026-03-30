@@ -117,7 +117,7 @@ namespace Wayfinder
     {
         if (!m_context)
         {
-            WAYFINDER_WARN(LogRenderer, "DebugPass: no context -- skipped");
+            Log::Warn(LogRenderer, "DebugPass: no context -- skipped");
             return;
         }
 

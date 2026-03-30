@@ -38,7 +38,7 @@ namespace Wayfinder
         if (!handle.IsValid() || handle.Index >= m_graph.m_resources.size())
         {
             const auto& pass = CheckedAt(m_graph.m_passes, m_passIndex);
-            WAYFINDER_ERROR(LogRenderer, "RenderGraph pass '{}': ReadTexture — invalid handle (index={}, valid={})", pass.Name.GetString(), handle.Index, handle.IsValid());
+            Log::Error(LogRenderer, "RenderGraph pass '{}': ReadTexture — invalid handle (index={}, valid={})", pass.Name.GetString(), handle.Index, handle.IsValid());
             return;
         }
         auto& pass = CheckedAt(m_graph.m_passes, m_passIndex);
@@ -64,12 +64,12 @@ namespace Wayfinder
         if (!handle.IsValid() || handle.Index >= m_graph.m_resources.size())
         {
             const auto& pass = CheckedAt(m_graph.m_passes, m_passIndex);
-            WAYFINDER_ERROR(LogRenderer, "RenderGraph pass '{}': WriteColour — invalid handle (index={}, valid={})", pass.Name.GetString(), handle.Index, handle.IsValid());
+            Log::Error(LogRenderer, "RenderGraph pass '{}': WriteColour — invalid handle (index={}, valid={})", pass.Name.GetString(), handle.Index, handle.IsValid());
             return;
         }
         if (slot >= MAX_COLOUR_TARGETS)
         {
-            WAYFINDER_ERROR(LogRenderer, "RenderGraphBuilder::WriteColour: slot {} exceeds MAX_COLOUR_TARGETS ({})", slot, MAX_COLOUR_TARGETS);
+            Log::Error(LogRenderer, "RenderGraphBuilder::WriteColour: slot {} exceeds MAX_COLOUR_TARGETS ({})", slot, MAX_COLOUR_TARGETS);
             return;
         }
 
@@ -81,14 +81,14 @@ namespace Wayfinder
         // Reject duplicate slot writes
         if (slot < pass.NumColourWrites && pass.ColourWrites[slot].Handle.IsValid())
         {
-            WAYFINDER_ERROR(LogRenderer, "RenderGraphBuilder::WriteColour: duplicate write to slot {} in pass '{}'", slot, pass.Name.GetString());
+            Log::Error(LogRenderer, "RenderGraphBuilder::WriteColour: duplicate write to slot {} in pass '{}'", slot, pass.Name.GetString());
             return;
         }
 
         // Reject sparse slots — all slots must be contiguous from 0
         if (slot > pass.NumColourWrites)
         {
-            WAYFINDER_ERROR(LogRenderer, "RenderGraphBuilder::WriteColour: slot {} would create a gap (current count: {}) in pass '{}'", slot, pass.NumColourWrites, pass.Name.GetString());
+            Log::Error(LogRenderer, "RenderGraphBuilder::WriteColour: slot {} would create a gap (current count: {}) in pass '{}'", slot, pass.NumColourWrites, pass.Name.GetString());
             return;
         }
 
@@ -97,7 +97,7 @@ namespace Wayfinder
         {
             if (i != slot && pass.ColourWrites[i].Handle == handle)
             {
-                WAYFINDER_ERROR(LogRenderer, "RenderGraphBuilder::WriteColour: texture already bound to slot {} — cannot also bind to slot {} in pass '{}'", i, slot, pass.Name.GetString());
+                Log::Error(LogRenderer, "RenderGraphBuilder::WriteColour: texture already bound to slot {} — cannot also bind to slot {} in pass '{}'", i, slot, pass.Name.GetString());
                 return;
             }
         }
@@ -124,7 +124,7 @@ namespace Wayfinder
         if (!handle.IsValid() || handle.Index >= m_graph.m_resources.size())
         {
             const auto& pass = CheckedAt(m_graph.m_passes, m_passIndex);
-            WAYFINDER_ERROR(LogRenderer, "RenderGraph pass '{}': WriteDepth — invalid handle (index={}, valid={})", pass.Name.GetString(), handle.Index, handle.IsValid());
+            Log::Error(LogRenderer, "RenderGraph pass '{}': WriteDepth — invalid handle (index={}, valid={})", pass.Name.GetString(), handle.Index, handle.IsValid());
             return;
         }
         auto& pass = CheckedAt(m_graph.m_passes, m_passIndex);
@@ -158,7 +158,7 @@ namespace Wayfinder
     {
         if (!handle.IsValid() || handle.Index >= m_textures.size())
         {
-            WAYFINDER_VERBOSE(LogRenderer, "RenderGraphResources::GetTexture: invalid handle (index={}, valid={}, count={})", handle.Index, handle.IsValid(), m_textures.size());
+            Log::Verbose(LogRenderer, "RenderGraphResources::GetTexture: invalid handle (index={}, valid={}, count={})", handle.Index, handle.IsValid(), m_textures.size());
             return GPUTextureHandle::Invalid();
         }
         return CheckedAt(m_textures, handle.Index);
@@ -235,7 +235,7 @@ namespace Wayfinder
         RenderGraphHandle h = FindHandle(name);
         if (!h.IsValid())
         {
-            WAYFINDER_ERROR(LogRenderer, "RenderGraph: FindHandleChecked missing resource '{}'", name);
+            Log::Error(LogRenderer, "RenderGraph: FindHandleChecked missing resource '{}'", name);
             assert(false && "RenderGraph: FindHandleChecked missing resource");
         }
         return h;
@@ -246,7 +246,7 @@ namespace Wayfinder
         RenderGraphHandle h = FindHandle(id);
         if (!h.IsValid())
         {
-            WAYFINDER_ERROR(LogRenderer, "RenderGraph: FindHandleChecked missing resource '{}'", GraphTextureIntern(id).GetString());
+            Log::Error(LogRenderer, "RenderGraph: FindHandleChecked missing resource '{}'", GraphTextureIntern(id).GetString());
             assert(false && "RenderGraph: FindHandleChecked missing resource");
         }
         return h;
@@ -270,13 +270,13 @@ namespace Wayfinder
         }
         if (swapchainWriteCount == 0)
         {
-            WAYFINDER_ERROR(LogRenderer, "RenderGraph::Compile: no pass writes to the swapchain — graph is invalid");
+            Log::Error(LogRenderer, "RenderGraph::Compile: no pass writes to the swapchain — graph is invalid");
             return false;
         }
 #if !defined(NDEBUG)
         if (swapchainWriteCount > 1)
         {
-            WAYFINDER_WARN(LogRenderer, "RenderGraph::Compile: {} passes write to the swapchain — expected exactly one in typical pipelines", swapchainWriteCount);
+            Log::Warn(LogRenderer, "RenderGraph::Compile: {} passes write to the swapchain — expected exactly one in typical pipelines", swapchainWriteCount);
         }
 #endif
 
@@ -344,7 +344,7 @@ namespace Wayfinder
 
         if (m_executionOrder.size() != passCount)
         {
-            WAYFINDER_ERROR(LogRenderer, "RenderGraph: Cycle detected — {} of {} passes sorted", m_executionOrder.size(), passCount);
+            Log::Error(LogRenderer, "RenderGraph: Cycle detected — {} of {} passes sorted", m_executionOrder.size(), passCount);
             return false;
         }
 
@@ -403,21 +403,21 @@ namespace Wayfinder
             {
                 if (pass.NumColourWrites == 0 && !pass.DepthWrite.has_value())
                 {
-                    WAYFINDER_WARN(LogRenderer, "RenderGraph: pass '{}' declared RASTER_SCENE_GEOMETRY but has no colour or depth attachment", pass.Name.GetString());
+                    Log::Warn(LogRenderer, "RenderGraph: pass '{}' declared RASTER_SCENE_GEOMETRY but has no colour or depth attachment", pass.Name.GetString());
                 }
             }
             if ((caps & RenderCapabilities::RASTER_OVERLAY_OR_DEBUG) != 0)
             {
                 if (pass.NumColourWrites == 0)
                 {
-                    WAYFINDER_WARN(LogRenderer, "RenderGraph: pass '{}' declared RASTER_OVERLAY_OR_DEBUG but has no colour attachment", pass.Name.GetString());
+                    Log::Warn(LogRenderer, "RenderGraph: pass '{}' declared RASTER_OVERLAY_OR_DEBUG but has no colour attachment", pass.Name.GetString());
                 }
             }
             if ((caps & RenderCapabilities::FULLSCREEN_COMPOSITE) != 0)
             {
                 if (!pass.SwapchainWrite.has_value())
                 {
-                    WAYFINDER_WARN(LogRenderer, "RenderGraph: pass '{}' declared FULLSCREEN_COMPOSITE but does not set swapchain output", pass.Name.GetString());
+                    Log::Warn(LogRenderer, "RenderGraph: pass '{}' declared FULLSCREEN_COMPOSITE but does not set swapchain output", pass.Name.GetString());
                 }
             }
         }
@@ -449,7 +449,7 @@ namespace Wayfinder
                         orderLine += " (culled)";
                     }
                 }
-                WAYFINDER_VERBOSE(LogRenderer, "RenderGraph compile order: {}", orderLine);
+                Log::Verbose(LogRenderer, "RenderGraph compile order: {}", orderLine);
             }
         }
 #endif
@@ -523,7 +523,7 @@ namespace Wayfinder
 
                 if (pass.SwapchainWrite && pass.NumColourWrites > 0)
                 {
-                    WAYFINDER_ERROR(LogRenderer, "RenderGraph: pass '{}' has both SwapchainWrite and {} ColourWrites — these are mutually exclusive, skipping pass", pass.Name.GetString(), pass.NumColourWrites);
+                    Log::Error(LogRenderer, "RenderGraph: pass '{}' has both SwapchainWrite and {} ColourWrites — these are mutually exclusive, skipping pass", pass.Name.GetString(), pass.NumColourWrites);
                     continue;
                 }
 
@@ -568,7 +568,7 @@ namespace Wayfinder
 
                 if (!device.BeginRenderPass(rpDesc))
                 {
-                    WAYFINDER_WARN(LogRenderer, "RenderGraph: BeginRenderPass failed for pass '{}' — pass skipped", pass.Name.GetString());
+                    Log::Warn(LogRenderer, "RenderGraph: BeginRenderPass failed for pass '{}' — pass skipped", pass.Name.GetString());
                     continue;
                 }
                 pass.Execute(device, resources);

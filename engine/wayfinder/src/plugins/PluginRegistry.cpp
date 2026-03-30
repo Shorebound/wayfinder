@@ -14,7 +14,7 @@ namespace Wayfinder::Plugins
     {
         if (!plugin)
         {
-            WAYFINDER_ERROR(LogEngine, "PluginRegistry: AddPlugin received null plugin");
+            Log::Error(LogEngine, "PluginRegistry: AddPlugin received null plugin");
             return;
         }
         m_plugins.push_back(std::move(plugin));
@@ -44,7 +44,7 @@ namespace Wayfinder::Plugins
 
     void PluginRegistry::RegisterComponent(ComponentDescriptor descriptor)
     {
-        WAYFINDER_INFO(LogEngine, "PluginRegistry: registered component '{}'", descriptor.Key);
+        Log::Info(LogEngine, "PluginRegistry: registered component '{}'", descriptor.Key);
         m_components.push_back(std::move(descriptor));
     }
 
@@ -52,11 +52,11 @@ namespace Wayfinder::Plugins
     {
         if (!factory)
         {
-            WAYFINDER_ERROR(LogEngine, "PluginRegistry: empty factory for global '{}' — registration rejected", name);
+            Log::Error(LogEngine, "PluginRegistry: empty factory for global '{}' — registration rejected", name);
             return;
         }
 
-        WAYFINDER_INFO(LogEngine, "PluginRegistry: registered global '{}'", name);
+        Log::Info(LogEngine, "PluginRegistry: registered global '{}'", name);
         m_globals.push_back({.Name = std::move(name), .Factory = std::move(factory)});
     }
 

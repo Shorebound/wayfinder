@@ -29,7 +29,7 @@ namespace Wayfinder
     {
         if (!m_device)
         {
-            WAYFINDER_ERROR(LogRenderer, "TransientResourcePool::Acquire called before Initialise");
+            Log::Error(LogRenderer, "TransientResourcePool::Acquire called before Initialise");
             return GPUTextureHandle::Invalid();
         }
 

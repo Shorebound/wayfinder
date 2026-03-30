@@ -533,7 +533,7 @@ namespace Wayfinder::Physics
             });
         }, {}, {"PhysicsStep"});
 
-        WAYFINDER_INFO(LogPhysics, "PhysicsPlugin registered");
+        Log::Info(LogPhysics, "PhysicsPlugin registered");
     }
 
 } // namespace Wayfinder::Physics

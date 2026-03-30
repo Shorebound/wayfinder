@@ -194,7 +194,7 @@ namespace Wayfinder
         mesh.Bounds = parsed.Header.Bounds;
         mesh.Submeshes = std::move(parsed.Submeshes);
 
-        WAYFINDER_INFO(LogAssets, "Loaded mesh '{}' ({} submeshes) from '{}'", mesh.Name, mesh.Submeshes.size(), binaryPath.generic_string());
+        Log::Info(LogAssets, "Loaded mesh '{}' ({} submeshes) from '{}'", mesh.Name, mesh.Submeshes.size(), binaryPath.generic_string());
 
         return mesh;
     }
