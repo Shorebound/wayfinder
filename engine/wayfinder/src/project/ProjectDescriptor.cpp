@@ -32,7 +32,7 @@ namespace Wayfinder
             const bool pathExists = std::filesystem::exists(path, ec);
             if (ec || !pathExists)
             {
-                WAYFINDER_ERROR(LogEngine, "Project file not found: {}", path.string());
+                Log::Error(LogEngine, "Project file not found: {}", path.string());
                 return MakeError("Project file not found");
             }
         }
@@ -42,7 +42,7 @@ namespace Wayfinder
             const auto canonicalPath = std::filesystem::weakly_canonical(path, ec);
             if (ec)
             {
-                WAYFINDER_ERROR(LogEngine, "Failed to resolve project root for {}: {}", path.string(), ec.message());
+                Log::Error(LogEngine, "Failed to resolve project root for {}: {}", path.string(), ec.message());
                 return MakeError("Failed to resolve project root");
             }
             output.Descriptor.ProjectRoot = canonicalPath.parent_path();
@@ -89,13 +89,13 @@ namespace Wayfinder
                 }
             }
 
-            WAYFINDER_INFO(LogEngine, "Loaded project '{}' v{} from: {}", output.Descriptor.Name, output.Descriptor.Version, path.string());
+            Log::Info(LogEngine, "Loaded project '{}' v{} from: {}", output.Descriptor.Name, output.Descriptor.Version, path.string());
         }
         // NOLINTEND(cppcoreguidelines-pro-bounds-avoid-unchecked-container-access)
 
         catch (const toml::parse_error& err)
         {
-            WAYFINDER_ERROR(LogEngine, "Failed to parse project file {}: {}", path.string(), err.what());
+            Log::Error(LogEngine, "Failed to parse project file {}: {}", path.string(), err.what());
             return MakeError("Failed to parse project file");
         }
 

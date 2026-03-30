@@ -12,19 +12,19 @@ namespace Wayfinder::Rendering
     {
         if (frame.Views.empty())
         {
-            WAYFINDER_WARN(LogRenderer, "PrepareFrame: frame '{}' has no views -- skipped", frame.SceneName);
+            Log::Warn(LogRenderer, "PrepareFrame: frame '{}' has no views -- skipped", frame.SceneName);
             return false;
         }
 
         if (frame.Layers.empty())
         {
-            WAYFINDER_WARN(LogRenderer, "PrepareFrame: frame '{}' has no layers -- skipped", frame.SceneName);
+            Log::Warn(LogRenderer, "PrepareFrame: frame '{}' has no layers -- skipped", frame.SceneName);
             return false;
         }
 
         if (swapchainWidth == 0 || swapchainHeight == 0)
         {
-            WAYFINDER_WARN(LogRenderer, "PrepareFrame: swapchain extent is zero -- skipping frame '{}'", frame.SceneName);
+            Log::Warn(LogRenderer, "PrepareFrame: swapchain extent is zero -- skipping frame '{}'", frame.SceneName);
             return false;
         }
 
@@ -59,7 +59,7 @@ namespace Wayfinder::Rendering
 
             if (layer.ViewIndex >= frame.Views.size())
             {
-                WAYFINDER_WARN(LogRenderer, "PrepareFrame: layer '{}' references invalid view index {}", layer.Id, layer.ViewIndex);
+                Log::Warn(LogRenderer, "PrepareFrame: layer '{}' references invalid view index {}", layer.Id, layer.ViewIndex);
                 layer.Enabled = false;
                 continue;
             }

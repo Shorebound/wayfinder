@@ -13,7 +13,7 @@ namespace Wayfinder::Plugins
     {
         if (!factory)
         {
-            WAYFINDER_ERROR(LogEngine, "SystemRegistrar: empty factory for system '{}' — registration rejected", name);
+            Log::Error(LogEngine, "SystemRegistrar: empty factory for system '{}' — registration rejected", name);
             return;
         }
 
@@ -21,12 +21,12 @@ namespace Wayfinder::Plugins
         {
             if (existing.Name == name)
             {
-                WAYFINDER_ERROR(LogEngine, "SystemRegistrar: duplicate system name '{}' — registration rejected", name);
+                Log::Error(LogEngine, "SystemRegistrar: duplicate system name '{}' — registration rejected", name);
                 return;
             }
         }
 
-        WAYFINDER_INFO(LogEngine, "SystemRegistrar: registered system '{}'{}", name, condition ? " (conditioned)" : "");
+        Log::Info(LogEngine, "SystemRegistrar: registered system '{}'{}", name, condition ? " (conditioned)" : "");
         m_descriptors.push_back({.Name = std::move(name), .Factory = std::move(factory), .Condition = std::move(condition), .After = std::move(after), .Before = std::move(before)});
     }
 
@@ -60,7 +60,7 @@ namespace Wayfinder::Plugins
                 }
                 else
                 {
-                    WAYFINDER_WARN(LogEngine,
+                    Log::Warn(LogEngine,
                         "SystemRegistrar: system '{}' declares After '{}' but no such "
                         "system is registered; ignoring ordering constraint.",
                         descriptor.Name, dep);
@@ -77,7 +77,7 @@ namespace Wayfinder::Plugins
                 }
                 else
                 {
-                    WAYFINDER_WARN(LogEngine,
+                    Log::Warn(LogEngine,
                         "SystemRegistrar: system '{}' declares Before '{}' but no such "
                         "system is registered; ignoring ordering constraint.",
                         descriptor.Name, dep);
@@ -128,7 +128,7 @@ namespace Wayfinder::Plugins
                 }
             }
 
-            WAYFINDER_ERROR(LogEngine,
+            Log::Error(LogEngine,
                 "SystemRegistrar: cycle detected in system ordering constraints! "
                 "Cyclic systems skipped: {}. Initialising {} non-cyclic system(s) in topological order.",
                 cycleMembers, sorted.size());

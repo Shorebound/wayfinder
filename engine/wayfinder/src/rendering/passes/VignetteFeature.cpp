@@ -60,7 +60,7 @@ namespace Wayfinder
         m_effectId = registry.Register<VignetteParams>("vignette");
         if (m_effectId == INVALID_BLENDABLE_EFFECT_ID)
         {
-            WAYFINDER_ERROR(LogRenderer, "VignetteFeature: failed to register vignette blendable type");
+            Log::Error(LogRenderer, "VignetteFeature: failed to register vignette blendable type");
         }
     }
 
@@ -122,7 +122,7 @@ namespace Wayfinder
                 const auto inTex = resources.GetTexture(inputHandle);
                 if (!prog || !prog->Pipeline.IsValid() || !inTex || !nearest)
                 {
-                    WAYFINDER_ERROR(LogRenderer, "Vignette: missing program, pipeline, input, or sampler — skipped");
+                    Log::Error(LogRenderer, "Vignette: missing program, pipeline, input, or sampler — skipped");
                     return;
                 }
 

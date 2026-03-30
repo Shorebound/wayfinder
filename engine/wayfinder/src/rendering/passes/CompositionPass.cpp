@@ -48,7 +48,7 @@ namespace Wayfinder
     {
         if (!m_context)
         {
-            WAYFINDER_WARN(LogRenderer, "CompositionPass: no context — skipped");
+            Log::Warn(LogRenderer, "CompositionPass: no context — skipped");
             return;
         }
 
@@ -70,7 +70,7 @@ namespace Wayfinder
                 const auto nearestSampler = m_context->GetNearestSampler();
                 if (!compProgram || !compProgram->Pipeline.IsValid() || !sceneColourTex || !nearestSampler)
                 {
-                    WAYFINDER_ERROR(LogRenderer, "Composition: missing program, pipeline, colour input, or sampler — skipped");
+                    Log::Error(LogRenderer, "Composition: missing program, pipeline, colour input, or sampler — skipped");
                     return;
                 }
 

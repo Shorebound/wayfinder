@@ -76,7 +76,7 @@ namespace Wayfinder
         m_effectId = registry.Register<ColourGradingParams>("colour_grading");
         if (m_effectId == INVALID_BLENDABLE_EFFECT_ID)
         {
-            WAYFINDER_ERROR(LogRenderer, "ColourGradingFeature: failed to register colour_grading blendable type");
+            Log::Error(LogRenderer, "ColourGradingFeature: failed to register colour_grading blendable type");
         }
     }
 
@@ -130,7 +130,7 @@ namespace Wayfinder
                 const auto inTex = resources.GetTexture(inputHandle);
                 if (!prog || !prog->Pipeline.IsValid() || !inTex || !nearest)
                 {
-                    WAYFINDER_ERROR(LogRenderer, "ColourGrading: missing program, pipeline, input, or sampler — skipped");
+                    Log::Error(LogRenderer, "ColourGrading: missing program, pipeline, input, or sampler — skipped");
                     return;
                 }
 

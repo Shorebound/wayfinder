@@ -57,7 +57,7 @@ namespace Wayfinder
         m_effectId = registry.Register<ChromaticAberrationParams>("chromatic_aberration");
         if (m_effectId == INVALID_BLENDABLE_EFFECT_ID)
         {
-            WAYFINDER_ERROR(LogRenderer, "ChromaticAberrationFeature: failed to register chromatic_aberration blendable type");
+            Log::Error(LogRenderer, "ChromaticAberrationFeature: failed to register chromatic_aberration blendable type");
         }
     }
 
@@ -110,7 +110,7 @@ namespace Wayfinder
                 const auto inTex = resources.GetTexture(inputHandle);
                 if (!prog || !prog->Pipeline.IsValid() || !inTex || !nearest)
                 {
-                    WAYFINDER_ERROR(LogRenderer, "ChromaticAberration: missing program, pipeline, input, or sampler — skipped");
+                    Log::Error(LogRenderer, "ChromaticAberration: missing program, pipeline, input, or sampler — skipped");
                     return;
                 }
 

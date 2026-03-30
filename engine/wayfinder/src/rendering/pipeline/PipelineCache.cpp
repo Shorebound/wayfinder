@@ -53,7 +53,7 @@ namespace Wayfinder
         if (handle.IsValid())
         {
             m_cache[hash] = handle;
-            WAYFINDER_INFO(LogRenderer, "PipelineCache: Cached new pipeline (hash={:#x}, total={})", hash, m_cache.size());
+            Log::Info(LogRenderer, "PipelineCache: Cached new pipeline (hash={:#x}, total={})", hash, m_cache.size());
         }
 
         return handle;
@@ -119,13 +119,13 @@ namespace Wayfinder
         const GPUShaderHandle fs = shaders.GetShader(desc.FragmentShaderName, ShaderStage::Fragment, desc.FragmentResources);
         if (!vs || !fs)
         {
-            WAYFINDER_ERROR(LogRenderer, "PipelineCache: Failed to resolve shaders '{}' / '{}'", desc.VertexShaderName, desc.FragmentShaderName);
+            Log::Error(LogRenderer, "PipelineCache: Failed to resolve shaders '{}' / '{}'", desc.VertexShaderName, desc.FragmentShaderName);
             return GPUPipelineHandle::Invalid();
         }
 
         if (desc.ColourTargets == 0 || desc.ColourTargets > MAX_COLOUR_TARGETS)
         {
-            WAYFINDER_ERROR(LogRenderer, "PipelineCache: numColourTargets={} is out of range [1, {}]", desc.ColourTargets, MAX_COLOUR_TARGETS);
+            Log::Error(LogRenderer, "PipelineCache: numColourTargets={} is out of range [1, {}]", desc.ColourTargets, MAX_COLOUR_TARGETS);
             return GPUPipelineHandle::Invalid();
         }
 

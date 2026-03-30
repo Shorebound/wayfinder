@@ -9,12 +9,12 @@ namespace Wayfinder::Plugins
         {
             if (existing.Name == descriptor.Name)
             {
-                WAYFINDER_ERROR(LogEngine, "StateRegistrar: duplicate state name '{}' — registration rejected", descriptor.Name);
+                Log::Error(LogEngine, "StateRegistrar: duplicate state name '{}' — registration rejected", descriptor.Name);
                 return;
             }
         }
 
-        WAYFINDER_INFO(LogEngine, "StateRegistrar: registered state '{}'", descriptor.Name);
+        Log::Info(LogEngine, "StateRegistrar: registered state '{}'", descriptor.Name);
         m_descriptors.push_back(std::move(descriptor));
     }
 
@@ -29,7 +29,7 @@ namespace Wayfinder::Plugins
             }
         }
 
-        WAYFINDER_ERROR(LogEngine, "StateRegistrar: SetInitial '{}' — state not registered; ignoring", stateName);
+        Log::Error(LogEngine, "StateRegistrar: SetInitial '{}' — state not registered; ignoring", stateName);
     }
 
 } // namespace Wayfinder::Plugins

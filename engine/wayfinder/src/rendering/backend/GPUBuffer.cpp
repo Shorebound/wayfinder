@@ -36,7 +36,7 @@ namespace Wayfinder
         m_handle = device.CreateBuffer(desc);
         if (!m_handle)
         {
-            WAYFINDER_ERROR(LogRenderer, "GPUBuffer: Failed to create buffer ({} bytes)", sizeInBytes);
+            Log::Error(LogRenderer, "GPUBuffer: Failed to create buffer ({} bytes)", sizeInBytes);
             return false;
         }
 

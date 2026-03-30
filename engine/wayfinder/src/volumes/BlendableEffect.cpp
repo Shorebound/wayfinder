@@ -113,8 +113,8 @@ namespace Wayfinder
 
         const BlendableEffectDesc* desc = registry.Find(id);
         // NOLINTBEGIN(readability-simplify-boolean-expr)
-        WAYFINDER_ASSERT(desc != nullptr);
-        WAYFINDER_ASSERT(desc->CreateIdentity != nullptr);
+        WAYFINDER_ASSERT(desc != nullptr, "BlendableEffectDesc not found in registry");
+        WAYFINDER_ASSERT(desc->CreateIdentity != nullptr, "BlendableEffectDesc has no CreateIdentity function");
         // NOLINTEND(readability-simplify-boolean-expr)
 
         BlendableEffect effect{};
