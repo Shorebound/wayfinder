@@ -1,8 +1,10 @@
 #include "Log.h"
+#include "core/TransparentStringHash.h"
 #include "core/logging/spdlog/SpdLogManager.h"
 #include "core/logging/spdlog/SpdLogOutput.h"
 
 #include <cstdint>
+#include <functional>
 #include <memory>
 #include <string>
 #include <unordered_map>
@@ -11,7 +13,7 @@ namespace Wayfinder
 {
     namespace
     {
-        using LoggerMap = std::unordered_map<std::string, std::shared_ptr<ILogger>>;
+        using LoggerMap = std::unordered_map<std::string, std::shared_ptr<ILogger>, TransparentStringHash, std::equal_to<>>;
 
         LoggerMap& GetLoggers()
         {
@@ -102,17 +104,17 @@ namespace Wayfinder
     ILogger& Log::GetOrCreateLogger(std::string_view name, LogVerbosity defaultVerbosity)
     {
         auto& loggers = GetLoggers();
-        const std::string key{name};
 
-        if (const auto it = loggers.find(key); it != loggers.end())
+        if (const auto it = loggers.find(name); it != loggers.end())
         {
             return *it->second;
         }
 
+        const std::string key{name};
         auto logger = CreateLogger(key, defaultVerbosity);
         RebuildOutputs(*logger, GetConfigStorage());
         auto* raw = logger.get();
-        loggers.emplace(key, std::move(logger));
+        loggers.emplace(std::move(key), std::move(logger));
         return *raw;
     }
 
