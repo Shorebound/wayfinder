@@ -130,11 +130,13 @@ namespace
                 {
                     if (health.CurrentHealth < health.MaxHealth)
                     {
-                        health.CurrentHealth += 0.1f;
-                        if (health.CurrentHealth > health.MaxHealth)
-                        {
-                            health.CurrentHealth = health.MaxHealth;
-                        }
+                        // health.CurrentHealth += 0.1f;
+                        // if (health.CurrentHealth > health.MaxHealth)
+                        // {
+                        //     health.CurrentHealth = health.MaxHealth;
+                        // }
+
+                        health.CurrentHealth = std::min(health.CurrentHealth + 0.1f, health.MaxHealth);
                     }
                 });
             }, Wayfinder::InState("Playing"), {"BurnDamage"});
@@ -170,11 +172,13 @@ namespace
                 {
                     if (health.CurrentHealth > 0.0f)
                     {
-                        health.CurrentHealth -= 0.5f;
-                        if (health.CurrentHealth < 0.0f)
-                        {
-                            health.CurrentHealth = 0.0f;
-                        }
+                        // health.CurrentHealth -= 0.5f;
+                        // if (health.CurrentHealth < 0.0f)
+                        // {
+                        //     health.CurrentHealth = 0.0f;
+                        // }
+
+                        health.CurrentHealth = std::max(health.CurrentHealth - 0.5f, 0.0f);
                     }
                 });
             }, Wayfinder::HasTag(burning));

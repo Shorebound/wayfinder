@@ -112,7 +112,7 @@ namespace Wayfinder
         }
 
         const LogVerbosity verbosity = GetGlobalVerbosity() != LogVerbosity::Info ? GetGlobalVerbosity() : defaultVerbosity;
-        const std::string key{name};
+        std::string key{name};
         auto logger = CreateLogger(key, verbosity);
         RebuildOutputs(*logger, GetConfigStorage());
         auto* raw = logger.get();

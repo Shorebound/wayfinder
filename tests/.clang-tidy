@@ -2,14 +2,16 @@
 InheritParentConfig: true
 Checks: >
   -bugprone-exception-escape,
-  -bugprone-use-after-move
+  -bugprone-use-after-move,
   -bugprone-unchecked-optional-access,
+  -bugprone-unused-return-value,
   -cppcoreguidelines-avoid-const-or-ref-data-members,
   -cppcoreguidelines-avoid-magic-numbers,
   -cppcoreguidelines-pro-type-union-access,
   -cppcoreguidelines-pro-bounds-avoid-unchecked-array-index,
   -cppcoreguidelines-pro-bounds-avoid-unchecked-container-access,
   -cppcoreguidelines-pro-bounds-pointer-arithmetic,
+  -cppcoreguidelines-special-member-functions,
   -misc-use-internal-linkage,
   -misc-use-anonymous-namespace,
   -misc-const-correctness,

@@ -13,45 +13,45 @@ namespace Wayfinder
         {
             const float h = size * 0.5f;
 
-            constexpr Float3 normalFront = {0.0f, 0.0f, 1.0f};
-            constexpr Float3 normalBack = {0.0f, 0.0f, -1.0f};
-            constexpr Float3 normalTop = {0.0f, 1.0f, 0.0f};
-            constexpr Float3 normalBottom = {0.0f, -1.0f, 0.0f};
-            constexpr Float3 normalRight = {1.0f, 0.0f, 0.0f};
-            constexpr Float3 normalLeft = {-1.0f, 0.0f, 0.0f};
+            constexpr Float3 NORMAL_FRONT = {0.0f, 0.0f, 1.0f};
+            constexpr Float3 NORMAL_BACK = {0.0f, 0.0f, -1.0f};
+            constexpr Float3 NORMAL_TOP = {0.0f, 1.0f, 0.0f};
+            constexpr Float3 NORMAL_BOTTOM = {0.0f, -1.0f, 0.0f};
+            constexpr Float3 NORMAL_RIGHT = {1.0f, 0.0f, 0.0f};
+            constexpr Float3 NORMAL_LEFT = {-1.0f, 0.0f, 0.0f};
 
-            constexpr Float3 colourFront = {0.9f, 0.2f, 0.2f};
-            constexpr Float3 colourBack = {0.2f, 0.8f, 0.2f};
-            constexpr Float3 colourTop = {0.2f, 0.4f, 0.9f};
-            constexpr Float3 colourBottom = {0.9f, 0.9f, 0.2f};
-            constexpr Float3 colourRight = {0.9f, 0.2f, 0.9f};
-            constexpr Float3 colourLeft = {0.2f, 0.9f, 0.9f};
+            constexpr Float3 COLOUR_FRONT = {0.9f, 0.2f, 0.2f};
+            constexpr Float3 COLOUR_BACK = {0.2f, 0.8f, 0.2f};
+            constexpr Float3 COLOUR_TOP = {0.2f, 0.4f, 0.9f};
+            constexpr Float3 COLOUR_BOTTOM = {0.9f, 0.9f, 0.2f};
+            constexpr Float3 COLOUR_RIGHT = {0.9f, 0.2f, 0.9f};
+            constexpr Float3 COLOUR_LEFT = {0.2f, 0.9f, 0.9f};
 
             const std::array<VertexPositionNormalColour, 24> vertices = {{
-                {.Position = {-h, -h, h}, .Normal = normalFront, .Colour = colourFront},
-                {.Position = {h, -h, h}, .Normal = normalFront, .Colour = colourFront},
-                {.Position = {h, h, h}, .Normal = normalFront, .Colour = colourFront},
-                {.Position = {-h, h, h}, .Normal = normalFront, .Colour = colourFront},
-                {.Position = {h, -h, -h}, .Normal = normalBack, .Colour = colourBack},
-                {.Position = {-h, -h, -h}, .Normal = normalBack, .Colour = colourBack},
-                {.Position = {-h, h, -h}, .Normal = normalBack, .Colour = colourBack},
-                {.Position = {h, h, -h}, .Normal = normalBack, .Colour = colourBack},
-                {.Position = {-h, h, h}, .Normal = normalTop, .Colour = colourTop},
-                {.Position = {h, h, h}, .Normal = normalTop, .Colour = colourTop},
-                {.Position = {h, h, -h}, .Normal = normalTop, .Colour = colourTop},
-                {.Position = {-h, h, -h}, .Normal = normalTop, .Colour = colourTop},
-                {.Position = {-h, -h, -h}, .Normal = normalBottom, .Colour = colourBottom},
-                {.Position = {h, -h, -h}, .Normal = normalBottom, .Colour = colourBottom},
-                {.Position = {h, -h, h}, .Normal = normalBottom, .Colour = colourBottom},
-                {.Position = {-h, -h, h}, .Normal = normalBottom, .Colour = colourBottom},
-                {.Position = {h, -h, h}, .Normal = normalRight, .Colour = colourRight},
-                {.Position = {h, -h, -h}, .Normal = normalRight, .Colour = colourRight},
-                {.Position = {h, h, -h}, .Normal = normalRight, .Colour = colourRight},
-                {.Position = {h, h, h}, .Normal = normalRight, .Colour = colourRight},
-                {.Position = {-h, -h, -h}, .Normal = normalLeft, .Colour = colourLeft},
-                {.Position = {-h, -h, h}, .Normal = normalLeft, .Colour = colourLeft},
-                {.Position = {-h, h, h}, .Normal = normalLeft, .Colour = colourLeft},
-                {.Position = {-h, h, -h}, .Normal = normalLeft, .Colour = colourLeft},
+                {.Position = {-h, -h, h}, .Normal = NORMAL_FRONT, .Colour = COLOUR_FRONT},
+                {.Position = {h, -h, h}, .Normal = NORMAL_FRONT, .Colour = COLOUR_FRONT},
+                {.Position = {h, h, h}, .Normal = NORMAL_FRONT, .Colour = COLOUR_FRONT},
+                {.Position = {-h, h, h}, .Normal = NORMAL_FRONT, .Colour = COLOUR_FRONT},
+                {.Position = {h, -h, -h}, .Normal = NORMAL_BACK, .Colour = COLOUR_BACK},
+                {.Position = {-h, -h, -h}, .Normal = NORMAL_BACK, .Colour = COLOUR_BACK},
+                {.Position = {-h, h, -h}, .Normal = NORMAL_BACK, .Colour = COLOUR_BACK},
+                {.Position = {h, h, -h}, .Normal = NORMAL_BACK, .Colour = COLOUR_BACK},
+                {.Position = {-h, h, h}, .Normal = NORMAL_TOP, .Colour = COLOUR_TOP},
+                {.Position = {h, h, h}, .Normal = NORMAL_TOP, .Colour = COLOUR_TOP},
+                {.Position = {h, h, -h}, .Normal = NORMAL_TOP, .Colour = COLOUR_TOP},
+                {.Position = {-h, h, -h}, .Normal = NORMAL_TOP, .Colour = COLOUR_TOP},
+                {.Position = {-h, -h, -h}, .Normal = NORMAL_BOTTOM, .Colour = COLOUR_BOTTOM},
+                {.Position = {h, -h, -h}, .Normal = NORMAL_BOTTOM, .Colour = COLOUR_BOTTOM},
+                {.Position = {h, -h, h}, .Normal = NORMAL_BOTTOM, .Colour = COLOUR_BOTTOM},
+                {.Position = {-h, -h, h}, .Normal = NORMAL_BOTTOM, .Colour = COLOUR_BOTTOM},
+                {.Position = {h, -h, h}, .Normal = NORMAL_RIGHT, .Colour = COLOUR_RIGHT},
+                {.Position = {h, -h, -h}, .Normal = NORMAL_RIGHT, .Colour = COLOUR_RIGHT},
+                {.Position = {h, h, -h}, .Normal = NORMAL_RIGHT, .Colour = COLOUR_RIGHT},
+                {.Position = {h, h, h}, .Normal = NORMAL_RIGHT, .Colour = COLOUR_RIGHT},
+                {.Position = {-h, -h, -h}, .Normal = NORMAL_LEFT, .Colour = COLOUR_LEFT},
+                {.Position = {-h, -h, h}, .Normal = NORMAL_LEFT, .Colour = COLOUR_LEFT},
+                {.Position = {-h, h, h}, .Normal = NORMAL_LEFT, .Colour = COLOUR_LEFT},
+                {.Position = {-h, h, -h}, .Normal = NORMAL_LEFT, .Colour = COLOUR_LEFT},
             }};
 
             const std::array<uint16_t, 36> indices = {{
@@ -126,12 +126,12 @@ namespace Wayfinder
         {
             const float h = size * 0.5f;
 
-            constexpr Float3 normalFront = {0.0f, 0.0f, 1.0f};
-            constexpr Float3 normalBack = {0.0f, 0.0f, -1.0f};
-            constexpr Float3 normalTop = {0.0f, 1.0f, 0.0f};
-            constexpr Float3 normalBottom = {0.0f, -1.0f, 0.0f};
-            constexpr Float3 normalRight = {1.0f, 0.0f, 0.0f};
-            constexpr Float3 normalLeft = {-1.0f, 0.0f, 0.0f};
+            constexpr Float3 NORMAL_FRONT = {0.0f, 0.0f, 1.0f};
+            constexpr Float3 NORMAL_BACK = {0.0f, 0.0f, -1.0f};
+            constexpr Float3 NORMAL_TOP = {0.0f, 1.0f, 0.0f};
+            constexpr Float3 NORMAL_BOTTOM = {0.0f, -1.0f, 0.0f};
+            constexpr Float3 NORMAL_RIGHT = {1.0f, 0.0f, 0.0f};
+            constexpr Float3 NORMAL_LEFT = {-1.0f, 0.0f, 0.0f};
 
             constexpr Float2 UV00 = {0.0f, 1.0f};
             constexpr Float2 UV10 = {1.0f, 1.0f};
@@ -139,30 +139,30 @@ namespace Wayfinder
             constexpr Float2 UV01 = {0.0f, 0.0f};
 
             const std::array<VertexPositionNormalUVTangent, 24> vertices = {{
-                {.Position = {-h, -h, h}, .Normal = normalFront, .UV = UV00, .Tangent = ApproxTangentForNormal(normalFront)},
-                {.Position = {h, -h, h}, .Normal = normalFront, .UV = UV10, .Tangent = ApproxTangentForNormal(normalFront)},
-                {.Position = {h, h, h}, .Normal = normalFront, .UV = UV11, .Tangent = ApproxTangentForNormal(normalFront)},
-                {.Position = {-h, h, h}, .Normal = normalFront, .UV = UV01, .Tangent = ApproxTangentForNormal(normalFront)},
-                {.Position = {h, -h, -h}, .Normal = normalBack, .UV = UV00, .Tangent = ApproxTangentForNormal(normalBack)},
-                {.Position = {-h, -h, -h}, .Normal = normalBack, .UV = UV10, .Tangent = ApproxTangentForNormal(normalBack)},
-                {.Position = {-h, h, -h}, .Normal = normalBack, .UV = UV11, .Tangent = ApproxTangentForNormal(normalBack)},
-                {.Position = {h, h, -h}, .Normal = normalBack, .UV = UV01, .Tangent = ApproxTangentForNormal(normalBack)},
-                {.Position = {-h, h, h}, .Normal = normalTop, .UV = UV00, .Tangent = ApproxTangentForNormal(normalTop)},
-                {.Position = {h, h, h}, .Normal = normalTop, .UV = UV10, .Tangent = ApproxTangentForNormal(normalTop)},
-                {.Position = {h, h, -h}, .Normal = normalTop, .UV = UV11, .Tangent = ApproxTangentForNormal(normalTop)},
-                {.Position = {-h, h, -h}, .Normal = normalTop, .UV = UV01, .Tangent = ApproxTangentForNormal(normalTop)},
-                {.Position = {-h, -h, -h}, .Normal = normalBottom, .UV = UV00, .Tangent = ApproxTangentForNormal(normalBottom)},
-                {.Position = {h, -h, -h}, .Normal = normalBottom, .UV = UV10, .Tangent = ApproxTangentForNormal(normalBottom)},
-                {.Position = {h, -h, h}, .Normal = normalBottom, .UV = UV11, .Tangent = ApproxTangentForNormal(normalBottom)},
-                {.Position = {-h, -h, h}, .Normal = normalBottom, .UV = UV01, .Tangent = ApproxTangentForNormal(normalBottom)},
-                {.Position = {h, -h, h}, .Normal = normalRight, .UV = UV00, .Tangent = ApproxTangentForNormal(normalRight)},
-                {.Position = {h, -h, -h}, .Normal = normalRight, .UV = UV10, .Tangent = ApproxTangentForNormal(normalRight)},
-                {.Position = {h, h, -h}, .Normal = normalRight, .UV = UV11, .Tangent = ApproxTangentForNormal(normalRight)},
-                {.Position = {h, h, h}, .Normal = normalRight, .UV = UV01, .Tangent = ApproxTangentForNormal(normalRight)},
-                {.Position = {-h, -h, -h}, .Normal = normalLeft, .UV = UV00, .Tangent = ApproxTangentForNormal(normalLeft)},
-                {.Position = {-h, -h, h}, .Normal = normalLeft, .UV = UV10, .Tangent = ApproxTangentForNormal(normalLeft)},
-                {.Position = {-h, h, h}, .Normal = normalLeft, .UV = UV11, .Tangent = ApproxTangentForNormal(normalLeft)},
-                {.Position = {-h, h, -h}, .Normal = normalLeft, .UV = UV01, .Tangent = ApproxTangentForNormal(normalLeft)},
+                {.Position = {-h, -h, h}, .Normal = NORMAL_FRONT, .UV = UV00, .Tangent = ApproxTangentForNormal(NORMAL_FRONT)},
+                {.Position = {h, -h, h}, .Normal = NORMAL_FRONT, .UV = UV10, .Tangent = ApproxTangentForNormal(NORMAL_FRONT)},
+                {.Position = {h, h, h}, .Normal = NORMAL_FRONT, .UV = UV11, .Tangent = ApproxTangentForNormal(NORMAL_FRONT)},
+                {.Position = {-h, h, h}, .Normal = NORMAL_FRONT, .UV = UV01, .Tangent = ApproxTangentForNormal(NORMAL_FRONT)},
+                {.Position = {h, -h, -h}, .Normal = NORMAL_BACK, .UV = UV00, .Tangent = ApproxTangentForNormal(NORMAL_BACK)},
+                {.Position = {-h, -h, -h}, .Normal = NORMAL_BACK, .UV = UV10, .Tangent = ApproxTangentForNormal(NORMAL_BACK)},
+                {.Position = {-h, h, -h}, .Normal = NORMAL_BACK, .UV = UV11, .Tangent = ApproxTangentForNormal(NORMAL_BACK)},
+                {.Position = {h, h, -h}, .Normal = NORMAL_BACK, .UV = UV01, .Tangent = ApproxTangentForNormal(NORMAL_BACK)},
+                {.Position = {-h, h, h}, .Normal = NORMAL_TOP, .UV = UV00, .Tangent = ApproxTangentForNormal(NORMAL_TOP)},
+                {.Position = {h, h, h}, .Normal = NORMAL_TOP, .UV = UV10, .Tangent = ApproxTangentForNormal(NORMAL_TOP)},
+                {.Position = {h, h, -h}, .Normal = NORMAL_TOP, .UV = UV11, .Tangent = ApproxTangentForNormal(NORMAL_TOP)},
+                {.Position = {-h, h, -h}, .Normal = NORMAL_TOP, .UV = UV01, .Tangent = ApproxTangentForNormal(NORMAL_TOP)},
+                {.Position = {-h, -h, -h}, .Normal = NORMAL_BOTTOM, .UV = UV00, .Tangent = ApproxTangentForNormal(NORMAL_BOTTOM)},
+                {.Position = {h, -h, -h}, .Normal = NORMAL_BOTTOM, .UV = UV10, .Tangent = ApproxTangentForNormal(NORMAL_BOTTOM)},
+                {.Position = {h, -h, h}, .Normal = NORMAL_BOTTOM, .UV = UV11, .Tangent = ApproxTangentForNormal(NORMAL_BOTTOM)},
+                {.Position = {-h, -h, h}, .Normal = NORMAL_BOTTOM, .UV = UV01, .Tangent = ApproxTangentForNormal(NORMAL_BOTTOM)},
+                {.Position = {h, -h, h}, .Normal = NORMAL_RIGHT, .UV = UV00, .Tangent = ApproxTangentForNormal(NORMAL_RIGHT)},
+                {.Position = {h, -h, -h}, .Normal = NORMAL_RIGHT, .UV = UV10, .Tangent = ApproxTangentForNormal(NORMAL_RIGHT)},
+                {.Position = {h, h, -h}, .Normal = NORMAL_RIGHT, .UV = UV11, .Tangent = ApproxTangentForNormal(NORMAL_RIGHT)},
+                {.Position = {h, h, h}, .Normal = NORMAL_RIGHT, .UV = UV01, .Tangent = ApproxTangentForNormal(NORMAL_RIGHT)},
+                {.Position = {-h, -h, -h}, .Normal = NORMAL_LEFT, .UV = UV00, .Tangent = ApproxTangentForNormal(NORMAL_LEFT)},
+                {.Position = {-h, -h, h}, .Normal = NORMAL_LEFT, .UV = UV10, .Tangent = ApproxTangentForNormal(NORMAL_LEFT)},
+                {.Position = {-h, h, h}, .Normal = NORMAL_LEFT, .UV = UV11, .Tangent = ApproxTangentForNormal(NORMAL_LEFT)},
+                {.Position = {-h, h, -h}, .Normal = NORMAL_LEFT, .UV = UV01, .Tangent = ApproxTangentForNormal(NORMAL_LEFT)},
             }};
 
             const std::array<uint16_t, 36> indices = {{

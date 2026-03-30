@@ -106,7 +106,8 @@ namespace Wayfinder
 
     std::pair<float, float> SDL3Input::GetMousePosition() const
     {
-        float x = 0.0f, y = 0.0f;
+        float x = 0.0f;
+        float y = 0.0f;
         SDL_GetMouseState(&x, &y);
         return {x, y};
     }

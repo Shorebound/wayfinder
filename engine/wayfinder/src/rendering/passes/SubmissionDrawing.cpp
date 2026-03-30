@@ -20,16 +20,16 @@ namespace Wayfinder
         /// Returns std::nullopt if the shader handles cannot be resolved.
         std::optional<PipelineCreateDesc> MakeWireframeVariant(const ShaderProgramDesc& desc, ShaderManager& shaders)
         {
-            const GPUShaderHandle vs = shaders.GetShader(desc.VertexShaderName, ShaderStage::Vertex, desc.VertexResources);
-            const GPUShaderHandle fs = shaders.GetShader(desc.FragmentShaderName, ShaderStage::Fragment, desc.FragmentResources);
-            if (!vs || !fs)
+            const GPUShaderHandle vertexShader = shaders.GetShader(desc.VertexShaderName, ShaderStage::Vertex, desc.VertexResources);
+            const GPUShaderHandle fragmentShader = shaders.GetShader(desc.FragmentShaderName, ShaderStage::Fragment, desc.FragmentResources);
+            if (!vertexShader || !fragmentShader)
             {
                 return std::nullopt;
             }
 
             PipelineCreateDesc pipeDesc{};
-            pipeDesc.VertexShader = vs;
-            pipeDesc.FragmentShader = fs;
+            pipeDesc.VertexShader = vertexShader;
+            pipeDesc.FragmentShader = fragmentShader;
             pipeDesc.VertexLayout = desc.VertexLayout;
             pipeDesc.PrimitiveType = PrimitiveType::TriangleList; // Wireframe always uses triangles
             pipeDesc.CullMode = desc.Cull;
@@ -41,7 +41,7 @@ namespace Wayfinder
         }
     } // namespace
 
-    void DrawSubmission(SubmissionDrawState& state, const RenderMeshSubmission& submission, const Matrix4& passView, const Matrix4& passProj, const SceneGlobalsUBO& sceneGlobals)
+    void DrawSubmission(SubmissionDrawState& state, const RenderMeshSubmission& submission, const Matrix4& viewMatrix, const Matrix4& projectionMatrix, const SceneGlobalsUBO& sceneGlobals)
     {
         auto& device = state.Device;
         auto& registry = state.Programs;
@@ -57,18 +57,18 @@ namespace Wayfinder
 
         const RenderFillMode fillMode = submission.Material.StateOverrides.FillMode.value_or(RenderFillMode::Solid);
 
-        auto pushUniforms = [&]()
+        auto pushUniforms = [&]
         {
             if (program->Desc.NeedsSceneGlobals)
             {
                 TransformUBO transformUBO{};
-                transformUBO.Mvp = passProj * passView * submission.LocalToWorld;
+                transformUBO.Mvp = projectionMatrix * viewMatrix * submission.LocalToWorld;
                 transformUBO.Model = submission.LocalToWorld;
                 device.PushVertexUniform(0, &transformUBO, sizeof(TransformUBO));
             }
             else
             {
-                UnlitTransformUBO transformUBO{passProj * passView * submission.LocalToWorld};
+                UnlitTransformUBO transformUBO{projectionMatrix * viewMatrix * submission.LocalToWorld};
                 device.PushVertexUniform(0, &transformUBO, sizeof(UnlitTransformUBO));
             }
 
@@ -142,8 +142,7 @@ namespace Wayfinder
 
         if (fillMode == RenderFillMode::Solid || fillMode == RenderFillMode::SolidAndWireframe)
         {
-            const Mesh* meshPtr = resolveMesh();
-
+            const auto* meshPtr = resolveMesh();
             if (!meshPtr || !meshPtr->IsValid())
             {
                 return;
@@ -163,15 +162,12 @@ namespace Wayfinder
 
         if (fillMode == RenderFillMode::Wireframe || fillMode == RenderFillMode::SolidAndWireframe)
         {
-            const auto wireframeDesc = MakeWireframeVariant(program->Desc, shaderManager);
-            if (wireframeDesc)
+            if (const auto wireframeDesc = MakeWireframeVariant(program->Desc, shaderManager))
             {
                 const GPUPipelineHandle wireframePipeline = pipelineCache.GetOrCreate(*wireframeDesc);
                 if (wireframePipeline.IsValid())
                 {
-                    const Mesh* wireMeshPtr = resolveMesh();
-
-                    if (wireMeshPtr && wireMeshPtr->IsValid())
+                    if (const auto* wireMeshPtr = resolveMesh(); wireMeshPtr && wireMeshPtr->IsValid())
                     {
                         device.BindPipeline(wireframePipeline);
                         wireMeshPtr->Bind(device);
