@@ -27,18 +27,18 @@ namespace Wayfinder::Rendering
         ResolvedViewForLayer r;
         const auto& primary = params.PrimaryView;
         r.View = primary.ViewMatrix;
-        r.Proj = primary.ProjectionMatrix;
+        r.ProjectionMatrix = primary.ProjectionMatrix;
 
         if (viewIndex < params.Frame.Views.size() && params.Frame.Views[viewIndex].Prepared)
         {
             const auto& pv = params.Frame.Views[viewIndex];
             r.View = pv.ViewMatrix;
-            r.Proj = pv.ProjectionMatrix;
-            r.Ok = true;
+            r.ProjectionMatrix = pv.ProjectionMatrix;
+            r.IsValid = true;
             return r;
         }
 
-        r.Ok = primary.Valid;
+        r.IsValid = primary.Valid;
         return r;
     }
 

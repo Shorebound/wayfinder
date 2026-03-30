@@ -42,8 +42,8 @@ namespace Wayfinder
 
         struct InitDesc
         {
-            std::string_view sourceDirectory;
-            std::span<const std::string> searchPaths = {};
+            std::string_view SourceDirectory;
+            std::span<const std::string> SearchPaths = {};
         };
 
         Result<void> Initialise(const InitDesc& desc);

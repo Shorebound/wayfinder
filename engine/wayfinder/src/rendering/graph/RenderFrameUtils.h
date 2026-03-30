@@ -30,8 +30,8 @@ namespace Wayfinder::Rendering
     struct ResolvedViewForLayer
     {
         Matrix4 View = Matrix4(1.0f);
-        Matrix4 Proj = Matrix4(1.0f);
-        bool Ok = false;
+        Matrix4 ProjectionMatrix = Matrix4(1.0f);
+        bool IsValid = false;
     };
 
     /**

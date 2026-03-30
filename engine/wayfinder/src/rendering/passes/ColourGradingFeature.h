@@ -8,7 +8,10 @@ namespace Wayfinder
     class RenderServices;
 
     /**
-     * @brief Tonemapping and colour grading (lift/gamma/gain, contrast, saturation). Self-registers blendable type and shader in OnAttach.
+     * @brief Tonemapping and colour grading (lift/gamma/gain, contrast, saturation).
+     *
+     * Shader programs are exposed via GetShaderPrograms() and effect/blendable
+     * registration happens in OnRegisterEffects().
      */
     class ColourGradingFeature final : public RenderFeature
     {

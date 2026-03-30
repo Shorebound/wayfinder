@@ -12,7 +12,7 @@ namespace Wayfinder
     {
         m_device = &device;
         m_compiler = compiler;
-        m_shaderDir = ResolvePathFromBase(shaderDirectory);
+        m_shaderDir = Platform::ResolvePathFromBase(shaderDirectory);
         WAYFINDER_INFO(LogRenderer, "ShaderManager: initialised with directory '{}'", m_shaderDir);
     }
 
@@ -63,22 +63,31 @@ namespace Wayfinder
         std::vector<uint8_t> bytecode = ReadFile(filePath);
 
         // Fallback: runtime Slang compilation when .spv is not found
+        bool slangAttempted = false;
 #if !defined(WAYFINDER_SHIPPING)
         if (bytecode.empty() && m_compiler && m_compiler->IsInitialised())
         {
+            slangAttempted = true;
             const char* entryPoint = (stage == ShaderStage::Vertex) ? "VSMain" : "PSMain";
             auto compileResult = m_compiler->Compile(name, entryPoint, stage);
             if (compileResult)
             {
                 bytecode = std::move(compileResult->Bytecode);
             }
-            // Error already logged by SlangCompiler
+            // Diagnostic details already logged by SlangCompiler
         }
 #endif
 
         if (bytecode.empty())
         {
-            WAYFINDER_ERROR(LogRenderer, "ShaderManager: failed to load '{}'", filePath);
+            if (slangAttempted)
+            {
+                WAYFINDER_ERROR(LogRenderer, "ShaderManager: failed to load '{}' - runtime Slang compilation was attempted but produced no bytecode", filePath);
+            }
+            else
+            {
+                WAYFINDER_ERROR(LogRenderer, "ShaderManager: failed to load '{}' - no pre-compiled .spv found", filePath);
+            }
             return GPUShaderHandle::Invalid();
         }
 

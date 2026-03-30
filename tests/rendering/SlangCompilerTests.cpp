@@ -22,7 +22,7 @@ namespace Wayfinder::Tests
             SlangCompiler compiler;
             const auto dir = ShaderFixturesDirStr();
             SlangCompiler::InitDesc desc;
-            desc.sourceDirectory = dir;
+            desc.SourceDirectory = dir;
 
             auto result = compiler.Initialise(desc);
             CHECK(result.has_value());
@@ -33,7 +33,7 @@ namespace Wayfinder::Tests
         {
             SlangCompiler compiler;
             SlangCompiler::InitDesc desc;
-            desc.sourceDirectory = "Z:/nonexistent/path/that/does/not/exist";
+            desc.SourceDirectory = "Z:/nonexistent/path/that/does/not/exist";
 
             auto result = compiler.Initialise(desc);
             CHECK_FALSE(result.has_value());
@@ -45,7 +45,7 @@ namespace Wayfinder::Tests
             SlangCompiler compiler;
             const auto dir = ShaderFixturesDirStr();
             SlangCompiler::InitDesc desc;
-            desc.sourceDirectory = dir;
+            desc.SourceDirectory = dir;
 
             REQUIRE(compiler.Initialise(desc).has_value());
             auto second = compiler.Initialise(desc);
@@ -64,7 +64,7 @@ namespace Wayfinder::Tests
             SlangCompiler compiler;
             const auto dir = ShaderFixturesDirStr();
             SlangCompiler::InitDesc desc;
-            desc.sourceDirectory = dir;
+            desc.SourceDirectory = dir;
             REQUIRE(compiler.Initialise(desc).has_value());
 
             auto result = compiler.Compile("simple", "VSMain", ShaderStage::Vertex);
@@ -82,7 +82,7 @@ namespace Wayfinder::Tests
             SlangCompiler compiler;
             const auto dir = ShaderFixturesDirStr();
             SlangCompiler::InitDesc desc;
-            desc.sourceDirectory = dir;
+            desc.SourceDirectory = dir;
             REQUIRE(compiler.Initialise(desc).has_value());
 
             auto result = compiler.Compile("simple", "PSMain", ShaderStage::Fragment);
@@ -99,7 +99,7 @@ namespace Wayfinder::Tests
             SlangCompiler compiler;
             const auto dir = ShaderFixturesDirStr();
             SlangCompiler::InitDesc desc;
-            desc.sourceDirectory = dir;
+            desc.SourceDirectory = dir;
             REQUIRE(compiler.Initialise(desc).has_value());
 
             auto result = compiler.Compile("this_shader_does_not_exist", "VSMain", ShaderStage::Vertex);
@@ -111,7 +111,7 @@ namespace Wayfinder::Tests
             SlangCompiler compiler;
             const auto dir = ShaderFixturesDirStr();
             SlangCompiler::InitDesc desc;
-            desc.sourceDirectory = dir;
+            desc.SourceDirectory = dir;
             REQUIRE(compiler.Initialise(desc).has_value());
 
             auto result = compiler.Compile("invalid_syntax", "VSMain", ShaderStage::Vertex);
@@ -123,7 +123,7 @@ namespace Wayfinder::Tests
             SlangCompiler compiler;
             const auto dir = ShaderFixturesDirStr();
             SlangCompiler::InitDesc desc;
-            desc.sourceDirectory = dir;
+            desc.SourceDirectory = dir;
             REQUIRE(compiler.Initialise(desc).has_value());
 
             auto result = compiler.Compile("simple", "NoSuchEntryPoint", ShaderStage::Vertex);
@@ -135,7 +135,7 @@ namespace Wayfinder::Tests
             SlangCompiler compiler;
             const auto dir = ShaderFixturesDirStr();
             SlangCompiler::InitDesc desc;
-            desc.sourceDirectory = dir;
+            desc.SourceDirectory = dir;
             REQUIRE(compiler.Initialise(desc).has_value());
 
             auto result = compiler.Compile("with_import", "VSMain", ShaderStage::Vertex);
@@ -152,7 +152,7 @@ namespace Wayfinder::Tests
             SlangCompiler compiler;
             const auto dir = ShaderFixturesDirStr();
             SlangCompiler::InitDesc desc;
-            desc.sourceDirectory = dir;
+            desc.SourceDirectory = dir;
             REQUIRE(compiler.Initialise(desc).has_value());
 
             auto vertex = compiler.Compile("simple", "VSMain", ShaderStage::Vertex);
@@ -172,7 +172,7 @@ namespace Wayfinder::Tests
             SlangCompiler compiler;
             const auto dir = ShaderFixturesDirStr();
             SlangCompiler::InitDesc desc;
-            desc.sourceDirectory = dir;
+            desc.SourceDirectory = dir;
 
             REQUIRE(compiler.Initialise(desc).has_value());
             CHECK(compiler.IsInitialised());

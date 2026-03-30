@@ -70,11 +70,20 @@ namespace Wayfinder
         uint32_t attribCount = 0;
     };
 
-    /// Returns true when two layouts describe the same vertex format
-    /// (same stride, count, and per-attribute location/offset/format).
+    /**
+     * @brief Compares two vertex layouts for equivalence.
+     * @param a First layout to compare.
+     * @param b Second layout to compare.
+     * @return True when both layouts describe the same vertex format
+     *         (same stride, count, and per-attribute location/offset/format).
+     */
     inline bool VertexLayoutsMatch(const VertexLayout& a, const VertexLayout& b)
     {
         if (a.stride != b.stride || a.attribCount != b.attribCount)
+        {
+            return false;
+        }
+        if (a.attribCount > 0 && (a.attribs == nullptr || b.attribs == nullptr))
         {
             return false;
         }

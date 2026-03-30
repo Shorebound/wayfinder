@@ -6,7 +6,7 @@
 #include <string>
 #include <string_view>
 
-namespace Wayfinder
+namespace Wayfinder::Platform
 {
     /// Resolves a path relative to the executable's base directory.
     /// Absolute paths are returned unchanged. Relative paths are joined with
@@ -26,4 +26,4 @@ namespace Wayfinder
         return std::string(path);
     }
 
-} // namespace Wayfinder
+} // namespace Wayfinder::Platform

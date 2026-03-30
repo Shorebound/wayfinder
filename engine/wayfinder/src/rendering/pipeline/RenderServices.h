@@ -169,6 +169,10 @@ namespace Wayfinder
         Mesh m_primitiveMesh;
         Mesh m_texturedPrimitiveMesh;
         BuiltInMeshTable m_builtInMeshPtrs{};
+
+        /// Set when ReloadShaders is called without an orchestrator.
+        /// The next call with a valid orchestrator will complete the rebuild.
+        bool m_shadersInvalidated = false;
     };
 
 } // namespace Wayfinder

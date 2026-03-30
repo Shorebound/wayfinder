@@ -24,8 +24,8 @@ namespace Wayfinder
             m_slangCompiler = std::make_unique<SlangCompiler>();
 
             SlangCompiler::InitDesc compilerDesc;
-            const std::string resolvedSourceDir = ResolvePathFromBase(config.Shaders.SourceDirectory);
-            compilerDesc.sourceDirectory = resolvedSourceDir;
+            const std::string resolvedSourceDir = Platform::ResolvePathFromBase(config.Shaders.SourceDirectory);
+            compilerDesc.SourceDirectory = resolvedSourceDir;
 
             auto compilerResult = m_slangCompiler->Initialise(compilerDesc);
             if (compilerResult)
@@ -136,14 +136,19 @@ namespace Wayfinder
             }
         }
 
-        m_pipelineCache.InvalidateAll();
-        m_programRegistry.InvalidateAll();
-        m_shaderManager.ReloadShaders();
-        WAYFINDER_INFO(LogRenderer, "RenderServices: all shaders and pipelines invalidated");
-
         if (orchestrator)
         {
+            m_pipelineCache.InvalidateAll();
+            m_programRegistry.InvalidateAll();
+            m_shaderManager.ReloadShaders();
+            WAYFINDER_INFO(LogRenderer, "RenderServices: all shaders and pipelines invalidated");
             orchestrator->RebuildPipelines();
+            m_shadersInvalidated = false;
+        }
+        else
+        {
+            m_shadersInvalidated = true;
+            WAYFINDER_WARN(LogRenderer, "RenderServices::ReloadShaders: no orchestrator provided - deferring pipeline rebuild");
         }
     }
 

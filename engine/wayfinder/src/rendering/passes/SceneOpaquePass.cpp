@@ -209,14 +209,14 @@ namespace Wayfinder
                     }
 
                     const auto resolved = Rendering::ResolveViewForLayer(params, layer.ViewIndex);
-                    if (!resolved.Ok)
+                    if (!resolved.IsValid)
                     {
                         continue;
                     }
 
                     for (const auto& submission : layer.Meshes)
                     {
-                        DrawSubmission(state, submission, resolved.View, resolved.Proj, sceneGlobals);
+                        DrawSubmission(state, submission, resolved.View, resolved.ProjectionMatrix, sceneGlobals);
                     }
                 }
             };

@@ -33,11 +33,16 @@ namespace Wayfinder
             return MakeError("SlangCompiler already initialised");
         }
 
-        m_sourceDirectory = std::string(desc.sourceDirectory);
-        m_searchPaths.assign(desc.searchPaths.begin(), desc.searchPaths.end());
+        m_sourceDirectory = std::string(desc.SourceDirectory);
+        m_searchPaths.assign(desc.SearchPaths.begin(), desc.SearchPaths.end());
 
-        if (!std::filesystem::exists(m_sourceDirectory))
+        std::error_code ec;
+        if (!std::filesystem::exists(m_sourceDirectory, ec))
         {
+            if (ec)
+            {
+                return MakeError(std::format("Cannot inspect Slang source directory '{}': {}", m_sourceDirectory, ec.message()));
+            }
             return MakeError(std::format("Slang source directory does not exist: {}", m_sourceDirectory));
         }
 
@@ -70,10 +75,10 @@ namespace Wayfinder
 
         // Build search paths: source directory first, then any additional paths
         std::vector<const char*> searchPathPtrs;
-        searchPathPtrs.reserve(1 + desc.searchPaths.size());
+        searchPathPtrs.reserve(1 + desc.SearchPaths.size());
         searchPathPtrs.push_back(m_sourceDirectory.c_str());
         // Pin additional path strings so pointers remain valid during session creation
-        const std::vector<std::string> searchPathStorage(desc.searchPaths.begin(), desc.searchPaths.end());
+        const std::vector<std::string> searchPathStorage(desc.SearchPaths.begin(), desc.SearchPaths.end());
         for (const auto& path : searchPathStorage)
         {
             searchPathPtrs.push_back(path.c_str());
@@ -115,9 +120,7 @@ namespace Wayfinder
             return MakeError("SlangCompiler not initialised");
         }
 
-        // Destroy the old session (releases cached modules) and create a fresh one.
-        m_impl->Session = nullptr;
-
+        // Build a fresh session into a temporary so the original survives on failure.
         slang::TargetDesc targetDesc = {};
         targetDesc.format = SLANG_SPIRV;
         targetDesc.profile = m_impl->GlobalSession->findProfile("spirv_1_5");
@@ -144,11 +147,14 @@ namespace Wayfinder
         sessionDesc.searchPaths = searchPathPtrs.data();
         sessionDesc.searchPathCount = static_cast<SlangInt>(searchPathPtrs.size());
 
-        const SlangResult result = m_impl->GlobalSession->createSession(sessionDesc, m_impl->Session.writeRef());
+        Slang::ComPtr<slang::ISession> newSession;
+        const SlangResult result = m_impl->GlobalSession->createSession(sessionDesc, newSession.writeRef());
         if (SLANG_FAILED(result))
         {
             return MakeError("Failed to recreate Slang compilation session");
         }
+
+        m_impl->Session = std::move(newSession);
 
         WAYFINDER_INFO(LogRenderer, "SlangCompiler: session reset (module cache cleared)");
         return {};

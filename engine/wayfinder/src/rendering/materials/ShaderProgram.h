@@ -124,8 +124,27 @@ namespace Wayfinder
 
         std::unordered_map<std::string, ShaderProgram, TransparentStringHash, std::equal_to<>> m_programs;
 
-        /// Variant pipelines keyed by (program name hash, PrimitiveType).
-        std::unordered_map<size_t, GPUPipelineHandle> m_variantPipelines;
+        /// Key for variant pipelines: (program name, PrimitiveType).
+        struct VariantKey
+        {
+            std::string Name;
+            PrimitiveType Topology = PrimitiveType::TriangleList;
+
+            bool operator==(const VariantKey&) const = default;
+        };
+
+        struct VariantKeyHash
+        {
+            size_t operator()(const VariantKey& k) const
+            {
+                size_t h = std::hash<std::string>{}(k.Name);
+                h ^= std::hash<int>{}(static_cast<int>(k.Topology)) + 0x9e3779b9 + (h << 6) + (h >> 2);
+                return h;
+            }
+        };
+
+        /// Variant pipelines keyed by (program name, PrimitiveType).
+        std::unordered_map<VariantKey, GPUPipelineHandle, VariantKeyHash> m_variantPipelines;
     };
 
 } // namespace Wayfinder

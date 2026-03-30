@@ -31,6 +31,7 @@ function(wayfinder_compile_shaders)
     # Compile .slang modules to .slang-module IR binaries so program
     # compilation skips re-parsing module source on every invocation.
     set(MODULE_CACHE_DIR "${CMAKE_CURRENT_BINARY_DIR}/precompiled_modules")
+    file(REMOVE_RECURSE "${MODULE_CACHE_DIR}")
     file(MAKE_DIRECTORY "${MODULE_CACHE_DIR}/modules")
 
     set(_PRECOMPILED_MODULES "")

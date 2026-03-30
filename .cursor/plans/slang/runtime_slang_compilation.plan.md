@@ -21,9 +21,7 @@ After the existing SDK download logic, add an `IMPORTED SHARED` library target `
 
 ### Step 1.2: Link `Slang::slang` to the engine target in `engine/wayfinder/CMakeLists.txt`
 
-Add `Slang::slang` to the engine's `target_link_libraries(wayfinder PUBLIC ...)`. Public because `SlangCompiler` types appear in the `ShaderManager` header (via forward declaration only - actual `slang.h` include stays in `.cpp` files).
-
-Actually - prefer `PRIVATE` linkage. Forward-declare the Slang COM pointer wrapper in the header using an opaque type, and only `#include <slang.h>` in `.cpp` files. This avoids leaking Slang headers to all engine consumers.
+Add `Slang::slang` to `target_link_libraries(wayfinder PRIVATE Slang::slang)`. The Slang COM pointer wrapper type used by `SlangCompiler` is forward-declared as an opaque type in the header (via pimpl), and `#include <slang.h>` is confined to `.cpp` files. This avoids leaking Slang headers to engine consumers.
 
 ### Step 1.3: Auto-copy `slang.dll` to output directory
 
@@ -50,7 +48,7 @@ New class in `Wayfinder` namespace. Responsible for:
 
 **Public interface:**
 
-```
+```cpp
 class SlangCompiler
 {
 public:
@@ -114,7 +112,7 @@ Implementation using the Slang C++ API. The compilation flow per call to `Compil
 
 **Session configuration at init time:**
 
-```
+```cpp
 slang::SessionDesc sessionDesc = {};
 slang::TargetDesc targetDesc = {};
 targetDesc.format = SLANG_SPIRV;
@@ -152,7 +150,7 @@ sessionDesc.searchPathCount = ...;
 
 Extend `ShaderConfig` in `engine/wayfinder/src/app/EngineConfig.h`:
 
-```
+```cpp
 struct ShaderConfig
 {
     std::string Directory = "assets/shaders";          // Compiled .spv files
@@ -175,7 +173,7 @@ The source directory points to the engine's shader source tree. For development,
 
 Add a `SlangCompiler*` member (nullable, non-owning) to `ShaderManager`. Modify `Initialise()`:
 
-```
+```cpp
 void Initialise(RenderDevice& device, std::string_view shaderDirectory, SlangCompiler* compiler = nullptr);
 ```
 
@@ -209,7 +207,7 @@ This means the fallback code is completely compiled out of Shipping builds - zer
 
 ### Step 3.4: Add `ReloadShaders()` to `ShaderManager`
 
-```
+```cpp
 void ReloadShaders();
 ```
 
@@ -222,7 +220,7 @@ This does NOT immediately recompile. The next call to `GetShader()` will trigger
 
 **Note:** Callers must also invalidate and recreate any GPU pipelines that reference the old shader handles. This means `ShaderProgramRegistry` and `PipelineCache` need their own invalidation. Add:
 
-```
+```cpp
 // In ShaderProgramRegistry:
 void InvalidateAll();   // Destroys all pipeline handles, clears registry
 
@@ -234,7 +232,7 @@ void InvalidateAll();   // Destroys all cached pipelines, clears cache
 
 Orchestrates the full invalidation chain:
 
-```
+```cpp
 void RenderServices::ReloadShaders()
 {
     m_pipelineCache.InvalidateAll();
@@ -284,13 +282,13 @@ In `RenderServices::Initialise()`, after existing setup:
 if (!config.Shaders.SourceDirectory.empty())
 {
     SlangCompiler::InitDesc compilerDesc;
-    compilerDesc.sourceDirectory = ResolveShaderDirectory(config.Shaders.SourceDirectory);
-    compilerDesc.searchPaths = {}; // Source dir already serves as search root
+    compilerDesc.SourceDirectory = ResolveShaderDirectory(config.Shaders.SourceDirectory);
+    compilerDesc.SearchPaths = {}; // Source dir already serves as search root
 
     auto compilerResult = m_slangCompiler.Initialise(compilerDesc);
     if (compilerResult)
     {
-        WAYFINDER_INFO(LogRenderer, "Slang runtime compiler initialised - source: {}", compilerDesc.sourceDirectory);
+        WAYFINDER_INFO(LogRenderer, "Slang runtime compiler initialised - source: {}", compilerDesc.SourceDirectory);
     }
     else
     {

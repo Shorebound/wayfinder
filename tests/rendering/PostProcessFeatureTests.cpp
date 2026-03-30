@@ -33,7 +33,7 @@ namespace Wayfinder::Tests
         }
     } // namespace
 
-    TEST_CASE("ChromaticAberrationFeature OnAttach registers blendable type and shader program name")
+    TEST_CASE("chromatic aberration registers as blendable effect on attach")
     {
         auto device = RenderDevice::Create(RenderBackend::Null);
         REQUIRE(device);
@@ -53,7 +53,7 @@ namespace Wayfinder::Tests
         services.Shutdown();
     }
 
-    TEST_CASE("VignetteFeature OnAttach registers blendable type and shader program name")
+    TEST_CASE("vignette registers as blendable effect on attach")
     {
         auto device = RenderDevice::Create(RenderBackend::Null);
         REQUIRE(device);
@@ -73,7 +73,7 @@ namespace Wayfinder::Tests
         services.Shutdown();
     }
 
-    TEST_CASE("ColourGradingFeature OnAttach registers blendable type and shader program name")
+    TEST_CASE("colour grading registers as blendable effect on attach")
     {
         auto device = RenderDevice::Create(RenderBackend::Null);
         REQUIRE(device);
@@ -129,56 +129,113 @@ namespace Wayfinder::Tests
 
     TEST_CASE("GetShaderPrograms returns expected descriptors for each feature")
     {
-        SUBCASE("SceneOpaquePass returns 4 scene programs")
+        SUBCASE("SceneOpaquePass declares 4 programs with correct resource and depth settings")
         {
             SceneOpaquePass pass;
             const auto programs = pass.GetShaderPrograms();
             REQUIRE(programs.size() == 4);
+
+            // unlit: no scene globals, depth on
             CHECK(programs[0].Name == "unlit");
+            CHECK(programs[0].VertexShaderName == "unlit");
+            CHECK(programs[0].FragmentShaderName == "unlit");
+            CHECK(programs[0].NeedsSceneGlobals == false);
+            CHECK(programs[0].DepthTest == true);
+            CHECK(programs[0].DepthWrite == true);
+            CHECK(programs[0].VertexLayout.attribCount == VertexLayouts::PosNormalColour.attribCount);
+
+            // unlit_blended: alpha blend, depth read-only
             CHECK(programs[1].Name == "unlit_blended");
+            CHECK(programs[1].DepthTest == true);
+            CHECK(programs[1].DepthWrite == false);
+
+            // basic_lit: needs scene globals for lighting
             CHECK(programs[2].Name == "basic_lit");
+            CHECK(programs[2].NeedsSceneGlobals == true);
+            CHECK(programs[2].FragmentResources.numUniformBuffers == 2);
+
+            // textured_lit: needs scene globals + texture sampler
             CHECK(programs[3].Name == "textured_lit");
+            CHECK(programs[3].NeedsSceneGlobals == true);
+            CHECK(programs[3].FragmentResources.numSamplers == 1);
+            CHECK(programs[3].VertexLayout.attribCount == VertexLayouts::PosNormalUVTangent.attribCount);
+            CHECK(programs[3].TextureSlots.size() == 1);
         }
 
-        SUBCASE("ChromaticAberrationFeature returns 1 program")
+        SUBCASE("ChromaticAberrationFeature declares fullscreen pass with sampler input")
         {
             ChromaticAberrationFeature feature;
             const auto programs = feature.GetShaderPrograms();
             REQUIRE(programs.size() == 1);
             CHECK(programs[0].Name == "chromatic_aberration");
+            CHECK(programs[0].VertexShaderName == "chromatic_aberration");
+            CHECK(programs[0].FragmentResources.numSamplers == 1);
+            CHECK(programs[0].FragmentResources.numUniformBuffers == 1);
+            CHECK(programs[0].VertexLayout.attribCount == 0);
+            CHECK(programs[0].NeedsSceneGlobals == false);
+            CHECK(programs[0].DepthTest == false);
         }
 
-        SUBCASE("VignetteFeature returns 1 program")
+        SUBCASE("VignetteFeature declares fullscreen pass with sampler input")
         {
             Rendering::VignetteFeature feature;
             const auto programs = feature.GetShaderPrograms();
             REQUIRE(programs.size() == 1);
             CHECK(programs[0].Name == "vignette");
+            CHECK(programs[0].VertexShaderName == "vignette");
+            CHECK(programs[0].FragmentResources.numSamplers == 1);
+            CHECK(programs[0].FragmentResources.numUniformBuffers == 1);
+            CHECK(programs[0].VertexLayout.attribCount == 0);
+            CHECK(programs[0].NeedsSceneGlobals == false);
+            CHECK(programs[0].DepthTest == false);
         }
 
-        SUBCASE("ColourGradingFeature returns 1 program")
+        SUBCASE("ColourGradingFeature declares fullscreen pass with sampler input")
         {
             ColourGradingFeature feature;
             const auto programs = feature.GetShaderPrograms();
             REQUIRE(programs.size() == 1);
             CHECK(programs[0].Name == "colour_grading");
+            CHECK(programs[0].VertexShaderName == "colour_grading");
+            CHECK(programs[0].FragmentResources.numSamplers == 1);
+            CHECK(programs[0].FragmentResources.numUniformBuffers == 1);
+            CHECK(programs[0].VertexLayout.attribCount == 0);
+            CHECK(programs[0].NeedsSceneGlobals == false);
+            CHECK(programs[0].DepthTest == false);
         }
 
-        SUBCASE("CompositionPass returns 1 program")
+        SUBCASE("CompositionPass declares sampler-only blit with no UBO")
         {
             CompositionPass pass;
             const auto programs = pass.GetShaderPrograms();
             REQUIRE(programs.size() == 1);
             CHECK(programs[0].Name == "composition_blit");
+            CHECK(programs[0].VertexShaderName == "fullscreen_copy");
+            CHECK(programs[0].FragmentShaderName == "fullscreen_copy");
+            CHECK(programs[0].FragmentResources.numSamplers == 1);
+            CHECK(programs[0].FragmentResources.numUniformBuffers == 0);
+            CHECK(programs[0].VertexLayout.attribCount == 0);
+            CHECK(programs[0].NeedsSceneGlobals == false);
+            CHECK(programs[0].MaterialUBOSize == 0);
         }
 
-        SUBCASE("DebugPass returns 2 programs")
+        SUBCASE("DebugPass declares line and solid geometry programs")
         {
             DebugPass pass;
             const auto programs = pass.GetShaderPrograms();
             REQUIRE(programs.size() == 2);
+
+            // Lines: PosColour, no depth, no culling
             CHECK(programs[0].Name == "debug_unlit");
+            CHECK(programs[0].VertexLayout.attribCount == VertexLayouts::PosColour.attribCount);
+            CHECK(programs[0].Cull == CullMode::None);
+            CHECK(programs[0].DepthTest == false);
+
+            // Solid boxes: PosNormalColour, back-face culled
             CHECK(programs[1].Name == "debug_solid");
+            CHECK(programs[1].VertexShaderName == "unlit");
+            CHECK(programs[1].VertexLayout.attribCount == VertexLayouts::PosNormalColour.attribCount);
+            CHECK(programs[1].Cull == CullMode::Back);
         }
     }
 

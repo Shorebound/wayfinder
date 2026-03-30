@@ -11,7 +11,10 @@ namespace Wayfinder
 namespace Wayfinder::Rendering
 {
     /**
-     * @brief Post-process vignette (edge darkening). Self-registers blendable type and shader in OnAttach.
+     * @brief Post-process vignette (edge darkening).
+     *
+     * Shader programs are exposed via GetShaderPrograms() and effect/blendable
+     * registration happens in OnRegisterEffects().
      */
     class VignetteFeature final : public RenderFeature
     {

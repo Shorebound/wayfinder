@@ -166,9 +166,8 @@ namespace Wayfinder
             return program->Pipeline;
         }
 
-        // Compute a cache key from program name hash + topology.
-        size_t key = std::hash<std::string_view>{}(name);
-        key ^= static_cast<size_t>(topology) + 0x9e3779b9 + (key << 6) + (key >> 2);
+        // Look up or create a variant pipeline for this (program, topology) pair.
+        const VariantKey key{.Name = std::string(name), .Topology = topology};
 
         if (const auto it = m_variantPipelines.find(key); it != m_variantPipelines.end())
         {

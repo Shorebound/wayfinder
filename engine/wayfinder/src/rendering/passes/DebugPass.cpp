@@ -168,17 +168,25 @@ namespace Wayfinder
                 viewData->ScratchLines.push_back({.Position = line.End, .Colour = lineColour});
             }
 
-            // Accumulate boxes; track the range for this view.
+            // Accumulate boxes into per-view scratch (flattened later).
             if (!layer.DebugDraw->Boxes.empty())
             {
-                if (viewData->BoxCount == 0)
-                {
-                    viewData->BoxStart = static_cast<uint32_t>(m_scratchBoxes.size());
-                }
-
                 // NOLINTNEXTLINE(bugprone-unchecked-optional-access) -- guarded by DebugDraw check above
-                m_scratchBoxes.insert(m_scratchBoxes.end(), layer.DebugDraw->Boxes.begin(), layer.DebugDraw->Boxes.end());
-                viewData->BoxCount = static_cast<uint32_t>(m_scratchBoxes.size()) - viewData->BoxStart;
+                viewData->ScratchBoxes.insert(viewData->ScratchBoxes.end(), layer.DebugDraw->Boxes.begin(), layer.DebugDraw->Boxes.end());
+            }
+        }
+
+        // Flatten per-view boxes into the shared scratch buffer with correct start/count.
+        for (uint32_t v = 0; v < viewCount; ++v)
+        {
+            auto& vd = viewDraws[v];
+            if (!vd.ScratchBoxes.empty())
+            {
+                vd.BoxStart = static_cast<uint32_t>(m_scratchBoxes.size());
+                vd.BoxCount = static_cast<uint32_t>(vd.ScratchBoxes.size());
+                m_scratchBoxes.insert(m_scratchBoxes.end(), vd.ScratchBoxes.begin(), vd.ScratchBoxes.end());
+                vd.ScratchBoxes.clear();
+                vd.ScratchBoxes.shrink_to_fit();
             }
         }
 
@@ -232,12 +240,12 @@ namespace Wayfinder
                         }
 
                         const auto resolved = Rendering::ResolveViewForLayer(params, vd.ViewIndex);
-                        if (!resolved.Ok)
+                        if (!resolved.IsValid)
                         {
                             continue;
                         }
 
-                        const UnlitTransformUBO transformUBO{.Mvp = resolved.Proj * resolved.View};
+                        const UnlitTransformUBO transformUBO{.Mvp = resolved.ProjectionMatrix * resolved.View};
                         const DebugMaterialUBO materialUBO{.BaseColour = Float4(1.0f)};
 
                         device.BindVertexBuffer(vd.LineAlloc.Buffer, {.offsetInBytes = vd.LineAlloc.Offset});
@@ -280,7 +288,7 @@ namespace Wayfinder
                     }
 
                     const auto resolved = Rendering::ResolveViewForLayer(params, vd.ViewIndex);
-                    if (!resolved.Ok)
+                    if (!resolved.IsValid)
                     {
                         continue;
                     }
@@ -288,7 +296,7 @@ namespace Wayfinder
                     for (uint32_t b = 0; b < vd.BoxCount; ++b)
                     {
                         const auto& box = boxData[vd.BoxStart + b]; // NOLINT(cppcoreguidelines-pro-bounds-pointer-arithmetic)
-                        const UnlitTransformUBO transformUBO{.Mvp = resolved.Proj * resolved.View * box.LocalToWorld};
+                        const UnlitTransformUBO transformUBO{.Mvp = resolved.ProjectionMatrix * resolved.View * box.LocalToWorld};
                         const DebugMaterialUBO materialUBO{.BaseColour = ExtractBoxColour(box)};
 
                         device.PushVertexUniform(0, &transformUBO, sizeof(UnlitTransformUBO));

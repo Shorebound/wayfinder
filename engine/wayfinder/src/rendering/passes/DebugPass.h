@@ -60,6 +60,9 @@ namespace Wayfinder
 
             /// Temporary line buffer; built per-view during setup, cleared after upload.
             std::vector<VertexPosColour> ScratchLines;
+
+            /// Temporary box buffer; built per-view during setup, flattened into m_scratchBoxes.
+            std::vector<RenderDebugBox> ScratchBoxes;
         };
 
         RenderServices* m_context = nullptr;

@@ -117,6 +117,17 @@ namespace Wayfinder
                     {
                         config.Shaders.SourceDirectory = *v;
                     }
+                    else
+                    {
+                        WAYFINDER_WARN(LogEngine, "shaders.source_directory: expected a string, got {}",
+                            sourceDir->type() == toml::node_type::none             ? "unknown"
+                            : sourceDir->type() == toml::node_type::integer        ? "integer"
+                            : sourceDir->type() == toml::node_type::floating_point ? "float"
+                            : sourceDir->type() == toml::node_type::boolean        ? "boolean"
+                            : sourceDir->type() == toml::node_type::array          ? "array"
+                            : sourceDir->type() == toml::node_type::table          ? "table"
+                                                                                   : "non-string");
+                    }
                 }
             }
 

@@ -20,6 +20,7 @@ namespace Wayfinder
             return RenderCapabilities::RASTER | RenderCapabilities::FULLSCREEN_COMPOSITE;
         }
 
+        /** @brief Returns the composition blit shader program descriptor. */
         std::vector<ShaderProgramDesc> GetShaderPrograms() const override;
         void OnAttach(const RenderFeatureContext& context) override;
         void OnDetach(const RenderFeatureContext& context) override;

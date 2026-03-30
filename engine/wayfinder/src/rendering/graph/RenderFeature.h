@@ -1,6 +1,7 @@
 #pragma once
 
 #include "rendering/graph/RenderCapabilities.h"
+#include "rendering/materials/ShaderProgram.h"
 #include "rendering/pipeline/FrameRenderParams.h"
 
 #include <string_view>
@@ -11,7 +12,6 @@ namespace Wayfinder
     class BlendableEffectRegistry;
     class RenderServices;
     class RenderGraph;
-    struct ShaderProgramDesc;
 
     /** @brief Services made available to features during OnAttach / OnDetach. */
     struct RenderFeatureContext
