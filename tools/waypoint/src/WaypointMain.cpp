@@ -152,7 +152,7 @@ namespace
 // NOLINTNEXTLINE(bugprone-exception-escape) — iostream may throw; acceptable for CLI entry.
 int main(int argc, char** argv)
 {
-    Wayfinder::Log::Init();
+    Wayfinder::Log::Initialise();
 
     const auto toolDir = std::filesystem::path(argv[0]).parent_path();
 
@@ -199,7 +199,7 @@ int main(int argc, char** argv)
 
         for (const auto& warning : loadResult->Warnings)
         {
-            WAYFINDER_WARN(Wayfinder::LogEngine, "Project: {}", warning);
+            Wayfinder::Log::Warn(Wayfinder::LogEngine, "Project: {}", warning);
         }
 
         project = std::move(loadResult->Descriptor);

@@ -23,8 +23,8 @@ This file documents common mistakes, confusion points, and non-obvious behaviour
 
 ## Logging
 
-- **Engine logging uses `std::format`, not fmt.** spdlog is configured with `SPDLOG_USE_STD_FORMAT=ON`, and the engine's `ILogger::LogFormatted` calls `std::vformat` internally. This means `std::formatter<T>` specialisations are what matter — fmt formatters are irrelevant.
-- **Log macros:** `WAYFINDER_INFO(category, ...)`, `WAYFINDER_WARN(...)`, `WAYFINDER_ERROR(...)`, etc. The first argument is always a log category, not a format string.
+- **Engine logging uses `std::format`, not fmt.** spdlog is configured with `SPDLOG_USE_STD_FORMAT=ON`, and the engine's `ILogger::LogFormatted` calls `std::vformat` internally. This means `std::formatter<T>` specialisations are what matter -- fmt formatters are irrelevant.
+- **Log functions:** `Log::Info(category, ...)`, `Log::Warn(...)`, `Log::Error(...)`, `Log::Verbose(...)`, `Log::Fatal(...)`. The first argument is always a `LogCategoryHandle` (e.g. `LogEngine`, `LogRenderer`), the second is a `std::format_string` (compile-time checked). No macros -- these are template functions in `namespace Wayfinder::Log`.
 
 ## Flecs (ECS)
 

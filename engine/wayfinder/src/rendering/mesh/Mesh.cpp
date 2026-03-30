@@ -104,7 +104,7 @@ namespace Wayfinder
                                          .IndexElementType = IndexElementSize::Uint16,
                                      }))
             {
-                WAYFINDER_ERROR(LogRenderer, "Mesh: Failed to create primitive cube");
+                Log::Error(LogRenderer, "Mesh: Failed to create primitive cube");
                 return {};
             }
 
@@ -215,7 +215,7 @@ namespace Wayfinder
                                          .IndexElementType = IndexElementSize::Uint16,
                                      }))
             {
-                WAYFINDER_ERROR(LogRenderer, "Mesh: Failed to create textured primitive cube");
+                Log::Error(LogRenderer, "Mesh: Failed to create textured primitive cube");
                 return {};
             }
 
@@ -228,13 +228,13 @@ namespace Wayfinder
     {
         if (!m_vertexBuffer.Create(device, BufferUsage::Vertex, desc.VertexDataSize))
         {
-            WAYFINDER_ERROR(LogRenderer, "Mesh: Failed to create vertex buffer");
+            Log::Error(LogRenderer, "Mesh: Failed to create vertex buffer");
             return false;
         }
 
         if (!m_indexBuffer.Create(device, BufferUsage::Index, desc.IndexDataSize))
         {
-            WAYFINDER_ERROR(LogRenderer, "Mesh: Failed to create index buffer");
+            Log::Error(LogRenderer, "Mesh: Failed to create index buffer");
             m_vertexBuffer.Destroy();
             return false;
         }
@@ -246,7 +246,7 @@ namespace Wayfinder
         m_indexCount = desc.IndexCount;
         m_indexElementSize = desc.IndexElementType;
 
-        WAYFINDER_INFO(LogRenderer, "Mesh: Created ({} verts, {} indices)", desc.VertexCount, desc.IndexCount);
+        Log::Info(LogRenderer, "Mesh: Created ({} verts, {} indices)", desc.VertexCount, desc.IndexCount);
         return true;
     }
 
@@ -276,7 +276,7 @@ namespace Wayfinder
         case PrimitiveShape::Cube:
             return CreateCube(device, desc.Size);
         default:
-            WAYFINDER_ERROR(LogRenderer, "Mesh: Unknown primitive shape {}", static_cast<int>(desc.Shape));
+            Log::Error(LogRenderer, "Mesh: Unknown primitive shape {}", static_cast<int>(desc.Shape));
             return {};
         }
     }
@@ -288,7 +288,7 @@ namespace Wayfinder
         case PrimitiveShape::Cube:
             return CreateTexturedCube(device, desc.Size);
         default:
-            WAYFINDER_ERROR(LogRenderer, "Mesh: Unknown primitive shape {}", static_cast<int>(desc.Shape));
+            Log::Error(LogRenderer, "Mesh: Unknown primitive shape {}", static_cast<int>(desc.Shape));
             return {};
         }
     }

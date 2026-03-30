@@ -93,7 +93,7 @@ namespace Wayfinder
         }
 
         m_impl = std::move(impl);
-        WAYFINDER_INFO(LogRenderer, "SlangCompiler: initialised with source directory '{}'", m_sourceDirectory);
+        Log::Info(LogRenderer, "SlangCompiler: initialised with source directory '{}'", m_sourceDirectory);
         return {};
     }
 
@@ -102,7 +102,7 @@ namespace Wayfinder
         if (m_impl)
         {
             m_impl.reset();
-            WAYFINDER_INFO(LogRenderer, "SlangCompiler: shut down");
+            Log::Info(LogRenderer, "SlangCompiler: shut down");
         }
         m_sourceDirectory.clear();
         m_searchPaths.clear();
@@ -156,7 +156,7 @@ namespace Wayfinder
 
         m_impl->Session = std::move(newSession);
 
-        WAYFINDER_INFO(LogRenderer, "SlangCompiler: session reset (module cache cleared)");
+        Log::Info(LogRenderer, "SlangCompiler: session reset (module cache cleared)");
         return {};
     }
 
@@ -189,15 +189,15 @@ namespace Wayfinder
                 {
                     if (line.find("error") != std::string_view::npos)
                     {
-                        WAYFINDER_ERROR(LogRenderer, "  slang: {}", line);
+                        Log::Error(LogRenderer, "  slang: {}", line);
                     }
                     else if (line.find("warning") != std::string_view::npos)
                     {
-                        WAYFINDER_WARN(LogRenderer, "  slang: {}", line);
+                        Log::Warn(LogRenderer, "  slang: {}", line);
                     }
                     else
                     {
-                        WAYFINDER_INFO(LogRenderer, "  slang: {}", line);
+                        Log::Info(LogRenderer, "  slang: {}", line);
                     }
                 }
 
@@ -231,14 +231,14 @@ namespace Wayfinder
             }
         }();
 
-        WAYFINDER_INFO(LogRenderer, "SlangCompiler: compiling '{}' entry '{}' ({})", sourceName, entryPoint, stageLabel);
+        Log::Info(LogRenderer, "SlangCompiler: compiling '{}' entry '{}' ({})", sourceName, entryPoint, stageLabel);
 
         // 1. Load the module
         Slang::ComPtr<slang::IBlob> diagnostics;
         slang::IModule* module = m_impl->Session->loadModule(sourcePath.c_str(), diagnostics.writeRef());
         if (!module)
         {
-            WAYFINDER_ERROR(LogRenderer, "SlangCompiler: failed to load module '{}'", sourcePath);
+            Log::Error(LogRenderer, "SlangCompiler: failed to load module '{}'", sourcePath);
             LogSlangDiagnostics(diagnostics);
             return MakeError(std::format("Failed to load Slang module '{}'", sourcePath));
         }
@@ -250,7 +250,7 @@ namespace Wayfinder
         SlangResult result = module->findEntryPointByName(entryPointStr.c_str(), entryPointObj.writeRef());
         if (SLANG_FAILED(result) || !entryPointObj)
         {
-            WAYFINDER_ERROR(LogRenderer, "SlangCompiler: entry point '{}' not found in '{}'", entryPoint, sourcePath);
+            Log::Error(LogRenderer, "SlangCompiler: entry point '{}' not found in '{}'", entryPoint, sourcePath);
             return MakeError(std::format("Entry point '{}' not found in '{}'", entryPoint, sourcePath));
         }
 
@@ -263,7 +263,7 @@ namespace Wayfinder
         result = m_impl->Session->createCompositeComponentType(components.data(), static_cast<SlangInt>(components.size()), composedProgram.writeRef(), diagnostics.writeRef());
         if (SLANG_FAILED(result))
         {
-            WAYFINDER_ERROR(LogRenderer, "SlangCompiler: failed to compose program for '{}':'{}'", sourcePath, entryPoint);
+            Log::Error(LogRenderer, "SlangCompiler: failed to compose program for '{}':'{}'", sourcePath, entryPoint);
             LogSlangDiagnostics(diagnostics);
             return MakeError(std::format("Failed to compose Slang program for '{}':'{}'", sourcePath, entryPoint));
         }
@@ -275,7 +275,7 @@ namespace Wayfinder
         result = composedProgram->link(linkedProgram.writeRef(), diagnostics.writeRef());
         if (SLANG_FAILED(result))
         {
-            WAYFINDER_ERROR(LogRenderer, "SlangCompiler: linking failed for '{}':'{}'", sourcePath, entryPoint);
+            Log::Error(LogRenderer, "SlangCompiler: linking failed for '{}':'{}'", sourcePath, entryPoint);
             LogSlangDiagnostics(diagnostics);
             return MakeError(std::format("Linking failed for '{}':'{}'", sourcePath, entryPoint));
         }
@@ -287,7 +287,7 @@ namespace Wayfinder
         result = linkedProgram->getEntryPointCode(0, 0, spirvBlob.writeRef(), diagnostics.writeRef());
         if (SLANG_FAILED(result) || !spirvBlob || spirvBlob->getBufferSize() == 0)
         {
-            WAYFINDER_ERROR(LogRenderer, "SlangCompiler: SPIR-V code generation failed for '{}':'{}'", sourcePath, entryPoint);
+            Log::Error(LogRenderer, "SlangCompiler: SPIR-V code generation failed for '{}':'{}'", sourcePath, entryPoint);
             LogSlangDiagnostics(diagnostics);
             return MakeError(std::format("SPIR-V code generation failed for '{}':'{}'", sourcePath, entryPoint));
         }
@@ -300,7 +300,7 @@ namespace Wayfinder
         CompileResult compileResult;
         compileResult.Bytecode.assign(data, data + size);
 
-        WAYFINDER_INFO(LogRenderer, "SlangCompiler: compiled '{}' entry '{}' ({}) - {} bytes SPIR-V", sourceName, entryPoint, stageLabel, size);
+        Log::Info(LogRenderer, "SlangCompiler: compiled '{}' entry '{}' ({}) - {} bytes SPIR-V", sourceName, entryPoint, stageLabel, size);
 
         return compileResult;
     }

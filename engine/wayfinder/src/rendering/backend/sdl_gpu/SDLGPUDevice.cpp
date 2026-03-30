@@ -148,11 +148,11 @@ namespace Wayfinder
         }
         catch (const std::exception& ex)
         {
-            WAYFINDER_WARN(LogRenderer, "SDLGPUDevice::~SDLGPUDevice suppressed exception during Shutdown(): {}", ex.what());
+            Log::Warn(LogRenderer, "SDLGPUDevice::~SDLGPUDevice suppressed exception during Shutdown(): {}", ex.what());
         }
         catch (...)
         {
-            WAYFINDER_WARN(LogRenderer, "SDLGPUDevice::~SDLGPUDevice suppressed unknown exception during Shutdown().");
+            Log::Warn(LogRenderer, "SDLGPUDevice::~SDLGPUDevice suppressed unknown exception during Shutdown().");
         }
     }
 
@@ -161,7 +161,7 @@ namespace Wayfinder
         m_window = static_cast<SDL_Window*>(window.GetNativeHandle());
         if (!m_window)
         {
-            WAYFINDER_ERROR(LogRenderer, "SDLGPUDevice: Window has no valid native handle");
+            Log::Error(LogRenderer, "SDLGPUDevice: Window has no valid native handle");
             return MakeError("SDLGPUDevice: Window has no valid native handle");
         }
 
@@ -173,7 +173,7 @@ namespace Wayfinder
 
         if (!m_device)
         {
-            WAYFINDER_ERROR(LogRenderer, "SDLGPUDevice: Failed to create GPU device — {}", SDL_GetError());
+            Log::Error(LogRenderer, "SDLGPUDevice: Failed to create GPU device — {}", SDL_GetError());
             return MakeError(std::format("SDLGPUDevice: Failed to create GPU device — {}", SDL_GetError()));
         }
 
@@ -181,7 +181,7 @@ namespace Wayfinder
 
         if (!SDL_ClaimWindowForGPUDevice(m_device, m_window))
         {
-            WAYFINDER_ERROR(LogRenderer, "SDLGPUDevice: Failed to claim window for GPU device — {}", SDL_GetError());
+            Log::Error(LogRenderer, "SDLGPUDevice: Failed to claim window for GPU device — {}", SDL_GetError());
             auto error = MakeError(std::format("SDLGPUDevice: Failed to claim window — {}", SDL_GetError()));
             SDL_DestroyGPUDevice(m_device);
             m_device = nullptr;
@@ -193,7 +193,7 @@ namespace Wayfinder
         const char* driver = SDL_GetGPUDeviceDriver(m_device);
         m_info.DriverInfo = driver ? driver : "unknown";
 
-        WAYFINDER_INFO(LogRenderer, "SDLGPUDevice: Initialised (driver: {})", m_info.DriverInfo);
+        Log::Info(LogRenderer, "SDLGPUDevice: Initialised (driver: {})", m_info.DriverInfo);
 
         m_mipGenerator = std::make_unique<BlitMipGenerator>();
 
@@ -205,7 +205,7 @@ namespace Wayfinder
         m_stagingRing = SDL_CreateGPUTransferBuffer(m_device, &stagingInfo);
         if (!m_stagingRing)
         {
-            WAYFINDER_WARN(LogRenderer, "SDLGPUDevice: Failed to create staging ring — uploads will use dedicated buffers");
+            Log::Warn(LogRenderer, "SDLGPUDevice: Failed to create staging ring — uploads will use dedicated buffers");
         }
 
         return {};
@@ -290,7 +290,7 @@ namespace Wayfinder
         m_commandBuffer = SDL_AcquireGPUCommandBuffer(m_device);
         if (!m_commandBuffer)
         {
-            WAYFINDER_ERROR(LogRenderer, "SDLGPUDevice: Failed to acquire command buffer — {}", SDL_GetError());
+            Log::Error(LogRenderer, "SDLGPUDevice: Failed to acquire command buffer — {}", SDL_GetError());
             return false;
         }
 
@@ -304,7 +304,7 @@ namespace Wayfinder
 
         if (!SDL_AcquireGPUSwapchainTexture(m_commandBuffer, m_window, &m_swapchainTexture, &m_swapchainWidth, &m_swapchainHeight))
         {
-            WAYFINDER_ERROR(LogRenderer, "SDLGPUDevice: Failed to acquire swapchain texture — {}", SDL_GetError());
+            Log::Error(LogRenderer, "SDLGPUDevice: Failed to acquire swapchain texture — {}", SDL_GetError());
             SDL_SubmitGPUCommandBuffer(m_commandBuffer);
             m_commandBuffer = nullptr;
             return false;
@@ -389,7 +389,7 @@ namespace Wayfinder
         m_depthTexture = SDL_CreateGPUTexture(m_device, &info);
         if (!m_depthTexture)
         {
-            WAYFINDER_ERROR(LogRenderer, "SDLGPUDevice: Failed to create depth texture ({}x{}) — {}", width, height, SDL_GetError());
+            Log::Error(LogRenderer, "SDLGPUDevice: Failed to create depth texture ({}x{}) — {}", width, height, SDL_GetError());
             return;
         }
 
@@ -409,7 +409,7 @@ namespace Wayfinder
         const uint32_t numTargets = std::min(descriptor.ColourTargetCount, MAX_COLOUR_TARGETS);
         if (numTargets == 0 && !descriptor.DepthAttachment.Enabled)
         {
-            WAYFINDER_ERROR(LogRenderer, "BeginRenderPass '{}': no colour targets and no depth attachment — skipping pass", descriptor.DebugName);
+            Log::Error(LogRenderer, "BeginRenderPass '{}': no colour targets and no depth attachment — skipping pass", descriptor.debugName);
             return false;
         }
 
@@ -438,7 +438,7 @@ namespace Wayfinder
 
             if (!texture)
             {
-                WAYFINDER_WARN(LogRenderer, "BeginRenderPass '{}': colour target at slot {} is null — skipping pass", descriptor.DebugName, i);
+                Log::Warn(LogRenderer, "BeginRenderPass '{}': colour target at slot {} is null — skipping pass", descriptor.debugName, i);
                 return false;
             }
 
@@ -524,7 +524,7 @@ namespace Wayfinder
             }
             else
             {
-                WAYFINDER_ERROR(LogRenderer, "BeginRenderPass '{}': depth attachment enabled but no depth texture available (depthTarget={}, m_depthTexture={})", descriptor.DebugName, descriptor.DepthTarget.IsValid(),
+                Log::Error(LogRenderer, "BeginRenderPass '{}': depth attachment enabled but no depth texture available (depthTarget={}, m_depthTexture={})", descriptor.debugName, descriptor.depthTarget.IsValid(),
                     m_depthTexture != nullptr);
                 return false;
             }
@@ -552,7 +552,7 @@ namespace Wayfinder
     {
         if (!m_device)
         {
-            WAYFINDER_ERROR(LogRenderer, "SDLGPUDevice::CreateShader: No GPU device");
+            Log::Error(LogRenderer, "SDLGPUDevice::CreateShader: No GPU device");
             return GPUShaderHandle::Invalid();
         }
 
@@ -563,7 +563,7 @@ namespace Wayfinder
 
         if (!(m_shaderFormats & SDL_GPU_SHADERFORMAT_SPIRV))
         {
-            WAYFINDER_ERROR(LogRenderer, "SDLGPUDevice::CreateShader: Device does not support SPIR-V");
+            Log::Error(LogRenderer, "SDLGPUDevice::CreateShader: Device does not support SPIR-V");
             return GPUShaderHandle::Invalid();
         }
         info.format = static_cast<SDL_GPUShaderFormat>(m_shaderFormats & SDL_GPU_SHADERFORMAT_SPIRV);
@@ -576,7 +576,7 @@ namespace Wayfinder
         SDL_GPUShader* shader = SDL_CreateGPUShader(m_device, &info);
         if (!shader)
         {
-            WAYFINDER_ERROR(LogRenderer, "SDLGPUDevice::CreateShader: Failed — {}", SDL_GetError());
+            Log::Error(LogRenderer, "SDLGPUDevice::CreateShader: Failed — {}", SDL_GetError());
             return GPUShaderHandle::Invalid();
         }
 
@@ -601,13 +601,13 @@ namespace Wayfinder
     {
         if (!m_device || !m_window)
         {
-            WAYFINDER_ERROR(LogRenderer, "SDLGPUDevice::CreatePipeline: No GPU device or window");
+            Log::Error(LogRenderer, "SDLGPUDevice::CreatePipeline: No GPU device or window");
             return GPUPipelineHandle::Invalid();
         }
 
         if (desc.ColourTargetCount == 0 || desc.ColourTargetCount > MAX_COLOUR_TARGETS)
         {
-            WAYFINDER_ERROR(LogRenderer, "SDLGPUDevice::CreatePipeline: numColourTargets={} is out of range [1, {}]", desc.ColourTargetCount, MAX_COLOUR_TARGETS);
+            Log::Error(LogRenderer, "SDLGPUDevice::CreatePipeline: numColourTargets={} is out of range [1, {}]", desc.ColourTargets, MAX_COLOUR_TARGETS);
             return GPUPipelineHandle::Invalid();
         }
 
@@ -702,11 +702,11 @@ namespace Wayfinder
         {
             if (!blend.Enabled && blend.ColourWriteMask == 0)
             {
-                WAYFINDER_WARN(LogRenderer, "CreatePipeline: colour target {} has blending disabled and ColourWriteMask=0 — nothing will be written", colourTargetIndex);
+                Log::Warn(LogRenderer, "CreatePipeline: colour target {} has blending disabled and ColourWriteMask=0 — nothing will be written", colourTargetIndex);
             }
             if (blend.Enabled && blend.ColourWriteMask == 0)
             {
-                WAYFINDER_WARN(LogRenderer, "CreatePipeline: colour target {} has blending enabled but ColourWriteMask=0 — blended result will be discarded", colourTargetIndex);
+                Log::Warn(LogRenderer, "CreatePipeline: colour target {} has blending enabled but ColourWriteMask=0 — blended result will be discarded", colourTargetIndex);
             }
             ++colourTargetIndex;
         }
@@ -755,7 +755,7 @@ namespace Wayfinder
         auto* pFS = m_shaderPool.Get(desc.FragmentShader);
         if (!pVS || !pFS)
         {
-            WAYFINDER_ERROR(LogRenderer, "SDLGPUDevice::CreatePipeline: Invalid shader handle(s)");
+            Log::Error(LogRenderer, "SDLGPUDevice::CreatePipeline: Invalid shader handle(s)");
             return GPUPipelineHandle::Invalid();
         }
 
@@ -771,7 +771,7 @@ namespace Wayfinder
         SDL_GPUGraphicsPipeline* pipeline = SDL_CreateGPUGraphicsPipeline(m_device, &pipelineInfo);
         if (!pipeline)
         {
-            WAYFINDER_ERROR(LogRenderer, "SDLGPUDevice::CreatePipeline: Failed — {}", SDL_GetError());
+            Log::Error(LogRenderer, "SDLGPUDevice::CreatePipeline: Failed — {}", SDL_GetError());
             return GPUPipelineHandle::Invalid();
         }
 
@@ -811,7 +811,7 @@ namespace Wayfinder
     {
         if (!m_device)
         {
-            WAYFINDER_ERROR(LogRenderer, "SDLGPUDevice::CreateBuffer: No GPU device");
+            Log::Error(LogRenderer, "SDLGPUDevice::CreateBuffer: No GPU device");
             return GPUBufferHandle::Invalid();
         }
 
@@ -822,7 +822,7 @@ namespace Wayfinder
         SDL_GPUBuffer* buffer = SDL_CreateGPUBuffer(m_device, &info);
         if (!buffer)
         {
-            WAYFINDER_ERROR(LogRenderer, "SDLGPUDevice::CreateBuffer: Failed — {}", SDL_GetError());
+            Log::Error(LogRenderer, "SDLGPUDevice::CreateBuffer: Failed — {}", SDL_GetError());
             return GPUBufferHandle::Invalid();
         }
 
@@ -909,14 +909,14 @@ namespace Wayfinder
         SDL_GPUTransferBuffer* transferBuffer = SDL_CreateGPUTransferBuffer(m_device, &transferInfo);
         if (!transferBuffer)
         {
-            WAYFINDER_ERROR(LogRenderer, "SDLGPUDevice::UploadToBuffer: Failed to create transfer buffer — {}", SDL_GetError());
+            Log::Error(LogRenderer, "SDLGPUDevice::UploadToBuffer: Failed to create transfer buffer — {}", SDL_GetError());
             return;
         }
 
         void* mapped = SDL_MapGPUTransferBuffer(m_device, transferBuffer, false);
         if (!mapped)
         {
-            WAYFINDER_ERROR(LogRenderer, "SDLGPUDevice::UploadToBuffer: Failed to map transfer buffer — {}", SDL_GetError());
+            Log::Error(LogRenderer, "SDLGPUDevice::UploadToBuffer: Failed to map transfer buffer — {}", SDL_GetError());
             SDL_ReleaseGPUTransferBuffer(m_device, transferBuffer);
             return;
         }
@@ -927,7 +927,7 @@ namespace Wayfinder
         SDL_GPUCommandBuffer* cmdBuf = SDL_AcquireGPUCommandBuffer(m_device);
         if (!cmdBuf)
         {
-            WAYFINDER_ERROR(LogRenderer, "SDLGPUDevice::UploadToBuffer: Failed to acquire command buffer — {}", SDL_GetError());
+            Log::Error(LogRenderer, "SDLGPUDevice::UploadToBuffer: Failed to acquire command buffer — {}", SDL_GetError());
             SDL_ReleaseGPUTransferBuffer(m_device, transferBuffer);
             return;
         }
@@ -1038,7 +1038,7 @@ namespace Wayfinder
     {
         if (!m_device)
         {
-            WAYFINDER_ERROR(LogRenderer, "SDLGPUDevice::CreateComputePipeline: No GPU device");
+            Log::Error(LogRenderer, "SDLGPUDevice::CreateComputePipeline: No GPU device");
             return GPUComputePipelineHandle::Invalid();
         }
 
@@ -1049,7 +1049,7 @@ namespace Wayfinder
 
         if (!(m_shaderFormats & SDL_GPU_SHADERFORMAT_SPIRV))
         {
-            WAYFINDER_ERROR(LogRenderer, "SDLGPUDevice::CreateComputePipeline: Device does not support SPIR-V");
+            Log::Error(LogRenderer, "SDLGPUDevice::CreateComputePipeline: Device does not support SPIR-V");
             return GPUComputePipelineHandle::Invalid();
         }
         info.format = static_cast<SDL_GPUShaderFormat>(m_shaderFormats & SDL_GPU_SHADERFORMAT_SPIRV);
@@ -1066,7 +1066,7 @@ namespace Wayfinder
         SDL_GPUComputePipeline* pipeline = SDL_CreateGPUComputePipeline(m_device, &info);
         if (!pipeline)
         {
-            WAYFINDER_ERROR(LogRenderer, "SDLGPUDevice::CreateComputePipeline: Failed — {}", SDL_GetError());
+            Log::Error(LogRenderer, "SDLGPUDevice::CreateComputePipeline: Failed — {}", SDL_GetError());
             return GPUComputePipelineHandle::Invalid();
         }
 
@@ -1133,7 +1133,7 @@ namespace Wayfinder
     {
         if (!m_device)
         {
-            WAYFINDER_ERROR(LogRenderer, "SDLGPUDevice::CreateTexture: No GPU device");
+            Log::Error(LogRenderer, "SDLGPUDevice::CreateTexture: No GPU device");
             return GPUTextureHandle::Invalid();
         }
 
@@ -1142,7 +1142,7 @@ namespace Wayfinder
 
         if (desc.MipLevels > maxMips)
         {
-            WAYFINDER_WARN(LogRenderer,
+            Log::Warn(LogRenderer,
                 "SDLGPUDevice::CreateTexture: Requested {} mip levels for {}x{} texture, "
                 "clamped to maximum of {}",
                 desc.MipLevels, desc.Width, desc.Height, maxMips);
@@ -1167,7 +1167,7 @@ namespace Wayfinder
         SDL_GPUTexture* texture = SDL_CreateGPUTexture(m_device, &info);
         if (!texture)
         {
-            WAYFINDER_ERROR(LogRenderer, "SDLGPUDevice::CreateTexture: Failed ({}x{}, {} mips) — {}", desc.Width, desc.Height, resolvedMips, SDL_GetError());
+            Log::Error(LogRenderer, "SDLGPUDevice::CreateTexture: Failed ({}x{}, {} mips) — {}", desc.width, desc.height, resolvedMips, SDL_GetError());
             return GPUTextureHandle::Invalid();
         }
 
@@ -1231,14 +1231,14 @@ namespace Wayfinder
         SDL_GPUTransferBuffer* transferBuffer = SDL_CreateGPUTransferBuffer(m_device, &transferInfo);
         if (!transferBuffer)
         {
-            WAYFINDER_ERROR(LogRenderer, "SDLGPUDevice::UploadToTexture: Failed to create transfer buffer — {}", SDL_GetError());
+            Log::Error(LogRenderer, "SDLGPUDevice::UploadToTexture: Failed to create transfer buffer — {}", SDL_GetError());
             return;
         }
 
         void* mapped = SDL_MapGPUTransferBuffer(m_device, transferBuffer, false);
         if (!mapped)
         {
-            WAYFINDER_ERROR(LogRenderer, "SDLGPUDevice::UploadToTexture: Failed to map transfer buffer — {}", SDL_GetError());
+            Log::Error(LogRenderer, "SDLGPUDevice::UploadToTexture: Failed to map transfer buffer — {}", SDL_GetError());
             SDL_ReleaseGPUTransferBuffer(m_device, transferBuffer);
             return;
         }
@@ -1249,7 +1249,7 @@ namespace Wayfinder
         SDL_GPUCommandBuffer* cmdBuf = SDL_AcquireGPUCommandBuffer(m_device);
         if (!cmdBuf)
         {
-            WAYFINDER_ERROR(LogRenderer, "SDLGPUDevice::UploadToTexture: Failed to acquire command buffer — {}", SDL_GetError());
+            Log::Error(LogRenderer, "SDLGPUDevice::UploadToTexture: Failed to acquire command buffer — {}", SDL_GetError());
             SDL_ReleaseGPUTransferBuffer(m_device, transferBuffer);
             return;
         }
@@ -1293,7 +1293,7 @@ namespace Wayfinder
         SDL_GPUCommandBuffer* cmdBuf = SDL_AcquireGPUCommandBuffer(m_device);
         if (!cmdBuf)
         {
-            WAYFINDER_ERROR(LogRenderer, "SDLGPUDevice::FlushUploads: Failed to acquire command buffer — {}", SDL_GetError());
+            Log::Error(LogRenderer, "SDLGPUDevice::FlushUploads: Failed to acquire command buffer — {}", SDL_GetError());
             m_pendingBufferCopies.clear();
             m_pendingTextureCopies.clear();
             return;
@@ -1376,7 +1376,7 @@ namespace Wayfinder
     {
         if (!m_device)
         {
-            WAYFINDER_ERROR(LogRenderer, "SDLGPUDevice::CreateSampler: No GPU device");
+            Log::Error(LogRenderer, "SDLGPUDevice::CreateSampler: No GPU device");
             return GPUSamplerHandle::Invalid();
         }
 
@@ -1411,7 +1411,7 @@ namespace Wayfinder
         SDL_GPUSampler* sampler = SDL_CreateGPUSampler(m_device, &info);
         if (!sampler)
         {
-            WAYFINDER_ERROR(LogRenderer, "SDLGPUDevice::CreateSampler: Failed — {}", SDL_GetError());
+            Log::Error(LogRenderer, "SDLGPUDevice::CreateSampler: Failed — {}", SDL_GetError());
             return GPUSamplerHandle::Invalid();
         }
 

@@ -22,7 +22,7 @@ namespace Wayfinder
             SDL_GPUCommandBuffer* cmdBuf = SDL_AcquireGPUCommandBuffer(device);
             if (!cmdBuf)
             {
-                WAYFINDER_ERROR(LogRenderer, "BlitMipGenerator: Failed to acquire command buffer — {}", SDL_GetError());
+                Log::Error(LogRenderer, "BlitMipGenerator: Failed to acquire command buffer — {}", SDL_GetError());
                 return;
             }
 

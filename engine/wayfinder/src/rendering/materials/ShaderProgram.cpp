@@ -77,13 +77,13 @@ namespace Wayfinder
     {
         if (!m_device || !m_shaders || !m_cache)
         {
-            WAYFINDER_ERROR(LogRenderer, "ShaderProgramRegistry: Cannot register '{}' — not initialised", desc.Name);
+            Log::Error(LogRenderer, "ShaderProgramRegistry: Cannot register '{}' — not initialised", desc.Name);
             return false;
         }
 
         if (m_programs.contains(desc.Name))
         {
-            WAYFINDER_WARN(LogRenderer, "ShaderProgramRegistry: '{}' already registered — skipping", desc.Name);
+            Log::Warn(LogRenderer, "ShaderProgramRegistry: '{}' already registered — skipping", desc.Name);
             return true;
         }
 
@@ -102,7 +102,7 @@ namespace Wayfinder
         const GPUPipelineHandle pipeline = m_cache->GetOrCreate(*m_shaders, pipelineDesc);
         if (!pipeline.IsValid())
         {
-            WAYFINDER_ERROR(LogRenderer, "ShaderProgramRegistry: Failed to create pipeline for '{}'", desc.Name);
+            Log::Error(LogRenderer, "ShaderProgramRegistry: Failed to create pipeline for '{}'", desc.Name);
             return false;
         }
 
@@ -118,7 +118,7 @@ namespace Wayfinder
         program.Pipeline = pipeline;
         m_programs.emplace(desc.Name, std::move(program));
 
-        WAYFINDER_INFO(LogRenderer, "ShaderProgramRegistry: Registered '{}'", desc.Name);
+        Log::Info(LogRenderer, "ShaderProgramRegistry: Registered '{}'", desc.Name);
         return true;
     }
 
@@ -148,7 +148,7 @@ namespace Wayfinder
         // Just clear the program map so Register() can recreate entries.
         m_programs.clear();
         m_variantPipelines.clear();
-        WAYFINDER_INFO(LogRenderer, "ShaderProgramRegistry: all programs invalidated");
+        Log::Info(LogRenderer, "ShaderProgramRegistry: all programs invalidated");
     }
 
     GPUPipelineHandle ShaderProgramRegistry::GetVariantPipeline(const std::string_view name, const PrimitiveType topology)

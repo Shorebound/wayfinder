@@ -302,7 +302,7 @@ namespace Wayfinder
                     FrameLayer* owningLayer = frame.FindSceneLayerForSubmission(submission);
                     if (!owningLayer)
                     {
-                        WAYFINDER_WARN(LogRenderer, "SceneRenderExtractor skipped mesh submission because no scene group matched group '{0}' in frame '{1}'.", submission.Group, frame.SceneName);
+                        Log::Warn(LogRenderer, "SceneRenderExtractor skipped mesh submission because no scene group matched group '{0}' in frame '{1}'.", submission.Group, frame.SceneName);
                         return;
                     }
 
@@ -485,7 +485,7 @@ namespace Wayfinder
             }
             else
             {
-                WAYFINDER_WARN(LogRenderer,
+                Log::Warn(LogRenderer,
                     "SceneRenderExtractor: skipped blendable volume blending for scene '{}' ({} volume instances) "
                     "\xe2\x80\x94 no BlendableEffectRegistry provided",
                     frame.SceneName, volumeInstances.size());

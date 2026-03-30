@@ -31,11 +31,11 @@ namespace Wayfinder
             if (compilerResult)
             {
                 compilerPtr = m_slangCompiler.get();
-                WAYFINDER_INFO(LogRenderer, "RenderServices: Slang runtime compiler initialised");
+                Log::Info(LogRenderer, "RenderServices: Slang runtime compiler initialised");
             }
             else
             {
-                WAYFINDER_WARN(LogRenderer, "RenderServices: Slang runtime compiler failed to initialise: {}", compilerResult.error().GetMessage());
+                Log::Warn(LogRenderer, "RenderServices: Slang runtime compiler failed to initialise: {}", compilerResult.error().GetMessage());
                 m_slangCompiler.reset();
                 // Non-fatal: fall back to pre-compiled .spv only
             }
@@ -49,19 +49,19 @@ namespace Wayfinder
         // May fail on Null backend (no real GPU buffers) — non-fatal in that case.
         if (!m_transientAllocator.Initialise(device, 4u * 1024u * 1024u, 1u * 1024u * 1024u))
         {
-            WAYFINDER_WARN(LogRenderer, "RenderServices: Failed to initialise transient buffer allocator");
+            Log::Warn(LogRenderer, "RenderServices: Failed to initialise transient buffer allocator");
         }
 
         m_transientPool.Initialise(device);
 
         if (!m_textureManager.Initialise(device))
         {
-            WAYFINDER_WARN(LogRenderer, "RenderServices: Failed to initialise TextureManager");
+            Log::Warn(LogRenderer, "RenderServices: Failed to initialise TextureManager");
         }
 
         if (!m_meshManager.Initialise(device))
         {
-            WAYFINDER_WARN(LogRenderer, "RenderServices: Failed to initialise MeshManager");
+            Log::Warn(LogRenderer, "RenderServices: Failed to initialise MeshManager");
         }
 
         // Nearest-point sampler for composition blit
@@ -87,7 +87,7 @@ namespace Wayfinder
     {
         if (!m_blendableEffectRegistry)
         {
-            WAYFINDER_WARN(LogRenderer, "SealBlendableEffects: no BlendableEffectRegistry — nothing to seal");
+            Log::Warn(LogRenderer, "SealBlendableEffects: no BlendableEffectRegistry — nothing to seal");
             return;
         }
         auto* reg = m_blendableEffectRegistry;
@@ -132,7 +132,7 @@ namespace Wayfinder
             auto result = m_slangCompiler->ResetSession();
             if (!result)
             {
-                WAYFINDER_ERROR(LogRenderer, "RenderServices::ReloadShaders: Slang session reset failed: {}", result.error().GetMessage());
+                Log::Error(LogRenderer, "RenderServices::ReloadShaders: Slang session reset failed: {}", result.error().GetMessage());
             }
         }
 
@@ -141,12 +141,12 @@ namespace Wayfinder
             m_pipelineCache.InvalidateAll();
             m_programRegistry.InvalidateAll();
             m_shaderManager.ReloadShaders();
-            WAYFINDER_INFO(LogRenderer, "RenderServices: all shaders and pipelines invalidated");
+            Log::Info(LogRenderer, "RenderServices: all shaders and pipelines invalidated");
             orchestrator->RebuildPipelines();
         }
         else
         {
-            WAYFINDER_WARN(LogRenderer, "RenderServices::ReloadShaders: no orchestrator provided - deferring pipeline rebuild");
+            Log::Warn(LogRenderer, "RenderServices::ReloadShaders: no orchestrator provided - deferring pipeline rebuild");
         }
     }
 

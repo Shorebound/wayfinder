@@ -23,7 +23,7 @@ namespace Wayfinder
             {
                 if (!registry.Register(desc))
                 {
-                    WAYFINDER_WARN(LogRenderer, "RenderOrchestrator: failed to register shader program '{}' from feature '{}'", desc.Name, feature.GetName());
+                    Log::Warn(LogRenderer, "RenderOrchestrator: failed to register shader program '{}' from feature '{}'", desc.Name, feature.GetName());
                 }
             }
         }
@@ -89,7 +89,7 @@ namespace Wayfinder
         {
             if (slot.Feature && !slot.Feature->IsEnabled())
             {
-                WAYFINDER_WARN(LogRenderer, "RegisterFeature: Present phase feature '{}' is disabled -- graph may lack a swapchain writer", slot.Feature->GetName());
+                Log::Warn(LogRenderer, "RegisterFeature: Present phase feature '{}' is disabled -- graph may lack a swapchain writer", slot.Feature->GetName());
             }
         }
 
@@ -117,7 +117,7 @@ namespace Wayfinder
                 {
                     if (slot.Phase == RenderPhase::Present && !slot.Feature->IsEnabled())
                     {
-                        WAYFINDER_WARN(LogRenderer, "RegisterFeature: Present phase feature '{}' is disabled -- graph may lack a swapchain writer", slot.Feature->GetName());
+                        Log::Warn(LogRenderer, "RegisterFeature: Present phase feature '{}' is disabled -- graph may lack a swapchain writer", slot.Feature->GetName());
                     }
                     m_features.push_back(std::move(slot));
                 }
@@ -164,7 +164,7 @@ namespace Wayfinder
     {
         if (!m_context || !m_initialised)
         {
-            WAYFINDER_WARN(LogRenderer, "RenderOrchestrator::RebuildPipelines called before Initialise");
+            Log::Warn(LogRenderer, "RenderOrchestrator::RebuildPipelines called before Initialise");
             return;
         }
 
@@ -178,7 +178,7 @@ namespace Wayfinder
             }
         }
 
-        WAYFINDER_INFO(LogRenderer, "RenderOrchestrator::RebuildPipelines: shader programs and pipelines re-registered");
+        Log::Info(LogRenderer, "RenderOrchestrator::RebuildPipelines: shader programs and pipelines re-registered");
     }
 
     void RenderOrchestrator::Shutdown()

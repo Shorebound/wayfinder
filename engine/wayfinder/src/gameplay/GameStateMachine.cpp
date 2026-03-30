@@ -72,7 +72,7 @@ namespace Wayfinder
 
             if (!targetDesc)
             {
-                WAYFINDER_WARN(LogGame, "TransitionTo: '{}' is not a registered state", stateName);
+                Log::Warn(LogGame, "TransitionTo: '{}' is not a registered state", stateName);
                 return;
             }
         }
@@ -97,7 +97,7 @@ namespace Wayfinder
             targetDesc->OnEnter(*m_world);
         }
 
-        WAYFINDER_INFO(LogGame, "State transition: '{}' -> '{}'", oldState.GetString(), stateName);
+        Log::Info(LogGame, "State transition: '{}' -> '{}'", oldState.GetString(), stateName);
 
         m_runConditionsDirty = true;
     }
@@ -123,7 +123,7 @@ namespace Wayfinder
             const flecs::entity sys = m_world->lookup(desc.Name.c_str());
             if (!sys.is_valid())
             {
-                WAYFINDER_WARN(LogGame,
+                Log::Warn(LogGame,
                     "Conditioned system '{}' not found in world. "
                     "Ensure the flecs system name matches the descriptor name.",
                     desc.Name);

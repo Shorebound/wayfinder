@@ -22,12 +22,12 @@ namespace Wayfinder
 
         if (!m_whiteTexture || !m_blackTexture || !m_flatNormalTexture || !m_fallbackTexture)
         {
-            WAYFINDER_ERROR(LogRenderer, "TextureManager: Failed to create one or more built-in textures");
+            Log::Error(LogRenderer, "TextureManager: Failed to create one or more built-in textures");
             Shutdown();
             return false;
         }
 
-        WAYFINDER_INFO(LogRenderer, "TextureManager initialised (4 built-in textures)");
+        Log::Info(LogRenderer, "TextureManager initialised (4 built-in textures)");
         return true;
     }
 
@@ -87,7 +87,7 @@ namespace Wayfinder
     {
         if (!m_device)
         {
-            WAYFINDER_WARN(LogRenderer, "TextureManager::GetOrLoad called without a valid device");
+            Log::Warn(LogRenderer, "TextureManager::GetOrLoad called without a valid device");
             return m_fallbackTexture;
         }
 
@@ -102,7 +102,7 @@ namespace Wayfinder
         const TextureAsset* asset = assetService.LoadAsset<TextureAsset>(assetId, error);
         if (!asset)
         {
-            WAYFINDER_WARN(LogRenderer, "TextureManager: Failed to load texture asset '{}': {}", assetId.ToString(), error);
+            Log::Warn(LogRenderer, "TextureManager: Failed to load texture asset '{}': {}", assetId.ToString(), error);
             m_textureCache[assetId] = m_fallbackTexture;
             return m_fallbackTexture;
         }
@@ -114,7 +114,7 @@ namespace Wayfinder
             asset = assetService.LoadAsset<TextureAsset>(assetId, error);
             if (!asset || asset->PixelData.empty())
             {
-                WAYFINDER_WARN(LogRenderer, "TextureManager: Failed to reload pixel data for texture '{}': {}", assetId.ToString(), error);
+                Log::Warn(LogRenderer, "TextureManager: Failed to reload pixel data for texture '{}': {}", assetId.ToString(), error);
                 m_textureCache[assetId] = m_fallbackTexture;
                 return m_fallbackTexture;
             }
@@ -124,14 +124,14 @@ namespace Wayfinder
         GPUTextureHandle gpuTexture = CreateAndUpload(*asset);
         if (!gpuTexture)
         {
-            WAYFINDER_WARN(LogRenderer, "TextureManager: GPU upload failed for texture '{}', using fallback", asset->Name);
+            Log::Warn(LogRenderer, "TextureManager: GPU upload failed for texture '{}', using fallback", asset->Name);
             m_textureCache[assetId] = m_fallbackTexture;
             return m_fallbackTexture;
         }
 
         m_textureCache[assetId] = gpuTexture;
 
-        WAYFINDER_INFO(LogRenderer, "TextureManager: Loaded '{}' ({}x{}, mipLevels={}) to GPU", asset->Name, asset->Width, asset->Height, asset->MipLevels);
+        Log::Info(LogRenderer, "TextureManager: Loaded '{}' ({}x{}, mipLevels={}) to GPU", asset->Name, asset->Width, asset->Height, asset->MipLevels);
 
         // Release CPU-side pixel data now that it's on the GPU
         assetService.ReleaseTexturePixelData(assetId);
@@ -143,7 +143,7 @@ namespace Wayfinder
     {
         if (!m_device)
         {
-            WAYFINDER_WARN(LogRenderer, "TextureManager::GetOrCreateSampler called without a valid device");
+            Log::Warn(LogRenderer, "TextureManager::GetOrCreateSampler called without a valid device");
             return {};
         }
 

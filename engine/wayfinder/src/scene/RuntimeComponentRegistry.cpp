@@ -11,7 +11,7 @@ namespace Wayfinder
         {
             if (Find(coreEntry.Key))
             {
-                WAYFINDER_LOG(LogScene, LogVerbosity::Warning, "Duplicate component key '{}' in core entries, skipping", coreEntry.Key);
+                Log::Warn(LogScene, "Duplicate component key '{}' in core entries, skipping", coreEntry.Key);
                 continue;
             }
 
@@ -32,7 +32,7 @@ namespace Wayfinder
         {
             if (Find(desc.Key))
             {
-                WAYFINDER_LOG(LogScene, LogVerbosity::Warning, "Duplicate component key '{}' from game plugin, skipping", desc.Key);
+                Log::Warn(LogScene, "Duplicate component key '{}' from game plugin, skipping", desc.Key);
                 continue;
             }
 
