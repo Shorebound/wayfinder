@@ -22,7 +22,7 @@ namespace Wayfinder
         constexpr std::string_view BLEND_KEY = "blend";
 
         /// Tri-state result for ParseLinearColour.
-        enum class ParseColourResult
+        enum class ParseColourResult : uint8_t
         {
             NotColour, ///< Not a colour array (e.g. floats or wrong size) - caller may try vec fallback.
             Parsed,    ///< Successfully parsed as a valid colour.

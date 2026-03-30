@@ -106,6 +106,8 @@ CheckOptions:
     value: UPPER_CASE
   - key: readability-identifier-naming.EnumConstantCase
     value: UPPER_CASE
+  - key: readability-identifier-naming.ScopedEnumConstantCase
+    value: CamelCase
   - key: readability-identifier-naming.ConstexprVariableCase
     value: UPPER_CASE
   - key: readability-identifier-naming.StaticConstantCase
