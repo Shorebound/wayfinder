@@ -41,8 +41,8 @@ namespace Wayfinder::Rendering
             desc.VertexShaderName = "vignette";
             desc.FragmentShaderName = "vignette";
             desc.VertexResources = {};
-            desc.FragmentResources = {.numUniformBuffers = 1, .numSamplers = 1};
-            desc.VertexLayout = VertexLayouts::Empty;
+            desc.FragmentResources = {.UniformBuffers = 1, .Samplers = 1};
+            desc.VertexLayout = VertexLayouts::EMPTY;
             desc.Cull = CullMode::None;
             desc.DepthTest = false;
             desc.DepthWrite = false;

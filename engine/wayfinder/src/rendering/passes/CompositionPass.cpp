@@ -20,8 +20,8 @@ namespace Wayfinder
             desc.VertexShaderName = "fullscreen_copy";
             desc.FragmentShaderName = "fullscreen_copy";
             desc.VertexResources = {};
-            desc.FragmentResources = {.numUniformBuffers = 0, .numSamplers = 1};
-            desc.VertexLayout = VertexLayouts::Empty;
+            desc.FragmentResources = {.UniformBuffers = 0, .Samplers = 1};
+            desc.VertexLayout = VertexLayouts::EMPTY;
             desc.Cull = CullMode::None;
             desc.DepthTest = false;
             desc.DepthWrite = false;

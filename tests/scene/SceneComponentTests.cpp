@@ -292,7 +292,7 @@ namespace Wayfinder::Tests
 
         const Wayfinder::SceneRenderExtractor extractor;
         const Wayfinder::RenderFrame frame = extractor.Extract(scene);
-        const Wayfinder::FrameLayer* mainLayer = frame.FindLayer(Wayfinder::FrameLayerIds::MainScene);
+        const Wayfinder::FrameLayer* mainLayer = frame.FindLayer(Wayfinder::FrameLayerIds::MAIN_SCENE);
 
         scene.Shutdown();
 

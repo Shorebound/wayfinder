@@ -125,7 +125,7 @@ namespace Wayfinder::Tests
         cube.AddComponent<Wayfinder::TransformComponent>(Wayfinder::TransformComponent{{0.0f, 0.5f, 0.0f}});
         cube.AddComponent<Wayfinder::MeshComponent>(Wayfinder::MeshComponent{});
         Wayfinder::RenderableComponent renderable;
-        renderable.Group = Wayfinder::RenderGroups::Main;
+        renderable.Group = Wayfinder::RenderGroups::MAIN;
         cube.AddComponent<Wayfinder::RenderableComponent>(renderable);
 
         Wayfinder::Entity light = scene.CreateEntity("Light");
@@ -139,8 +139,8 @@ namespace Wayfinder::Tests
 
         const Wayfinder::SceneRenderExtractor extractor;
         const Wayfinder::RenderFrame frame = extractor.Extract(scene);
-        const Wayfinder::FrameLayer* mainPass = frame.FindLayer(Wayfinder::FrameLayerIds::MainScene);
-        const Wayfinder::FrameLayer* debugPass = frame.FindLayer(Wayfinder::FrameLayerIds::Debug);
+        const Wayfinder::FrameLayer* mainPass = frame.FindLayer(Wayfinder::FrameLayerIds::MAIN_SCENE);
+        const Wayfinder::FrameLayer* debugPass = frame.FindLayer(Wayfinder::FrameLayerIds::DEBUG);
 
         scene.Shutdown();
 
@@ -179,7 +179,7 @@ namespace Wayfinder::Tests
 
         const Wayfinder::SceneRenderExtractor extractor;
         const Wayfinder::RenderFrame frame = extractor.Extract(scene);
-        const Wayfinder::FrameLayer* mainPass = frame.FindLayer(Wayfinder::FrameLayerIds::MainScene);
+        const Wayfinder::FrameLayer* mainPass = frame.FindLayer(Wayfinder::FrameLayerIds::MAIN_SCENE);
 
         scene.Shutdown();
 
@@ -219,7 +219,7 @@ namespace Wayfinder::Tests
             cube.AddComponent<Wayfinder::MeshComponent>(Wayfinder::MeshComponent{});
 
             Wayfinder::RenderableComponent renderable;
-            renderable.Group = Wayfinder::RenderGroups::Main;
+            renderable.Group = Wayfinder::RenderGroups::MAIN;
             cube.AddComponent<Wayfinder::RenderableComponent>(renderable);
 
             Wayfinder::MaterialComponent material;
@@ -234,7 +234,7 @@ namespace Wayfinder::Tests
 
         const Wayfinder::SceneRenderExtractor extractor;
         Wayfinder::RenderFrame frame = extractor.Extract(scene);
-        Wayfinder::FrameLayer* mainPass = frame.FindLayer(Wayfinder::FrameLayerIds::MainScene);
+        Wayfinder::FrameLayer* mainPass = frame.FindLayer(Wayfinder::FrameLayerIds::MAIN_SCENE);
 
         REQUIRE(mainPass != nullptr);
         REQUIRE(mainPass->Meshes.size() == 2);
@@ -243,7 +243,7 @@ namespace Wayfinder::Tests
 
         REQUIRE(Wayfinder::Rendering::PrepareFrame(frame, 1280, 720));
 
-        mainPass = frame.FindLayer(Wayfinder::FrameLayerIds::MainScene);
+        mainPass = frame.FindLayer(Wayfinder::FrameLayerIds::MAIN_SCENE);
         REQUIRE(mainPass != nullptr);
         REQUIRE(mainPass->Meshes.size() == 2);
         CHECK(mainPass->Meshes[0].LocalToWorld[3].z == doctest::Approx(0.0f));
@@ -256,7 +256,7 @@ namespace Wayfinder::Tests
     {
         Wayfinder::RenderFrame frame;
         const size_t viewIndex = frame.AddView(Wayfinder::RenderView{});
-        Wayfinder::FrameLayer& scenePass = frame.AddSceneLayer(Wayfinder::FrameLayerIds::MainScene, viewIndex, Wayfinder::RenderGroups::Main);
+        Wayfinder::FrameLayer& scenePass = frame.AddSceneLayer(Wayfinder::FrameLayerIds::MAIN_SCENE, viewIndex, Wayfinder::RenderGroups::MAIN);
         scenePass.Meshes.push_back(MakeSolidMesh(100, Wayfinder::Colour::Red()));
         scenePass.Meshes.push_back(MakeSolidMesh(10, Wayfinder::Colour::Blue()));
 
@@ -341,8 +341,8 @@ namespace Wayfinder::Tests
         view.CameraState.NearPlane = 0.1f;
         view.CameraState.FarPlane = 100.0f;
         frame.AddView(view);
-        frame.AddSceneLayer(Wayfinder::FrameLayerIds::MainScene, 0, Wayfinder::RenderGroups::Main);
-        frame.AddDebugLayer(Wayfinder::FrameLayerIds::Debug, 0);
+        frame.AddSceneLayer(Wayfinder::FrameLayerIds::MAIN_SCENE, 0, Wayfinder::RenderGroups::MAIN);
+        frame.AddDebugLayer(Wayfinder::FrameLayerIds::DEBUG, 0);
 
         REQUIRE(Wayfinder::Rendering::PrepareFrame(frame, 320, 240));
 
@@ -402,8 +402,8 @@ namespace Wayfinder::Tests
         view.CameraState.NearPlane = 0.1f;
         view.CameraState.FarPlane = 100.0f;
         frame.AddView(view);
-        frame.AddSceneLayer(Wayfinder::FrameLayerIds::MainScene, 0, Wayfinder::RenderGroups::Main);
-        frame.AddDebugLayer(Wayfinder::FrameLayerIds::Debug, 0);
+        frame.AddSceneLayer(Wayfinder::FrameLayerIds::MAIN_SCENE, 0, Wayfinder::RenderGroups::MAIN);
+        frame.AddDebugLayer(Wayfinder::FrameLayerIds::DEBUG, 0);
 
         REQUIRE(Wayfinder::Rendering::PrepareFrame(frame, 320, 240));
 

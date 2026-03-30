@@ -48,7 +48,7 @@ namespace Wayfinder
 
         Wayfinder::SortLayer MapGroup(const Wayfinder::RenderGroupId& group)
         {
-            if (group == Wayfinder::RenderGroups::Overlay)
+            if (group == Wayfinder::RenderGroups::OVERLAY)
             {
                 return Wayfinder::SortLayer::Overlay;
             }
@@ -195,9 +195,9 @@ namespace Wayfinder
             view.CameraState.FOV = activeCamera.FieldOfView;
             view.CameraState.ProjectionType = static_cast<int>(activeCamera.Projection);
             const size_t viewIndex = frame.AddView(view);
-            frame.AddSceneLayer(FrameLayerIds::MainScene, viewIndex, RenderGroups::Main);
-            frame.AddSceneLayer(FrameLayerIds::OverlayScene, viewIndex, RenderGroups::Overlay);
-            FrameLayer& debugLayer = frame.AddDebugLayer(FrameLayerIds::Debug, viewIndex);
+            frame.AddSceneLayer(FrameLayerIds::MAIN_SCENE, viewIndex, RenderGroups::MAIN);
+            frame.AddSceneLayer(FrameLayerIds::OVERLAY_SCENE, viewIndex, RenderGroups::OVERLAY);
+            FrameLayer& debugLayer = frame.AddDebugLayer(FrameLayerIds::DEBUG, viewIndex);
             if (debugLayer.DebugDraw)
             {
                 debugLayer.DebugDraw->ShowWorldGrid = true;
@@ -416,7 +416,7 @@ namespace Wayfinder
                     debugBox.Material.Domain = RenderMaterialDomain::Debug;
                     debugBox.Material.Parameters.SetColour("base_colour", LinearColour::FromColour(light.Tint));
 
-                    FrameLayer* debugLayer = frame.FindLayer(FrameLayerIds::Debug, *primaryViewIndex);
+                    FrameLayer* debugLayer = frame.FindLayer(FrameLayerIds::DEBUG, *primaryViewIndex);
                     if (debugLayer && debugLayer->DebugDraw)
                     {
                         debugLayer->DebugDraw->Boxes.push_back(debugBox);

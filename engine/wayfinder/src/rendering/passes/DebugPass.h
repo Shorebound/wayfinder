@@ -43,7 +43,7 @@ namespace Wayfinder
         /**
          * @brief Appends world-grid line vertices (same formula as the render path). Used by unit tests.
          */
-        static void AppendWorldGridLineVertices(std::vector<VertexPosColour>& lineVertices, WorldGridSpec spec);
+        static void AppendWorldGridLineVertices(std::vector<VertexPositionColour>& lineVertices, WorldGridSpec spec);
 
     private:
         static constexpr uint32_t MAX_DEBUG_VIEWS = 4;
@@ -59,7 +59,7 @@ namespace Wayfinder
             uint32_t BoxCount = 0;
 
             /// Temporary line buffer; built per-view during setup, cleared after upload.
-            std::vector<VertexPosColour> ScratchLines;
+            std::vector<VertexPositionColour> ScratchLines;
 
             /// Temporary box buffer; built per-view during setup, flattened into m_scratchBoxes.
             std::vector<RenderDebugBox> ScratchBoxes;

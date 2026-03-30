@@ -16,15 +16,15 @@ namespace Wayfinder
 {
     namespace
     {
-        SDL_GPUVertexElementFormat ToSDLVertexFormat(VertexAttribFormat fmt)
+        SDL_GPUVertexElementFormat ToSDLVertexFormat(VertexAttributeFormat fmt)
         {
             switch (fmt)
             {
-            case VertexAttribFormat::Float2:
+            case VertexAttributeFormat::Float2:
                 return SDL_GPU_VERTEXELEMENTFORMAT_FLOAT2;
-            case VertexAttribFormat::Float3:
+            case VertexAttributeFormat::Float3:
                 return SDL_GPU_VERTEXELEMENTFORMAT_FLOAT3;
-            case VertexAttribFormat::Float4:
+            case VertexAttributeFormat::Float4:
                 return SDL_GPU_VERTEXELEMENTFORMAT_FLOAT4;
             }
             return SDL_GPU_VERTEXELEMENTFORMAT_FLOAT3;
@@ -557,9 +557,9 @@ namespace Wayfinder
         }
 
         SDL_GPUShaderCreateInfo info{};
-        info.code = desc.code;
-        info.code_size = desc.codeSize;
-        info.entrypoint = desc.entryPoint;
+        info.code = desc.Code;
+        info.code_size = desc.CodeSize;
+        info.entrypoint = desc.EntryPoint;
 
         if (!(m_shaderFormats & SDL_GPU_SHADERFORMAT_SPIRV))
         {
@@ -567,11 +567,11 @@ namespace Wayfinder
             return GPUShaderHandle::Invalid();
         }
         info.format = static_cast<SDL_GPUShaderFormat>(m_shaderFormats & SDL_GPU_SHADERFORMAT_SPIRV);
-        info.stage = (desc.stage == ShaderStage::Vertex) ? SDL_GPU_SHADERSTAGE_VERTEX : SDL_GPU_SHADERSTAGE_FRAGMENT;
-        info.num_samplers = desc.numSamplers;
-        info.num_storage_textures = desc.numStorageTextures;
-        info.num_storage_buffers = desc.numStorageBuffers;
-        info.num_uniform_buffers = desc.numUniformBuffers;
+        info.stage = (desc.Stage == ShaderStage::Vertex) ? SDL_GPU_SHADERSTAGE_VERTEX : SDL_GPU_SHADERSTAGE_FRAGMENT;
+        info.num_samplers = desc.Samplers;
+        info.num_storage_textures = desc.StorageTextures;
+        info.num_storage_buffers = desc.StorageBuffers;
+        info.num_uniform_buffers = desc.UniformBuffers;
 
         SDL_GPUShader* shader = SDL_CreateGPUShader(m_device, &info);
         if (!shader)
@@ -605,23 +605,23 @@ namespace Wayfinder
             return GPUPipelineHandle::Invalid();
         }
 
-        if (desc.numColourTargets == 0 || desc.numColourTargets > MAX_COLOUR_TARGETS)
+        if (desc.ColourTargets == 0 || desc.ColourTargets > MAX_COLOUR_TARGETS)
         {
-            WAYFINDER_ERROR(LogRenderer, "SDLGPUDevice::CreatePipeline: numColourTargets={} is out of range [1, {}]", desc.numColourTargets, MAX_COLOUR_TARGETS);
+            WAYFINDER_ERROR(LogRenderer, "SDLGPUDevice::CreatePipeline: numColourTargets={} is out of range [1, {}]", desc.ColourTargets, MAX_COLOUR_TARGETS);
             return GPUPipelineHandle::Invalid();
         }
 
         // Build vertex attributes
         std::vector<SDL_GPUVertexAttribute> vertexAttribs;
-        vertexAttribs.reserve(desc.vertexLayout.attribCount);
-        for (uint32_t i = 0; i < desc.vertexLayout.attribCount; ++i)
+        vertexAttribs.reserve(desc.VertexLayout.AttributeCount);
+        for (uint32_t i = 0; i < desc.VertexLayout.AttributeCount; ++i)
         {
-            const auto& a = desc.vertexLayout.attribs[i];
+            const auto& a = desc.VertexLayout.Attributes[i];
             SDL_GPUVertexAttribute attr{};
-            attr.location = a.location;
+            attr.location = a.Location;
             attr.buffer_slot = 0;
-            attr.format = ToSDLVertexFormat(a.format);
-            attr.offset = a.offset;
+            attr.format = ToSDLVertexFormat(a.Format);
+            attr.offset = a.Offset;
             vertexAttribs.push_back(attr);
         }
 
@@ -629,10 +629,10 @@ namespace Wayfinder
 
         SDL_GPUVertexBufferDescription vbDesc{};
 
-        if (desc.vertexLayout.attribCount > 0)
+        if (desc.VertexLayout.AttributeCount > 0)
         {
             vbDesc.slot = 0;
-            vbDesc.pitch = desc.vertexLayout.stride;
+            vbDesc.pitch = desc.VertexLayout.Stride;
             vbDesc.input_rate = SDL_GPU_VERTEXINPUTRATE_VERTEX;
             vbDesc.instance_step_rate = 0;
 
@@ -644,7 +644,7 @@ namespace Wayfinder
 
         // Rasterizer
         SDL_GPURasterizerState rasterizer{};
-        switch (desc.fillMode)
+        switch (desc.FillMode)
         {
         case FillMode::Fill:
             rasterizer.fill_mode = SDL_GPU_FILLMODE_FILL;
@@ -653,7 +653,7 @@ namespace Wayfinder
             rasterizer.fill_mode = SDL_GPU_FILLMODE_LINE;
             break;
         }
-        switch (desc.cullMode)
+        switch (desc.CullMode)
         {
         case CullMode::None:
             rasterizer.cull_mode = SDL_GPU_CULLMODE_NONE;
@@ -665,7 +665,7 @@ namespace Wayfinder
             rasterizer.cull_mode = SDL_GPU_CULLMODE_BACK;
             break;
         }
-        switch (desc.frontFace)
+        switch (desc.FrontFace)
         {
         case FrontFace::CounterClockwise:
             rasterizer.front_face = SDL_GPU_FRONTFACE_COUNTER_CLOCKWISE;
@@ -677,7 +677,7 @@ namespace Wayfinder
 
         // Primitive type
         SDL_GPUPrimitiveType primType = SDL_GPU_PRIMITIVETYPE_TRIANGLELIST;
-        switch (desc.primitiveType)
+        switch (desc.PrimitiveType)
         {
         case PrimitiveType::TriangleList:
             primType = SDL_GPU_PRIMITIVETYPE_TRIANGLELIST;
@@ -698,7 +698,7 @@ namespace Wayfinder
 
         // Validate blend state
         uint32_t colourTargetIndex = 0;
-        for (const BlendState& blend : desc.colourTargetBlends | std::views::take(desc.numColourTargets))
+        for (const BlendState& blend : desc.ColourTargetBlends | std::views::take(desc.ColourTargets))
         {
             if (!blend.Enabled && blend.ColourWriteMask == 0)
             {
@@ -716,7 +716,7 @@ namespace Wayfinder
         // SwapchainFormat (value 0, the default for zero-initialised arrays) resolves to the actual swapchain format.
         const SDL_GPUTextureFormat swapchainFormat = SDL_GetGPUSwapchainTextureFormat(m_device, m_window);
         std::array<SDL_GPUColorTargetDescription, MAX_COLOUR_TARGETS> colourTargetDescs{};
-        auto targetSlices = std::views::zip(colourTargetDescs, desc.colourTargetFormats, desc.colourTargetBlends) | std::views::take(desc.numColourTargets);
+        auto targetSlices = std::views::zip(colourTargetDescs, desc.ColourTargetFormats, desc.ColourTargetBlends) | std::views::take(desc.ColourTargets);
         for (auto&& [colourTargetDesc, format, blend] : targetSlices)
         {
             colourTargetDesc.format = (format == TextureFormat::SwapchainFormat) ? swapchainFormat : ToSDLTextureFormat(format);
@@ -737,8 +737,8 @@ namespace Wayfinder
 
         SDL_GPUGraphicsPipelineTargetInfo targetInfo{};
         targetInfo.color_target_descriptions = colourTargetDescs.data();
-        targetInfo.num_color_targets = desc.numColourTargets;
-        targetInfo.has_depth_stencil_target = desc.depthTestEnabled || desc.depthWriteEnabled;
+        targetInfo.num_color_targets = desc.ColourTargets;
+        targetInfo.has_depth_stencil_target = desc.DepthTestEnabled || desc.DepthWriteEnabled;
         if (targetInfo.has_depth_stencil_target)
         {
             targetInfo.depth_stencil_format = SDL_GPU_TEXTUREFORMAT_D32_FLOAT;
@@ -746,13 +746,13 @@ namespace Wayfinder
 
         // Depth-stencil
         SDL_GPUDepthStencilState depthStencil{};
-        depthStencil.enable_depth_test = desc.depthTestEnabled;
-        depthStencil.enable_depth_write = desc.depthWriteEnabled;
+        depthStencil.enable_depth_test = desc.DepthTestEnabled;
+        depthStencil.enable_depth_write = desc.DepthWriteEnabled;
         depthStencil.compare_op = SDL_GPU_COMPAREOP_LESS;
 
         // Resolve shader handles to raw SDL pointers
-        auto* pVS = m_shaderPool.Get(desc.vertexShader);
-        auto* pFS = m_shaderPool.Get(desc.fragmentShader);
+        auto* pVS = m_shaderPool.Get(desc.VertexShader);
+        auto* pFS = m_shaderPool.Get(desc.FragmentShader);
         if (!pVS || !pFS)
         {
             WAYFINDER_ERROR(LogRenderer, "SDLGPUDevice::CreatePipeline: Invalid shader handle(s)");
@@ -816,8 +816,8 @@ namespace Wayfinder
         }
 
         SDL_GPUBufferCreateInfo info{};
-        info.usage = (desc.usage == BufferUsage::Vertex) ? SDL_GPU_BUFFERUSAGE_VERTEX : SDL_GPU_BUFFERUSAGE_INDEX;
-        info.size = desc.sizeInBytes;
+        info.usage = (desc.Usage == BufferUsage::Vertex) ? SDL_GPU_BUFFERUSAGE_VERTEX : SDL_GPU_BUFFERUSAGE_INDEX;
+        info.size = desc.SizeInBytes;
 
         SDL_GPUBuffer* buffer = SDL_CreateGPUBuffer(m_device, &info);
         if (!buffer)
@@ -879,19 +879,19 @@ namespace Wayfinder
     void SDLGPUDevice::UploadToBuffer(GPUBufferHandle buffer, const void* data, BufferUploadRegion region)
     {
         auto* pBuffer = m_bufferPool.Get(buffer);
-        if (!m_device || !pBuffer || !data || region.sizeInBytes == 0)
+        if (!m_device || !pBuffer || !data || region.SizeInBytes == 0)
         {
             return;
         }
 
         // Try to stage into the ring buffer
-        if (const auto offset = TryStageToRing(data, region.sizeInBytes))
+        if (const auto offset = TryStageToRing(data, region.SizeInBytes))
         {
             m_pendingBufferCopies.push_back({
                 .ringOffset = *offset,
-                .size = region.sizeInBytes,
+                .size = region.SizeInBytes,
                 .dstBuffer = *pBuffer,
-                .dstOffset = region.dstOffsetInBytes,
+                .dstOffset = region.DstOffsetInBytes,
             });
             return;
         }
@@ -904,7 +904,7 @@ namespace Wayfinder
     {
         SDL_GPUTransferBufferCreateInfo transferInfo{};
         transferInfo.usage = SDL_GPU_TRANSFERBUFFERUSAGE_UPLOAD;
-        transferInfo.size = region.sizeInBytes;
+        transferInfo.size = region.SizeInBytes;
 
         SDL_GPUTransferBuffer* transferBuffer = SDL_CreateGPUTransferBuffer(m_device, &transferInfo);
         if (!transferBuffer)
@@ -921,7 +921,7 @@ namespace Wayfinder
             return;
         }
 
-        std::memcpy(mapped, data, region.sizeInBytes);
+        std::memcpy(mapped, data, region.SizeInBytes);
         SDL_UnmapGPUTransferBuffer(m_device, transferBuffer);
 
         SDL_GPUCommandBuffer* cmdBuf = SDL_AcquireGPUCommandBuffer(m_device);
@@ -940,8 +940,8 @@ namespace Wayfinder
 
         SDL_GPUBufferRegion dst{};
         dst.buffer = buffer;
-        dst.offset = region.dstOffsetInBytes;
-        dst.size = region.sizeInBytes;
+        dst.offset = region.DstOffsetInBytes;
+        dst.size = region.SizeInBytes;
 
         SDL_UploadToGPUBuffer(copyPass, &src, &dst, false);
         SDL_EndGPUCopyPass(copyPass);
@@ -966,9 +966,9 @@ namespace Wayfinder
 
         SDL_GPUBufferBinding binding{};
         binding.buffer = *pBuffer;
-        binding.offset = bindingDesc.offsetInBytes;
+        binding.offset = bindingDesc.OffsetInBytes;
 
-        SDL_BindGPUVertexBuffers(m_renderPass, bindingDesc.slot, &binding, 1);
+        SDL_BindGPUVertexBuffers(m_renderPass, bindingDesc.Slot, &binding, 1);
     }
 
     void SDLGPUDevice::BindIndexBuffer(GPUBufferHandle buffer, IndexElementSize indexSize, uint32_t offsetInBytes)
@@ -1043,9 +1043,9 @@ namespace Wayfinder
         }
 
         SDL_GPUComputePipelineCreateInfo info{};
-        info.code = desc.code;
-        info.code_size = desc.codeSize;
-        info.entrypoint = desc.entryPoint;
+        info.code = desc.Code;
+        info.code_size = desc.CodeSize;
+        info.entrypoint = desc.EntryPoint;
 
         if (!(m_shaderFormats & SDL_GPU_SHADERFORMAT_SPIRV))
         {
@@ -1053,15 +1053,15 @@ namespace Wayfinder
             return GPUComputePipelineHandle::Invalid();
         }
         info.format = static_cast<SDL_GPUShaderFormat>(m_shaderFormats & SDL_GPU_SHADERFORMAT_SPIRV);
-        info.num_samplers = desc.numSamplers;
-        info.num_readonly_storage_textures = desc.numReadOnlyStorageTextures;
-        info.num_readonly_storage_buffers = desc.numReadOnlyStorageBuffers;
-        info.num_readwrite_storage_textures = desc.numReadWriteStorageTextures;
-        info.num_readwrite_storage_buffers = desc.numReadWriteStorageBuffers;
-        info.num_uniform_buffers = desc.numUniformBuffers;
-        info.threadcount_x = desc.threadCountX;
-        info.threadcount_y = desc.threadCountY;
-        info.threadcount_z = desc.threadCountZ;
+        info.num_samplers = desc.Samplers;
+        info.num_readonly_storage_textures = desc.ReadOnlyStorageTextures;
+        info.num_readonly_storage_buffers = desc.ReadOnlyStorageBuffers;
+        info.num_readwrite_storage_textures = desc.ReadWriteStorageTextures;
+        info.num_readwrite_storage_buffers = desc.ReadWriteStorageBuffers;
+        info.num_uniform_buffers = desc.UniformBuffers;
+        info.threadcount_x = desc.ThreadCountX;
+        info.threadcount_y = desc.ThreadCountY;
+        info.threadcount_z = desc.ThreadCountZ;
 
         SDL_GPUComputePipeline* pipeline = SDL_CreateGPUComputePipeline(m_device, &info);
         if (!pipeline)

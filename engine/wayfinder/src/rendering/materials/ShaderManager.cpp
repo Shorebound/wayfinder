@@ -5,6 +5,7 @@
 
 #include <filesystem>
 #include <fstream>
+#include <ranges>
 
 namespace Wayfinder
 {
@@ -34,7 +35,7 @@ namespace Wayfinder
     {
         if (m_device)
         {
-            for (auto& [key, handle] : m_cache)
+            for (auto& handle : m_cache | std::views::values)
             {
                 if (handle.IsValid())
                 {
@@ -69,8 +70,7 @@ namespace Wayfinder
         {
             slangAttempted = true;
             const char* entryPoint = (stage == ShaderStage::Vertex) ? "VSMain" : "PSMain";
-            auto compileResult = m_compiler->Compile(name, entryPoint, stage);
-            if (compileResult)
+            if (Result<SlangCompiler::CompileResult> compileResult = m_compiler->Compile(name, entryPoint, stage))
             {
                 bytecode = std::move(compileResult->Bytecode);
             }
@@ -92,14 +92,14 @@ namespace Wayfinder
         }
 
         ShaderCreateDesc desc{};
-        desc.code = bytecode.data();
-        desc.codeSize = bytecode.size();
-        desc.entryPoint = (stage == ShaderStage::Vertex) ? "VSMain" : "PSMain";
-        desc.stage = stage;
-        desc.numUniformBuffers = resources.numUniformBuffers;
-        desc.numSamplers = resources.numSamplers;
-        desc.numStorageTextures = resources.numStorageTextures;
-        desc.numStorageBuffers = resources.numStorageBuffers;
+        desc.Code = bytecode.data();
+        desc.CodeSize = bytecode.size();
+        desc.EntryPoint = (stage == ShaderStage::Vertex) ? "VSMain" : "PSMain";
+        desc.Stage = stage;
+        desc.UniformBuffers = resources.UniformBuffers;
+        desc.Samplers = resources.Samplers;
+        desc.StorageTextures = resources.StorageTextures;
+        desc.StorageBuffers = resources.StorageBuffers;
 
         GPUShaderHandle handle = m_device->CreateShader(desc);
         if (!handle)

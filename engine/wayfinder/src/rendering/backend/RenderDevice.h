@@ -26,24 +26,24 @@ namespace Wayfinder
 
     struct ShaderCreateDesc
     {
-        const uint8_t* code = nullptr;
-        size_t codeSize = 0;
-        const char* entryPoint = "main";
-        ShaderStage stage = ShaderStage::Vertex;
-        uint32_t numSamplers = 0;
-        uint32_t numStorageTextures = 0;
-        uint32_t numStorageBuffers = 0;
-        uint32_t numUniformBuffers = 0;
+        const uint8_t* Code = nullptr;
+        size_t CodeSize = 0;
+        const char* EntryPoint = "main";
+        ShaderStage Stage = ShaderStage::Vertex;
+        uint32_t Samplers = 0;
+        uint32_t StorageTextures = 0;
+        uint32_t StorageBuffers = 0;
+        uint32_t UniformBuffers = 0;
     };
 
     // Shader resource counts — describes the resource bindings a shader uses.
     // Carried by GPUPipelineDesc so ShaderManager can create shaders with correct metadata.
     struct ShaderResourceCounts
     {
-        uint32_t numUniformBuffers = 0;
-        uint32_t numSamplers = 0;
-        uint32_t numStorageTextures = 0;
-        uint32_t numStorageBuffers = 0;
+        uint32_t UniformBuffers = 0;
+        uint32_t Samplers = 0;
+        uint32_t StorageTextures = 0;
+        uint32_t StorageBuffers = 0;
     };
 
     // ── Pipeline Create Descriptor ───────────────────────────
@@ -175,56 +175,56 @@ namespace Wayfinder
 
     struct BufferCreateDesc
     {
-        BufferUsage usage = BufferUsage::Vertex;
-        uint32_t sizeInBytes = 0;
+        BufferUsage Usage = BufferUsage::Vertex;
+        uint32_t SizeInBytes = 0;
     };
 
     struct BufferUploadRegion
     {
-        uint32_t sizeInBytes = 0;
-        uint32_t dstOffsetInBytes = 0;
+        uint32_t SizeInBytes = 0;
+        uint32_t DstOffsetInBytes = 0;
     };
 
     struct VertexBufferBindingDesc
     {
-        uint32_t slot = 0;
-        uint32_t offsetInBytes = 0;
+        uint32_t Slot = 0;
+        uint32_t OffsetInBytes = 0;
     };
 
     // ── Pipeline Create Descriptor ───────────────────────────
 
     struct PipelineCreateDesc
     {
-        GPUShaderHandle vertexShader{};
-        GPUShaderHandle fragmentShader{};
-        VertexLayout vertexLayout{};
-        PrimitiveType primitiveType = PrimitiveType::TriangleList;
-        CullMode cullMode = CullMode::Back;
-        FillMode fillMode = FillMode::Fill;
-        FrontFace frontFace = FrontFace::CounterClockwise;
-        bool depthTestEnabled = false;
-        bool depthWriteEnabled = false;
-        uint32_t numColourTargets = 1;
-        std::array<TextureFormat, MAX_COLOUR_TARGETS> colourTargetFormats{};
-        std::array<BlendState, MAX_COLOUR_TARGETS> colourTargetBlends{};
+        GPUShaderHandle VertexShader{};
+        GPUShaderHandle FragmentShader{};
+        VertexLayout VertexLayout{};
+        PrimitiveType PrimitiveType = PrimitiveType::TriangleList;
+        CullMode CullMode = CullMode::Back;
+        FillMode FillMode = FillMode::Fill;
+        FrontFace FrontFace = FrontFace::CounterClockwise;
+        bool DepthTestEnabled = false;
+        bool DepthWriteEnabled = false;
+        uint32_t ColourTargets = 1;
+        std::array<TextureFormat, MAX_COLOUR_TARGETS> ColourTargetFormats{};
+        std::array<BlendState, MAX_COLOUR_TARGETS> ColourTargetBlends{};
     };
 
     // ── Compute Pipeline Create Descriptor ───────────────────
 
     struct ComputePipelineCreateDesc
     {
-        const uint8_t* code = nullptr;
-        size_t codeSize = 0;
-        const char* entryPoint = "main";
-        uint32_t numSamplers = 0;
-        uint32_t numReadOnlyStorageTextures = 0;
-        uint32_t numReadOnlyStorageBuffers = 0;
-        uint32_t numReadWriteStorageTextures = 0;
-        uint32_t numReadWriteStorageBuffers = 0;
-        uint32_t numUniformBuffers = 0;
-        uint32_t threadCountX = 1;
-        uint32_t threadCountY = 1;
-        uint32_t threadCountZ = 1;
+        const uint8_t* Code = nullptr;
+        size_t CodeSize = 0;
+        const char* EntryPoint = "main";
+        uint32_t Samplers = 0;
+        uint32_t ReadOnlyStorageTextures = 0;
+        uint32_t ReadOnlyStorageBuffers = 0;
+        uint32_t ReadWriteStorageTextures = 0;
+        uint32_t ReadWriteStorageBuffers = 0;
+        uint32_t UniformBuffers = 0;
+        uint32_t ThreadCountX = 1;
+        uint32_t ThreadCountY = 1;
+        uint32_t ThreadCountZ = 1;
     };
 
     class WAYFINDER_API RenderDevice

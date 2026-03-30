@@ -10,8 +10,8 @@ namespace Wayfinder
         m_indexCapacity = indexCapacity;
 
         BufferCreateDesc vertexDesc{};
-        vertexDesc.usage = BufferUsage::Vertex;
-        vertexDesc.sizeInBytes = vertexCapacity;
+        vertexDesc.Usage = BufferUsage::Vertex;
+        vertexDesc.SizeInBytes = vertexCapacity;
 
         m_vertexRing = device.CreateBuffer(vertexDesc);
         if (!m_vertexRing)
@@ -21,8 +21,8 @@ namespace Wayfinder
         }
 
         BufferCreateDesc indexDesc{};
-        indexDesc.usage = BufferUsage::Index;
-        indexDesc.sizeInBytes = indexCapacity;
+        indexDesc.Usage = BufferUsage::Index;
+        indexDesc.SizeInBytes = indexCapacity;
 
         m_indexRing = device.CreateBuffer(indexDesc);
         if (!m_indexRing)
@@ -95,7 +95,7 @@ namespace Wayfinder
         }
 
         const uint32_t offset = alignedCursor;
-        m_device->UploadToBuffer(ring, data, {.sizeInBytes = sizeInBytes, .dstOffsetInBytes = offset});
+        m_device->UploadToBuffer(ring, data, {.SizeInBytes = sizeInBytes, .DstOffsetInBytes = offset});
         cursor = alignedCursor + sizeInBytes;
 
         return {.Buffer = ring, .Offset = offset, .Size = sizeInBytes};

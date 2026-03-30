@@ -398,14 +398,14 @@ namespace Wayfinder::Tests
         auto device = Wayfinder::RenderDevice::Create(Wayfinder::RenderBackend::Null);
 
         Wayfinder::BufferCreateDesc desc;
-        desc.usage = Wayfinder::BufferUsage::Vertex;
-        desc.sizeInBytes = 1024;
+        desc.Usage = Wayfinder::BufferUsage::Vertex;
+        desc.SizeInBytes = 1024;
 
         auto buffer = device->CreateBuffer(desc);
         CHECK_FALSE(buffer.IsValid());
 
         std::array<uint8_t, 64> data{};
-        device->UploadToBuffer(buffer, data.data(), {.sizeInBytes = static_cast<uint32_t>(data.size())});
+        device->UploadToBuffer(buffer, data.data(), {.SizeInBytes = static_cast<uint32_t>(data.size())});
 
         device->DestroyBuffer(buffer);
     }
@@ -415,8 +415,8 @@ namespace Wayfinder::Tests
         auto device = Wayfinder::RenderDevice::Create(Wayfinder::RenderBackend::Null);
 
         Wayfinder::ShaderCreateDesc desc;
-        desc.stage = Wayfinder::ShaderStage::Vertex;
-        desc.entryPoint = "main";
+        desc.Stage = Wayfinder::ShaderStage::Vertex;
+        desc.EntryPoint = "main";
 
         auto shader = device->CreateShader(desc);
         CHECK_FALSE(shader.IsValid());
@@ -427,7 +427,7 @@ namespace Wayfinder::Tests
     {
         Wayfinder::RenderFrame frame;
         const size_t viewIndex = frame.AddView(Wayfinder::RenderView{});
-        Wayfinder::FrameLayer& scenePass = frame.AddSceneLayer(Wayfinder::FrameLayerIds::MainScene, viewIndex, Wayfinder::RenderGroups::Main);
+        Wayfinder::FrameLayer& scenePass = frame.AddSceneLayer(Wayfinder::FrameLayerIds::MAIN_SCENE, viewIndex, Wayfinder::RenderGroups::MAIN);
 
         Wayfinder::RenderMeshSubmission submission;
         submission.Mesh.Origin = Wayfinder::RenderResourceOrigin::BuiltIn;

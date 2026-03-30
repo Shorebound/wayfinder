@@ -45,9 +45,9 @@ namespace Wayfinder
     /// Stable interned names for resources created or looked up by `GraphTextureId`.
     namespace GraphTextures
     {
-        inline const InternedString SceneColour = InternedString::Intern("SceneColour");
-        inline const InternedString SceneDepth = InternedString::Intern("SceneDepth");
-        inline const InternedString PostProcessColour = InternedString::Intern("PostProcessColour");
+        inline const InternedString SCENE_COLOUR = InternedString::Intern("SceneColour");
+        inline const InternedString SCENE_DEPTH = InternedString::Intern("SceneDepth");
+        inline const InternedString POST_PROCESS_COLOUR = InternedString::Intern("PostProcessColour");
     }
 
     /// Resolves `GraphTextureId` to the shared `InternedString` (for lookups without re-interning).
@@ -56,15 +56,15 @@ namespace Wayfinder
         switch (id)
         {
         case GraphTextureId::SceneColour:
-            return GraphTextures::SceneColour;
+            return GraphTextures::SCENE_COLOUR;
         case GraphTextureId::SceneDepth:
-            return GraphTextures::SceneDepth;
+            return GraphTextures::SCENE_DEPTH;
         case GraphTextureId::PostProcessColour:
-            return GraphTextures::PostProcessColour;
+            return GraphTextures::POST_PROCESS_COLOUR;
         }
         assert(false && "GraphTextureIntern: unhandled GraphTextureId");
-        static const InternedString kEmpty;
-        return kEmpty;
+        static const InternedString EMPTY;
+        return EMPTY;
     }
 
     /// Borrowed view of the stable interned name (same storage as `GraphTextureIntern`).

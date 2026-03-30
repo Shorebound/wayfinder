@@ -676,9 +676,9 @@ namespace Wayfinder::Tests
 
     TEST_CASE("GraphTextureId names resolve correctly")
     {
-        CHECK(Wayfinder::GraphTextures::SceneColour == Wayfinder::InternedString::Intern("SceneColour"));
-        CHECK(Wayfinder::GraphTextures::SceneDepth == Wayfinder::InternedString::Intern("SceneDepth"));
-        CHECK(Wayfinder::GraphTextures::PostProcessColour == Wayfinder::InternedString::Intern("PostProcessColour"));
+        CHECK(Wayfinder::GraphTextures::SCENE_COLOUR == Wayfinder::InternedString::Intern("SceneColour"));
+        CHECK(Wayfinder::GraphTextures::SCENE_DEPTH == Wayfinder::InternedString::Intern("SceneDepth"));
+        CHECK(Wayfinder::GraphTextures::POST_PROCESS_COLOUR == Wayfinder::InternedString::Intern("PostProcessColour"));
 
         Wayfinder::RenderGraph graph;
 

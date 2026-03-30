@@ -11,7 +11,7 @@ namespace Wayfinder::Tests
 {
     TEST_CASE("Debug world grid vertex count matches grid builder")
     {
-        std::vector<VertexPosColour> vertices;
+        std::vector<VertexPositionColour> vertices;
         const int slices = 3;
         Wayfinder::DebugPass::AppendWorldGridLineVertices(vertices, {.Slices = slices, .Spacing = 1.0f});
 
@@ -22,7 +22,7 @@ namespace Wayfinder::Tests
     TEST_CASE("Debug layer is absent when frame has no debug layer (extractor omits debug draws)")
     {
         Wayfinder::RenderFrame frame;
-        Wayfinder::FrameLayer* debug = frame.FindLayer(Wayfinder::FrameLayerIds::Debug);
+        Wayfinder::FrameLayer* debug = frame.FindLayer(Wayfinder::FrameLayerIds::DEBUG);
         CHECK(debug == nullptr);
     }
 } // namespace Wayfinder::Tests

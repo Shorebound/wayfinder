@@ -27,7 +27,7 @@ namespace Wayfinder
             constexpr Float3 C_RIGHT = {0.9f, 0.2f, 0.9f};
             constexpr Float3 C_LEFT = {0.2f, 0.9f, 0.9f};
 
-            const std::array<VertexPosNormalColour, 24> vertices = {{
+            const std::array<VertexPositionNormalColour, 24> vertices = {{
                 {.Position = {-h, -h, h}, .Normal = N_FRONT, .Colour = C_FRONT},
                 {.Position = {h, -h, h}, .Normal = N_FRONT, .Colour = C_FRONT},
                 {.Position = {h, h, h}, .Normal = N_FRONT, .Colour = C_FRONT},
@@ -96,7 +96,7 @@ namespace Wayfinder
             Mesh mesh;
             if (!mesh.Create(device, {
                                          .VertexData = vertices.data(),
-                                         .VertexDataSize = static_cast<uint32_t>(vertices.size() * sizeof(VertexPosNormalColour)),
+                                         .VertexDataSize = static_cast<uint32_t>(vertices.size() * sizeof(VertexPositionNormalColour)),
                                          .VertexCount = static_cast<uint32_t>(vertices.size()),
                                          .IndexData = indices.data(),
                                          .IndexDataSize = static_cast<uint32_t>(indices.size() * sizeof(uint16_t)),
@@ -138,7 +138,7 @@ namespace Wayfinder
             constexpr Float2 UV11 = {1.0f, 0.0f};
             constexpr Float2 UV01 = {0.0f, 0.0f};
 
-            const std::array<VertexPosNormalUVTangent, 24> vertices = {{
+            const std::array<VertexPositionNormalUVTangent, 24> vertices = {{
                 {.Position = {-h, -h, h}, .Normal = N_FRONT, .UV = UV00, .Tangent = ApproxTangentForNormal(N_FRONT)},
                 {.Position = {h, -h, h}, .Normal = N_FRONT, .UV = UV10, .Tangent = ApproxTangentForNormal(N_FRONT)},
                 {.Position = {h, h, h}, .Normal = N_FRONT, .UV = UV11, .Tangent = ApproxTangentForNormal(N_FRONT)},
@@ -207,7 +207,7 @@ namespace Wayfinder
             Mesh mesh;
             if (!mesh.Create(device, {
                                          .VertexData = vertices.data(),
-                                         .VertexDataSize = static_cast<uint32_t>(vertices.size() * sizeof(VertexPosNormalUVTangent)),
+                                         .VertexDataSize = static_cast<uint32_t>(vertices.size() * sizeof(VertexPositionNormalUVTangent)),
                                          .VertexCount = static_cast<uint32_t>(vertices.size()),
                                          .IndexData = indices.data(),
                                          .IndexDataSize = static_cast<uint32_t>(indices.size() * sizeof(uint16_t)),

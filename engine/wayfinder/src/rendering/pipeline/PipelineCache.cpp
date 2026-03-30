@@ -4,6 +4,7 @@
 
 #include <algorithm>
 #include <functional>
+#include <ranges>
 
 namespace Wayfinder
 {
@@ -22,7 +23,7 @@ namespace Wayfinder
     {
         if (m_device)
         {
-            for (auto& [hash, handle] : m_cache)
+            for (auto& handle : m_cache | std::views::values)
             {
                 if (handle)
                 {
@@ -66,34 +67,34 @@ namespace Wayfinder
             h ^= v + 0x9e3779b9 + (h << 6) + (h >> 2);
         };
 
-        combine(std::hash<GPUShaderHandle>{}(desc.vertexShader));
-        combine(std::hash<GPUShaderHandle>{}(desc.fragmentShader));
-        combine(std::hash<uint32_t>{}(desc.vertexLayout.stride));
-        combine(std::hash<uint32_t>{}(desc.vertexLayout.attribCount));
+        combine(std::hash<GPUShaderHandle>{}(desc.VertexShader));
+        combine(std::hash<GPUShaderHandle>{}(desc.FragmentShader));
+        combine(std::hash<uint32_t>{}(desc.VertexLayout.Stride));
+        combine(std::hash<uint32_t>{}(desc.VertexLayout.AttributeCount));
 
-        for (uint32_t i = 0; i < desc.vertexLayout.attribCount; ++i)
+        for (uint32_t i = 0; i < desc.VertexLayout.AttributeCount; ++i)
         {
-            const auto& a = desc.vertexLayout.attribs[i];
-            combine(std::hash<uint32_t>{}(a.location));
-            combine(std::hash<uint32_t>{}(a.offset));
-            combine(std::hash<uint8_t>{}(static_cast<uint8_t>(a.format)));
+            const auto& a = desc.VertexLayout.Attributes[i];
+            combine(std::hash<uint32_t>{}(a.Location));
+            combine(std::hash<uint32_t>{}(a.Offset));
+            combine(std::hash<uint8_t>{}(static_cast<uint8_t>(a.Format)));
         }
 
-        combine(std::hash<uint8_t>{}(static_cast<uint8_t>(desc.primitiveType)));
-        combine(std::hash<uint8_t>{}(static_cast<uint8_t>(desc.cullMode)));
-        combine(std::hash<uint8_t>{}(static_cast<uint8_t>(desc.fillMode)));
-        combine(std::hash<uint8_t>{}(static_cast<uint8_t>(desc.frontFace)));
-        combine(std::hash<bool>{}(desc.depthTestEnabled));
-        combine(std::hash<bool>{}(desc.depthWriteEnabled));
+        combine(std::hash<uint8_t>{}(static_cast<uint8_t>(desc.PrimitiveType)));
+        combine(std::hash<uint8_t>{}(static_cast<uint8_t>(desc.CullMode)));
+        combine(std::hash<uint8_t>{}(static_cast<uint8_t>(desc.FillMode)));
+        combine(std::hash<uint8_t>{}(static_cast<uint8_t>(desc.FrontFace)));
+        combine(std::hash<bool>{}(desc.DepthTestEnabled));
+        combine(std::hash<bool>{}(desc.DepthWriteEnabled));
 
         // Colour target blend states and formats
-        const uint32_t numTargets = std::min(desc.numColourTargets, static_cast<uint32_t>(MAX_COLOUR_TARGETS));
+        const uint32_t numTargets = std::min(desc.ColourTargets, static_cast<uint32_t>(MAX_COLOUR_TARGETS));
         combine(std::hash<uint32_t>{}(numTargets));
         for (uint32_t i = 0; i < numTargets; ++i)
         {
-            combine(std::hash<uint8_t>{}(static_cast<uint8_t>(desc.colourTargetFormats[i])));
+            combine(std::hash<uint8_t>{}(static_cast<uint8_t>(desc.ColourTargetFormats[i])));
 
-            const auto& blend = desc.colourTargetBlends[i];
+            const auto& blend = desc.ColourTargetBlends[i];
             combine(std::hash<bool>{}(blend.Enabled));
             combine(std::hash<uint8_t>{}(static_cast<uint8_t>(blend.SrcColourFactor)));
             combine(std::hash<uint8_t>{}(static_cast<uint8_t>(blend.DstColourFactor)));
@@ -129,18 +130,18 @@ namespace Wayfinder
         }
 
         PipelineCreateDesc pipeDesc{};
-        pipeDesc.vertexShader = vs;
-        pipeDesc.fragmentShader = fs;
-        pipeDesc.vertexLayout = desc.vertexLayout;
-        pipeDesc.primitiveType = desc.primitiveType;
-        pipeDesc.cullMode = desc.cullMode;
-        pipeDesc.fillMode = desc.fillMode;
-        pipeDesc.frontFace = desc.frontFace;
-        pipeDesc.depthTestEnabled = desc.depthTestEnabled;
-        pipeDesc.depthWriteEnabled = desc.depthWriteEnabled;
-        pipeDesc.numColourTargets = desc.numColourTargets;
-        std::copy_n(desc.colourTargetFormats.begin(), desc.numColourTargets, pipeDesc.colourTargetFormats.begin());
-        std::copy_n(desc.colourTargetBlends.begin(), desc.numColourTargets, pipeDesc.colourTargetBlends.begin());
+        pipeDesc.VertexShader = vs;
+        pipeDesc.FragmentShader = fs;
+        pipeDesc.VertexLayout = desc.vertexLayout;
+        pipeDesc.PrimitiveType = desc.primitiveType;
+        pipeDesc.CullMode = desc.cullMode;
+        pipeDesc.FillMode = desc.fillMode;
+        pipeDesc.FrontFace = desc.frontFace;
+        pipeDesc.DepthTestEnabled = desc.depthTestEnabled;
+        pipeDesc.DepthWriteEnabled = desc.depthWriteEnabled;
+        pipeDesc.ColourTargets = desc.numColourTargets;
+        std::copy_n(desc.colourTargetFormats.begin(), desc.numColourTargets, pipeDesc.ColourTargetFormats.begin());
+        std::copy_n(desc.colourTargetBlends.begin(), desc.numColourTargets, pipeDesc.ColourTargetBlends.begin());
 
         return GetOrCreate(pipeDesc);
     }

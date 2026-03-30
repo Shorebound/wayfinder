@@ -142,7 +142,7 @@ namespace Wayfinder::Tests
             CHECK(programs[0].NeedsSceneGlobals == false);
             CHECK(programs[0].DepthTest == true);
             CHECK(programs[0].DepthWrite == true);
-            CHECK(programs[0].VertexLayout.attribCount == VertexLayouts::PosNormalColour.attribCount);
+            CHECK(programs[0].VertexLayout.AttributeCount == VertexLayouts::POSITION_NORMAL_COLOUR.AttributeCount);
 
             // unlit_blended: alpha blend, depth read-only
             CHECK(programs[1].Name == "unlit_blended");
@@ -152,13 +152,13 @@ namespace Wayfinder::Tests
             // basic_lit: needs scene globals for lighting
             CHECK(programs[2].Name == "basic_lit");
             CHECK(programs[2].NeedsSceneGlobals == true);
-            CHECK(programs[2].FragmentResources.numUniformBuffers == 2);
+            CHECK(programs[2].FragmentResources.UniformBuffers == 2);
 
             // textured_lit: needs scene globals + texture sampler
             CHECK(programs[3].Name == "textured_lit");
             CHECK(programs[3].NeedsSceneGlobals == true);
-            CHECK(programs[3].FragmentResources.numSamplers == 1);
-            CHECK(programs[3].VertexLayout.attribCount == VertexLayouts::PosNormalUVTangent.attribCount);
+            CHECK(programs[3].FragmentResources.Samplers == 1);
+            CHECK(programs[3].VertexLayout.AttributeCount == VertexLayouts::POSITION_NORMAL_UV_TANGENT.AttributeCount);
             CHECK(programs[3].TextureSlots.size() == 1);
         }
 
@@ -169,9 +169,9 @@ namespace Wayfinder::Tests
             REQUIRE(programs.size() == 1);
             CHECK(programs[0].Name == "chromatic_aberration");
             CHECK(programs[0].VertexShaderName == "chromatic_aberration");
-            CHECK(programs[0].FragmentResources.numSamplers == 1);
-            CHECK(programs[0].FragmentResources.numUniformBuffers == 1);
-            CHECK(programs[0].VertexLayout.attribCount == 0);
+            CHECK(programs[0].FragmentResources.Samplers == 1);
+            CHECK(programs[0].FragmentResources.UniformBuffers == 1);
+            CHECK(programs[0].VertexLayout.AttributeCount == 0);
             CHECK(programs[0].NeedsSceneGlobals == false);
             CHECK(programs[0].DepthTest == false);
         }
@@ -183,9 +183,9 @@ namespace Wayfinder::Tests
             REQUIRE(programs.size() == 1);
             CHECK(programs[0].Name == "vignette");
             CHECK(programs[0].VertexShaderName == "vignette");
-            CHECK(programs[0].FragmentResources.numSamplers == 1);
-            CHECK(programs[0].FragmentResources.numUniformBuffers == 1);
-            CHECK(programs[0].VertexLayout.attribCount == 0);
+            CHECK(programs[0].FragmentResources.Samplers == 1);
+            CHECK(programs[0].FragmentResources.UniformBuffers == 1);
+            CHECK(programs[0].VertexLayout.AttributeCount == 0);
             CHECK(programs[0].NeedsSceneGlobals == false);
             CHECK(programs[0].DepthTest == false);
         }
@@ -197,9 +197,9 @@ namespace Wayfinder::Tests
             REQUIRE(programs.size() == 1);
             CHECK(programs[0].Name == "colour_grading");
             CHECK(programs[0].VertexShaderName == "colour_grading");
-            CHECK(programs[0].FragmentResources.numSamplers == 1);
-            CHECK(programs[0].FragmentResources.numUniformBuffers == 1);
-            CHECK(programs[0].VertexLayout.attribCount == 0);
+            CHECK(programs[0].FragmentResources.Samplers == 1);
+            CHECK(programs[0].FragmentResources.UniformBuffers == 1);
+            CHECK(programs[0].VertexLayout.AttributeCount == 0);
             CHECK(programs[0].NeedsSceneGlobals == false);
             CHECK(programs[0].DepthTest == false);
         }
@@ -212,9 +212,9 @@ namespace Wayfinder::Tests
             CHECK(programs[0].Name == "composition_blit");
             CHECK(programs[0].VertexShaderName == "fullscreen_copy");
             CHECK(programs[0].FragmentShaderName == "fullscreen_copy");
-            CHECK(programs[0].FragmentResources.numSamplers == 1);
-            CHECK(programs[0].FragmentResources.numUniformBuffers == 0);
-            CHECK(programs[0].VertexLayout.attribCount == 0);
+            CHECK(programs[0].FragmentResources.Samplers == 1);
+            CHECK(programs[0].FragmentResources.UniformBuffers == 0);
+            CHECK(programs[0].VertexLayout.AttributeCount == 0);
             CHECK(programs[0].NeedsSceneGlobals == false);
             CHECK(programs[0].MaterialUBOSize == 0);
         }
@@ -227,14 +227,14 @@ namespace Wayfinder::Tests
 
             // Lines: PosColour, no depth, no culling
             CHECK(programs[0].Name == "debug_unlit");
-            CHECK(programs[0].VertexLayout.attribCount == VertexLayouts::PosColour.attribCount);
+            CHECK(programs[0].VertexLayout.AttributeCount == VertexLayouts::POSITION_COLOUR.AttributeCount);
             CHECK(programs[0].Cull == CullMode::None);
             CHECK(programs[0].DepthTest == false);
 
             // Solid boxes: PosNormalColour, back-face culled
             CHECK(programs[1].Name == "debug_solid");
             CHECK(programs[1].VertexShaderName == "unlit");
-            CHECK(programs[1].VertexLayout.attribCount == VertexLayouts::PosNormalColour.attribCount);
+            CHECK(programs[1].VertexLayout.AttributeCount == VertexLayouts::POSITION_NORMAL_COLOUR.AttributeCount);
             CHECK(programs[1].Cull == CullMode::Back);
         }
     }

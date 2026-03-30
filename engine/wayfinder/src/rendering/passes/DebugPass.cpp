@@ -41,7 +41,7 @@ namespace Wayfinder
         }
     } // namespace
 
-    void DebugPass::AppendWorldGridLineVertices(std::vector<VertexPosColour>& lineVertices, const WorldGridSpec spec)
+    void DebugPass::AppendWorldGridLineVertices(std::vector<VertexPositionColour>& lineVertices, const WorldGridSpec spec)
     {
         const int clamped = std::max(1, spec.Slices);
         const float extent = static_cast<float>(clamped) * spec.Spacing;
@@ -73,9 +73,9 @@ namespace Wayfinder
                 desc.Name = "debug_unlit";
                 desc.VertexShaderName = "debug_unlit";
                 desc.FragmentShaderName = "debug_unlit";
-                desc.VertexResources = {.numUniformBuffers = 1};
-                desc.FragmentResources = {.numUniformBuffers = 1};
-                desc.VertexLayout = VertexLayouts::PosColour;
+                desc.VertexResources = {.UniformBuffers = 1};
+                desc.FragmentResources = {.UniformBuffers = 1};
+                desc.VertexLayout = VertexLayouts::POSITION_COLOUR;
                 desc.Cull = CullMode::None;
                 desc.DepthTest = false;
                 desc.DepthWrite = false;
@@ -88,9 +88,9 @@ namespace Wayfinder
                 desc.Name = "debug_solid";
                 desc.VertexShaderName = "unlit";
                 desc.FragmentShaderName = "unlit";
-                desc.VertexResources = {.numUniformBuffers = 1};
-                desc.FragmentResources = {.numUniformBuffers = 1};
-                desc.VertexLayout = VertexLayouts::PosNormalColour;
+                desc.VertexResources = {.UniformBuffers = 1};
+                desc.FragmentResources = {.UniformBuffers = 1};
+                desc.VertexLayout = VertexLayouts::POSITION_NORMAL_COLOUR;
                 desc.Cull = CullMode::Back;
                 desc.DepthTest = false;
                 desc.DepthWrite = false;
@@ -202,7 +202,7 @@ namespace Wayfinder
             vd.LineVertexCount = static_cast<uint32_t>(vd.ScratchLines.size());
             if (!vd.ScratchLines.empty())
             {
-                const auto dataSize = static_cast<uint32_t>(vd.ScratchLines.size() * sizeof(VertexPosColour));
+                const auto dataSize = static_cast<uint32_t>(vd.ScratchLines.size() * sizeof(VertexPositionColour));
                 vd.LineAlloc = transientAllocator.AllocateVertices(vd.ScratchLines.data(), dataSize);
             }
             vd.ScratchLines.clear(); // Free memory; data is on GPU now.
@@ -253,7 +253,7 @@ namespace Wayfinder
                         const UnlitTransformUBO transformUBO{.Mvp = resolved.ProjectionMatrix * resolved.View};
                         const DebugMaterialUBO materialUBO{.BaseColour = Float4(1.0f)};
 
-                        device.BindVertexBuffer(vd.LineAlloc.Buffer, {.offsetInBytes = vd.LineAlloc.Offset});
+                        device.BindVertexBuffer(vd.LineAlloc.Buffer, {.OffsetInBytes = vd.LineAlloc.Offset});
                         device.PushVertexUniform(0, &transformUBO, sizeof(UnlitTransformUBO));
                         device.PushFragmentUniform(0, &materialUBO, sizeof(DebugMaterialUBO));
                         device.DrawPrimitives(vd.LineVertexCount);

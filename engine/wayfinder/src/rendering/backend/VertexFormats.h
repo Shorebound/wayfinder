@@ -10,18 +10,18 @@ namespace Wayfinder
 {
     // ── Vertex Structures ────────────────────────────────────
 
-    struct VertexPos
+    struct VertexPosition
     {
         Float3 Position;
     };
 
-    struct VertexPosColour
+    struct VertexPositionColour
     {
         Float3 Position;
         Float3 Colour;
     };
 
-    struct VertexPosNormalUV
+    struct VertexPositionNormalUV
     {
         Float3 Position;
         Float3 Normal;
@@ -29,7 +29,7 @@ namespace Wayfinder
     };
 
     /// Tangent.xyz + handedness sign in w (MikkTSpace convention).
-    struct VertexPosNormalUVTangent
+    struct VertexPositionNormalUVTangent
     {
         Float3 Position;
         Float3 Normal;
@@ -37,7 +37,7 @@ namespace Wayfinder
         Float4 Tangent;
     };
 
-    struct VertexPosNormalColour
+    struct VertexPositionNormalColour
     {
         Float3 Position;
         Float3 Normal;
@@ -49,25 +49,25 @@ namespace Wayfinder
     // These are lightweight structs that mirror SDL_GPUVertexAttribute
     // without pulling in SDL headers. The backend translates them.
 
-    enum class VertexAttribFormat : uint8_t
+    enum class VertexAttributeFormat : uint8_t
     {
         Float2,
         Float3,
         Float4,
     };
 
-    struct VertexAttrib
+    struct VertexAttribute
     {
-        uint32_t location;
-        uint32_t offset;
-        VertexAttribFormat format;
+        uint32_t Location;
+        uint32_t Offset;
+        VertexAttributeFormat Format;
     };
 
     struct VertexLayout
     {
-        uint32_t stride = 0;
-        const VertexAttrib* attribs = nullptr;
-        uint32_t attribCount = 0;
+        uint32_t Stride = 0;
+        const VertexAttribute* Attributes = nullptr;
+        uint32_t AttributeCount = 0;
     };
 
     /**
@@ -79,17 +79,17 @@ namespace Wayfinder
      */
     inline bool VertexLayoutsMatch(const VertexLayout& a, const VertexLayout& b)
     {
-        if (a.stride != b.stride || a.attribCount != b.attribCount)
+        if (a.Stride != b.Stride || a.AttributeCount != b.AttributeCount)
         {
             return false;
         }
-        if (a.attribCount > 0 && (a.attribs == nullptr || b.attribs == nullptr))
+        if (a.AttributeCount > 0 && (a.Attributes == nullptr || b.Attributes == nullptr))
         {
             return false;
         }
-        for (uint32_t i = 0; i < a.attribCount; ++i)
+        for (uint32_t i = 0; i < a.AttributeCount; ++i)
         {
-            if (a.attribs[i].location != b.attribs[i].location || a.attribs[i].offset != b.attribs[i].offset || a.attribs[i].format != b.attribs[i].format)
+            if (a.Attributes[i].Location != b.Attributes[i].Location || a.Attributes[i].Offset != b.Attributes[i].Offset || a.Attributes[i].Format != b.Attributes[i].Format)
             {
                 return false;
             }
@@ -102,74 +102,74 @@ namespace Wayfinder
     namespace VertexLayouts
     {
         // Empty layout for fullscreen passes using SV_VertexID (no vertex buffer)
-        inline constexpr VertexLayout Empty =
+        inline constexpr VertexLayout EMPTY =
         {
-            .stride = 0,
-            .attribs = nullptr,
-            .attribCount = 0,
+            .Stride = 0,
+            .Attributes = nullptr,
+            .AttributeCount = 0,
         };
 
-        inline constexpr std::array<VertexAttrib, 1> PosAttribs = {{
-            {0, offsetof(VertexPos, Position), VertexAttribFormat::Float3},
+        inline constexpr std::array<VertexAttribute, 1> POSITION_ATTRIBUTES = {{
+            {0, offsetof(VertexPosition, Position), VertexAttributeFormat::Float3},
         }};
 
-        inline constexpr VertexLayout Pos =
+        inline constexpr VertexLayout POSITION =
         {
-            .stride = sizeof(VertexPos),
-            .attribs = PosAttribs.data(),
-            .attribCount = static_cast<uint32_t>(PosAttribs.size()),
+            .Stride = sizeof(VertexPosition),
+            .Attributes = POSITION_ATTRIBUTES.data(),
+            .AttributeCount = static_cast<uint32_t>(POSITION_ATTRIBUTES.size()),
         };
 
-        inline constexpr std::array<VertexAttrib, 2> PosColourAttribs = {{
-            {0, offsetof(VertexPosColour, Position), VertexAttribFormat::Float3},
-            {1, offsetof(VertexPosColour, Colour), VertexAttribFormat::Float3},
+        inline constexpr std::array<VertexAttribute, 2> PosColourAttribs = {{
+            {0, offsetof(VertexPositionColour, Position), VertexAttributeFormat::Float3},
+            {1, offsetof(VertexPositionColour, Colour), VertexAttributeFormat::Float3},
         }};
 
-        inline constexpr VertexLayout PosColour =
+        inline constexpr VertexLayout POSITION_COLOUR =
         {
-            .stride = sizeof(VertexPosColour),
-            .attribs = PosColourAttribs.data(),
-            .attribCount = static_cast<uint32_t>(PosColourAttribs.size()),
+            .Stride = sizeof(VertexPositionColour),
+            .Attributes = PosColourAttribs.data(),
+            .AttributeCount = static_cast<uint32_t>(PosColourAttribs.size()),
         };
 
-        inline constexpr std::array<VertexAttrib, 3> PosNormalUVAttribs = {{
-            {0, offsetof(VertexPosNormalUV, Position), VertexAttribFormat::Float3},
-            {1, offsetof(VertexPosNormalUV, Normal), VertexAttribFormat::Float3},
-            {2, offsetof(VertexPosNormalUV, UV), VertexAttribFormat::Float2},
+        inline constexpr std::array<VertexAttribute, 3> POSITION_NORMAL_UV_ATTRIBUTES = {{
+            {0, offsetof(VertexPositionNormalUV, Position), VertexAttributeFormat::Float3},
+            {1, offsetof(VertexPositionNormalUV, Normal), VertexAttributeFormat::Float3},
+            {2, offsetof(VertexPositionNormalUV, UV), VertexAttributeFormat::Float2},
         }};
 
-        inline constexpr VertexLayout PosNormalUV =
+        inline constexpr VertexLayout POSITION_NORMAL_UV =
         {
-            .stride = sizeof(VertexPosNormalUV),
-            .attribs = PosNormalUVAttribs.data(),
-            .attribCount = static_cast<uint32_t>(PosNormalUVAttribs.size()),
+            .Stride = sizeof(VertexPositionNormalUV),
+            .Attributes = POSITION_NORMAL_UV_ATTRIBUTES.data(),
+            .AttributeCount = static_cast<uint32_t>(POSITION_NORMAL_UV_ATTRIBUTES.size()),
         };
 
-        inline constexpr std::array<VertexAttrib, 4> PosNormalUVTangentAttribs = {{
-            {0, offsetof(VertexPosNormalUVTangent, Position), VertexAttribFormat::Float3},
-            {1, offsetof(VertexPosNormalUVTangent, Normal), VertexAttribFormat::Float3},
-            {2, offsetof(VertexPosNormalUVTangent, UV), VertexAttribFormat::Float2},
-            {3, offsetof(VertexPosNormalUVTangent, Tangent), VertexAttribFormat::Float4},
+        inline constexpr std::array<VertexAttribute, 4> POSITION_NORMAL_UV_TANGENT_ATTRIBUTES = {{
+            {0, offsetof(VertexPositionNormalUVTangent, Position), VertexAttributeFormat::Float3},
+            {1, offsetof(VertexPositionNormalUVTangent, Normal), VertexAttributeFormat::Float3},
+            {2, offsetof(VertexPositionNormalUVTangent, UV), VertexAttributeFormat::Float2},
+            {3, offsetof(VertexPositionNormalUVTangent, Tangent), VertexAttributeFormat::Float4},
         }};
 
-        inline constexpr VertexLayout PosNormalUVTangent =
+        inline constexpr VertexLayout POSITION_NORMAL_UV_TANGENT =
         {
-            .stride = sizeof(VertexPosNormalUVTangent),
-            .attribs = PosNormalUVTangentAttribs.data(),
-            .attribCount = static_cast<uint32_t>(PosNormalUVTangentAttribs.size()),
+            .Stride = sizeof(VertexPositionNormalUVTangent),
+            .Attributes = POSITION_NORMAL_UV_TANGENT_ATTRIBUTES.data(),
+            .AttributeCount = static_cast<uint32_t>(POSITION_NORMAL_UV_TANGENT_ATTRIBUTES.size()),
         };
 
-        inline constexpr std::array<VertexAttrib, 3> PosNormalColourAttribs = {{
-            {0, offsetof(VertexPosNormalColour, Position), VertexAttribFormat::Float3},
-            {1, offsetof(VertexPosNormalColour, Normal), VertexAttribFormat::Float3},
-            {2, offsetof(VertexPosNormalColour, Colour), VertexAttribFormat::Float3},
+        inline constexpr std::array<VertexAttribute, 3> POSITION_NORMAL_COLOUR_ATTRIBUTES = {{
+            {0, offsetof(VertexPositionNormalColour, Position), VertexAttributeFormat::Float3},
+            {1, offsetof(VertexPositionNormalColour, Normal), VertexAttributeFormat::Float3},
+            {2, offsetof(VertexPositionNormalColour, Colour), VertexAttributeFormat::Float3},
         }};
 
-        inline constexpr VertexLayout PosNormalColour =
+        inline constexpr VertexLayout POSITION_NORMAL_COLOUR =
         {
-            .stride = sizeof(VertexPosNormalColour),
-            .attribs = PosNormalColourAttribs.data(),
-            .attribCount = static_cast<uint32_t>(PosNormalColourAttribs.size()),
+            .Stride = sizeof(VertexPositionNormalColour),
+            .Attributes = POSITION_NORMAL_COLOUR_ATTRIBUTES.data(),
+            .AttributeCount = static_cast<uint32_t>(POSITION_NORMAL_COLOUR_ATTRIBUTES.size()),
         };
     }
 
