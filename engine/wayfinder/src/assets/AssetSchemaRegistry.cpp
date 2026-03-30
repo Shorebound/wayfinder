@@ -113,8 +113,14 @@ namespace Wayfinder
 
     bool AssetSchemaRegistry::ValidateMaterialDocument(const nlohmann::json& document, const std::filesystem::path& filePath, std::string& error)
     {
-        MaterialAsset material;
-        return ParseMaterialAssetDocument(document, filePath.generic_string(), material, error);
+        Result<MaterialAsset> materialResult = ParseMaterialAssetDocument(document, filePath.generic_string());
+        if (materialResult)
+        {
+            return true;
+        }
+
+        error = materialResult.error().GetMessage();
+        return false;
     }
 
     bool AssetSchemaRegistry::ValidateTextureDocument(const nlohmann::json& document, const std::filesystem::path& filePath, std::string& error)

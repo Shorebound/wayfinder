@@ -1,5 +1,6 @@
 #include "Material.h"
 #include "core/Log.h"
+#include "core/Result.h"
 #include "core/Types.h"
 
 #include <algorithm>
@@ -65,12 +66,12 @@ namespace Wayfinder
 
         /// Parse a JSON "parameters" object into a MaterialParameterBlock.
         /// Supports: arrays of 3-4 numbers as Colour, single numbers as Float, integers as Int.
-        /// Returns false and sets error when a parameter looks like a colour but has invalid channel values.
-        bool ParseParametersTable(const nlohmann::json& params, Wayfinder::MaterialParameterBlock& block, std::string& error)
+        /// Returns an error when a parameter looks like a colour but has invalid channel values.
+        Result<void> ParseParametersTable(const nlohmann::json& params, Wayfinder::MaterialParameterBlock& block)
         {
             if (!params.is_object())
             {
-                return true;
+                return {};
             }
 
             for (const auto& [key, node] : params.items())
@@ -92,8 +93,7 @@ namespace Wayfinder
                         }
                         else if (colourResult == ParseColourResult::Invalid)
                         {
-                            error = std::format("parameter '{}': {}", name, colourError);
-                            return false;
+                            return MakeError(std::format("parameter '{}': {}", name, colourError));
                         }
                         else if (node.size() == 3)
                         {
@@ -129,7 +129,7 @@ namespace Wayfinder
                 }
             }
 
-            return true;
+            return {};
         }
 
     } // namespace
@@ -155,33 +155,29 @@ namespace Wayfinder
         Parameters.SetColour("base_colour", colour);
     }
 
-    bool ParseMaterialAssetDocument(const nlohmann::json& document, const std::string& sourceLabel, MaterialAsset& material, std::string& error)
+    Result<MaterialAsset> ParseMaterialAssetDocument(const nlohmann::json& document, const std::string& sourceLabel)
     {
         if (!document.contains(ASSET_ID_KEY) || !document.at(ASSET_ID_KEY).is_string())
         {
-            error = "Material asset '" + sourceLabel + "' is missing asset_id";
-            return false;
+            return MakeError("Material asset '" + sourceLabel + "' is missing asset_id");
         }
 
         const std::string assetIdText = document.at(ASSET_ID_KEY).get<std::string>();
         const std::optional<AssetId> assetId = AssetId::Parse(assetIdText);
         if (!assetId)
         {
-            error = "Material asset '" + sourceLabel + "' has an invalid asset_id";
-            return false;
+            return MakeError("Material asset '" + sourceLabel + "' has an invalid asset_id");
         }
 
         if (!document.contains(ASSET_TYPE_KEY) || !document.at(ASSET_TYPE_KEY).is_string())
         {
-            error = "Material asset '" + sourceLabel + "' is missing asset_type";
-            return false;
+            return MakeError("Material asset '" + sourceLabel + "' is missing asset_type");
         }
 
         const std::string assetType = document.at(ASSET_TYPE_KEY).get<std::string>();
         if (assetType != "material")
         {
-            error = "Material asset '" + sourceLabel + "' must declare asset_type = 'material'";
-            return false;
+            return MakeError("Material asset '" + sourceLabel + "' must declare asset_type = 'material'");
         }
 
         MaterialAsset parsed;
@@ -194,8 +190,7 @@ namespace Wayfinder
         {
             if (!document.at(BLEND_KEY).is_string())
             {
-                error = "Material asset '" + sourceLabel + "' field 'blend' must be a string";
-                return false;
+                return MakeError("Material asset '" + sourceLabel + "' field 'blend' must be a string");
             }
 
             const std::string blendText = document.at(BLEND_KEY).get<std::string>();
@@ -217,19 +212,16 @@ namespace Wayfinder
             }
             else if (blendText != "opaque")
             {
-                error = "Material asset '" + sourceLabel + "' has unknown blend mode '" + blendText + "'";
-                return false;
+                return MakeError("Material asset '" + sourceLabel + "' has unknown blend mode '" + blendText + "'");
             }
         }
 
         // Parse "parameters" object if present
         if (document.contains(PARAMETERS_KEY) && document.at(PARAMETERS_KEY).is_object())
         {
-            std::string paramError;
-            if (!ParseParametersTable(document.at(PARAMETERS_KEY), parsed.Parameters, paramError))
+            if (Result<void> parametersResult = ParseParametersTable(document.at(PARAMETERS_KEY), parsed.Parameters); !parametersResult)
             {
-                error = "Material asset '" + sourceLabel + "' " + paramError;
-                return false;
+                return MakeError("Material asset '" + sourceLabel + "' " + parametersResult.error().GetMessage());
             }
         }
 
@@ -242,8 +234,7 @@ namespace Wayfinder
             const auto colourResult = ParseLinearColour(document.at(BASE_COLOUR_KEY), baseColour, colourError);
             if (colourResult != ParseColourResult::Parsed)
             {
-                error = "Material asset '" + sourceLabel + "' field 'base_colour' " + (colourResult == ParseColourResult::Invalid ? colourError : "must be an array of 3 or 4 integers [0-255]");
-                return false;
+                return MakeError("Material asset '" + sourceLabel + "' field 'base_colour' " + (colourResult == ParseColourResult::Invalid ? colourError : "must be an array of 3 or 4 integers [0-255]"));
             }
             parsed.Parameters.SetColour("base_colour", baseColour);
         }
@@ -257,8 +248,7 @@ namespace Wayfinder
         // Parse "textures" object: maps slot name → texture asset ID string
         if (document.contains(TEXTURES_KEY) && !document.at(TEXTURES_KEY).is_object())
         {
-            error = "Material asset '" + sourceLabel + "' has invalid 'textures' block: must be an object";
-            return false;
+            return MakeError("Material asset '" + sourceLabel + "' has invalid 'textures' block: must be an object");
         }
 
         if (document.contains(TEXTURES_KEY) && document.at(TEXTURES_KEY).is_object())
@@ -267,16 +257,14 @@ namespace Wayfinder
             {
                 if (!idNode.is_string())
                 {
-                    error = std::format("Material asset '{}' textures['{}'] must be a string (asset ID)", sourceLabel, slotName);
-                    return false;
+                    return MakeError(std::format("Material asset '{}' textures['{}'] must be a string (asset ID)", sourceLabel, slotName));
                 }
 
                 const std::string idText = idNode.get<std::string>();
                 const std::optional<AssetId> texAssetId = AssetId::Parse(idText);
                 if (!texAssetId)
                 {
-                    error = std::format("Material asset '{}' textures['{}'] has an invalid asset ID: {}", sourceLabel, slotName, idText);
-                    return false;
+                    return MakeError(std::format("Material asset '{}' textures['{}'] has an invalid asset ID: {}", sourceLabel, slotName, idText));
                 }
 
                 parsed.Textures[slotName] = *texAssetId;
@@ -287,32 +275,28 @@ namespace Wayfinder
         {
             if (!document.at(WIREFRAME_KEY).is_boolean())
             {
-                error = "Material asset '" + sourceLabel + "' field 'wireframe' must be a boolean";
-                return false;
+                return MakeError("Material asset '" + sourceLabel + "' field 'wireframe' must be a boolean");
             }
         }
 
-        material = std::move(parsed);
-        return true;
+        return parsed;
     }
 
-    bool LoadMaterialAssetFromFile(const std::filesystem::path& filePath, MaterialAsset& material, std::string& error)
+    Result<MaterialAsset> LoadMaterialAssetFromFile(const std::filesystem::path& filePath)
     {
         try
         {
             std::ifstream file(filePath.string());
             if (!file.is_open())
             {
-                error = "Failed to open material asset '" + filePath.generic_string() + "'";
-                return false;
+                return MakeError("Failed to open material asset '" + filePath.generic_string() + "'");
             }
             const nlohmann::json document = nlohmann::json::parse(file);
-            return ParseMaterialAssetDocument(document, filePath.generic_string(), material, error);
+            return ParseMaterialAssetDocument(document, filePath.generic_string());
         }
         catch (const nlohmann::json::exception& parseError)
         {
-            error = "Failed to parse material asset '" + filePath.generic_string() + "': " + parseError.what();
-            return false;
+            return MakeError("Failed to parse material asset '" + filePath.generic_string() + "': " + parseError.what());
         }
     }
 

@@ -151,9 +151,9 @@ namespace Wayfinder::Tests
             }
         })");
 
-        MaterialAsset material;
-        std::string error;
-        CHECK(ParseMaterialAssetDocument(doc, "test_material.json", material, error));
+        const Result<MaterialAsset> materialResult = ParseMaterialAssetDocument(doc, "test_material.json");
+        REQUIRE(materialResult);
+        const MaterialAsset& material = materialResult.value();
         CHECK(material.Textures.size() == 2);
         CHECK(material.Textures.contains("diffuse"));
         CHECK(material.Textures.contains("normal"));
@@ -171,10 +171,9 @@ namespace Wayfinder::Tests
             }
         })");
 
-        MaterialAsset material;
-        std::string error;
-        CHECK_FALSE(ParseMaterialAssetDocument(doc, "test_material.json", material, error));
-        CHECK(error.find("invalid asset ID") != std::string::npos);
+        const Result<MaterialAsset> materialResult = ParseMaterialAssetDocument(doc, "test_material.json");
+        CHECK_FALSE(materialResult);
+        CHECK(materialResult.error().GetMessage().find("invalid asset ID") != std::string::npos);
     }
 
     TEST_CASE("Material parsing accepts empty textures block")
@@ -186,9 +185,9 @@ namespace Wayfinder::Tests
             "textures": {}
         })");
 
-        MaterialAsset material;
-        std::string error;
-        CHECK(ParseMaterialAssetDocument(doc, "test_material.json", material, error));
+        const Result<MaterialAsset> materialResult = ParseMaterialAssetDocument(doc, "test_material.json");
+        REQUIRE(materialResult);
+        const MaterialAsset& material = materialResult.value();
         CHECK(material.Textures.empty());
     }
 
@@ -200,10 +199,26 @@ namespace Wayfinder::Tests
             "shader": "basic_lit"
         })");
 
-        MaterialAsset material;
-        std::string error;
-        CHECK(ParseMaterialAssetDocument(doc, "test_material.json", material, error));
+        const Result<MaterialAsset> materialResult = ParseMaterialAssetDocument(doc, "test_material.json");
+        REQUIRE(materialResult);
+        const MaterialAsset& material = materialResult.value();
         CHECK(material.Textures.empty());
+    }
+
+    TEST_CASE("Material parsing rejects invalid parameter colour ranges")
+    {
+        const auto doc = nlohmann::json::parse(R"({
+            "asset_id": "a0000000-0000-0000-0000-000000000001",
+            "asset_type": "material",
+            "shader": "basic_lit",
+            "parameters": {
+                "base_colour": [255, 32, 999, 255]
+            }
+        })");
+
+        const Result<MaterialAsset> materialResult = ParseMaterialAssetDocument(doc, "test_material.json");
+        CHECK_FALSE(materialResult);
+        CHECK(materialResult.error().GetMessage().find("parameter 'base_colour'") != std::string::npos);
     }
 
     // ── AssetCache ───────────────────────────────────────────

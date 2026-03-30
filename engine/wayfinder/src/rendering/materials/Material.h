@@ -10,6 +10,7 @@
 #include "MaterialParameter.h"
 #include "assets/AssetLoader.h"
 #include "core/Identifiers.h"
+#include "core/Result.h"
 #include "core/Types.h"
 #include "wayfinder_exports.h"
 
@@ -50,26 +51,31 @@ namespace Wayfinder
         void SetBaseColour(const LinearColour& colour);
     };
 
-    WAYFINDER_API bool ParseMaterialAssetDocument(const nlohmann::json& document, const std::string& sourceLabel, MaterialAsset& material, std::string& error);
+    WAYFINDER_API Result<MaterialAsset> ParseMaterialAssetDocument(const nlohmann::json& document, const std::string& sourceLabel);
 
-    WAYFINDER_API bool LoadMaterialAssetFromFile(const std::filesystem::path& filePath, MaterialAsset& material, std::string& error);
+    WAYFINDER_API Result<MaterialAsset> LoadMaterialAssetFromFile(const std::filesystem::path& filePath);
 
     WAYFINDER_API nlohmann::json CreateMaterialComponentTable(const MaterialAsset& material);
 
     // ── AssetLoader specialisation ───────────────────────────
     // Allows MaterialAsset to be loaded through the generic AssetCache<T> path.
+    /// @todo Refactor AssetLoader<T> and AssetCache<T> to return Result<TAsset>
+    /// across the full asset pipeline in a follow-up PR. This adapter remains
+    /// optional-based until mesh, texture, and cache loading share the same API.
 
     template<>
     struct AssetLoader<MaterialAsset>
     {
         static std::optional<MaterialAsset> Load(const nlohmann::json& document, const std::filesystem::path& filePath, std::string& error)
         {
-            MaterialAsset material;
-            if (!ParseMaterialAssetDocument(document, filePath.generic_string(), material, error))
+            Result<MaterialAsset> materialResult = ParseMaterialAssetDocument(document, filePath.generic_string());
+            if (!materialResult)
             {
+                error = materialResult.error().GetMessage();
                 return std::nullopt;
             }
-            return material;
+
+            return std::move(materialResult.value());
         }
     };
 
