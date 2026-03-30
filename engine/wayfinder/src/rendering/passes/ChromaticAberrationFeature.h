@@ -8,7 +8,10 @@ namespace Wayfinder
     class RenderServices;
 
     /**
-     * @brief Post-process chromatic aberration (radial RGB separation). Self-registers blendable type and shader in OnAttach.
+     * @brief Post-process chromatic aberration (radial RGB separation).
+     *
+     * Shader programs are exposed via GetShaderPrograms() and effect/blendable
+     * registration happens in OnRegisterEffects().
      */
     class ChromaticAberrationFeature final : public RenderFeature
     {
@@ -20,6 +23,8 @@ namespace Wayfinder
 
         RenderCapabilityMask GetCapabilities() const override;
 
+        std::span<const ShaderProgramDesc> GetShaderPrograms() const override;
+        void OnRegisterEffects(BlendableEffectRegistry& registry) override;
         void OnAttach(const RenderFeatureContext& context) override;
         void OnDetach(const RenderFeatureContext& context) override;
         void AddPasses(RenderGraph& graph, const FrameRenderParams& params) override;

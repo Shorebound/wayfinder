@@ -7,38 +7,23 @@
 
 ---
 
-# --- Check Selection ---
 Checks: >
   -*,
   bugprone-*,
   clang-analyzer-*,
   cppcoreguidelines-*,
-  -cppcoreguidelines-avoid-magic-numbers,
-  -cppcoreguidelines-avoid-non-const-global-variables,
-  -cppcoreguidelines-avoid-do-while,
-  -cppcoreguidelines-owning-memory,
-  -cppcoreguidelines-pro-bounds-pointer-arithmetic,
-  -cppcoreguidelines-pro-bounds-avoid-unchecked-container-access,
-  -cppcoreguidelines-pro-bounds-constant-array-index,
-  -cppcoreguidelines-pro-type-union-access,
-  -clang-analyzer-core.StackAddressEscape,
-  -clang-analyzer-optin.core.EnumCastOutOfRange,
-  -cppcoreguidelines-pro-type-reinterpret-cast,
-  -cppcoreguidelines-pro-type-static-cast-downcast,
-  -cppcoreguidelines-special-member-functions,
+  -cppcoreguidelines-non-private-member-variables-in-classes,
   misc-*,
-  -misc-include-cleaner,
   -misc-non-private-member-variables-in-classes,
   modernize-*,
   -modernize-use-trailing-return-type,
   performance-*,
-  readability-container-size-empty,
-  readability-function-size,
-  readability-identifier-naming,
-  readability-make-member-function-const,
-  readability-qualified-auto,
-  readability-redundant-*,
-  readability-simplify-*
+  readability-*,
+  -readability-else-after-return,
+  -readability-static-accessed-through-instance,
+  -readability-avoid-const-params-in-decls,
+
+
 
 # Only analyse project headers, not third-party or system.
 HeaderFilterRegex: 'engine/wayfinder/src/.*'

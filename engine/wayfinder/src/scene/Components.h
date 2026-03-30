@@ -148,7 +148,7 @@ namespace Wayfinder
     struct RenderableComponent
     {
         bool Visible = true;
-        RenderGroupId Group = RenderGroups::Main;
+        RenderGroupId Group = RenderGroups::MAIN;
         uint8_t SortPriority = 128;
 
         RenderableComponent() = default;

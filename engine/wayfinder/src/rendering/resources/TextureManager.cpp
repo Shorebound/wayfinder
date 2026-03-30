@@ -22,12 +22,12 @@ namespace Wayfinder
 
         if (!m_whiteTexture || !m_blackTexture || !m_flatNormalTexture || !m_fallbackTexture)
         {
-            WAYFINDER_ERROR(LogRenderer, "TextureManager: Failed to create one or more built-in textures");
+            Log::Error(LogRenderer, "TextureManager: Failed to create one or more built-in textures");
             Shutdown();
             return false;
         }
 
-        WAYFINDER_INFO(LogRenderer, "TextureManager initialised (4 built-in textures)");
+        Log::Info(LogRenderer, "TextureManager initialised (4 built-in textures)");
         return true;
     }
 
@@ -87,7 +87,7 @@ namespace Wayfinder
     {
         if (!m_device)
         {
-            WAYFINDER_WARN(LogRenderer, "TextureManager::GetOrLoad called without a valid device");
+            Log::Warn(LogRenderer, "TextureManager::GetOrLoad called without a valid device");
             return m_fallbackTexture;
         }
 
@@ -102,7 +102,7 @@ namespace Wayfinder
         const TextureAsset* asset = assetService.LoadAsset<TextureAsset>(assetId, error);
         if (!asset)
         {
-            WAYFINDER_WARN(LogRenderer, "TextureManager: Failed to load texture asset '{}': {}", assetId.ToString(), error);
+            Log::Warn(LogRenderer, "TextureManager: Failed to load texture asset '{}': {}", assetId.ToString(), error);
             m_textureCache[assetId] = m_fallbackTexture;
             return m_fallbackTexture;
         }
@@ -114,7 +114,7 @@ namespace Wayfinder
             asset = assetService.LoadAsset<TextureAsset>(assetId, error);
             if (!asset || asset->PixelData.empty())
             {
-                WAYFINDER_WARN(LogRenderer, "TextureManager: Failed to reload pixel data for texture '{}': {}", assetId.ToString(), error);
+                Log::Warn(LogRenderer, "TextureManager: Failed to reload pixel data for texture '{}': {}", assetId.ToString(), error);
                 m_textureCache[assetId] = m_fallbackTexture;
                 return m_fallbackTexture;
             }
@@ -124,14 +124,14 @@ namespace Wayfinder
         GPUTextureHandle gpuTexture = CreateAndUpload(*asset);
         if (!gpuTexture)
         {
-            WAYFINDER_WARN(LogRenderer, "TextureManager: GPU upload failed for texture '{}', using fallback", asset->Name);
+            Log::Warn(LogRenderer, "TextureManager: GPU upload failed for texture '{}', using fallback", asset->Name);
             m_textureCache[assetId] = m_fallbackTexture;
             return m_fallbackTexture;
         }
 
         m_textureCache[assetId] = gpuTexture;
 
-        WAYFINDER_INFO(LogRenderer, "TextureManager: Loaded '{}' ({}x{}, mipLevels={}) to GPU", asset->Name, asset->Width, asset->Height, asset->MipLevels);
+        Log::Info(LogRenderer, "TextureManager: Loaded '{}' ({}x{}, mipLevels={}) to GPU", asset->Name, asset->Width, asset->Height, asset->MipLevels);
 
         // Release CPU-side pixel data now that it's on the GPU
         assetService.ReleaseTexturePixelData(assetId);
@@ -143,7 +143,7 @@ namespace Wayfinder
     {
         if (!m_device)
         {
-            WAYFINDER_WARN(LogRenderer, "TextureManager::GetOrCreateSampler called without a valid device");
+            Log::Warn(LogRenderer, "TextureManager::GetOrCreateSampler called without a valid device");
             return {};
         }
 
@@ -170,11 +170,11 @@ namespace Wayfinder
         }
 
         TextureCreateDesc desc;
-        desc.width = asset.Width;
-        desc.height = asset.Height;
-        desc.format = TextureFormat::RGBA8_UNORM;
-        desc.usage = TextureUsage::Sampler;
-        desc.mipLevels = asset.MipLevels; // 0 = auto, device resolves
+        desc.Width = asset.Width;
+        desc.Height = asset.Height;
+        desc.Format = TextureFormat::RGBA8_UNORM;
+        desc.Usage = TextureUsage::Sampler;
+        desc.MipLevels = asset.MipLevels; // 0 = auto, device resolves
 
         GPUTextureHandle texture = m_device->CreateTexture(desc);
         if (!texture)
@@ -195,10 +195,10 @@ namespace Wayfinder
     GPUTextureHandle TextureManager::CreateSolidColour(uint8_t r, uint8_t g, uint8_t b, uint8_t a)
     {
         TextureCreateDesc desc;
-        desc.width = 1;
-        desc.height = 1;
-        desc.format = TextureFormat::RGBA8_UNORM;
-        desc.usage = TextureUsage::Sampler;
+        desc.Width = 1;
+        desc.Height = 1;
+        desc.Format = TextureFormat::RGBA8_UNORM;
+        desc.Usage = TextureUsage::Sampler;
 
         GPUTextureHandle texture = m_device->CreateTexture(desc);
         if (!texture)
@@ -240,10 +240,10 @@ namespace Wayfinder
         }
 
         TextureCreateDesc desc;
-        desc.width = K_SIZE;
-        desc.height = K_SIZE;
-        desc.format = TextureFormat::RGBA8_UNORM;
-        desc.usage = TextureUsage::Sampler;
+        desc.Width = K_SIZE;
+        desc.Height = K_SIZE;
+        desc.Format = TextureFormat::RGBA8_UNORM;
+        desc.Usage = TextureUsage::Sampler;
 
         GPUTextureHandle texture = m_device->CreateTexture(desc);
         if (!texture)
@@ -281,16 +281,16 @@ namespace Wayfinder
             }
         };
 
-        feedByte(static_cast<uint8_t>(desc.minFilter));
-        feedByte(static_cast<uint8_t>(desc.magFilter));
-        feedByte(static_cast<uint8_t>(desc.addressModeU));
-        feedByte(static_cast<uint8_t>(desc.addressModeV));
-        feedByte(static_cast<uint8_t>(desc.mipmapMode));
-        feedFloat(desc.minLod);
-        feedFloat(desc.maxLod);
-        feedFloat(desc.mipLodBias);
-        feedByte(desc.enableAnisotropy ? 1 : 0);
-        feedFloat(desc.maxAnisotropy);
+        feedByte(static_cast<uint8_t>(desc.MinFilter));
+        feedByte(static_cast<uint8_t>(desc.MagFilter));
+        feedByte(static_cast<uint8_t>(desc.AddressModeU));
+        feedByte(static_cast<uint8_t>(desc.AddressModeV));
+        feedByte(static_cast<uint8_t>(desc.MipmapMode));
+        feedFloat(desc.MinLod);
+        feedFloat(desc.MaxLod);
+        feedFloat(desc.MipLodBias);
+        feedByte(desc.EnableAnisotropy ? 1 : 0);
+        feedFloat(desc.MaxAnisotropy);
 
         return hash;
     }

@@ -30,13 +30,13 @@ namespace Wayfinder
         m_device = &device;
 
         BufferCreateDesc desc{};
-        desc.usage = usage;
-        desc.sizeInBytes = sizeInBytes;
+        desc.Usage = usage;
+        desc.SizeInBytes = sizeInBytes;
 
         m_handle = device.CreateBuffer(desc);
         if (!m_handle)
         {
-            WAYFINDER_ERROR(LogRenderer, "GPUBuffer: Failed to create buffer ({} bytes)", sizeInBytes);
+            Log::Error(LogRenderer, "GPUBuffer: Failed to create buffer ({} bytes)", sizeInBytes);
             return false;
         }
 
@@ -51,7 +51,7 @@ namespace Wayfinder
             return;
         }
 
-        m_device->UploadToBuffer(m_handle, data, {.sizeInBytes = sizeInBytes});
+        m_device->UploadToBuffer(m_handle, data, {.SizeInBytes = sizeInBytes});
     }
 
     void GPUBuffer::Destroy()

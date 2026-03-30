@@ -1,4 +1,5 @@
 #include "rendering/backend/RenderDevice.h"
+#include "rendering/backend/VertexFormats.h"
 #include "rendering/pipeline/PipelineCache.h"
 
 #include <doctest/doctest.h>
@@ -82,16 +83,16 @@ namespace Wayfinder::Tests
     TEST_CASE("PipelineCreateDesc default blend is disabled")
     {
         PipelineCreateDesc desc{};
-        CHECK(desc.numColourTargets == 1);
-        CHECK_FALSE(desc.colourTargetBlends[0].Enabled);
+        CHECK(desc.ColourTargetCount == 1);
+        CHECK_FALSE(desc.ColourTargetBlends[0].Enabled);
     }
 
     TEST_CASE("PipelineCreateDesc carries blend state")
     {
         PipelineCreateDesc desc{};
-        desc.colourTargetBlends[0] = BlendPresets::AlphaBlend();
-        CHECK(desc.colourTargetBlends[0].Enabled);
-        CHECK(desc.colourTargetBlends[0].SrcColourFactor == BlendFactor::SrcAlpha);
+        desc.ColourTargetBlends[0] = BlendPresets::AlphaBlend();
+        CHECK(desc.ColourTargetBlends[0].Enabled);
+        CHECK(desc.ColourTargetBlends[0].SrcColourFactor == BlendFactor::SrcAlpha);
     }
 
     // ── Presets are constexpr ────────────────────────────────
@@ -182,15 +183,15 @@ namespace Wayfinder::Tests
     TEST_CASE("PipelineCreateDesc supports multiple colour targets")
     {
         PipelineCreateDesc desc{};
-        desc.numColourTargets = 3;
-        desc.colourTargetBlends[0] = BlendPresets::AlphaBlend();
-        desc.colourTargetBlends[1] = BlendPresets::Opaque();
-        desc.colourTargetBlends[2] = BlendPresets::Additive();
+        desc.ColourTargetCount = 3;
+        desc.ColourTargetBlends[0] = BlendPresets::AlphaBlend();
+        desc.ColourTargetBlends[1] = BlendPresets::Opaque();
+        desc.ColourTargetBlends[2] = BlendPresets::Additive();
 
-        CHECK(desc.numColourTargets == 3);
-        CHECK(desc.colourTargetBlends[0].Enabled);
-        CHECK_FALSE(desc.colourTargetBlends[1].Enabled);
-        CHECK(desc.colourTargetBlends[2].DstColourFactor == BlendFactor::One);
+        CHECK(desc.ColourTargetCount == 3);
+        CHECK(desc.ColourTargetBlends[0].Enabled);
+        CHECK_FALSE(desc.ColourTargetBlends[1].Enabled);
+        CHECK(desc.ColourTargetBlends[2].DstColourFactor == BlendFactor::One);
     }
 
     TEST_CASE("MAX_COLOUR_TARGETS is 8")
@@ -203,10 +204,10 @@ namespace Wayfinder::Tests
     TEST_CASE("Pipeline hash differs when blend preset changes")
     {
         PipelineCreateDesc opaqueDesc{};
-        opaqueDesc.colourTargetBlends[0] = BlendPresets::Opaque();
+        opaqueDesc.ColourTargetBlends[0] = BlendPresets::Opaque();
 
         PipelineCreateDesc alphaDesc{};
-        alphaDesc.colourTargetBlends[0] = BlendPresets::AlphaBlend();
+        alphaDesc.ColourTargetBlends[0] = BlendPresets::AlphaBlend();
 
         CHECK(PipelineCache::HashDesc(opaqueDesc) != PipelineCache::HashDesc(alphaDesc));
     }
@@ -214,11 +215,11 @@ namespace Wayfinder::Tests
     TEST_CASE("Pipeline hash differs when only ColourWriteMask changes")
     {
         PipelineCreateDesc fullMaskDesc{};
-        fullMaskDesc.colourTargetBlends[0] = BlendPresets::AlphaBlend();
+        fullMaskDesc.ColourTargetBlends[0] = BlendPresets::AlphaBlend();
 
         PipelineCreateDesc rgbOnlyDesc{};
-        rgbOnlyDesc.colourTargetBlends[0] = BlendPresets::AlphaBlend();
-        rgbOnlyDesc.colourTargetBlends[0].ColourWriteMask = 0x7; // RGB only
+        rgbOnlyDesc.ColourTargetBlends[0] = BlendPresets::AlphaBlend();
+        rgbOnlyDesc.ColourTargetBlends[0].ColourWriteMask = 0x7; // RGB only
 
         CHECK(PipelineCache::HashDesc(fullMaskDesc) != PipelineCache::HashDesc(rgbOnlyDesc));
     }
@@ -226,10 +227,10 @@ namespace Wayfinder::Tests
     TEST_CASE("Pipeline hash is equal for identical blend states")
     {
         PipelineCreateDesc firstDesc{};
-        firstDesc.colourTargetBlends[0] = BlendPresets::AlphaBlend();
+        firstDesc.ColourTargetBlends[0] = BlendPresets::AlphaBlend();
 
         PipelineCreateDesc secondDesc{};
-        secondDesc.colourTargetBlends[0] = BlendPresets::AlphaBlend();
+        secondDesc.ColourTargetBlends[0] = BlendPresets::AlphaBlend();
 
         CHECK(PipelineCache::HashDesc(firstDesc) == PipelineCache::HashDesc(secondDesc));
     }
@@ -237,13 +238,13 @@ namespace Wayfinder::Tests
     TEST_CASE("Pipeline hash differs when numColourTargets differs")
     {
         PipelineCreateDesc singleTarget{};
-        singleTarget.numColourTargets = 1;
-        singleTarget.colourTargetBlends[0] = BlendPresets::Opaque();
+        singleTarget.ColourTargetCount = 1;
+        singleTarget.ColourTargetBlends[0] = BlendPresets::Opaque();
 
         PipelineCreateDesc dualTarget{};
-        dualTarget.numColourTargets = 2;
-        dualTarget.colourTargetBlends[0] = BlendPresets::Opaque();
-        dualTarget.colourTargetBlends[1] = BlendPresets::Opaque();
+        dualTarget.ColourTargetCount = 2;
+        dualTarget.ColourTargetBlends[0] = BlendPresets::Opaque();
+        dualTarget.ColourTargetBlends[1] = BlendPresets::Opaque();
 
         CHECK(PipelineCache::HashDesc(singleTarget) != PipelineCache::HashDesc(dualTarget));
     }
@@ -251,15 +252,61 @@ namespace Wayfinder::Tests
     TEST_CASE("Pipeline hash differs when second target blend changes")
     {
         PipelineCreateDesc descA{};
-        descA.numColourTargets = 2;
-        descA.colourTargetBlends[0] = BlendPresets::Opaque();
-        descA.colourTargetBlends[1] = BlendPresets::Opaque();
+        descA.ColourTargetCount = 2;
+        descA.ColourTargetBlends[0] = BlendPresets::Opaque();
+        descA.ColourTargetBlends[1] = BlendPresets::Opaque();
 
         PipelineCreateDesc descB{};
-        descB.numColourTargets = 2;
-        descB.colourTargetBlends[0] = BlendPresets::Opaque();
-        descB.colourTargetBlends[1] = BlendPresets::AlphaBlend();
+        descB.ColourTargetCount = 2;
+        descB.ColourTargetBlends[0] = BlendPresets::Opaque();
+        descB.ColourTargetBlends[1] = BlendPresets::AlphaBlend();
 
         CHECK(PipelineCache::HashDesc(descA) != PipelineCache::HashDesc(descB));
+    }
+
+    // ── VertexLayoutsMatch ───────────────────────────────────
+
+    TEST_CASE("VertexLayoutsMatch returns true for identical layouts")
+    {
+        CHECK(VertexLayoutsMatch(VertexLayouts::POSITION_COLOUR, VertexLayouts::POSITION_COLOUR));
+        CHECK(VertexLayoutsMatch(VertexLayouts::POSITION_NORMAL_UV, VertexLayouts::POSITION_NORMAL_UV));
+        CHECK(VertexLayoutsMatch(VertexLayouts::EMPTY, VertexLayouts::EMPTY));
+    }
+
+    TEST_CASE("VertexLayoutsMatch returns false for mismatched stride")
+    {
+        VertexLayout a = VertexLayouts::POSITION;
+        VertexLayout b = VertexLayouts::POSITION;
+        b.Stride = a.Stride + 4;
+        CHECK_FALSE(VertexLayoutsMatch(a, b));
+    }
+
+    TEST_CASE("VertexLayoutsMatch returns false for mismatched attribute count")
+    {
+        CHECK_FALSE(VertexLayoutsMatch(VertexLayouts::POSITION, VertexLayouts::POSITION_COLOUR));
+    }
+
+    TEST_CASE("VertexLayoutsMatch returns false for per-attribute differences")
+    {
+        std::array<VertexAttribute, 2> attribsA = {{
+            {0, 0, VertexAttributeFormat::Float3},
+            {1, 12, VertexAttributeFormat::Float3},
+        }};
+        std::array<VertexAttribute, 2> attribsB = {{
+            {0, 0, VertexAttributeFormat::Float3},
+            {1, 12, VertexAttributeFormat::Float2}, // different format
+        }};
+
+        VertexLayout a{.Stride = 24, .Attributes = attribsA.data(), .AttributeCount = 2};
+        VertexLayout b{.Stride = 24, .Attributes = attribsB.data(), .AttributeCount = 2};
+        CHECK_FALSE(VertexLayoutsMatch(a, b));
+    }
+
+    TEST_CASE("VertexLayoutsMatch returns false when attributes pointer is null but count > 0")
+    {
+        VertexLayout a{.Stride = 12, .Attributes = VertexLayouts::POSITION_ATTRIBUTES.data(), .AttributeCount = 1};
+        VertexLayout b{.Stride = 12, .Attributes = nullptr, .AttributeCount = 1};
+        CHECK_FALSE(VertexLayoutsMatch(a, b));
+        CHECK_FALSE(VertexLayoutsMatch(b, a));
     }
 }

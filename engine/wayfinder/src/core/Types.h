@@ -139,37 +139,37 @@ namespace Wayfinder
     /** @brief 8-bit sRGB colour (authored / on-disk representation). */
     struct Colour
     {
-        uint8_t r, g, b, a;
+        uint8_t r = 255, g = 255, b = 255, a = 255;
 
-        static Colour White()
+        static constexpr Colour White()
         {
             return {.r = 255, .g = 255, .b = 255, .a = 255};
         }
-        static Colour Black()
+        static constexpr Colour Black()
         {
             return {.r = 0, .g = 0, .b = 0, .a = 255};
         }
-        static Colour Red()
+        static constexpr Colour Red()
         {
             return {.r = 255, .g = 0, .b = 0, .a = 255};
         }
-        static Colour Green()
+        static constexpr Colour Green()
         {
             return {.r = 0, .g = 255, .b = 0, .a = 255};
         }
-        static Colour Blue()
+        static constexpr Colour Blue()
         {
             return {.r = 0, .g = 0, .b = 255, .a = 255};
         }
-        static Colour Yellow()
+        static constexpr Colour Yellow()
         {
             return {.r = 255, .g = 255, .b = 0, .a = 255};
         }
-        static Colour Gray()
+        static constexpr Colour Gray()
         {
             return {.r = 128, .g = 128, .b = 128, .a = 255};
         }
-        static Colour DarkGray()
+        static constexpr Colour DarkGray()
         {
             return {.r = 80, .g = 80, .b = 80, .a = 255};
         }
@@ -177,19 +177,25 @@ namespace Wayfinder
 
     // ── LinearColour ─────────────────────────────────────────
 
-    /** @brief Float colour in linear space for GPU-side work.
+    /**
+     * @brief Float colour in linear space for GPU-side work.
      *
+     * Backed by a Float4 for direct GPU/vector-math interop.
      * Conversions from authored sRGB colour happen once at load/extract time.
      */
     struct LinearColour
     {
-        float r = 1.0f, g = 1.0f, b = 1.0f, a = 1.0f;
+        Float4 Data{1.0f, 1.0f, 1.0f, 1.0f};
 
-        static LinearColour White()
+        constexpr LinearColour() = default;
+        constexpr LinearColour(float r, float g, float b, float a) : Data(r, g, b, a) {}
+        constexpr explicit LinearColour(const Float4& v) : Data(v) {}
+
+        static constexpr LinearColour White()
         {
             return {1.0f, 1.0f, 1.0f, 1.0f};
         }
-        static LinearColour Black()
+        static constexpr LinearColour Black()
         {
             return {0.0f, 0.0f, 0.0f, 1.0f};
         }
@@ -197,20 +203,25 @@ namespace Wayfinder
         static LinearColour FromColour(const Colour& c)
         {
             return {
-                .r = static_cast<float>(c.r) / 255.0f,
-                .g = static_cast<float>(c.g) / 255.0f,
-                .b = static_cast<float>(c.b) / 255.0f,
-                .a = static_cast<float>(c.a) / 255.0f,
+                static_cast<float>(c.r) / 255.0f,
+                static_cast<float>(c.g) / 255.0f,
+                static_cast<float>(c.b) / 255.0f,
+                static_cast<float>(c.a) / 255.0f,
             };
         }
 
-        Float4 ToFloat4() const
+        /// Implicit conversion to Float4 for GPU uploads and vector math.
+        operator const Float4&() const
         {
-            return {r, g, b, a};
+            return Data;
+        }
+        operator Float4&()
+        {
+            return Data;
         }
         Float3 ToFloat3() const
         {
-            return {r, g, b};
+            return {Data.r, Data.g, Data.b};
         }
     };
 

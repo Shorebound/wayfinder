@@ -158,7 +158,7 @@ namespace Wayfinder
         AxisAlignedBounds WorldBounds{};
         BoundingSphere WorldSphere{};
         bool Visible = true;
-        RenderGroupId Group = RenderGroups::Main;
+        RenderGroupId Group = RenderGroups::MAIN;
         uint8_t SortPriority = 128;
         uint64_t SortKey = 0;
         /**
@@ -210,7 +210,7 @@ namespace Wayfinder
         bool IsPrimary = true;
         BlendableEffectStack PostProcess;
 
-        /// Pre-computed matrices and frustum. Populated by RenderOrchestrator::Prepare().
+        /// Pre-computed matrices and frustum. Populated by Rendering::().
         Matrix4 ViewMatrix = Matrix4(1.0f);
         Matrix4 ProjectionMatrix = Matrix4(1.0f);
         Frustum ViewFrustum{};
@@ -235,7 +235,7 @@ namespace Wayfinder
      */
     struct FrameLayer
     {
-        FrameLayerId Id = FrameLayerIds::MainScene;
+        FrameLayerId Id = FrameLayerIds::MAIN_SCENE;
         FrameLayerKind Kind = FrameLayerKind::Scene;
         size_t ViewIndex = 0;
         std::optional<RenderGroupId> SceneGroup;

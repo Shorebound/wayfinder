@@ -28,15 +28,15 @@ namespace Wayfinder
             }
 
             PipelineCreateDesc pipeDesc{};
-            pipeDesc.vertexShader = vs;
-            pipeDesc.fragmentShader = fs;
-            pipeDesc.vertexLayout = desc.VertexLayout;
-            pipeDesc.primitiveType = PrimitiveType::TriangleList;
-            pipeDesc.cullMode = desc.Cull;
-            pipeDesc.fillMode = FillMode::Line;
-            pipeDesc.frontFace = FrontFace::CounterClockwise;
-            pipeDesc.depthTestEnabled = desc.DepthTest;
-            pipeDesc.depthWriteEnabled = desc.DepthWrite;
+            pipeDesc.VertexShader = vs;
+            pipeDesc.FragmentShader = fs;
+            pipeDesc.VertexLayout = desc.VertexLayout;
+            pipeDesc.PrimitiveType = PrimitiveType::TriangleList; // Wireframe always uses triangles
+            pipeDesc.CullMode = desc.Cull;
+            pipeDesc.FillMode = FillMode::Line;
+            pipeDesc.FrontFace = FrontFace::CounterClockwise;
+            pipeDesc.DepthTestEnabled = desc.DepthTest;
+            pipeDesc.DepthWriteEnabled = desc.DepthWrite;
             return pipeDesc;
         }
     } // namespace
@@ -128,12 +128,12 @@ namespace Wayfinder
             {
                 return meshResource ? meshResource->GpuMesh : nullptr;
             }
-            const uint32_t stride = program->Desc.VertexLayout.stride;
-            if (stride == VertexLayouts::PosNormalColour.stride)
+            const auto& layout = program->Desc.VertexLayout;
+            if (VertexLayoutsMatch(layout, VertexLayouts::POSITION_NORMAL_COLOUR))
             {
                 return params.BuiltInMeshes[static_cast<size_t>(BuiltInMeshId::PrimitiveColour)];
             }
-            if (stride == VertexLayouts::PosNormalUVTangent.stride)
+            if (VertexLayoutsMatch(layout, VertexLayouts::POSITION_NORMAL_UV_TANGENT))
             {
                 return params.BuiltInMeshes[static_cast<size_t>(BuiltInMeshId::PrimitiveTextured)];
             }

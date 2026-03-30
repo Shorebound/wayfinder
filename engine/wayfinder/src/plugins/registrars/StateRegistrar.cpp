@@ -1,21 +1,22 @@
 #include "StateRegistrar.h"
 #include "core/Log.h"
+#include "core/Result.h"
 
 namespace Wayfinder::Plugins
 {
-    void StateRegistrar::Register(Descriptor descriptor)
+    Result<void> StateRegistrar::Register(Descriptor descriptor)
     {
         for (const auto& existing : m_descriptors)
         {
             if (existing.Name == descriptor.Name)
             {
-                WAYFINDER_ERROR(LogEngine, "StateRegistrar: duplicate state name '{}' — registration rejected", descriptor.Name);
-                return;
+                return MakeError(std::format("StateRegistrar: duplicate state name '{}'", descriptor.Name));
             }
         }
 
-        WAYFINDER_INFO(LogEngine, "StateRegistrar: registered state '{}'", descriptor.Name);
+        Log::Info(LogEngine, "StateRegistrar: registered state '{}'", descriptor.Name);
         m_descriptors.push_back(std::move(descriptor));
+        return {};
     }
 
     void StateRegistrar::SetInitial(std::string stateName)
@@ -29,7 +30,7 @@ namespace Wayfinder::Plugins
             }
         }
 
-        WAYFINDER_ERROR(LogEngine, "StateRegistrar: SetInitial '{}' — state not registered; ignoring", stateName);
+        Log::Error(LogEngine, "StateRegistrar: SetInitial '{}' - state not registered; ignoring", stateName);
     }
 
 } // namespace Wayfinder::Plugins

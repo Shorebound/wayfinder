@@ -29,11 +29,11 @@ namespace Wayfinder
     {
         if (!m_device)
         {
-            WAYFINDER_ERROR(LogRenderer, "TransientResourcePool::Acquire called before Initialise");
+            Log::Error(LogRenderer, "TransientResourcePool::Acquire called before Initialise");
             return GPUTextureHandle::Invalid();
         }
 
-        const PoolKey key{.Width = desc.width, .Height = desc.height, .Format = desc.format, .Usage = desc.usage};
+        const PoolKey key{.Width = desc.Width, .Height = desc.Height, .Format = desc.Format, .Usage = desc.Usage};
         auto it = m_available.find(key);
         if (it != m_available.end() && !it->second.empty())
         {
@@ -62,7 +62,7 @@ namespace Wayfinder
             return;
         }
 
-        const PoolKey key{.Width = desc.width, .Height = desc.height, .Format = desc.format, .Usage = desc.usage};
+        const PoolKey key{.Width = desc.Width, .Height = desc.Height, .Format = desc.Format, .Usage = desc.Usage};
         m_available[key].push_back(texture);
     }
 

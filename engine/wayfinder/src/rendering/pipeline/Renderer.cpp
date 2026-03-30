@@ -6,6 +6,8 @@
 #include "rendering/graph/RenderFrame.h"
 #include "rendering/graph/RenderFrameUtils.h"
 #include "rendering/graph/RenderGraph.h"
+#include "rendering/pipeline/DefaultFeatures.h"
+#include "rendering/pipeline/PrepareFrame.h"
 #include "rendering/resources/RenderResourceCache.h"
 
 #include "app/EngineConfig.h"
@@ -31,27 +33,33 @@ namespace Wayfinder
             }
             catch (const std::exception& exception)
             {
-                WAYFINDER_WARN(LogRenderer, "Renderer shutdown suppressed exception during destruction: {}", exception.what());
+                Log::Warn(LogRenderer, "Renderer shutdown suppressed exception during destruction: {}", exception.what());
             }
             catch (...)
             {
-                WAYFINDER_WARN(LogRenderer, "Renderer shutdown suppressed unknown exception during destruction.");
+                Log::Warn(LogRenderer, "Renderer shutdown suppressed unknown exception during destruction.");
             }
         }
     }
 
     Result<void> Renderer::Initialise(RenderDevice& device, const EngineConfig& config, BlendableEffectRegistry* registry)
     {
+        if (m_isInitialised)
+        {
+            Shutdown();
+        }
+
         m_device = &device;
         m_screenWidth = static_cast<int>(config.Window.Width);
         m_screenHeight = static_cast<int>(config.Window.Height);
         m_services = std::make_unique<RenderServices>();
         if (auto result = m_services->Initialise(device, config, registry); !result)
         {
-            WAYFINDER_WARN(LogRenderer, "Renderer: Failed to initialise RenderServices — {}", result.error().GetMessage());
+            Log::Warn(LogRenderer, "Renderer: Failed to initialise RenderServices -- {}", result.error().GetMessage());
             return std::unexpected(result.error());
         }
 
+        Rendering::RegisterDefaultFeatures(*this);
         m_renderPipeline->Initialise(*m_services);
 
         m_renderResources->SetTextureManager(&m_services->GetTextures());
@@ -60,7 +68,7 @@ namespace Wayfinder
 
         m_isInitialised = true;
 
-        WAYFINDER_INFO(LogRenderer, "Renderer initialised ({}x{}, backend: {})", m_screenWidth, m_screenHeight, device.GetDeviceInfo().BackendName);
+        Log::Info(LogRenderer, "Renderer initialised ({}x{}, backend: {})", m_screenWidth, m_screenHeight, device.GetDeviceInfo().BackendName);
 
         return {};
     }
@@ -102,21 +110,21 @@ namespace Wayfinder
         }
     }
 
-    void Renderer::AddPass(const RenderPhase phase, const int32_t order, std::unique_ptr<RenderFeature> pass)
+    void Renderer::AddFeature(const RenderPhase phase, const int32_t order, std::unique_ptr<RenderFeature> feature)
     {
-        if (!pass)
+        if (!feature)
         {
             return;
         }
         if (m_renderPipeline)
         {
-            m_renderPipeline->RegisterPass(phase, order, std::move(pass));
+            m_renderPipeline->RegisterFeature(phase, order, std::move(feature));
         }
     }
 
-    void Renderer::AddPass(const RenderPhase phase, std::unique_ptr<RenderFeature> pass)
+    void Renderer::AddFeature(const RenderPhase phase, std::unique_ptr<RenderFeature> feature)
     {
-        AddPass(phase, 0, std::move(pass));
+        AddFeature(phase, 0, std::move(feature));
     }
 
     void Renderer::Render(const RenderFrame& frame)
@@ -156,10 +164,10 @@ namespace Wayfinder
             }
 
             const Extent2D swapchainDimensions = m_device->GetSwapchainDimensions();
-            const uint32_t swapW = swapchainDimensions.width;
-            const uint32_t swapH = swapchainDimensions.height;
+            const uint32_t swapW = swapchainDimensions.Width;
+            const uint32_t swapH = swapchainDimensions.Height;
 
-            if (swapW != 0 && swapH != 0 && m_renderPipeline->Prepare(preparedFrame, swapW, swapH))
+            if (swapW != 0 && swapH != 0 && Rendering::PrepareFrame(preparedFrame, swapW, swapH))
             {
                 const auto primaryView = Rendering::ResolvePreparedPrimaryView(preparedFrame);
 

@@ -2,9 +2,12 @@
 
 #include "rendering/RenderTypes.h"
 
+#include <cstddef>
+
 namespace Wayfinder
 {
     struct RenderFrame;
+    struct FrameRenderParams;
 }
 
 namespace Wayfinder::Rendering
@@ -22,5 +25,21 @@ namespace Wayfinder::Rendering
 
     /** @brief Primary view matrices and clear colour when the resolved primary `RenderView` is prepared; otherwise `Valid` is false. */
     [[nodiscard]] PreparedPrimaryView ResolvePreparedPrimaryView(const RenderFrame& frame);
+
+    /// Resolved view/projection pair for a specific layer view index.
+    struct ResolvedViewForLayer
+    {
+        Matrix4 View = Matrix4(1.0f);
+        Matrix4 ProjectionMatrix = Matrix4(1.0f);
+        bool IsValid = false;
+    };
+
+    /**
+     * @brief Resolves view/projection matrices for a layer's view index.
+     *
+     * Uses the primary view as the base and overrides with the per-view matrices when
+     * the indexed view is prepared. Returns `Ok = false` when no valid camera exists.
+     */
+    [[nodiscard]] ResolvedViewForLayer ResolveViewForLayer(const FrameRenderParams& params, size_t viewIndex);
 
 } // namespace Wayfinder::Rendering

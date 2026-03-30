@@ -25,8 +25,8 @@ namespace Wayfinder
 {
     namespace
     {
-        constexpr uint64_t K_BUILT_IN_BOX_MESH_KEY = 1;
-        constexpr uint64_t K_BUILT_IN_SURFACE_MATERIAL_KEY = 1;
+        constexpr uint64_t BUILT_IN_BOX_MESH_KEY = 1;
+        constexpr uint64_t BUILT_IN_SURFACE_MATERIAL_KEY = 1;
 
         uint64_t MakeStableKey(const Wayfinder::AssetId& assetId, uint32_t submeshIndex = 0)
         {
@@ -48,7 +48,7 @@ namespace Wayfinder
 
         Wayfinder::SortLayer MapGroup(const Wayfinder::RenderGroupId& group)
         {
-            if (group == Wayfinder::RenderGroups::Overlay)
+            if (group == Wayfinder::RenderGroups::OVERLAY)
             {
                 return Wayfinder::SortLayer::Overlay;
             }
@@ -195,9 +195,9 @@ namespace Wayfinder
             view.CameraState.FOV = activeCamera.FieldOfView;
             view.CameraState.ProjectionType = static_cast<int>(activeCamera.Projection);
             const size_t viewIndex = frame.AddView(view);
-            frame.AddSceneLayer(FrameLayerIds::MainScene, viewIndex, RenderGroups::Main);
-            frame.AddSceneLayer(FrameLayerIds::OverlayScene, viewIndex, RenderGroups::Overlay);
-            FrameLayer& debugLayer = frame.AddDebugLayer(FrameLayerIds::Debug, viewIndex);
+            frame.AddSceneLayer(FrameLayerIds::MAIN_SCENE, viewIndex, RenderGroups::MAIN);
+            frame.AddSceneLayer(FrameLayerIds::OVERLAY_SCENE, viewIndex, RenderGroups::OVERLAY);
+            FrameLayer& debugLayer = frame.AddDebugLayer(FrameLayerIds::DEBUG, viewIndex);
             if (debugLayer.DebugDraw)
             {
                 debugLayer.DebugDraw->ShowWorldGrid = true;
@@ -248,7 +248,7 @@ namespace Wayfinder
 
                 RenderMaterialBinding entityMaterial{};
                 entityMaterial.Ref.Origin = RenderResourceOrigin::BuiltIn;
-                entityMaterial.Ref.StableKey = K_BUILT_IN_SURFACE_MATERIAL_KEY;
+                entityMaterial.Ref.StableKey = BUILT_IN_SURFACE_MATERIAL_KEY;
                 entityMaterial.Domain = RenderMaterialDomain::Surface;
                 entityMaterial.Parameters.SetColour("base_colour", LinearColour::White());
 
@@ -287,22 +287,22 @@ namespace Wayfinder
                     submission.Geometry.Dimensions = mesh.Dimensions;
                     submission.Material = material;
                     submission.Material.StateOverrides = stateOverrides;
-                    const auto materialState = ResolveMaterialState(submission.Material, scene);
-                    submission.Material.ShaderName = materialState.ShaderName;
+                    const auto [ShaderName, Blend] = ResolveMaterialState(submission.Material, scene);
+                    submission.Material.ShaderName = ShaderName;
                     submission.Visible = renderable.Visible;
                     submission.Group = renderable.Group;
                     submission.SortPriority = renderable.SortPriority;
                     submission.LocalToWorld = localToWorld;
                     submission.WorldBounds = worldBounds;
                     submission.WorldSphere = ComputeBoundingSphere(worldBounds);
-                    const SortLayer sortLayer = materialState.Blend.Enabled ? SortLayer::Transparent : MapGroup(submission.Group);
-                    submission.SortKey = SortKeyBuilder::Build(sortLayer, BlendGroupBits(materialState.Blend), MaterialIdBits(submission.Material), cameraSpaceZ, submission.SortPriority);
+                    const SortLayer sortLayer = Blend.Enabled ? SortLayer::Transparent : MapGroup(submission.Group);
+                    submission.SortKey = SortKeyBuilder::Build(sortLayer, BlendGroupBits(Blend), MaterialIdBits(submission.Material), cameraSpaceZ, submission.SortPriority);
 
                     submission.ViewIndex = primaryViewIndex;
                     FrameLayer* owningLayer = frame.FindSceneLayerForSubmission(submission);
                     if (!owningLayer)
                     {
-                        WAYFINDER_WARN(LogRenderer, "SceneRenderExtractor skipped mesh submission because no scene group matched group '{0}' in frame '{1}'.", submission.Group, frame.SceneName);
+                        Log::Warn(LogRenderer, "SceneRenderExtractor skipped mesh submission because no scene group matched group '{0}' in frame '{1}'.", submission.Group, frame.SceneName);
                         return;
                     }
 
@@ -355,7 +355,7 @@ namespace Wayfinder
                 {
                     RenderMeshRef meshRef;
                     meshRef.Origin = RenderResourceOrigin::BuiltIn;
-                    meshRef.StableKey = K_BUILT_IN_BOX_MESH_KEY;
+                    meshRef.StableKey = BUILT_IN_BOX_MESH_KEY;
 
                     const Float3 halfDim = mesh.Dimensions * 0.5f;
                     const AxisAlignedBounds localBounds{.Min = -halfDim, .Max = halfDim};
@@ -416,7 +416,7 @@ namespace Wayfinder
                     debugBox.Material.Domain = RenderMaterialDomain::Debug;
                     debugBox.Material.Parameters.SetColour("base_colour", LinearColour::FromColour(light.Tint));
 
-                    FrameLayer* debugLayer = frame.FindLayer(FrameLayerIds::Debug, *primaryViewIndex);
+                    FrameLayer* debugLayer = frame.FindLayer(FrameLayerIds::DEBUG, *primaryViewIndex);
                     if (debugLayer && debugLayer->DebugDraw)
                     {
                         debugLayer->DebugDraw->Boxes.push_back(debugBox);
@@ -485,7 +485,7 @@ namespace Wayfinder
             }
             else
             {
-                WAYFINDER_WARN(LogRenderer,
+                Log::Warn(LogRenderer,
                     "SceneRenderExtractor: skipped blendable volume blending for scene '{}' ({} volume instances) "
                     "\xe2\x80\x94 no BlendableEffectRegistry provided",
                     frame.SceneName, volumeInstances.size());

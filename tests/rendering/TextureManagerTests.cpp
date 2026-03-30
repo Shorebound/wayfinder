@@ -44,7 +44,7 @@ namespace Wayfinder::Tests
     TEST_CASE("TextureCreateDesc defaults to 1 mip level")
     {
         TextureCreateDesc desc;
-        CHECK(desc.mipLevels == 1);
+        CHECK(desc.MipLevels == 1);
     }
 
     // ── SamplerCreateDesc defaults ───────────────────────────
@@ -52,9 +52,9 @@ namespace Wayfinder::Tests
     TEST_CASE("SamplerCreateDesc defaults include mipmap fields")
     {
         SamplerCreateDesc desc;
-        CHECK(desc.mipmapMode == SamplerMipmapMode::Nearest);
-        CHECK(desc.minLod == 0.0f);
-        CHECK(desc.maxLod == 1000.0f);
+        CHECK(desc.MipmapMode == SamplerMipmapMode::Nearest);
+        CHECK(desc.MinLod == 0.0f);
+        CHECK(desc.MaxLod == 1000.0f);
     }
 
     // ── TextureManager ───────────────────────────────────────
@@ -97,10 +97,10 @@ namespace Wayfinder::Tests
         REQUIRE(manager.Initialise(*device));
 
         SamplerCreateDesc desc;
-        desc.minFilter = SamplerFilter::Linear;
-        desc.magFilter = SamplerFilter::Linear;
-        desc.addressModeU = SamplerAddressMode::Repeat;
-        desc.addressModeV = SamplerAddressMode::Repeat;
+        desc.MinFilter = SamplerFilter::Linear;
+        desc.MagFilter = SamplerFilter::Linear;
+        desc.AddressModeU = SamplerAddressMode::Repeat;
+        desc.AddressModeV = SamplerAddressMode::Repeat;
 
         GPUSamplerHandle first = manager.GetOrCreateSampler(desc);
         GPUSamplerHandle second = manager.GetOrCreateSampler(desc);
@@ -118,16 +118,16 @@ namespace Wayfinder::Tests
         REQUIRE(manager.Initialise(*device));
 
         SamplerCreateDesc nearestRepeat;
-        nearestRepeat.minFilter = SamplerFilter::Nearest;
-        nearestRepeat.magFilter = SamplerFilter::Nearest;
-        nearestRepeat.addressModeU = SamplerAddressMode::Repeat;
-        nearestRepeat.addressModeV = SamplerAddressMode::Repeat;
+        nearestRepeat.MinFilter = SamplerFilter::Nearest;
+        nearestRepeat.MagFilter = SamplerFilter::Nearest;
+        nearestRepeat.AddressModeU = SamplerAddressMode::Repeat;
+        nearestRepeat.AddressModeV = SamplerAddressMode::Repeat;
 
         SamplerCreateDesc linearClamp;
-        linearClamp.minFilter = SamplerFilter::Linear;
-        linearClamp.magFilter = SamplerFilter::Linear;
-        linearClamp.addressModeU = SamplerAddressMode::ClampToEdge;
-        linearClamp.addressModeV = SamplerAddressMode::ClampToEdge;
+        linearClamp.MinFilter = SamplerFilter::Linear;
+        linearClamp.MagFilter = SamplerFilter::Linear;
+        linearClamp.AddressModeU = SamplerAddressMode::ClampToEdge;
+        linearClamp.AddressModeV = SamplerAddressMode::ClampToEdge;
 
         GPUSamplerHandle a = manager.GetOrCreateSampler(nearestRepeat);
         GPUSamplerHandle b = manager.GetOrCreateSampler(linearClamp);
@@ -150,12 +150,12 @@ namespace Wayfinder::Tests
         REQUIRE(manager.Initialise(*device));
 
         SamplerCreateDesc descA;
-        descA.minFilter = SamplerFilter::Linear;
-        descA.magFilter = SamplerFilter::Linear;
-        descA.mipmapMode = SamplerMipmapMode::Nearest;
+        descA.MinFilter = SamplerFilter::Linear;
+        descA.MagFilter = SamplerFilter::Linear;
+        descA.MipmapMode = SamplerMipmapMode::Nearest;
 
         SamplerCreateDesc descB = descA;
-        descB.mipmapMode = SamplerMipmapMode::Linear;
+        descB.MipmapMode = SamplerMipmapMode::Linear;
 
         GPUSamplerHandle a = manager.GetOrCreateSampler(descA);
         GPUSamplerHandle b = manager.GetOrCreateSampler(descB);
@@ -169,9 +169,9 @@ namespace Wayfinder::Tests
     TEST_CASE("SamplerCreateDesc defaults include anisotropy fields")
     {
         SamplerCreateDesc desc;
-        CHECK(desc.mipLodBias == 0.0f);
-        CHECK_FALSE(desc.enableAnisotropy);
-        CHECK(desc.maxAnisotropy == 1.0f);
+        CHECK(desc.MipLodBias == 0.0f);
+        CHECK_FALSE(desc.EnableAnisotropy);
+        CHECK(desc.MaxAnisotropy == 1.0f);
     }
 
     TEST_CASE("TextureManager sampler hash differentiates anisotropy")
@@ -182,14 +182,14 @@ namespace Wayfinder::Tests
         REQUIRE(manager.Initialise(*device));
 
         SamplerCreateDesc descA;
-        descA.minFilter = SamplerFilter::Linear;
-        descA.magFilter = SamplerFilter::Linear;
-        descA.mipmapMode = SamplerMipmapMode::Linear;
-        descA.enableAnisotropy = false;
+        descA.MinFilter = SamplerFilter::Linear;
+        descA.MagFilter = SamplerFilter::Linear;
+        descA.MipmapMode = SamplerMipmapMode::Linear;
+        descA.EnableAnisotropy = false;
 
         SamplerCreateDesc descB = descA;
-        descB.enableAnisotropy = true;
-        descB.maxAnisotropy = 4.0f;
+        descB.EnableAnisotropy = true;
+        descB.MaxAnisotropy = 4.0f;
 
         GPUSamplerHandle a = manager.GetOrCreateSampler(descA);
         GPUSamplerHandle b = manager.GetOrCreateSampler(descB);

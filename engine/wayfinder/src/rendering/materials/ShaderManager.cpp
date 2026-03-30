@@ -1,37 +1,20 @@
 #include "ShaderManager.h"
+#include "SlangCompiler.h"
 #include "core/Log.h"
-
-#include <SDL3/SDL.h>
+#include "platform/Paths.h"
 
 #include <filesystem>
 #include <fstream>
+#include <ranges>
 
 namespace Wayfinder
 {
-    namespace
-    {
-        /** Relative shader paths in config are resolved against the application base path (directory containing the executable), not CWD — so IDEs can use a project working directory without breaking packaged assets
-         * next to the binary. */
-        [[nodiscard]] std::string ResolveShaderDirectory(std::string_view shaderDirectory)
-        {
-            const std::filesystem::path dir(shaderDirectory);
-            if (dir.is_absolute())
-            {
-                return dir.string();
-            }
-            if (const char* base = SDL_GetBasePath())
-            {
-                return (std::filesystem::path(base) / dir).lexically_normal().string();
-            }
-            return std::string(shaderDirectory);
-        }
-    } // namespace
-
-    void ShaderManager::Initialise(RenderDevice& device, std::string_view shaderDirectory)
+    void ShaderManager::Initialise(RenderDevice& device, std::string_view shaderDirectory, SlangCompiler* compiler)
     {
         m_device = &device;
-        m_shaderDir = ResolveShaderDirectory(shaderDirectory);
-        WAYFINDER_INFO(LogRenderer, "ShaderManager: initialised with directory '{}'", m_shaderDir);
+        m_compiler = compiler;
+        m_shaderDir = Platform::ResolvePathFromBase(shaderDirectory);
+        Log::Info(LogRenderer, "ShaderManager: initialised with directory '{}'", m_shaderDir);
     }
 
     void ShaderManager::Shutdown()
@@ -44,7 +27,24 @@ namespace Wayfinder
             }
         }
         m_cache.clear();
+        m_compiler = nullptr;
         m_device = nullptr;
+    }
+
+    void ShaderManager::ReloadShaders()
+    {
+        if (m_device)
+        {
+            for (auto& handle : m_cache | std::views::values)
+            {
+                if (handle.IsValid())
+                {
+                    m_device->DestroyShader(handle);
+                }
+            }
+        }
+        m_cache.clear();
+        Log::Info(LogRenderer, "ShaderManager: shader cache invalidated - shaders will recompile on next use");
     }
 
     GPUShaderHandle ShaderManager::GetShader(const std::string_view name, ShaderStage stage, const ShaderResourceCounts& resources, ShaderVariantKey variant)
@@ -62,31 +62,51 @@ namespace Wayfinder
         std::string filePath = (std::filesystem::path(m_shaderDir) / (std::string(name) + stageSuffix)).string();
 
         std::vector<uint8_t> bytecode = ReadFile(filePath);
+
+        // Fallback: runtime Slang compilation when .spv is not found
+#if !defined(WAYFINDER_SHIPPING)
+        if (bytecode.empty() && m_compiler && m_compiler->IsInitialised())
+        {
+            const char* entryPoint = (stage == ShaderStage::Vertex) ? "VSMain" : "PSMain";
+            if (Result<SlangCompiler::CompileResult> compileResult = m_compiler->Compile(name, entryPoint, stage))
+            {
+                bytecode = std::move(compileResult->Bytecode);
+            }
+            // Diagnostic details already logged by SlangCompiler
+
+            if (bytecode.empty())
+            {
+                Log::Error(LogRenderer, "ShaderManager: failed to load '{}' - runtime Slang compilation was attempted but produced no bytecode", filePath);
+                return GPUShaderHandle::Invalid();
+            }
+        }
+#endif
+
         if (bytecode.empty())
         {
-            WAYFINDER_ERROR(LogRenderer, "ShaderManager: Failed to load '{}'", filePath);
+            Log::Error(LogRenderer, "ShaderManager: failed to load '{}' - no pre-compiled .spv found", filePath);
             return GPUShaderHandle::Invalid();
         }
 
         ShaderCreateDesc desc{};
-        desc.code = bytecode.data();
-        desc.codeSize = bytecode.size();
-        desc.entryPoint = (stage == ShaderStage::Vertex) ? "VSMain" : "PSMain";
-        desc.stage = stage;
-        desc.numUniformBuffers = resources.numUniformBuffers;
-        desc.numSamplers = resources.numSamplers;
-        desc.numStorageTextures = resources.numStorageTextures;
-        desc.numStorageBuffers = resources.numStorageBuffers;
+        desc.Code = bytecode.data();
+        desc.CodeSize = bytecode.size();
+        desc.EntryPoint = (stage == ShaderStage::Vertex) ? "VSMain" : "PSMain";
+        desc.Stage = stage;
+        desc.UniformBuffers = resources.UniformBuffers;
+        desc.Samplers = resources.Samplers;
+        desc.StorageTextures = resources.StorageTextures;
+        desc.StorageBuffers = resources.StorageBuffers;
 
         GPUShaderHandle handle = m_device->CreateShader(desc);
         if (!handle)
         {
-            WAYFINDER_ERROR(LogRenderer, "ShaderManager: GPU shader creation failed for '{}'", filePath);
+            Log::Error(LogRenderer, "ShaderManager: GPU shader creation failed for '{}'", filePath);
             return GPUShaderHandle::Invalid();
         }
 
         m_cache[key] = handle;
-        WAYFINDER_INFO(LogRenderer, "ShaderManager: Loaded '{}'", filePath);
+        Log::Info(LogRenderer, "ShaderManager: loaded '{}'", filePath);
         return handle;
     }
 
@@ -114,9 +134,21 @@ namespace Wayfinder
     {
         std::string filePath = (std::filesystem::path(m_shaderDir) / (std::string(name) + ".comp.spv")).string();
         std::vector<uint8_t> bytecode = ReadFile(filePath);
+
+#if !defined(WAYFINDER_SHIPPING)
+        if (bytecode.empty() && m_compiler && m_compiler->IsInitialised())
+        {
+            Result<SlangCompiler::CompileResult> compileResult = m_compiler->Compile(name, "CSMain", ShaderStage::Compute);
+            if (compileResult)
+            {
+                bytecode = std::move(compileResult->Bytecode);
+            }
+        }
+#endif
+
         if (bytecode.empty())
         {
-            WAYFINDER_ERROR(LogRenderer, "ShaderManager: Failed to load compute shader '{}'", filePath);
+            Log::Error(LogRenderer, "ShaderManager: Failed to load compute shader '{}'", filePath);
         }
         return bytecode;
     }

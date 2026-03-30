@@ -14,7 +14,7 @@ The renderer builds a **render graph** each frame: a list of GPU passes with exp
 
 Rough flow each frame:
 
-1. **Prepare** — `RenderOrchestrator::Prepare` validates views, fills layer records, culls and sorts draws, and supplies `FrameRenderParams::PrimaryView` for graph code.
+1. **Prepare** -- `Rendering::PrepareFrame` validates views, fills layer records, culls and sorts draws, and supplies `FrameRenderParams::PrimaryView` for graph code.
 2. **Build graph** — For every registered feature in phase order, `AddPasses` runs (if the feature is enabled) and records passes and resource dependencies.
 3. **Compile & execute** — `RenderGraph::Compile` orders passes by dependencies; `Execute` runs them on the GPU.
 
@@ -49,7 +49,7 @@ After `RenderOrchestrator::Initialise`, the built-in registration order is:
 | `Overlay` | 0 | `DebugPass` |
 | `Present` | 0 | `CompositionPass` — samples the latest post-process input and **writes the swapchain** (`SetSwapchainOutput`). |
 
-Game or editor code adds more features with `Renderer::AddPass` (see below). Lower **`order`** in the same phase runs **earlier** among features.
+Game or editor code adds more features with `Renderer::AddFeature` (see below). Lower **`order`** in the same phase runs **earlier** among features.
 
 ### Phase guide (what to register where)
 
@@ -72,15 +72,15 @@ Game or editor code adds more features with `Renderer::AddPass` (see below). Low
 
 Use **`Renderer`** from game or editor code:
 
-- **`AddPass(RenderPhase, int32_t order, std::unique_ptr<RenderFeature>)`** — preferred when you need ordering within a phase.
-- **`AddPass(RenderPhase, std::unique_ptr<RenderFeature>)`** — same as `order == 0`.
+- **`AddFeature(RenderPhase, int32_t order, std::unique_ptr<RenderFeature>)`** -- preferred when you need ordering within a phase.
+- **`AddFeature(RenderPhase, std::unique_ptr<RenderFeature>)`** -- same as `order == 0`.
 
-Passes registered **before** `Renderer::Initialise` are **deferred** and attached when the orchestrator initialises.
+Features registered **before** `Renderer::Initialise` are **deferred** and attached when the orchestrator initialises.
 
 ### Enable and disable
 
 ```cpp
-auto* feature = renderer.GetPass<MyFeature>();
+auto* feature = renderer.GetFeature<MyFeature>();
 if (feature)
 {
     feature->SetEnabled(false); // AddPasses is not called; no graph nodes for this feature.
@@ -90,7 +90,7 @@ if (feature)
 ### Removal
 
 ```cpp
-renderer.RemovePass<MyFeature>(); // OnDetach runs for attached passes.
+renderer.RemoveFeature<MyFeature>(); // OnDetach runs for attached features.
 ```
 
 ### Compile rule (swapchain)
@@ -177,7 +177,7 @@ Register **`ShaderProgramDesc`** entries in **`OnAttach`** through **`RenderServ
 ## Implementing a new `RenderFeature`
 
 1. **Subclass** `RenderFeature`: implement **`GetName()`**, **`AddPasses(...)`**, and usually **`OnAttach` / `OnDetach`** for programs and registry.
-2. **Register** with `Renderer::AddPass` at the appropriate **`RenderPhase`** and **`order`**.
+2. **Register** with `Renderer::AddFeature` at the appropriate **`RenderPhase`** and **`order`**.
 3. In **`AddPasses`**, for each GPU pass:
    - Declare **reads** and **writes** on `RenderGraphBuilder`.
    - Return a lambda **`void(RenderDevice&, const RenderGraphResources&)`** that binds pipelines, samplers, and draws (or dispatch for compute).

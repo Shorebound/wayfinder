@@ -29,7 +29,7 @@ namespace Wayfinder::Tests
                 sm.MaterialSlot = i;
                 sm.Bounds = src.Header.Bounds;
 
-                const std::array<VertexPosNormalUVTangent, 3> verts{};
+                const std::array<VertexPositionNormalUVTangent, 3> verts{};
                 sm.VertexBytes.resize(sizeof(verts));
                 std::memcpy(sm.VertexBytes.data(), verts.data(), sm.VertexBytes.size());
 

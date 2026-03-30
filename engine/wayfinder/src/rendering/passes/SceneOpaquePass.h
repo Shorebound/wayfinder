@@ -4,12 +4,6 @@
 
 namespace Wayfinder
 {
-    class ShaderProgramRegistry;
-
-    /// Registers built-in scene mesh programs (`unlit`, `basic_lit`, …). Call during renderer bootstrap before passes attach.
-    /// @return False if any program failed to register (GPU pipeline creation failed).
-    [[nodiscard]] bool RegisterSceneShaderPrograms(ShaderProgramRegistry& registry);
-
     /// Opaque scene geometry: transient colour/depth, scene submissions via `DrawSubmission`.
     class SceneOpaquePass final : public RenderFeature
     {
@@ -23,6 +17,8 @@ namespace Wayfinder
         {
             return RenderCapabilities::RASTER | RenderCapabilities::RASTER_SCENE_GEOMETRY;
         }
+
+        std::span<const ShaderProgramDesc> GetShaderPrograms() const override;
 
         void OnAttach(const RenderFeatureContext& context) override;
         void OnDetach(const RenderFeatureContext& /*context*/) override

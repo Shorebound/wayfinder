@@ -3,6 +3,13 @@
 #include "rendering/graph/RenderFrame.h"
 #include "rendering/graph/RenderFrameUtils.h"
 #include "rendering/graph/RenderGraph.h"
+#include "rendering/passes/ChromaticAberrationFeature.h"
+#include "rendering/passes/ColourGradingFeature.h"
+#include "rendering/passes/CompositionPass.h"
+#include "rendering/passes/DebugPass.h"
+#include "rendering/passes/SceneOpaquePass.h"
+#include "rendering/passes/VignetteFeature.h"
+#include "rendering/pipeline/PrepareFrame.h"
 #include "rendering/pipeline/RenderOrchestrator.h"
 #include "rendering/pipeline/RenderServices.h"
 
@@ -25,6 +32,13 @@ namespace Wayfinder::Tests
         Wayfinder::RenderOrchestrator pipeline;
         pipeline.Initialise(context);
 
+        pipeline.RegisterFeature(Wayfinder::RenderPhase::Opaque, 0, std::make_unique<Wayfinder::SceneOpaquePass>());
+        pipeline.RegisterFeature(Wayfinder::RenderPhase::PostProcess, 800, std::make_unique<Wayfinder::ChromaticAberrationFeature>());
+        pipeline.RegisterFeature(Wayfinder::RenderPhase::PostProcess, 900, std::make_unique<Wayfinder::VignetteFeature>());
+        pipeline.RegisterFeature(Wayfinder::RenderPhase::Composite, 0, std::make_unique<Wayfinder::ColourGradingFeature>());
+        pipeline.RegisterFeature(Wayfinder::RenderPhase::Overlay, 0, std::make_unique<Wayfinder::DebugPass>());
+        pipeline.RegisterFeature(Wayfinder::RenderPhase::Present, 0, std::make_unique<Wayfinder::CompositionPass>());
+
         Wayfinder::RenderFrame frame;
         Wayfinder::RenderView view;
         view.CameraState.Position = {0.0f, 0.0f, 5.0f};
@@ -34,10 +48,10 @@ namespace Wayfinder::Tests
         view.CameraState.NearPlane = 0.1f;
         view.CameraState.FarPlane = 100.0f;
         frame.AddView(view);
-        frame.AddSceneLayer(Wayfinder::FrameLayerIds::MainScene, 0, Wayfinder::RenderGroups::Main);
-        frame.AddDebugLayer(Wayfinder::FrameLayerIds::Debug, 0);
+        frame.AddSceneLayer(Wayfinder::FrameLayerIds::MAIN_SCENE, 0, Wayfinder::RenderGroups::MAIN);
+        frame.AddDebugLayer(Wayfinder::FrameLayerIds::DEBUG, 0);
 
-        REQUIRE(pipeline.Prepare(frame, 320, 240));
+        REQUIRE(Wayfinder::Rendering::PrepareFrame(frame, 320, 240));
 
         static const Wayfinder::BuiltInMeshTable K_EMPTY_MESHES{};
         const Wayfinder::FrameRenderParams params{

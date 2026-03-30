@@ -24,6 +24,11 @@ namespace Wayfinder
 {
     namespace
     {
+        /**
+         * @prototype Build scene globals from frame lights.
+         * Falls back to a hardcoded default directional light when no light is submitted.
+         * Should be replaced by data-driven scene defaults (e.g. from scene config or environment settings).
+         */
         SceneGlobalsUBO BuildSceneGlobals(const RenderFrame& frame)
         {
             SceneGlobalsUBO globals;
@@ -39,120 +44,105 @@ namespace Wayfinder
                 }
             }
 
+            /// @prototype Hardcoded fallback light direction -- replace with data-driven scene defaults.
             globals.LightDirection = Maths::Normalize(Float3{-0.4f, -0.7f, -0.5f});
             return globals;
         }
     } // namespace
 
-    bool RegisterSceneShaderPrograms(ShaderProgramRegistry& registry)
+    std::span<const ShaderProgramDesc> SceneOpaquePass::GetShaderPrograms() const
     {
+        static const auto PROGRAMS = []
         {
-            ShaderProgramDesc desc;
-            desc.Name = "unlit";
-            desc.VertexShaderName = "unlit";
-            desc.FragmentShaderName = "unlit";
-            desc.VertexResources = {.numUniformBuffers = 1};
-            desc.FragmentResources = {.numUniformBuffers = 1};
-            desc.VertexLayout = VertexLayouts::PosNormalColour;
-            desc.Cull = CullMode::Back;
-            desc.DepthTest = true;
-            desc.DepthWrite = true;
-            desc.MaterialParams =
-            {
-                {.Name = "base_colour", .Type = MaterialParamType::Colour, .Offset = 0, .Default = LinearColour::White()},
-            };
-            desc.MaterialUBOSize = 16;
-            desc.VertexUBOSize = sizeof(UnlitTransformUBO);
-            desc.NeedsSceneGlobals = false;
+            std::vector<ShaderProgramDesc> p;
+            p.reserve(4);
 
-            if (!registry.Register(desc))
             {
-                WAYFINDER_ERROR(LogRenderer, "RegisterSceneShaderPrograms: failed to register shader program '{}'", desc.Name);
-                return false;
+                ShaderProgramDesc desc;
+                desc.Name = "unlit";
+                desc.VertexShaderName = "unlit";
+                desc.FragmentShaderName = "unlit";
+                desc.VertexResources = {.UniformBuffers = 1};
+                desc.FragmentResources = {.UniformBuffers = 1};
+                desc.VertexLayout = VertexLayouts::POSITION_NORMAL_COLOUR;
+                desc.Cull = CullMode::Back;
+                desc.DepthTest = true;
+                desc.DepthWrite = true;
+                desc.MaterialParams =
+                {
+                    {.Name = "base_colour", .Type = MaterialParamType::Colour, .Offset = 0, .Default = LinearColour::White()},
+                };
+                desc.VertexUBOSize = sizeof(UnlitTransformUBO);
+                desc.NeedsSceneGlobals = false;
+                p.push_back(std::move(desc));
             }
-        }
 
-        {
-            ShaderProgramDesc desc;
-            desc.Name = "unlit_blended";
-            desc.VertexShaderName = "unlit";
-            desc.FragmentShaderName = "unlit";
-            desc.VertexResources = {.numUniformBuffers = 1};
-            desc.FragmentResources = {.numUniformBuffers = 1};
-            desc.VertexLayout = VertexLayouts::PosNormalColour;
-            desc.Cull = CullMode::Back;
-            desc.DepthTest = true;
-            desc.DepthWrite = false;
-            desc.Blend = BlendPresets::AlphaBlend();
-            desc.MaterialParams =
             {
-                {.Name = "base_colour", .Type = MaterialParamType::Colour, .Offset = 0, .Default = LinearColour::White()},
-            };
-            desc.MaterialUBOSize = 16;
-            desc.VertexUBOSize = sizeof(UnlitTransformUBO);
-            desc.NeedsSceneGlobals = false;
-
-            if (!registry.Register(desc))
-            {
-                WAYFINDER_ERROR(LogRenderer, "RegisterSceneShaderPrograms: failed to register shader program '{}'", desc.Name);
-                return false;
+                ShaderProgramDesc desc;
+                desc.Name = "unlit_blended";
+                desc.VertexShaderName = "unlit";
+                desc.FragmentShaderName = "unlit";
+                desc.VertexResources = {.UniformBuffers = 1};
+                desc.FragmentResources = {.UniformBuffers = 1};
+                desc.VertexLayout = VertexLayouts::POSITION_NORMAL_COLOUR;
+                desc.Cull = CullMode::Back;
+                desc.DepthTest = true;
+                desc.DepthWrite = false;
+                desc.Blend = BlendPresets::AlphaBlend();
+                desc.MaterialParams =
+                {
+                    {.Name = "base_colour", .Type = MaterialParamType::Colour, .Offset = 0, .Default = LinearColour::White()},
+                };
+                desc.VertexUBOSize = sizeof(UnlitTransformUBO);
+                desc.NeedsSceneGlobals = false;
+                p.push_back(std::move(desc));
             }
-        }
 
-        {
-            ShaderProgramDesc desc;
-            desc.Name = "basic_lit";
-            desc.VertexShaderName = "basic_lit";
-            desc.FragmentShaderName = "basic_lit";
-            desc.VertexResources = {.numUniformBuffers = 1};
-            desc.FragmentResources = {.numUniformBuffers = 2};
-            desc.VertexLayout = VertexLayouts::PosNormalColour;
-            desc.Cull = CullMode::Back;
-            desc.DepthTest = true;
-            desc.DepthWrite = true;
-            desc.MaterialParams =
             {
-                {.Name = "base_colour", .Type = MaterialParamType::Colour, .Offset = 0, .Default = LinearColour::White()},
-            };
-            desc.MaterialUBOSize = 16;
-            desc.VertexUBOSize = sizeof(TransformUBO);
-            desc.NeedsSceneGlobals = true;
-
-            if (!registry.Register(desc))
-            {
-                WAYFINDER_ERROR(LogRenderer, "RegisterSceneShaderPrograms: failed to register shader program '{}'", desc.Name);
-                return false;
+                ShaderProgramDesc desc;
+                desc.Name = "basic_lit";
+                desc.VertexShaderName = "basic_lit";
+                desc.FragmentShaderName = "basic_lit";
+                desc.VertexResources = {.UniformBuffers = 1};
+                desc.FragmentResources = {.UniformBuffers = 2};
+                desc.VertexLayout = VertexLayouts::POSITION_NORMAL_COLOUR;
+                desc.Cull = CullMode::Back;
+                desc.DepthTest = true;
+                desc.DepthWrite = true;
+                desc.MaterialParams =
+                {
+                    {.Name = "base_colour", .Type = MaterialParamType::Colour, .Offset = 0, .Default = LinearColour::White()},
+                };
+                desc.VertexUBOSize = sizeof(TransformUBO);
+                desc.NeedsSceneGlobals = true;
+                p.push_back(std::move(desc));
             }
-        }
 
-        {
-            ShaderProgramDesc desc;
-            desc.Name = "textured_lit";
-            desc.VertexShaderName = "textured_lit";
-            desc.FragmentShaderName = "textured_lit";
-            desc.VertexResources = {.numUniformBuffers = 1};
-            desc.FragmentResources = {.numUniformBuffers = 2, .numSamplers = 1};
-            desc.VertexLayout = VertexLayouts::PosNormalUVTangent;
-            desc.Cull = CullMode::Back;
-            desc.DepthTest = true;
-            desc.DepthWrite = true;
-            desc.MaterialParams =
             {
-                {.Name = "base_colour", .Type = MaterialParamType::Colour, .Offset = 0, .Default = LinearColour::White()},
-            };
-            desc.MaterialUBOSize = 16;
-            desc.VertexUBOSize = sizeof(TransformUBO);
-            desc.NeedsSceneGlobals = true;
-            desc.TextureSlots = {{.Name = "diffuse", .BindingSlot = 0}};
-
-            if (!registry.Register(desc))
-            {
-                WAYFINDER_ERROR(LogRenderer, "RegisterSceneShaderPrograms: failed to register shader program '{}'", desc.Name);
-                return false;
+                ShaderProgramDesc desc;
+                desc.Name = "textured_lit";
+                desc.VertexShaderName = "textured_lit";
+                desc.FragmentShaderName = "textured_lit";
+                desc.VertexResources = {.UniformBuffers = 1};
+                desc.FragmentResources = {.UniformBuffers = 2, .Samplers = 1};
+                desc.VertexLayout = VertexLayouts::POSITION_NORMAL_UV_TANGENT;
+                desc.Cull = CullMode::Back;
+                desc.DepthTest = true;
+                desc.DepthWrite = true;
+                desc.MaterialParams =
+                {
+                    {.Name = "base_colour", .Type = MaterialParamType::Colour, .Offset = 0, .Default = LinearColour::White()},
+                };
+                desc.VertexUBOSize = sizeof(TransformUBO);
+                desc.NeedsSceneGlobals = true;
+                desc.TextureSlots = {{.Name = "diffuse", .BindingSlot = 0}};
+                p.push_back(std::move(desc));
             }
-        }
 
-        return true;
+            return p;
+        }();
+
+        return PROGRAMS;
     }
 
     void SceneOpaquePass::OnAttach(const RenderFeatureContext& context)
@@ -164,7 +154,7 @@ namespace Wayfinder
     {
         if (!m_context)
         {
-            WAYFINDER_WARN(LogRenderer, "SceneOpaquePass: no context — skipped");
+            Log::Warn(LogRenderer, "SceneOpaquePass: no context! Skipped");
             return;
         }
 
@@ -174,8 +164,6 @@ namespace Wayfinder
 
         const auto& primary = params.PrimaryView;
         const Colour clearColour = primary.ClearColour;
-        const Matrix4 view = primary.ViewMatrix;
-        const Matrix4 projection = primary.ProjectionMatrix;
         const bool hasCamera = primary.Valid;
 
         const SceneGlobalsUBO sceneGlobals = BuildSceneGlobals(preparedFrame);
@@ -195,15 +183,15 @@ namespace Wayfinder
         depthDesc.Format = TextureFormat::D32_FLOAT;
         depthDesc.DebugName = GraphTextureName(GraphTextureId::SceneDepth);
 
-        graph.AddPass("MainScene", [&, viewMat = view, projMat = projection, hasCamera](RenderGraphBuilder& builder)
+        graph.AddPass("MainScene", [&, hasCamera](RenderGraphBuilder& builder)
         {
             builder.DeclarePassCapabilities(RenderCapabilities::RASTER | RenderCapabilities::RASTER_SCENE_GEOMETRY);
             auto colour = builder.CreateTransient(colourDesc);
             auto depth = builder.CreateTransient(depthDesc);
-            builder.WriteColour(colour, LoadOp::Clear, ClearValue::FromColour(clearColour));
+            builder.WriteColour(colour, LoadOp::Clear, LinearColour::FromColour(clearColour));
             builder.WriteDepth(depth, LoadOp::Clear, 1.0f);
 
-            return [this, &params, viewMat, projMat, sceneGlobals, hasCamera](RenderDevice& device, const RenderGraphResources& /*resources*/)
+            return [this, &params, sceneGlobals, hasCamera](RenderDevice& device, const RenderGraphResources& /*resources*/)
             {
                 if (!hasCamera || !m_context)
                 {
@@ -225,19 +213,15 @@ namespace Wayfinder
                         continue;
                     }
 
-                    Matrix4 passView = viewMat;
-                    Matrix4 passProj = projMat;
-
-                    if (layer.ViewIndex < params.Frame.Views.size() && params.Frame.Views.at(layer.ViewIndex).Prepared)
+                    const auto resolved = Rendering::ResolveViewForLayer(params, layer.ViewIndex);
+                    if (!resolved.IsValid)
                     {
-                        const auto& pv = params.Frame.Views.at(layer.ViewIndex);
-                        passView = pv.ViewMatrix;
-                        passProj = pv.ProjectionMatrix;
+                        continue;
                     }
 
                     for (const auto& submission : layer.Meshes)
                     {
-                        DrawSubmission(state, submission, passView, passProj, sceneGlobals);
+                        DrawSubmission(state, submission, resolved.View, resolved.ProjectionMatrix, sceneGlobals);
                     }
                 }
             };

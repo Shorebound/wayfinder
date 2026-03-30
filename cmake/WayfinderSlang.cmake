@@ -71,6 +71,52 @@ set(SLANG_INCLUDE_DIR "${slang_sdk_SOURCE_DIR}/include" CACHE PATH "Slang header
 set(SLANG_LIB_DIR "${slang_sdk_SOURCE_DIR}/lib" CACHE PATH "Slang libraries" FORCE)
 
 if(NOT EXISTS "${SLANGC_EXECUTABLE}")
-    message(FATAL_ERROR "slangc not found at ${SLANGC_EXECUTABLE} — check SLANG_VERSION and platform")
+    message(FATAL_ERROR "slangc not found at ${SLANGC_EXECUTABLE} -- check SLANG_VERSION and platform")
 endif()
 message(STATUS "Found slangc: ${SLANGC_EXECUTABLE}")
+
+# ── Imported library target for runtime Slang compilation ──────────────
+# Wraps the prebuilt SDK so engine code can link with target_link_libraries(... Slang::slang).
+
+set(SLANG_BIN_DIR "${slang_sdk_SOURCE_DIR}/bin" CACHE PATH "Slang binaries (DLLs)" FORCE)
+
+if(NOT TARGET Slang::slang)
+    add_library(Slang::slang SHARED IMPORTED GLOBAL)
+
+    if(WIN32)
+        set(_SLANG_DLL "${SLANG_BIN_DIR}/slang.dll")
+        set(_SLANG_IMPLIB "${SLANG_LIB_DIR}/slang.lib")
+        if(NOT EXISTS "${_SLANG_DLL}")
+            message(FATAL_ERROR "slang.dll not found at ${_SLANG_DLL}")
+        endif()
+        if(NOT EXISTS "${_SLANG_IMPLIB}")
+            message(FATAL_ERROR "slang.lib not found at ${_SLANG_IMPLIB}")
+        endif()
+        set_target_properties(Slang::slang PROPERTIES
+            IMPORTED_LOCATION "${_SLANG_DLL}"
+            IMPORTED_IMPLIB   "${_SLANG_IMPLIB}"
+        )
+    elseif(APPLE)
+        set(_SLANG_DYLIB "${SLANG_LIB_DIR}/libslang.dylib")
+        if(NOT EXISTS "${_SLANG_DYLIB}")
+            message(FATAL_ERROR "libslang.dylib not found at ${_SLANG_DYLIB}")
+        endif()
+        set_target_properties(Slang::slang PROPERTIES
+            IMPORTED_LOCATION "${_SLANG_DYLIB}"
+        )
+    else()
+        set(_SLANG_SO "${SLANG_LIB_DIR}/libslang.so")
+        if(NOT EXISTS "${_SLANG_SO}")
+            message(FATAL_ERROR "libslang.so not found at ${_SLANG_SO}")
+        endif()
+        set_target_properties(Slang::slang PROPERTIES
+            IMPORTED_LOCATION "${_SLANG_SO}"
+        )
+    endif()
+
+    set_target_properties(Slang::slang PROPERTIES
+        INTERFACE_INCLUDE_DIRECTORIES "${SLANG_INCLUDE_DIR}"
+    )
+
+    message(STATUS "Created imported target Slang::slang")
+endif()

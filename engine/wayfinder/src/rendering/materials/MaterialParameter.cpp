@@ -74,13 +74,13 @@ namespace Wayfinder
     {
         if (Slots.empty())
         {
-            WAYFINDER_WARN(LogRenderer, "ApplyOverrides: Slots is empty — call BuildSlots before ApplyOverrides");
+            Log::Warn(LogRenderer, "ApplyOverrides: Slots is empty — call BuildSlots before ApplyOverrides");
             return;
         }
 
         if (Slots.size() != decls.size())
         {
-            WAYFINDER_ERROR(LogRenderer, "ApplyOverrides: Slots size ({}) != decls size ({}) — call BuildSlots with the correct declarations before ApplyOverrides", Slots.size(), decls.size());
+            Log::Error(LogRenderer, "ApplyOverrides: Slots size ({}) != decls size ({}) — call BuildSlots with the correct declarations before ApplyOverrides", Slots.size(), decls.size());
             return;
         }
 

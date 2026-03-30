@@ -30,11 +30,11 @@ namespace Wayfinder
 
     Result<void> Game::Initialise(const GameContext& ctx)
     {
-        WAYFINDER_INFO(LogGame, "Initialising game");
+        Log::Info(LogGame, "Initialising game");
 
         if (&ctx.pluginRegistry != &m_pluginRegistry)
         {
-            WAYFINDER_ERROR(LogGame, "GameContext::pluginRegistry must refer to the same PluginRegistry instance passed to Game's constructor");
+            Log::Error(LogGame, "GameContext::pluginRegistry must refer to the same PluginRegistry instance passed to Game's constructor");
             return MakeError("GameContext plugin registry does not match Game constructor");
         }
 
@@ -69,7 +69,7 @@ namespace Wayfinder
 
         if (!std::filesystem::exists(bootScenePath))
         {
-            WAYFINDER_ERROR(LogGame, "Boot scene not found: {}", bootScenePath.string());
+            Log::Error(LogGame, "Boot scene not found: {}", bootScenePath.string());
             return MakeError("Boot scene not found");
         }
 
@@ -77,7 +77,7 @@ namespace Wayfinder
         const auto resolvedPath = std::filesystem::weakly_canonical(bootScenePath, canonicalError);
         if (canonicalError)
         {
-            WAYFINDER_ERROR(LogGame, "Failed to resolve canonical path for boot scene '{}': {}", bootScenePath.string(), canonicalError.message());
+            Log::Error(LogGame, "Failed to resolve canonical path for boot scene '{}': {}", bootScenePath.string(), canonicalError.message());
             return MakeError("Failed to resolve boot scene path");
         }
 
@@ -86,12 +86,12 @@ namespace Wayfinder
 
         if (auto loadResult = m_currentScene->LoadFromFile(resolvedPath.string()); !loadResult)
         {
-            WAYFINDER_ERROR(LogGame, "Failed to load bootstrap scene: {}", resolvedPath.string());
+            Log::Error(LogGame, "Failed to load bootstrap scene: {}", resolvedPath.string());
             m_currentScene.reset();
             return std::unexpected(loadResult.error());
         }
 
-        WAYFINDER_INFO(LogGame, "Loaded bootstrap scene from: {}", resolvedPath.string());
+        Log::Info(LogGame, "Loaded bootstrap scene from: {}", resolvedPath.string());
 
         cleanupState.Committed = true;
         m_running = true;
@@ -154,7 +154,7 @@ namespace Wayfinder
             return;
         }
 
-        WAYFINDER_INFO(LogGame, "Shutting down game");
+        Log::Info(LogGame, "Shutting down game");
 
         UnloadCurrentScene();
 
@@ -171,7 +171,7 @@ namespace Wayfinder
         const std::string pathStr(scenePath);
         if (!std::filesystem::exists(pathStr))
         {
-            WAYFINDER_WARN(LogGame, "Scene file not found: {}", pathStr);
+            Log::Warn(LogGame, "Scene file not found: {}", pathStr);
             return;
         }
 
@@ -180,13 +180,13 @@ namespace Wayfinder
 
         if (auto result = newScene->LoadFromFile(pathStr); !result)
         {
-            WAYFINDER_ERROR(LogGame, "Failed to load scene '{}': {}", pathStr, result.error().GetMessage());
+            Log::Error(LogGame, "Failed to load scene '{}': {}", pathStr, result.error().GetMessage());
             return;
         }
 
         UnloadCurrentScene();
         m_currentScene = std::move(newScene);
-        WAYFINDER_INFO(LogGame, "Loaded scene: {}", pathStr);
+        Log::Info(LogGame, "Loaded scene: {}", pathStr);
     }
 
     void Game::UnloadCurrentScene()
@@ -202,7 +202,7 @@ namespace Wayfinder
     {
         if (!m_stateMachine)
         {
-            WAYFINDER_WARN(LogGame, "TransitionTo('{}') called but no state machine is configured", stateName);
+            Log::Warn(LogGame, "TransitionTo('{}') called but no state machine is configured", stateName);
             return;
         }
         m_stateMachine->TransitionTo(stateName);
@@ -221,7 +221,7 @@ namespace Wayfinder
     {
         auto& tags = m_world.get_mut<ActiveGameplayTags>();
         tags.Tags.AddTag(tag);
-        WAYFINDER_INFO(LogGame, "Added gameplay tag: '{}'", tag.GetName());
+        Log::Info(LogGame, "Added gameplay tag: '{}'", tag.GetName());
         if (m_stateMachine)
         {
             m_stateMachine->MarkDirty();
@@ -232,7 +232,7 @@ namespace Wayfinder
     {
         auto& tags = m_world.get_mut<ActiveGameplayTags>();
         tags.Tags.RemoveTag(tag);
-        WAYFINDER_INFO(LogGame, "Removed gameplay tag: '{}'", tag.GetName());
+        Log::Info(LogGame, "Removed gameplay tag: '{}'", tag.GetName());
         if (m_stateMachine)
         {
             m_stateMachine->MarkDirty();
@@ -277,7 +277,7 @@ namespace Wayfinder
             }
             else
             {
-                WAYFINDER_WARN(LogGame, "Tag file not found: '{}'", fullPath.string());
+                Log::Warn(LogGame, "Tag file not found: '{}'", fullPath.string());
             }
         }
 

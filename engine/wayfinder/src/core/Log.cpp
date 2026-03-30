@@ -1,28 +1,30 @@
 #include "Log.h"
+#include "core/TransparentStringHash.h"
 #include "core/logging/spdlog/SpdLogManager.h"
 #include "core/logging/spdlog/SpdLogOutput.h"
-#include "core/logging/spdlog/SpdLogger.h"
 
 #include <cstdint>
+#include <functional>
+#include <memory>
 #include <string>
-#include <string_view>
+#include <unordered_map>
 
 namespace Wayfinder
 {
     namespace
     {
-        using LogCategoryMap = std::unordered_map<std::string, std::unique_ptr<LogCategory>>;
+        using LoggerMap = std::unordered_map<std::string, std::shared_ptr<ILogger>, TransparentStringHash, std::equal_to<>>;
 
-        LogCategoryMap& GetCategories()
+        LoggerMap& GetLoggers()
         {
-            static LogCategoryMap sCategories;
-            return sCategories;
+            static LoggerMap sLoggers;
+            return sLoggers;
         }
 
-        LogVerbosity& GetGlobalVerbosityStorage()
+        LogVerbosity& GetGlobalVerbosity()
         {
-            static LogVerbosity sGlobalVerbosity = LogVerbosity::Info;
-            return sGlobalVerbosity;
+            static LogVerbosity sVerbosity = LogVerbosity::Info;
+            return sVerbosity;
         }
 
         LogConfig& GetConfigStorage()
@@ -31,14 +33,33 @@ namespace Wayfinder
             return sConfig;
         }
 
-        std::uint64_t& GetCategoryGeneration()
+        std::uint64_t& GetGeneration()
         {
             static std::uint64_t sGeneration = 1;
             return sGeneration;
         }
+
+        /// Rebuild a logger's outputs to match the current config.
+        void RebuildOutputs(ILogger& logger, const LogConfig& config)
+        {
+            logger.ClearOutputs();
+
+            if (config.IsOutputEnabled(LogOutputType::Console))
+            {
+                auto output = CreateConsoleOutput();
+                output->SetPattern("%^[%T] %n: %v%$");
+                logger.AddOutput(std::move(output));
+            }
+
+            if (config.IsOutputEnabled(LogOutputType::File))
+            {
+                auto output = CreateFileOutput(config.FileOutputConfig);
+                output->SetPattern("[%Y-%m-%d %H:%M:%S.%e] [%l] %n: %v");
+                logger.AddOutput(std::move(output));
+            }
+        }
     } // namespace
 
-    /// std::string_view UDL: constexpr (pointer + length); avoids static-init warnings on (char*) → string_view.
     using std::literals::string_view_literals::operator""sv;
 
     const LogCategoryHandle LogEngine{"Engine"sv};
@@ -50,93 +71,61 @@ namespace Wayfinder
     const LogCategoryHandle LogGame{"Game"sv};
     const LogCategoryHandle LogScene{"Scene"sv};
 
-    LogCategory& LogCategoryHandle::Get() const
+    // ── LogCategoryHandle ───────────────────────────────────────────────
+
+    ILogger& LogCategoryHandle::Get() const
     {
-        const std::uint64_t currentGeneration = GetCategoryGeneration();
+        const auto currentGeneration = GetGeneration();
         if (m_cached != nullptr && m_generation == currentGeneration)
         {
             return *m_cached;
         }
 
-        m_cached = &Log::GetCategory(std::string{m_name});
+        m_cached = &Log::GetOrCreateLogger(m_name);
         m_generation = currentGeneration;
         return *m_cached;
     }
 
-    const std::string& LogCategoryHandle::GetName() const
+    // ── Log namespace ───────────────────────────────────────────────────
+
+    void Log::Initialise()
     {
-        return Get().GetName();
-    }
-
-    std::shared_ptr<ILogger> LogCategoryHandle::GetLogger() const
-    {
-        return Get().GetLogger();
-    }
-
-    LogVerbosity LogCategoryHandle::GetVerbosity() const
-    {
-        return Get().GetVerbosity();
-    }
-
-    LogCategoryHandle::operator LogCategory&() const
-    {
-        return Get();
-    }
-
-    LogCategory::LogCategory(const std::string& name, LogVerbosity defaultVerbosity) : m_name(name), m_verbosity(defaultVerbosity)
-    {
-        // Create logger with empty output list
-        m_logger = CreateLogger(name, defaultVerbosity);
-
-        // Update outputs based on current configuration
-        UpdateOutputs();
-    }
-
-    void LogCategory::UpdateOutputs()
-    {
-        // Clear existing outputs
-        m_logger->ClearOutputs();
-
-        const LogConfig& config = Log::GetConfig();
-
-        // Add console output if enabled
-        if (config.IsOutputEnabled(LogOutputType::Console))
-        {
-            auto output = CreateConsoleOutput();
-            output->SetPattern("%^[%T] %n: %v%$");
-            m_logger->AddOutput(output);
-        }
-
-        // Add file output if enabled
-        if (config.IsOutputEnabled(LogOutputType::File))
-        {
-            auto output = CreateFileOutput(config.FileOutputConfig);
-            output->SetPattern("[%Y-%m-%d %H:%M:%S.%e] [%l] %n: %v");
-            m_logger->AddOutput(output);
-        }
-    }
-
-    void LogCategory::SetVerbosity(LogVerbosity level)
-    {
-        m_verbosity = level;
-        m_logger->SetVerbosity(level);
-    }
-
-    void Log::Init()
-    {
-        /// Initialise the spdlog manager.
         SpdLogManager::Initialise();
-
-        /// Initialise all predefined categories.
-        /// They're already created as static globals, but we might want to do additional setup.
-        SetGlobalVerbosity(GetGlobalVerbosityStorage());
+        /// Re-apply stored verbosity to loggers created before Initialise() ran.
+        SetGlobalVerbosity(GetGlobalVerbosity());
     }
 
     void Log::Shutdown()
     {
-        GetCategories().clear();
-        ++GetCategoryGeneration();
+        GetLoggers().clear();
+        ++GetGeneration();
         SpdLogManager::Shutdown();
+    }
+
+    ILogger& Log::GetOrCreateLogger(std::string_view name, LogVerbosity defaultVerbosity)
+    {
+        auto& loggers = GetLoggers();
+
+        if (const auto it = loggers.find(name); it != loggers.end())
+        {
+            return *it->second;
+        }
+
+        const std::string key{name};
+        auto logger = CreateLogger(key, defaultVerbosity);
+        RebuildOutputs(*logger, GetConfigStorage());
+        auto* raw = logger.get();
+        loggers.emplace(std::move(key), std::move(logger));
+        return *raw;
+    }
+
+    void Log::SetGlobalVerbosity(LogVerbosity level)
+    {
+        GetGlobalVerbosity() = level;
+        for (auto& [name, logger] : GetLoggers())
+        {
+            logger->SetVerbosity(level);
+        }
     }
 
     const LogConfig& Log::GetConfig()
@@ -146,101 +135,10 @@ namespace Wayfinder
 
     void Log::SetConfig(const LogConfig& config)
     {
-        auto& storedConfig = GetConfigStorage();
-        storedConfig = config;
-
-        // Update all existing categories with new configuration
-        for (auto& [name, category] : GetCategories())
+        GetConfigStorage() = config;
+        for (auto& [name, logger] : GetLoggers())
         {
-            category->UpdateOutputs();
-        }
-    }
-
-    void Log::EnableOutput(LogOutputType output, bool enable)
-    {
-        auto& config = GetConfigStorage();
-        config.EnableOutput(output, enable);
-
-        // Update all existing categories with new configuration
-        for (auto& [name, category] : GetCategories())
-        {
-            category->UpdateOutputs();
-        }
-    }
-
-    bool Log::IsOutputEnabled(LogOutputType output)
-    {
-        return GetConfigStorage().IsOutputEnabled(output);
-    }
-
-    void Log::SetLogFilePath(const std::string& path)
-    {
-        auto& config = GetConfigStorage();
-        config.FileOutputConfig.FilePath = path;
-
-        // Update all existing categories with new configuration
-        for (auto& [name, category] : GetCategories())
-        {
-            category->UpdateOutputs();
-        }
-    }
-
-    void Log::SetLogFileRotationSize(size_t maxSize)
-    {
-        auto& config = GetConfigStorage();
-        config.FileOutputConfig.MaxFileSize = maxSize;
-
-        // Update all existing categories with new configuration
-        for (auto& [name, category] : GetCategories())
-        {
-            category->UpdateOutputs();
-        }
-    }
-
-    void Log::SetLogFileMaxFiles(size_t maxFiles)
-    {
-        auto& config = GetConfigStorage();
-        config.FileOutputConfig.MaxFiles = maxFiles;
-
-        // Update all existing categories with new configuration
-        for (auto& [name, category] : GetCategories())
-        {
-            category->UpdateOutputs();
-        }
-    }
-
-    LogCategory& Log::CreateCategory(const std::string& name, LogVerbosity defaultVerbosity)
-    {
-        auto& categories = GetCategories();
-        auto it = categories.find(name);
-        if (it != categories.end())
-        {
-            return *it->second;
-        }
-
-        auto category = std::make_unique<LogCategory>(name, defaultVerbosity);
-        auto* categoryPtr = category.get();
-        categories.emplace(name, std::move(category));
-        return *categoryPtr;
-    }
-
-    LogCategory& Log::GetCategory(const std::string& name)
-    {
-        auto& categories = GetCategories();
-        auto it = categories.find(name);
-        if (it != categories.end())
-        {
-            return *it->second;
-        }
-        return CreateCategory(name);
-    }
-
-    void Log::SetGlobalVerbosity(LogVerbosity level)
-    {
-        GetGlobalVerbosityStorage() = level;
-        for (auto& [name, category] : GetCategories())
-        {
-            category->SetVerbosity(level);
+            RebuildOutputs(*logger, config);
         }
     }
 

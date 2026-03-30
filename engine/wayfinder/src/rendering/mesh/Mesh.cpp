@@ -13,45 +13,45 @@ namespace Wayfinder
         {
             const float h = size * 0.5f;
 
-            constexpr Float3 N_FRONT = {0.0f, 0.0f, 1.0f};
-            constexpr Float3 N_BACK = {0.0f, 0.0f, -1.0f};
-            constexpr Float3 N_TOP = {0.0f, 1.0f, 0.0f};
-            constexpr Float3 N_BOTTOM = {0.0f, -1.0f, 0.0f};
-            constexpr Float3 N_RIGHT = {1.0f, 0.0f, 0.0f};
-            constexpr Float3 N_LEFT = {-1.0f, 0.0f, 0.0f};
+            constexpr Float3 normalFront = {0.0f, 0.0f, 1.0f};
+            constexpr Float3 normalBack = {0.0f, 0.0f, -1.0f};
+            constexpr Float3 normalTop = {0.0f, 1.0f, 0.0f};
+            constexpr Float3 normalBottom = {0.0f, -1.0f, 0.0f};
+            constexpr Float3 normalRight = {1.0f, 0.0f, 0.0f};
+            constexpr Float3 normalLeft = {-1.0f, 0.0f, 0.0f};
 
-            constexpr Float3 C_FRONT = {0.9f, 0.2f, 0.2f};
-            constexpr Float3 C_BACK = {0.2f, 0.8f, 0.2f};
-            constexpr Float3 C_TOP = {0.2f, 0.4f, 0.9f};
-            constexpr Float3 C_BOTTOM = {0.9f, 0.9f, 0.2f};
-            constexpr Float3 C_RIGHT = {0.9f, 0.2f, 0.9f};
-            constexpr Float3 C_LEFT = {0.2f, 0.9f, 0.9f};
+            constexpr Float3 colourFront = {0.9f, 0.2f, 0.2f};
+            constexpr Float3 colourBack = {0.2f, 0.8f, 0.2f};
+            constexpr Float3 colourTop = {0.2f, 0.4f, 0.9f};
+            constexpr Float3 colourBottom = {0.9f, 0.9f, 0.2f};
+            constexpr Float3 colourRight = {0.9f, 0.2f, 0.9f};
+            constexpr Float3 colourLeft = {0.2f, 0.9f, 0.9f};
 
-            const std::array<VertexPosNormalColour, 24> vertices = {{
-                {.Position = {-h, -h, h}, .Normal = N_FRONT, .Colour = C_FRONT},
-                {.Position = {h, -h, h}, .Normal = N_FRONT, .Colour = C_FRONT},
-                {.Position = {h, h, h}, .Normal = N_FRONT, .Colour = C_FRONT},
-                {.Position = {-h, h, h}, .Normal = N_FRONT, .Colour = C_FRONT},
-                {.Position = {h, -h, -h}, .Normal = N_BACK, .Colour = C_BACK},
-                {.Position = {-h, -h, -h}, .Normal = N_BACK, .Colour = C_BACK},
-                {.Position = {-h, h, -h}, .Normal = N_BACK, .Colour = C_BACK},
-                {.Position = {h, h, -h}, .Normal = N_BACK, .Colour = C_BACK},
-                {.Position = {-h, h, h}, .Normal = N_TOP, .Colour = C_TOP},
-                {.Position = {h, h, h}, .Normal = N_TOP, .Colour = C_TOP},
-                {.Position = {h, h, -h}, .Normal = N_TOP, .Colour = C_TOP},
-                {.Position = {-h, h, -h}, .Normal = N_TOP, .Colour = C_TOP},
-                {.Position = {-h, -h, -h}, .Normal = N_BOTTOM, .Colour = C_BOTTOM},
-                {.Position = {h, -h, -h}, .Normal = N_BOTTOM, .Colour = C_BOTTOM},
-                {.Position = {h, -h, h}, .Normal = N_BOTTOM, .Colour = C_BOTTOM},
-                {.Position = {-h, -h, h}, .Normal = N_BOTTOM, .Colour = C_BOTTOM},
-                {.Position = {h, -h, h}, .Normal = N_RIGHT, .Colour = C_RIGHT},
-                {.Position = {h, -h, -h}, .Normal = N_RIGHT, .Colour = C_RIGHT},
-                {.Position = {h, h, -h}, .Normal = N_RIGHT, .Colour = C_RIGHT},
-                {.Position = {h, h, h}, .Normal = N_RIGHT, .Colour = C_RIGHT},
-                {.Position = {-h, -h, -h}, .Normal = N_LEFT, .Colour = C_LEFT},
-                {.Position = {-h, -h, h}, .Normal = N_LEFT, .Colour = C_LEFT},
-                {.Position = {-h, h, h}, .Normal = N_LEFT, .Colour = C_LEFT},
-                {.Position = {-h, h, -h}, .Normal = N_LEFT, .Colour = C_LEFT},
+            const std::array<VertexPositionNormalColour, 24> vertices = {{
+                {.Position = {-h, -h, h}, .Normal = normalFront, .Colour = colourFront},
+                {.Position = {h, -h, h}, .Normal = normalFront, .Colour = colourFront},
+                {.Position = {h, h, h}, .Normal = normalFront, .Colour = colourFront},
+                {.Position = {-h, h, h}, .Normal = normalFront, .Colour = colourFront},
+                {.Position = {h, -h, -h}, .Normal = normalBack, .Colour = colourBack},
+                {.Position = {-h, -h, -h}, .Normal = normalBack, .Colour = colourBack},
+                {.Position = {-h, h, -h}, .Normal = normalBack, .Colour = colourBack},
+                {.Position = {h, h, -h}, .Normal = normalBack, .Colour = colourBack},
+                {.Position = {-h, h, h}, .Normal = normalTop, .Colour = colourTop},
+                {.Position = {h, h, h}, .Normal = normalTop, .Colour = colourTop},
+                {.Position = {h, h, -h}, .Normal = normalTop, .Colour = colourTop},
+                {.Position = {-h, h, -h}, .Normal = normalTop, .Colour = colourTop},
+                {.Position = {-h, -h, -h}, .Normal = normalBottom, .Colour = colourBottom},
+                {.Position = {h, -h, -h}, .Normal = normalBottom, .Colour = colourBottom},
+                {.Position = {h, -h, h}, .Normal = normalBottom, .Colour = colourBottom},
+                {.Position = {-h, -h, h}, .Normal = normalBottom, .Colour = colourBottom},
+                {.Position = {h, -h, h}, .Normal = normalRight, .Colour = colourRight},
+                {.Position = {h, -h, -h}, .Normal = normalRight, .Colour = colourRight},
+                {.Position = {h, h, -h}, .Normal = normalRight, .Colour = colourRight},
+                {.Position = {h, h, h}, .Normal = normalRight, .Colour = colourRight},
+                {.Position = {-h, -h, -h}, .Normal = normalLeft, .Colour = colourLeft},
+                {.Position = {-h, -h, h}, .Normal = normalLeft, .Colour = colourLeft},
+                {.Position = {-h, h, h}, .Normal = normalLeft, .Colour = colourLeft},
+                {.Position = {-h, h, -h}, .Normal = normalLeft, .Colour = colourLeft},
             }};
 
             const std::array<uint16_t, 36> indices = {{
@@ -96,7 +96,7 @@ namespace Wayfinder
             Mesh mesh;
             if (!mesh.Create(device, {
                                          .VertexData = vertices.data(),
-                                         .VertexDataSize = static_cast<uint32_t>(vertices.size() * sizeof(VertexPosNormalColour)),
+                                         .VertexDataSize = static_cast<uint32_t>(vertices.size() * sizeof(VertexPositionNormalColour)),
                                          .VertexCount = static_cast<uint32_t>(vertices.size()),
                                          .IndexData = indices.data(),
                                          .IndexDataSize = static_cast<uint32_t>(indices.size() * sizeof(uint16_t)),
@@ -104,7 +104,7 @@ namespace Wayfinder
                                          .IndexElementType = IndexElementSize::Uint16,
                                      }))
             {
-                WAYFINDER_ERROR(LogRenderer, "Mesh: Failed to create primitive cube");
+                Log::Error(LogRenderer, "Mesh: Failed to create primitive cube");
                 return {};
             }
 
@@ -126,43 +126,43 @@ namespace Wayfinder
         {
             const float h = size * 0.5f;
 
-            constexpr Float3 N_FRONT = {0.0f, 0.0f, 1.0f};
-            constexpr Float3 N_BACK = {0.0f, 0.0f, -1.0f};
-            constexpr Float3 N_TOP = {0.0f, 1.0f, 0.0f};
-            constexpr Float3 N_BOTTOM = {0.0f, -1.0f, 0.0f};
-            constexpr Float3 N_RIGHT = {1.0f, 0.0f, 0.0f};
-            constexpr Float3 N_LEFT = {-1.0f, 0.0f, 0.0f};
+            constexpr Float3 normalFront = {0.0f, 0.0f, 1.0f};
+            constexpr Float3 normalBack = {0.0f, 0.0f, -1.0f};
+            constexpr Float3 normalTop = {0.0f, 1.0f, 0.0f};
+            constexpr Float3 normalBottom = {0.0f, -1.0f, 0.0f};
+            constexpr Float3 normalRight = {1.0f, 0.0f, 0.0f};
+            constexpr Float3 normalLeft = {-1.0f, 0.0f, 0.0f};
 
             constexpr Float2 UV00 = {0.0f, 1.0f};
             constexpr Float2 UV10 = {1.0f, 1.0f};
             constexpr Float2 UV11 = {1.0f, 0.0f};
             constexpr Float2 UV01 = {0.0f, 0.0f};
 
-            const std::array<VertexPosNormalUVTangent, 24> vertices = {{
-                {.Position = {-h, -h, h}, .Normal = N_FRONT, .UV = UV00, .Tangent = ApproxTangentForNormal(N_FRONT)},
-                {.Position = {h, -h, h}, .Normal = N_FRONT, .UV = UV10, .Tangent = ApproxTangentForNormal(N_FRONT)},
-                {.Position = {h, h, h}, .Normal = N_FRONT, .UV = UV11, .Tangent = ApproxTangentForNormal(N_FRONT)},
-                {.Position = {-h, h, h}, .Normal = N_FRONT, .UV = UV01, .Tangent = ApproxTangentForNormal(N_FRONT)},
-                {.Position = {h, -h, -h}, .Normal = N_BACK, .UV = UV00, .Tangent = ApproxTangentForNormal(N_BACK)},
-                {.Position = {-h, -h, -h}, .Normal = N_BACK, .UV = UV10, .Tangent = ApproxTangentForNormal(N_BACK)},
-                {.Position = {-h, h, -h}, .Normal = N_BACK, .UV = UV11, .Tangent = ApproxTangentForNormal(N_BACK)},
-                {.Position = {h, h, -h}, .Normal = N_BACK, .UV = UV01, .Tangent = ApproxTangentForNormal(N_BACK)},
-                {.Position = {-h, h, h}, .Normal = N_TOP, .UV = UV00, .Tangent = ApproxTangentForNormal(N_TOP)},
-                {.Position = {h, h, h}, .Normal = N_TOP, .UV = UV10, .Tangent = ApproxTangentForNormal(N_TOP)},
-                {.Position = {h, h, -h}, .Normal = N_TOP, .UV = UV11, .Tangent = ApproxTangentForNormal(N_TOP)},
-                {.Position = {-h, h, -h}, .Normal = N_TOP, .UV = UV01, .Tangent = ApproxTangentForNormal(N_TOP)},
-                {.Position = {-h, -h, -h}, .Normal = N_BOTTOM, .UV = UV00, .Tangent = ApproxTangentForNormal(N_BOTTOM)},
-                {.Position = {h, -h, -h}, .Normal = N_BOTTOM, .UV = UV10, .Tangent = ApproxTangentForNormal(N_BOTTOM)},
-                {.Position = {h, -h, h}, .Normal = N_BOTTOM, .UV = UV11, .Tangent = ApproxTangentForNormal(N_BOTTOM)},
-                {.Position = {-h, -h, h}, .Normal = N_BOTTOM, .UV = UV01, .Tangent = ApproxTangentForNormal(N_BOTTOM)},
-                {.Position = {h, -h, h}, .Normal = N_RIGHT, .UV = UV00, .Tangent = ApproxTangentForNormal(N_RIGHT)},
-                {.Position = {h, -h, -h}, .Normal = N_RIGHT, .UV = UV10, .Tangent = ApproxTangentForNormal(N_RIGHT)},
-                {.Position = {h, h, -h}, .Normal = N_RIGHT, .UV = UV11, .Tangent = ApproxTangentForNormal(N_RIGHT)},
-                {.Position = {h, h, h}, .Normal = N_RIGHT, .UV = UV01, .Tangent = ApproxTangentForNormal(N_RIGHT)},
-                {.Position = {-h, -h, -h}, .Normal = N_LEFT, .UV = UV00, .Tangent = ApproxTangentForNormal(N_LEFT)},
-                {.Position = {-h, -h, h}, .Normal = N_LEFT, .UV = UV10, .Tangent = ApproxTangentForNormal(N_LEFT)},
-                {.Position = {-h, h, h}, .Normal = N_LEFT, .UV = UV11, .Tangent = ApproxTangentForNormal(N_LEFT)},
-                {.Position = {-h, h, -h}, .Normal = N_LEFT, .UV = UV01, .Tangent = ApproxTangentForNormal(N_LEFT)},
+            const std::array<VertexPositionNormalUVTangent, 24> vertices = {{
+                {.Position = {-h, -h, h}, .Normal = normalFront, .UV = UV00, .Tangent = ApproxTangentForNormal(normalFront)},
+                {.Position = {h, -h, h}, .Normal = normalFront, .UV = UV10, .Tangent = ApproxTangentForNormal(normalFront)},
+                {.Position = {h, h, h}, .Normal = normalFront, .UV = UV11, .Tangent = ApproxTangentForNormal(normalFront)},
+                {.Position = {-h, h, h}, .Normal = normalFront, .UV = UV01, .Tangent = ApproxTangentForNormal(normalFront)},
+                {.Position = {h, -h, -h}, .Normal = normalBack, .UV = UV00, .Tangent = ApproxTangentForNormal(normalBack)},
+                {.Position = {-h, -h, -h}, .Normal = normalBack, .UV = UV10, .Tangent = ApproxTangentForNormal(normalBack)},
+                {.Position = {-h, h, -h}, .Normal = normalBack, .UV = UV11, .Tangent = ApproxTangentForNormal(normalBack)},
+                {.Position = {h, h, -h}, .Normal = normalBack, .UV = UV01, .Tangent = ApproxTangentForNormal(normalBack)},
+                {.Position = {-h, h, h}, .Normal = normalTop, .UV = UV00, .Tangent = ApproxTangentForNormal(normalTop)},
+                {.Position = {h, h, h}, .Normal = normalTop, .UV = UV10, .Tangent = ApproxTangentForNormal(normalTop)},
+                {.Position = {h, h, -h}, .Normal = normalTop, .UV = UV11, .Tangent = ApproxTangentForNormal(normalTop)},
+                {.Position = {-h, h, -h}, .Normal = normalTop, .UV = UV01, .Tangent = ApproxTangentForNormal(normalTop)},
+                {.Position = {-h, -h, -h}, .Normal = normalBottom, .UV = UV00, .Tangent = ApproxTangentForNormal(normalBottom)},
+                {.Position = {h, -h, -h}, .Normal = normalBottom, .UV = UV10, .Tangent = ApproxTangentForNormal(normalBottom)},
+                {.Position = {h, -h, h}, .Normal = normalBottom, .UV = UV11, .Tangent = ApproxTangentForNormal(normalBottom)},
+                {.Position = {-h, -h, h}, .Normal = normalBottom, .UV = UV01, .Tangent = ApproxTangentForNormal(normalBottom)},
+                {.Position = {h, -h, h}, .Normal = normalRight, .UV = UV00, .Tangent = ApproxTangentForNormal(normalRight)},
+                {.Position = {h, -h, -h}, .Normal = normalRight, .UV = UV10, .Tangent = ApproxTangentForNormal(normalRight)},
+                {.Position = {h, h, -h}, .Normal = normalRight, .UV = UV11, .Tangent = ApproxTangentForNormal(normalRight)},
+                {.Position = {h, h, h}, .Normal = normalRight, .UV = UV01, .Tangent = ApproxTangentForNormal(normalRight)},
+                {.Position = {-h, -h, -h}, .Normal = normalLeft, .UV = UV00, .Tangent = ApproxTangentForNormal(normalLeft)},
+                {.Position = {-h, -h, h}, .Normal = normalLeft, .UV = UV10, .Tangent = ApproxTangentForNormal(normalLeft)},
+                {.Position = {-h, h, h}, .Normal = normalLeft, .UV = UV11, .Tangent = ApproxTangentForNormal(normalLeft)},
+                {.Position = {-h, h, -h}, .Normal = normalLeft, .UV = UV01, .Tangent = ApproxTangentForNormal(normalLeft)},
             }};
 
             const std::array<uint16_t, 36> indices = {{
@@ -207,7 +207,7 @@ namespace Wayfinder
             Mesh mesh;
             if (!mesh.Create(device, {
                                          .VertexData = vertices.data(),
-                                         .VertexDataSize = static_cast<uint32_t>(vertices.size() * sizeof(VertexPosNormalUVTangent)),
+                                         .VertexDataSize = static_cast<uint32_t>(vertices.size() * sizeof(VertexPositionNormalUVTangent)),
                                          .VertexCount = static_cast<uint32_t>(vertices.size()),
                                          .IndexData = indices.data(),
                                          .IndexDataSize = static_cast<uint32_t>(indices.size() * sizeof(uint16_t)),
@@ -215,7 +215,7 @@ namespace Wayfinder
                                          .IndexElementType = IndexElementSize::Uint16,
                                      }))
             {
-                WAYFINDER_ERROR(LogRenderer, "Mesh: Failed to create textured primitive cube");
+                Log::Error(LogRenderer, "Mesh: Failed to create textured primitive cube");
                 return {};
             }
 
@@ -228,13 +228,13 @@ namespace Wayfinder
     {
         if (!m_vertexBuffer.Create(device, BufferUsage::Vertex, desc.VertexDataSize))
         {
-            WAYFINDER_ERROR(LogRenderer, "Mesh: Failed to create vertex buffer");
+            Log::Error(LogRenderer, "Mesh: Failed to create vertex buffer");
             return false;
         }
 
         if (!m_indexBuffer.Create(device, BufferUsage::Index, desc.IndexDataSize))
         {
-            WAYFINDER_ERROR(LogRenderer, "Mesh: Failed to create index buffer");
+            Log::Error(LogRenderer, "Mesh: Failed to create index buffer");
             m_vertexBuffer.Destroy();
             return false;
         }
@@ -246,7 +246,7 @@ namespace Wayfinder
         m_indexCount = desc.IndexCount;
         m_indexElementSize = desc.IndexElementType;
 
-        WAYFINDER_INFO(LogRenderer, "Mesh: Created ({} verts, {} indices)", desc.VertexCount, desc.IndexCount);
+        Log::Info(LogRenderer, "Mesh: Created ({} verts, {} indices)", desc.VertexCount, desc.IndexCount);
         return true;
     }
 
@@ -276,7 +276,7 @@ namespace Wayfinder
         case PrimitiveShape::Cube:
             return CreateCube(device, desc.Size);
         default:
-            WAYFINDER_ERROR(LogRenderer, "Mesh: Unknown primitive shape {}", static_cast<int>(desc.Shape));
+            Log::Error(LogRenderer, "Mesh: Unknown primitive shape {}", static_cast<int>(desc.Shape));
             return {};
         }
     }
@@ -288,7 +288,7 @@ namespace Wayfinder
         case PrimitiveShape::Cube:
             return CreateTexturedCube(device, desc.Size);
         default:
-            WAYFINDER_ERROR(LogRenderer, "Mesh: Unknown primitive shape {}", static_cast<int>(desc.Shape));
+            Log::Error(LogRenderer, "Mesh: Unknown primitive shape {}", static_cast<int>(desc.Shape));
             return {};
         }
     }

@@ -15,3 +15,6 @@ Make sure you adhere to the copilot-instructions. Do not be sycophantic, be hone
 Some part of this has been implemented. Critically evaluate your scope. Grade it on modularity (if applicable), production-readiness, architecture, extensibility (if applicable), and developer experience/usability. Compare it to other game engines like Bevy, Unreal, Godot, etc. If there are any changes, improvements or revamps that are valuable to do, make a plan and implement them.
 
 Make sure you adhere to pillars and engineering standards set out in the copilot instructions. Do not be sycophantic, be honest and direct. We want a future-proofed, elegantly designed engine.
+
+## Code Review
+Here are some code review comments from coderabbit. Verify each finding against the current code and only fix it if needed. If something does not have an obvious solution, take the time to think it through. We do not want band-aid fixes that kick the can down the road.
