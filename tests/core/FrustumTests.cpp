@@ -47,7 +47,7 @@ namespace Wayfinder::Tests
     TEST_CASE("TransformBounds with translation shifts bounds")
     {
         const AxisAlignedBounds local{.Min = {-1, -1, -1}, .Max = {1, 1, 1}};
-        const Matrix4 translate = glm::translate(Matrix4{1.0f}, Float3{10, 20, 30});
+        const Matrix4 translate = Maths::Translate(Matrix4{1.0f}, Float3{10, 20, 30});
         const AxisAlignedBounds result = TransformBounds(local, translate);
 
         CHECK(result.Min.x == doctest::Approx(9));
@@ -65,7 +65,7 @@ namespace Wayfinder::Tests
 
         // 90-degree rotation about Y: X -> -Z, Z -> X.
         const float angle = std::numbers::pi_v<float> / 2.0f;
-        const Matrix4 rotate = glm::rotate(Matrix4{1.0f}, angle, Float3{0, 1, 0});
+        const Matrix4 rotate = Maths::Rotate(Matrix4{1.0f}, angle, Float3{0, 1, 0});
         const AxisAlignedBounds result = TransformBounds(local, rotate);
 
         // After rotation, the 4-unit X extent becomes 4-unit Z extent.
@@ -81,7 +81,7 @@ namespace Wayfinder::Tests
     TEST_CASE("TransformBounds with uniform scale scales bounds")
     {
         const AxisAlignedBounds local{.Min = {-1, -1, -1}, .Max = {1, 1, 1}};
-        const Matrix4 scale = glm::scale(Matrix4{1.0f}, Float3{3, 3, 3});
+        const Matrix4 scale = Maths::Scale(Matrix4{1.0f}, Float3{3, 3, 3});
         const AxisAlignedBounds result = TransformBounds(local, scale);
 
         CHECK(result.Min.x == doctest::Approx(-3));
@@ -100,7 +100,7 @@ namespace Wayfinder::Tests
 
         for (const FrustumPlane& plane : frustum.Planes)
         {
-            const float len = std::sqrt(glm::dot(plane.Normal, plane.Normal));
+            const float len = std::sqrt(Maths::Dot(plane.Normal, plane.Normal));
             CHECK(len == doctest::Approx(1.0f).epsilon(1e-5));
         }
     }
@@ -259,7 +259,7 @@ namespace Wayfinder::Tests
     TEST_CASE("TransformSphere with translation moves centre")
     {
         const BoundingSphere sphere{.Centre = {0, 0, 0}, .Radius = 1.0f};
-        const Matrix4 translate = glm::translate(Matrix4{1.0f}, Float3{10, 20, 30});
+        const Matrix4 translate = Maths::Translate(Matrix4{1.0f}, Float3{10, 20, 30});
         const BoundingSphere result = TransformSphere(sphere, translate);
 
         CHECK(result.Centre.x == doctest::Approx(10));
@@ -271,7 +271,7 @@ namespace Wayfinder::Tests
     TEST_CASE("TransformSphere with uniform scale scales radius")
     {
         const BoundingSphere sphere{.Centre = {0, 0, 0}, .Radius = 2.0f};
-        const Matrix4 scale = glm::scale(Matrix4{1.0f}, Float3{3, 3, 3});
+        const Matrix4 scale = Maths::Scale(Matrix4{1.0f}, Float3{3, 3, 3});
         const BoundingSphere result = TransformSphere(sphere, scale);
 
         CHECK(result.Centre.x == doctest::Approx(0));
@@ -284,7 +284,7 @@ namespace Wayfinder::Tests
     {
         const BoundingSphere sphere{.Centre = {0, 0, 0}, .Radius = 1.0f};
         // Scale (1, 5, 2): max axis length = 5, so radius should be 5.
-        const Matrix4 scale = glm::scale(Matrix4{1.0f}, Float3{1, 5, 2});
+        const Matrix4 scale = Maths::Scale(Matrix4{1.0f}, Float3{1, 5, 2});
         const BoundingSphere result = TransformSphere(sphere, scale);
 
         CHECK(result.Radius == doctest::Approx(5));

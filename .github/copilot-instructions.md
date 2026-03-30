@@ -116,7 +116,7 @@ auto CompileShader(ShaderSource source) -> Result<ShaderModule, ShaderError>;
 
 ### Coroutines & Async
 - utilise them where they make sense, they can simplify code and architecture.
-- return awaitables with packed parameters
+- can be used for compile-time state machines, lazy sequences, async I/O, and more.
 - `std::generator<T>` for lazy, pull-based sequences.
 - Engine-specific awaitables for async I/O, job queues, task graphs.
 - `[[nodiscard]]` on coroutine functions.

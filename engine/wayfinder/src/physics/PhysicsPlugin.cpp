@@ -527,7 +527,7 @@ namespace Wayfinder::Physics
                     const Quaternion q = ToQuaternion(rotQ);
                     const Matrix4 rotMat = Maths::ToMatrix4(q);
                     const Matrix4 translateMat = Maths::Translate(Matrix4(1.0f), pos);
-                    const Matrix4 scaleMat = Maths::ScaleMatrix(Matrix4(1.0f), wt.Scale);
+                    const Matrix4 scaleMat = Maths::Scale(Matrix4(1.0f), wt.Scale);
                     wt.LocalToWorld = translateMat * rotMat * scaleMat;
                 });
             });

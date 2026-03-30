@@ -299,11 +299,11 @@ namespace Wayfinder
         table["material_id"] = material.Id.ToString();
 
         const LinearColour baseColour = material.GetBaseColour();
-        const auto ToChannel = [](float v) -> int64_t
+        const auto toChannel = [](float v) -> int64_t
         {
-            return static_cast<int64_t>(std::lround(std::clamp(v, 0.0f, 1.0f) * 255.0f));
+            return std::lround(std::clamp(v, 0.0f, 1.0f) * 255.0f);
         };
-        table["base_colour"] = nlohmann::json::array({ToChannel(baseColour.Data.r), ToChannel(baseColour.Data.g), ToChannel(baseColour.Data.b), ToChannel(baseColour.Data.a)});
+        table["base_colour"] = nlohmann::json::array({toChannel(baseColour.Data.r), toChannel(baseColour.Data.g), toChannel(baseColour.Data.b), toChannel(baseColour.Data.a)});
         // NOLINTEND(cppcoreguidelines-pro-bounds-avoid-unchecked-container-access)
 
         return table;

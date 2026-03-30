@@ -1,5 +1,7 @@
 #include "Frustum.h"
 
+#include "Maths.h"
+
 #include <algorithm>
 #include <cmath>
 
@@ -16,7 +18,7 @@ namespace Wayfinder
         ///   Near  = row3            (z >= 0)
         ///   Far   = row3 - row2     (z <= 1)
 
-        Frustum f{};
+        Frustum frustum{};
 
         // GLM stores column-major: vp[col][row].
         // Row i of the matrix = (vp[0][i], vp[1][i], vp[2][i], vp[3][i]).
@@ -50,16 +52,16 @@ namespace Wayfinder
         for (int i = 0; i < 6; ++i)
         {
             const Float3 normal{raw[i].x, raw[i].y, raw[i].z};
-            const float length = std::sqrt(glm::dot(normal, normal));
+            const float length = std::sqrt(Maths::Dot(normal, normal));
             if (length > 0.0f)
             {
                 const float inverseLength = 1.0f / length;
-                f.Planes[i].Normal = normal * inverseLength;
-                f.Planes[i].Distance = raw[i].w * inverseLength;
+                frustum.Planes[i].Normal = normal * inverseLength;
+                frustum.Planes[i].Distance = raw[i].w * inverseLength;
             }
         }
 
-        return f;
+        return frustum;
     }
 
     bool Frustum::TestAABB(const AxisAlignedBounds& worldBounds) const
@@ -74,25 +76,6 @@ namespace Wayfinder
         const Float3& min = worldBounds.Min;
         const Float3& max = worldBounds.Max;
 
-        // for (const FrustumPlane& plane : Planes)
-        // {
-        //     // Select the p-vertex: for each axis, pick Max if normal is positive, Min otherwise.
-        //     const Float3 pVertex{
-        //         plane.Normal.x >= 0.0f ? max.x : min.x,
-        //         plane.Normal.y >= 0.0f ? max.y : min.y,
-        //         plane.Normal.z >= 0.0f ? max.z : min.z,
-        //     };
-
-        //     // Signed distance from plane to p-vertex.
-        //     const float dist = glm::dot(plane.Normal, pVertex) + plane.Distance;
-        //     if (dist < 0.0f)
-        //     {
-        //         return false; // Entirely outside this plane.
-        //     }
-        // }
-
-        // return true;
-
         return std::ranges::all_of(Planes, [&](const FrustumPlane& plane)
         {
             const Float3 vertex{
@@ -101,22 +84,18 @@ namespace Wayfinder
                 plane.Normal.z >= 0.0f ? max.z : min.z,
             };
 
-            const float distance = glm::dot(plane.Normal, vertex) + plane.Distance;
+            const float distance = Maths::Dot(plane.Normal, vertex) + plane.Distance;
             return distance >= 0.0f; // Not entirely outside this plane.
         });
     }
 
     bool Frustum::TestSphere(const BoundingSphere& sphere) const
     {
-        for (const auto& [Normal, Distance] : Planes)
+        return std::ranges::all_of(Planes, [&](const FrustumPlane& plane)
         {
-            if (const float distance = glm::dot(Normal, sphere.Centre) + Distance; distance < -sphere.Radius)
-            {
-                return false; // Entirely outside this plane.
-            }
-        }
-
-        return true;
+            const float distance = Maths::Dot(plane.Normal, sphere.Centre) + plane.Distance;
+            return distance >= -sphere.Radius; // Not entirely outside this plane.
+        });
     }
 
     bool Frustum::TestBounds(const BoundingSphere& sphere, const AxisAlignedBounds& aabb) const
