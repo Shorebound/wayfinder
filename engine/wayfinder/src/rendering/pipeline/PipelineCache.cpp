@@ -125,7 +125,7 @@ namespace Wayfinder
 
         if (desc.ColourTargetCount == 0 || desc.ColourTargetCount > MAX_COLOUR_TARGETS)
         {
-            Log::Error(LogRenderer, "PipelineCache: numColourTargets={} is out of range [1, {}]", desc.ColourTargets, MAX_COLOUR_TARGETS);
+            Log::Error(LogRenderer, "PipelineCache: numColourTargets={} is out of range [1, {}]", desc.ColourTargetCount, MAX_COLOUR_TARGETS);
             return GPUPipelineHandle::Invalid();
         }
 

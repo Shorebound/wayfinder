@@ -31,7 +31,6 @@ This project is greenfield. Breaking changes, rewrites, and architectural pivots
 - **JSON** for interchange formats, generated data, and anything benefiting from schema validation such as assets, scene descriptions, render graph definitions, etc. The strictness and tooling support help catch errors early.
 - Validate data files at load time with clear error messages for authors.
 
-
 ## Build
 
 CMake 4.0+, Ninja Multi-Config, Clang. Presets are the workflow.

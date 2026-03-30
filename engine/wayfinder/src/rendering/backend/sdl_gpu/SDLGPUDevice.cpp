@@ -409,7 +409,7 @@ namespace Wayfinder
         const uint32_t numTargets = std::min(descriptor.ColourTargetCount, MAX_COLOUR_TARGETS);
         if (numTargets == 0 && !descriptor.DepthAttachment.Enabled)
         {
-            Log::Error(LogRenderer, "BeginRenderPass '{}': no colour targets and no depth attachment — skipping pass", descriptor.debugName);
+            Log::Error(LogRenderer, "BeginRenderPass '{}': no colour targets and no depth attachment — skipping pass", descriptor.DebugName);
             return false;
         }
 
@@ -438,7 +438,7 @@ namespace Wayfinder
 
             if (!texture)
             {
-                Log::Warn(LogRenderer, "BeginRenderPass '{}': colour target at slot {} is null — skipping pass", descriptor.debugName, i);
+                Log::Warn(LogRenderer, "BeginRenderPass '{}': colour target at slot {} is null — skipping pass", descriptor.DebugName, i);
                 return false;
             }
 
@@ -524,7 +524,7 @@ namespace Wayfinder
             }
             else
             {
-                Log::Error(LogRenderer, "BeginRenderPass '{}': depth attachment enabled but no depth texture available (depthTarget={}, m_depthTexture={})", descriptor.debugName, descriptor.depthTarget.IsValid(),
+                Log::Error(LogRenderer, "BeginRenderPass '{}': depth attachment enabled but no depth texture available (depthTarget={}, m_depthTexture={})", descriptor.DebugName, descriptor.DepthTarget.IsValid(),
                     m_depthTexture != nullptr);
                 return false;
             }
@@ -607,7 +607,7 @@ namespace Wayfinder
 
         if (desc.ColourTargetCount == 0 || desc.ColourTargetCount > MAX_COLOUR_TARGETS)
         {
-            Log::Error(LogRenderer, "SDLGPUDevice::CreatePipeline: numColourTargets={} is out of range [1, {}]", desc.ColourTargets, MAX_COLOUR_TARGETS);
+            Log::Error(LogRenderer, "SDLGPUDevice::CreatePipeline: numColourTargets={} is out of range [1, {}]", desc.ColourTargetCount, MAX_COLOUR_TARGETS);
             return GPUPipelineHandle::Invalid();
         }
 
@@ -1167,7 +1167,7 @@ namespace Wayfinder
         SDL_GPUTexture* texture = SDL_CreateGPUTexture(m_device, &info);
         if (!texture)
         {
-            Log::Error(LogRenderer, "SDLGPUDevice::CreateTexture: Failed ({}x{}, {} mips) — {}", desc.width, desc.height, resolvedMips, SDL_GetError());
+            Log::Error(LogRenderer, "SDLGPUDevice::CreateTexture: Failed ({}x{}, {} mips) — {}", desc.Width, desc.Height, resolvedMips, SDL_GetError());
             return GPUTextureHandle::Invalid();
         }
 
