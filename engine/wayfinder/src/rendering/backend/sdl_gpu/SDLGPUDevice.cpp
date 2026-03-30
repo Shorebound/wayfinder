@@ -406,10 +406,16 @@ namespace Wayfinder
             return false;
         }
 
-        const uint32_t numTargets = std::min(descriptor.ColourTargetCount, MAX_COLOUR_TARGETS);
+        if (descriptor.ColourTargetCount > MAX_COLOUR_TARGETS)
+        {
+            Log::Error(LogRenderer, "BeginRenderPass '{}': ColourTargetCount {} exceeds maximum of {}", descriptor.DebugName, descriptor.ColourTargetCount, MAX_COLOUR_TARGETS);
+            return false;
+        }
+
+        const uint32_t numTargets = descriptor.ColourTargetCount;
         if (numTargets == 0 && !descriptor.DepthAttachment.Enabled)
         {
-            Log::Error(LogRenderer, "BeginRenderPass '{}': no colour targets and no depth attachment — skipping pass", descriptor.DebugName);
+            Log::Error(LogRenderer, "BeginRenderPass '{}': no colour targets and no depth attachment - skipping pass", descriptor.DebugName);
             return false;
         }
 
@@ -720,12 +726,11 @@ namespace Wayfinder
         for (auto&& [colourTargetDesc, format, blend] : targetSlices)
         {
             colourTargetDesc.format = (format == TextureFormat::SwapchainFormat) ? swapchainFormat : ToSDLTextureFormat(format);
+            colourTargetDesc.blend_state.color_write_mask = blend.ColourWriteMask;
 
             if (blend.Enabled)
             {
                 colourTargetDesc.blend_state.enable_blend = true;
-                colourTargetDesc.blend_state.color_write_mask = blend.ColourWriteMask;
-
                 colourTargetDesc.blend_state.src_color_blendfactor = ToSDLBlendFactor(blend.SrcColourFactor);
                 colourTargetDesc.blend_state.dst_color_blendfactor = ToSDLBlendFactor(blend.DstColourFactor);
                 colourTargetDesc.blend_state.color_blend_op = ToSDLBlendOp(blend.ColourOp);
@@ -856,6 +861,10 @@ namespace Wayfinder
         /// appear on some drivers.
         auto tryAppend = [&]() -> std::optional<uint32_t>
         {
+            if (!m_stagingMapped)
+            {
+                return std::nullopt;
+            }
             const uint32_t aligned = (m_stagingCursor + 3u) & ~3u;
             if (aligned + sizeInBytes > STAGING_RING_CAPACITY)
             {
@@ -871,7 +880,7 @@ namespace Wayfinder
             return offset;
         }
 
-        // Ring is full — flush what we have and try once more
+        // Ring is full - flush what we have and try once more
         FlushUploads();
         return tryAppend();
     }

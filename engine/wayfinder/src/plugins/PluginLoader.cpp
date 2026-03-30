@@ -93,7 +93,7 @@ namespace Wayfinder::Plugins
 
         auto versionFn = reinterpret_cast<WayfinderGetPluginAPIVersionFn>(GetProcAddress(handle, "WayfinderGetPluginAPIVersion"));
 #else
-        void* handle = dlopen(libraryPath.string().c_str(), RTLD_NOW | RTLD_LOCAL);
+        void* handle = dlopen(libraryPath.c_str(), RTLD_NOW | RTLD_LOCAL);
         if (!handle)
         {
             Log::Error(LogEngine, "PluginLoader: failed to load '{}': {}", libraryPath.string(), dlerror());

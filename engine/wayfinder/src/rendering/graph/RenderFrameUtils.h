@@ -43,7 +43,8 @@ namespace Wayfinder::Rendering
      * @param params  Current frame render parameters containing the view list and primary view.
      * @param viewIndex  Index into the frame's view array identifying the layer's camera.
      * @return Resolved view/projection pair. `IsValid == false` when no prepared camera exists
-     *         for the requested view index (matrices are identity in that case).
+     *         for the requested view index (matrices are the primary-view matrices in that case,
+     *         see `ResolveViewForLayer` implementation).
      */
     [[nodiscard]] ResolvedViewForLayer ResolveViewForLayer(const FrameRenderParams& params, size_t viewIndex);
 

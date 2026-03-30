@@ -64,12 +64,13 @@ namespace Wayfinder
         }
 
         /// Parse a JSON "parameters" object into a MaterialParameterBlock.
-        /// Supports: arrays of 3–4 numbers as Colour, single numbers as Float, integers as Int.
-        void ParseParametersTable(const nlohmann::json& params, Wayfinder::MaterialParameterBlock& block)
+        /// Supports: arrays of 3-4 numbers as Colour, single numbers as Float, integers as Int.
+        /// Returns false and sets error when a parameter looks like a colour but has invalid channel values.
+        bool ParseParametersTable(const nlohmann::json& params, Wayfinder::MaterialParameterBlock& block, std::string& error)
         {
             if (!params.is_object())
             {
-                return;
+                return true;
             }
 
             for (const auto& [key, node] : params.items())
@@ -91,7 +92,8 @@ namespace Wayfinder
                         }
                         else if (colourResult == ParseColourResult::Invalid)
                         {
-                            Log::Warn(LogAssets, "Material parameter \"{}\": {}", name, colourError);
+                            error = std::format("parameter '{}': {}", name, colourError);
+                            return false;
                         }
                         else if (node.size() == 3)
                         {
@@ -126,6 +128,8 @@ namespace Wayfinder
                     block.SetInt(name, static_cast<int32_t>(node.get<int64_t>()));
                 }
             }
+
+            return true;
         }
 
     } // namespace
@@ -221,7 +225,12 @@ namespace Wayfinder
         // Parse "parameters" object if present
         if (document.contains(PARAMETERS_KEY) && document.at(PARAMETERS_KEY).is_object())
         {
-            ParseParametersTable(document.at(PARAMETERS_KEY), parsed.Parameters);
+            std::string paramError;
+            if (!ParseParametersTable(document.at(PARAMETERS_KEY), parsed.Parameters, paramError))
+            {
+                error = "Material asset '" + sourceLabel + "' " + paramError;
+                return false;
+            }
         }
 
         // Legacy support: top-level base_colour → parameters["base_colour"]
