@@ -50,11 +50,11 @@ namespace Wayfinder::Tests
 
             bool BeginRenderPass(const Wayfinder::RenderPassDescriptor& descriptor) override
             {
-                m_events.emplace_back(std::string("BeginRenderPass:") + std::string(descriptor.debugName));
+                m_events.emplace_back(std::string("BeginRenderPass:") + std::string(descriptor.DebugName));
                 m_capturedDescriptors.push_back(descriptor);
                 // Own the debug name string so it doesn't dangle
-                m_capturedNames.push_back(std::string(descriptor.debugName));
-                m_capturedDescriptors.back().debugName = m_capturedNames.back();
+                m_capturedNames.push_back(std::string(descriptor.DebugName));
+                m_capturedDescriptors.back().DebugName = m_capturedNames.back();
                 return true;
             }
 
@@ -131,7 +131,7 @@ namespace Wayfinder::Tests
 
             [[nodiscard]] Extent2D GetSwapchainDimensions() const override
             {
-                return {.width = 1280, .height = 720};
+                return {.Width = 1280, .Height = 720};
             }
 
             const RenderDeviceInfo& GetDeviceInfo() const override
@@ -655,10 +655,10 @@ namespace Wayfinder::Tests
         pool.Initialise(*device);
 
         Wayfinder::TextureCreateDesc desc;
-        desc.width = 800;
-        desc.height = 600;
-        desc.format = Wayfinder::TextureFormat::RGBA8_UNORM;
-        desc.usage = Wayfinder::TextureUsage::ColourTarget;
+        desc.Width = 800;
+        desc.Height = 600;
+        desc.Format = Wayfinder::TextureFormat::RGBA8_UNORM;
+        desc.Usage = Wayfinder::TextureUsage::ColourTarget;
 
         // NullDevice returns distinguishable handles for textures. This test
         // verifies that the acquire/release cycle works with a null backend.
@@ -936,8 +936,8 @@ namespace Wayfinder::Tests
 
         // Verify NullDevice can handle all graph-related operations
         Wayfinder::RenderPassDescriptor rpDesc;
-        rpDesc.debugName = "TestPass";
-        rpDesc.targetSwapchain = false;
+        rpDesc.DebugName = "TestPass";
+        rpDesc.TargetSwapchain = false;
 
         // These should all be no-ops without crashing
         const bool passStarted = fixture.Device->BeginRenderPass(rpDesc);
@@ -970,8 +970,8 @@ namespace Wayfinder::Tests
         fixture.Device->DestroySampler(sampler);
 
         const Wayfinder::Extent2D swapchainDimensions = fixture.Device->GetSwapchainDimensions();
-        CHECK(swapchainDimensions.width == 0);
-        CHECK(swapchainDimensions.height == 0);
+        CHECK(swapchainDimensions.Width == 0);
+        CHECK(swapchainDimensions.Height == 0);
     }
 
     // ── Depth Target ─────────────────────────────────────────
@@ -1085,10 +1085,10 @@ namespace Wayfinder::Tests
         const auto& descriptors = fixture.Device.GetCapturedDescriptors();
         REQUIRE(descriptors.size() >= 1);
         const auto& gbufferDesc = descriptors[0];
-        CHECK(gbufferDesc.numColourTargets == 2);
-        CHECK(gbufferDesc.colourAttachments[0].target.IsValid());
-        CHECK(gbufferDesc.colourAttachments[1].target.IsValid());
-        CHECK_FALSE(gbufferDesc.colourAttachments[0].target == gbufferDesc.colourAttachments[1].target);
+        CHECK(gbufferDesc.ColourTargets == 2);
+        CHECK(gbufferDesc.ColourAttachments[0].Target.IsValid());
+        CHECK(gbufferDesc.ColourAttachments[1].Target.IsValid());
+        CHECK_FALSE(gbufferDesc.ColourAttachments[0].Target == gbufferDesc.ColourAttachments[1].Target);
     }
 
     TEST_CASE("Mixed single and multi-target chain maintains dependency order")
@@ -1157,11 +1157,11 @@ namespace Wayfinder::Tests
         // PassA writes 1 colour target, PassB writes 2 (slot 0 loaded + slot 1 new)
         const auto& descriptors = fixture.Device.GetCapturedDescriptors();
         REQUIRE(descriptors.size() >= 2);
-        CHECK(descriptors[0].numColourTargets == 1);
-        CHECK(descriptors[0].colourAttachments[0].target.IsValid());
-        CHECK(descriptors[1].numColourTargets == 2);
-        CHECK(descriptors[1].colourAttachments[0].target.IsValid());
-        CHECK(descriptors[1].colourAttachments[1].target.IsValid());
+        CHECK(descriptors[0].ColourTargets == 1);
+        CHECK(descriptors[0].ColourAttachments[0].Target.IsValid());
+        CHECK(descriptors[1].ColourTargets == 2);
+        CHECK(descriptors[1].ColourAttachments[0].Target.IsValid());
+        CHECK(descriptors[1].ColourAttachments[1].Target.IsValid());
     }
 
     TEST_CASE("Slot-based WriteColour defaults to slot 0")
@@ -1209,8 +1209,8 @@ namespace Wayfinder::Tests
         // Convenience WriteColour (no slot arg) should produce slot 0
         const auto& descriptors = fixture.Device.GetCapturedDescriptors();
         REQUIRE(descriptors.size() >= 1);
-        CHECK(descriptors[0].numColourTargets == 1);
-        CHECK(descriptors[0].colourAttachments[0].target.IsValid());
+        CHECK(descriptors[0].ColourTargets == 1);
+        CHECK(descriptors[0].ColourAttachments[0].Target.IsValid());
     }
 
     TEST_CASE("Depth and MRT combined pass compiles and executes")
@@ -1280,12 +1280,12 @@ namespace Wayfinder::Tests
         const auto& descriptors = fixture.Device.GetCapturedDescriptors();
         REQUIRE(descriptors.size() >= 1);
         const auto& gbufferDesc = descriptors[0];
-        CHECK(gbufferDesc.numColourTargets == 2);
-        CHECK(gbufferDesc.colourAttachments[0].target.IsValid());
-        CHECK(gbufferDesc.colourAttachments[1].target.IsValid());
-        CHECK_FALSE(gbufferDesc.colourAttachments[0].target == gbufferDesc.colourAttachments[1].target);
-        CHECK(gbufferDesc.depthAttachment.enabled);
-        CHECK(gbufferDesc.depthTarget.IsValid());
+        CHECK(gbufferDesc.ColourTargets == 2);
+        CHECK(gbufferDesc.ColourAttachments[0].Target.IsValid());
+        CHECK(gbufferDesc.ColourAttachments[1].Target.IsValid());
+        CHECK_FALSE(gbufferDesc.ColourAttachments[0].Target == gbufferDesc.ColourAttachments[1].Target);
+        CHECK(gbufferDesc.DepthAttachment.Enabled);
+        CHECK(gbufferDesc.DepthTarget.IsValid());
     }
 }
 

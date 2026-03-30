@@ -60,7 +60,7 @@ namespace Wayfinder
             builder.ReadTexture(colourHandle);
 
             const Colour clearColour = (params.PrimaryView.Valid && params.PrimaryView.ViewIndex < params.Frame.Views.size()) ? params.Frame.Views[params.PrimaryView.ViewIndex].ClearColour : Colour::Black();
-            builder.SetSwapchainOutput(LoadOp::Clear, ClearValue::FromColour(clearColour));
+            builder.SetSwapchainOutput(LoadOp::Clear, LinearColour::FromColour(clearColour));
 
             return [this, colourHandle](RenderDevice& device, const RenderGraphResources& resources)
             {

@@ -170,11 +170,11 @@ namespace Wayfinder
         }
 
         TextureCreateDesc desc;
-        desc.width = asset.Width;
-        desc.height = asset.Height;
-        desc.format = TextureFormat::RGBA8_UNORM;
-        desc.usage = TextureUsage::Sampler;
-        desc.mipLevels = asset.MipLevels; // 0 = auto, device resolves
+        desc.Width = asset.Width;
+        desc.Height = asset.Height;
+        desc.Format = TextureFormat::RGBA8_UNORM;
+        desc.Usage = TextureUsage::Sampler;
+        desc.MipLevels = asset.MipLevels; // 0 = auto, device resolves
 
         GPUTextureHandle texture = m_device->CreateTexture(desc);
         if (!texture)
@@ -195,10 +195,10 @@ namespace Wayfinder
     GPUTextureHandle TextureManager::CreateSolidColour(uint8_t r, uint8_t g, uint8_t b, uint8_t a)
     {
         TextureCreateDesc desc;
-        desc.width = 1;
-        desc.height = 1;
-        desc.format = TextureFormat::RGBA8_UNORM;
-        desc.usage = TextureUsage::Sampler;
+        desc.Width = 1;
+        desc.Height = 1;
+        desc.Format = TextureFormat::RGBA8_UNORM;
+        desc.Usage = TextureUsage::Sampler;
 
         GPUTextureHandle texture = m_device->CreateTexture(desc);
         if (!texture)
@@ -240,10 +240,10 @@ namespace Wayfinder
         }
 
         TextureCreateDesc desc;
-        desc.width = K_SIZE;
-        desc.height = K_SIZE;
-        desc.format = TextureFormat::RGBA8_UNORM;
-        desc.usage = TextureUsage::Sampler;
+        desc.Width = K_SIZE;
+        desc.Height = K_SIZE;
+        desc.Format = TextureFormat::RGBA8_UNORM;
+        desc.Usage = TextureUsage::Sampler;
 
         GPUTextureHandle texture = m_device->CreateTexture(desc);
         if (!texture)
@@ -281,16 +281,16 @@ namespace Wayfinder
             }
         };
 
-        feedByte(static_cast<uint8_t>(desc.minFilter));
-        feedByte(static_cast<uint8_t>(desc.magFilter));
-        feedByte(static_cast<uint8_t>(desc.addressModeU));
-        feedByte(static_cast<uint8_t>(desc.addressModeV));
-        feedByte(static_cast<uint8_t>(desc.mipmapMode));
-        feedFloat(desc.minLod);
-        feedFloat(desc.maxLod);
-        feedFloat(desc.mipLodBias);
-        feedByte(desc.enableAnisotropy ? 1 : 0);
-        feedFloat(desc.maxAnisotropy);
+        feedByte(static_cast<uint8_t>(desc.MinFilter));
+        feedByte(static_cast<uint8_t>(desc.MagFilter));
+        feedByte(static_cast<uint8_t>(desc.AddressModeU));
+        feedByte(static_cast<uint8_t>(desc.AddressModeV));
+        feedByte(static_cast<uint8_t>(desc.MipmapMode));
+        feedFloat(desc.MinLod);
+        feedFloat(desc.MaxLod);
+        feedFloat(desc.MipLodBias);
+        feedByte(desc.EnableAnisotropy ? 1 : 0);
+        feedFloat(desc.MaxAnisotropy);
 
         return hash;
     }

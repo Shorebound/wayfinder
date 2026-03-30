@@ -34,7 +34,7 @@ namespace Wayfinder
             {
                 if (const auto* c = std::get_if<LinearColour>(&it->second))
                 {
-                    return c->ToFloat4();
+                    return c->Data;
                 }
             }
             return Float4(1.0f);

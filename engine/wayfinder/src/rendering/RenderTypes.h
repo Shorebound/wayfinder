@@ -82,10 +82,10 @@ namespace Wayfinder
 
     struct TextureCreateDesc
     {
-        uint32_t width = 0;
-        uint32_t height = 0;
-        TextureFormat format = TextureFormat::RGBA8_UNORM;
-        TextureUsage usage = TextureUsage::ColourTarget;
+        uint32_t Width = 0;
+        uint32_t Height = 0;
+        TextureFormat Format = TextureFormat::RGBA8_UNORM;
+        TextureUsage Usage = TextureUsage::ColourTarget;
 
         /**
          * @brief Mip level count.
@@ -93,7 +93,7 @@ namespace Wayfinder
          * 1 = base level only (no mipmaps).
          * N = explicit mip level count.
          */
-        uint32_t mipLevels = 1;
+        uint32_t MipLevels = 1;
     };
 
     /**
@@ -111,8 +111,8 @@ namespace Wayfinder
 
     struct Extent2D
     {
-        uint32_t width = 0;
-        uint32_t height = 0;
+        uint32_t Width = 0;
+        uint32_t Height = 0;
     };
 
     // ── Sampler ───────────────────────────────────────────────
@@ -138,26 +138,26 @@ namespace Wayfinder
 
     struct SamplerCreateDesc
     {
-        SamplerFilter minFilter = SamplerFilter::Nearest;
-        SamplerFilter magFilter = SamplerFilter::Nearest;
-        SamplerAddressMode addressModeU = SamplerAddressMode::ClampToEdge;
-        SamplerAddressMode addressModeV = SamplerAddressMode::ClampToEdge;
-        SamplerMipmapMode mipmapMode = SamplerMipmapMode::Nearest;
+        SamplerFilter MinFilter = SamplerFilter::Nearest;
+        SamplerFilter MagFilter = SamplerFilter::Nearest;
+        SamplerAddressMode AddressModeU = SamplerAddressMode::ClampToEdge;
+        SamplerAddressMode AddressModeV = SamplerAddressMode::ClampToEdge;
+        SamplerMipmapMode MipmapMode = SamplerMipmapMode::Nearest;
 
         /** @brief Minimum mip LOD clamp. 0 = use base level. */
-        float minLod = 0.0f;
+        float MinLod = 0.0f;
 
         /** @brief Maximum mip LOD clamp. Large value = allow all mips. */
-        float maxLod = 1000.0f;
+        float MaxLod = 1000.0f;
 
         /** @brief Bias applied to the computed mip LOD. Negative = sharper. */
-        float mipLodBias = 0.0f;
+        float MipLodBias = 0.0f;
 
         /** @brief Enable anisotropic filtering. */
-        bool enableAnisotropy = false;
+        bool EnableAnisotropy = false;
 
         /** @brief Maximum anisotropy level (1–16). Only used when enableAnisotropy is true. */
-        float maxAnisotropy = 1.0f;
+        float MaxAnisotropy = 1.0f;
     };
 
     // ── GPU Enums ────────────────────────────────────────────
@@ -175,26 +175,6 @@ namespace Wayfinder
         DontCare,
     };
 
-    // ── Clear Value ──────────────────────────────────────────
-
-    struct ClearValue
-    {
-        float r = 0.0f;
-        float g = 0.0f;
-        float b = 0.0f;
-        float a = 1.0f;
-
-        static ClearValue FromColour(const Colour& c)
-        {
-            return {
-                .r = static_cast<float>(c.r) / 255.0f,
-                .g = static_cast<float>(c.g) / 255.0f,
-                .b = static_cast<float>(c.b) / 255.0f,
-                .a = static_cast<float>(c.a) / 255.0f,
-            };
-        }
-    };
-
     // ── Render Pass Descriptor ───────────────────────────────
 
     /** @brief Maximum number of simultaneous colour render targets. */
@@ -202,28 +182,28 @@ namespace Wayfinder
 
     struct ColourAttachmentDescriptor
     {
-        GPUTextureHandle target{};
-        ClearValue clearValue{};
-        LoadOp loadOp = LoadOp::Clear;
-        StoreOp storeOp = StoreOp::Store;
+        GPUTextureHandle Target{};
+        LinearColour ClearColour{};
+        LoadOp LoadOp = LoadOp::Clear;
+        StoreOp StoreOp = StoreOp::Store;
     };
 
     struct DepthAttachmentDescriptor
     {
-        float clearDepth = 1.0f;
-        LoadOp loadOp = LoadOp::Clear;
-        StoreOp storeOp = StoreOp::DontCare;
-        bool enabled = false;
+        float ClearDepth = 1.0f;
+        LoadOp LoadOp = LoadOp::Clear;
+        StoreOp StoreOp = StoreOp::DontCare;
+        bool Enabled = false;
     };
 
     struct RenderPassDescriptor
     {
-        std::string_view debugName;
-        uint32_t numColourTargets = 1;
-        std::array<ColourAttachmentDescriptor, MAX_COLOUR_TARGETS> colourAttachments{};
-        DepthAttachmentDescriptor depthAttachment{};
-        bool targetSwapchain = true;
-        GPUTextureHandle depthTarget{}; // If set, use instead of auto-managed depth
+        std::string_view DebugName;
+        uint32_t ColourTargets = 1;
+        std::array<ColourAttachmentDescriptor, MAX_COLOUR_TARGETS> ColourAttachments{};
+        DepthAttachmentDescriptor DepthAttachment{};
+        bool TargetSwapchain = true;
+        GPUTextureHandle DepthTarget{}; // If set, use instead of auto-managed depth
     };
 
     // ── Device Info ──────────────────────────────────────────

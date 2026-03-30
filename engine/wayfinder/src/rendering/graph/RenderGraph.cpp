@@ -54,12 +54,12 @@ namespace Wayfinder
         res.LastReadByPass = (res.LastReadByPass == UINT32_MAX) ? m_passIndex : std::max(res.LastReadByPass, m_passIndex);
     }
 
-    void RenderGraphBuilder::WriteColour(RenderGraphHandle handle, LoadOp load, ClearValue clear)
+    void RenderGraphBuilder::WriteColour(RenderGraphHandle handle, LoadOp load, LinearColour clear)
     {
         WriteColour(handle, 0, load, clear);
     }
 
-    void RenderGraphBuilder::WriteColour(RenderGraphHandle handle, uint32_t slot, LoadOp load, ClearValue clear)
+    void RenderGraphBuilder::WriteColour(RenderGraphHandle handle, uint32_t slot, LoadOp load, LinearColour clear)
     {
         if (!handle.IsValid() || handle.Index >= m_graph.m_resources.size())
         {
@@ -140,7 +140,7 @@ namespace Wayfinder
         res.WrittenByPass = m_passIndex;
     }
 
-    void RenderGraphBuilder::SetSwapchainOutput(LoadOp load, ClearValue clear)
+    void RenderGraphBuilder::SetSwapchainOutput(LoadOp load, LinearColour clear)
     {
         auto& pass = CheckedAt(m_graph.m_passes, m_passIndex);
         pass.SwapchainWrite = RenderGraph::SwapchainWriteInfo{.Load = load, .Clear = clear};
@@ -496,10 +496,10 @@ namespace Wayfinder
             }
 
             TextureCreateDesc texDesc;
-            texDesc.width = res.Desc.Width;
-            texDesc.height = res.Desc.Height;
-            texDesc.format = res.Desc.Format;
-            texDesc.usage = deriveUsage(res);
+            texDesc.Width = res.Desc.Width;
+            texDesc.Height = res.Desc.Height;
+            texDesc.Format = res.Desc.Format;
+            texDesc.Usage = deriveUsage(res);
 
             CheckedAt(resources.m_textures, i) = pool.Acquire(texDesc);
         }
@@ -519,7 +519,7 @@ namespace Wayfinder
 
                 // Build the render pass descriptor
                 RenderPassDescriptor rpDesc;
-                rpDesc.debugName = pass.Name.GetString();
+                rpDesc.DebugName = pass.Name.GetString();
 
                 if (pass.SwapchainWrite && pass.NumColourWrites > 0)
                 {
@@ -530,40 +530,40 @@ namespace Wayfinder
                 // NOLINTBEGIN(cppcoreguidelines-pro-bounds-constant-array-index, cppcoreguidelines-pro-bounds-avoid-unchecked-container-access)
                 if (pass.SwapchainWrite)
                 {
-                    rpDesc.targetSwapchain = true;
-                    rpDesc.numColourTargets = 1;
-                    rpDesc.colourAttachments[0].loadOp = pass.SwapchainWrite->Load;
-                    rpDesc.colourAttachments[0].clearValue = pass.SwapchainWrite->Clear;
-                    rpDesc.colourAttachments[0].storeOp = StoreOp::Store;
+                    rpDesc.TargetSwapchain = true;
+                    rpDesc.ColourTargets = 1;
+                    rpDesc.ColourAttachments[0].LoadOp = pass.SwapchainWrite->Load;
+                    rpDesc.ColourAttachments[0].ClearColour = pass.SwapchainWrite->Clear;
+                    rpDesc.ColourAttachments[0].StoreOp = StoreOp::Store;
                 }
                 else if (pass.NumColourWrites > 0)
                 {
-                    rpDesc.targetSwapchain = false;
-                    rpDesc.numColourTargets = pass.NumColourWrites;
+                    rpDesc.TargetSwapchain = false;
+                    rpDesc.ColourTargets = pass.NumColourWrites;
 
                     for (uint32_t i = 0; i < pass.NumColourWrites; ++i)
                     {
                         const auto& cw = pass.ColourWrites[i];
-                        rpDesc.colourAttachments[i].target = resources.GetTexture(cw.Handle);
-                        rpDesc.colourAttachments[i].loadOp = cw.Load;
-                        rpDesc.colourAttachments[i].clearValue = cw.Clear;
-                        rpDesc.colourAttachments[i].storeOp = StoreOp::Store;
+                        rpDesc.ColourAttachments[i].Target = resources.GetTexture(cw.Handle);
+                        rpDesc.ColourAttachments[i].LoadOp = cw.Load;
+                        rpDesc.ColourAttachments[i].ClearColour = cw.Clear;
+                        rpDesc.ColourAttachments[i].StoreOp = StoreOp::Store;
                     }
                 }
                 else
                 {
-                    rpDesc.targetSwapchain = false;
-                    rpDesc.numColourTargets = 0;
+                    rpDesc.TargetSwapchain = false;
+                    rpDesc.ColourTargets = 0;
                 }
                 // NOLINTEND(cppcoreguidelines-pro-bounds-constant-array-index, cppcoreguidelines-pro-bounds-avoid-unchecked-container-access)
 
                 if (pass.DepthWrite)
                 {
-                    rpDesc.depthAttachment.enabled = true;
-                    rpDesc.depthTarget = resources.GetTexture(pass.DepthWrite->Handle);
-                    rpDesc.depthAttachment.loadOp = pass.DepthWrite->Load;
-                    rpDesc.depthAttachment.clearDepth = pass.DepthWrite->ClearDepth;
-                    rpDesc.depthAttachment.storeOp = StoreOp::Store;
+                    rpDesc.DepthAttachment.Enabled = true;
+                    rpDesc.DepthTarget = resources.GetTexture(pass.DepthWrite->Handle);
+                    rpDesc.DepthAttachment.LoadOp = pass.DepthWrite->Load;
+                    rpDesc.DepthAttachment.ClearDepth = pass.DepthWrite->ClearDepth;
+                    rpDesc.DepthAttachment.StoreOp = StoreOp::Store;
                 }
 
                 if (!device.BeginRenderPass(rpDesc))
@@ -593,10 +593,10 @@ namespace Wayfinder
             }
 
             TextureCreateDesc texDesc;
-            texDesc.width = res.Desc.Width;
-            texDesc.height = res.Desc.Height;
-            texDesc.format = res.Desc.Format;
-            texDesc.usage = deriveUsage(res);
+            texDesc.Width = res.Desc.Width;
+            texDesc.Height = res.Desc.Height;
+            texDesc.Format = res.Desc.Format;
+            texDesc.Usage = deriveUsage(res);
 
             pool.Release(CheckedAt(resources.m_textures, i), texDesc);
         }

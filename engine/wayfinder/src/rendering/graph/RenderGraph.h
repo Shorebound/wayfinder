@@ -102,7 +102,7 @@ namespace Wayfinder
         void ReadTexture(RenderGraphHandle handle);
 
         // Declare this pass writes to a colour render target at slot 0.
-        void WriteColour(RenderGraphHandle handle, LoadOp load = LoadOp::Clear, ClearValue clear = {});
+        void WriteColour(RenderGraphHandle handle, LoadOp load = LoadOp::Clear, LinearColour clear = {});
 
         /**
          * @brief Declare this pass writes to a colour render target at an explicit MRT slot.
@@ -111,13 +111,13 @@ namespace Wayfinder
          * @param load    Load operation applied at the start of the pass.
          * @param clear   Clear value used when @p load is LoadOp::Clear.
          */
-        void WriteColour(RenderGraphHandle handle, uint32_t slot, LoadOp load = LoadOp::Clear, ClearValue clear = {});
+        void WriteColour(RenderGraphHandle handle, uint32_t slot, LoadOp load = LoadOp::Clear, LinearColour clear = {});
 
         // Declare this pass writes to a depth render target.
         void WriteDepth(RenderGraphHandle handle, LoadOp load = LoadOp::Clear, float clearDepth = 1.0f);
 
         // This pass writes directly to the swapchain.
-        void SetSwapchainOutput(LoadOp load = LoadOp::Clear, ClearValue clear = {});
+        void SetSwapchainOutput(LoadOp load = LoadOp::Clear, LinearColour clear = {});
 
         /// Optional metadata for dev-time validation in `Compile` (matches `RenderPass::GetCapabilities` when set).
         void DeclarePassCapabilities(RenderCapabilityMask mask);
@@ -212,7 +212,7 @@ namespace Wayfinder
             RenderGraphHandle Handle;
             uint32_t Slot = 0;
             LoadOp Load = LoadOp::Clear;
-            ClearValue Clear{};
+            LinearColour Clear{};
         };
 
         struct DepthWriteInfo
@@ -225,7 +225,7 @@ namespace Wayfinder
         struct SwapchainWriteInfo
         {
             LoadOp Load = LoadOp::Clear;
-            ClearValue Clear{};
+            LinearColour Clear{};
         };
 
         struct PassEntry

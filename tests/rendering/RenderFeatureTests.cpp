@@ -134,7 +134,7 @@ namespace Wayfinder::Tests
 
             [[nodiscard]] Extent2D GetSwapchainDimensions() const override
             {
-                return {.width = 320, .height = 240};
+                return {.Width = 320, .Height = 240};
             }
 
             const RenderDeviceInfo& GetDeviceInfo() const override
