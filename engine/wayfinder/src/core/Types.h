@@ -191,11 +191,11 @@ namespace Wayfinder
         constexpr LinearColour(float r, float g, float b, float a) : Data(r, g, b, a) {}
         constexpr explicit LinearColour(const Float4& v) : Data(v) {}
 
-        static LinearColour White()
+        static constexpr LinearColour White()
         {
             return {1.0f, 1.0f, 1.0f, 1.0f};
         }
-        static LinearColour Black()
+        static constexpr LinearColour Black()
         {
             return {0.0f, 0.0f, 0.0f, 1.0f};
         }

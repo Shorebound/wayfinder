@@ -91,6 +91,7 @@ namespace Wayfinder
     void Log::Initialise()
     {
         SpdLogManager::Initialise();
+        /// Re-apply stored verbosity to loggers created before Initialise() ran.
         SetGlobalVerbosity(GetGlobalVerbosity());
     }
 

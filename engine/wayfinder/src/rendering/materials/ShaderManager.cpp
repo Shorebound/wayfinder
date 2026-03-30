@@ -141,7 +141,7 @@ namespace Wayfinder
 #if !defined(WAYFINDER_SHIPPING)
         if (bytecode.empty() && m_compiler && m_compiler->IsInitialised())
         {
-            auto compileResult = m_compiler->Compile(name, "CSMain", ShaderStage::Compute);
+            Result<SlangCompiler::CompileResult> compileResult = m_compiler->Compile(name, "CSMain", ShaderStage::Compute);
             if (compileResult)
             {
                 bytecode = std::move(compileResult->Bytecode);

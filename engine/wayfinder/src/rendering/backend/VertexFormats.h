@@ -2,9 +2,11 @@
 
 #include "core/Types.h"
 
+#include <algorithm>
 #include <array>
 #include <cstddef>
 #include <cstdint>
+#include <span>
 
 namespace Wayfinder
 {
@@ -61,6 +63,8 @@ namespace Wayfinder
         uint32_t Location;
         uint32_t Offset;
         VertexAttributeFormat Format;
+
+        constexpr bool operator==(const VertexAttribute&) const = default;
     };
 
     struct VertexLayout
@@ -87,14 +91,7 @@ namespace Wayfinder
         {
             return false;
         }
-        for (uint32_t i = 0; i < a.AttributeCount; ++i)
-        {
-            if (a.Attributes[i].Location != b.Attributes[i].Location || a.Attributes[i].Offset != b.Attributes[i].Offset || a.Attributes[i].Format != b.Attributes[i].Format)
-            {
-                return false;
-            }
-        }
-        return true;
+        return std::ranges::equal(std::span{a.Attributes, a.AttributeCount}, std::span{b.Attributes, b.AttributeCount});
     }
 
     // ── Pre-built Layouts ────────────────────────────────────

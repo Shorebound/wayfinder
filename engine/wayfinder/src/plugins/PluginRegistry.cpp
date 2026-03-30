@@ -62,7 +62,11 @@ namespace Wayfinder::Plugins
 
     void PluginRegistry::RegisterState(StateDescriptor descriptor)
     {
-        m_states.Register(std::move(descriptor));
+        const std::string name = descriptor.Name;
+        if (auto result = m_states.Register(std::move(descriptor)); !result)
+        {
+            Log::Error(LogEngine, "PluginRegistry: state registration failed - {}", result.error().GetMessage());
+        }
     }
 
     void PluginRegistry::SetInitialState(std::string stateName)

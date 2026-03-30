@@ -1,5 +1,6 @@
 #pragma once
 
+#include "core/Result.h"
 #include "wayfinder_exports.h"
 
 #include <functional>
@@ -26,7 +27,7 @@ namespace Wayfinder::Plugins
         };
 
         /// Register a named state descriptor.
-        void Register(Descriptor descriptor);
+        [[nodiscard]] Result<void> Register(Descriptor descriptor);
 
         /// Set the initial game state name.
         void SetInitial(std::string stateName);
