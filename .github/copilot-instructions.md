@@ -79,18 +79,56 @@ Formatting is enforced by `.clang-format`.
 - Aliases: PascalCase. 
 - Template params: `T` prefix with descriptive name.
 
-### Language
+### Spelling
 
 - British/Australian spelling: `Initialise`, `Colour`, `Serialise`, `Behaviour`, etc.
 - Prefer full words over abbreviations unless widely unambiguous: `Config`, `Params`, etc. Avoid `Cfg`, `Prms`, etc.
-- Use `auto` / `auto*` / `auto&` when the type is obvious from the RHS; be explicit otherwise.
-- Use `using` aliases for complex types, especially function signatures and template instantiations.
-- Prefer idiomatic C++23 features: coroutines, `std::generator`, `std::span`, `std::optional`, `std::variant`, `std::string_view`, `std::format`, `std::filesystem`, `std::ranges`, etc.
-- Prefer value semantics and RAII over raw pointers and manual resource management. Use smart pointers where ownership is shared or non-trivial.
-- Concepts and `requires` clauses for template constraints, not SFINAE or `static_assert` checks inside the body.
-- Prefer `constexpr`, `inline`, or templates over macros if they can achieve the same goal with better type safety and scoping.
-- Where it makes sense, use structured bindings, designated initializers, and aggregate initialization for clarity and brevity.
-- For error handling, prefer `Result<T, E>` as the return type. See `engine\wayfinder\src\core\Result.h`.
+
+### Modern C++ Idioms
+
+Target C++23. Use modern features over legacy equivalents.
+
+**Type usage and ownership:**
+
+- Value semantics by default. Move where needed.
+- `std::string_view` and `std::span` for non-owning, read-only access. Never store a `string_view` or `span` beyond the lifetime of the data it views.
+- Smart pointers (`std::unique_ptr`, `std::shared_ptr`) only when heap allocation is required and ownership must be expressed. Do not use raw `new` / `delete`.
+- RAII for all resource management — no manual acquire/release pairs.
+
+**Vocabulary types over workarounds:**
+
+- `std::optional<T>` over sentinel values or null pointers.
+- `std::variant<Ts...>` over raw unions, type tags, or inheritance hierarchies used solely for sum-type dispatch.
+- `std::generator<T>` over custom iterators or callback-based APIs.
+- `enum class` over unscoped `enum`. Always.
+
+**Algorithms and ranges:**
+
+- `std::ranges` algorithms and views over hand-written loops when they improve clarity. A simple `for` loop is fine when a range pipeline would obscure intent.
+
+**Type deduction and generics:**
+
+- `auto` / `auto*` / `auto&` when the type is obvious from the right-hand side. Spell the type explicitly when it is not.
+- `using` aliases for complex types — especially function signatures, template instantiations, and nested dependent types.
+- CTAD where it reduces noise without hiding the type.
+- Concepts and `requires` clauses over SFINAE. Omit the constraint only when the template parameter name is already self-documenting (e.g. `TAllocator`).
+
+**Compile-time and safety:**
+
+- `constexpr` by default. If a function can be `constexpr`, make it so.
+- `[[nodiscard]]` on any function where ignoring the return value is likely a bug. Apply to types (e.g. `Result`) as well.
+- `constexpr`, `inline`, or templates over preprocessor macros. Use a macro only when no language feature achieves the same goal.
+- Structured bindings, designated initializers, and aggregate initialisation for clarity and brevity where they apply.
+
+**Formatting and I/O:**
+
+- `std::format` / `std::print` over iostreams and printf-style functions.
+
+**Error handling:**
+
+- Return `Result<T, E>` for operations that can fail. See
+  `engine/wayfinder/src/core/Result.h`. Do not use exceptions for control
+  flow.
 
 ### Namespaces
 

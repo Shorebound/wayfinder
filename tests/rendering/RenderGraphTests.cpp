@@ -1085,7 +1085,7 @@ namespace Wayfinder::Tests
         const auto& descriptors = fixture.Device.GetCapturedDescriptors();
         REQUIRE(descriptors.size() >= 1);
         const auto& gbufferDesc = descriptors[0];
-        CHECK(gbufferDesc.ColourTargets == 2);
+        CHECK(gbufferDesc.ColourTargetCount == 2);
         CHECK(gbufferDesc.ColourAttachments[0].Target.IsValid());
         CHECK(gbufferDesc.ColourAttachments[1].Target.IsValid());
         CHECK_FALSE(gbufferDesc.ColourAttachments[0].Target == gbufferDesc.ColourAttachments[1].Target);
@@ -1157,9 +1157,9 @@ namespace Wayfinder::Tests
         // PassA writes 1 colour target, PassB writes 2 (slot 0 loaded + slot 1 new)
         const auto& descriptors = fixture.Device.GetCapturedDescriptors();
         REQUIRE(descriptors.size() >= 2);
-        CHECK(descriptors[0].ColourTargets == 1);
+        CHECK(descriptors[0].ColourTargetCount == 1);
         CHECK(descriptors[0].ColourAttachments[0].Target.IsValid());
-        CHECK(descriptors[1].ColourTargets == 2);
+        CHECK(descriptors[1].ColourTargetCount == 2);
         CHECK(descriptors[1].ColourAttachments[0].Target.IsValid());
         CHECK(descriptors[1].ColourAttachments[1].Target.IsValid());
     }
@@ -1209,7 +1209,7 @@ namespace Wayfinder::Tests
         // Convenience WriteColour (no slot arg) should produce slot 0
         const auto& descriptors = fixture.Device.GetCapturedDescriptors();
         REQUIRE(descriptors.size() >= 1);
-        CHECK(descriptors[0].ColourTargets == 1);
+        CHECK(descriptors[0].ColourTargetCount == 1);
         CHECK(descriptors[0].ColourAttachments[0].Target.IsValid());
     }
 
@@ -1280,7 +1280,7 @@ namespace Wayfinder::Tests
         const auto& descriptors = fixture.Device.GetCapturedDescriptors();
         REQUIRE(descriptors.size() >= 1);
         const auto& gbufferDesc = descriptors[0];
-        CHECK(gbufferDesc.ColourTargets == 2);
+        CHECK(gbufferDesc.ColourTargetCount == 2);
         CHECK(gbufferDesc.ColourAttachments[0].Target.IsValid());
         CHECK(gbufferDesc.ColourAttachments[1].Target.IsValid());
         CHECK_FALSE(gbufferDesc.ColourAttachments[0].Target == gbufferDesc.ColourAttachments[1].Target);

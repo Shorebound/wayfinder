@@ -83,7 +83,7 @@ namespace Wayfinder::Tests
     TEST_CASE("PipelineCreateDesc default blend is disabled")
     {
         PipelineCreateDesc desc{};
-        CHECK(desc.ColourTargets == 1);
+        CHECK(desc.ColourTargetCount == 1);
         CHECK_FALSE(desc.ColourTargetBlends[0].Enabled);
     }
 
@@ -183,12 +183,12 @@ namespace Wayfinder::Tests
     TEST_CASE("PipelineCreateDesc supports multiple colour targets")
     {
         PipelineCreateDesc desc{};
-        desc.ColourTargets = 3;
+        desc.ColourTargetCount = 3;
         desc.ColourTargetBlends[0] = BlendPresets::AlphaBlend();
         desc.ColourTargetBlends[1] = BlendPresets::Opaque();
         desc.ColourTargetBlends[2] = BlendPresets::Additive();
 
-        CHECK(desc.ColourTargets == 3);
+        CHECK(desc.ColourTargetCount == 3);
         CHECK(desc.ColourTargetBlends[0].Enabled);
         CHECK_FALSE(desc.ColourTargetBlends[1].Enabled);
         CHECK(desc.ColourTargetBlends[2].DstColourFactor == BlendFactor::One);
@@ -238,11 +238,11 @@ namespace Wayfinder::Tests
     TEST_CASE("Pipeline hash differs when numColourTargets differs")
     {
         PipelineCreateDesc singleTarget{};
-        singleTarget.ColourTargets = 1;
+        singleTarget.ColourTargetCount = 1;
         singleTarget.ColourTargetBlends[0] = BlendPresets::Opaque();
 
         PipelineCreateDesc dualTarget{};
-        dualTarget.ColourTargets = 2;
+        dualTarget.ColourTargetCount = 2;
         dualTarget.ColourTargetBlends[0] = BlendPresets::Opaque();
         dualTarget.ColourTargetBlends[1] = BlendPresets::Opaque();
 
@@ -252,12 +252,12 @@ namespace Wayfinder::Tests
     TEST_CASE("Pipeline hash differs when second target blend changes")
     {
         PipelineCreateDesc descA{};
-        descA.ColourTargets = 2;
+        descA.ColourTargetCount = 2;
         descA.ColourTargetBlends[0] = BlendPresets::Opaque();
         descA.ColourTargetBlends[1] = BlendPresets::Opaque();
 
         PipelineCreateDesc descB{};
-        descB.ColourTargets = 2;
+        descB.ColourTargetCount = 2;
         descB.ColourTargetBlends[0] = BlendPresets::Opaque();
         descB.ColourTargetBlends[1] = BlendPresets::AlphaBlend();
 

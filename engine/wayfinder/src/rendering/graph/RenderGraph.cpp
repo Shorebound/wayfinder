@@ -531,7 +531,7 @@ namespace Wayfinder
                 if (pass.SwapchainWrite)
                 {
                     rpDesc.TargetSwapchain = true;
-                    rpDesc.ColourTargets = 1;
+                    rpDesc.ColourTargetCount = 1;
                     rpDesc.ColourAttachments[0].LoadOp = pass.SwapchainWrite->Load;
                     rpDesc.ColourAttachments[0].ClearColour = pass.SwapchainWrite->Clear;
                     rpDesc.ColourAttachments[0].StoreOp = StoreOp::Store;
@@ -539,7 +539,7 @@ namespace Wayfinder
                 else if (pass.NumColourWrites > 0)
                 {
                     rpDesc.TargetSwapchain = false;
-                    rpDesc.ColourTargets = pass.NumColourWrites;
+                    rpDesc.ColourTargetCount = pass.NumColourWrites;
 
                     for (uint32_t i = 0; i < pass.NumColourWrites; ++i)
                     {
@@ -553,7 +553,7 @@ namespace Wayfinder
                 else
                 {
                     rpDesc.TargetSwapchain = false;
-                    rpDesc.ColourTargets = 0;
+                    rpDesc.ColourTargetCount = 0;
                 }
                 // NOLINTEND(cppcoreguidelines-pro-bounds-constant-array-index, cppcoreguidelines-pro-bounds-avoid-unchecked-container-access)
 

@@ -199,7 +199,7 @@ namespace Wayfinder
     struct RenderPassDescriptor
     {
         std::string_view DebugName;
-        uint32_t ColourTargets = 1;
+        uint32_t ColourTargetCount = 1;
         std::array<ColourAttachmentDescriptor, MAX_COLOUR_TARGETS> ColourAttachments{};
         DepthAttachmentDescriptor DepthAttachment{};
         bool TargetSwapchain = true;

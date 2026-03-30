@@ -204,7 +204,7 @@ namespace Wayfinder
         FrontFace FrontFace = FrontFace::CounterClockwise;
         bool DepthTestEnabled = false;
         bool DepthWriteEnabled = false;
-        uint32_t ColourTargets = 1;
+        uint32_t ColourTargetCount = 1;
         std::array<TextureFormat, MAX_COLOUR_TARGETS> ColourTargetFormats{};
         std::array<BlendState, MAX_COLOUR_TARGETS> ColourTargetBlends{};
     };

@@ -88,7 +88,7 @@ namespace Wayfinder
         combine(std::hash<bool>{}(desc.DepthWriteEnabled));
 
         // Colour target blend states and formats
-        const uint32_t numTargets = std::min(desc.ColourTargets, static_cast<uint32_t>(MAX_COLOUR_TARGETS));
+        const uint32_t numTargets = std::min(desc.ColourTargetCount, static_cast<uint32_t>(MAX_COLOUR_TARGETS));
         combine(std::hash<uint32_t>{}(numTargets));
         for (uint32_t i = 0; i < numTargets; ++i)
         {
@@ -123,9 +123,9 @@ namespace Wayfinder
             return GPUPipelineHandle::Invalid();
         }
 
-        if (desc.ColourTargets == 0 || desc.ColourTargets > MAX_COLOUR_TARGETS)
+        if (desc.ColourTargetCount == 0 || desc.ColourTargetCount > MAX_COLOUR_TARGETS)
         {
-            WAYFINDER_ERROR(LogRenderer, "PipelineCache: numColourTargets={} is out of range [1, {}]", desc.ColourTargets, MAX_COLOUR_TARGETS);
+            WAYFINDER_ERROR(LogRenderer, "PipelineCache: numColourTargets={} is out of range [1, {}]", desc.ColourTargetCount, MAX_COLOUR_TARGETS);
             return GPUPipelineHandle::Invalid();
         }
 
@@ -139,9 +139,9 @@ namespace Wayfinder
         pipeDesc.FrontFace = desc.FrontFace;
         pipeDesc.DepthTestEnabled = desc.DepthTestEnabled;
         pipeDesc.DepthWriteEnabled = desc.DepthWriteEnabled;
-        pipeDesc.ColourTargets = desc.ColourTargets;
-        std::copy_n(desc.ColourTargetFormats.begin(), desc.ColourTargets, pipeDesc.ColourTargetFormats.begin());
-        std::copy_n(desc.ColourTargetBlends.begin(), desc.ColourTargets, pipeDesc.ColourTargetBlends.begin());
+        pipeDesc.ColourTargetCount = desc.ColourTargetCount;
+        std::copy_n(desc.ColourTargetFormats.begin(), desc.ColourTargetCount, pipeDesc.ColourTargetFormats.begin());
+        std::copy_n(desc.ColourTargetBlends.begin(), desc.ColourTargetCount, pipeDesc.ColourTargetBlends.begin());
 
         return GetOrCreate(pipeDesc);
     }

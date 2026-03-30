@@ -406,7 +406,7 @@ namespace Wayfinder
             return false;
         }
 
-        const uint32_t numTargets = std::min(descriptor.ColourTargets, MAX_COLOUR_TARGETS);
+        const uint32_t numTargets = std::min(descriptor.ColourTargetCount, MAX_COLOUR_TARGETS);
         if (numTargets == 0 && !descriptor.DepthAttachment.Enabled)
         {
             WAYFINDER_ERROR(LogRenderer, "BeginRenderPass '{}': no colour targets and no depth attachment — skipping pass", descriptor.DebugName);
@@ -605,9 +605,9 @@ namespace Wayfinder
             return GPUPipelineHandle::Invalid();
         }
 
-        if (desc.ColourTargets == 0 || desc.ColourTargets > MAX_COLOUR_TARGETS)
+        if (desc.ColourTargetCount == 0 || desc.ColourTargetCount > MAX_COLOUR_TARGETS)
         {
-            WAYFINDER_ERROR(LogRenderer, "SDLGPUDevice::CreatePipeline: numColourTargets={} is out of range [1, {}]", desc.ColourTargets, MAX_COLOUR_TARGETS);
+            WAYFINDER_ERROR(LogRenderer, "SDLGPUDevice::CreatePipeline: numColourTargets={} is out of range [1, {}]", desc.ColourTargetCount, MAX_COLOUR_TARGETS);
             return GPUPipelineHandle::Invalid();
         }
 
@@ -698,7 +698,7 @@ namespace Wayfinder
 
         // Validate blend state
         uint32_t colourTargetIndex = 0;
-        for (const BlendState& blend : desc.ColourTargetBlends | std::views::take(desc.ColourTargets))
+        for (const BlendState& blend : desc.ColourTargetBlends | std::views::take(desc.ColourTargetCount))
         {
             if (!blend.Enabled && blend.ColourWriteMask == 0)
             {
@@ -716,7 +716,7 @@ namespace Wayfinder
         // SwapchainFormat (value 0, the default for zero-initialised arrays) resolves to the actual swapchain format.
         const SDL_GPUTextureFormat swapchainFormat = SDL_GetGPUSwapchainTextureFormat(m_device, m_window);
         std::array<SDL_GPUColorTargetDescription, MAX_COLOUR_TARGETS> colourTargetDescs{};
-        auto targetSlices = std::views::zip(colourTargetDescs, desc.ColourTargetFormats, desc.ColourTargetBlends) | std::views::take(desc.ColourTargets);
+        auto targetSlices = std::views::zip(colourTargetDescs, desc.ColourTargetFormats, desc.ColourTargetBlends) | std::views::take(desc.ColourTargetCount);
         for (auto&& [colourTargetDesc, format, blend] : targetSlices)
         {
             colourTargetDesc.format = (format == TextureFormat::SwapchainFormat) ? swapchainFormat : ToSDLTextureFormat(format);
@@ -737,7 +737,7 @@ namespace Wayfinder
 
         SDL_GPUGraphicsPipelineTargetInfo targetInfo{};
         targetInfo.color_target_descriptions = colourTargetDescs.data();
-        targetInfo.num_color_targets = desc.ColourTargets;
+        targetInfo.num_color_targets = desc.ColourTargetCount;
         targetInfo.has_depth_stencil_target = desc.DepthTestEnabled || desc.DepthWriteEnabled;
         if (targetInfo.has_depth_stencil_target)
         {
