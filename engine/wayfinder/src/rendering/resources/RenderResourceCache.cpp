@@ -237,18 +237,18 @@ namespace Wayfinder
             SamplerCreateDesc samplerDesc;
             if (texAsset)
             {
-                samplerDesc.minFilter = texAsset->Filter;
-                samplerDesc.magFilter = texAsset->Filter;
-                samplerDesc.addressModeU = texAsset->AddressMode;
-                samplerDesc.addressModeV = texAsset->AddressMode;
+                samplerDesc.MinFilter = texAsset->Filter;
+                samplerDesc.MagFilter = texAsset->Filter;
+                samplerDesc.AddressModeU = texAsset->AddressMode;
+                samplerDesc.AddressModeV = texAsset->AddressMode;
 
                 // Enable trilinear filtering when the texture has mipmaps
                 const bool hasMips = (texAsset->MipLevels != 1);
                 if (hasMips && texAsset->Filter == SamplerFilter::Linear)
                 {
-                    samplerDesc.mipmapMode = SamplerMipmapMode::Linear;
-                    samplerDesc.enableAnisotropy = true;
-                    samplerDesc.maxAnisotropy = 4.0f;
+                    samplerDesc.MipmapMode = SamplerMipmapMode::Linear;
+                    samplerDesc.EnableAnisotropy = true;
+                    samplerDesc.MaxAnisotropy = 4.0f;
                 }
             }
             resolved.Sampler = m_textureManager->GetOrCreateSampler(samplerDesc);

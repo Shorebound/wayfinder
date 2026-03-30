@@ -188,7 +188,7 @@ namespace Wayfinder
             builder.DeclarePassCapabilities(RenderCapabilities::RASTER | RenderCapabilities::RASTER_SCENE_GEOMETRY);
             auto colour = builder.CreateTransient(colourDesc);
             auto depth = builder.CreateTransient(depthDesc);
-            builder.WriteColour(colour, LoadOp::Clear, ClearValue::FromColour(clearColour));
+            builder.WriteColour(colour, LoadOp::Clear, LinearColour::FromColour(clearColour));
             builder.WriteDepth(depth, LoadOp::Clear, 1.0f);
 
             return [this, &params, sceneGlobals, hasCamera](RenderDevice& device, const RenderGraphResources& /*resources*/)

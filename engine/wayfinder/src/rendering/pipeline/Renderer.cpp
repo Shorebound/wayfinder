@@ -164,8 +164,8 @@ namespace Wayfinder
             }
 
             const Extent2D swapchainDimensions = m_device->GetSwapchainDimensions();
-            const uint32_t swapW = swapchainDimensions.width;
-            const uint32_t swapH = swapchainDimensions.height;
+            const uint32_t swapW = swapchainDimensions.Width;
+            const uint32_t swapH = swapchainDimensions.Height;
 
             if (swapW != 0 && swapH != 0 && Rendering::PrepareFrame(preparedFrame, swapW, swapH))
             {

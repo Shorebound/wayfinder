@@ -85,7 +85,7 @@ Formatting is enforced by `.clang-format`.
 - Prefer full words over abbreviations unless widely unambiguous: `Config`, `Params`, etc. Avoid `Cfg`, `Prms`, etc.
 - Use `auto` / `auto*` / `auto&` when the type is obvious from the RHS; be explicit otherwise.
 - Use `using` aliases for complex types, especially function signatures and template instantiations.
-- Use idiomatic C++23: coroutines, `std::generator`, `std::span`, `std::optional`, `std::variant`, `std::string_view`, `std::format`, `std::filesystem`, `std::ranges`, etc.
+- Prefer idiomatic C++23 features: coroutines, `std::generator`, `std::span`, `std::optional`, `std::variant`, `std::string_view`, `std::format`, `std::filesystem`, `std::ranges`, etc.
 - Prefer value semantics and RAII over raw pointers and manual resource management. Use smart pointers where ownership is shared or non-trivial.
 - Concepts and `requires` clauses for template constraints, not SFINAE or `static_assert` checks inside the body.
 - Prefer `constexpr`, `inline`, or templates over macros if they can achieve the same goal with better type safety and scoping.

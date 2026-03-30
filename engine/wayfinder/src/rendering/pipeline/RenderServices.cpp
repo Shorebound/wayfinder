@@ -67,10 +67,10 @@ namespace Wayfinder
         // Nearest-point sampler for composition blit
         {
             SamplerCreateDesc samplerDesc;
-            samplerDesc.minFilter = SamplerFilter::Nearest;
-            samplerDesc.magFilter = SamplerFilter::Nearest;
-            samplerDesc.addressModeU = SamplerAddressMode::ClampToEdge;
-            samplerDesc.addressModeV = SamplerAddressMode::ClampToEdge;
+            samplerDesc.MinFilter = SamplerFilter::Nearest;
+            samplerDesc.MagFilter = SamplerFilter::Nearest;
+            samplerDesc.AddressModeU = SamplerAddressMode::ClampToEdge;
+            samplerDesc.AddressModeV = SamplerAddressMode::ClampToEdge;
             m_nearestSampler = device.CreateSampler(samplerDesc);
         }
 
@@ -143,11 +143,9 @@ namespace Wayfinder
             m_shaderManager.ReloadShaders();
             Log::Info(LogRenderer, "RenderServices: all shaders and pipelines invalidated");
             orchestrator->RebuildPipelines();
-            m_shadersInvalidated = false;
         }
         else
         {
-            m_shadersInvalidated = true;
             Log::Warn(LogRenderer, "RenderServices::ReloadShaders: no orchestrator provided - deferring pipeline rebuild");
         }
     }

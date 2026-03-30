@@ -120,7 +120,7 @@ namespace Wayfinder
             .AttributeCount = static_cast<uint32_t>(POSITION_ATTRIBUTES.size()),
         };
 
-        inline constexpr std::array<VertexAttribute, 2> PosColourAttribs = {{
+        inline constexpr std::array<VertexAttribute, 2> POSITION_COLOUR_ATTRIBUTES = {{
             {0, offsetof(VertexPositionColour, Position), VertexAttributeFormat::Float3},
             {1, offsetof(VertexPositionColour, Colour), VertexAttributeFormat::Float3},
         }};
@@ -128,8 +128,8 @@ namespace Wayfinder
         inline constexpr VertexLayout POSITION_COLOUR =
         {
             .Stride = sizeof(VertexPositionColour),
-            .Attributes = PosColourAttribs.data(),
-            .AttributeCount = static_cast<uint32_t>(PosColourAttribs.size()),
+            .Attributes = POSITION_COLOUR_ATTRIBUTES.data(),
+            .AttributeCount = static_cast<uint32_t>(POSITION_COLOUR_ATTRIBUTES.size()),
         };
 
         inline constexpr std::array<VertexAttribute, 3> POSITION_NORMAL_UV_ATTRIBUTES = {{

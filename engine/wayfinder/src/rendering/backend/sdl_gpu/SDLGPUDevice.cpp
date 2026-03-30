@@ -406,8 +406,8 @@ namespace Wayfinder
             return false;
         }
 
-        const uint32_t numTargets = std::min(descriptor.numColourTargets, MAX_COLOUR_TARGETS);
-        if (numTargets == 0 && !descriptor.depthAttachment.enabled)
+        const uint32_t numTargets = std::min(descriptor.ColourTargets, MAX_COLOUR_TARGETS);
+        if (numTargets == 0 && !descriptor.DepthAttachment.Enabled)
         {
             Log::Error(LogRenderer, "BeginRenderPass '{}': no colour targets and no depth attachment — skipping pass", descriptor.debugName);
             return false;
@@ -419,10 +419,10 @@ namespace Wayfinder
 
         for (uint32_t i = 0; i < numTargets; ++i)
         {
-            const auto& attachment = descriptor.colourAttachments[i];
+            const auto& attachment = descriptor.ColourAttachments[i];
             SDL_GPUTexture* texture = nullptr;
 
-            if (descriptor.targetSwapchain && i == 0)
+            if (descriptor.TargetSwapchain && i == 0)
             {
                 if (!m_swapchainTexture)
                 {
@@ -430,9 +430,9 @@ namespace Wayfinder
                 }
                 texture = m_swapchainTexture;
             }
-            else if (attachment.target.IsValid())
+            else if (attachment.Target.IsValid())
             {
-                auto* pTex = m_texturePool.Get(attachment.target);
+                auto* pTex = m_texturePool.Get(attachment.Target);
                 texture = pTex ? pTex->texture : nullptr;
             }
 
@@ -444,12 +444,12 @@ namespace Wayfinder
 
             auto& target = colourTargets[i];
             target.texture = texture;
-            target.clear_color.r = attachment.clearValue.r;
-            target.clear_color.g = attachment.clearValue.g;
-            target.clear_color.b = attachment.clearValue.b;
-            target.clear_color.a = attachment.clearValue.a;
+            target.clear_color.r = attachment.ClearColour.Data.r;
+            target.clear_color.g = attachment.ClearColour.Data.g;
+            target.clear_color.b = attachment.ClearColour.Data.b;
+            target.clear_color.a = attachment.ClearColour.Data.a;
 
-            switch (attachment.loadOp)
+            switch (attachment.LoadOp)
             {
             case LoadOp::Clear:
                 target.load_op = SDL_GPU_LOADOP_CLEAR;
@@ -462,7 +462,7 @@ namespace Wayfinder
                 break;
             }
 
-            switch (attachment.storeOp)
+            switch (attachment.StoreOp)
             {
             case StoreOp::Store:
                 target.store_op = SDL_GPU_STOREOP_STORE;
@@ -475,12 +475,12 @@ namespace Wayfinder
         // NOLINTEND(cppcoreguidelines-pro-bounds-constant-array-index, cppcoreguidelines-pro-bounds-avoid-unchecked-container-access)
 
         // ── Depth target ─────────────────────────────────────
-        if (descriptor.depthAttachment.enabled)
+        if (descriptor.DepthAttachment.Enabled)
         {
             SDL_GPUTexture* depthTexture = nullptr;
-            if (descriptor.depthTarget.IsValid())
+            if (descriptor.DepthTarget.IsValid())
             {
-                auto* pTex = m_texturePool.Get(descriptor.depthTarget);
+                auto* pTex = m_texturePool.Get(descriptor.DepthTarget);
                 depthTexture = pTex ? pTex->texture : nullptr;
             }
             else if (m_depthTexture)
@@ -492,9 +492,9 @@ namespace Wayfinder
             {
                 SDL_GPUDepthStencilTargetInfo depthTarget{};
                 depthTarget.texture = depthTexture;
-                depthTarget.clear_depth = descriptor.depthAttachment.clearDepth;
+                depthTarget.clear_depth = descriptor.DepthAttachment.ClearDepth;
 
-                switch (descriptor.depthAttachment.loadOp)
+                switch (descriptor.DepthAttachment.LoadOp)
                 {
                 case LoadOp::Clear:
                     depthTarget.load_op = SDL_GPU_LOADOP_CLEAR;
@@ -507,7 +507,7 @@ namespace Wayfinder
                     break;
                 }
 
-                switch (descriptor.depthAttachment.storeOp)
+                switch (descriptor.DepthAttachment.StoreOp)
                 {
                 case StoreOp::Store:
                     depthTarget.store_op = SDL_GPU_STOREOP_STORE;
@@ -1137,26 +1137,26 @@ namespace Wayfinder
             return GPUTextureHandle::Invalid();
         }
 
-        const uint32_t maxMips = CalculateMipLevels(desc.width, desc.height);
-        const uint32_t resolvedMips = (desc.mipLevels == 0) ? maxMips : std::min(desc.mipLevels, maxMips);
+        const uint32_t maxMips = CalculateMipLevels(desc.Width, desc.Height);
+        const uint32_t resolvedMips = (desc.MipLevels == 0) ? maxMips : std::min(desc.MipLevels, maxMips);
 
-        if (desc.mipLevels > maxMips)
+        if (desc.MipLevels > maxMips)
         {
             Log::Warn(LogRenderer,
                 "SDLGPUDevice::CreateTexture: Requested {} mip levels for {}x{} texture, "
                 "clamped to maximum of {}",
-                desc.mipLevels, desc.width, desc.height, maxMips);
+                desc.MipLevels, desc.Width, desc.Height, maxMips);
         }
 
         SDL_GPUTextureCreateInfo info{};
         info.type = SDL_GPU_TEXTURETYPE_2D;
-        info.format = ToSDLTextureFormat(desc.format);
-        info.width = desc.width;
-        info.height = desc.height;
+        info.format = ToSDLTextureFormat(desc.Format);
+        info.width = desc.Width;
+        info.height = desc.Height;
         info.layer_count_or_depth = 1;
         info.num_levels = resolvedMips;
 
-        auto usage = desc.usage;
+        auto usage = desc.Usage;
         if (resolvedMips > 1 && !HasFlag(usage, TextureUsage::DepthTarget))
         {
             /// Blit-based mip generation requires ColourTarget usage.
@@ -1171,7 +1171,7 @@ namespace Wayfinder
             return GPUTextureHandle::Invalid();
         }
 
-        return m_texturePool.Acquire({.texture = texture, .width = desc.width, .height = desc.height, .mipLevels = resolvedMips});
+        return m_texturePool.Acquire({.texture = texture, .width = desc.Width, .height = desc.Height, .mipLevels = resolvedMips});
     }
 
     void SDLGPUDevice::DestroyTexture(GPUTextureHandle texture)
@@ -1381,14 +1381,14 @@ namespace Wayfinder
         }
 
         SDL_GPUSamplerCreateInfo info{};
-        info.min_filter = (desc.minFilter == SamplerFilter::Nearest) ? SDL_GPU_FILTER_NEAREST : SDL_GPU_FILTER_LINEAR;
-        info.mag_filter = (desc.magFilter == SamplerFilter::Nearest) ? SDL_GPU_FILTER_NEAREST : SDL_GPU_FILTER_LINEAR;
-        info.mipmap_mode = (desc.mipmapMode == SamplerMipmapMode::Linear) ? SDL_GPU_SAMPLERMIPMAPMODE_LINEAR : SDL_GPU_SAMPLERMIPMAPMODE_NEAREST;
-        info.min_lod = desc.minLod;
-        info.max_lod = desc.maxLod;
-        info.mip_lod_bias = desc.mipLodBias;
-        info.enable_anisotropy = desc.enableAnisotropy;
-        info.max_anisotropy = desc.maxAnisotropy;
+        info.min_filter = (desc.MinFilter == SamplerFilter::Nearest) ? SDL_GPU_FILTER_NEAREST : SDL_GPU_FILTER_LINEAR;
+        info.mag_filter = (desc.MagFilter == SamplerFilter::Nearest) ? SDL_GPU_FILTER_NEAREST : SDL_GPU_FILTER_LINEAR;
+        info.mipmap_mode = (desc.MipmapMode == SamplerMipmapMode::Linear) ? SDL_GPU_SAMPLERMIPMAPMODE_LINEAR : SDL_GPU_SAMPLERMIPMAPMODE_NEAREST;
+        info.min_lod = desc.MinLod;
+        info.max_lod = desc.MaxLod;
+        info.mip_lod_bias = desc.MipLodBias;
+        info.enable_anisotropy = desc.EnableAnisotropy;
+        info.max_anisotropy = desc.MaxAnisotropy;
 
         auto toAddressMode = [](SamplerAddressMode mode) -> SDL_GPUSamplerAddressMode
         {
@@ -1404,8 +1404,8 @@ namespace Wayfinder
             return SDL_GPU_SAMPLERADDRESSMODE_CLAMP_TO_EDGE;
         };
 
-        info.address_mode_u = toAddressMode(desc.addressModeU);
-        info.address_mode_v = toAddressMode(desc.addressModeV);
+        info.address_mode_u = toAddressMode(desc.AddressModeU);
+        info.address_mode_v = toAddressMode(desc.AddressModeV);
         info.address_mode_w = SDL_GPU_SAMPLERADDRESSMODE_CLAMP_TO_EDGE;
 
         SDL_GPUSampler* sampler = SDL_CreateGPUSampler(m_device, &info);
@@ -1454,7 +1454,7 @@ namespace Wayfinder
 
     Extent2D SDLGPUDevice::GetSwapchainDimensions() const
     {
-        return {.width = m_swapchainWidth, .height = m_swapchainHeight};
+        return {.Width = m_swapchainWidth, .Height = m_swapchainHeight};
     }
 
 } // namespace Wayfinder

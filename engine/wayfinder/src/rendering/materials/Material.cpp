@@ -38,10 +38,10 @@ namespace Wayfinder
             }
 
             // NOLINTBEGIN(cppcoreguidelines-pro-bounds-avoid-unchecked-container-access)
-            colour.r = static_cast<float>(values[0].get<int64_t>()) / 255.0f;
-            colour.g = static_cast<float>(values[1].get<int64_t>()) / 255.0f;
-            colour.b = static_cast<float>(values[2].get<int64_t>()) / 255.0f;
-            colour.a = values.size() == 4 ? static_cast<float>(values[3].get<int64_t>()) / 255.0f : colour.a;
+            colour.Data.r = static_cast<float>(values[0].get<int64_t>()) / 255.0f;
+            colour.Data.g = static_cast<float>(values[1].get<int64_t>()) / 255.0f;
+            colour.Data.b = static_cast<float>(values[2].get<int64_t>()) / 255.0f;
+            colour.Data.a = values.size() == 4 ? static_cast<float>(values[3].get<int64_t>()) / 255.0f : colour.Data.a;
             // NOLINTEND(cppcoreguidelines-pro-bounds-avoid-unchecked-container-access)
             return true;
         }
@@ -290,8 +290,8 @@ namespace Wayfinder
         table["material_id"] = material.Id.ToString();
 
         const LinearColour baseColour = material.GetBaseColour();
-        table["base_colour"] =
-            nlohmann::json::array({static_cast<int64_t>(baseColour.r * 255.0f), static_cast<int64_t>(baseColour.g * 255.0f), static_cast<int64_t>(baseColour.b * 255.0f), static_cast<int64_t>(baseColour.a * 255.0f)});
+        table["base_colour"] = nlohmann::json::array(
+            {static_cast<int64_t>(baseColour.Data.r * 255.0f), static_cast<int64_t>(baseColour.Data.g * 255.0f), static_cast<int64_t>(baseColour.Data.b * 255.0f), static_cast<int64_t>(baseColour.Data.a * 255.0f)});
         // NOLINTEND(cppcoreguidelines-pro-bounds-avoid-unchecked-container-access)
 
         return table;
