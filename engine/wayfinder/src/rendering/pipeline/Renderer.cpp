@@ -6,6 +6,8 @@
 #include "rendering/graph/RenderFrame.h"
 #include "rendering/graph/RenderFrameUtils.h"
 #include "rendering/graph/RenderGraph.h"
+#include "rendering/pipeline/DefaultFeatures.h"
+#include "rendering/pipeline/PrepareFrame.h"
 #include "rendering/resources/RenderResourceCache.h"
 
 #include "app/EngineConfig.h"
@@ -48,10 +50,11 @@ namespace Wayfinder
         m_services = std::make_unique<RenderServices>();
         if (auto result = m_services->Initialise(device, config, registry); !result)
         {
-            WAYFINDER_WARN(LogRenderer, "Renderer: Failed to initialise RenderServices — {}", result.error().GetMessage());
+            WAYFINDER_WARN(LogRenderer, "Renderer: Failed to initialise RenderServices -- {}", result.error().GetMessage());
             return std::unexpected(result.error());
         }
 
+        Rendering::RegisterDefaultFeatures(*this);
         m_renderPipeline->Initialise(*m_services);
 
         m_renderResources->SetTextureManager(&m_services->GetTextures());
@@ -102,21 +105,21 @@ namespace Wayfinder
         }
     }
 
-    void Renderer::AddPass(const RenderPhase phase, const int32_t order, std::unique_ptr<RenderFeature> pass)
+    void Renderer::AddFeature(const RenderPhase phase, const int32_t order, std::unique_ptr<RenderFeature> feature)
     {
-        if (!pass)
+        if (!feature)
         {
             return;
         }
         if (m_renderPipeline)
         {
-            m_renderPipeline->RegisterPass(phase, order, std::move(pass));
+            m_renderPipeline->RegisterFeature(phase, order, std::move(feature));
         }
     }
 
-    void Renderer::AddPass(const RenderPhase phase, std::unique_ptr<RenderFeature> pass)
+    void Renderer::AddFeature(const RenderPhase phase, std::unique_ptr<RenderFeature> feature)
     {
-        AddPass(phase, 0, std::move(pass));
+        AddFeature(phase, 0, std::move(feature));
     }
 
     void Renderer::Render(const RenderFrame& frame)
@@ -159,7 +162,7 @@ namespace Wayfinder
             const uint32_t swapW = swapchainDimensions.width;
             const uint32_t swapH = swapchainDimensions.height;
 
-            if (swapW != 0 && swapH != 0 && m_renderPipeline->Prepare(preparedFrame, swapW, swapH))
+            if (swapW != 0 && swapH != 0 && Rendering::PrepareFrame(preparedFrame, swapW, swapH))
             {
                 const auto primaryView = Rendering::ResolvePreparedPrimaryView(preparedFrame);
 

@@ -11,22 +11,27 @@
 
 namespace Wayfinder
 {
-    std::vector<ShaderProgramDesc> CompositionPass::GetShaderPrograms() const
+    std::span<const ShaderProgramDesc> CompositionPass::GetShaderPrograms() const
     {
-        ShaderProgramDesc desc;
-        desc.Name = "composition_blit";
-        desc.VertexShaderName = "fullscreen_copy";
-        desc.FragmentShaderName = "fullscreen_copy";
-        desc.VertexResources = {};
-        desc.FragmentResources = {.numUniformBuffers = 0, .numSamplers = 1};
-        desc.VertexLayout = VertexLayouts::Empty;
-        desc.Cull = CullMode::None;
-        desc.DepthTest = false;
-        desc.DepthWrite = false;
-        desc.MaterialUBOSize = 0;
-        desc.VertexUBOSize = 0;
-        desc.NeedsSceneGlobals = false;
-        return {std::move(desc)};
+        static const auto programs = []
+        {
+            ShaderProgramDesc desc;
+            desc.Name = "composition_blit";
+            desc.VertexShaderName = "fullscreen_copy";
+            desc.FragmentShaderName = "fullscreen_copy";
+            desc.VertexResources = {};
+            desc.FragmentResources = {.numUniformBuffers = 0, .numSamplers = 1};
+            desc.VertexLayout = VertexLayouts::Empty;
+            desc.Cull = CullMode::None;
+            desc.DepthTest = false;
+            desc.DepthWrite = false;
+            desc.MaterialUBOSize = 0;
+            desc.VertexUBOSize = 0;
+            desc.NeedsSceneGlobals = false;
+            return std::vector{std::move(desc)};
+        }();
+
+        return programs;
     }
 
     void CompositionPass::OnAttach(const RenderFeatureContext& context)

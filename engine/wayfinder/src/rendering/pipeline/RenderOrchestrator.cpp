@@ -3,12 +3,6 @@
 #include "RenderServices.h"
 #include "rendering/graph/RenderGraph.h"
 #include "rendering/materials/ShaderProgram.h"
-#include "rendering/passes/ChromaticAberrationFeature.h"
-#include "rendering/passes/ColourGradingFeature.h"
-#include "rendering/passes/CompositionPass.h"
-#include "rendering/passes/DebugPass.h"
-#include "rendering/passes/SceneOpaquePass.h"
-#include "rendering/passes/VignetteFeature.h"
 #include "volumes/BlendableEffectRegistry.h"
 
 #include "core/Log.h"
@@ -25,7 +19,7 @@ namespace Wayfinder
         /// Collects shader programs from a feature and registers them with the registry.
         void RegisterFeaturePrograms(RenderFeature& feature, ShaderProgramRegistry& registry)
         {
-            for (auto& desc : feature.GetShaderPrograms())
+            for (const auto& desc : feature.GetShaderPrograms())
             {
                 if (!registry.Register(desc))
                 {
@@ -35,9 +29,9 @@ namespace Wayfinder
         }
     } // namespace
 
-    void RenderOrchestrator::SortPassList(std::vector<PassSlot>& slots)
+    void RenderOrchestrator::SortFeatureList(std::vector<FeatureSlot>& slots)
     {
-        std::ranges::sort(slots, [](const PassSlot& a, const PassSlot& b)
+        std::ranges::sort(slots, [](const FeatureSlot& a, const FeatureSlot& b)
         {
             if (a.Phase != b.Phase)
             {
@@ -51,21 +45,21 @@ namespace Wayfinder
         });
     }
 
-    void RenderOrchestrator::RegisterPass(const RenderPhase phase, const int32_t order, std::unique_ptr<RenderFeature> pass)
+    void RenderOrchestrator::RegisterFeature(const RenderPhase phase, const int32_t order, std::unique_ptr<RenderFeature> feature)
     {
-        if (!pass)
+        if (!feature)
         {
             return;
         }
 
         if (!m_context)
         {
-            // Not yet initialised — defer until Initialise flushes.
-            m_pendingPasses.push_back(PassSlot{
+            // Not yet initialised -- defer until Initialise flushes.
+            m_pendingFeatures.push_back(FeatureSlot{
                 .Phase = phase,
                 .Order = order,
-                .InsertSequence = m_nextPassInsertSequence++,
-                .Pass = std::move(pass),
+                .InsertSequence = m_nextInsertSequence++,
+                .Feature = std::move(feature),
             });
             return;
         }
@@ -76,31 +70,31 @@ namespace Wayfinder
         // Late-registered feature: register effects if registry not yet sealed.
         if (auto* effectReg = m_context->GetBlendableEffectRegistry())
         {
-            pass->OnRegisterEffects(*effectReg);
+            feature->OnRegisterEffects(*effectReg);
         }
 
         // Register shader programs from the feature.
-        RegisterFeaturePrograms(*pass, registry);
+        RegisterFeaturePrograms(*feature, registry);
 
-        pass->OnAttach(ctx);
+        feature->OnAttach(ctx);
 
-        PassSlot slot{
+        FeatureSlot slot{
             .Phase = phase,
             .Order = order,
-            .InsertSequence = m_nextPassInsertSequence++,
-            .Pass = std::move(pass),
+            .InsertSequence = m_nextInsertSequence++,
+            .Feature = std::move(feature),
         };
 
         if (phase == RenderPhase::Present)
         {
-            if (slot.Pass && !slot.Pass->IsEnabled())
+            if (slot.Feature && !slot.Feature->IsEnabled())
             {
-                WAYFINDER_WARN(LogRenderer, "RegisterPass: Present phase pass '{}' is disabled — graph may lack a swapchain writer", slot.Pass->GetName());
+                WAYFINDER_WARN(LogRenderer, "RegisterFeature: Present phase feature '{}' is disabled -- graph may lack a swapchain writer", slot.Feature->GetName());
             }
         }
 
-        m_passes.push_back(std::move(slot));
-        SortPassList(m_passes);
+        m_features.push_back(std::move(slot));
+        SortFeatureList(m_features);
     }
 
     void RenderOrchestrator::Initialise(RenderServices& services)
@@ -112,74 +106,54 @@ namespace Wayfinder
 
         m_context = &services;
 
-        // Create built-in features. Queue directly rather than through RegisterPass
-        // so the batch lifecycle below handles effects, programs, and attach in order.
-        // @todo: this shouldn't be done in here, we should be able to compose this through TOML/JSON or something else without hardcoding built-in features in the orchestrator.
-        auto addBuiltIn = [&](const RenderPhase phase, const int32_t order, std::unique_ptr<RenderFeature> pass)
+        // Flush features that were registered before Initialise (deferred).
+        if (!m_pendingFeatures.empty())
         {
-            m_passes.push_back(PassSlot{
-                .Phase = phase,
-                .Order = order,
-                .InsertSequence = m_nextPassInsertSequence++,
-                .Pass = std::move(pass),
-            });
-        };
-
-        addBuiltIn(RenderPhase::Opaque, 0, std::make_unique<SceneOpaquePass>());
-        addBuiltIn(RenderPhase::PostProcess, 800, std::make_unique<ChromaticAberrationFeature>());
-        addBuiltIn(RenderPhase::PostProcess, 900, std::make_unique<Rendering::VignetteFeature>());
-        addBuiltIn(RenderPhase::Composite, 0, std::make_unique<ColourGradingFeature>());
-        addBuiltIn(RenderPhase::Overlay, 0, std::make_unique<DebugPass>());
-        addBuiltIn(RenderPhase::Present, 0, std::make_unique<CompositionPass>());
-
-        // Flush passes that were registered before Initialise (deferred).
-        if (!m_pendingPasses.empty())
-        {
-            auto deferred = std::move(m_pendingPasses);
-            m_pendingPasses.clear();
+            auto deferred = std::move(m_pendingFeatures);
+            m_pendingFeatures.clear();
             for (auto& slot : deferred)
             {
-                if (slot.Pass)
+                if (slot.Feature)
                 {
-                    if (slot.Phase == RenderPhase::Present && !slot.Pass->IsEnabled())
+                    if (slot.Phase == RenderPhase::Present && !slot.Feature->IsEnabled())
                     {
-                        WAYFINDER_WARN(LogRenderer, "RegisterPass: Present phase pass '{}' is disabled -- graph may lack a swapchain writer", slot.Pass->GetName());
+                        WAYFINDER_WARN(LogRenderer, "RegisterFeature: Present phase feature '{}' is disabled -- graph may lack a swapchain writer", slot.Feature->GetName());
                     }
-                    m_passes.push_back(std::move(slot));
+                    m_features.push_back(std::move(slot));
                 }
             }
-            SortPassList(m_passes);
+            SortFeatureList(m_features);
         }
 
         // 1. Register blendable effects (before seal).
         if (auto* effectReg = m_context->GetBlendableEffectRegistry())
         {
-            for (auto& slot : m_passes)
+            for (auto& slot : m_features)
             {
-                if (slot.Pass)
+                if (slot.Feature)
                 {
-                    slot.Pass->OnRegisterEffects(*effectReg);
+                    slot.Feature->OnRegisterEffects(*effectReg);
                 }
             }
         }
 
         // 2. Collect and register shader programs from all features.
         auto& programs = m_context->GetPrograms();
-        for (auto& slot : m_passes)
+        for (auto& slot : m_features)
         {
-            if (slot.Pass)
+            if (slot.Feature)
             {
-                RegisterFeaturePrograms(*slot.Pass, programs);
+                RegisterFeaturePrograms(*slot.Feature, programs);
             }
         }
 
         // 3. OnAttach for runtime init.
         const RenderFeatureContext ctx{*m_context};
-        for (auto& slot : m_passes)
+        for (auto& slot : m_features)
         {
-            if (slot.Pass)
+            if (slot.Feature)
             {
-                slot.Pass->OnAttach(ctx);
+                slot.Feature->OnAttach(ctx);
             }
         }
 
@@ -196,11 +170,11 @@ namespace Wayfinder
 
         // Collect and re-register shader programs from all features.
         auto& programs = m_context->GetPrograms();
-        for (auto& slot : m_passes)
+        for (auto& slot : m_features)
         {
-            if (slot.Pass)
+            if (slot.Feature)
             {
-                RegisterFeaturePrograms(*slot.Pass, programs);
+                RegisterFeaturePrograms(*slot.Feature, programs);
             }
         }
 
@@ -212,107 +186,28 @@ namespace Wayfinder
         if (m_context)
         {
             const RenderFeatureContext ctx{*m_context};
-            for (auto& slot : m_passes)
+            for (auto& slot : m_features)
             {
-                if (slot.Pass)
+                if (slot.Feature)
                 {
-                    slot.Pass->OnDetach(ctx);
+                    slot.Feature->OnDetach(ctx);
                 }
             }
         }
-        m_passes.clear();
-        m_pendingPasses.clear();
-        m_nextPassInsertSequence = 0;
+        m_features.clear();
+        m_pendingFeatures.clear();
+        m_nextInsertSequence = 0;
         m_context = nullptr;
         m_initialised = false;
     }
 
-    bool RenderOrchestrator::Prepare(RenderFrame& frame, const uint32_t swapchainWidth, const uint32_t swapchainHeight) const
-    {
-        if (frame.Views.empty())
-        {
-            WAYFINDER_WARN(LogRenderer, "RenderOrchestrator: frame '{}' has no views — skipped", frame.SceneName);
-            return false;
-        }
-
-        if (frame.Layers.empty())
-        {
-            WAYFINDER_WARN(LogRenderer, "RenderOrchestrator: frame '{}' has no layers — skipped", frame.SceneName);
-            return false;
-        }
-
-        if (swapchainWidth == 0 || swapchainHeight == 0)
-        {
-            WAYFINDER_WARN(LogRenderer, "RenderOrchestrator: swapchain extent is zero — skipping frame '{}'", frame.SceneName);
-            return false;
-        }
-
-        const float aspect = static_cast<float>(swapchainWidth) / static_cast<float>(swapchainHeight);
-
-        for (RenderView& view : frame.Views)
-        {
-            const auto& cam = view.CameraState;
-            view.ViewMatrix = Maths::LookAt(cam.Position, cam.Target, cam.Up);
-
-            if (cam.ProjectionType == 0)
-            {
-                view.ProjectionMatrix = Maths::PerspectiveRH_ZO(Maths::ToRadians(cam.FOV), aspect, cam.NearPlane, cam.FarPlane);
-            }
-            else
-            {
-                const float halfH = cam.FOV * 0.5f;
-                const float halfW = halfH * aspect;
-                view.ProjectionMatrix = Maths::OrthoRH_ZO(-halfW, halfW, -halfH, halfH, cam.NearPlane, cam.FarPlane);
-            }
-
-            view.ViewFrustum = Frustum::ExtractPlanes(view.ProjectionMatrix * view.ViewMatrix);
-            view.Prepared = true;
-        }
-
-        for (FrameLayer& layer : frame.Layers)
-        {
-            if (!layer.Enabled || layer.Id.IsEmpty())
-            {
-                continue;
-            }
-
-            if (layer.ViewIndex >= frame.Views.size())
-            {
-                WAYFINDER_WARN(LogRenderer, "RenderOrchestrator: layer '{}' references invalid view index {}", layer.Id, layer.ViewIndex);
-                layer.Enabled = false;
-                continue;
-            }
-
-            if (layer.Kind == FrameLayerKind::Scene)
-            {
-                const Frustum& frustum = frame.Views.at(layer.ViewIndex).ViewFrustum;
-
-                std::erase_if(layer.Meshes, [&frustum](const RenderMeshSubmission& submission)
-                {
-                    if (!submission.Visible)
-                    {
-                        return true;
-                    }
-                    return !frustum.TestBounds(submission.WorldSphere, submission.WorldBounds);
-                });
-
-                std::ranges::sort(layer.Meshes, [](const RenderMeshSubmission& a, const RenderMeshSubmission& b)
-                {
-                    return a.SortKey < b.SortKey;
-                });
-            }
-        }
-
-        return true;
-    }
-
     void RenderOrchestrator::BuildGraph(RenderGraph& graph, const FrameRenderParams& params) const
     {
-        for (const auto& slot : m_passes)
+        for (const auto& slot : m_features)
         {
-            if (slot.Pass && slot.Pass->IsEnabled())
+            if (slot.Feature && slot.Feature->IsEnabled())
             {
-                slot.Pass->AddPasses(graph, params);
+                slot.Feature->AddPasses(graph, params);
             }
         }
     }

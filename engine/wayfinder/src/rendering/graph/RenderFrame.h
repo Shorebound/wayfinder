@@ -210,7 +210,7 @@ namespace Wayfinder
         bool IsPrimary = true;
         BlendableEffectStack PostProcess;
 
-        /// Pre-computed matrices and frustum. Populated by RenderOrchestrator::Prepare().
+        /// Pre-computed matrices and frustum. Populated by Rendering::().
         Matrix4 ViewMatrix = Matrix4(1.0f);
         Matrix4 ProjectionMatrix = Matrix4(1.0f);
         Frustum ViewFrustum{};

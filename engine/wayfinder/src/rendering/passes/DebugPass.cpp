@@ -60,40 +60,45 @@ namespace Wayfinder
         }
     }
 
-    std::vector<ShaderProgramDesc> DebugPass::GetShaderPrograms() const
+    std::span<const ShaderProgramDesc> DebugPass::GetShaderPrograms() const
     {
-        std::vector<ShaderProgramDesc> programs;
-        programs.reserve(2);
-
-        // Lines and grid: PosColour, drawn as LineList via GetVariantPipeline.
+        static const auto programs = []
         {
-            ShaderProgramDesc desc;
-            desc.Name = "debug_unlit";
-            desc.VertexShaderName = "debug_unlit";
-            desc.FragmentShaderName = "debug_unlit";
-            desc.VertexResources = {.numUniformBuffers = 1};
-            desc.FragmentResources = {.numUniformBuffers = 1};
-            desc.VertexLayout = VertexLayouts::PosColour;
-            desc.Cull = CullMode::None;
-            desc.DepthTest = false;
-            desc.DepthWrite = false;
-            programs.push_back(std::move(desc));
-        }
+            std::vector<ShaderProgramDesc> p;
+            p.reserve(2);
 
-        // Solid debug geometry (boxes): PosNormalColour to match BuiltInMeshId::PrimitiveColour.
-        {
-            ShaderProgramDesc desc;
-            desc.Name = "debug_solid";
-            desc.VertexShaderName = "unlit";
-            desc.FragmentShaderName = "unlit";
-            desc.VertexResources = {.numUniformBuffers = 1};
-            desc.FragmentResources = {.numUniformBuffers = 1};
-            desc.VertexLayout = VertexLayouts::PosNormalColour;
-            desc.Cull = CullMode::Back;
-            desc.DepthTest = false;
-            desc.DepthWrite = false;
-            programs.push_back(std::move(desc));
-        }
+            // Lines and grid: PosColour, drawn as LineList via GetVariantPipeline.
+            {
+                ShaderProgramDesc desc;
+                desc.Name = "debug_unlit";
+                desc.VertexShaderName = "debug_unlit";
+                desc.FragmentShaderName = "debug_unlit";
+                desc.VertexResources = {.numUniformBuffers = 1};
+                desc.FragmentResources = {.numUniformBuffers = 1};
+                desc.VertexLayout = VertexLayouts::PosColour;
+                desc.Cull = CullMode::None;
+                desc.DepthTest = false;
+                desc.DepthWrite = false;
+                p.push_back(std::move(desc));
+            }
+
+            // Solid debug geometry (boxes): PosNormalColour to match BuiltInMeshId::PrimitiveColour.
+            {
+                ShaderProgramDesc desc;
+                desc.Name = "debug_solid";
+                desc.VertexShaderName = "unlit";
+                desc.FragmentShaderName = "unlit";
+                desc.VertexResources = {.numUniformBuffers = 1};
+                desc.FragmentResources = {.numUniformBuffers = 1};
+                desc.VertexLayout = VertexLayouts::PosNormalColour;
+                desc.Cull = CullMode::Back;
+                desc.DepthTest = false;
+                desc.DepthWrite = false;
+                p.push_back(std::move(desc));
+            }
+
+            return p;
+        }();
 
         return programs;
     }

@@ -48,22 +48,27 @@ namespace Wayfinder
         return RenderCapabilities::RASTER;
     }
 
-    std::vector<ShaderProgramDesc> ColourGradingFeature::GetShaderPrograms() const
+    std::span<const ShaderProgramDesc> ColourGradingFeature::GetShaderPrograms() const
     {
-        ShaderProgramDesc desc;
-        desc.Name = "colour_grading";
-        desc.VertexShaderName = "colour_grading";
-        desc.FragmentShaderName = "colour_grading";
-        desc.VertexResources = {};
-        desc.FragmentResources = {.numUniformBuffers = 1, .numSamplers = 1};
-        desc.VertexLayout = VertexLayouts::Empty;
-        desc.Cull = CullMode::None;
-        desc.DepthTest = false;
-        desc.DepthWrite = false;
-        desc.MaterialUBOSize = sizeof(ColourGradingUBO);
-        desc.VertexUBOSize = 0;
-        desc.NeedsSceneGlobals = false;
-        return {std::move(desc)};
+        static const auto programs = []
+        {
+            ShaderProgramDesc desc;
+            desc.Name = "colour_grading";
+            desc.VertexShaderName = "colour_grading";
+            desc.FragmentShaderName = "colour_grading";
+            desc.VertexResources = {};
+            desc.FragmentResources = {.numUniformBuffers = 1, .numSamplers = 1};
+            desc.VertexLayout = VertexLayouts::Empty;
+            desc.Cull = CullMode::None;
+            desc.DepthTest = false;
+            desc.DepthWrite = false;
+            desc.MaterialUBOSize = sizeof(ColourGradingUBO);
+            desc.VertexUBOSize = 0;
+            desc.NeedsSceneGlobals = false;
+            return std::vector{std::move(desc)};
+        }();
+
+        return programs;
     }
 
     void ColourGradingFeature::OnRegisterEffects(BlendableEffectRegistry& registry)

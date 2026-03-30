@@ -53,66 +53,66 @@ namespace Wayfinder
         void SealBlendableEffects();
 
         /**
-         * @brief Registers a render pass in the unified phase-ordered pipeline.
+         * @brief Registers a render feature in the unified phase-ordered pipeline.
          * @param phase Band used with `order` for stable ordering.
          * @param order Lower values run earlier within the same phase.
-         * @param pass Ownership of the pass instance; must not be null.
+         * @param feature Ownership of the feature instance; must not be null.
          */
-        void AddPass(RenderPhase phase, int32_t order, std::unique_ptr<RenderFeature> pass);
+        void AddFeature(RenderPhase phase, int32_t order, std::unique_ptr<RenderFeature> feature);
 
         /**
          * @brief Registers a render feature with default order within the phase.
          * @param phase Band used with `order` for stable ordering.
-         * @param pass Ownership of the pass instance; must not be null.
-         * @note Order is `0` (same as calling `AddPass(phase, 0, std::move(pass))`).
+         * @param feature Ownership of the feature instance; must not be null.
+         * @note Order is `0` (same as calling `AddFeature(phase, 0, std::move(feature))`).
          */
-        void AddPass(RenderPhase phase, std::unique_ptr<RenderFeature> pass);
+        void AddFeature(RenderPhase phase, std::unique_ptr<RenderFeature> feature);
 
         /**
-         * @brief Removes the first pass whose dynamic type is `T` from the pipeline.
-         * @tparam T Render pass type to match.
-         * @return True if a pass was removed; false if none matched.
+         * @brief Removes the first feature whose dynamic type is `T` from the pipeline.
+         * @tparam T Render feature type to match.
+         * @return True if a feature was removed; false if none matched.
          */
         template<typename T>
             requires std::derived_from<T, RenderFeature>
-        bool RemovePass()
+        bool RemoveFeature()
         {
             if (m_renderPipeline)
             {
-                return m_renderPipeline->RemovePass<T>();
+                return m_renderPipeline->RemoveFeature<T>();
             }
             return false;
         }
 
         /**
-         * @brief Returns the first pass whose dynamic type is `T`, if any.
-         * @tparam T Render pass type to match.
-         * @return Pointer to the pass, or nullptr when no matching pass is registered.
+         * @brief Returns the first feature whose dynamic type is `T`, if any.
+         * @tparam T Render feature type to match.
+         * @return Pointer to the feature, or nullptr when no matching feature is registered.
          */
         template<typename T>
             requires std::derived_from<T, RenderFeature>
-        const T* GetPass() const
+        const T* GetFeature() const
         {
             if (m_renderPipeline)
             {
                 const auto* rp = m_renderPipeline.get();
-                return rp->GetPass<T>();
+                return rp->GetFeature<T>();
             }
             return nullptr;
         }
 
         /**
-         * @brief Returns the first pass whose dynamic type is `T`, if any (non-const view).
-         * @tparam T Render pass type to match.
-         * @return Pointer to the pass, or nullptr when no matching pass is registered.
+         * @brief Returns the first feature whose dynamic type is `T`, if any (non-const view).
+         * @tparam T Render feature type to match.
+         * @return Pointer to the feature, or nullptr when no matching feature is registered.
          */
         template<typename T>
             requires std::derived_from<T, RenderFeature>
-        T* GetPass()
+        T* GetFeature()
         {
             if (m_renderPipeline)
             {
-                return m_renderPipeline->GetPass<T>();
+                return m_renderPipeline->GetFeature<T>();
             }
             return nullptr;
         }

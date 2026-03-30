@@ -7,6 +7,7 @@
 #include "rendering/graph/RenderFrameUtils.h"
 #include "rendering/graph/RenderGraph.h"
 #include "rendering/graph/SortKey.h"
+#include "rendering/pipeline/PrepareFrame.h"
 #include "rendering/pipeline/RenderOrchestrator.h"
 #include "rendering/pipeline/RenderServices.h"
 #include "rendering/pipeline/SceneRenderExtractor.h"
@@ -88,14 +89,8 @@ namespace Wayfinder::Tests
         Wayfinder::RenderFrame frame;
         frame.SceneName = "Empty";
 
-        // PrepareFrame mutates the cache; not logically const.
-        // NOLINTNEXTLINE(misc-const-correctness)
-        Wayfinder::RenderResourceCache resources;
-        auto device = Wayfinder::RenderDevice::Create(Wayfinder::RenderBackend::Null);
-        const Wayfinder::RenderOrchestrator pipeline;
-
-        // Should not crash â€” Prepare returns false for empty frames
-        pipeline.Prepare(frame, 1280, 720);
+        // Should not crash -- PrepareFrame returns false for empty frames
+        Wayfinder::Rendering::PrepareFrame(frame, 1280, 720);
     }
 
     TEST_CASE("SortKeyBuilder keeps transparent depth ordering ahead of blend grouping")
@@ -246,8 +241,7 @@ namespace Wayfinder::Tests
         CHECK((mainPass->Meshes[0].SortKey >> 62) == static_cast<uint64_t>(Wayfinder::SortLayer::Transparent));
         CHECK((mainPass->Meshes[1].SortKey >> 62) == static_cast<uint64_t>(Wayfinder::SortLayer::Transparent));
 
-        const Wayfinder::RenderOrchestrator pipeline;
-        REQUIRE(pipeline.Prepare(frame, 1280, 720));
+        REQUIRE(Wayfinder::Rendering::PrepareFrame(frame, 1280, 720));
 
         mainPass = frame.FindLayer(Wayfinder::FrameLayerIds::MainScene);
         REQUIRE(mainPass != nullptr);
@@ -317,7 +311,7 @@ namespace Wayfinder::Tests
         context.Shutdown();
     }
 
-    TEST_CASE("RenderOrchestrator orders RegisterPass by phase then order then registration sequence")
+    TEST_CASE("RenderOrchestrator orders RegisterFeature by phase then order then registration sequence")
     {
         auto device = Wayfinder::RenderDevice::Create(Wayfinder::RenderBackend::Null);
         REQUIRE(device);
@@ -333,10 +327,10 @@ namespace Wayfinder::Tests
         Wayfinder::RenderOrchestrator pipeline;
         pipeline.Initialise(context);
 
-        pipeline.RegisterPass(Wayfinder::RenderPhase::PostProcess, 100, std::make_unique<OrderPass>("p100", &order));
-        pipeline.RegisterPass(Wayfinder::RenderPhase::Opaque, 0, std::make_unique<OrderPass>("o0", &order));
-        pipeline.RegisterPass(Wayfinder::RenderPhase::Present, 0, std::make_unique<OrderPass>("pr0", &order));
-        pipeline.RegisterPass(Wayfinder::RenderPhase::PostProcess, 0, std::make_unique<OrderPass>("p0", &order));
+        pipeline.RegisterFeature(Wayfinder::RenderPhase::PostProcess, 100, std::make_unique<OrderPass>("p100", &order));
+        pipeline.RegisterFeature(Wayfinder::RenderPhase::Opaque, 0, std::make_unique<OrderPass>("o0", &order));
+        pipeline.RegisterFeature(Wayfinder::RenderPhase::Present, 0, std::make_unique<OrderPass>("pr0", &order));
+        pipeline.RegisterFeature(Wayfinder::RenderPhase::PostProcess, 0, std::make_unique<OrderPass>("p0", &order));
 
         Wayfinder::RenderFrame frame;
         Wayfinder::RenderView view;
@@ -350,7 +344,7 @@ namespace Wayfinder::Tests
         frame.AddSceneLayer(Wayfinder::FrameLayerIds::MainScene, 0, Wayfinder::RenderGroups::Main);
         frame.AddDebugLayer(Wayfinder::FrameLayerIds::Debug, 0);
 
-        REQUIRE(pipeline.Prepare(frame, 320, 240));
+        REQUIRE(Wayfinder::Rendering::PrepareFrame(frame, 320, 240));
 
         static const Wayfinder::BuiltInMeshTable K_EMPTY_MESHES{};
         const Wayfinder::FrameRenderParams params{
@@ -396,8 +390,8 @@ namespace Wayfinder::Tests
         Wayfinder::RenderOrchestrator pipeline;
         pipeline.Initialise(context);
 
-        pipeline.RegisterPass(Wayfinder::RenderPhase::PostProcess, 0, std::make_unique<OrderPass>("first", &order));
-        pipeline.RegisterPass(Wayfinder::RenderPhase::PostProcess, 0, std::make_unique<OrderPass>("second", &order));
+        pipeline.RegisterFeature(Wayfinder::RenderPhase::PostProcess, 0, std::make_unique<OrderPass>("first", &order));
+        pipeline.RegisterFeature(Wayfinder::RenderPhase::PostProcess, 0, std::make_unique<OrderPass>("second", &order));
 
         Wayfinder::RenderFrame frame;
         Wayfinder::RenderView view;
@@ -411,7 +405,7 @@ namespace Wayfinder::Tests
         frame.AddSceneLayer(Wayfinder::FrameLayerIds::MainScene, 0, Wayfinder::RenderGroups::Main);
         frame.AddDebugLayer(Wayfinder::FrameLayerIds::Debug, 0);
 
-        REQUIRE(pipeline.Prepare(frame, 320, 240));
+        REQUIRE(Wayfinder::Rendering::PrepareFrame(frame, 320, 240));
 
         static const Wayfinder::BuiltInMeshTable K_EMPTY_MESHES{};
         const Wayfinder::FrameRenderParams params{

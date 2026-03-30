@@ -50,92 +50,97 @@ namespace Wayfinder
         }
     } // namespace
 
-    std::vector<ShaderProgramDesc> SceneOpaquePass::GetShaderPrograms() const
+    std::span<const ShaderProgramDesc> SceneOpaquePass::GetShaderPrograms() const
     {
-        std::vector<ShaderProgramDesc> programs;
-        programs.reserve(4);
-
+        static const auto programs = []
         {
-            ShaderProgramDesc desc;
-            desc.Name = "unlit";
-            desc.VertexShaderName = "unlit";
-            desc.FragmentShaderName = "unlit";
-            desc.VertexResources = {.numUniformBuffers = 1};
-            desc.FragmentResources = {.numUniformBuffers = 1};
-            desc.VertexLayout = VertexLayouts::PosNormalColour;
-            desc.Cull = CullMode::Back;
-            desc.DepthTest = true;
-            desc.DepthWrite = true;
-            desc.MaterialParams =
-            {
-                {.Name = "base_colour", .Type = MaterialParamType::Colour, .Offset = 0, .Default = LinearColour::White()},
-            };
-            desc.VertexUBOSize = sizeof(UnlitTransformUBO);
-            desc.NeedsSceneGlobals = false;
-            programs.push_back(std::move(desc));
-        }
+            std::vector<ShaderProgramDesc> p;
+            p.reserve(4);
 
-        {
-            ShaderProgramDesc desc;
-            desc.Name = "unlit_blended";
-            desc.VertexShaderName = "unlit";
-            desc.FragmentShaderName = "unlit";
-            desc.VertexResources = {.numUniformBuffers = 1};
-            desc.FragmentResources = {.numUniformBuffers = 1};
-            desc.VertexLayout = VertexLayouts::PosNormalColour;
-            desc.Cull = CullMode::Back;
-            desc.DepthTest = true;
-            desc.DepthWrite = false;
-            desc.Blend = BlendPresets::AlphaBlend();
-            desc.MaterialParams =
             {
-                {.Name = "base_colour", .Type = MaterialParamType::Colour, .Offset = 0, .Default = LinearColour::White()},
-            };
-            desc.VertexUBOSize = sizeof(UnlitTransformUBO);
-            desc.NeedsSceneGlobals = false;
-            programs.push_back(std::move(desc));
-        }
+                ShaderProgramDesc desc;
+                desc.Name = "unlit";
+                desc.VertexShaderName = "unlit";
+                desc.FragmentShaderName = "unlit";
+                desc.VertexResources = {.numUniformBuffers = 1};
+                desc.FragmentResources = {.numUniformBuffers = 1};
+                desc.VertexLayout = VertexLayouts::PosNormalColour;
+                desc.Cull = CullMode::Back;
+                desc.DepthTest = true;
+                desc.DepthWrite = true;
+                desc.MaterialParams =
+                {
+                    {.Name = "base_colour", .Type = MaterialParamType::Colour, .Offset = 0, .Default = LinearColour::White()},
+                };
+                desc.VertexUBOSize = sizeof(UnlitTransformUBO);
+                desc.NeedsSceneGlobals = false;
+                p.push_back(std::move(desc));
+            }
 
-        {
-            ShaderProgramDesc desc;
-            desc.Name = "basic_lit";
-            desc.VertexShaderName = "basic_lit";
-            desc.FragmentShaderName = "basic_lit";
-            desc.VertexResources = {.numUniformBuffers = 1};
-            desc.FragmentResources = {.numUniformBuffers = 2};
-            desc.VertexLayout = VertexLayouts::PosNormalColour;
-            desc.Cull = CullMode::Back;
-            desc.DepthTest = true;
-            desc.DepthWrite = true;
-            desc.MaterialParams =
             {
-                {.Name = "base_colour", .Type = MaterialParamType::Colour, .Offset = 0, .Default = LinearColour::White()},
-            };
-            desc.VertexUBOSize = sizeof(TransformUBO);
-            desc.NeedsSceneGlobals = true;
-            programs.push_back(std::move(desc));
-        }
+                ShaderProgramDesc desc;
+                desc.Name = "unlit_blended";
+                desc.VertexShaderName = "unlit";
+                desc.FragmentShaderName = "unlit";
+                desc.VertexResources = {.numUniformBuffers = 1};
+                desc.FragmentResources = {.numUniformBuffers = 1};
+                desc.VertexLayout = VertexLayouts::PosNormalColour;
+                desc.Cull = CullMode::Back;
+                desc.DepthTest = true;
+                desc.DepthWrite = false;
+                desc.Blend = BlendPresets::AlphaBlend();
+                desc.MaterialParams =
+                {
+                    {.Name = "base_colour", .Type = MaterialParamType::Colour, .Offset = 0, .Default = LinearColour::White()},
+                };
+                desc.VertexUBOSize = sizeof(UnlitTransformUBO);
+                desc.NeedsSceneGlobals = false;
+                p.push_back(std::move(desc));
+            }
 
-        {
-            ShaderProgramDesc desc;
-            desc.Name = "textured_lit";
-            desc.VertexShaderName = "textured_lit";
-            desc.FragmentShaderName = "textured_lit";
-            desc.VertexResources = {.numUniformBuffers = 1};
-            desc.FragmentResources = {.numUniformBuffers = 2, .numSamplers = 1};
-            desc.VertexLayout = VertexLayouts::PosNormalUVTangent;
-            desc.Cull = CullMode::Back;
-            desc.DepthTest = true;
-            desc.DepthWrite = true;
-            desc.MaterialParams =
             {
-                {.Name = "base_colour", .Type = MaterialParamType::Colour, .Offset = 0, .Default = LinearColour::White()},
-            };
-            desc.VertexUBOSize = sizeof(TransformUBO);
-            desc.NeedsSceneGlobals = true;
-            desc.TextureSlots = {{.Name = "diffuse", .BindingSlot = 0}};
-            programs.push_back(std::move(desc));
-        }
+                ShaderProgramDesc desc;
+                desc.Name = "basic_lit";
+                desc.VertexShaderName = "basic_lit";
+                desc.FragmentShaderName = "basic_lit";
+                desc.VertexResources = {.numUniformBuffers = 1};
+                desc.FragmentResources = {.numUniformBuffers = 2};
+                desc.VertexLayout = VertexLayouts::PosNormalColour;
+                desc.Cull = CullMode::Back;
+                desc.DepthTest = true;
+                desc.DepthWrite = true;
+                desc.MaterialParams =
+                {
+                    {.Name = "base_colour", .Type = MaterialParamType::Colour, .Offset = 0, .Default = LinearColour::White()},
+                };
+                desc.VertexUBOSize = sizeof(TransformUBO);
+                desc.NeedsSceneGlobals = true;
+                p.push_back(std::move(desc));
+            }
+
+            {
+                ShaderProgramDesc desc;
+                desc.Name = "textured_lit";
+                desc.VertexShaderName = "textured_lit";
+                desc.FragmentShaderName = "textured_lit";
+                desc.VertexResources = {.numUniformBuffers = 1};
+                desc.FragmentResources = {.numUniformBuffers = 2, .numSamplers = 1};
+                desc.VertexLayout = VertexLayouts::PosNormalUVTangent;
+                desc.Cull = CullMode::Back;
+                desc.DepthTest = true;
+                desc.DepthWrite = true;
+                desc.MaterialParams =
+                {
+                    {.Name = "base_colour", .Type = MaterialParamType::Colour, .Offset = 0, .Default = LinearColour::White()},
+                };
+                desc.VertexUBOSize = sizeof(TransformUBO);
+                desc.NeedsSceneGlobals = true;
+                desc.TextureSlots = {{.Name = "diffuse", .BindingSlot = 0}};
+                p.push_back(std::move(desc));
+            }
+
+            return p;
+        }();
 
         return programs;
     }

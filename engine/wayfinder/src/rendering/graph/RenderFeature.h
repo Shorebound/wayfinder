@@ -4,8 +4,8 @@
 #include "rendering/materials/ShaderProgram.h"
 #include "rendering/pipeline/FrameRenderParams.h"
 
+#include <span>
 #include <string_view>
-#include <vector>
 
 namespace Wayfinder
 {
@@ -26,7 +26,7 @@ namespace Wayfinder
      * A `RenderFeature` injects one or more passes into the per-frame render graph.
      *
      * Usage:
-     *   renderer.AddPass(RenderPhase::PostProcess, 0, std::make_unique<MyFeature>());
+     *   renderer.AddFeature(RenderPhase::PostProcess, 0, std::make_unique<MyFeature>());
      *
      * Registration order follows `RenderPhase` and `order` on the pipeline; GPU execution order is
      * still determined by resource dependencies in the graph where they apply.
@@ -67,7 +67,7 @@ namespace Wayfinder
          * Called by the orchestrator at init and after each shader reload. Pure data - no side effects.
          * The orchestrator registers the returned descriptors with the ShaderProgramRegistry.
          */
-        virtual std::vector<ShaderProgramDesc> GetShaderPrograms() const
+        virtual std::span<const ShaderProgramDesc> GetShaderPrograms() const
         {
             return {};
         }

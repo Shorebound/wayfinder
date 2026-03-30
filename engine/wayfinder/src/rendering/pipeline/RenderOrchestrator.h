@@ -20,7 +20,7 @@ namespace Wayfinder
     class RenderResourceCache;
 
     /**
-     * @brief Fixed ordering bands for render pass registration.
+     * @brief Fixed ordering bands for render feature registration.
      *
      * Plugins register into a phase with an `order` value for stable ordering within the band.
      * Phases are executed in ascending numeric order.
@@ -41,29 +41,19 @@ namespace Wayfinder
     class WAYFINDER_API RenderOrchestrator
     {
     public:
-        /** @brief Registers built-in shader programs and default passes; stores context for BuildGraph. */
+        /** @brief Registers built-in shader programs and default features; stores context for BuildGraph. */
         void Initialise(RenderServices& services);
         void Shutdown();
 
         /**
-         * @brief Registers a pass into the phase-ordered pipeline.
+         * @brief Registers a feature into the phase-ordered pipeline.
          *
-         * If called before Initialise, the pass is deferred and flushed on Initialise.
+         * If called before Initialise, the feature is deferred and flushed on Initialise.
          * @param phase Band used with @p order for stable ordering.
          * @param order Lower values run earlier within the same phase.
-         * @param pass Ownership of the pass instance; must not be null.
+         * @param feature Ownership of the feature instance; must not be null.
          */
-        void RegisterPass(RenderPhase phase, int32_t order, std::unique_ptr<RenderFeature> pass);
-
-        /**
-         * @brief Validates views/layers, pre-computes view matrices and frustums,
-         *        frustum-culls submissions, then sorts by sort key.
-         * @param frame The render frame to prepare (modified in place).
-         * @param swapchainWidth Current swapchain width in pixels.
-         * @param swapchainHeight Current swapchain height in pixels.
-         * @return False if the frame is invalid and should be skipped.
-         */
-        bool Prepare(RenderFrame& frame, uint32_t swapchainWidth, uint32_t swapchainHeight) const;
+        void RegisterFeature(RenderPhase phase, int32_t order, std::unique_ptr<RenderFeature> feature);
 
         /**
          * @brief Re-registers all shader programs after a shader reload.
@@ -81,28 +71,28 @@ namespace Wayfinder
         void BuildGraph(RenderGraph& graph, const FrameRenderParams& params) const;
 
         /**
-         * @brief Returns the first pass whose dynamic type is @p T, if any.
-         * @tparam T Render pass type to match.
-         * @return Pointer to the pass, or nullptr when no matching pass is registered.
+         * @brief Returns the first feature whose dynamic type is @p T, if any.
+         * @tparam T Render feature type to match.
+         * @return Pointer to the feature, or nullptr when no matching feature is registered.
          */
         template<typename T>
-        const T* GetPass() const
+        const T* GetFeature() const
         {
-            for (const auto& slot : m_passes)
+            for (const auto& slot : m_features)
             {
-                if (slot.Pass)
+                if (slot.Feature)
                 {
-                    if (auto* ptr = dynamic_cast<const T*>(slot.Pass.get()))
+                    if (auto* ptr = dynamic_cast<const T*>(slot.Feature.get()))
                     {
                         return ptr;
                     }
                 }
             }
-            for (const auto& slot : m_pendingPasses)
+            for (const auto& slot : m_pendingFeatures)
             {
-                if (slot.Pass)
+                if (slot.Feature)
                 {
-                    if (auto* ptr = dynamic_cast<const T*>(slot.Pass.get()))
+                    if (auto* ptr = dynamic_cast<const T*>(slot.Feature.get()))
                     {
                         return ptr;
                     }
@@ -112,28 +102,28 @@ namespace Wayfinder
         }
 
         /**
-         * @brief Returns the first pass whose dynamic type is @p T, if any (non-const).
-         * @tparam T Render pass type to match.
-         * @return Pointer to the pass, or nullptr when no matching pass is registered.
+         * @brief Returns the first feature whose dynamic type is @p T, if any (non-const).
+         * @tparam T Render feature type to match.
+         * @return Pointer to the feature, or nullptr when no matching feature is registered.
          */
         template<typename T>
-        T* GetPass()
+        T* GetFeature()
         {
-            for (auto& slot : m_passes)
+            for (auto& slot : m_features)
             {
-                if (slot.Pass)
+                if (slot.Feature)
                 {
-                    if (auto* ptr = dynamic_cast<T*>(slot.Pass.get()))
+                    if (auto* ptr = dynamic_cast<T*>(slot.Feature.get()))
                     {
                         return ptr;
                     }
                 }
             }
-            for (auto& slot : m_pendingPasses)
+            for (auto& slot : m_pendingFeatures)
             {
-                if (slot.Pass)
+                if (slot.Feature)
                 {
-                    if (auto* ptr = dynamic_cast<T*>(slot.Pass.get()))
+                    if (auto* ptr = dynamic_cast<T*>(slot.Feature.get()))
                     {
                         return ptr;
                     }
@@ -143,19 +133,19 @@ namespace Wayfinder
         }
 
         /**
-         * @brief Removes the first pass whose dynamic type is @p T from the pipeline.
-         * @tparam T Render pass type to match.
-         * @return True if a pass was removed; false if none matched.
+         * @brief Removes the first feature whose dynamic type is @p T from the pipeline.
+         * @tparam T Render feature type to match.
+         * @return True if a feature was removed; false if none matched.
          */
         template<typename T>
-        bool RemovePass()
+        bool RemoveFeature()
         {
-            // Search pending passes first (no OnDetach — not yet attached).
-            for (auto it = m_pendingPasses.begin(); it != m_pendingPasses.end(); ++it)
+            // Search pending features first (no OnDetach -- not yet attached).
+            for (auto it = m_pendingFeatures.begin(); it != m_pendingFeatures.end(); ++it)
             {
-                if (it->Pass && dynamic_cast<T*>(it->Pass.get()) != nullptr)
+                if (it->Feature && dynamic_cast<T*>(it->Feature.get()) != nullptr)
                 {
-                    m_pendingPasses.erase(it);
+                    m_pendingFeatures.erase(it);
                     return true;
                 }
             }
@@ -165,12 +155,12 @@ namespace Wayfinder
                 return false;
             }
             const RenderFeatureContext ctx{*m_context};
-            for (auto it = m_passes.begin(); it != m_passes.end(); ++it)
+            for (auto it = m_features.begin(); it != m_features.end(); ++it)
             {
-                if (it->Pass && dynamic_cast<T*>(it->Pass.get()) != nullptr)
+                if (it->Feature && dynamic_cast<T*>(it->Feature.get()) != nullptr)
                 {
-                    it->Pass->OnDetach(ctx);
-                    m_passes.erase(it);
+                    it->Feature->OnDetach(ctx);
+                    m_features.erase(it);
                     return true;
                 }
             }
@@ -178,20 +168,20 @@ namespace Wayfinder
         }
 
     private:
-        struct PassSlot
+        struct FeatureSlot
         {
             RenderPhase Phase = RenderPhase::Opaque;
             int32_t Order = 0;
             uint32_t InsertSequence = 0;
-            std::unique_ptr<RenderFeature> Pass;
+            std::unique_ptr<RenderFeature> Feature;
         };
 
-        static void SortPassList(std::vector<PassSlot>& slots);
+        static void SortFeatureList(std::vector<FeatureSlot>& slots);
 
         RenderServices* m_context = nullptr;
-        std::vector<PassSlot> m_passes;
-        std::vector<PassSlot> m_pendingPasses;
-        uint32_t m_nextPassInsertSequence = 0;
+        std::vector<FeatureSlot> m_features;
+        std::vector<FeatureSlot> m_pendingFeatures;
+        uint32_t m_nextInsertSequence = 0;
         bool m_initialised = false;
     };
 } // namespace Wayfinder

@@ -29,22 +29,27 @@ namespace Wayfinder
         return RenderCapabilities::RASTER;
     }
 
-    std::vector<ShaderProgramDesc> ChromaticAberrationFeature::GetShaderPrograms() const
+    std::span<const ShaderProgramDesc> ChromaticAberrationFeature::GetShaderPrograms() const
     {
-        ShaderProgramDesc desc;
-        desc.Name = "chromatic_aberration";
-        desc.VertexShaderName = "chromatic_aberration";
-        desc.FragmentShaderName = "chromatic_aberration";
-        desc.VertexResources = {};
-        desc.FragmentResources = {.numUniformBuffers = 1, .numSamplers = 1};
-        desc.VertexLayout = VertexLayouts::Empty;
-        desc.Cull = CullMode::None;
-        desc.DepthTest = false;
-        desc.DepthWrite = false;
-        desc.MaterialUBOSize = sizeof(ChromaticAberrationUBO);
-        desc.VertexUBOSize = 0;
-        desc.NeedsSceneGlobals = false;
-        return {std::move(desc)};
+        static const auto programs = []
+        {
+            ShaderProgramDesc desc;
+            desc.Name = "chromatic_aberration";
+            desc.VertexShaderName = "chromatic_aberration";
+            desc.FragmentShaderName = "chromatic_aberration";
+            desc.VertexResources = {};
+            desc.FragmentResources = {.numUniformBuffers = 1, .numSamplers = 1};
+            desc.VertexLayout = VertexLayouts::Empty;
+            desc.Cull = CullMode::None;
+            desc.DepthTest = false;
+            desc.DepthWrite = false;
+            desc.MaterialUBOSize = sizeof(ChromaticAberrationUBO);
+            desc.VertexUBOSize = 0;
+            desc.NeedsSceneGlobals = false;
+            return std::vector{std::move(desc)};
+        }();
+
+        return programs;
     }
 
     void ChromaticAberrationFeature::OnRegisterEffects(BlendableEffectRegistry& registry)

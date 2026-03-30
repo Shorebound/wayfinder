@@ -3,6 +3,7 @@
 #include "rendering/graph/RenderFrame.h"
 #include "rendering/graph/RenderFrameUtils.h"
 #include "rendering/passes/SubmissionDrawing.h"
+#include "rendering/pipeline/PrepareFrame.h"
 #include "rendering/pipeline/RenderOrchestrator.h"
 #include "rendering/pipeline/RenderServices.h"
 
@@ -36,7 +37,7 @@ namespace Wayfinder::Tests
         frame.AddView(view);
         frame.AddSceneLayer(Wayfinder::FrameLayerIds::MainScene, 0, Wayfinder::RenderGroups::Main);
 
-        REQUIRE(pipeline.Prepare(frame, 320, 240));
+        REQUIRE(Wayfinder::Rendering::PrepareFrame(frame, 320, 240));
 
         static const Wayfinder::BuiltInMeshTable K_EMPTY_MESHES{};
         const Wayfinder::FrameRenderParams params{

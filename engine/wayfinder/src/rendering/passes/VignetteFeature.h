@@ -26,7 +26,7 @@ namespace Wayfinder::Rendering
 
         RenderCapabilityMask GetCapabilities() const override;
 
-        std::vector<ShaderProgramDesc> GetShaderPrograms() const override;
+        std::span<const ShaderProgramDesc> GetShaderPrograms() const override;
         void OnRegisterEffects(BlendableEffectRegistry& registry) override;
         void OnAttach(const RenderFeatureContext& context) override;
         void OnDetach(const RenderFeatureContext& context) override;
