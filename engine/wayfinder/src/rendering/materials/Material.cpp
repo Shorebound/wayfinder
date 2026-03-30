@@ -1,6 +1,7 @@
 #include "Material.h"
 #include "core/Types.h"
 
+#include <cmath>
 #include <format>
 #include <fstream>
 
@@ -290,8 +291,8 @@ namespace Wayfinder
         table["material_id"] = material.Id.ToString();
 
         const LinearColour baseColour = material.GetBaseColour();
-        table["base_colour"] = nlohmann::json::array(
-            {static_cast<int64_t>(baseColour.Data.r * 255.0f), static_cast<int64_t>(baseColour.Data.g * 255.0f), static_cast<int64_t>(baseColour.Data.b * 255.0f), static_cast<int64_t>(baseColour.Data.a * 255.0f)});
+        table["base_colour"] = nlohmann::json::array({static_cast<int64_t>(std::lround(baseColour.Data.r * 255.0f)), static_cast<int64_t>(std::lround(baseColour.Data.g * 255.0f)),
+            static_cast<int64_t>(std::lround(baseColour.Data.b * 255.0f)), static_cast<int64_t>(std::lround(baseColour.Data.a * 255.0f))});
         // NOLINTEND(cppcoreguidelines-pro-bounds-avoid-unchecked-container-access)
 
         return table;

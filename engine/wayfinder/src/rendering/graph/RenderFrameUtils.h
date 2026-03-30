@@ -38,7 +38,7 @@ namespace Wayfinder::Rendering
      * @brief Resolves view/projection matrices for a layer's view index.
      *
      * Uses the primary view as the base and overrides with the per-view matrices when
-     * the indexed view is prepared. Returns `Ok = false` when no valid camera exists.
+     * the indexed view is prepared. Returns with `IsValid == false` when no valid camera exists.
      */
     [[nodiscard]] ResolvedViewForLayer ResolveViewForLayer(const FrameRenderParams& params, size_t viewIndex);
 

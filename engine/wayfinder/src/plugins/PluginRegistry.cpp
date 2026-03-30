@@ -65,7 +65,7 @@ namespace Wayfinder::Plugins
         const std::string name = descriptor.Name;
         if (auto result = m_states.Register(std::move(descriptor)); !result)
         {
-            Log::Error(LogEngine, "PluginRegistry: state registration failed - {}", result.error().GetMessage());
+            Log::Error(LogEngine, "PluginRegistry: state '{}' registration failed - {}", name, result.error().GetMessage());
         }
     }
 

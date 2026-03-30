@@ -15,9 +15,18 @@ namespace Wayfinder
 
         if (m_sealed)
         {
-            // Already sealed - return existing ID if this type was previously registered.
+            // Already sealed - return existing ID only if the type matches the original registration.
             auto existing = FindIdByName(name);
-            return existing.value_or(INVALID_BLENDABLE_EFFECT_ID);
+            if (!existing.has_value())
+            {
+                return INVALID_BLENDABLE_EFFECT_ID;
+            }
+            const auto* desc = Find(*existing);
+            if (!desc || desc->Size != sizeof(T) || desc->Align != alignof(T))
+            {
+                return INVALID_BLENDABLE_EFFECT_ID;
+            }
+            return *existing;
         }
 
         BlendableEffectDesc desc{};

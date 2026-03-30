@@ -1,6 +1,7 @@
 #include "PrepareFrame.h"
 
 #include "rendering/graph/RenderFrame.h"
+#include "scene/Components.h"
 
 #include "core/Log.h"
 #include "maths/Frustum.h"
@@ -35,7 +36,7 @@ namespace Wayfinder::Rendering
             const auto& cam = view.CameraState;
             view.ViewMatrix = Maths::LookAt(cam.Position, cam.Target, cam.Up);
 
-            if (cam.ProjectionType == 0)
+            if (cam.ProjectionType == static_cast<int>(ProjectionMode::Perspective))
             {
                 view.ProjectionMatrix = Maths::PerspectiveRH_ZO(Maths::ToRadians(cam.FOV), aspect, cam.NearPlane, cam.FarPlane);
             }

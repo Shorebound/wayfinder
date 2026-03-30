@@ -38,7 +38,7 @@ namespace Wayfinder::Rendering
             return r;
         }
 
-        r.IsValid = primary.Valid;
+        r.IsValid = false;
         return r;
     }
 
