@@ -62,7 +62,7 @@ namespace Wayfinder
 
     std::span<const ShaderProgramDesc> DebugPass::GetShaderPrograms() const
     {
-        static const auto programs = []
+        static const auto PROGRAMS = []
         {
             std::vector<ShaderProgramDesc> p;
             p.reserve(2);
@@ -100,7 +100,7 @@ namespace Wayfinder
             return p;
         }();
 
-        return programs;
+        return PROGRAMS;
     }
 
     void DebugPass::OnAttach(const RenderFeatureContext& context)
@@ -138,6 +138,7 @@ namespace Wayfinder
                 continue;
             }
 
+            const auto& debugDraw = *layer.DebugDraw;
             const size_t viewIdx = layer.ViewIndex;
 
             // Find or create view slot.
@@ -161,12 +162,12 @@ namespace Wayfinder
             }
 
             // Accumulate line vertices into this view's scratch buffer.
-            if (layer.DebugDraw->ShowWorldGrid)
+            if (debugDraw.ShowWorldGrid)
             {
-                AppendWorldGridLineVertices(viewData->ScratchLines, {.Slices = layer.DebugDraw->WorldGridSlices, .Spacing = layer.DebugDraw->WorldGridSpacing});
+                AppendWorldGridLineVertices(viewData->ScratchLines, {.Slices = debugDraw.WorldGridSlices, .Spacing = debugDraw.WorldGridSpacing});
             }
 
-            for (const auto& line : layer.DebugDraw->Lines)
+            for (const auto& line : debugDraw.Lines)
             {
                 const Float3 lineColour = LinearColour::FromColour(line.Tint).ToFloat3();
                 viewData->ScratchLines.push_back({.Position = line.Start, .Colour = lineColour});
@@ -174,10 +175,9 @@ namespace Wayfinder
             }
 
             // Accumulate boxes into per-view scratch (flattened later).
-            if (!layer.DebugDraw->Boxes.empty())
+            if (!debugDraw.Boxes.empty())
             {
-                // NOLINTNEXTLINE(bugprone-unchecked-optional-access) -- guarded by DebugDraw check above
-                viewData->ScratchBoxes.insert(viewData->ScratchBoxes.end(), layer.DebugDraw->Boxes.begin(), layer.DebugDraw->Boxes.end());
+                viewData->ScratchBoxes.insert(viewData->ScratchBoxes.end(), debugDraw.Boxes.begin(), debugDraw.Boxes.end());
             }
         }
 

@@ -23,9 +23,8 @@ namespace Wayfinder
             case MaterialParamType::Vec3:
                 return sizeof(Float3);
             case MaterialParamType::Vec4:
+            case MaterialParamType::Colour: // LinearColour = float4
                 return sizeof(Float4);
-            case MaterialParamType::Colour:
-                return sizeof(Float4); // LinearColour = float4
             case MaterialParamType::Int:
                 return sizeof(int32_t);
             }

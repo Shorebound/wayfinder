@@ -31,7 +31,7 @@ namespace Wayfinder
 
     std::span<const ShaderProgramDesc> ChromaticAberrationFeature::GetShaderPrograms() const
     {
-        static const auto programs = []
+        static const auto PROGRAMS = []
         {
             ShaderProgramDesc desc;
             desc.Name = "chromatic_aberration";
@@ -49,7 +49,7 @@ namespace Wayfinder
             return std::vector{std::move(desc)};
         }();
 
-        return programs;
+        return PROGRAMS;
     }
 
     void ChromaticAberrationFeature::OnRegisterEffects(BlendableEffectRegistry& registry)

@@ -34,7 +34,7 @@ namespace Wayfinder::Rendering
 
     std::span<const ShaderProgramDesc> VignetteFeature::GetShaderPrograms() const
     {
-        static const auto programs = []
+        static const auto PROGRAMS = []
         {
             ShaderProgramDesc desc;
             desc.Name = "vignette";
@@ -52,7 +52,7 @@ namespace Wayfinder::Rendering
             return std::vector{std::move(desc)};
         }();
 
-        return programs;
+        return PROGRAMS;
     }
 
     void VignetteFeature::OnRegisterEffects(BlendableEffectRegistry& registry)

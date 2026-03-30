@@ -13,7 +13,7 @@ namespace Wayfinder
 {
     std::span<const ShaderProgramDesc> CompositionPass::GetShaderPrograms() const
     {
-        static const auto programs = []
+        static const auto PROGRAMS = []
         {
             ShaderProgramDesc desc;
             desc.Name = "composition_blit";
@@ -31,7 +31,7 @@ namespace Wayfinder
             return std::vector{std::move(desc)};
         }();
 
-        return programs;
+        return PROGRAMS;
     }
 
     void CompositionPass::OnAttach(const RenderFeatureContext& context)

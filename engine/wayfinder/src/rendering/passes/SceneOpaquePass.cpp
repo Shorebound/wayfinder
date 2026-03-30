@@ -52,7 +52,7 @@ namespace Wayfinder
 
     std::span<const ShaderProgramDesc> SceneOpaquePass::GetShaderPrograms() const
     {
-        static const auto programs = []
+        static const auto PROGRAMS = []
         {
             std::vector<ShaderProgramDesc> p;
             p.reserve(4);
@@ -142,7 +142,7 @@ namespace Wayfinder
             return p;
         }();
 
-        return programs;
+        return PROGRAMS;
     }
 
     void SceneOpaquePass::OnAttach(const RenderFeatureContext& context)
