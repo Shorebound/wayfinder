@@ -4,6 +4,7 @@
 #include "rendering/graph/RenderFeature.h"
 #include "rendering/graph/RenderFrame.h"
 
+#include <concepts>
 #include <cstdint>
 #include <memory>
 #include <span>
@@ -76,6 +77,7 @@ namespace Wayfinder
          * @return Pointer to the feature, or nullptr when no matching feature is registered.
          */
         template<typename T>
+            requires std::derived_from<T, RenderFeature>
         const T* GetFeature() const
         {
             for (const auto& slot : m_features)
@@ -107,6 +109,7 @@ namespace Wayfinder
          * @return Pointer to the feature, or nullptr when no matching feature is registered.
          */
         template<typename T>
+            requires std::derived_from<T, RenderFeature>
         T* GetFeature()
         {
             for (auto& slot : m_features)
@@ -138,6 +141,7 @@ namespace Wayfinder
          * @return True if a feature was removed; false if none matched.
          */
         template<typename T>
+            requires std::derived_from<T, RenderFeature>
         bool RemoveFeature()
         {
             // Search pending features first (no OnDetach -- not yet attached).

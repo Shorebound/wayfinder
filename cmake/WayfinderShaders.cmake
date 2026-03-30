@@ -23,14 +23,16 @@ function(wayfinder_compile_shaders)
 
     # Clean the staging dir at configure time so stale .spv files from
     # removed/renamed shaders don't persist across rebuilds.
-    set(STAGING_DIR "${CMAKE_CURRENT_BINARY_DIR}/compiled_shaders")
+    # Per-target directories prevent cross-target interference when multiple
+    # targets call wayfinder_compile_shaders() from the same CMakeLists.txt.
+    set(STAGING_DIR "${CMAKE_CURRENT_BINARY_DIR}/compiled_shaders-${ARG_TARGET}")
     file(REMOVE_RECURSE "${STAGING_DIR}")
     file(MAKE_DIRECTORY "${STAGING_DIR}")
 
     # ── Module precompilation ──────────────────────────────────────
     # Compile .slang modules to .slang-module IR binaries so program
     # compilation skips re-parsing module source on every invocation.
-    set(MODULE_CACHE_DIR "${CMAKE_CURRENT_BINARY_DIR}/precompiled_modules")
+    set(MODULE_CACHE_DIR "${CMAKE_CURRENT_BINARY_DIR}/precompiled_modules-${ARG_TARGET}")
     file(REMOVE_RECURSE "${MODULE_CACHE_DIR}")
     file(MAKE_DIRECTORY "${MODULE_CACHE_DIR}/modules")
 

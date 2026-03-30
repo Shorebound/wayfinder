@@ -108,13 +108,23 @@ namespace Wayfinder
         // NOLINTNEXTLINE(bugprone-easily-swappable-parameters) — primary name vs fallback shader name
         const ShaderProgram* FindOrDefault(std::string_view name, std::string_view fallback = "unlit") const;
 
-        /// Clears all registered programs. Used by ReloadShaders so programs can be re-registered
-        /// with freshly compiled shaders.
+        /**
+         * @brief Clears all registered programs.
+         *
+         * Used by ReloadShaders so programs can be re-registered with freshly compiled shaders.
+         */
         void InvalidateAll();
 
-        /// Returns a pipeline variant for the named program with a different primitive topology.
-        /// Caches the result so repeated calls with the same (name, topology) are free.
-        /// Returns an invalid handle if the program is not found or pipeline creation fails.
+        /**
+         * @brief Returns a pipeline variant for the named program with a different primitive topology.
+         *
+         * Caches the result so repeated calls with the same (name, topology) are free.
+         *
+         * @param name     Name of the registered shader program.
+         * @param topology Primitive topology for the variant pipeline.
+         * @return A valid GPUPipelineHandle on success, or an invalid handle if the program
+         *         is not found or pipeline creation fails.
+         */
         GPUPipelineHandle GetVariantPipeline(std::string_view name, PrimitiveType topology);
 
     private:

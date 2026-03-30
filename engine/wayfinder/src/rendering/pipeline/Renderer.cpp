@@ -44,6 +44,11 @@ namespace Wayfinder
 
     Result<void> Renderer::Initialise(RenderDevice& device, const EngineConfig& config, BlendableEffectRegistry* registry)
     {
+        if (m_isInitialised)
+        {
+            Shutdown();
+        }
+
         m_device = &device;
         m_screenWidth = static_cast<int>(config.Window.Width);
         m_screenHeight = static_cast<int>(config.Window.Height);

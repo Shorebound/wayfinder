@@ -6,10 +6,7 @@
 namespace Wayfinder
 {
     class RenderServices;
-}
 
-namespace Wayfinder::Rendering
-{
     /**
      * @brief Post-process vignette (edge darkening).
      *
@@ -37,4 +34,4 @@ namespace Wayfinder::Rendering
         BlendableEffectId m_effectId = INVALID_BLENDABLE_EFFECT_ID;
     };
 
-} // namespace Wayfinder::Rendering
+} // namespace Wayfinder

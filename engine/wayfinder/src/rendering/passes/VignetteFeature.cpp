@@ -14,7 +14,7 @@
 
 #include <array>
 
-namespace Wayfinder::Rendering
+namespace Wayfinder
 {
     namespace
     {
@@ -137,4 +137,4 @@ namespace Wayfinder::Rendering
         });
     }
 
-} // namespace Wayfinder::Rendering
+} // namespace Wayfinder

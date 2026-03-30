@@ -145,7 +145,7 @@ namespace Wayfinder
         const BuiltInMeshTable& GetBuiltInMeshes() const
         {
             assert(m_device && "RenderServices::GetBuiltInMeshes called before Initialise");
-            return m_builtInMeshPtrs;
+            return m_builtInMeshTable;
         }
 
         /// Seals the active BlendableEffectRegistry, preventing further registrations.
@@ -168,7 +168,7 @@ namespace Wayfinder
 
         Mesh m_primitiveMesh;
         Mesh m_texturedPrimitiveMesh;
-        BuiltInMeshTable m_builtInMeshPtrs{};
+        BuiltInMeshTable m_builtInMeshTable{};
 
         /// Set when ReloadShaders is called without an orchestrator.
         /// The next call with a valid orchestrator will complete the rebuild.

@@ -102,6 +102,49 @@ namespace Wayfinder
         return category.Get();
     }
 
+    namespace LogV2
+    {
+        template<typename TCategory, typename... TArgs>
+        inline void WayfinderLog(TCategory&& category, LogVerbosity verbosity, TArgs&&... args)
+        {
+            auto& resolved = ResolveLogCategory(std::forward<TCategory>(category));
+            if (verbosity <= resolved.GetVerbosity())
+            {
+                resolved.GetLogger()->LogFormat(verbosity, std::forward<TArgs>(args)...);
+            }
+        }
+
+        template<typename TCategory, typename... TArgs>
+        inline void Verbose(TCategory&& cat, TArgs&&... args)
+        {
+            WayfinderLog(std::forward<TCategory>(cat), LogVerbosity::Verbose, std::forward<TArgs>(args)...);
+        }
+
+        template<typename TCategory, typename... TArgs>
+        inline void Info(TCategory&& cat, TArgs&&... args)
+        {
+            WayfinderLog(std::forward<TCategory>(cat), LogVerbosity::Info, std::forward<TArgs>(args)...);
+        }
+
+        template<typename TCategory, typename... TArgs>
+        inline void Warn(TCategory&& cat, TArgs&&... args)
+        {
+            WayfinderLog(std::forward<TCategory>(cat), LogVerbosity::Warning, std::forward<TArgs>(args)...);
+        }
+
+        template<typename TCategory, typename... TArgs>
+        inline void Error(TCategory&& cat, TArgs&&... args)
+        {
+            WayfinderLog(std::forward<TCategory>(cat), LogVerbosity::Error, std::forward<TArgs>(args)...);
+        }
+
+        template<typename TCategory, typename... TArgs>
+        inline void Fatal(TCategory&& cat, TArgs&&... args)
+        {
+            WayfinderLog(std::forward<TCategory>(cat), LogVerbosity::Fatal, std::forward<TArgs>(args)...);
+        }
+    }
+
 } // namespace Wayfinder
 
 // Logging macros

@@ -62,7 +62,7 @@ namespace Wayfinder::Tests
         RenderServices services;
         REQUIRE(services.Initialise(*device, MakeTestConfig(), &registry));
 
-        Wayfinder::Rendering::VignetteFeature feature;
+        Wayfinder::VignetteFeature feature;
         feature.OnRegisterEffects(registry);
         const RenderFeatureContext ctx{services};
         feature.OnAttach(ctx);
@@ -178,7 +178,7 @@ namespace Wayfinder::Tests
 
         SUBCASE("VignetteFeature declares fullscreen pass with sampler input")
         {
-            Rendering::VignetteFeature feature;
+            VignetteFeature feature;
             const auto programs = feature.GetShaderPrograms();
             REQUIRE(programs.size() == 1);
             CHECK(programs[0].Name == "vignette");

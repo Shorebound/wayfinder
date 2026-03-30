@@ -34,7 +34,7 @@ namespace Wayfinder::Tests
 
         pipeline.RegisterFeature(Wayfinder::RenderPhase::Opaque, 0, std::make_unique<Wayfinder::SceneOpaquePass>());
         pipeline.RegisterFeature(Wayfinder::RenderPhase::PostProcess, 800, std::make_unique<Wayfinder::ChromaticAberrationFeature>());
-        pipeline.RegisterFeature(Wayfinder::RenderPhase::PostProcess, 900, std::make_unique<Wayfinder::Rendering::VignetteFeature>());
+        pipeline.RegisterFeature(Wayfinder::RenderPhase::PostProcess, 900, std::make_unique<Wayfinder::VignetteFeature>());
         pipeline.RegisterFeature(Wayfinder::RenderPhase::Composite, 0, std::make_unique<Wayfinder::ColourGradingFeature>());
         pipeline.RegisterFeature(Wayfinder::RenderPhase::Overlay, 0, std::make_unique<Wayfinder::DebugPass>());
         pipeline.RegisterFeature(Wayfinder::RenderPhase::Present, 0, std::make_unique<Wayfinder::CompositionPass>());

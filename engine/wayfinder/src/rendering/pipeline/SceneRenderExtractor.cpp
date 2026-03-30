@@ -25,8 +25,8 @@ namespace Wayfinder
 {
     namespace
     {
-        constexpr uint64_t K_BUILT_IN_BOX_MESH_KEY = 1;
-        constexpr uint64_t K_BUILT_IN_SURFACE_MATERIAL_KEY = 1;
+        constexpr uint64_t BUILT_IN_BOX_MESH_KEY = 1;
+        constexpr uint64_t BUILT_IN_SURFACE_MATERIAL_KEY = 1;
 
         uint64_t MakeStableKey(const Wayfinder::AssetId& assetId, uint32_t submeshIndex = 0)
         {
@@ -248,7 +248,7 @@ namespace Wayfinder
 
                 RenderMaterialBinding entityMaterial{};
                 entityMaterial.Ref.Origin = RenderResourceOrigin::BuiltIn;
-                entityMaterial.Ref.StableKey = K_BUILT_IN_SURFACE_MATERIAL_KEY;
+                entityMaterial.Ref.StableKey = BUILT_IN_SURFACE_MATERIAL_KEY;
                 entityMaterial.Domain = RenderMaterialDomain::Surface;
                 entityMaterial.Parameters.SetColour("base_colour", LinearColour::White());
 
@@ -287,16 +287,16 @@ namespace Wayfinder
                     submission.Geometry.Dimensions = mesh.Dimensions;
                     submission.Material = material;
                     submission.Material.StateOverrides = stateOverrides;
-                    const auto materialState = ResolveMaterialState(submission.Material, scene);
-                    submission.Material.ShaderName = materialState.ShaderName;
+                    const auto [ShaderName, Blend] = ResolveMaterialState(submission.Material, scene);
+                    submission.Material.ShaderName = ShaderName;
                     submission.Visible = renderable.Visible;
                     submission.Group = renderable.Group;
                     submission.SortPriority = renderable.SortPriority;
                     submission.LocalToWorld = localToWorld;
                     submission.WorldBounds = worldBounds;
                     submission.WorldSphere = ComputeBoundingSphere(worldBounds);
-                    const SortLayer sortLayer = materialState.Blend.Enabled ? SortLayer::Transparent : MapGroup(submission.Group);
-                    submission.SortKey = SortKeyBuilder::Build(sortLayer, BlendGroupBits(materialState.Blend), MaterialIdBits(submission.Material), cameraSpaceZ, submission.SortPriority);
+                    const SortLayer sortLayer = Blend.Enabled ? SortLayer::Transparent : MapGroup(submission.Group);
+                    submission.SortKey = SortKeyBuilder::Build(sortLayer, BlendGroupBits(Blend), MaterialIdBits(submission.Material), cameraSpaceZ, submission.SortPriority);
 
                     submission.ViewIndex = primaryViewIndex;
                     FrameLayer* owningLayer = frame.FindSceneLayerForSubmission(submission);
@@ -355,7 +355,7 @@ namespace Wayfinder
                 {
                     RenderMeshRef meshRef;
                     meshRef.Origin = RenderResourceOrigin::BuiltIn;
-                    meshRef.StableKey = K_BUILT_IN_BOX_MESH_KEY;
+                    meshRef.StableKey = BUILT_IN_BOX_MESH_KEY;
 
                     const Float3 halfDim = mesh.Dimensions * 0.5f;
                     const AxisAlignedBounds localBounds{.Min = -halfDim, .Max = halfDim};

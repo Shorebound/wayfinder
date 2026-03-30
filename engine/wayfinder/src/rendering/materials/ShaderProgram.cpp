@@ -88,16 +88,16 @@ namespace Wayfinder
         }
 
         GPUPipelineDesc pipelineDesc{};
-        pipelineDesc.vertexShaderName = desc.VertexShaderName;
-        pipelineDesc.fragmentShaderName = desc.FragmentShaderName;
-        pipelineDesc.vertexResources = desc.VertexResources;
-        pipelineDesc.fragmentResources = desc.FragmentResources;
-        pipelineDesc.vertexLayout = desc.VertexLayout;
-        pipelineDesc.cullMode = desc.Cull;
-        pipelineDesc.depthTestEnabled = desc.DepthTest;
-        pipelineDesc.depthWriteEnabled = desc.DepthWrite;
-        pipelineDesc.primitiveType = PrimitiveType::TriangleList;
-        pipelineDesc.colourTargetBlends.front() = desc.Blend;
+        pipelineDesc.VertexShaderName = desc.VertexShaderName;
+        pipelineDesc.FragmentShaderName = desc.FragmentShaderName;
+        pipelineDesc.VertexResources = desc.VertexResources;
+        pipelineDesc.FragmentResources = desc.FragmentResources;
+        pipelineDesc.VertexLayout = desc.VertexLayout;
+        pipelineDesc.CullMode = desc.Cull;
+        pipelineDesc.DepthTestEnabled = desc.DepthTest;
+        pipelineDesc.DepthWriteEnabled = desc.DepthWrite;
+        pipelineDesc.PrimitiveType = PrimitiveType::TriangleList;
+        pipelineDesc.ColourTargetBlends.front() = desc.Blend;
 
         const GPUPipelineHandle pipeline = m_cache->GetOrCreate(*m_shaders, pipelineDesc);
         if (!pipeline.IsValid())
@@ -175,16 +175,16 @@ namespace Wayfinder
 
         // Build a new pipeline desc with the requested topology.
         GPUPipelineDesc pipelineDesc{};
-        pipelineDesc.vertexShaderName = program->Desc.VertexShaderName;
-        pipelineDesc.fragmentShaderName = program->Desc.FragmentShaderName;
-        pipelineDesc.vertexResources = program->Desc.VertexResources;
-        pipelineDesc.fragmentResources = program->Desc.FragmentResources;
-        pipelineDesc.vertexLayout = program->Desc.VertexLayout;
-        pipelineDesc.cullMode = program->Desc.Cull;
-        pipelineDesc.depthTestEnabled = program->Desc.DepthTest;
-        pipelineDesc.depthWriteEnabled = program->Desc.DepthWrite;
-        pipelineDesc.primitiveType = topology;
-        pipelineDesc.colourTargetBlends.front() = program->Desc.Blend;
+        pipelineDesc.VertexShaderName = program->Desc.VertexShaderName;
+        pipelineDesc.FragmentShaderName = program->Desc.FragmentShaderName;
+        pipelineDesc.VertexResources = program->Desc.VertexResources;
+        pipelineDesc.FragmentResources = program->Desc.FragmentResources;
+        pipelineDesc.VertexLayout = program->Desc.VertexLayout;
+        pipelineDesc.CullMode = program->Desc.Cull;
+        pipelineDesc.DepthTestEnabled = program->Desc.DepthTest;
+        pipelineDesc.DepthWriteEnabled = program->Desc.DepthWrite;
+        pipelineDesc.PrimitiveType = topology;
+        pipelineDesc.ColourTargetBlends.front() = program->Desc.Blend;
 
         const GPUPipelineHandle handle = m_cache->GetOrCreate(*m_shaders, pipelineDesc);
         if (handle.IsValid())

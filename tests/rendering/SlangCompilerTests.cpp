@@ -1,6 +1,7 @@
 #include "TestHelpers.h"
 #include "rendering/materials/SlangCompiler.h"
 
+#include <cstring>
 #include <doctest/doctest.h>
 
 namespace Wayfinder::Tests
@@ -33,7 +34,8 @@ namespace Wayfinder::Tests
         {
             SlangCompiler compiler;
             SlangCompiler::InitDesc desc;
-            desc.SourceDirectory = "Z:/nonexistent/path/that/does/not/exist";
+            const auto nonexistent = (Helpers::FixturesDir() / "nonexistent-path").string();
+            desc.SourceDirectory = nonexistent;
 
             auto result = compiler.Initialise(desc);
             CHECK_FALSE(result.has_value());
@@ -185,6 +187,31 @@ namespace Wayfinder::Tests
 
             auto result = compiler.Compile("simple", "VSMain", ShaderStage::Vertex);
             CHECK(result.has_value());
+        }
+
+        TEST_CASE("ResetSession allows recompilation with fresh state")
+        {
+            SlangCompiler compiler;
+            const auto dir = ShaderFixturesDirStr();
+            SlangCompiler::InitDesc desc;
+            desc.SourceDirectory = dir;
+            REQUIRE(compiler.Initialise(desc).has_value());
+
+            auto first = compiler.Compile("simple", "VSMain", ShaderStage::Vertex);
+            REQUIRE(first.has_value());
+            CHECK(first->Bytecode.size() >= 4);
+
+            auto resetResult = compiler.ResetSession();
+            REQUIRE(resetResult.has_value());
+            CHECK(compiler.IsInitialised());
+
+            auto second = compiler.Compile("simple", "VSMain", ShaderStage::Vertex);
+            REQUIRE(second.has_value());
+            CHECK(second->Bytecode.size() >= 4);
+
+            uint32_t magic = 0;
+            std::memcpy(&magic, second->Bytecode.data(), sizeof(magic));
+            CHECK(magic == SPIRV_MAGIC);
         }
     }
 

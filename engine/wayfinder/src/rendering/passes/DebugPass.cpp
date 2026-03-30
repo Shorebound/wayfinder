@@ -191,7 +191,6 @@ namespace Wayfinder
                 vd.BoxCount = static_cast<uint32_t>(vd.ScratchBoxes.size());
                 m_scratchBoxes.insert(m_scratchBoxes.end(), vd.ScratchBoxes.begin(), vd.ScratchBoxes.end());
                 vd.ScratchBoxes.clear();
-                vd.ScratchBoxes.shrink_to_fit();
             }
         }
 
@@ -206,7 +205,6 @@ namespace Wayfinder
                 vd.LineAlloc = transientAllocator.AllocateVertices(vd.ScratchLines.data(), dataSize);
             }
             vd.ScratchLines.clear(); // Free memory; data is on GPU now.
-            vd.ScratchLines.shrink_to_fit();
         }
 
         // m_scratchBoxes persists until the next AddPasses call (next frame).

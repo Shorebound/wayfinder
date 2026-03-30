@@ -70,49 +70,49 @@ namespace Wayfinder
 
         /**
          * @brief Removes the first feature whose dynamic type is `T` from the pipeline.
-         * @tparam T Render feature type to match.
+         * @tparam TFeature Render feature type to match.
          * @return True if a feature was removed; false if none matched.
          */
-        template<typename T>
-            requires std::derived_from<T, RenderFeature>
+        template<typename TFeature>
+            requires std::derived_from<TFeature, RenderFeature>
         bool RemoveFeature()
         {
             if (m_renderPipeline)
             {
-                return m_renderPipeline->RemoveFeature<T>();
+                return m_renderPipeline->RemoveFeature<TFeature>();
             }
             return false;
         }
 
         /**
          * @brief Returns the first feature whose dynamic type is `T`, if any.
-         * @tparam T Render feature type to match.
+         * @tparam TFeature Render feature type to match.
          * @return Pointer to the feature, or nullptr when no matching feature is registered.
          */
-        template<typename T>
-            requires std::derived_from<T, RenderFeature>
-        const T* GetFeature() const
+        template<typename TFeature>
+            requires std::derived_from<TFeature, RenderFeature>
+        const TFeature* GetFeature() const
         {
             if (m_renderPipeline)
             {
                 const auto* rp = m_renderPipeline.get();
-                return rp->GetFeature<T>();
+                return rp->GetFeature<TFeature>();
             }
             return nullptr;
         }
 
         /**
          * @brief Returns the first feature whose dynamic type is `T`, if any (non-const view).
-         * @tparam T Render feature type to match.
+         * @tparam TFeature Render feature type to match.
          * @return Pointer to the feature, or nullptr when no matching feature is registered.
          */
-        template<typename T>
-            requires std::derived_from<T, RenderFeature>
-        T* GetFeature()
+        template<typename TFeature>
+            requires std::derived_from<TFeature, RenderFeature>
+        TFeature* GetFeature()
         {
             if (m_renderPipeline)
             {
-                return m_renderPipeline->GetFeature<T>();
+                return m_renderPipeline->GetFeature<TFeature>();
             }
             return nullptr;
         }

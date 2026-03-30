@@ -396,7 +396,7 @@ Add `SlangCompilerTests.cpp` to `wayfinder_render_tests` target. Also link `Slan
 
 ## Implementation Order & Dependencies
 
-```
+```text
 Phase 1: CMake (Steps 1.1-1.3)           [no dependencies]
 Phase 2: SlangCompiler (Steps 2.1-2.2)   [depends on Phase 1 for Slang headers/lib]
 Phase 3: ShaderManager integration        [depends on Phase 2]

@@ -77,8 +77,8 @@ namespace Wayfinder
         // Built-in primitive meshes for non-asset draw submissions.
         m_primitiveMesh = Mesh::CreatePrimitive(device);
         m_texturedPrimitiveMesh = Mesh::CreateTexturedPrimitive(device);
-        m_builtInMeshPtrs[static_cast<size_t>(BuiltInMeshId::PrimitiveColour)] = &m_primitiveMesh;
-        m_builtInMeshPtrs[static_cast<size_t>(BuiltInMeshId::PrimitiveTextured)] = &m_texturedPrimitiveMesh;
+        m_builtInMeshTable[static_cast<size_t>(BuiltInMeshId::PrimitiveColour)] = &m_primitiveMesh;
+        m_builtInMeshTable[static_cast<size_t>(BuiltInMeshId::PrimitiveTextured)] = &m_texturedPrimitiveMesh;
 
         return {};
     }
@@ -100,7 +100,7 @@ namespace Wayfinder
 
     void RenderServices::Shutdown()
     {
-        m_builtInMeshPtrs = {};
+        m_builtInMeshTable = {};
         m_primitiveMesh.Destroy();
         m_texturedPrimitiveMesh.Destroy();
 

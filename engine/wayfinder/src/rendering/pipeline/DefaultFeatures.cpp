@@ -1,7 +1,6 @@
 #include "DefaultFeatures.h"
 
 #include "Renderer.h"
-#include "rendering/pipeline/RenderOrchestrator.h"
 
 #include "rendering/passes/ChromaticAberrationFeature.h"
 #include "rendering/passes/ColourGradingFeature.h"

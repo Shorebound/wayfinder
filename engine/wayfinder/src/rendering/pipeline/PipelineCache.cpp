@@ -115,33 +115,33 @@ namespace Wayfinder
             return GPUPipelineHandle::Invalid();
         }
 
-        const GPUShaderHandle vs = shaders.GetShader(desc.vertexShaderName, ShaderStage::Vertex, desc.vertexResources);
-        const GPUShaderHandle fs = shaders.GetShader(desc.fragmentShaderName, ShaderStage::Fragment, desc.fragmentResources);
+        const GPUShaderHandle vs = shaders.GetShader(desc.VertexShaderName, ShaderStage::Vertex, desc.VertexResources);
+        const GPUShaderHandle fs = shaders.GetShader(desc.FragmentShaderName, ShaderStage::Fragment, desc.FragmentResources);
         if (!vs || !fs)
         {
-            WAYFINDER_ERROR(LogRenderer, "PipelineCache: Failed to resolve shaders '{}' / '{}'", desc.vertexShaderName, desc.fragmentShaderName);
+            WAYFINDER_ERROR(LogRenderer, "PipelineCache: Failed to resolve shaders '{}' / '{}'", desc.VertexShaderName, desc.FragmentShaderName);
             return GPUPipelineHandle::Invalid();
         }
 
-        if (desc.numColourTargets == 0 || desc.numColourTargets > MAX_COLOUR_TARGETS)
+        if (desc.ColourTargets == 0 || desc.ColourTargets > MAX_COLOUR_TARGETS)
         {
-            WAYFINDER_ERROR(LogRenderer, "PipelineCache: numColourTargets={} is out of range [1, {}]", desc.numColourTargets, MAX_COLOUR_TARGETS);
+            WAYFINDER_ERROR(LogRenderer, "PipelineCache: numColourTargets={} is out of range [1, {}]", desc.ColourTargets, MAX_COLOUR_TARGETS);
             return GPUPipelineHandle::Invalid();
         }
 
         PipelineCreateDesc pipeDesc{};
         pipeDesc.VertexShader = vs;
         pipeDesc.FragmentShader = fs;
-        pipeDesc.VertexLayout = desc.vertexLayout;
-        pipeDesc.PrimitiveType = desc.primitiveType;
-        pipeDesc.CullMode = desc.cullMode;
-        pipeDesc.FillMode = desc.fillMode;
-        pipeDesc.FrontFace = desc.frontFace;
-        pipeDesc.DepthTestEnabled = desc.depthTestEnabled;
-        pipeDesc.DepthWriteEnabled = desc.depthWriteEnabled;
-        pipeDesc.ColourTargets = desc.numColourTargets;
-        std::copy_n(desc.colourTargetFormats.begin(), desc.numColourTargets, pipeDesc.ColourTargetFormats.begin());
-        std::copy_n(desc.colourTargetBlends.begin(), desc.numColourTargets, pipeDesc.ColourTargetBlends.begin());
+        pipeDesc.VertexLayout = desc.VertexLayout;
+        pipeDesc.PrimitiveType = desc.PrimitiveType;
+        pipeDesc.CullMode = desc.CullMode;
+        pipeDesc.FillMode = desc.FillMode;
+        pipeDesc.FrontFace = desc.FrontFace;
+        pipeDesc.DepthTestEnabled = desc.DepthTestEnabled;
+        pipeDesc.DepthWriteEnabled = desc.DepthWriteEnabled;
+        pipeDesc.ColourTargets = desc.ColourTargets;
+        std::copy_n(desc.ColourTargetFormats.begin(), desc.ColourTargets, pipeDesc.ColourTargetFormats.begin());
+        std::copy_n(desc.ColourTargetBlends.begin(), desc.ColourTargets, pipeDesc.ColourTargetBlends.begin());
 
         return GetOrCreate(pipeDesc);
     }
