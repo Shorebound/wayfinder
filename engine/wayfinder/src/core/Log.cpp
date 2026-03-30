@@ -13,6 +13,11 @@ namespace Wayfinder
 {
     namespace
     {
+        /// @todo #0 The statics below (sLoggers, sVerbosity, sConfig, sGeneration) are not
+        /// synchronised. All Log API calls are currently assumed to happen from a single thread
+        /// (or during single-threaded init/shutdown). If multi-threaded logging becomes necessary,
+        /// introduce a shared_mutex guarding these statics.
+
         using LoggerMap = std::unordered_map<std::string, std::shared_ptr<ILogger>, TransparentStringHash, std::equal_to<>>;
 
         LoggerMap& GetLoggers()
@@ -25,6 +30,12 @@ namespace Wayfinder
         {
             static LogVerbosity sVerbosity = LogVerbosity::Info;
             return sVerbosity;
+        }
+
+        bool& WasGlobalVerbositySet()
+        {
+            static bool sSet = false;
+            return sSet;
         }
 
         LogConfig& GetConfigStorage()
@@ -92,7 +103,10 @@ namespace Wayfinder
     {
         SpdLogManager::Initialise();
         /// Re-apply stored verbosity to loggers created before Initialise() ran.
-        SetGlobalVerbosity(GetGlobalVerbosity());
+        if (WasGlobalVerbositySet())
+        {
+            SetGlobalVerbosity(GetGlobalVerbosity());
+        }
     }
 
     void Log::Shutdown()
@@ -111,7 +125,7 @@ namespace Wayfinder
             return *it->second;
         }
 
-        const LogVerbosity verbosity = GetGlobalVerbosity() != LogVerbosity::Info ? GetGlobalVerbosity() : defaultVerbosity;
+        const LogVerbosity verbosity = WasGlobalVerbositySet() ? GetGlobalVerbosity() : defaultVerbosity;
         std::string key{name};
         auto logger = CreateLogger(key, verbosity);
         RebuildOutputs(*logger, GetConfigStorage());
@@ -123,6 +137,7 @@ namespace Wayfinder
     void Log::SetGlobalVerbosity(LogVerbosity level)
     {
         GetGlobalVerbosity() = level;
+        WasGlobalVerbositySet() = true;
         for (auto& [name, logger] : GetLoggers())
         {
             logger->SetVerbosity(level);

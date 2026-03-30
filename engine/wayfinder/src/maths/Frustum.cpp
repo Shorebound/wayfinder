@@ -15,7 +15,7 @@ namespace Wayfinder
         ///
         /// For RH_ZO (right-handed, zero-to-one depth), the near and far planes
         /// differ from the classic [-1,1] derivation:
-        ///   Near  = row3            (z >= 0)
+        ///   Near  = row2            (z >= 0)
         ///   Far   = row3 - row2     (z <= 1)
 
         Frustum frustum{};

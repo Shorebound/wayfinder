@@ -1,4 +1,5 @@
 #include "Material.h"
+#include "core/Log.h"
 #include "core/Types.h"
 
 #include <algorithm>
@@ -20,29 +21,36 @@ namespace Wayfinder
         constexpr std::string_view TEXTURES_KEY = "textures";
         constexpr std::string_view BLEND_KEY = "blend";
 
+        /// Tri-state result for ParseLinearColour.
+        enum class ParseColourResult
+        {
+            NotColour, ///< Not a colour array (e.g. floats or wrong size) - caller may try vec fallback.
+            Parsed,    ///< Successfully parsed as a valid colour.
+            Invalid    ///< Looks like a colour (all integers) but values are out of range.
+        };
+
         /// Parse a JSON array of 3 or 4 integers into a LinearColour.
-        /// Returns false if any channel is not an integer.
-        bool ParseLinearColour(const nlohmann::json& values, Wayfinder::LinearColour& colour, std::string& error)
+        /// Returns NotColour when elements are not integers, Invalid when channels are out of range.
+        /// @todo: move this to Result<LinearColour> probably
+        ParseColourResult ParseLinearColour(const nlohmann::json& values, Wayfinder::LinearColour& colour, std::string& error)
         {
             if (!values.is_array() || (values.size() != 3 && values.size() != 4))
             {
-                error = "must be an array of 3 or 4 integers";
-                return false;
+                return ParseColourResult::NotColour;
             }
 
             for (size_t i = 0; i < values.size(); ++i)
             {
                 if (!values[i].is_number_integer())
                 {
-                    error = "must be an array of 3 or 4 integers";
-                    return false;
+                    return ParseColourResult::NotColour;
                 }
 
                 const auto channel = values[i].get<int64_t>();
                 if (channel < 0 or channel > 255)
                 {
                     error = std::format("channel {} value {} is out of range [0, 255]", i, channel);
-                    return false;
+                    return ParseColourResult::Invalid;
                 }
             }
 
@@ -52,7 +60,7 @@ namespace Wayfinder
             colour.Data.b = static_cast<float>(values[2].get<int64_t>()) / 255.0f;
             colour.Data.a = values.size() == 4 ? static_cast<float>(values[3].get<int64_t>()) / 255.0f : colour.Data.a;
             // NOLINTEND(cppcoreguidelines-pro-bounds-avoid-unchecked-container-access)
-            return true;
+            return ParseColourResult::Parsed;
         }
 
         /// Parse a JSON "parameters" object into a MaterialParameterBlock.
@@ -72,12 +80,18 @@ namespace Wayfinder
                 {
                     if (node.size() >= 3 && node.size() <= 4)
                     {
-                        // Try Colour first (requires all-integer channels); fall through to vec3 on failure
+                        // Try Colour first (requires all-integer channels); fall through to vec on NotColour.
                         Wayfinder::LinearColour colour = Wayfinder::LinearColour::White();
-                        std::string unused;
-                        if (ParseLinearColour(node, colour, unused))
+                        std::string colourError;
+                        const auto colourResult = ParseLinearColour(node, colour, colourError);
+
+                        if (colourResult == ParseColourResult::Parsed)
                         {
                             block.SetColour(name, colour);
+                        }
+                        else if (colourResult == ParseColourResult::Invalid)
+                        {
+                            Log::Warn(LogAssets, "Material parameter \"{}\": {}", name, colourError);
                         }
                         else if (node.size() == 3)
                         {
@@ -216,9 +230,10 @@ namespace Wayfinder
         {
             LinearColour baseColour = LinearColour::White();
             std::string colourError;
-            if (!ParseLinearColour(document.at(BASE_COLOUR_KEY), baseColour, colourError))
+            const auto colourResult = ParseLinearColour(document.at(BASE_COLOUR_KEY), baseColour, colourError);
+            if (colourResult != ParseColourResult::Parsed)
             {
-                error = "Material asset '" + sourceLabel + "' field 'base_colour' " + colourError;
+                error = "Material asset '" + sourceLabel + "' field 'base_colour' " + (colourResult == ParseColourResult::Invalid ? colourError : "must be an array of 3 or 4 integers [0-255]");
                 return false;
             }
             parsed.Parameters.SetColour("base_colour", baseColour);

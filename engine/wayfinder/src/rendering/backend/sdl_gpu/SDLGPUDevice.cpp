@@ -607,7 +607,7 @@ namespace Wayfinder
 
         if (desc.ColourTargetCount == 0 || desc.ColourTargetCount > MAX_COLOUR_TARGETS)
         {
-            Log::Error(LogRenderer, "SDLGPUDevice::CreatePipeline: numColourTargets={} is out of range [1, {}]", desc.ColourTargetCount, MAX_COLOUR_TARGETS);
+            Log::Error(LogRenderer, "SDLGPUDevice::CreatePipeline: ColourTargetCount={} is out of range [1, {}]", desc.ColourTargetCount, MAX_COLOUR_TARGETS);
             return GPUPipelineHandle::Invalid();
         }
 

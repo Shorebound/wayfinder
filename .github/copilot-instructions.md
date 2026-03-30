@@ -124,7 +124,7 @@ auto CompileShader(ShaderSource source) -> Result<ShaderModule, ShaderError>;
 - `std::stop_source` / `std::stop_token` / `std::stop_callback` for cooperative cancellation. Wire through services, not globals.
 
 ```cpp
-[[nodiscard]] auto EnumerateAssets(FileSystem::Path root)-> std::generator<AssetEntry> 
+[[nodiscard]] auto EnumerateAssets(FileSystem::Path root) -> std::generator<AssetEntry> 
 {
     for (const auto& entry : FileSystem::recursive_directory_iterator(root))
         if (IsAssetFile(entry))
