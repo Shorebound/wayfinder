@@ -18,6 +18,7 @@ namespace Wayfinder
     {
         if (field.Active)
         {
+            // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-avoid-unchecked-container-access)
             json[std::string{key}] = nlohmann::json::array({field.Value.x, field.Value.y, field.Value.z});
         }
     }

@@ -14,13 +14,13 @@
 /// Usage:
 ///   WAYFINDER_ASSERT(ptr != nullptr, "Expected non-null pointer");
 ///   WAYFINDER_ASSERT(index < size, "Index {} out of range {}", index, size);
+
 #define WAYFINDER_ASSERT(condition, fmt, ...)                                                                                                                                                                              \
-    do                                                                                                                                                                                                                     \
+    if (!!(condition)) [[likely]]                                                                                                                                                                                          \
     {                                                                                                                                                                                                                      \
-        if (!(condition)) [[unlikely]]                                                                                                                                                                                     \
-        {                                                                                                                                                                                                                  \
-            Wayfinder::Log::Fatal(Wayfinder::LogEngine, "ASSERT FAILED: " fmt __VA_OPT__(, ) __VA_ARGS__);                                                                                                                 \
-            std::abort();                                                                                                                                                                                                  \
-        }                                                                                                                                                                                                                  \
     }                                                                                                                                                                                                                      \
-    while (false)
+    else                                                                                                                                                                                                                   \
+    {                                                                                                                                                                                                                      \
+        Wayfinder::Log::Fatal(Wayfinder::LogEngine, "ASSERT FAILED: " fmt __VA_OPT__(, ) __VA_ARGS__);                                                                                                                     \
+        std::abort();                                                                                                                                                                                                      \
+    }

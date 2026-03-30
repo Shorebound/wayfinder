@@ -15,6 +15,7 @@ Checks: >
   -cppcoreguidelines-non-private-member-variables-in-classes,
   misc-*,
   -misc-non-private-member-variables-in-classes,
+  -misc-include-cleaner,
   modernize-*,
   -modernize-use-trailing-return-type,
   performance-*,
@@ -22,7 +23,12 @@ Checks: >
   -readability-else-after-return,
   -readability-static-accessed-through-instance,
   -readability-avoid-const-params-in-decls,
-
+  -readability-implicit-bool-conversion,
+  -readability-convert-member-functions-to-static,
+  -readability-identifier-length,
+  -readability-function-cognitive-complexity,
+  -readability-uppercase-literal-suffix,
+  -readability-avoid-nested-conditional-operator,
 
 
 # Only analyse project headers, not third-party or system.
