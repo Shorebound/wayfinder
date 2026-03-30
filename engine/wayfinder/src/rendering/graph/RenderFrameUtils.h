@@ -26,7 +26,7 @@ namespace Wayfinder::Rendering
     /** @brief Primary view matrices and clear colour when the resolved primary `RenderView` is prepared; otherwise `Valid` is false. */
     [[nodiscard]] PreparedPrimaryView ResolvePreparedPrimaryView(const RenderFrame& frame);
 
-    /// Resolved view/projection pair for a specific layer view index.
+    /** @brief Resolved view/projection pair for a specific layer view index. */
     struct ResolvedViewForLayer
     {
         Matrix4 View = Matrix4(1.0f);

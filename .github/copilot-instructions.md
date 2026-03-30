@@ -73,7 +73,7 @@ Formatting is enforced by `.clang-format`.
 - Types: PascalCase with suffixes for components/systems, and `I` prefix for interfaces
 - Functions: PascalCase verb prefix. `IsX` / `HasX` / `WasX`, `GetX` / `SetX`, `CreateX` / `DestroyX`, `LoadX` / `SaveX`, `ValidateX`, `SubscribeX` / `UnsubscribeX`, `OnX`
 - Members (private): `m_` prefix, camelCase
-- Members (private): PascalCase.
+- Members (public / struct fields): PascalCase.
 - Constants: SCREAMING_SNAKE_CASE
 - Aliases: PascalCase
 - Template params: `T` prefix + descriptive name. `TError`, `TAllocator`
@@ -116,6 +116,7 @@ auto CompileShader(ShaderSource source) -> Result<ShaderModule, ShaderError>;
 
 ### Coroutines & Async
 - utilise them where they make sense, they can simplify code and architecture.
+- return awaitables with packed parameters
 - `std::generator<T>` for lazy, pull-based sequences.
 - Engine-specific awaitables for async I/O, job queues, task graphs.
 - `[[nodiscard]]` on coroutine functions.
@@ -268,6 +269,7 @@ C++20 modules are preferred for new subsystems (strong encapsulation, faster bui
 - Global module fragment is the only place for `#include` of C/legacy headers.
 
 ### Things to Avoid
+
 | Don't | Do instead |
 |---|---|
 | Raw `new`/`delete` | RAII, `std::unique_ptr`, `make_unique_for_overwrite` |
@@ -282,6 +284,7 @@ C++20 modules are preferred for new subsystems (strong encapsulation, faster bui
 | Em-dashes (U+2014) | ` - `, `--`, or reword |
 
 ### C++23 Features to Actively Use
+
 | Feature | Use for |
 |---|---|
 | `std::generator<T>` | Lazy sequences, entity/asset iteration |

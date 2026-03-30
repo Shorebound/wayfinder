@@ -248,7 +248,7 @@ namespace Wayfinder
 
             m_texturePool.ForEachAlive([&](TextureEntry& entry)
             {
-                SDL_ReleaseGPUTexture(m_device, entry.texture);
+                SDL_ReleaseGPUTexture(m_device, entry.Texture);
             });
             m_texturePool.Clear();
 
@@ -433,7 +433,7 @@ namespace Wayfinder
             else if (attachment.Target.IsValid())
             {
                 auto* pTex = m_texturePool.Get(attachment.Target);
-                texture = pTex ? pTex->texture : nullptr;
+                texture = pTex ? pTex->Texture : nullptr;
             }
 
             if (!texture)
@@ -481,7 +481,7 @@ namespace Wayfinder
             if (descriptor.DepthTarget.IsValid())
             {
                 auto* pTex = m_texturePool.Get(descriptor.DepthTarget);
-                depthTexture = pTex ? pTex->texture : nullptr;
+                depthTexture = pTex ? pTex->Texture : nullptr;
             }
             else if (m_depthTexture)
             {
@@ -1171,7 +1171,7 @@ namespace Wayfinder
             return GPUTextureHandle::Invalid();
         }
 
-        return m_texturePool.Acquire({.texture = texture, .width = desc.Width, .height = desc.Height, .mipLevels = resolvedMips});
+        return m_texturePool.Acquire({.Texture = texture, .Width = desc.Width, .Height = desc.Height, .MipLevels = resolvedMips});
     }
 
     void SDLGPUDevice::DestroyTexture(GPUTextureHandle texture)
@@ -1183,7 +1183,7 @@ namespace Wayfinder
         auto* pEntry = m_texturePool.Get(texture);
         if (pEntry)
         {
-            SDL_ReleaseGPUTexture(m_device, pEntry->texture);
+            SDL_ReleaseGPUTexture(m_device, pEntry->Texture);
             m_texturePool.Release(texture);
         }
     }
@@ -1205,7 +1205,7 @@ namespace Wayfinder
             m_pendingTextureCopies.push_back({
                 .ringOffset = *offset,
                 .size = totalBytes,
-                .dstTexture = pEntry->texture,
+                .dstTexture = pEntry->Texture,
                 .width = width,
                 .height = height,
                 .pixelsPerRow = width,
@@ -1216,7 +1216,7 @@ namespace Wayfinder
         }
 
         // Oversized or no ring — use dedicated transfer
-        UploadToTextureDedicated(pEntry->texture, pixelData, width, height, bytesPerRow, mipLevel);
+        UploadToTextureDedicated(pEntry->Texture, pixelData, width, height, bytesPerRow, mipLevel);
     }
 
     // NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
@@ -1356,7 +1356,7 @@ namespace Wayfinder
     void SDLGPUDevice::GenerateMipmaps(GPUTextureHandle texture)
     {
         auto* pEntry = m_texturePool.Get(texture);
-        if (!m_device || !pEntry || pEntry->mipLevels <= 1)
+        if (!m_device || !pEntry || pEntry->MipLevels <= 1)
         {
             return;
         }
@@ -1366,7 +1366,7 @@ namespace Wayfinder
 
         if (m_mipGenerator)
         {
-            m_mipGenerator->Generate(m_device, pEntry->texture, pEntry->mipLevels, pEntry->width, pEntry->height);
+            m_mipGenerator->Generate(m_device, pEntry->Texture, pEntry->MipLevels, pEntry->Width, pEntry->Height);
         }
     }
 
@@ -1446,7 +1446,7 @@ namespace Wayfinder
         }
 
         SDL_GPUTextureSamplerBinding binding{};
-        binding.texture = pEntry->texture;
+        binding.texture = pEntry->Texture;
         binding.sampler = *pSampler;
 
         SDL_BindGPUFragmentSamplers(m_renderPass, slot, &binding, 1);

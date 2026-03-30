@@ -77,7 +77,331 @@ Formatting is enforced by `.clang-format`.
 - Types: PascalCase with suffixes for components/systems, and `I` prefix for interfaces
 - Functions: PascalCase verb prefix. `IsX` / `HasX` / `WasX`, `GetX` / `SetX`, `CreateX` / `DestroyX`, `LoadX` / `SaveX`, `ValidateX`, `SubscribeX` / `UnsubscribeX`, `OnX`
 - Members (private): `m_` prefix, camelCase
-- Members (private): PascalCase.
+- Members (public / struct fields): PascalCase.
+- Constants: SCREAMING_SNAKE_CASE
+- Aliases: PascalCase
+- Template params: `T` prefix + descriptive name. `TError`, `TAllocator`
+- Namespaces: PascalCase
+- Enumerators: PascalCase except in abbreviation cases. `PixelFormat::RGBA`, `GameState::Ready`
+
+Prefer full words over abbreviations unless widely unambiguous (`Config`, `Params`). Avoid `Cfg`, `Prms`, etc.
+
+### Resource Management
+- **RAII everywhere.** Every dynamic resource owned by a type whose destructor releases it.
+- Wrap C APIs in RAII types. The wrapper replaces the raw pointer throughout.
+- `[[nodiscard]]` on functions returning resources, handles, awaitables, or values the caller must inspect.
+- Non-owning access: `std::span<T>` (contiguous) or references. Never transfer ownership via raw pointer.
+- `std::unique_ptr` or `std::make_unique_for_overwrite` when a custom RAII type is overkill.
+
+```cpp
+// Wrap a GPU buffer C API
+using GpuBuffer = CResource<VkBuffer_T, vkCreateBuffer, vkDestroyBuffer>;
+
+// Scoped cleanup guard
+auto MapGuard = buffer.Map();  // RAII, unmaps on destruction
+```
+
+### Error Handling
+Custom `Result<TType, TError>` wrapping `std::expected`:
+
+```cpp
+template<typename TType, typename TError = Error>
+using Result = /* wrapped std::expected */;
+```
+
+- `Result<T>` for any fallible operation. `Result<T, SpecificError>` when the caller distinguishes categories.
+- Exceptions only for truly unrecoverable situations. **Hot paths never throw.**
+- Descriptive error helpers: `IsSuccessful(code)`, `IsDeviceLost(result)`.
+
+```cpp
+auto LoadTexture(std::string_view path) -> Result<TextureHandle>;
+auto CompileShader(ShaderSource source) -> Result<ShaderModule, ShaderError>;
+```
+
+### Coroutines & Async
+- utilise them where they make sense, they can simplify code and architecture.
+- return awaitables with packed parameters
+- `std::generator<T>` for lazy, pull-based sequences.
+- Engine-specific awaitables for async I/O, job queues, task graphs.
+- `[[nodiscard]]` on coroutine functions.
+- Compose generators with ranges: `co_yield std::ranges::elements_of(subRange);`.
+- `std::stop_source` / `std::stop_token` / `std::stop_callback` for cooperative cancellation. Wire through services, not globals.
+
+```cpp
+[[nodiscard]] auto EnumerateAssets(FileSystem::Path root)-> std::generator<AssetEntry> 
+{
+    for (const auto& entry : FileSystem::recursive_directory_iterator(root))
+        if (IsAssetFile(entry))
+            co_yield AssetEntry{ entry.path() };
+}
+```
+
+### Concepts & Constraints
+- `requires` clauses or named concepts. Never SFINAE where `requires` is clearer.
+- Inline `requires` unless the concept is reused across multiple sites.
+- CTAD where it reduces noise without hiding the type.
+- Dependent-false: `static_assert(ALWAYS_FALSE<T>, "message")` in terminal `if constexpr` branches.
+- Trait queries as `constexpr inline bool` variable templates.
+
+```cpp
+template<typename T>
+constexpr inline bool ALWAYS_FALSE = false;
+
+template<typename T>
+constexpr inline bool HAS_TICK = requires(T s, float dt) { s.Tick(dt); };
+
+template<typename T>
+void DispatchTick(T& system, float dt) 
+{
+    if constexpr (HAS_TICK<T>)
+    {
+        system.Tick(dt);
+    }
+    else
+    {
+        static_assert(ALWAYS_FALSE<T>, "System must implement Tick(float)");
+    }
+}
+```
+
+### Compile-time callable introspection
+```cpp
+template<typename TFunc, typename... TArgs>
+struct IsCallable 
+{
+    using ReturnType = std::invoke_result_t<TFunc, TArgs...>;
+    static constexpr bool INVOCABLE = std::is_invocable_v<TFunc, TArgs...>;
+    static constexpr bool RETURNS_AWAITABLE = IsAwaitable<ReturnType>;
+    static constexpr bool SYNCHRONOUSLY = INVOCABLE and not RETURNS_AWAITABLE;
+    static constexpr bool ASYNCHRONOUSLY = INVOCABLE and RETURNS_AWAITABLE;
+};
+```
+
+### Compile-Time Computation
+- `constexpr` for values/functions that *can* be evaluated at compile time.
+- `consteval` for functions that *must* be (LUT generation, bit widths, compile-time predicates).
+- `static_assert` liberally: layout size, trivial-type guarantees, range model conformance.
+- `if constexpr` for compile-time dispatch over tag dispatch or specialisation.
+
+```cpp
+static_assert(sizeof(PacketHeader) == PacketHeader::SIZE_BYTES);
+static_assert(std::is_trivially_copyable_v<PacketHeader>);
+```
+
+### Ranges & Views
+- Range pipelines (`|`) for transformation chains. Avoid raw loops when a pipeline reads more clearly.
+- `static_assert` range models as documentation.
+
+```cpp
+auto visibleEntities = entities | Ranges::filter(IsInFrustum) | Views::transform(GetRenderProxy);
+```
+
+### Type Design
+- `enum class` over `enum`. `using enum` locally for brevity. `std::to_underlying()` -- never `static_cast<int>`.
+- `std::optional<T>` over sentinels or null pointers.
+- `std::variant<Ts...>` over raw unions or inheritance used solely for sum-type dispatch.
+- Bit-fields with computed widths for wire/layout types. `static_assert(sizeof(...))` beside them.
+- Wire types: trivial and trivially destructible. Assert both.
+- `std::start_lifetime_as<T>` for type-punning byte buffers. `std::bit_cast` for reinterpreting values. Never `reinterpret_cast` on first-party types.
+- Strong typedefs via `enum class`: `enum class EntityId : uint32_t {};`.
+- Structured bindings for clarity where they apply.
+- `as_bytes` for safe byte representation.
+- Designated initialisers for aggregates, especially configs:
+
+```cpp
+auto window = CreateWindow({ .Width = 1920, .Height = 1080, .Title = "Prototype" });
+```
+
+### Move Semantics & Value Categories
+- Sink parameters by value, then `std::move` in.
+- `std::forward_like<Self>(member)` in deducing-this members. Deducing `this` (`this auto&& self`) for ref-qualified accessors.
+- Move ctors/assignment `noexcept`. `= delete` copy on move-only types.
+- `explicit(sizeof...(Ts) == 1)` to prevent accidental implicit conversions.
+
+### Formatting & Layout
+- Trailing return types: `auto Foo(args) -> ReturnType`. Deduced `auto` only when the type is obvious or intentionally generic.
+- `using` aliases for complex types (function signatures, template instantiations, nested dependent types).
+- `using namespace` for literals only: `using namespace std::chrono_literals;`. Never `using namespace std;`.
+- `and`, `or`, `not` over `&&`, `||`, `!`.
+- West const: `const T`, `const auto*`. Never east const.
+- `auto` / `auto*` / `auto&` when the type is clear from the RHS. Spell the type explicitly when it isn't.
+- Never use em-dashes (U+2014) in code, strings, or comments. Use ` - `, `--`, or reword.
+- Engine code lives in `Wayfinder`. Subdirectories under `engine/wayfinder/src/` should use sub-namespaces matching their domain `Wayfinder::Rendering`, `Wayfinder::Physics`, `Wayfinder::Maths`, etc.
+
+### Templates & Generics
+- Abbreviated function templates (`auto Foo(auto& x)`) for simple wrappers.
+- Fold expressions: `(DoThing(args), ...)`.
+- Variable templates for traits: `template<typename T> constexpr inline bool IS_X = ...;`.
+- Partial specialisation of variable templates as a constexpr alternative to traits classes.
+
+### Lambdas
+- Capture by value when the lambda outlives the call site. Move heavy objects into the capture.
+- `mutable` when the closure mutates internal state.
+- `consteval` functions can return lambdas capturing compile-time values.
+
+```cpp
+consteval auto HasExtension(std::string_view extension) 
+{
+    return [=](const FileSystem::Path& path) 
+    { 
+        return path.extension() == extension; 
+    };
+}
+```
+
+### Lifetime & Safety
+- `std::stop_callback` for wiring cancellation to teardown. Store as a local RAII object.
+- Preconditions as comments: `// precondition: not buffer.empty()`. Validate only at system boundaries (user input, file I/O, network).
+- `noexcept` on functions that genuinely cannot throw (destructors, move ops, C API wrappers). Don't speculatively `noexcept`.
+
+### Modules
+C++20 modules are preferred for new subsystems (strong encapsulation, faster builds). Module tooling is still maturing -- if it causes friction, fall back to headers with `#pragma once`. The codebase may be a mix.
+
+**Modules:**
+- `import std;` for the standard library.
+- Module partitions for sub-components: `export module Render:Pipeline;`.
+- Legacy `#include` only in the global module fragment (before `module;`).
+- Interface units (`.ixx`) declare exports only. Implementations in `.cpp`.
+
+**Headers (fallback):**
+- `#pragma once`. Minimise includes, forward-declare where possible.
+- Only `inline`, `constexpr`, or template definitions in headers.
+
+### File Organisation
+- One module/header per logical component.
+- Platform-specific code in separate files (`Render-Vulkan.cpp`, `Render-D3D12.cpp`). Select at build time, not with `#ifdef` in one file.
+- Global module fragment is the only place for `#include` of C/legacy headers.
+
+### Things to Avoid
+
+| Don't | Do instead |
+|---|---|
+| Raw `new`/`delete` | RAII, `std::unique_ptr`, `make_unique_for_overwrite` |
+| `reinterpret_cast` | `std::bit_cast`, `std::start_lifetime_as` |
+| `#define` macros (general) | `constexpr`, `consteval`, templates. Macros only for platform interop, `#undef` immediately |
+| `std::endl` | `'\n'`, `std::println` |
+| C-style casts | `static_cast`, `std::to_underlying`, `std::bit_cast` |
+| `using namespace std;` | Explicit qualification or targeted aliases |
+| Exceptions on hot paths | `Result<T>`, error codes |
+| `volatile` for concurrency | `std::atomic` |
+| East const | West const (`const T`) |
+| Em-dashes (U+2014) | ` - `, `--`, or reword |
+
+### C++23 Features to Actively Use
+
+| Feature | Use for |
+|---|---|
+| `std::generator<T>` | Lazy sequences, entity/asset iteration |
+| `std::expected<T,E>` (via `Result<T>`) | Recoverable error returns |
+| `std::println` / `std::print` | Formatted output |
+| `std::start_lifetime_as<T>` | Safe type-punning from byte buffers |
+| `std::forward_like` | Forwarding members in deducing-this |
+| Deducing `this` | Ref-qualified accessors, CRTP replacement |
+| `std::to_underlying` | Enum-to-integer |
+| `std::unreachable()` | Provably unreachable paths |
+| `if consteval` | Compile-time vs runtime branching |
+| `std::flat_map` / `std::flat_set` | Cache-friendly associative containers |
+| `std::mdspan` | Multi-dimensional views (textures, grids) |
+| `auto(x)` / `auto{x}` | Explicit decay-copy |
+| `std::stacktrace` | Diagnostics / crash reporting |
+| `[[assume(expr)]]` | Optimiser hints on hot paths |
+| `std::ranges::to<C>()` | Materialising range pipelines |
+
+### Comments
+- `/** ... */` Javadoc-style (`@brief`, `@param`, `@return`, `@todo`) for public API and types.
+- `///` for inline implementation notes.
+- **Provisional code** -- when something is clearly not production-ready (hard-coded registrations, default pipelines wired in one place, lists that will grow without a real extension point), mark it so it isn't mistaken for intended architecture:
+  - **`@prototype`** -- scaffolding to unblock development; note what should replace it or link a GitHub issue (`#156`).
+  - **`@todo`** -- planned follow-up; link `#nnn` when an issue exists.
+  - **`@fixme`** -- incorrect or fragile; fix before treating the work as done.
+
+## Commits, Branches & Issues
+
+All work tracked via GitHub Issues on `Shorebound/wayfinder`. See `docs/github_issues.md` for labels, milestones, relationships, GraphQL notes, and full `gh-issues` examples.
+
+Branches: `<scope>/<issue_number>-<short-kebab-slug>`  
+PR titles and commits: `<type>(<scope>): <description>`
+- Types: `feat`, `fix`, `refactor`, `test`, `chore`, `docs`, `all`
+- Scopes: `rendering`, `core`, `scene`, `assets`, `tools`, `build`, `physics`, `audio`, `platform`
+
+Dependencies use **blocked-by/blocking** and **sub-issues**. Manage them with `tools/gh-issues.py` (`blocked-by`, `blocking`, `sub-issue`, `show`, `tree`, `chain`, `ready`, `status`, `orphans`, and remove helpers).
+
+**Workflow:** `show` / `chain` before starting if blockers matter; `ready` or `status --milestone` to pick work; close issues and check what unblocked; split large work with sub-issues; keep issue bodies lean (template in `docs/github_issues.md`).
+
+A C++23 game engine and toolchain targeting a "fantasy console" — sixth-gen aesthetics with modern compute, architecture, and tooling. 
+See `docs/project_vision.md` for the full rationale and `docs/workspace_guide.md` for repo navigation.
+
+Read `.github/AGENTS.md` for known pitfalls agents encounter. If you hit something surprising, flag it and add it there.
+
+This project is greenfield. Breaking changes, rewrites, and architectural pivots are welcome. If something is bad, say so and offer the better path. Don't be afraid to question anything. The goal is a great engine, not to preserve our egos.
+
+## Design & Engineering Principles
+
+- **Data-driven** — if it can be a file on disk, it should be. Hot-reload without code changes.
+- **Data-oriented design** — organise code and systems around the data they operate on, not around objects or features.
+- **Composition over inheritance** — component-based design, flat hierarchies, minimal virtual dispatch.
+- **Modular and extensible where it counts.** Systems that game or editor code touches must have clear extension points. Internal plumbing can be simple.
+
+- **Elegant by default.** Strive for APIs and systems that feel clean and satisfying to use. If two approaches are otherwise equal, pick the one that reads better and composes more naturally.
+- **Performance with clarity** — efficient code that stays readable. Optimise measured bottlenecks, not hunches.
+- **Production-quality framing from the start.** Implementations can be minimal, but the architecture, interfaces, data flow, and error handling must be sound enough to build on. Code should look like it belongs in a shipping engine. We do not want tutorial/prototype code. If a proposal, plan, or implementation doesn't meet that bar, rework it before moving on.
+
+- **Modern design** — current best practices for language, architecture, and APIs; prefer unconventional approaches when they are better, but justify departures from “how engines usually do it.”
+
+- **Dynamic over baked** — prefer runtime computation over offline preprocessing.
+- **Data flows down, events flow up** — systems read data and produce data. Side effects go through event bus or command queue.
+- **Explicit over implicit** — capabilities are checked, passes are validated, nothing silently dropped.
+- **Engine is a library** — the game and editor are consumers. The engine never knows who's calling it.
+
+## Data Files
+
+- **TOML** for hand-authored content: configuration, input mappings, etc. It's more readable and forgiving for humans, and supports comments.
+- **JSON** for interchange formats, generated data, and anything benefiting from schema validation such as assets, scene descriptions, render graph definitions, etc. The strictness and tooling support help catch errors early.
+- Validate data files at load time with clear error messages for authors.
+
+## Build
+
+CMake 4.0+, Ninja Multi-Config, Clang. Presets are the workflow.
+MSVC Build Tools + Windows SDK must be installed (for headers and libraries) but no special shell is needed — `dev` works from any terminal.
+
+```powershell
+cmake --preset dev              # sandbox + tools + tests (Ninja + Clang)
+cmake --preset dev-msvc         # MSVC validation (needs Developer Shell)
+cmake --build --preset debug    # Debug build
+ctest --preset test             # run all tests
+```
+Configurations are `Debug`, `Development`, and `Shipping`.
+Key targets: `wayfinder` (engine lib), `journey` (sandbox), `waypoint` (asset CLI), `wayfinder_render_tests`, `wayfinder_core_tests`.
+
+Source files are listed explicitly in CMakeLists.txt. When adding a new `.cpp` or `.h`, add it to the relevant CMakeLists.txt.
+
+## Testing
+
+When implementing a new system, feature, or non-trivial refactor, include or update the tests that cover its important behaviour.
+Use doctest. Follow existing patterns in `tests/`.
+
+**Test:** correctness boundaries, round-trip fidelity, contracts between systems, lifecycle/state transitions.
+**Skip:** trivial accessors, third-party internals, speculative tests for code that doesn't exist yet.
+**Rules:** 
+- headless only (no window, no GPU — use Null backend)
+- no filesystem outside `tests/fixtures/`. 
+- One file per domain, not per class. 
+- Names describe behaviour, not functions.
+
+## Validation
+- Code must pass its relevant tests, `tools/lint.py --changed` and `tools/tidy.py --changed` to be valid.
+- `//NOLINTBEGIN`/`//NOLINTEND` blocks are fine for tests or if solutions are not obvious or solvable (such as inescapable third-party issues).
+
+## Code Style
+
+Formatting is enforced by `.clang-format`.
+
+### Naming
+- British/Australian spelling throughout (`Initialise`, `Colour`, `Serialise`, `Behaviour`, etc.)
+- Types: PascalCase with suffixes for components/systems, and `I` prefix for interfaces
+- Functions: PascalCase verb prefix. `IsX` / `HasX` / `WasX`, `GetX` / `SetX`, `CreateX` / `DestroyX`, `LoadX` / `SaveX`, `ValidateX`, `SubscribeX` / `UnsubscribeX`, `OnX`
+- Members (private): `m_` prefix, camelCase
+- Members (public / struct fields): PascalCase.
 - Constants: SCREAMING_SNAKE_CASE
 - Aliases: PascalCase
 - Template params: `T` prefix + descriptive name. `TError`, `TAllocator`

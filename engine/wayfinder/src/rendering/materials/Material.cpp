@@ -1,6 +1,7 @@
 #include "Material.h"
 #include "core/Types.h"
 
+#include <algorithm>
 #include <cmath>
 #include <format>
 #include <fstream>
@@ -29,11 +30,18 @@ namespace Wayfinder
                 return false;
             }
 
-            for (const auto& value : values)
+            for (size_t i = 0; i < values.size(); ++i)
             {
-                if (!value.is_number_integer())
+                if (!values[i].is_number_integer())
                 {
                     error = "must be an array of 3 or 4 integers";
+                    return false;
+                }
+
+                const auto channel = values[i].get<int64_t>();
+                if (channel < 0 or channel > 255)
+                {
+                    error = std::format("channel {} value {} is out of range [0, 255]", i, channel);
                     return false;
                 }
             }
@@ -291,8 +299,11 @@ namespace Wayfinder
         table["material_id"] = material.Id.ToString();
 
         const LinearColour baseColour = material.GetBaseColour();
-        table["base_colour"] = nlohmann::json::array({static_cast<int64_t>(std::lround(baseColour.Data.r * 255.0f)), static_cast<int64_t>(std::lround(baseColour.Data.g * 255.0f)),
-            static_cast<int64_t>(std::lround(baseColour.Data.b * 255.0f)), static_cast<int64_t>(std::lround(baseColour.Data.a * 255.0f))});
+        const auto ToChannel = [](float v) -> int64_t
+        {
+            return static_cast<int64_t>(std::lround(std::clamp(v, 0.0f, 1.0f) * 255.0f));
+        };
+        table["base_colour"] = nlohmann::json::array({ToChannel(baseColour.Data.r), ToChannel(baseColour.Data.g), ToChannel(baseColour.Data.b), ToChannel(baseColour.Data.a)});
         // NOLINTEND(cppcoreguidelines-pro-bounds-avoid-unchecked-container-access)
 
         return table;

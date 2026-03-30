@@ -25,6 +25,7 @@ Checks: >
   -cppcoreguidelines-special-member-functions,
   -cppcoreguidelines-owning-memory,
   -cppcoreguidelines-avoid-non-const-global-variables,
+  -cppcoreguidelines-avoid-do-while,
   misc-*,
   -misc-non-private-member-variables-in-classes,
   -misc-include-cleaner,
