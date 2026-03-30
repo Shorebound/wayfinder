@@ -64,30 +64,27 @@ namespace Wayfinder
         std::vector<uint8_t> bytecode = ReadFile(filePath);
 
         // Fallback: runtime Slang compilation when .spv is not found
-        bool slangAttempted = false;
 #if !defined(WAYFINDER_SHIPPING)
         if (bytecode.empty() && m_compiler && m_compiler->IsInitialised())
         {
-            slangAttempted = true;
             const char* entryPoint = (stage == ShaderStage::Vertex) ? "VSMain" : "PSMain";
             if (Result<SlangCompiler::CompileResult> compileResult = m_compiler->Compile(name, entryPoint, stage))
             {
                 bytecode = std::move(compileResult->Bytecode);
             }
             // Diagnostic details already logged by SlangCompiler
+
+            if (bytecode.empty())
+            {
+                Log::Error(LogRenderer, "ShaderManager: failed to load '{}' - runtime Slang compilation was attempted but produced no bytecode", filePath);
+                return GPUShaderHandle::Invalid();
+            }
         }
 #endif
 
         if (bytecode.empty())
         {
-            if (slangAttempted)
-            {
-                Log::Error(LogRenderer, "ShaderManager: failed to load '{}' - runtime Slang compilation was attempted but produced no bytecode", filePath);
-            }
-            else
-            {
-                Log::Error(LogRenderer, "ShaderManager: failed to load '{}' - no pre-compiled .spv found", filePath);
-            }
+            Log::Error(LogRenderer, "ShaderManager: failed to load '{}' - no pre-compiled .spv found", filePath);
             return GPUShaderHandle::Invalid();
         }
 
