@@ -1,4 +1,5 @@
 #include "rendering/backend/RenderDevice.h"
+#include "rendering/backend/VertexFormats.h"
 #include "rendering/pipeline/PipelineCache.h"
 
 #include <doctest/doctest.h>
@@ -261,5 +262,51 @@ namespace Wayfinder::Tests
         descB.ColourTargetBlends[1] = BlendPresets::AlphaBlend();
 
         CHECK(PipelineCache::HashDesc(descA) != PipelineCache::HashDesc(descB));
+    }
+
+    // ── VertexLayoutsMatch ───────────────────────────────────
+
+    TEST_CASE("VertexLayoutsMatch returns true for identical layouts")
+    {
+        CHECK(VertexLayoutsMatch(VertexLayouts::POSITION_COLOUR, VertexLayouts::POSITION_COLOUR));
+        CHECK(VertexLayoutsMatch(VertexLayouts::POSITION_NORMAL_UV, VertexLayouts::POSITION_NORMAL_UV));
+        CHECK(VertexLayoutsMatch(VertexLayouts::EMPTY, VertexLayouts::EMPTY));
+    }
+
+    TEST_CASE("VertexLayoutsMatch returns false for mismatched stride")
+    {
+        VertexLayout a = VertexLayouts::POSITION;
+        VertexLayout b = VertexLayouts::POSITION;
+        b.Stride = a.Stride + 4;
+        CHECK_FALSE(VertexLayoutsMatch(a, b));
+    }
+
+    TEST_CASE("VertexLayoutsMatch returns false for mismatched attribute count")
+    {
+        CHECK_FALSE(VertexLayoutsMatch(VertexLayouts::POSITION, VertexLayouts::POSITION_COLOUR));
+    }
+
+    TEST_CASE("VertexLayoutsMatch returns false for per-attribute differences")
+    {
+        std::array<VertexAttribute, 2> attribsA = {{
+            {0, 0, VertexAttributeFormat::Float3},
+            {1, 12, VertexAttributeFormat::Float3},
+        }};
+        std::array<VertexAttribute, 2> attribsB = {{
+            {0, 0, VertexAttributeFormat::Float3},
+            {1, 12, VertexAttributeFormat::Float2}, // different format
+        }};
+
+        VertexLayout a{.Stride = 24, .Attributes = attribsA.data(), .AttributeCount = 2};
+        VertexLayout b{.Stride = 24, .Attributes = attribsB.data(), .AttributeCount = 2};
+        CHECK_FALSE(VertexLayoutsMatch(a, b));
+    }
+
+    TEST_CASE("VertexLayoutsMatch returns false when attributes pointer is null but count > 0")
+    {
+        VertexLayout a{.Stride = 12, .Attributes = VertexLayouts::POSITION_ATTRIBUTES.data(), .AttributeCount = 1};
+        VertexLayout b{.Stride = 12, .Attributes = nullptr, .AttributeCount = 1};
+        CHECK_FALSE(VertexLayoutsMatch(a, b));
+        CHECK_FALSE(VertexLayoutsMatch(b, a));
     }
 }

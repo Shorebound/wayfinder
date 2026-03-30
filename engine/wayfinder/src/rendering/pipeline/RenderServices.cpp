@@ -143,11 +143,9 @@ namespace Wayfinder
             m_shaderManager.ReloadShaders();
             WAYFINDER_INFO(LogRenderer, "RenderServices: all shaders and pipelines invalidated");
             orchestrator->RebuildPipelines();
-            m_shadersInvalidated = false;
         }
         else
         {
-            m_shadersInvalidated = true;
             WAYFINDER_WARN(LogRenderer, "RenderServices::ReloadShaders: no orchestrator provided - deferring pipeline rebuild");
         }
     }
