@@ -162,7 +162,7 @@ namespace Wayfinder
 
         SDL_DestroySurface(rgbaSurface);
 
-        WAYFINDER_INFO(LogAssets, "Loaded texture '{}' ({}x{}, RGBA8) from '{}'", texture.Name, texture.Width, texture.Height, imagePath.generic_string());
+        Log::Info(LogAssets, "Loaded texture '{}' ({}x{}, RGBA8) from '{}'", texture.Name, texture.Width, texture.Height, imagePath.generic_string());
 
         return texture;
     }

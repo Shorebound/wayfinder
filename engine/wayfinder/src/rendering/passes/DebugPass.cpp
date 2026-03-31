@@ -3,11 +3,11 @@
 #include "rendering/backend/RenderDevice.h"
 #include "rendering/backend/VertexFormats.h"
 #include "rendering/graph/RenderCapabilities.h"
+#include "rendering/graph/RenderFrameUtils.h"
 #include "rendering/graph/RenderGraph.h"
 #include "rendering/materials/ShaderProgram.h"
 #include "rendering/mesh/Mesh.h"
 #include "rendering/pipeline/BuiltInUBOs.h"
-#include "rendering/pipeline/PipelineCache.h"
 #include "rendering/pipeline/RenderServices.h"
 #include "rendering/resources/TransientBufferAllocator.h"
 
@@ -25,36 +25,23 @@ namespace Wayfinder
 {
     namespace
     {
-        struct ResolvedViewForLayer
+        /// Extracts a Float4 base_colour from a debug box's material parameters.
+        /// Falls back to opaque white when the parameter is absent.
+        Float4 ExtractBoxColour(const RenderDebugBox& box)
         {
-            Matrix4 View{};
-            Matrix4 Proj{};
-            bool Ok = false;
-        };
-
-        /**
-         * @brief Resolves view/projection for a layer — same rules as \ref SceneOpaquePass (primary defaults, optional per-view override).
-         */
-        ResolvedViewForLayer ResolveViewMatricesForLayer(const FrameRenderParams& params, size_t viewIndex)
-        {
-            ResolvedViewForLayer r;
-            const auto& primary = params.PrimaryView;
-            r.View = primary.ViewMatrix;
-            r.Proj = primary.ProjectionMatrix;
-            if (viewIndex < params.Frame.Views.size() && params.Frame.Views.at(viewIndex).Prepared)
+            const auto it = box.Material.Parameters.Values.find("base_colour");
+            if (it != box.Material.Parameters.Values.end())
             {
-                const auto& pv = params.Frame.Views.at(viewIndex);
-                r.View = pv.ViewMatrix;
-                r.Proj = pv.ProjectionMatrix;
-                r.Ok = true;
-                return r;
+                if (const auto* c = std::get_if<LinearColour>(&it->second))
+                {
+                    return c->Data;
+                }
             }
-            r.Ok = primary.Valid;
-            return r;
+            return Float4(1.0f);
         }
     } // namespace
 
-    void DebugPass::AppendWorldGridLineVertices(std::vector<VertexPosColour>& lineVertices, const WorldGridSpec spec)
+    void DebugPass::AppendWorldGridLineVertices(std::vector<VertexPositionColour>& lineVertices, const WorldGridSpec spec)
     {
         const int clamped = std::max(1, spec.Slices);
         const float extent = static_cast<float>(clamped) * spec.Spacing;
@@ -73,31 +60,52 @@ namespace Wayfinder
         }
     }
 
+    std::span<const ShaderProgramDesc> DebugPass::GetShaderPrograms() const
+    {
+        static const auto PROGRAMS = []
+        {
+            std::vector<ShaderProgramDesc> p;
+            p.reserve(2);
+
+            // Lines and grid: PosColour, drawn as LineList via GetVariantPipeline.
+            {
+                ShaderProgramDesc desc;
+                desc.Name = "debug_unlit";
+                desc.VertexShaderName = "debug_unlit";
+                desc.FragmentShaderName = "debug_unlit";
+                desc.VertexLayout = VertexLayouts::POSITION_COLOUR;
+                desc.Cull = CullMode::None;
+                desc.DepthTest = false;
+                desc.DepthWrite = false;
+                p.push_back(std::move(desc));
+            }
+
+            // Solid debug geometry (boxes): PosNormalColour to match BuiltInMeshId::PrimitiveColour.
+            {
+                ShaderProgramDesc desc;
+                desc.Name = "debug_solid";
+                desc.VertexShaderName = "unlit";
+                desc.FragmentShaderName = "unlit";
+                desc.VertexLayout = VertexLayouts::POSITION_NORMAL_COLOUR;
+                desc.Cull = CullMode::Back;
+                desc.DepthTest = false;
+                desc.DepthWrite = false;
+                p.push_back(std::move(desc));
+            }
+
+            return p;
+        }();
+
+        return PROGRAMS;
+    }
+
     void DebugPass::OnAttach(const RenderFeatureContext& context)
     {
         m_context = &context.Context;
-
-        GPUPipelineDesc desc{};
-        desc.vertexShaderName = "debug_unlit";
-        desc.fragmentShaderName = "unlit";
-        desc.vertexResources = {.numUniformBuffers = 1};
-        desc.fragmentResources = {.numUniformBuffers = 1};
-        desc.vertexLayout = VertexLayouts::PosColour;
-        desc.primitiveType = PrimitiveType::LineList;
-        desc.cullMode = CullMode::None;
-        desc.depthTestEnabled = false;
-        desc.depthWriteEnabled = false;
-
-        m_debugLinePipeline = m_context->GetPipelines().GetOrCreate(m_context->GetShaders(), desc);
-        if (!m_debugLinePipeline.IsValid())
-        {
-            WAYFINDER_WARN(LogRenderer, "DebugPass: Failed to create debug line pipeline");
-        }
     }
 
     void DebugPass::OnDetach(const RenderFeatureContext& /*context*/)
     {
-        m_debugLinePipeline = {};
         m_context = nullptr;
     }
 
@@ -105,24 +113,20 @@ namespace Wayfinder
     {
         if (!m_context)
         {
-            WAYFINDER_WARN(LogRenderer, "DebugPass: no context — skipped");
+            Log::Warn(LogRenderer, "DebugPass: no context -- skipped");
             return;
         }
 
-        // Overlay must write the same colour target `CompositionPass` will sample (post chain), not `SceneColour`.
+        // Overlay must write the same colour target CompositionPass will sample (post chain), not SceneColour.
         const RenderGraphHandle colourHandle = ResolvePostProcessInput(graph);
 
-        // ── Pre-compute debug draw data during setup ─────────
-        // Collect unique view indices, build vertex data into scratch buffers
-        // (retained across frames to avoid heap allocation), and upload via
-        // TransientBufferAllocator. The execute lambda only draws.
+        // ── Build per-view debug draw data (single pass over layers) ─────────
         auto& transientAllocator = m_context->GetTransientBuffers();
 
         std::array<PerViewDebugDraw, MAX_DEBUG_VIEWS> viewDraws{};
         uint32_t viewCount = 0;
         m_scratchBoxes.clear();
 
-        // Identify unique views and build per-view line vertices + box ranges
         for (const auto& layer : params.Frame.Layers)
         {
             if (!layer.Enabled || !layer.DebugDraw)
@@ -130,9 +134,10 @@ namespace Wayfinder
                 continue;
             }
 
+            const auto& debugDraw = *layer.DebugDraw;
             const size_t viewIdx = layer.ViewIndex;
 
-            // Find existing view slot or create one
+            // Find or create view slot.
             PerViewDebugDraw* viewData = nullptr;
             for (uint32_t v = 0; v < viewCount; ++v)
             {
@@ -151,53 +156,54 @@ namespace Wayfinder
                 viewData = &viewDraws[viewCount++];
                 viewData->ViewIndex = viewIdx;
             }
+
+            // Accumulate line vertices into this view's scratch buffer.
+            if (debugDraw.ShowWorldGrid)
+            {
+                AppendWorldGridLineVertices(viewData->ScratchLines, {.Slices = debugDraw.WorldGridSlices, .Spacing = debugDraw.WorldGridSpacing});
+            }
+
+            for (const auto& line : debugDraw.Lines)
+            {
+                const Float3 lineColour = LinearColour::FromColour(line.Tint).ToFloat3();
+                viewData->ScratchLines.push_back({.Position = line.Start, .Colour = lineColour});
+                viewData->ScratchLines.push_back({.Position = line.End, .Colour = lineColour});
+            }
+
+            // Accumulate boxes into per-view scratch (flattened later).
+            if (!debugDraw.Boxes.empty())
+            {
+                viewData->ScratchBoxes.insert(viewData->ScratchBoxes.end(), debugDraw.Boxes.begin(), debugDraw.Boxes.end());
+            }
         }
 
-        // Build line vertices and boxes per view, upload lines immediately
+        // Flatten per-view boxes into the shared scratch buffer with correct start/count.
         for (uint32_t v = 0; v < viewCount; ++v)
         {
             auto& vd = viewDraws[v];
-            m_scratchLines.clear();
-
-            for (const auto& layer : params.Frame.Layers)
+            if (!vd.ScratchBoxes.empty())
             {
-                if (!layer.Enabled || !layer.DebugDraw || layer.ViewIndex != vd.ViewIndex)
-                {
-                    continue;
-                }
-
-                if (layer.DebugDraw->ShowWorldGrid)
-                {
-                    AppendWorldGridLineVertices(m_scratchLines, {.Slices = layer.DebugDraw->WorldGridSlices, .Spacing = layer.DebugDraw->WorldGridSpacing});
-                }
-
-                for (const auto& line : layer.DebugDraw->Lines)
-                {
-                    const Float3 lineColour = LinearColour::FromColour(line.Tint).ToFloat3();
-                    m_scratchLines.push_back({.Position = line.Start, .Colour = lineColour});
-                    m_scratchLines.push_back({.Position = line.End, .Colour = lineColour});
-                }
-
-                if (vd.BoxCount == 0)
-                {
-                    vd.BoxStart = static_cast<uint32_t>(m_scratchBoxes.size());
-                }
-
-                // NOLINTNEXTLINE(bugprone-unchecked-optional-access) — we check DebugDraw above
-                m_scratchBoxes.insert(m_scratchBoxes.end(), layer.DebugDraw->Boxes.begin(), layer.DebugDraw->Boxes.end());
-                vd.BoxCount = static_cast<uint32_t>(m_scratchBoxes.size()) - vd.BoxStart;
-            }
-
-            vd.LineVertexCount = static_cast<uint32_t>(m_scratchLines.size());
-            if (!m_scratchLines.empty())
-            {
-                const auto dataSize = static_cast<uint32_t>(m_scratchLines.size() * sizeof(VertexPosColour));
-                vd.LineAlloc = transientAllocator.AllocateVertices(m_scratchLines.data(), dataSize);
+                vd.BoxStart = static_cast<uint32_t>(m_scratchBoxes.size());
+                vd.BoxCount = static_cast<uint32_t>(vd.ScratchBoxes.size());
+                m_scratchBoxes.insert(m_scratchBoxes.end(), vd.ScratchBoxes.begin(), vd.ScratchBoxes.end());
+                vd.ScratchBoxes.clear();
             }
         }
 
-        // Snapshot box data — the execute lambda references it via pointer+count.
-        // m_scratchBoxes persists until the next AddPasses call which is next frame.
+        // Upload line vertices per view.
+        for (uint32_t v = 0; v < viewCount; ++v)
+        {
+            auto& vd = viewDraws[v];
+            vd.LineVertexCount = static_cast<uint32_t>(vd.ScratchLines.size());
+            if (!vd.ScratchLines.empty())
+            {
+                const auto dataSize = static_cast<uint32_t>(vd.ScratchLines.size() * sizeof(VertexPositionColour));
+                vd.LineAlloc = transientAllocator.AllocateVertices(vd.ScratchLines.data(), dataSize);
+            }
+            vd.ScratchLines.clear(); // Free memory; data is on GPU now.
+        }
+
+        // m_scratchBoxes persists until the next AddPasses call (next frame).
         const RenderDebugBox* boxData = m_scratchBoxes.data();
 
         graph.AddPass("Debug", [&, viewDraws, viewCount, boxData](RenderGraphBuilder& builder)
@@ -214,38 +220,42 @@ namespace Wayfinder
                     return;
                 }
 
-                auto& debugLinePipeline = m_debugLinePipeline;
                 auto& registry = m_context->GetPrograms();
-                const Mesh* primitiveMeshPtr = params.BuiltInMeshes[static_cast<size_t>(BuiltInMeshId::PrimitiveColour)];
+                const GPUPipelineHandle linePipeline = registry.GetVariantPipeline("debug_unlit", PrimitiveType::LineList);
+                const ShaderProgram* solidProgram = registry.Find("debug_solid");
+                const Mesh* boxMesh = params.BuiltInMeshes[static_cast<size_t>(BuiltInMeshId::PrimitiveColour)];
 
                 // ── Draw lines ───────────────────────────────
-                for (uint32_t v = 0; v < viewCount; ++v)
+                if (linePipeline.IsValid())
                 {
-                    const auto& vd = viewDraws[v];
-                    if (vd.LineVertexCount == 0 || !vd.LineAlloc.IsValid() || !debugLinePipeline.IsValid())
+                    device.BindPipeline(linePipeline);
+
+                    for (uint32_t v = 0; v < viewCount; ++v)
                     {
-                        continue;
+                        const auto& vd = viewDraws[v];
+                        if (vd.LineVertexCount == 0 || !vd.LineAlloc.IsValid())
+                        {
+                            continue;
+                        }
+
+                        const auto resolved = Rendering::ResolveViewForLayer(params, vd.ViewIndex);
+                        if (!resolved.IsValid)
+                        {
+                            continue;
+                        }
+
+                        const UnlitTransformUBO transformUBO{.Mvp = resolved.ProjectionMatrix * resolved.View};
+                        const DebugMaterialUBO materialUBO{.BaseColour = Float4(1.0f)};
+
+                        device.BindVertexBuffer(vd.LineAlloc.Buffer, {.OffsetInBytes = vd.LineAlloc.Offset});
+                        device.PushVertexUniform(0, &transformUBO, sizeof(UnlitTransformUBO));
+                        device.PushFragmentUniform(0, &materialUBO, sizeof(DebugMaterialUBO));
+                        device.DrawPrimitives(vd.LineVertexCount);
                     }
-
-                    const ResolvedViewForLayer resolved = ResolveViewMatricesForLayer(params, vd.ViewIndex);
-                    if (!resolved.Ok)
-                    {
-                        continue;
-                    }
-
-                    const UnlitTransformUBO transformUBO{.Mvp = resolved.Proj * resolved.View};
-                    const DebugMaterialUBO materialUBO{.BaseColour = Float4(1.0f)};
-
-                    device.BindPipeline(debugLinePipeline);
-                    device.BindVertexBuffer(vd.LineAlloc.Buffer, {.offsetInBytes = vd.LineAlloc.Offset});
-                    device.PushVertexUniform(0, &transformUBO, sizeof(UnlitTransformUBO));
-                    device.PushFragmentUniform(0, &materialUBO, sizeof(DebugMaterialUBO));
-                    device.DrawPrimitives(vd.LineVertexCount);
                 }
 
                 // ── Draw boxes ───────────────────────────────
-                const ShaderProgram* unlitProgram = registry.Find("unlit");
-                if (!unlitProgram || !unlitProgram->Pipeline.IsValid() || !primitiveMeshPtr || !primitiveMeshPtr->IsValid())
+                if (!solidProgram || !solidProgram->Pipeline.IsValid() || !boxMesh || !boxMesh->IsValid())
                 {
                     return;
                 }
@@ -265,8 +275,8 @@ namespace Wayfinder
                     return;
                 }
 
-                device.BindPipeline(unlitProgram->Pipeline);
-                primitiveMeshPtr->Bind(device);
+                device.BindPipeline(solidProgram->Pipeline);
+                boxMesh->Bind(device);
 
                 for (uint32_t v = 0; v < viewCount; ++v)
                 {
@@ -276,8 +286,8 @@ namespace Wayfinder
                         continue;
                     }
 
-                    const ResolvedViewForLayer resolved = ResolveViewMatricesForLayer(params, vd.ViewIndex);
-                    if (!resolved.Ok)
+                    const auto resolved = Rendering::ResolveViewForLayer(params, vd.ViewIndex);
+                    if (!resolved.IsValid)
                     {
                         continue;
                     }
@@ -285,12 +295,12 @@ namespace Wayfinder
                     for (uint32_t b = 0; b < vd.BoxCount; ++b)
                     {
                         const auto& box = boxData[vd.BoxStart + b]; // NOLINT(cppcoreguidelines-pro-bounds-pointer-arithmetic)
-                        const UnlitTransformUBO transformUBO{.Mvp = resolved.Proj * resolved.View * box.LocalToWorld};
-                        const DebugMaterialUBO materialUBO{.BaseColour = Float4(1.0f)};
+                        const UnlitTransformUBO transformUBO{.Mvp = resolved.ProjectionMatrix * resolved.View * box.LocalToWorld};
+                        const DebugMaterialUBO materialUBO{.BaseColour = ExtractBoxColour(box)};
 
                         device.PushVertexUniform(0, &transformUBO, sizeof(UnlitTransformUBO));
                         device.PushFragmentUniform(0, &materialUBO, sizeof(DebugMaterialUBO));
-                        primitiveMeshPtr->Draw(device);
+                        boxMesh->Draw(device);
                     }
                 }
             };

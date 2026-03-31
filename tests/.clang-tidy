@@ -1,3 +1,27 @@
 # Test translation units: relax noisy rules (fixtures, doctest patterns, intentional moved-from checks).
 InheritParentConfig: true
-Checks: '-misc-use-internal-linkage,-misc-use-anonymous-namespace,-misc-const-correctness,-readability-identifier-naming,-modernize-use-emplace,-modernize-use-designated-initializers,-performance-enum-size,-modernize-use-auto,-modernize-use-nodiscard,-bugprone-unchecked-optional-access,-cppcoreguidelines-avoid-const-or-ref-data-members,-bugprone-exception-escape,-bugprone-use-after-move'
+Checks: >
+  -bugprone-exception-escape,
+  -bugprone-use-after-move,
+  -bugprone-unchecked-optional-access,
+  -bugprone-unused-return-value,
+  -cppcoreguidelines-avoid-const-or-ref-data-members,
+  -cppcoreguidelines-avoid-magic-numbers,
+  -cppcoreguidelines-pro-type-union-access,
+  -cppcoreguidelines-pro-bounds-avoid-unchecked-array-index,
+  -cppcoreguidelines-pro-bounds-avoid-unchecked-container-access,
+  -cppcoreguidelines-pro-bounds-pointer-arithmetic,
+  -cppcoreguidelines-special-member-functions,
+  -misc-use-internal-linkage,
+  -misc-use-anonymous-namespace,
+  -misc-const-correctness,
+  -misc-include-cleaner,
+  -modernize-use-emplace,
+  -modernize-use-designated-initializers,
+  -modernize-use-auto,
+  -modernize-use-nodiscard,
+  -performance-*,
+  -readability-*,
+  -readability-identifier-naming,
+  -readability-magic-numbers,
+

@@ -225,16 +225,7 @@
           },
           {
             "type": "vignette",
-            "strength": 0.82
-          },
-          {
-            "type": "colour_grading",
-            "exposure_stops": 0.4,
-            "contrast": 1.12,
-            "saturation": 1.55,
-            "lift": [0.04, 0.02, -0.02],
-            "gamma": [1.0, 1.0, 1.0],
-            "gain": [1.02, 1.0, 0.98]
+            "strength": 0.02
           }
         ]
       }

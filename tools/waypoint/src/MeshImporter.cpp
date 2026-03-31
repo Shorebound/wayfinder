@@ -339,7 +339,7 @@ namespace Wayfinder::Waypoint
                 GenerateTangents(positions, normals, uvs, indices, tangents);
             }
 
-            std::vector<VertexPosNormalUVTangent> vertices(vertexCount);
+            std::vector<VertexPositionNormalUVTangent> vertices(vertexCount);
             for (std::size_t i = 0; i < vertexCount; ++i)
             {
                 auto& vertex = vertices.at(i);
@@ -352,7 +352,7 @@ namespace Wayfinder::Waypoint
             meshopt_optimizeVertexCache(indices.data(), indices.data(), indices.size(), vertexCount);
 
             const auto* posBase = reinterpret_cast<const float*>(vertices.data());
-            meshopt_optimizeOverdraw(indices.data(), indices.data(), indices.size(), posBase, vertexCount, sizeof(VertexPosNormalUVTangent), 1.05f);
+            meshopt_optimizeOverdraw(indices.data(), indices.data(), indices.size(), posBase, vertexCount, sizeof(VertexPositionNormalUVTangent), 1.05f);
 
             BuiltSubmesh builtSubmesh{};
             builtSubmesh.Bounds = BoundsFromPositions(positions);
@@ -363,7 +363,7 @@ namespace Wayfinder::Waypoint
             builtSubmesh.Mesh.MaterialSlot = primitive.materialIndex ? static_cast<std::uint32_t>(*primitive.materialIndex) : 0u;
             builtSubmesh.Mesh.Bounds = builtSubmesh.Bounds;
 
-            builtSubmesh.Mesh.VertexBytes.resize(vertices.size() * sizeof(VertexPosNormalUVTangent));
+            builtSubmesh.Mesh.VertexBytes.resize(vertices.size() * sizeof(VertexPositionNormalUVTangent));
             std::memcpy(builtSubmesh.Mesh.VertexBytes.data(), vertices.data(), builtSubmesh.Mesh.VertexBytes.size());
 
             const bool use32 = vertexCount > 65535u;

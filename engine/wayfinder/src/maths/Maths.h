@@ -46,7 +46,7 @@ namespace Wayfinder::Maths
 
     WAYFINDER_API Matrix4 Translate(const Matrix4& matrix, const Float3& translation);
     WAYFINDER_API Matrix4 Rotate(const Matrix4& matrix, Radians angle, const Float3& axis);
-    WAYFINDER_API Matrix4 ScaleMatrix(const Matrix4& matrix, const Float3& scale);
+    WAYFINDER_API Matrix4 Scale(const Matrix4& matrix, const Float3& scale);
 
     // ── Camera / projection ──────────────────────────────────
 

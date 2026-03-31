@@ -9,12 +9,12 @@ namespace Wayfinder::Plugins
         {
             if (existing.Name == descriptor.Name)
             {
-                WAYFINDER_ERROR(LogEngine, "TagRegistrar: duplicate tag name '{}' — registration rejected", descriptor.Name);
+                Log::Error(LogEngine, "TagRegistrar: duplicate tag name '{}' — registration rejected", descriptor.Name);
                 return;
             }
         }
 
-        WAYFINDER_INFO(LogEngine, "TagRegistrar: registered tag '{}'", descriptor.Name);
+        Log::Info(LogEngine, "TagRegistrar: registered tag '{}'", descriptor.Name);
         m_descriptors.push_back(std::move(descriptor));
     }
 
@@ -24,12 +24,12 @@ namespace Wayfinder::Plugins
         {
             if (existing == relativePath)
             {
-                WAYFINDER_INFO(LogEngine, "TagRegistrar: tag file '{}' already registered; skipping", relativePath);
+                Log::Info(LogEngine, "TagRegistrar: tag file '{}' already registered; skipping", relativePath);
                 return;
             }
         }
 
-        WAYFINDER_INFO(LogEngine, "TagRegistrar: registered tag file '{}'", relativePath);
+        Log::Info(LogEngine, "TagRegistrar: registered tag file '{}'", relativePath);
         m_files.push_back(std::move(relativePath));
     }
 

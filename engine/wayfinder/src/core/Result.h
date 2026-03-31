@@ -48,11 +48,11 @@ namespace Wayfinder
      * Thin alias over `std::expected<T, E>` with a default error type
      * of Wayfinder::Error.
      *
-     * @tparam T  The value type on success (may be `void`).
-     * @tparam E  The error type on failure (defaults to Wayfinder::Error).
+     * @tparam TType  The value type on success (may be `void`).
+     * @tparam TError  The error type on failure (defaults to Wayfinder::Error).
      */
-    template<typename T, typename E = Error>
-    using Result = std::expected<T, E>;
+    template<typename TType, typename TError = Error>
+    using Result = std::expected<TType, TError>;
 
     /**
      * @brief Construct an unexpected Error from a message.
@@ -65,7 +65,7 @@ namespace Wayfinder
      */
     [[nodiscard]] inline std::unexpected<Error> MakeError(std::string_view message)
     {
-        return std::unexpected<Error>(Error(message));
+        return std::unexpected(Error(message));
     }
 
 } // namespace Wayfinder

@@ -25,10 +25,10 @@ namespace Wayfinder
     /** @brief Metadata stored alongside each SDL texture in the resource pool. */
     struct TextureEntry
     {
-        SDL_GPUTexture* texture = nullptr;
-        uint32_t width = 0;
-        uint32_t height = 0;
-        uint32_t mipLevels = 1;
+        SDL_GPUTexture* Texture = nullptr;
+        uint32_t Width = 0;
+        uint32_t Height = 0;
+        uint32_t MipLevels = 1;
     };
 
     class SDLGPUDevice final : public RenderDevice

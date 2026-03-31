@@ -12,14 +12,14 @@ namespace Wayfinder
 
     namespace RenderGroups
     {
-        inline const InternedString Main = InternedString::Intern("main");
-        inline const InternedString Overlay = InternedString::Intern("overlay");
+        inline const InternedString MAIN = InternedString::Intern("main");
+        inline const InternedString OVERLAY = InternedString::Intern("overlay");
     }
 
     namespace FrameLayerIds
     {
-        inline const InternedString MainScene = InternedString::Intern("main_scene");
-        inline const InternedString OverlayScene = InternedString::Intern("overlay_scene");
-        inline const InternedString Debug = InternedString::Intern("debug");
+        inline const InternedString MAIN_SCENE = InternedString::Intern("main_scene");
+        inline const InternedString OVERLAY_SCENE = InternedString::Intern("overlay_scene");
+        inline const InternedString DEBUG = InternedString::Intern("debug");
     }
 } // namespace Wayfinder

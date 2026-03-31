@@ -1,72 +1,128 @@
-# WayfinderShaders.cmake — compile HLSL shaders to SPIR-V at build time using DXC
+# WayfinderShaders.cmake — compile Slang shaders to SPIR-V at build time using slangc
 #
 # Usage:
-#   wayfinder_compile_shaders(TARGET <target> SHADERS <list of .vert/.frag files> OUTPUT_DIR <dir>)
+#   wayfinder_compile_shaders(
+#       TARGET <cmake-target>
+#       PROGRAMS <list of .slang program files>
+#       MODULES <list of .slang module files imported by programs>
+#       MODULE_DIR <include path for imports (e.g. engine/wayfinder/shaders)>
+#       OUTPUT_DIR <dir>
+#   )
 #
-# Expects DXC_EXECUTABLE to be set, or finds dxc.exe in tools/shadercompiler.
-
-if(NOT DXC_EXECUTABLE)
-    find_program(DXC_EXECUTABLE dxc
-        HINTS "${CMAKE_SOURCE_DIR}/tools/shadercompiler/bin/x64"   # Windows layout
-              "${CMAKE_SOURCE_DIR}/tools/shadercompiler/bin"        # Linux layout
-    )
-endif()
+# Requires SLANGC_EXECUTABLE (set by WayfinderSlang.cmake).
 
 function(wayfinder_compile_shaders)
-    cmake_parse_arguments(PARSE_ARGV 0 ARG "" "TARGET;OUTPUT_DIR" "SHADERS")
+    cmake_parse_arguments(PARSE_ARGV 0 ARG "" "TARGET;OUTPUT_DIR;MODULE_DIR" "PROGRAMS;MODULES")
 
-    if(NOT DXC_EXECUTABLE)
-        message(WARNING "DXC not found — skipping shader compilation. Set DXC_EXECUTABLE or install DXC.")
-        return()
+    if(NOT SLANGC_EXECUTABLE)
+        message(FATAL_ERROR "SLANGC_EXECUTABLE not set — include WayfinderSlang.cmake in the top-level CMakeLists")
+    endif()
+    if(NOT ARG_MODULE_DIR)
+        message(FATAL_ERROR "wayfinder_compile_shaders: MODULE_DIR is required")
     endif()
 
-    # Compile to a build-tree staging directory (literal path, required by OUTPUT).
-    # Then copy to the caller's OUTPUT_DIR post-build (which may use generator expressions).
     # Clean the staging dir at configure time so stale .spv files from
     # removed/renamed shaders don't persist across rebuilds.
-    set(STAGING_DIR "${CMAKE_CURRENT_BINARY_DIR}/compiled_shaders")
+    # Per-target directories prevent cross-target interference when multiple
+    # targets call wayfinder_compile_shaders() from the same CMakeLists.txt.
+    set(STAGING_DIR "${CMAKE_CURRENT_BINARY_DIR}/compiled_shaders-${ARG_TARGET}")
     file(REMOVE_RECURSE "${STAGING_DIR}")
     file(MAKE_DIRECTORY "${STAGING_DIR}")
 
-    foreach(SHADER_SOURCE ${ARG_SHADERS})
-        get_filename_component(SHADER_NAME ${SHADER_SOURCE} NAME)
-        set(SPV_OUTPUT "${STAGING_DIR}/${SHADER_NAME}.spv")
+    # ── Module precompilation ──────────────────────────────────────
+    # Compile .slang modules to .slang-module IR binaries so program
+    # compilation skips re-parsing module source on every invocation.
+    set(MODULE_CACHE_DIR "${CMAKE_CURRENT_BINARY_DIR}/precompiled_modules-${ARG_TARGET}")
+    file(REMOVE_RECURSE "${MODULE_CACHE_DIR}")
+    file(MAKE_DIRECTORY "${MODULE_CACHE_DIR}/modules")
 
-        # Determine shader profile and binding shifts from extension
-        get_filename_component(EXT ${SHADER_SOURCE} LAST_EXT)
-        if(EXT STREQUAL ".vert")
-            set(PROFILE "vs_6_0")
-            set(ENTRY "VSMain")
-        elseif(EXT STREQUAL ".frag")
-            set(PROFILE "ps_6_0")
-            set(ENTRY "PSMain")
-        else()
-            message(WARNING "Unknown shader extension: ${EXT} for ${SHADER_SOURCE}")
-            continue()
-        endif()
+    set(_PRECOMPILED_MODULES "")
+    foreach(MODULE_SOURCE ${ARG_MODULES})
+        get_filename_component(MODULE_STEM "${MODULE_SOURCE}" NAME_WE)
+        set(MODULE_BIN "${MODULE_CACHE_DIR}/modules/${MODULE_STEM}.slang-module")
 
         add_custom_command(
-            OUTPUT ${SPV_OUTPUT}
-            COMMAND ${DXC_EXECUTABLE} -T ${PROFILE} -E ${ENTRY} -spirv
-                    "${SHADER_SOURCE}" -Fo "${SPV_OUTPUT}"
-            DEPENDS ${SHADER_SOURCE}
-            COMMENT "Compiling shader ${SHADER_NAME} → ${SHADER_NAME}.spv"
+            OUTPUT "${MODULE_BIN}"
+            COMMAND ${SLANGC_EXECUTABLE} "${MODULE_SOURCE}"
+                -I "${ARG_MODULE_DIR}"
+                -o "${MODULE_BIN}"
+            DEPENDS "${MODULE_SOURCE}"
+            COMMENT "Precompiling Slang module ${MODULE_STEM}"
             VERBATIM
         )
-        list(APPEND SPV_OUTPUTS ${SPV_OUTPUT})
+        list(APPEND _PRECOMPILED_MODULES "${MODULE_BIN}")
     endforeach()
 
-    if(SPV_OUTPUTS)
-        add_custom_target(${ARG_TARGET}_shaders ALL DEPENDS ${SPV_OUTPUTS})
-        add_dependencies(${ARG_TARGET} ${ARG_TARGET}_shaders)
+    # ── Program compilation ────────────────────────────────────────
+    # -I MODULE_CACHE_DIR first so slangc picks up .slang-module over .slang source.
+    # -fvk-use-entrypoint-name: keep VSMain/PSMain in SPIR-V (Slang defaults to "main").
+    set(SPV_OUTPUTS "")
+    foreach(PROGRAM_SOURCE ${ARG_PROGRAMS})
+        get_filename_component(PROGRAM_STEM "${PROGRAM_SOURCE}" NAME_WE)
+        set(VERT_SPV "${STAGING_DIR}/${PROGRAM_STEM}.vert.spv")
+        set(FRAG_SPV "${STAGING_DIR}/${PROGRAM_STEM}.frag.spv")
 
-        # Copy compiled shaders to the final output directory (supports generator expressions)
-        add_custom_command(TARGET ${ARG_TARGET} POST_BUILD
-            COMMAND ${CMAKE_COMMAND} -E copy_directory
-                "${STAGING_DIR}"
-                "${ARG_OUTPUT_DIR}"
-            COMMENT "Copying compiled shaders to output directory"
+        add_custom_command(
+            OUTPUT ${VERT_SPV} ${FRAG_SPV}
+            COMMAND ${SLANGC_EXECUTABLE} "${PROGRAM_SOURCE}"
+                -target spirv
+                -emit-spirv-directly
+                -fvk-use-entrypoint-name
+                -stage vertex
+                -entry VSMain
+                -o "${VERT_SPV}"
+                -I "${MODULE_CACHE_DIR}"
+                -I "${ARG_MODULE_DIR}"
+            COMMAND ${SLANGC_EXECUTABLE} "${PROGRAM_SOURCE}"
+                -target spirv
+                -emit-spirv-directly
+                -fvk-use-entrypoint-name
+                -stage fragment
+                -entry PSMain
+                -o "${FRAG_SPV}"
+                -I "${MODULE_CACHE_DIR}"
+                -I "${ARG_MODULE_DIR}"
+            DEPENDS ${PROGRAM_SOURCE} ${_PRECOMPILED_MODULES}
+            COMMENT "Compiling Slang ${PROGRAM_STEM} -> SPIR-V"
             VERBATIM
         )
+        list(APPEND SPV_OUTPUTS ${VERT_SPV} ${FRAG_SPV})
+    endforeach()
+
+    # ── Manifest generation ──────────────────────────────────────
+    # After SPIR-V compilation, run wayfinder_shader_manifest to produce
+    # shader_manifest.json with per-stage resource counts for Shipping.
+    set(_MANIFEST_OUTPUT "${STAGING_DIR}/shader_manifest.json")
+    set(_PROGRAM_STEMS "")
+    foreach(PROGRAM_SOURCE ${ARG_PROGRAMS})
+        get_filename_component(_STEM "${PROGRAM_SOURCE}" NAME_WE)
+        list(APPEND _PROGRAM_STEMS "${_STEM}")
+    endforeach()
+
+    add_custom_command(
+        OUTPUT "${_MANIFEST_OUTPUT}"
+        COMMAND $<TARGET_FILE:wayfinder_shader_manifest>
+            --source-dir "${ARG_MODULE_DIR}"
+            --output "${_MANIFEST_OUTPUT}"
+            ${_PROGRAM_STEMS}
+        DEPENDS ${SPV_OUTPUTS} wayfinder_shader_manifest ${ARG_PROGRAMS}
+        COMMENT "Generating shader_manifest.json"
+        VERBATIM
+    )
+
+    if(SPV_OUTPUTS)
+        set(_SHADER_STAMP "${CMAKE_CURRENT_BINARY_DIR}/${ARG_TARGET}_shader_sync.stamp")
+        add_custom_command(
+            OUTPUT "${_SHADER_STAMP}"
+            DEPENDS ${SPV_OUTPUTS} "${_MANIFEST_OUTPUT}"
+            COMMAND ${CMAKE_COMMAND} -E remove_directory "${ARG_OUTPUT_DIR}"
+            COMMAND ${CMAKE_COMMAND} -E make_directory "${ARG_OUTPUT_DIR}"
+            COMMAND ${CMAKE_COMMAND} -E copy_directory "${STAGING_DIR}" "${ARG_OUTPUT_DIR}"
+            COMMAND ${CMAKE_COMMAND} -E touch "${_SHADER_STAMP}"
+            COMMENT "Syncing compiled shaders and manifest to output directory"
+            VERBATIM
+        )
+        add_custom_target(${ARG_TARGET}_shaders ALL DEPENDS "${_SHADER_STAMP}")
+        add_dependencies(${ARG_TARGET} ${ARG_TARGET}_shaders)
     endif()
 endfunction()

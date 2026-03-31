@@ -225,7 +225,7 @@ namespace Wayfinder::Physics
 
         m_accumulator = 0.0f;
         m_initialised = true;
-        WAYFINDER_INFO(LogPhysics, "PhysicsWorld initialised (Jolt, fixed dt={:.4f}s)", m_fixedTimestep);
+        Log::Info(LogPhysics, "PhysicsWorld initialised (Jolt, fixed dt={:.4f}s)", m_fixedTimestep);
     }
 
     void PhysicsWorld::Shutdown()
@@ -237,7 +237,7 @@ namespace Wayfinder::Physics
 
         m_impl.reset();
         m_initialised = false;
-        WAYFINDER_INFO(LogPhysics, "PhysicsWorld shut down");
+        Log::Info(LogPhysics, "PhysicsWorld shut down");
     }
 
     void PhysicsWorld::Step(float deltaTime)
@@ -262,11 +262,7 @@ namespace Wayfinder::Physics
 
         // Cap the accumulator to avoid a spiral-of-death when a frame takes
         // much longer than expected (e.g. debugger pause, long hitch).
-        constexpr float MAX_ACCUMULATED = 0.25f;
-        if (m_accumulator > MAX_ACCUMULATED)
-        {
-            m_accumulator = MAX_ACCUMULATED;
-        }
+        m_accumulator = std::min(m_accumulator, 0.25f);
 
         int steps = 0;
         while (m_accumulator >= m_fixedTimestep)
@@ -283,7 +279,7 @@ namespace Wayfinder::Physics
     {
         if (timestep <= 0.0f)
         {
-            WAYFINDER_WARN(LogPhysics, "SetFixedTimestep called with non-positive value {:.6f}; ignoring", timestep);
+            Log::Warn(LogPhysics, "SetFixedTimestep called with non-positive value {:.6f}; ignoring", timestep);
             return;
         }
         m_fixedTimestep = timestep;
@@ -310,7 +306,7 @@ namespace Wayfinder::Physics
             shape = new JPH::CapsuleShape(desc.Height * 0.5f, desc.Radius);
             break;
         default:
-            WAYFINDER_ERROR(LogPhysics, "Unknown ColliderShape");
+            Log::Error(LogPhysics, "Unknown ColliderShape");
             return INVALID_PHYSICS_BODY;
         }
 
@@ -367,7 +363,7 @@ namespace Wayfinder::Physics
         if (!joltBody)
         {
             const auto positionComponents = GetFloat3Components(pose.Position);
-            WAYFINDER_ERROR(LogPhysics, "Failed to create Jolt body (type={}, shape={}, pos=[{},{},{}])", static_cast<int>(desc.Type), static_cast<int>(desc.Shape), positionComponents.at(0), positionComponents.at(1),
+            Log::Error(LogPhysics, "Failed to create Jolt body (type={}, shape={}, pos=[{},{},{}])", static_cast<int>(desc.Type), static_cast<int>(desc.Shape), positionComponents.at(0), positionComponents.at(1),
                 positionComponents.at(2));
             return INVALID_PHYSICS_BODY;
         }

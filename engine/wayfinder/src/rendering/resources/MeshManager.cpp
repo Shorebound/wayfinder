@@ -43,12 +43,12 @@ namespace Wayfinder
         m_fallbackMesh = Mesh::CreateTexturedPrimitive(device);
         if (!m_fallbackMesh.IsValid())
         {
-            WAYFINDER_ERROR(LogRenderer, "MeshManager: Failed to create fallback mesh");
+            Log::Error(LogRenderer, "MeshManager: Failed to create fallback mesh");
             Shutdown();
             return false;
         }
 
-        WAYFINDER_INFO(LogRenderer, "MeshManager initialised (fallback textured cube)");
+        Log::Info(LogRenderer, "MeshManager initialised (fallback textured cube)");
         return true;
     }
 

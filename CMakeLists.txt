@@ -136,6 +136,7 @@ endif()
 
 # --- Dependencies ---
 include(WayfinderDependencies)
+include(WayfinderSlang)
 
 set(DEPS_FOLDER_NAME "ThirdParty")
 set(SDL3_SUBFOLDER "${DEPS_FOLDER_NAME}/SDL3") 
@@ -189,7 +190,7 @@ if(WAYFINDER_BUILD_EDITOR)
 endif()
 
 if(WAYFINDER_BUILD_SANDBOX)
-    add_subdirectory(${SANDBOX_PATH}) 
+    add_subdirectory(${SANDBOX_PATH})
     set_target_properties(${SANDBOX_NAME} PROPERTIES FOLDER "${SANDBOX_DIRECTORY}")
 endif()
 
@@ -201,6 +202,9 @@ if(WAYFINDER_BUILD_TOOLS)
     add_subdirectory(${ASSET_PROCESSOR_PATH})
     set_target_properties(${ASSET_PROCESSOR_NAME} PROPERTIES FOLDER "${TOOLS_DIRECTORY}")
 endif()
+
+add_subdirectory(tools/shader_manifest EXCLUDE_FROM_ALL)
+set_target_properties(wayfinder_shader_manifest PROPERTIES FOLDER "${TOOLS_DIRECTORY}")
 
 if(WAYFINDER_BUILD_SAMPLES)
     #add_subdirectory(${SAMPLES_NAME})

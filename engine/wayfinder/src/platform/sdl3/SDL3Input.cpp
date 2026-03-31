@@ -4,7 +4,6 @@
 #include <SDL3/SDL.h>
 
 #include <algorithm>
-#include <iterator>
 
 namespace
 {
@@ -53,10 +52,9 @@ namespace Wayfinder
         // Sample current mouse button state
         m_currentMouseButtons.fill(false);
         const SDL_MouseButtonFlags mouseState = SDL_GetMouseState(nullptr, nullptr);
-        int button = SDL_MOUSE_BUTTON_FIRST;
-        for (auto buttonState = std::next(m_currentMouseButtons.begin()); buttonState != m_currentMouseButtons.end(); ++buttonState, ++button)
+        for (auto button = static_cast<std::size_t>(SDL_MOUSE_BUTTON_FIRST); button < m_currentMouseButtons.size(); ++button)
         {
-            *buttonState = (mouseState & SDL_BUTTON_MASK(button)) != 0;
+            m_currentMouseButtons[button] = (mouseState & SDL_BUTTON_MASK(static_cast<int>(button))) != 0;
         }
 
         // Reset scroll accumulator
@@ -106,7 +104,8 @@ namespace Wayfinder
 
     std::pair<float, float> SDL3Input::GetMousePosition() const
     {
-        float x = 0.0f, y = 0.0f;
+        float x = 0.0f;
+        float y = 0.0f;
         SDL_GetMouseState(&x, &y);
         return {x, y};
     }

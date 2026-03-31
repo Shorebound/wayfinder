@@ -3,6 +3,7 @@
 #include "core/InternedString.h"
 
 #include "ecs/Flecs.h"
+#include <algorithm>
 
 namespace Wayfinder
 {
@@ -42,14 +43,11 @@ namespace Wayfinder
             {
                 return false;
             }
-            for (const auto& t : ts)
+
+            return std::ranges::any_of(ts, [&](const GameplayTag& t)
             {
-                if (activeTags->Tags.HasTag(t))
-                {
-                    return true;
-                }
-            }
-            return false;
+                return activeTags->Tags.HasTag(t);
+            });
         };
     }
 
@@ -57,14 +55,10 @@ namespace Wayfinder
     {
         return [cs = std::move(conditions)](const flecs::world& world) -> bool
         {
-            for (const auto& c : cs)
+            return std::ranges::all_of(cs, [&](const RunCondition& c)
             {
-                if (!c(world))
-                {
-                    return false;
-                }
-            }
-            return true;
+                return c(world);
+            });
         };
     }
 
@@ -72,14 +66,10 @@ namespace Wayfinder
     {
         return [cs = std::move(conditions)](const flecs::world& world) -> bool
         {
-            for (const auto& c : cs)
+            return std::ranges::any_of(cs, [&](const RunCondition& c)
             {
-                if (c(world))
-                {
-                    return true;
-                }
-            }
-            return false;
+                return c(world);
+            });
         };
     }
 

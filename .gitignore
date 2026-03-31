@@ -9,6 +9,9 @@ bin/
 # CPM dependency source cache
 thirdparty/
 
+# Slang SDK cache (CI)
+.slang-cache/
+
 # In-source CMake safety net (presets prevent this, but just in case)
 CMakeCache.txt
 CMakeFiles/

@@ -20,28 +20,29 @@ namespace Wayfinder
         /// Returns std::nullopt if the shader handles cannot be resolved.
         std::optional<PipelineCreateDesc> MakeWireframeVariant(const ShaderProgramDesc& desc, ShaderManager& shaders)
         {
-            const GPUShaderHandle vs = shaders.GetShader(desc.VertexShaderName, ShaderStage::Vertex, desc.VertexResources);
-            const GPUShaderHandle fs = shaders.GetShader(desc.FragmentShaderName, ShaderStage::Fragment, desc.FragmentResources);
-            if (!vs || !fs)
+            const GPUShaderHandle vertexShader = shaders.GetShader(desc.VertexShaderName, ShaderStage::Vertex);
+            const GPUShaderHandle fragmentShader = shaders.GetShader(desc.FragmentShaderName, ShaderStage::Fragment);
+            if (!vertexShader || !fragmentShader)
             {
                 return std::nullopt;
             }
 
             PipelineCreateDesc pipeDesc{};
-            pipeDesc.vertexShader = vs;
-            pipeDesc.fragmentShader = fs;
-            pipeDesc.vertexLayout = desc.VertexLayout;
-            pipeDesc.primitiveType = PrimitiveType::TriangleList;
-            pipeDesc.cullMode = desc.Cull;
-            pipeDesc.fillMode = FillMode::Line;
-            pipeDesc.frontFace = FrontFace::CounterClockwise;
-            pipeDesc.depthTestEnabled = desc.DepthTest;
-            pipeDesc.depthWriteEnabled = desc.DepthWrite;
+            pipeDesc.VertexShader = vertexShader;
+            pipeDesc.FragmentShader = fragmentShader;
+            pipeDesc.VertexLayout = desc.VertexLayout;
+            pipeDesc.PrimitiveType = PrimitiveType::TriangleList; // Wireframe always uses triangles
+            pipeDesc.CullMode = desc.Cull;
+            pipeDesc.FillMode = FillMode::Line;
+            pipeDesc.FrontFace = FrontFace::CounterClockwise;
+            pipeDesc.DepthTestEnabled = desc.DepthTest;
+            pipeDesc.DepthWriteEnabled = desc.DepthWrite;
+            pipeDesc.ColourTargetBlends.front() = desc.Blend;
             return pipeDesc;
         }
     } // namespace
 
-    void DrawSubmission(SubmissionDrawState& state, const RenderMeshSubmission& submission, const Matrix4& passView, const Matrix4& passProj, const SceneGlobalsUBO& sceneGlobals)
+    void DrawSubmission(SubmissionDrawState& state, const RenderMeshSubmission& submission, const Matrix4& viewMatrix, const Matrix4& projectionMatrix, const SceneGlobalsUBO& sceneGlobals)
     {
         auto& device = state.Device;
         auto& registry = state.Programs;
@@ -57,18 +58,18 @@ namespace Wayfinder
 
         const RenderFillMode fillMode = submission.Material.StateOverrides.FillMode.value_or(RenderFillMode::Solid);
 
-        auto pushUniforms = [&]()
+        auto pushUniforms = [&]
         {
             if (program->Desc.NeedsSceneGlobals)
             {
                 TransformUBO transformUBO{};
-                transformUBO.Mvp = passProj * passView * submission.LocalToWorld;
+                transformUBO.Mvp = projectionMatrix * viewMatrix * submission.LocalToWorld;
                 transformUBO.Model = submission.LocalToWorld;
                 device.PushVertexUniform(0, &transformUBO, sizeof(TransformUBO));
             }
             else
             {
-                UnlitTransformUBO transformUBO{passProj * passView * submission.LocalToWorld};
+                UnlitTransformUBO transformUBO{projectionMatrix * viewMatrix * submission.LocalToWorld};
                 device.PushVertexUniform(0, &transformUBO, sizeof(UnlitTransformUBO));
             }
 
@@ -128,12 +129,12 @@ namespace Wayfinder
             {
                 return meshResource ? meshResource->GpuMesh : nullptr;
             }
-            const uint32_t stride = program->Desc.VertexLayout.stride;
-            if (stride == VertexLayouts::PosNormalColour.stride)
+            const auto& layout = program->Desc.VertexLayout;
+            if (VertexLayoutsMatch(layout, VertexLayouts::POSITION_NORMAL_COLOUR))
             {
                 return params.BuiltInMeshes[static_cast<size_t>(BuiltInMeshId::PrimitiveColour)];
             }
-            if (stride == VertexLayouts::PosNormalUVTangent.stride)
+            if (VertexLayoutsMatch(layout, VertexLayouts::POSITION_NORMAL_UV_TANGENT))
             {
                 return params.BuiltInMeshes[static_cast<size_t>(BuiltInMeshId::PrimitiveTextured)];
             }
@@ -142,8 +143,7 @@ namespace Wayfinder
 
         if (fillMode == RenderFillMode::Solid || fillMode == RenderFillMode::SolidAndWireframe)
         {
-            const Mesh* meshPtr = resolveMesh();
-
+            const auto* meshPtr = resolveMesh();
             if (!meshPtr || !meshPtr->IsValid())
             {
                 return;
@@ -163,15 +163,12 @@ namespace Wayfinder
 
         if (fillMode == RenderFillMode::Wireframe || fillMode == RenderFillMode::SolidAndWireframe)
         {
-            const auto wireframeDesc = MakeWireframeVariant(program->Desc, shaderManager);
-            if (wireframeDesc)
+            if (const auto wireframeDesc = MakeWireframeVariant(program->Desc, shaderManager))
             {
                 const GPUPipelineHandle wireframePipeline = pipelineCache.GetOrCreate(*wireframeDesc);
                 if (wireframePipeline.IsValid())
                 {
-                    const Mesh* wireMeshPtr = resolveMesh();
-
-                    if (wireMeshPtr && wireMeshPtr->IsValid())
+                    if (const auto* wireMeshPtr = resolveMesh(); wireMeshPtr && wireMeshPtr->IsValid())
                     {
                         device.BindPipeline(wireframePipeline);
                         wireMeshPtr->Bind(device);

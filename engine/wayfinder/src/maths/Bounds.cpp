@@ -1,5 +1,7 @@
 #include "Bounds.h"
 
+#include "Maths.h"
+
 #include <algorithm>
 #include <cmath>
 
@@ -32,7 +34,7 @@ namespace Wayfinder
     BoundingSphere ComputeBoundingSphere(const AxisAlignedBounds& bounds)
     {
         const Float3 centre = (bounds.Min + bounds.Max) * 0.5f;
-        const float radius = glm::length(bounds.Max - centre);
+        const float radius = Maths::Length(bounds.Max - centre);
         return BoundingSphere{.Centre = centre, .Radius = radius};
     }
 
@@ -43,9 +45,9 @@ namespace Wayfinder
         /// non-uniform scale — the sphere may be slightly larger than necessary.
         const Float3 centre{transform * Float4(local.Centre, 1.0f)};
 
-        const float scaleX = glm::length(Float3{transform[0]});
-        const float scaleY = glm::length(Float3{transform[1]});
-        const float scaleZ = glm::length(Float3{transform[2]});
+        const float scaleX = Maths::Length(Float3{transform[0]});
+        const float scaleY = Maths::Length(Float3{transform[1]});
+        const float scaleZ = Maths::Length(Float3{transform[2]});
         const float maxScale = std::max({scaleX, scaleY, scaleZ});
 
         return BoundingSphere{.Centre = centre, .Radius = local.Radius * maxScale};

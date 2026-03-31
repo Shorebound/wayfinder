@@ -61,7 +61,7 @@ namespace Wayfinder::Maths
         return glm::rotate(matrix, angle, axis);
     }
 
-    Matrix4 ScaleMatrix(const Matrix4& matrix, const Float3& scale)
+    Matrix4 Scale(const Matrix4& matrix, const Float3& scale)
     {
         return glm::scale(matrix, scale);
     }

@@ -33,7 +33,7 @@ namespace Wayfinder
         auto result = Initialise();
         if (!result)
         {
-            WAYFINDER_ERROR(LogEngine, "Initialisation failed: {}", result.error().GetMessage());
+            Log::Error(LogEngine, "Initialisation failed: {}", result.error().GetMessage());
             Shutdown();
             return;
         }
@@ -44,9 +44,9 @@ namespace Wayfinder
 
     Result<void> Application::Initialise()
     {
-        Log::Init();
+        Log::Initialise();
         m_logInitialised = true;
-        WAYFINDER_INFO(LogEngine, "Initialising Wayfinder Engine");
+        Log::Info(LogEngine, "Initialising Wayfinder Engine");
 
         // 1. Discover project descriptor from CWD
         auto projectFile = FindProjectFile();
@@ -63,7 +63,7 @@ namespace Wayfinder
 
         for (const auto& warning : loadResult->Warnings)
         {
-            WAYFINDER_WARN(LogEngine, "Project: {}", warning);
+            Log::Warn(LogEngine, "Project: {}", warning);
         }
 
         m_project = std::make_unique<ProjectDescriptor>(std::move(loadResult->Descriptor));
@@ -246,7 +246,7 @@ namespace Wayfinder
 
     bool Application::OnWindowResize(WindowResizeEvent& e)
     {
-        WAYFINDER_INFO(LogEngine, "Window resized to {}x{}", e.GetWidth(), e.GetHeight());
+        Log::Info(LogEngine, "Window resized to {}x{}", e.GetWidth(), e.GetHeight());
         return false;
     }
 
@@ -259,7 +259,7 @@ namespace Wayfinder
     {
         if (m_config)
         {
-            WAYFINDER_INFO(LogEngine, "Shutting down Wayfinder Engine");
+            Log::Info(LogEngine, "Shutting down Wayfinder Engine");
 
             if (m_pluginRegistry && m_pluginsStarted)
             {

@@ -29,7 +29,7 @@ namespace Wayfinder
 
     Result<void> EngineRuntime::Initialise()
     {
-        WAYFINDER_INFO(LogEngine, "Initialising EngineRuntime");
+        Log::Info(LogEngine, "Initialising EngineRuntime");
 
         // Blendable effect registry — available to all subsystems (scene, rendering, etc.)
         BlendableEffectRegistry::SetActiveInstance(&m_blendableEffectRegistry);
@@ -38,7 +38,7 @@ namespace Wayfinder
         m_input = Input::Create(m_config.Backends.Platform);
         if (!m_input)
         {
-            WAYFINDER_ERROR(LogEngine, "EngineRuntime: Failed to create Input");
+            Log::Error(LogEngine, "EngineRuntime: Failed to create Input");
             Shutdown();
             return MakeError("Failed to create Input");
         }
@@ -46,7 +46,7 @@ namespace Wayfinder
         m_time = Time::Create(m_config.Backends.Platform);
         if (!m_time)
         {
-            WAYFINDER_ERROR(LogEngine, "EngineRuntime: Failed to create Time");
+            Log::Error(LogEngine, "EngineRuntime: Failed to create Time");
             Shutdown();
             return MakeError("Failed to create Time");
         }
@@ -57,14 +57,14 @@ namespace Wayfinder
         m_window = Window::Create(windowConfig, m_config.Backends.Platform);
         if (!m_window)
         {
-            WAYFINDER_ERROR(LogEngine, "EngineRuntime: Failed to create Window");
+            Log::Error(LogEngine, "EngineRuntime: Failed to create Window");
             Shutdown();
             return MakeError("Failed to create Window");
         }
 
         if (auto result = m_window->Initialise(); !result)
         {
-            WAYFINDER_ERROR(LogEngine, "EngineRuntime: Failed to initialise Window — {}", result.error().GetMessage());
+            Log::Error(LogEngine, "EngineRuntime: Failed to initialise Window — {}", result.error().GetMessage());
             Shutdown();
             return std::unexpected(result.error());
         }
@@ -73,14 +73,14 @@ namespace Wayfinder
         m_device = RenderDevice::Create(m_config.Backends.Rendering);
         if (!m_device)
         {
-            WAYFINDER_ERROR(LogEngine, "EngineRuntime: Failed to create RenderDevice");
+            Log::Error(LogEngine, "EngineRuntime: Failed to create RenderDevice");
             Shutdown();
             return MakeError("Failed to create RenderDevice");
         }
 
         if (auto result = m_device->Initialise(*m_window); !result)
         {
-            WAYFINDER_ERROR(LogEngine, "EngineRuntime: Failed to initialise RenderDevice — {}", result.error().GetMessage());
+            Log::Error(LogEngine, "EngineRuntime: Failed to initialise RenderDevice — {}", result.error().GetMessage());
             Shutdown();
             return std::unexpected(result.error());
         }
@@ -91,12 +91,12 @@ namespace Wayfinder
 
         if (auto result = m_renderer->Initialise(*m_device, m_config, &m_blendableEffectRegistry); !result)
         {
-            WAYFINDER_ERROR(LogEngine, "EngineRuntime: Failed to initialise Renderer — {}", result.error().GetMessage());
+            Log::Error(LogEngine, "EngineRuntime: Failed to initialise Renderer — {}", result.error().GetMessage());
             Shutdown();
             return std::unexpected(result.error());
         }
 
-        WAYFINDER_INFO(LogEngine, "EngineRuntime initialised");
+        Log::Info(LogEngine, "EngineRuntime initialised");
         return {};
     }
 
@@ -107,7 +107,7 @@ namespace Wayfinder
             return; // already shut down or never initialised
         }
 
-        WAYFINDER_INFO(LogEngine, "Shutting down EngineRuntime");
+        Log::Info(LogEngine, "Shutting down EngineRuntime");
 
         if (m_renderer)
         {

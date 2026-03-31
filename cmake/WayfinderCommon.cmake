@@ -56,6 +56,7 @@ target_compile_options(wayfinder_common INTERFACE
     # Common flags for MSVC
     $<$<CXX_COMPILER_ID:MSVC>:/W4>
     $<$<CXX_COMPILER_ID:MSVC>:/permissive->
+    $<$<CXX_COMPILER_ID:MSVC>:/Zc:preprocessor>
     $<$<CXX_COMPILER_ID:MSVC>:/utf-8>
     $<$<CXX_COMPILER_ID:MSVC>:/external:W0>
 )

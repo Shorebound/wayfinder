@@ -14,7 +14,7 @@ namespace Wayfinder
             {
                 return PlatformBackend::SDL3;
             }
-            WAYFINDER_WARN(LogEngine, "Unknown platform backend '{}', defaulting to SDL3", value);
+            Log::Warn(LogEngine, "Unknown platform backend '{}', defaulting to SDL3", value);
             return PlatformBackend::SDL3;
         }
 
@@ -28,7 +28,7 @@ namespace Wayfinder
             {
                 return RenderBackend::Null;
             }
-            WAYFINDER_WARN(LogEngine, "Unknown render backend '{}', defaulting to SDL_GPU", value);
+            Log::Warn(LogEngine, "Unknown render backend '{}', defaulting to SDL_GPU", value);
             return RenderBackend::SDL_GPU;
         }
     }
@@ -44,7 +44,7 @@ namespace Wayfinder
 
         if (!std::filesystem::exists(path))
         {
-            WAYFINDER_WARN(LogEngine, "Config file not found: {}. Using defaults.", path.string());
+            Log::Warn(LogEngine, "Config file not found: {}. Using defaults.", path.string());
             return config;
         }
 
@@ -111,6 +111,24 @@ namespace Wayfinder
                         config.Shaders.Directory = *v;
                     }
                 }
+                if (const auto* sourceDir = shaders->get("source_directory"); sourceDir != nullptr)
+                {
+                    if (auto v = sourceDir->value<std::string>())
+                    {
+                        config.Shaders.SourceDirectory = *v;
+                    }
+                    else
+                    {
+                        Log::Warn(LogEngine, "shaders.source_directory: expected a string, got {}",
+                            sourceDir->type() == toml::node_type::none             ? "unknown"
+                            : sourceDir->type() == toml::node_type::integer        ? "integer"
+                            : sourceDir->type() == toml::node_type::floating_point ? "float"
+                            : sourceDir->type() == toml::node_type::boolean        ? "boolean"
+                            : sourceDir->type() == toml::node_type::array          ? "array"
+                            : sourceDir->type() == toml::node_type::table          ? "table"
+                                                                                   : "non-string");
+                    }
+                }
             }
 
             if (const auto* physics = tbl.get_as<toml::table>("physics"))
@@ -124,11 +142,11 @@ namespace Wayfinder
                 }
             }
 
-            WAYFINDER_INFO(LogEngine, "Loaded config from: {}", path.string());
+            Log::Info(LogEngine, "Loaded config from: {}", path.string());
         }
         catch (const toml::parse_error& err)
         {
-            WAYFINDER_ERROR(LogEngine, "Failed to parse config file {}: {}", path.string(), err.what());
+            Log::Error(LogEngine, "Failed to parse config file {}: {}", path.string(), err.what());
         }
 
         return config;

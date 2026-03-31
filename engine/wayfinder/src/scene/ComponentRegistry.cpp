@@ -893,7 +893,7 @@ namespace Wayfinder
             }
             else if (data.contains("tags") && data.at("tags").is_array() && !data.at("tags").empty())
             {
-                Wayfinder::LogScene.GetLogger()->LogFormat(Wayfinder::LogVerbosity::Warning, "Entity specifies {0} tag(s) but no GameplayTagRegistry is available — tags will be ignored.", data.at("tags").size());
+                Log::Warn(LogScene, "Entity specifies {} tag(s) but no GameplayTagRegistry is available - tags will be ignored.", data.at("tags").size());
             }
             entity.AddComponent<Wayfinder::GameplayTagContainer>(container);
         }
@@ -945,13 +945,13 @@ namespace Wayfinder
             const Wayfinder::BlendableEffectRegistry* registry = Wayfinder::BlendableEffectRegistry::GetActiveInstance();
             if (registry == nullptr)
             {
-                WAYFINDER_WARN(LogScene, "ReadEffect: BlendableEffectRegistry not active — blendable effect skipped");
+                Log::Warn(LogScene, "ReadEffect: BlendableEffectRegistry not active — blendable effect skipped");
                 return std::nullopt;
             }
 
             if (!effectData.contains("type") || !effectData.at("type").is_string())
             {
-                WAYFINDER_WARN(LogScene, "ReadEffect: missing or non-string \"type\" — skipped");
+                Log::Warn(LogScene, "ReadEffect: missing or non-string \"type\" — skipped");
                 return std::nullopt;
             }
 
@@ -960,7 +960,7 @@ namespace Wayfinder
             const std::optional<Wayfinder::BlendableEffectId> idOpt = registry->FindIdByName(normalised);
             if (!idOpt.has_value())
             {
-                WAYFINDER_WARN(LogScene, "ReadEffect: unknown effect type '{}' — skipped", typeStr);
+                Log::Warn(LogScene, "ReadEffect: unknown effect type '{}' — skipped", typeStr);
                 return std::nullopt;
             }
 
@@ -976,7 +976,7 @@ namespace Wayfinder
             {
                 if (!effectData.at("enabled").is_boolean())
                 {
-                    WAYFINDER_WARN(LogScene, "ReadEffect: \"enabled\" must be a boolean — skipped");
+                    Log::Warn(LogScene, "ReadEffect: \"enabled\" must be a boolean — skipped");
                     return std::nullopt;
                 }
                 effect.Enabled = effectData.at("enabled").get<bool>();
@@ -1201,7 +1201,7 @@ namespace Wayfinder
                 for (const auto& effect : volume.Effects)
                 {
                     const Wayfinder::BlendableEffectDesc* desc = registry->Find(effect.TypeId);
-                    WAYFINDER_ASSERT(desc && desc->Serialise);
+                    WAYFINDER_ASSERT(desc && desc->Serialise, "BlendableEffectDesc missing or has no Serialise function");
 
                     nlohmann::json effectTable;
                     effectTable["type"] = std::string{desc->Name};

@@ -15,20 +15,18 @@ namespace Wayfinder
     /// The cache resolves shader bytecode through ShaderManager before creating the pipeline.
     struct GPUPipelineDesc
     {
-        std::string vertexShaderName;
-        std::string fragmentShaderName;
-        ShaderResourceCounts vertexResources{.numUniformBuffers = 1};
-        ShaderResourceCounts fragmentResources{};
-        VertexLayout vertexLayout{};
-        PrimitiveType primitiveType = PrimitiveType::TriangleList;
-        CullMode cullMode = CullMode::Back;
-        FillMode fillMode = FillMode::Fill;
-        FrontFace frontFace = FrontFace::CounterClockwise;
-        bool depthTestEnabled = false;
-        bool depthWriteEnabled = false;
-        uint32_t numColourTargets = 1;
-        std::array<TextureFormat, MAX_COLOUR_TARGETS> colourTargetFormats{};
-        std::array<BlendState, MAX_COLOUR_TARGETS> colourTargetBlends{};
+        std::string VertexShaderName;
+        std::string FragmentShaderName;
+        VertexLayout VertexLayout{};
+        PrimitiveType PrimitiveType = PrimitiveType::TriangleList;
+        CullMode CullMode = CullMode::Back;
+        FillMode FillMode = FillMode::Fill;
+        FrontFace FrontFace = FrontFace::CounterClockwise;
+        bool DepthTestEnabled = false;
+        bool DepthWriteEnabled = false;
+        uint32_t ColourTargetCount = 1;
+        std::array<TextureFormat, MAX_COLOUR_TARGETS> ColourTargetFormats{};
+        std::array<BlendState, MAX_COLOUR_TARGETS> ColourTargetBlends{};
     };
 
     /// Caches GPU pipeline handles by configuration hash.
@@ -45,6 +43,10 @@ namespace Wayfinder
 
         void Initialise(RenderDevice& device);
         void Shutdown();
+
+        /// Destroys all cached pipelines and clears the cache.
+        /// Used by ReloadShaders to force pipeline recreation.
+        void InvalidateAll();
 
         /// Returns an existing pipeline for this configuration, or creates and caches a new one.
         /// The cache owns the returned handle — callers must not destroy it.

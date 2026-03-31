@@ -79,7 +79,7 @@ namespace Wayfinder::Plugins
     {
         if (libraryPath.empty())
         {
-            WAYFINDER_ERROR(LogEngine, "PluginLoader: empty library path");
+            Log::Error(LogEngine, "PluginLoader: empty library path");
             return MakeError("Empty library path");
         }
 
@@ -87,7 +87,7 @@ namespace Wayfinder::Plugins
         HMODULE handle = LoadLibraryW(libraryPath.c_str());
         if (!handle)
         {
-            WAYFINDER_ERROR(LogEngine, "PluginLoader: failed to load '{}' (error {})", libraryPath.string(), GetLastError());
+            Log::Error(LogEngine, "PluginLoader: failed to load '{}' (error {})", libraryPath.string(), GetLastError());
             return MakeError("Failed to load shared library");
         }
 
@@ -96,7 +96,7 @@ namespace Wayfinder::Plugins
         void* handle = dlopen(libraryPath.c_str(), RTLD_NOW | RTLD_LOCAL);
         if (!handle)
         {
-            WAYFINDER_ERROR(LogEngine, "PluginLoader: failed to load '{}': {}", libraryPath.string(), dlerror());
+            Log::Error(LogEngine, "PluginLoader: failed to load '{}': {}", libraryPath.string(), dlerror());
             return MakeError("Failed to load shared library");
         }
 
@@ -105,7 +105,7 @@ namespace Wayfinder::Plugins
 
         if (!versionFn)
         {
-            WAYFINDER_ERROR(LogEngine, "PluginLoader: '{}' missing WayfinderGetPluginAPIVersion export", libraryPath.string());
+            Log::Error(LogEngine, "PluginLoader: '{}' missing WayfinderGetPluginAPIVersion export", libraryPath.string());
 #ifdef _WIN32
             FreeLibrary(handle);
 #else
@@ -117,7 +117,7 @@ namespace Wayfinder::Plugins
         const uint32_t pluginAbi = versionFn();
         if (pluginAbi != WAYFINDER_PLUGIN_ABI_VERSION)
         {
-            WAYFINDER_ERROR(LogEngine, "PluginLoader: '{}' ABI mismatch (plugin {}, engine {})", libraryPath.string(), pluginAbi, WAYFINDER_PLUGIN_ABI_VERSION);
+            Log::Error(LogEngine, "PluginLoader: '{}' ABI mismatch (plugin {}, engine {})", libraryPath.string(), pluginAbi, WAYFINDER_PLUGIN_ABI_VERSION);
 #ifdef _WIN32
             FreeLibrary(handle);
 #else
@@ -136,7 +136,7 @@ namespace Wayfinder::Plugins
 
         if (!createFn || !destroyFn)
         {
-            WAYFINDER_ERROR(
+            Log::Error(
                 LogEngine, "PluginLoader: '{}' missing required exports (WayfinderCreateGamePlugin={}, WayfinderDestroyGamePlugin={})", libraryPath.string(), static_cast<bool>(createFn), static_cast<bool>(destroyFn));
 #ifdef _WIN32
             FreeLibrary(handle);
@@ -149,15 +149,15 @@ namespace Wayfinder::Plugins
         LoadedPlugin result;
         result.Instance = createFn();
         result.m_destroyFn = destroyFn;
-        result.m_libraryHandle = static_cast<void*>(handle);
+        result.m_libraryHandle = handle;
 
         if (!result.Instance)
         {
-            WAYFINDER_ERROR(LogEngine, "PluginLoader: WayfinderCreateGamePlugin() returned null for '{}'", libraryPath.string());
+            Log::Error(LogEngine, "PluginLoader: WayfinderCreateGamePlugin() returned null for '{}'", libraryPath.string());
             return MakeError("WayfinderCreateGamePlugin returned null");
         }
 
-        WAYFINDER_INFO(LogEngine, "PluginLoader: loaded game plugin from '{}'", libraryPath.string());
+        Log::Info(LogEngine, "PluginLoader: loaded game plugin from '{}'", libraryPath.string());
         return result;
     }
 

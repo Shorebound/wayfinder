@@ -10,6 +10,7 @@ rendering = "sdl_gpu"
 
 [shaders]
 directory = "assets/shaders"
+source_directory = "../../engine/wayfinder/shaders"
 
 [physics]
 fixed_timestep = 0.01666666666667 # 60 Hz

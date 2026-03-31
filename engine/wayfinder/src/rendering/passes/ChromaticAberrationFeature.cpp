@@ -16,7 +16,7 @@ namespace Wayfinder
 {
     namespace
     {
-        /// Matches `chromatic_aberration.frag` cbuffer (std140).
+        /// Matches `chromatic_aberration.slang` fragment UBO (std140).
         struct alignas(16) ChromaticAberrationUBO
         {
             Float4 IntensityPad{};
@@ -29,43 +29,39 @@ namespace Wayfinder
         return RenderCapabilities::RASTER;
     }
 
+    std::span<const ShaderProgramDesc> ChromaticAberrationFeature::GetShaderPrograms() const
+    {
+        static const auto PROGRAMS = []
+        {
+            ShaderProgramDesc desc;
+            desc.Name = "chromatic_aberration";
+            desc.VertexShaderName = "chromatic_aberration";
+            desc.FragmentShaderName = "chromatic_aberration";
+            desc.VertexLayout = VertexLayouts::EMPTY;
+            desc.Cull = CullMode::None;
+            desc.DepthTest = false;
+            desc.DepthWrite = false;
+            desc.MaterialUBOSize = sizeof(ChromaticAberrationUBO);
+            desc.VertexUBOSize = 0;
+            desc.NeedsSceneGlobals = false;
+            return std::vector{desc};
+        }();
+
+        return PROGRAMS;
+    }
+
+    void ChromaticAberrationFeature::OnRegisterEffects(BlendableEffectRegistry& registry)
+    {
+        m_effectId = registry.Register<ChromaticAberrationParams>("chromatic_aberration");
+        if (m_effectId == INVALID_BLENDABLE_EFFECT_ID)
+        {
+            Log::Error(LogRenderer, "ChromaticAberrationFeature: failed to register chromatic_aberration blendable type");
+        }
+    }
+
     void ChromaticAberrationFeature::OnAttach(const RenderFeatureContext& context)
     {
         m_context = &context.Context;
-        auto* reg = m_context->GetBlendableEffectRegistry();
-        if (!reg)
-        {
-            WAYFINDER_WARN(LogRenderer, "ChromaticAberrationFeature: no BlendableEffectRegistry — effect not registered");
-            m_effectId = INVALID_BLENDABLE_EFFECT_ID;
-        }
-        else
-        {
-            m_effectId = reg->Register<ChromaticAberrationParams>("chromatic_aberration");
-            if (m_effectId == INVALID_BLENDABLE_EFFECT_ID)
-            {
-                WAYFINDER_ERROR(LogRenderer, "ChromaticAberrationFeature: failed to register chromatic_aberration blendable type");
-            }
-        }
-
-        auto& programs = m_context->GetPrograms();
-        ShaderProgramDesc desc;
-        desc.Name = "chromatic_aberration";
-        desc.VertexShaderName = "fullscreen";
-        desc.FragmentShaderName = "chromatic_aberration";
-        desc.VertexResources = {};
-        desc.FragmentResources = {.numUniformBuffers = 1, .numSamplers = 1};
-        desc.VertexLayout = VertexLayouts::Empty;
-        desc.Cull = CullMode::None;
-        desc.DepthTest = false;
-        desc.DepthWrite = false;
-        desc.MaterialUBOSize = sizeof(ChromaticAberrationUBO);
-        desc.VertexUBOSize = 0;
-        desc.NeedsSceneGlobals = false;
-
-        if (!programs.Register(desc))
-        {
-            WAYFINDER_ERROR(LogRenderer, "ChromaticAberrationFeature: failed to register chromatic_aberration shader program");
-        }
     }
 
     void ChromaticAberrationFeature::OnDetach(const RenderFeatureContext& /*context*/)
@@ -112,7 +108,7 @@ namespace Wayfinder
                 const auto inTex = resources.GetTexture(inputHandle);
                 if (!prog || !prog->Pipeline.IsValid() || !inTex || !nearest)
                 {
-                    WAYFINDER_ERROR(LogRenderer, "ChromaticAberration: missing program, pipeline, input, or sampler — skipped");
+                    Log::Error(LogRenderer, "ChromaticAberration: missing program, pipeline, input, or sampler — skipped");
                     return;
                 }
 

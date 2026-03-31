@@ -1,8 +1,12 @@
 #include "app/EngineConfig.h"
 #include "rendering/backend/RenderDevice.h"
 #include "rendering/graph/RenderFeature.h"
+#include "rendering/materials/ShaderProgram.h"
 #include "rendering/passes/ChromaticAberrationFeature.h"
 #include "rendering/passes/ColourGradingFeature.h"
+#include "rendering/passes/CompositionPass.h"
+#include "rendering/passes/DebugPass.h"
+#include "rendering/passes/SceneOpaquePass.h"
 #include "rendering/passes/VignetteFeature.h"
 #include "rendering/pipeline/RenderServices.h"
 #include "volumes/BlendableEffectRegistry.h"
@@ -11,6 +15,7 @@
 
 #include <array>
 #include <cstddef>
+#include <string>
 
 #include <doctest/doctest.h>
 
@@ -28,7 +33,7 @@ namespace Wayfinder::Tests
         }
     } // namespace
 
-    TEST_CASE("ChromaticAberrationFeature OnAttach registers blendable type and shader program name")
+    TEST_CASE("chromatic aberration registers as blendable effect when effects are registered")
     {
         auto device = RenderDevice::Create(RenderBackend::Null);
         REQUIRE(device);
@@ -38,18 +43,17 @@ namespace Wayfinder::Tests
         REQUIRE(services.Initialise(*device, MakeTestConfig(), &registry));
 
         ChromaticAberrationFeature feature;
+        feature.OnRegisterEffects(registry);
         const RenderFeatureContext ctx{services};
         feature.OnAttach(ctx);
 
         REQUIRE(registry.FindIdByName("chromatic_aberration").has_value());
-        // Shader program entry exists only when `ShaderProgramRegistry::Register` creates a pipeline;
-        // with NullDevice and no shader assets that step may fail while blendable registration still succeeds.
 
         feature.OnDetach(ctx);
         services.Shutdown();
     }
 
-    TEST_CASE("VignetteFeature OnAttach registers blendable type and shader program name")
+    TEST_CASE("vignette registers as blendable effect when effects are registered")
     {
         auto device = RenderDevice::Create(RenderBackend::Null);
         REQUIRE(device);
@@ -58,7 +62,8 @@ namespace Wayfinder::Tests
         RenderServices services;
         REQUIRE(services.Initialise(*device, MakeTestConfig(), &registry));
 
-        Wayfinder::Rendering::VignetteFeature feature;
+        Wayfinder::VignetteFeature feature;
+        feature.OnRegisterEffects(registry);
         const RenderFeatureContext ctx{services};
         feature.OnAttach(ctx);
 
@@ -68,7 +73,7 @@ namespace Wayfinder::Tests
         services.Shutdown();
     }
 
-    TEST_CASE("ColourGradingFeature OnAttach registers blendable type and shader program name")
+    TEST_CASE("colour grading registers as blendable effect when effects are registered")
     {
         auto device = RenderDevice::Create(RenderBackend::Null);
         REQUIRE(device);
@@ -78,6 +83,7 @@ namespace Wayfinder::Tests
         REQUIRE(services.Initialise(*device, MakeTestConfig(), &registry));
 
         ColourGradingFeature feature;
+        feature.OnRegisterEffects(registry);
         const RenderFeatureContext ctx{services};
         feature.OnAttach(ctx);
 
@@ -119,6 +125,108 @@ namespace Wayfinder::Tests
         CHECK(offsetof(ColourGradingUBO, Lift) == 16);
         CHECK(offsetof(ColourGradingUBO, Gamma) == 32);
         CHECK(offsetof(ColourGradingUBO, Gain) == 48);
+    }
+
+    TEST_CASE("GetShaderPrograms returns expected descriptors for each feature")
+    {
+        SUBCASE("SceneOpaquePass declares 4 programs with correct resource and depth settings")
+        {
+            SceneOpaquePass pass;
+            const auto programs = pass.GetShaderPrograms();
+            REQUIRE(programs.size() == 4);
+
+            // unlit: no scene globals, depth on
+            CHECK(programs[0].Name == "unlit");
+            CHECK(programs[0].VertexShaderName == "unlit");
+            CHECK(programs[0].FragmentShaderName == "unlit");
+            CHECK(programs[0].NeedsSceneGlobals == false);
+            CHECK(programs[0].DepthTest == true);
+            CHECK(programs[0].DepthWrite == true);
+            CHECK(VertexLayoutsMatch(programs[0].VertexLayout, VertexLayouts::POSITION_NORMAL_COLOUR));
+
+            // unlit_blended: alpha blend, depth read-only
+            CHECK(programs[1].Name == "unlit_blended");
+            CHECK(programs[1].DepthTest == true);
+            CHECK(programs[1].DepthWrite == false);
+
+            // basic_lit: needs scene globals for lighting
+            CHECK(programs[2].Name == "basic_lit");
+            CHECK(programs[2].NeedsSceneGlobals == true);
+
+            // textured_lit: needs scene globals + texture sampler
+            CHECK(programs[3].Name == "textured_lit");
+            CHECK(programs[3].NeedsSceneGlobals == true);
+            CHECK(VertexLayoutsMatch(programs[3].VertexLayout, VertexLayouts::POSITION_NORMAL_UV_TANGENT));
+            CHECK(programs[3].TextureSlots.size() == 1);
+        }
+
+        SUBCASE("ChromaticAberrationFeature declares fullscreen pass with sampler input")
+        {
+            ChromaticAberrationFeature feature;
+            const auto programs = feature.GetShaderPrograms();
+            REQUIRE(programs.size() == 1);
+            CHECK(programs[0].Name == "chromatic_aberration");
+            CHECK(programs[0].VertexShaderName == "chromatic_aberration");
+            CHECK(programs[0].VertexLayout.AttributeCount == 0);
+            CHECK(programs[0].NeedsSceneGlobals == false);
+            CHECK(programs[0].DepthTest == false);
+        }
+
+        SUBCASE("VignetteFeature declares fullscreen pass with sampler input")
+        {
+            VignetteFeature feature;
+            const auto programs = feature.GetShaderPrograms();
+            REQUIRE(programs.size() == 1);
+            CHECK(programs[0].Name == "vignette");
+            CHECK(programs[0].VertexShaderName == "vignette");
+            CHECK(programs[0].VertexLayout.AttributeCount == 0);
+            CHECK(programs[0].NeedsSceneGlobals == false);
+            CHECK(programs[0].DepthTest == false);
+        }
+
+        SUBCASE("ColourGradingFeature declares fullscreen pass with sampler input")
+        {
+            ColourGradingFeature feature;
+            const auto programs = feature.GetShaderPrograms();
+            REQUIRE(programs.size() == 1);
+            CHECK(programs[0].Name == "colour_grading");
+            CHECK(programs[0].VertexShaderName == "colour_grading");
+            CHECK(programs[0].VertexLayout.AttributeCount == 0);
+            CHECK(programs[0].NeedsSceneGlobals == false);
+            CHECK(programs[0].DepthTest == false);
+        }
+
+        SUBCASE("CompositionPass declares sampler-only blit with no UBO")
+        {
+            CompositionPass pass;
+            const auto programs = pass.GetShaderPrograms();
+            REQUIRE(programs.size() == 1);
+            CHECK(programs[0].Name == "composition_blit");
+            CHECK(programs[0].VertexShaderName == "fullscreen_copy");
+            CHECK(programs[0].FragmentShaderName == "fullscreen_copy");
+            CHECK(programs[0].VertexLayout.AttributeCount == 0);
+            CHECK(programs[0].NeedsSceneGlobals == false);
+            CHECK(programs[0].MaterialUBOSize == 0);
+        }
+
+        SUBCASE("DebugPass declares line and solid geometry programs")
+        {
+            DebugPass pass;
+            const auto programs = pass.GetShaderPrograms();
+            REQUIRE(programs.size() == 2);
+
+            // Lines: PosColour, no depth, no culling
+            CHECK(programs[0].Name == "debug_unlit");
+            CHECK(VertexLayoutsMatch(programs[0].VertexLayout, VertexLayouts::POSITION_COLOUR));
+            CHECK(programs[0].Cull == CullMode::None);
+            CHECK(programs[0].DepthTest == false);
+
+            // Solid boxes: PosNormalColour, back-face culled
+            CHECK(programs[1].Name == "debug_solid");
+            CHECK(programs[1].VertexShaderName == "unlit");
+            CHECK(VertexLayoutsMatch(programs[1].VertexLayout, VertexLayouts::POSITION_NORMAL_COLOUR));
+            CHECK(programs[1].Cull == CullMode::Back);
+        }
     }
 
 } // namespace Wayfinder::Tests

@@ -785,7 +785,7 @@ namespace Wayfinder::Tests
                 Quaternion q(rotQ.w, rotQ.x, rotQ.y, rotQ.z);
                 Matrix4 rotMat = Maths::ToMatrix4(q);
                 Matrix4 translateMat = Maths::Translate(Matrix4(1.0f), pos);
-                Matrix4 scaleMat = Maths::ScaleMatrix(Matrix4(1.0f), wt.Scale);
+                Matrix4 scaleMat = Maths::Scale(Matrix4(1.0f), wt.Scale);
                 wt.LocalToWorld = translateMat * rotMat * scaleMat;
             });
 

@@ -10,30 +10,30 @@ namespace Wayfinder
         m_indexCapacity = indexCapacity;
 
         BufferCreateDesc vertexDesc{};
-        vertexDesc.usage = BufferUsage::Vertex;
-        vertexDesc.sizeInBytes = vertexCapacity;
+        vertexDesc.Usage = BufferUsage::Vertex;
+        vertexDesc.SizeInBytes = vertexCapacity;
 
         m_vertexRing = device.CreateBuffer(vertexDesc);
         if (!m_vertexRing)
         {
-            WAYFINDER_ERROR(LogRenderer, "TransientBufferAllocator: Failed to create vertex ring buffer ({} bytes)", vertexCapacity);
+            Log::Error(LogRenderer, "TransientBufferAllocator: Failed to create vertex ring buffer ({} bytes)", vertexCapacity);
             return false;
         }
 
         BufferCreateDesc indexDesc{};
-        indexDesc.usage = BufferUsage::Index;
-        indexDesc.sizeInBytes = indexCapacity;
+        indexDesc.Usage = BufferUsage::Index;
+        indexDesc.SizeInBytes = indexCapacity;
 
         m_indexRing = device.CreateBuffer(indexDesc);
         if (!m_indexRing)
         {
-            WAYFINDER_ERROR(LogRenderer, "TransientBufferAllocator: Failed to create index ring buffer ({} bytes)", indexCapacity);
+            Log::Error(LogRenderer, "TransientBufferAllocator: Failed to create index ring buffer ({} bytes)", indexCapacity);
             device.DestroyBuffer(m_vertexRing);
             m_vertexRing = {};
             return false;
         }
 
-        WAYFINDER_INFO(LogRenderer, "TransientBufferAllocator initialised (vertex: {} KB, index: {} KB)", vertexCapacity / 1024, indexCapacity / 1024);
+        Log::Info(LogRenderer, "TransientBufferAllocator initialised (vertex: {} KB, index: {} KB)", vertexCapacity / 1024, indexCapacity / 1024);
 
         return true;
     }
@@ -90,12 +90,12 @@ namespace Wayfinder
 
         if (alignedCursor + sizeInBytes > capacity)
         {
-            WAYFINDER_WARN(LogRenderer, "TransientBufferAllocator: Ring buffer overflow ({} + {} > {} bytes)", alignedCursor, sizeInBytes, capacity);
+            Log::Warn(LogRenderer, "TransientBufferAllocator: Ring buffer overflow ({} + {} > {} bytes)", alignedCursor, sizeInBytes, capacity);
             return {};
         }
 
         const uint32_t offset = alignedCursor;
-        m_device->UploadToBuffer(ring, data, {.sizeInBytes = sizeInBytes, .dstOffsetInBytes = offset});
+        m_device->UploadToBuffer(ring, data, {.SizeInBytes = sizeInBytes, .DstOffsetInBytes = offset});
         cursor = alignedCursor + sizeInBytes;
 
         return {.Buffer = ring, .Offset = offset, .Size = sizeInBytes};

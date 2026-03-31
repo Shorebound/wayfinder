@@ -38,7 +38,7 @@ namespace Wayfinder::Tests
         TEST_CASE("Register adds a state descriptor")
         {
             StateRegistrar registrar;
-            registrar.Register({"MainMenu", nullptr, nullptr});
+            auto Result = registrar.Register({"MainMenu", nullptr, nullptr});
 
             CHECK(registrar.GetDescriptors().size() == 1);
             CHECK(registrar.GetDescriptors()[0].Name == "MainMenu");
@@ -47,8 +47,8 @@ namespace Wayfinder::Tests
         TEST_CASE("Duplicate state registration is rejected")
         {
             StateRegistrar registrar;
-            registrar.Register({"MainMenu", nullptr, nullptr});
-            registrar.Register({"MainMenu", nullptr, nullptr}); // duplicate
+            auto Result1 = registrar.Register({"MainMenu", nullptr, nullptr});
+            auto Result2 = registrar.Register({"MainMenu", nullptr, nullptr}); // duplicate
 
             CHECK(registrar.GetDescriptors().size() == 1);
         }
@@ -56,7 +56,7 @@ namespace Wayfinder::Tests
         TEST_CASE("SetInitial sets the initial state name")
         {
             StateRegistrar registrar;
-            registrar.Register({"MainMenu", nullptr, nullptr});
+            auto Result = registrar.Register({"MainMenu", nullptr, nullptr});
             registrar.SetInitial("MainMenu");
 
             CHECK(registrar.GetInitial() == "MainMenu");

@@ -18,6 +18,7 @@ namespace Wayfinder
     {
         if (field.Active)
         {
+            // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-avoid-unchecked-container-access)
             json[std::string{key}] = nlohmann::json::array({field.Value.x, field.Value.y, field.Value.z});
         }
     }
@@ -39,7 +40,7 @@ namespace Wayfinder
             const auto& e2 = (*it)[2];
             if (!e0.is_number() || !e1.is_number() || !e2.is_number())
             {
-                WAYFINDER_WARN(LogScene, "ReadOverrideField: key \"{}\" — expected three numeric array elements", key);
+                Log::Warn(LogScene, "ReadOverrideField: key \"{}\" — expected three numeric array elements", key);
                 return;
             }
             field = Override<Float3>::Set(Float3{e0.get<float>(), e1.get<float>(), e2.get<float>()});

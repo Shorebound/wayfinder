@@ -1,10 +1,13 @@
 #include "Frustum.h"
 
+#include "Maths.h"
+
+#include <algorithm>
 #include <cmath>
 
 namespace Wayfinder
 {
-    Frustum Frustum::ExtractPlanes(const Matrix4& vp)
+    Frustum Frustum::ExtractPlanes(const Matrix4& viewProjection)
     {
         /// Gribb/Hartmann method: extract frustum planes from the rows of the
         /// combined view-projection matrix.  Each plane is the sum/difference
@@ -12,17 +15,17 @@ namespace Wayfinder
         ///
         /// For RH_ZO (right-handed, zero-to-one depth), the near and far planes
         /// differ from the classic [-1,1] derivation:
-        ///   Near  = row3            (z >= 0)
+        ///   Near  = row2            (z >= 0)
         ///   Far   = row3 - row2     (z <= 1)
 
-        Frustum f{};
+        Frustum frustum{};
 
         // GLM stores column-major: vp[col][row].
         // Row i of the matrix = (vp[0][i], vp[1][i], vp[2][i], vp[3][i]).
 
         auto row = [&](int i) -> Float4
         {
-            return {vp[0][i], vp[1][i], vp[2][i], vp[3][i]};
+            return {viewProjection[0][i], viewProjection[1][i], viewProjection[2][i], viewProjection[3][i]};
         };
 
         const Float4 r0 = row(0);
@@ -49,16 +52,16 @@ namespace Wayfinder
         for (int i = 0; i < 6; ++i)
         {
             const Float3 normal{raw[i].x, raw[i].y, raw[i].z};
-            const float len = std::sqrt(glm::dot(normal, normal));
-            if (len > 0.0f)
+            const float length = std::sqrt(Maths::Dot(normal, normal));
+            if (length > 0.0f)
             {
-                const float invLen = 1.0f / len;
-                f.Planes[i].Normal = normal * invLen;
-                f.Planes[i].Distance = raw[i].w * invLen;
+                const float inverseLength = 1.0f / length;
+                frustum.Planes[i].Normal = normal * inverseLength;
+                frustum.Planes[i].Distance = raw[i].w * inverseLength;
             }
         }
 
-        return f;
+        return frustum;
     }
 
     bool Frustum::TestAABB(const AxisAlignedBounds& worldBounds) const
@@ -70,41 +73,29 @@ namespace Wayfinder
         /// This is the standard "p-vertex / n-vertex" test and is conservative: it produces
         /// no false negatives but can produce false positives for boxes that straddle a corner.
 
-        const Float3& mn = worldBounds.Min;
-        const Float3& mx = worldBounds.Max;
+        const Float3& min = worldBounds.Min;
+        const Float3& max = worldBounds.Max;
 
-        for (const FrustumPlane& plane : Planes)
+        return std::ranges::all_of(Planes, [&](const FrustumPlane& plane)
         {
-            // Select the p-vertex: for each axis, pick Max if normal is positive, Min otherwise.
-            const Float3 pVertex{
-                plane.Normal.x >= 0.0f ? mx.x : mn.x,
-                plane.Normal.y >= 0.0f ? mx.y : mn.y,
-                plane.Normal.z >= 0.0f ? mx.z : mn.z,
+            const Float3 vertex{
+                plane.Normal.x >= 0.0f ? max.x : min.x,
+                plane.Normal.y >= 0.0f ? max.y : min.y,
+                plane.Normal.z >= 0.0f ? max.z : min.z,
             };
 
-            // Signed distance from plane to p-vertex.
-            const float dist = glm::dot(plane.Normal, pVertex) + plane.Distance;
-            if (dist < 0.0f)
-            {
-                return false; // Entirely outside this plane.
-            }
-        }
-
-        return true;
+            const float distance = Maths::Dot(plane.Normal, vertex) + plane.Distance;
+            return distance >= 0.0f; // Not entirely outside this plane.
+        });
     }
 
     bool Frustum::TestSphere(const BoundingSphere& sphere) const
     {
-        for (const FrustumPlane& plane : Planes)
+        return std::ranges::all_of(Planes, [&](const FrustumPlane& plane)
         {
-            const float dist = glm::dot(plane.Normal, sphere.Centre) + plane.Distance;
-            if (dist < -sphere.Radius)
-            {
-                return false; // Entirely outside this plane.
-            }
-        }
-
-        return true;
+            const float distance = Maths::Dot(plane.Normal, sphere.Centre) + plane.Distance;
+            return distance >= -sphere.Radius; // Not entirely outside this plane.
+        });
     }
 
     bool Frustum::TestBounds(const BoundingSphere& sphere, const AxisAlignedBounds& aabb) const

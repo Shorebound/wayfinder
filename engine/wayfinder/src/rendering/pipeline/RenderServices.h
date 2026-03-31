@@ -13,10 +13,12 @@
 #include "volumes/BlendableEffectRegistry.h"
 
 #include <cassert>
+#include <memory>
 
 namespace Wayfinder
 {
     class RenderDevice;
+    class SlangCompiler;
     struct EngineConfig;
 
     /// Owns the shared GPU resource infrastructure used by the frame composer,
@@ -25,8 +27,8 @@ namespace Wayfinder
     class WAYFINDER_API RenderServices
     {
     public:
-        RenderServices() = default;
-        ~RenderServices() = default;
+        RenderServices();
+        ~RenderServices();
 
         RenderServices(const RenderServices&) = delete;
         RenderServices& operator=(const RenderServices&) = delete;
@@ -35,6 +37,19 @@ namespace Wayfinder
 
         Result<void> Initialise(RenderDevice& device, const EngineConfig& config, BlendableEffectRegistry* registry = nullptr);
         void Shutdown();
+
+        /**
+         * @brief Invalidates all shaders, programs and pipelines, then rebuilds.
+         *
+         * Resets the Slang session (clearing cached modules), destroys all GPU
+         * shader/pipeline handles, and - if an orchestrator is provided -
+         * re-registers every shader program and per-pass pipeline.
+         *
+         * @param orchestrator  Optional. When non-null, RebuildPipelines() is
+         *                      called automatically so the system is left in a
+         *                      fully valid state for the next frame.
+         */
+        void ReloadShaders(class RenderOrchestrator* orchestrator = nullptr);
 
         // ── Accessors ────────────────────────────────────────
         RenderDevice& GetDevice()
@@ -130,7 +145,7 @@ namespace Wayfinder
         const BuiltInMeshTable& GetBuiltInMeshes() const
         {
             assert(m_device && "RenderServices::GetBuiltInMeshes called before Initialise");
-            return m_builtInMeshPtrs;
+            return m_builtInMeshTable;
         }
 
         /// Seals the active BlendableEffectRegistry, preventing further registrations.
@@ -141,6 +156,7 @@ namespace Wayfinder
         RenderDevice* m_device = nullptr;
         BlendableEffectRegistry* m_blendableEffectRegistry = nullptr;
 
+        std::unique_ptr<SlangCompiler> m_slangCompiler;
         ShaderManager m_shaderManager;
         PipelineCache m_pipelineCache;
         ShaderProgramRegistry m_programRegistry;
@@ -152,7 +168,7 @@ namespace Wayfinder
 
         Mesh m_primitiveMesh;
         Mesh m_texturedPrimitiveMesh;
-        BuiltInMeshTable m_builtInMeshPtrs{};
+        BuiltInMeshTable m_builtInMeshTable{};
     };
 
 } // namespace Wayfinder
