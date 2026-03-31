@@ -59,6 +59,29 @@ namespace Wayfinder::Tests
             CHECK(fragment->Resources.Samplers == 1);
         }
 
+        TEST_CASE("reflection counts every binding range for parameter-block fixtures")
+        {
+            const std::string fixturesDir = ShaderFixturesDirStr();
+            SlangCompiler compiler;
+            SlangCompiler::InitDesc desc;
+            desc.SourceDirectory = fixturesDir;
+            REQUIRE(compiler.Initialise(desc).has_value());
+
+            auto vertex = compiler.Compile("reflect_multi_binding", "VSMain", ShaderStage::Vertex);
+            REQUIRE(vertex.has_value());
+            CHECK(vertex->Resources.UniformBuffers == 1);
+            CHECK(vertex->Resources.Samplers == 1);
+            CHECK(vertex->Resources.StorageTextures == 0);
+            CHECK(vertex->Resources.StorageBuffers == 0);
+
+            auto fragment = compiler.Compile("reflect_multi_binding", "PSMain", ShaderStage::Fragment);
+            REQUIRE(fragment.has_value());
+            CHECK(fragment->Resources.UniformBuffers == 1);
+            CHECK(fragment->Resources.Samplers == 1);
+            CHECK(fragment->Resources.StorageTextures == 0);
+            CHECK(fragment->Resources.StorageBuffers == 0);
+        }
+
         TEST_CASE("simple shader fixture has no resource bindings")
         {
             const std::string fixturesDir = ShaderFixturesDirStr();

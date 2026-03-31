@@ -72,6 +72,13 @@ Use doctest. Follow existing patterns in `tests/`.
 
 Formatting is enforced by `.clang-format`.
 
+- Check `engine/wayfinder/src/core/` before introducing a new foundational helper type.
+- Prefer existing engine primitives over ad hoc standard-library substitutes when the engine already models the concept.
+- If the engine doesn't have a primitive for a common concept (e.g. a `Result<T>` type for error handling), prefer a well-known, widely-used library implementation or roll a generic one in `core/` over introducing bespoke types in individual subsystems.
+- Use `InternedString` for stable, repeatedly-compared identifiers such as gameplay tags, pass names, graph keys, and similar long-lived ids. Do not use it for unbounded unique strings.
+- Prefer existing engine handle, identifier, and tag types over raw integers or free-form strings when those domain types already exist.
+- Use `Wayfinder::Log` category logging rather than ad hoc console output.
+
 ### Naming
 - British/Australian spelling throughout (`Initialise`, `Colour`, `Serialise`, `Behaviour`, etc.)
 - Types: PascalCase with suffixes for components/systems, and `I` prefix for interfaces
@@ -102,14 +109,8 @@ auto MapGuard = buffer.Map();  // RAII, unmaps on destruction
 ```
 
 ### Error Handling
-Custom `Result<TType, TError>` wrapping `std::expected`:
-
-```cpp
-template<typename TType, typename TError = Error>
-using Result = /* wrapped std::expected */;
-```
-
-- `Result<T>` for any fallible operation. `Result<T, SpecificError>` when the caller distinguishes categories.
+- Use `Result<TType, TError>` for recoverable failures instead of introducing ad hoc `bool` + out-parameter error flows or optional values. 
+- `Result<T, SpecificError>` when the caller distinguishes categories.
 - Exceptions only for truly unrecoverable situations. **Hot paths never throw.**
 - Descriptive error helpers: `IsSuccessful(code)`, `IsDeviceLost(result)`.
 
@@ -119,8 +120,7 @@ auto CompileShader(ShaderSource source) -> Result<ShaderModule, ShaderError>;
 ```
 
 ### Coroutines & Async
-- utilise them where they make sense, they can simplify code and architecture.
-- can be used for compile-time state machines, lazy sequences, async I/O, and more.
+- utilise them where they make sense, they can be used for compile-time state machines, lazy sequences, async I/O, and more.
 - `std::generator<T>` for lazy, pull-based sequences.
 - Engine-specific awaitables for async I/O, job queues, task graphs.
 - `[[nodiscard]]` on coroutine functions.

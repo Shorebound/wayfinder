@@ -11,6 +11,45 @@
 
 namespace Wayfinder
 {
+    namespace
+    {
+        auto ShaderStageLabel(const ShaderStage stage) -> const char*
+        {
+            switch (stage)
+            {
+            case ShaderStage::Vertex:
+                return "vertex";
+            case ShaderStage::Fragment:
+                return "fragment";
+            case ShaderStage::Compute:
+                return "compute";
+            default:
+                return "unknown";
+            }
+        }
+
+        auto ReadManifestStageCounts(const nlohmann::json& stageObject) -> ShaderResourceCounts
+        {
+            const auto readField = [&stageObject](const char* fieldName) -> uint32_t
+            {
+                const auto field = stageObject.find(fieldName);
+                if (field == stageObject.end())
+                {
+                    return 0;
+                }
+
+                return field->get<uint32_t>();
+            };
+
+            return {
+                .UniformBuffers = readField("uniformBuffers"),
+                .Samplers = readField("samplers"),
+                .StorageTextures = readField("storageTextures"),
+                .StorageBuffers = readField("storageBuffers"),
+            };
+        }
+    } // namespace
+
     void ShaderManager::Initialise(RenderDevice& device, std::string_view shaderDirectory, SlangCompiler* compiler)
     {
         m_device = &device;
@@ -50,43 +89,55 @@ namespace Wayfinder
             Log::Warn(LogRenderer, "ShaderManager: could not open manifest '{}'", manifestPath);
             return false;
         }
-
-        nlohmann::json doc;
         try
         {
-            doc = nlohmann::json::parse(file);
+            nlohmann::json doc = nlohmann::json::parse(file);
+            if (not doc.is_object())
+            {
+                Log::Error(LogRenderer, "ShaderManager: manifest '{}' must contain a JSON object at the root", manifestPath);
+                return false;
+            }
+
+            std::unordered_map<std::string, ManifestEntry> parsedManifest;
+            for (const auto& [shaderName, stages] : doc.items())
+            {
+                if (not stages.is_object())
+                {
+                    Log::Error(LogRenderer, "ShaderManager: manifest '{}' entry '{}' must be an object keyed by stage name", manifestPath, shaderName);
+                    return false;
+                }
+
+                const auto vertexIt = stages.find("vertex");
+                const auto fragmentIt = stages.find("fragment");
+                if (vertexIt == stages.end() or fragmentIt == stages.end())
+                {
+                    Log::Error(LogRenderer, "ShaderManager: manifest '{}' entry '{}' is missing required '{}' stage data", manifestPath, shaderName, (vertexIt == stages.end()) ? "vertex" : "fragment");
+                    return false;
+                }
+
+                if (not vertexIt->is_object() or not fragmentIt->is_object())
+                {
+                    Log::Error(LogRenderer, "ShaderManager: manifest '{}' entry '{}' stage payloads must be JSON objects", manifestPath, shaderName);
+                    return false;
+                }
+
+                parsedManifest.emplace(std::string(shaderName), ManifestEntry{
+                                                                    .Vertex = ReadManifestStageCounts(*vertexIt),
+                                                                    .Fragment = ReadManifestStageCounts(*fragmentIt),
+                                                                });
+            }
+
+            m_manifest = std::move(parsedManifest);
         }
-        catch (const nlohmann::json::parse_error& e)
+        catch (const nlohmann::json::exception& e)
         {
-            Log::Error(LogRenderer, "ShaderManager: failed to parse manifest '{}': {}", manifestPath, e.what());
+            Log::Error(LogRenderer, "ShaderManager: failed to load manifest '{}': {}", manifestPath, e.what());
             return false;
         }
-
-        m_manifest.clear();
-        for (const auto& [shaderName, stages] : doc.items())
+        catch (const std::exception& e)
         {
-            ManifestEntry entry{};
-
-            auto readCounts = [](const nlohmann::json& j) -> ShaderResourceCounts
-            {
-                return {
-                    .UniformBuffers = j.value("uniformBuffers", 0u),
-                    .Samplers = j.value("samplers", 0u),
-                    .StorageTextures = j.value("storageTextures", 0u),
-                    .StorageBuffers = j.value("storageBuffers", 0u),
-                };
-            };
-
-            if (stages.contains("vertex"))
-            {
-                entry.Vertex = readCounts(stages["vertex"]);
-            }
-            if (stages.contains("fragment"))
-            {
-                entry.Fragment = readCounts(stages["fragment"]);
-            }
-
-            m_manifest[shaderName] = entry;
+            Log::Error(LogRenderer, "ShaderManager: failed to load manifest '{}': {}", manifestPath, e.what());
+            return false;
         }
 
         Log::Info(LogRenderer, "ShaderManager: loaded manifest '{}' ({} shaders)", manifestPath, m_manifest.size());
@@ -172,8 +223,8 @@ namespace Wayfinder
         }
         if (not resolvedCounts)
         {
-            Log::Warn(LogRenderer, "ShaderManager: no resource counts for '{}' - shader_manifest.json entry missing; assuming zero bindings", name);
-            resolvedCounts = ShaderResourceCounts{};
+            Log::Error(LogRenderer, "ShaderManager: failed to resolve resource counts for '{}' ({}) - manifest lookup failed; refusing to create shader with an unknown resource layout", name, ShaderStageLabel(stage));
+            return GPUShaderHandle::Invalid();
         }
 
         const ShaderResourceCounts& resources = *resolvedCounts;

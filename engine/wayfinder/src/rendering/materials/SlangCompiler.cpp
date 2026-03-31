@@ -237,6 +237,12 @@ namespace Wayfinder
                     continue;
                 }
 
+                auto* typeLayout = param->getTypeLayout();
+                if (not typeLayout)
+                {
+                    continue;
+                }
+
                 const auto space = static_cast<SlangUInt>(param->getBindingSpace(SLANG_PARAMETER_CATEGORY_DESCRIPTOR_TABLE_SLOT));
                 const auto binding = static_cast<SlangUInt>(param->getOffset(SLANG_PARAMETER_CATEGORY_DESCRIPTOR_TABLE_SLOT));
 
@@ -246,29 +252,33 @@ namespace Wayfinder
                     continue;
                 }
 
-                const auto type = param->getTypeLayout()->getBindingRangeType(0);
-                switch (type)
+                const unsigned bindingRangeCount = typeLayout->getBindingRangeCount();
+                for (unsigned rangeIndex = 0; rangeIndex < bindingRangeCount; ++rangeIndex)
                 {
-                case slang::BindingType::ConstantBuffer:
-                case slang::BindingType::ParameterBlock:
-                    counts.UniformBuffers += 1;
-                    break;
-                case slang::BindingType::Sampler:
-                case slang::BindingType::Texture:
-                case slang::BindingType::CombinedTextureSampler:
-                    counts.Samplers += 1;
-                    break;
-                case slang::BindingType::MutableTexture:
-                    counts.StorageTextures += 1;
-                    break;
-                case slang::BindingType::RawBuffer:
-                case slang::BindingType::MutableRawBuffer:
-                case slang::BindingType::TypedBuffer:
-                case slang::BindingType::MutableTypedBuffer:
-                    counts.StorageBuffers += 1;
-                    break;
-                default:
-                    break;
+                    const auto type = typeLayout->getBindingRangeType(rangeIndex);
+                    switch (type)
+                    {
+                    case slang::BindingType::ConstantBuffer:
+                    case slang::BindingType::ParameterBlock:
+                        counts.UniformBuffers += 1;
+                        break;
+                    case slang::BindingType::Sampler:
+                    case slang::BindingType::Texture:
+                    case slang::BindingType::CombinedTextureSampler:
+                        counts.Samplers += 1;
+                        break;
+                    case slang::BindingType::MutableTexture:
+                        counts.StorageTextures += 1;
+                        break;
+                    case slang::BindingType::RawBuffer:
+                    case slang::BindingType::MutableRawBuffer:
+                    case slang::BindingType::TypedBuffer:
+                    case slang::BindingType::MutableTypedBuffer:
+                        counts.StorageBuffers += 1;
+                        break;
+                    default:
+                        break;
+                    }
                 }
             }
 
