@@ -36,11 +36,11 @@ enum class ShaderFormat : uint8_t { SPIRV, DXIL, MSL, WGSL, Unknown };
 ```
 
 Add a free function (or in a small `ShaderFormat.h` if preferred):
-- `ShaderFormatToExtension(ShaderFormat)` -> `".spv"`, `".dxil"`, `".metal"`, `".wgsl"`
-- `ShaderFormatToSubdirectory(ShaderFormat)` -> `"spirv"`, `"dxil"`, `"metal"`, `"wgsl"`
-- `ShaderFormatDisplayName(ShaderFormat)` -> `"SPIR-V"`, `"DXIL"`, `"MSL"`, `"WGSL"` (for logging)
+- `ShaderFormatToExtension(ShaderFormat)` -> `".spv"`, `".dxil"`, `".metal"`, `".wgsl"`, `".unknown"`
+- `ShaderFormatToSubdirectory(ShaderFormat)` -> `"spirv"`, `"dxil"`, `"metal"`, `"wgsl"`, `"unknown"`
+- `ShaderFormatDisplayName(ShaderFormat)` -> `"SPIR-V"`, `"DXIL"`, `"MSL"`, `"WGSL"`, `"Unknown"` (for logging)
 
-These are `constexpr` switch functions. Use `std::unreachable()` for the `Unknown` case.
+These are `constexpr` switch functions. The `Unknown` case returns a well-defined fallback (listed above) so callers get a safe result when a device query returns Unknown, rather than hitting undefined behaviour.
 
 ### Step 1.2: Add `Format` field to `ShaderCreateDesc`
 

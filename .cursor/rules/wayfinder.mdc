@@ -17,23 +17,15 @@ This project is greenfield. Breaking changes, rewrites, and architectural pivots
 - **Data-oriented design** — organise code and systems around the data they operate on, not around objects or features.
 - **Composition over inheritance** — component-based design, flat hierarchies, minimal virtual dispatch.
 - **Modular and extensible where it counts.** Systems that game or editor code touches must have clear extension points. Internal plumbing can be simple.
-
 - **Elegant by default.** Strive for APIs and systems that feel clean and satisfying to use. If two approaches are otherwise equal, pick the one that reads better and composes more naturally.
 - **Performance with clarity** — efficient code that stays readable. Optimise measured bottlenecks, not hunches.
-- **Production-quality framing from the start.** Implementations can be minimal, but the architecture, interfaces, data flow, and error handling must be sound enough to build on. We want scalable, production-ready systems. We do not want tutorial/prototype code. If a proposal, plan, or implementation doesn't meet that bar, rework it before moving on.
-
+- **Production-quality framing from the start.** Implementations can be minimal, but the architecture, interfaces, data flow, and error handling must be sound enough to build on. We want scalable, production-ready systems. Avoid tutorial/prototype-style code in committed paths unless explicitly marked `@prototype` with a replacement plan or issue link. If a proposal, plan, or implementation doesn't meet that bar, rework it before moving on.
 - **Modern design** — current best practices for language, architecture, and APIs; prefer unconventional approaches when they are better, but justify departures from “how engines usually do it.”
-
 - **Dynamic over baked** — prefer runtime computation over offline preprocessing.
 - **Data flows down, events flow up** — systems read data and produce data. Side effects go through event bus or command queue.
 - **Explicit over implicit** — capabilities are checked, passes are validated, nothing silently dropped.
 - **Engine is a library** — the game and editor are consumers. The engine never knows who's calling it.
 
-## Data Files
-
-- **TOML** for hand-authored content: configuration, input mappings, etc. It's more readable and forgiving for humans, and supports comments.
-- **JSON** for interchange formats, generated data, and anything benefiting from schema validation such as assets, scene descriptions, render graph definitions, etc. The strictness and tooling support help catch errors early.
-- Validate data files at load time with clear error messages for authors.
 
 ## Build
 
@@ -74,8 +66,8 @@ Formatting is enforced by `.clang-format`.
 
 - Check `engine/wayfinder/src/core/` before introducing a new foundational helper type.
 - Prefer existing engine primitives over ad hoc standard-library substitutes when the engine already models the concept.
-- If the engine doesn't have a primitive for a common concept (e.g. a `Result<T>` type for error handling), prefer a well-known, widely-used library implementation or roll a generic one in `core/` over introducing bespoke types in individual subsystems.
-- Use `InternedString` for stable, repeatedly-compared identifiers such as gameplay tags, pass names, graph keys, and similar long-lived ids. Do not use it for unbounded unique strings.
+- If the engine doesn't have a primitive for a common concept (e.g. a `Result<T>` type for error handling), prefer a well-known, widely used library implementation or roll a generic one in `core/` over introducing bespoke types in individual subsystems.
+- Use `InternedString` for stable, repeatedly compared identifiers such as gameplay tags, pass names, graph keys, and similar long-lived ids. Do not use it for unbounded unique strings.
 - Prefer existing engine handle, identifier, and tag types over raw integers or free-form strings when those domain types already exist.
 - Use `Wayfinder::Log` category logging rather than ad hoc console output.
 
@@ -109,7 +101,7 @@ auto MapGuard = buffer.Map();  // RAII, unmaps on destruction
 ```
 
 ### Error Handling
-- Use `Result<TType, TError>` for recoverable failures instead of introducing ad hoc `bool` + out-parameter error flows or optional values. 
+- Use `core/Result.h` for recoverable failures instead of introducing ad hoc `bool` + out-parameter error flows or optional values. 
 - `Result<T, SpecificError>` when the caller distinguishes categories.
 - Exceptions only for truly unrecoverable situations. **Hot paths never throw.**
 - Descriptive error helpers: `IsSuccessful(code)`, `IsDeviceLost(result)`.
@@ -120,16 +112,8 @@ auto CompileShader(ShaderSource source) -> Result<ShaderModule, ShaderError>;
 ```
 
 ### Coroutines & Async
-- utilise them where they make sense, they can be used for compile-time state machines, lazy sequences, async I/O, and more.
-- Guard `std::generator<T>` guidance with `#if defined(__cpp_lib_generator)`; the macro is required before recommending it unconditionally.
-```text
-#if defined(__cpp_lib_generator)
-Prefer std::generator<T> for lazy, pull-based sequences.
-#else
-Prefer std::ranges/std::views pipelines, callback iteration, or a small custom generator pattern.
-Do not assume std::generator is available when __cpp_lib_generator is absent.
-#endif
-```
+- Utilise them where they make sense; they can be used for compile-time state machines, lazy sequences, async I/O, and more.
+- `std::generator<T>` for lazy, pull-based sequences.
 - Engine-specific awaitables for async I/O, job queues, task graphs.
 - `[[nodiscard]]` on coroutine functions.
 - Compose generators with ranges: `co_yield std::ranges::elements_of(subRange);`.
@@ -210,16 +194,7 @@ auto visibleEntities = entities | Ranges::filter(IsInFrustum) | Views::transform
 - `std::variant<Ts...>` over raw unions or inheritance used solely for sum-type dispatch.
 - Bit-fields with computed widths for wire/layout types. `static_assert(sizeof(...))` beside them.
 - Wire types: trivial and trivially destructible. Assert both.
-- Guard `std::start_lifetime_as<T>` guidance with `#if defined(__cpp_lib_start_lifetime_as)`; the macro is required before recommending it unconditionally.
-```text
-#if defined(__cpp_lib_start_lifetime_as)
-Prefer std::start_lifetime_as<T> for type-punning byte buffers and std::bit_cast for reinterpreting values.
-#else
-Prefer std::bit_cast where it applies, or explicit lifetime-management / placement-new idioms when __cpp_lib_start_lifetime_as is absent.
-Do not recommend std::start_lifetime_as<T> on toolchains that lack the feature-test macro.
-#endif
-```
-- Never `reinterpret_cast` on first-party types.
+- `std::start_lifetime_as<T>` for type-punning byte buffers. `std::bit_cast` for reinterpreting values. Never `reinterpret_cast` on first-party types.
 - Strong typedefs via `enum class`: `enum class EntityId : uint32_t {};`.
 - Structured bindings for clarity where they apply.
 - `as_bytes` for safe byte representation.
@@ -289,12 +264,18 @@ C++20 modules are preferred for new subsystems (strong encapsulation, faster bui
 - Platform-specific code in separate files (`Render-Vulkan.cpp`, `Render-D3D12.cpp`). Select at build time, not with `#ifdef` in one file.
 - Global module fragment is the only place for `#include` of C/legacy headers.
 
+### Data Files
+
+- **TOML** for hand-authored content: configuration, input mappings, etc. It's more readable and forgiving for humans, and supports comments.
+- **JSON** for interchange formats, generated data, and anything benefiting from schema validation such as assets, scene descriptions, render graph definitions, etc. The strictness and tooling support help catch errors early.
+- Validate data files at load time with clear error messages for authors.
+
 ### Things to Avoid
 
 | Don't | Do instead |
 |---|---|
 | Raw `new`/`delete` | RAII, `std::unique_ptr`, `make_unique_for_overwrite` |
-| `reinterpret_cast` | `std::bit_cast`; if `defined(__cpp_lib_start_lifetime_as)`, prefer `std::start_lifetime_as`, otherwise use explicit lifetime-management / placement-new |
+| `reinterpret_cast` | `std::bit_cast`, `std::start_lifetime_as` |
 | `#define` macros (general) | `constexpr`, `consteval`, templates. Macros only for platform interop, `#undef` immediately |
 | `std::endl` | `'\n'`, `std::println` |
 | C-style casts | `static_cast`, `std::to_underlying`, `std::bit_cast` |
@@ -308,10 +289,10 @@ C++20 modules are preferred for new subsystems (strong encapsulation, faster bui
 
 | Feature | Use for |
 |---|---|
-| `std::generator<T>` | Lazy sequences, entity/asset iteration when `defined(__cpp_lib_generator)`; otherwise use `std::ranges`/`std::views`, callback iteration, or a custom generator pattern |
+| `std::generator<T>` | Lazy sequences, entity/asset iteration |
 | `std::expected<T,E>` (via `Result<T>`) | Recoverable error returns |
 | `std::println` / `std::print` | Formatted output |
-| `std::start_lifetime_as<T>` | Safe type-punning from byte buffers when `defined(__cpp_lib_start_lifetime_as)`; otherwise use explicit lifetime-management / placement-new idioms |
+| `std::start_lifetime_as<T>` | Safe type-punning from byte buffers |
 | `std::forward_like` | Forwarding members in deducing-this |
 | Deducing `this` | Ref-qualified accessors, CRTP replacement |
 | `std::to_underlying` | Enum-to-integer |

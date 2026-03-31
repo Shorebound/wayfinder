@@ -13,13 +13,10 @@ This project is greenfield. Breaking changes, rewrites, and architectural pivots
 - **Data-oriented design** — organise code and systems around the data they operate on, not around objects or features.
 - **Composition over inheritance** — component-based design, flat hierarchies, minimal virtual dispatch.
 - **Modular and extensible where it counts.** Systems that game or editor code touches must have clear extension points. Internal plumbing can be simple.
-
 - **Elegant by default.** Strive for APIs and systems that feel clean and satisfying to use. If two approaches are otherwise equal, pick the one that reads better and composes more naturally.
 - **Performance with clarity** — efficient code that stays readable. Optimise measured bottlenecks, not hunches.
-- **Production-quality framing from the start.** Implementations can be minimal, but the architecture, interfaces, data flow, and error handling must be sound enough to build on. We want scalable, production-ready systems. We do not want tutorial/prototype code. If a proposal, plan, or implementation doesn't meet that bar, rework it before moving on.
-
+- **Production-quality framing from the start.** Implementations can be minimal, but the architecture, interfaces, data flow, and error handling must be sound enough to build on. We want scalable, production-ready systems. Avoid tutorial/prototype-style code in committed paths unless explicitly marked `@prototype` with a replacement plan or issue link. If a proposal, plan, or implementation doesn't meet that bar, rework it before moving on.
 - **Modern design** — current best practices for language, architecture, and APIs; prefer unconventional approaches when they are better, but justify departures from “how engines usually do it.”
-
 - **Dynamic over baked** — prefer runtime computation over offline preprocessing.
 - **Data flows down, events flow up** — systems read data and produce data. Side effects go through event bus or command queue.
 - **Explicit over implicit** — capabilities are checked, passes are validated, nothing silently dropped.
@@ -100,7 +97,7 @@ auto MapGuard = buffer.Map();  // RAII, unmaps on destruction
 ```
 
 ### Error Handling
-- Use `Result<TType, TError>` for recoverable failures instead of introducing ad hoc `bool` + out-parameter error flows or optional values. 
+- Use `core/Result.h` for recoverable failures instead of introducing ad hoc `bool` + out-parameter error flows or optional values. 
 - `Result<T, SpecificError>` when the caller distinguishes categories.
 - Exceptions only for truly unrecoverable situations. **Hot paths never throw.**
 - Descriptive error helpers: `IsSuccessful(code)`, `IsDeviceLost(result)`.

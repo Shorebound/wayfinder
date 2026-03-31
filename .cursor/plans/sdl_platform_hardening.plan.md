@@ -5,7 +5,7 @@ Refactor the SDL path by tightening contracts first, then centralising backend-g
 **Steps**
 1. Phase 1 - Contract and compatibility hardening. Add explicit backend compatibility rules and a headless query to the existing backend/config layer, allow SDL3 plus Null as a supported windowed no-GPU mode, reject Null plus SDL_GPU before any subsystem is created, and make config parsing accept explicit null platform selection. This blocks all later phases.
 2. Phase 1 verification. Extend startup/config tests so valid combinations initialise cleanly and invalid combinations fail before window or device creation. This can run in parallel with implementation note drafting, but it must pass before the larger refactor continues.
-3. Phase 2 - Introduce a focused platform runtime coordinator. Add a small backend runtime owned by EngineRuntime that owns backend-global lifecycle and frame pump responsibilities only. For SDL3 this means SDL_Init, SDL_Quit, event pumping, and per-frame backend synchronisation. For Null it remains a no-op headless coordinator. This depends on step 1.
+3. Phase 2 - Introduce a focused platform runtime coordinator. Add a small backend runtime owned by EngineRuntime that owns backend-global lifecycle and frame pump responsibilities only. For SDL3 this means SDL_Init, SDL_Quit, event pumping, and per-frame backend synchronisation. For Null, it remains a no-op headless coordinator. This depends on step 1.
 4. Phase 2 runtime extraction. Remove SDL_Init and SDL_Quit from SDL3Window, keep SDL3Window responsible only for SDL_Window ownership and window properties, and route frame pumping through the new platform runtime instead of Window::Update. This depends on step 3.
 5. Phase 3 - Unify SDL event and input ownership. Move SDL event polling and input snapshot ordering under one frame-start contract so scroll, key transitions, and future text input live under one backend-owned flow. Keep the engine EventQueue and query-based Input API unless a failing test proves a public contract change is necessary. This depends on step 4.
 6. Phase 3 API cleanup. Remove or reduce Window::Update once the new coordinator is in place, delete the Application-side scroll bridge, and ensure Application only consumes engine events instead of patching backend state. This depends on step 5.
@@ -17,36 +17,48 @@ Refactor the SDL path by tightening contracts first, then centralising backend-g
 12. Phase 6 - Documentation and regression hardening. Update repo guidance with the new SDL ownership and backend compatibility rules, add tests for frame-order coherence and headless behaviour, and run focused app/render validation plus changed-file lint and tidy checks. This depends on step 10 and should also verify the targeted RAII cleanup from step 11.
 
 **Relevant files**
-- d:/wanderlight/engine/wayfinder/engine/wayfinder/src/app/EngineRuntime.h - runtime ownership and per-frame ordering; likely home for the new backend runtime member and startup sequencing changes.
-- d:/wanderlight/engine/wayfinder/engine/wayfinder/src/app/EngineRuntime.cpp - current subsystem creation order, shutdown order, and BeginFrame flow that must be tightened.
-- d:/wanderlight/engine/wayfinder/engine/wayfinder/src/app/Application.cpp - currently bridges scroll events back into Input; should become a consumer only once backend ownership is unified.
-- d:/wanderlight/engine/wayfinder/engine/wayfinder/src/app/EngineConfig.h - current window/backend config structures that need a clearer split between window and presentation policy.
-- d:/wanderlight/engine/wayfinder/engine/wayfinder/src/app/EngineConfig.cpp - backend parsing and validation entry point, including explicit null-platform parsing.
-- d:/wanderlight/engine/wayfinder/engine/wayfinder/src/platform/BackendConfig.h - best place for compatibility helpers and headless queries unless a dedicated validator header is introduced.
-- d:/wanderlight/engine/wayfinder/engine/wayfinder/src/platform/Window.h - current surface, VSync, fullscreen, and update contract that needs to be reduced to what the backend actually guarantees.
-- d:/wanderlight/engine/wayfinder/engine/wayfinder/src/platform/Input.h - query API to preserve while cleaning up scroll and frame-start ownership.
-- d:/wanderlight/engine/wayfinder/engine/wayfinder/src/platform/Time.h - only touch if time updates are folded into the new runtime-owned frame start contract.
-- d:/wanderlight/engine/wayfinder/engine/wayfinder/src/platform/sdl3/SDL3Window.h - SDL3 window surface contract and state queries.
-- d:/wanderlight/engine/wayfinder/engine/wayfinder/src/platform/sdl3/SDL3Window.cpp - currently owns SDL_Init, SDL_Quit, and SDL event pumping; main extraction target.
-- d:/wanderlight/engine/wayfinder/engine/wayfinder/src/platform/sdl3/SDL3Input.h - SDL-specific input contract to preserve while removing cross-layer coupling.
-- d:/wanderlight/engine/wayfinder/engine/wayfinder/src/platform/sdl3/SDL3Input.cpp - current keyboard/mouse polling and scroll accumulation logic that should move under a single backend frame contract.
-- d:/wanderlight/engine/wayfinder/engine/wayfinder/src/platform/null/NullWindow.h - null surface contract for headless mode.
-- d:/wanderlight/engine/wayfinder/engine/wayfinder/src/platform/null/NullInput.h - null input semantics that should stay deterministic after refactor.
-- d:/wanderlight/engine/wayfinder/engine/wayfinder/src/platform/null/NullTime.h - headless frame-time behaviour to preserve.
-- d:/wanderlight/engine/wayfinder/engine/wayfinder/src/rendering/backend/RenderDevice.h - render-device initialisation contract and the place to move presentation settings into the device side.
-- d:/wanderlight/engine/wayfinder/engine/wayfinder/src/rendering/backend/sdl_gpu/SDLGPUDevice.h - typed SDL surface consumption and backend-local presentation behaviour.
-- d:/wanderlight/engine/wayfinder/engine/wayfinder/src/rendering/backend/sdl_gpu/SDLGPUDevice.cpp - currently casts the native handle and should become explicit about accepted surface types and presentation policy.
-- d:/wanderlight/engine/wayfinder/engine/wayfinder/src/rendering/backend/null/NullDevice.h - explicit no-op handling for presentation config.
-- d:/wanderlight/engine/wayfinder/tests/app/EngineConfigTests.cpp - backend parsing and compatibility coverage.
-- d:/wanderlight/engine/wayfinder/tests/app/EngineRuntimeTests.cpp - startup, headless, invalid-pair, and frame-order tests.
-- d:/wanderlight/engine/wayfinder/engine/wayfinder/CMakeLists.txt - add any new platform/runtime files because engine sources are listed explicitly.
-- d:/wanderlight/engine/wayfinder/tests/CMakeLists.txt - register any new platform or app test files.
-- d:/wanderlight/engine/wayfinder/.github/AGENTS.md - record the SDL ownership and surface-contract pitfall once the refactor settles.
+- engine/wayfinder/src/app/EngineRuntime.h - runtime ownership and per-frame ordering; likely home for the new backend runtime member and startup sequencing changes.
+- engine/wayfinder/src/app/EngineRuntime.cpp - current subsystem creation order, shutdown order, and BeginFrame flow that must be tightened.
+- engine/wayfinder/src/app/Application.cpp - currently bridges scroll events back into Input; should become a consumer only once backend ownership is unified.
+- engine/wayfinder/src/app/EngineConfig.h - current window/backend config structures that need a clearer split between window and presentation policy.
+- engine/wayfinder/src/app/EngineConfig.cpp - backend parsing and validation entry point, including explicit null-platform parsing.
+- engine/wayfinder/src/platform/BackendConfig.h - best place for compatibility helpers and headless queries unless a dedicated validator header is introduced.
+- engine/wayfinder/src/platform/Window.h - current surface, VSync, fullscreen, and update contract that needs to be reduced to what the backend actually guarantees.
+- engine/wayfinder/src/platform/Input.h - query API to preserve while cleaning up scroll and frame-start ownership.
+- engine/wayfinder/src/platform/Time.h - only touch if time updates are folded into the new runtime-owned frame start contract.
+- engine/wayfinder/src/platform/sdl3/SDL3Window.h - SDL3 window surface contract and state queries.
+- engine/wayfinder/src/platform/sdl3/SDL3Window.cpp - currently owns SDL_Init, SDL_Quit, and SDL event pumping; main extraction target.
+- engine/wayfinder/src/platform/sdl3/SDL3Input.h - SDL-specific input contract to preserve while removing cross-layer coupling.
+- engine/wayfinder/src/platform/sdl3/SDL3Input.cpp - current keyboard/mouse polling and scroll accumulation logic that should move under a single backend frame contract.
+- engine/wayfinder/src/platform/null/NullWindow.h - null surface contract for headless mode.
+- engine/wayfinder/src/platform/null/NullInput.h - null input semantics that should stay deterministic after refactor.
+- engine/wayfinder/src/platform/null/NullTime.h - headless frame-time behaviour to preserve.
+- engine/wayfinder/src/rendering/backend/RenderDevice.h - render-device initialisation contract and the place to move presentation settings into the device side.
+- engine/wayfinder/src/rendering/backend/sdl_gpu/SDLGPUDevice.h - typed SDL surface consumption and backend-local presentation behaviour.
+- engine/wayfinder/src/rendering/backend/sdl_gpu/SDLGPUDevice.cpp - currently casts the native handle and should become explicit about accepted surface types and presentation policy.
+- engine/wayfinder/src/rendering/backend/null/NullDevice.h - explicit no-op handling for presentation config.
+- tests/app/EngineConfigTests.cpp - backend parsing and compatibility coverage.
+- tests/app/EngineRuntimeTests.cpp - startup, headless, invalid-pair, and frame-order tests.
+- engine/wayfinder/CMakeLists.txt - add any new platform/runtime files because engine sources are listed explicitly.
+- tests/CMakeLists.txt - register any new platform or app test files.
+- .github/AGENTS.md - record the SDL ownership and surface-contract pitfall once the refactor settles.
 
 **Verification**
-1. Build and run the focused app and render test targets affected by the refactor, at minimum the engine runtime/config tests and the render backend tests that exercise NullDevice and SDLGPUDevice behaviour.
-2. Run the full relevant test pass through the existing presets once focused tests are green so startup and render graph behaviour are checked under the normal repo workflow.
-3. Run tools/lint.py --changed and tools/tidy.py --changed before considering the work complete.
+1. Build and run the focused app and render test targets affected by the refactor:
+   ```
+   cmake --build --preset debug --target wayfinder_core_tests wayfinder_render_tests
+   ctest --preset test -R "EngineRuntime|EngineConfig|NullDevice|SDLGPUDevice"
+   ```
+2. Run the full test pass through the existing presets once focused tests are green:
+   ```
+   cmake --build --preset debug
+   ctest --preset test
+   ```
+3. Run lint and tidy on changed files, before considering the work complete:
+   ```
+   python tools/lint.py --changed
+   python tools/tidy.py --changed
+   ```
 4. Manually validate three runtime modes: SDL3 plus SDL_GPU, SDL3 plus Null, and Null plus Null. Confirm startup, shutdown, resize or close handling where applicable, and that headless mode never touches SDL.
 5. Manually confirm that presentation settings now affect the actual render path rather than only cached window state, and that fullscreen is either implemented truthfully or absent from the public contract.
 

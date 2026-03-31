@@ -37,6 +37,7 @@ namespace Wayfinder
             pipeDesc.FrontFace = FrontFace::CounterClockwise;
             pipeDesc.DepthTestEnabled = desc.DepthTest;
             pipeDesc.DepthWriteEnabled = desc.DepthWrite;
+            pipeDesc.ColourTargetBlends.front() = desc.Blend;
             return pipeDesc;
         }
     } // namespace

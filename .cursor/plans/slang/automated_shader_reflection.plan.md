@@ -38,19 +38,19 @@ Pass code → ShaderProgramDesc (no resource counts)
 
 **1.1** Add `ShaderResourceCounts` to `SlangCompiler::CompileResult`.
 
-**1.2** Implement private `ExtractResourceCounts(slang::IComponentType* linkedProgram)` in SlangCompiler.cpp.
+**1.2** Implement private `ExtractResourceCounts(slang::IComponentType* linkedProgram) -> std::optional<ShaderResourceCounts>` in SlangCompiler.cpp. Returns `std::nullopt` on reflection failure so it remains distinct from a compile failure.
 - Call `linkedProgram->getLayout(0)` to get `ProgramLayout*`
 - Get entry point at index 0 via `getEntryPointByIndex(0)`
 - Query `TypeLayoutReflection` using the binding range API:
   - Iterate `getBindingRangeCount()`, check `getBindingRangeType()`:
-    - `BindingType::ConstantBuffer` → UniformBuffers
-    - `BindingType::CombinedTextureSampler` → Samplers
-    - `BindingType::MutableTexture` / storage texture types → StorageTextures
-    - `BindingType::RawBuffer` / `MutableRawBuffer` (UAV) → StorageBuffers
+    - `BindingType::ConstantBuffer` -> UniformBuffers
+    - `BindingType::CombinedTextureSampler` -> Samplers
+    - `BindingType::MutableTexture` / storage texture types -> StorageTextures
+    - `BindingType::RawBuffer` / `MutableRawBuffer` (UAV) -> StorageBuffers
   - Sum `getBindingRangeBindingCount()` per category
 - **Critical**: Validate the ParameterCategory vs BindingRange mapping empirically with a test before committing to one approach. If `getSize(ParameterCategory::ConstantBuffer)` gives correct counts, that's simpler than iterating binding ranges.
 
-**1.3** Wire into `SlangCompiler::Compile()` — after the link step (line ~300 in current code), before copying SPIR-V to output, call `ExtractResourceCounts(linkedProgram.get())` and store result in `CompileResult::Resources`.
+**1.3** Wire into `SlangCompiler::Compile()` -- after the link step (line ~300 in current code), before copying SPIR-V to output, call `ExtractResourceCounts(linkedProgram.get())` and assign the result directly to `CompileResult::Resources` (which is already `std::optional<ShaderResourceCounts>`). A `std::nullopt` return means reflection failed but compilation succeeded -- the caller can still use the bytecode.
 
 ### Phase 2: ShaderManager consumes reflection instead of manual counts
 

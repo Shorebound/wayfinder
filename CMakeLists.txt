@@ -203,7 +203,7 @@ if(WAYFINDER_BUILD_TOOLS)
     set_target_properties(${ASSET_PROCESSOR_NAME} PROPERTIES FOLDER "${TOOLS_DIRECTORY}")
 endif()
 
-add_subdirectory(tools/shader_manifest)
+add_subdirectory(tools/shader_manifest EXCLUDE_FROM_ALL)
 set_target_properties(wayfinder_shader_manifest PROPERTIES FOLDER "${TOOLS_DIRECTORY}")
 
 if(WAYFINDER_BUILD_SAMPLES)

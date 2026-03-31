@@ -111,7 +111,7 @@ function(wayfinder_compile_shaders)
     )
 
     if(SPV_OUTPUTS)
-        set(_SHADER_STAMP "${CMAKE_CURRENT_BINARY_DIR}/shader_sync.stamp")
+        set(_SHADER_STAMP "${CMAKE_CURRENT_BINARY_DIR}/${ARG_TARGET}_shader_sync.stamp")
         add_custom_command(
             OUTPUT "${_SHADER_STAMP}"
             DEPENDS ${SPV_OUTPUTS} "${_MANIFEST_OUTPUT}"

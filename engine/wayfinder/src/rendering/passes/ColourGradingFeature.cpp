@@ -91,7 +91,7 @@ namespace Wayfinder
 
     void ColourGradingFeature::AddPasses(RenderGraph& graph, const FrameRenderParams& params)
     {
-        if (!m_context)
+        if (!m_context || m_effectId == INVALID_BLENDABLE_EFFECT_ID)
         {
             return;
         }

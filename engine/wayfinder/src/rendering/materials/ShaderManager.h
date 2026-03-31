@@ -49,6 +49,14 @@ namespace Wayfinder
         ShaderManager(const ShaderManager&) = delete;
         ShaderManager& operator=(const ShaderManager&) = delete;
 
+        /**
+         * @brief Configure the shader manager with a device, shader directory, and optional Slang compiler.
+         * @param device Render device used to create GPU shader objects.
+         * @param shaderDirectory Path to the directory containing pre-compiled shader bytecode.
+         * @param compiler Optional pointer to a SlangCompiler for runtime compilation. May be nullptr
+         *        (e.g. in Shipping builds) in which case only pre-compiled shaders and the manifest
+         *        are used. The caller retains ownership; the pointer must remain valid until Shutdown().
+         */
         void Initialise(RenderDevice& device, std::string_view shaderDirectory, SlangCompiler* compiler = nullptr);
         void Shutdown();
 

@@ -142,7 +142,7 @@ namespace Wayfinder::Tests
             CHECK(programs[0].NeedsSceneGlobals == false);
             CHECK(programs[0].DepthTest == true);
             CHECK(programs[0].DepthWrite == true);
-            CHECK(programs[0].VertexLayout.AttributeCount == VertexLayouts::POSITION_NORMAL_COLOUR.AttributeCount);
+            CHECK(VertexLayoutsMatch(programs[0].VertexLayout, VertexLayouts::POSITION_NORMAL_COLOUR));
 
             // unlit_blended: alpha blend, depth read-only
             CHECK(programs[1].Name == "unlit_blended");
@@ -156,7 +156,7 @@ namespace Wayfinder::Tests
             // textured_lit: needs scene globals + texture sampler
             CHECK(programs[3].Name == "textured_lit");
             CHECK(programs[3].NeedsSceneGlobals == true);
-            CHECK(programs[3].VertexLayout.AttributeCount == VertexLayouts::POSITION_NORMAL_UV_TANGENT.AttributeCount);
+            CHECK(VertexLayoutsMatch(programs[3].VertexLayout, VertexLayouts::POSITION_NORMAL_UV_TANGENT));
             CHECK(programs[3].TextureSlots.size() == 1);
         }
 
@@ -217,14 +217,14 @@ namespace Wayfinder::Tests
 
             // Lines: PosColour, no depth, no culling
             CHECK(programs[0].Name == "debug_unlit");
-            CHECK(programs[0].VertexLayout.AttributeCount == VertexLayouts::POSITION_COLOUR.AttributeCount);
+            CHECK(VertexLayoutsMatch(programs[0].VertexLayout, VertexLayouts::POSITION_COLOUR));
             CHECK(programs[0].Cull == CullMode::None);
             CHECK(programs[0].DepthTest == false);
 
             // Solid boxes: PosNormalColour, back-face culled
             CHECK(programs[1].Name == "debug_solid");
             CHECK(programs[1].VertexShaderName == "unlit");
-            CHECK(programs[1].VertexLayout.AttributeCount == VertexLayouts::POSITION_NORMAL_COLOUR.AttributeCount);
+            CHECK(VertexLayoutsMatch(programs[1].VertexLayout, VertexLayouts::POSITION_NORMAL_COLOUR));
             CHECK(programs[1].Cull == CullMode::Back);
         }
     }
