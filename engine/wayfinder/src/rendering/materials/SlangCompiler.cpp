@@ -204,6 +204,296 @@ namespace Wayfinder
                 pos = (end == std::string_view::npos) ? text.size() : end + 1;
             }
         }
+
+        struct AccessPathNode
+        {
+            slang::VariableLayoutReflection* VarLayout = nullptr;
+            const AccessPathNode* Outer = nullptr;
+        };
+
+        struct AccessPath
+        {
+            const AccessPathNode* Leaf = nullptr;
+            const AccessPathNode* DeepestConstantBuffer = nullptr;
+            const AccessPathNode* DeepestParameterBlock = nullptr;
+        };
+
+        class ExtendedAccessPath
+        {
+        public:
+            ExtendedAccessPath(const AccessPath& outer, slang::VariableLayoutReflection* varLayout) : m_node{.VarLayout = varLayout, .Outer = outer.Leaf}, m_accessPath{outer}
+            {
+                m_accessPath.Leaf = &m_node;
+            }
+
+            [[nodiscard]] auto Get() const -> const AccessPath&
+            {
+                return m_accessPath;
+            }
+
+        private:
+            AccessPathNode m_node;
+            AccessPath m_accessPath;
+        };
+
+        struct CumulativeOffset
+        {
+            SlangUInt Space = 0;
+            SlangUInt Binding = 0;
+        };
+
+        auto IsTrackedUsageCategory(const slang::ParameterCategory category) -> bool
+        {
+            switch (category)
+            {
+            case slang::ParameterCategory::Uniform:
+            case slang::ParameterCategory::ConstantBuffer:
+            case slang::ParameterCategory::ShaderResource:
+            case slang::ParameterCategory::UnorderedAccess:
+            case slang::ParameterCategory::SamplerState:
+            case slang::ParameterCategory::DescriptorTableSlot:
+                return true;
+            default:
+                return false;
+            }
+        }
+
+        auto AccumulateLayoutValue(SlangUInt& total, const size_t value) -> bool
+        {
+            if (value == SLANG_UNKNOWN_SIZE or value == SLANG_UNBOUNDED_SIZE)
+            {
+                return false;
+            }
+
+            total += static_cast<SlangUInt>(value);
+            return true;
+        }
+
+        auto TryCalculateCumulativeOffset(const slang::ParameterCategory layoutUnit, const AccessPath& accessPath, CumulativeOffset& outOffset) -> bool
+        {
+            outOffset = {};
+
+            switch (layoutUnit)
+            {
+            case slang::ParameterCategory::Uniform:
+                for (auto* node = accessPath.Leaf; node != accessPath.DeepestConstantBuffer; node = node->Outer)
+                {
+                    if (not node or not node->VarLayout or not AccumulateLayoutValue(outOffset.Binding, node->VarLayout->getOffset(layoutUnit)))
+                    {
+                        return false;
+                    }
+                }
+                return true;
+
+            case slang::ParameterCategory::ConstantBuffer:
+            case slang::ParameterCategory::ShaderResource:
+            case slang::ParameterCategory::UnorderedAccess:
+            case slang::ParameterCategory::SamplerState:
+            case slang::ParameterCategory::DescriptorTableSlot:
+                for (auto* node = accessPath.Leaf; node != accessPath.DeepestParameterBlock; node = node->Outer)
+                {
+                    if (not node or not node->VarLayout)
+                    {
+                        return false;
+                    }
+
+                    if (not AccumulateLayoutValue(outOffset.Binding, node->VarLayout->getOffset(layoutUnit)) or not AccumulateLayoutValue(outOffset.Space, node->VarLayout->getBindingSpace(layoutUnit)))
+                    {
+                        return false;
+                    }
+                }
+
+                for (auto* node = accessPath.DeepestParameterBlock; node != nullptr; node = node->Outer)
+                {
+                    if (not node->VarLayout)
+                    {
+                        return false;
+                    }
+
+                    if (not AccumulateLayoutValue(outOffset.Space, node->VarLayout->getOffset(slang::ParameterCategory::SubElementRegisterSpace)))
+                    {
+                        return false;
+                    }
+                }
+                return true;
+
+            default:
+                for (auto* node = accessPath.Leaf; node != nullptr; node = node->Outer)
+                {
+                    if (not node->VarLayout or not AccumulateLayoutValue(outOffset.Binding, node->VarLayout->getOffset(layoutUnit)))
+                    {
+                        return false;
+                    }
+                }
+                return true;
+            }
+        }
+
+        auto IsVarUsed(slang::VariableLayoutReflection* varLayout, const AccessPath& accessPath, slang::IMetadata* metadata) -> bool
+        {
+            if (not varLayout or not metadata)
+            {
+                return false;
+            }
+
+            const unsigned categoryCount = varLayout->getCategoryCount();
+            for (unsigned categoryIndex = 0; categoryIndex < categoryCount; ++categoryIndex)
+            {
+                const auto category = varLayout->getCategoryByIndex(categoryIndex);
+                if (not IsTrackedUsageCategory(category))
+                {
+                    continue;
+                }
+
+                CumulativeOffset offset{};
+                if (not TryCalculateCumulativeOffset(category, accessPath, offset))
+                {
+                    continue;
+                }
+
+                bool used = false;
+                if (SLANG_SUCCEEDED(metadata->isParameterLocationUsed(static_cast<SlangParameterCategory>(category), offset.Space, offset.Binding, used)) and used)
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        void CountBindingType(const slang::BindingType type, ShaderResourceCounts& counts)
+        {
+            switch (type)
+            {
+            case slang::BindingType::ConstantBuffer:
+            case slang::BindingType::ParameterBlock:
+                counts.UniformBuffers += 1;
+                break;
+            case slang::BindingType::Sampler:
+            case slang::BindingType::Texture:
+            case slang::BindingType::CombinedTextureSampler:
+                counts.Samplers += 1;
+                break;
+            case slang::BindingType::MutableTexture:
+                counts.StorageTextures += 1;
+                break;
+            case slang::BindingType::RawBuffer:
+            case slang::BindingType::MutableRawBuffer:
+            case slang::BindingType::TypedBuffer:
+            case slang::BindingType::MutableTypedBuffer:
+                counts.StorageBuffers += 1;
+                break;
+            default:
+                break;
+            }
+        }
+
+        auto CountVarResources(slang::VariableLayoutReflection* varLayout, const AccessPath& accessPath, slang::IMetadata* metadata, ShaderResourceCounts& counts) -> bool
+        {
+            if (not varLayout)
+            {
+                return false;
+            }
+
+            auto* typeLayout = varLayout->getTypeLayout();
+            if (not typeLayout)
+            {
+                return false;
+            }
+
+            const ExtendedAccessPath extendedPath(accessPath, varLayout);
+            const AccessPath& varAccessPath = extendedPath.Get();
+
+            switch (typeLayout->getKind())
+            {
+            case slang::TypeReflection::Kind::ConstantBuffer:
+            case slang::TypeReflection::Kind::ParameterBlock:
+            {
+                const bool containerUsed = IsVarUsed(varLayout, varAccessPath, metadata);
+
+                bool childUsed = false;
+                auto* elementVarLayout = typeLayout->getElementVarLayout();
+                if (elementVarLayout)
+                {
+                    AccessPath innerAccessPath = varAccessPath;
+                    innerAccessPath.DeepestConstantBuffer = innerAccessPath.Leaf;
+
+                    if (typeLayout->getSize(slang::ParameterCategory::SubElementRegisterSpace) != 0)
+                    {
+                        innerAccessPath.DeepestParameterBlock = innerAccessPath.Leaf;
+                    }
+
+                    childUsed = CountVarResources(elementVarLayout, innerAccessPath, metadata, counts);
+                }
+
+                const bool used = containerUsed or childUsed;
+                if (used)
+                {
+                    counts.UniformBuffers += 1;
+                }
+
+                return used;
+            }
+
+            case slang::TypeReflection::Kind::Struct:
+            {
+                bool anyFieldUsed = false;
+                const unsigned fieldCount = typeLayout->getFieldCount();
+                for (unsigned fieldIndex = 0; fieldIndex < fieldCount; ++fieldIndex)
+                {
+                    anyFieldUsed = CountVarResources(typeLayout->getFieldByIndex(fieldIndex), varAccessPath, metadata, counts) or anyFieldUsed;
+                }
+                return anyFieldUsed;
+            }
+
+            default:
+                break;
+            }
+
+            if (not IsVarUsed(varLayout, varAccessPath, metadata))
+            {
+                return false;
+            }
+
+            const SlangInt bindingRangeCount = typeLayout->getBindingRangeCount();
+            for (SlangInt rangeIndex = 0; rangeIndex < bindingRangeCount; ++rangeIndex)
+            {
+                CountBindingType(typeLayout->getBindingRangeType(rangeIndex), counts);
+            }
+
+            return true;
+        }
+
+        /// Extract per-entry-point resource counts using Slang reflection + IMetadata.
+        ///
+        /// ProgramLayout reports all globals declared in the module. Entry-point
+        /// metadata only answers usage for leaf parameters at their cumulative
+        /// absolute binding location, so we recursively traverse variable layouts,
+        /// accumulate offsets through parameter blocks/constant buffers, and count
+        /// only the bindings the compiled entry point actually references.
+        auto ExtractResourceCounts(slang::IComponentType* linkedProgram) -> std::optional<ShaderResourceCounts>
+        {
+            auto* layout = linkedProgram->getLayout(0);
+            if (not layout)
+            {
+                return std::nullopt;
+            }
+
+            Slang::ComPtr<slang::IMetadata> metadata;
+            if (SLANG_FAILED(linkedProgram->getEntryPointMetadata(0, 0, metadata.writeRef(), nullptr)) or not metadata)
+            {
+                return std::nullopt;
+            }
+
+            ShaderResourceCounts counts{};
+            const unsigned paramCount = layout->getParameterCount();
+            for (unsigned i = 0; i < paramCount; ++i)
+            {
+                CountVarResources(layout->getParameterByIndex(i), {}, metadata, counts);
+            }
+
+            return counts;
+        }
     } // namespace
 
     Result<SlangCompiler::CompileResult> SlangCompiler::Compile(const std::string_view sourceName, const std::string_view entryPoint, ShaderStage stage)
@@ -293,12 +583,14 @@ namespace Wayfinder
         }
         LogSlangDiagnostics(diagnostics);
 
-        // 6. Copy to output
+        // 6. Copy SPIR-V to output and extract per-entry-point resource counts
+        //    via Slang reflection + IMetadata (filters dead-stripped bindings).
         const auto* data = static_cast<const uint8_t*>(spirvBlob->getBufferPointer());
         const size_t size = spirvBlob->getBufferSize();
 
         CompileResult compileResult;
         compileResult.Bytecode.assign(data, data + size);
+        compileResult.Resources = ExtractResourceCounts(linkedProgram.get());
 
         Log::Info(LogRenderer, "SlangCompiler: compiled '{}' entry '{}' ({}) - {} bytes SPIR-V", sourceName, entryPoint, stageLabel, size);
 

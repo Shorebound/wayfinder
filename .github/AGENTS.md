@@ -1,30 +1,10 @@
-# AGENTS.md — Known Pitfalls & Gotchas
+# AGENTS.md - Known Pitfalls & Gotchas
 
-This file documents common mistakes, confusion points, and non-obvious behaviour that AI agents (and humans) encounter when working in the Wayfinder codebase. If you hit something surprising, add it here.
-
----
-
-## Build System
-
-- **Stale build trees after engine source moves.** If Ninja still tries to compile paths under `engine/wayfinder/src/modules/...` after the plugin migration, the build directory predates the current `CMakeLists.txt`. Reconfigure from scratch: `cmake --preset dev` (or wipe `build/<preset>` and configure again).
-- **Test executables are opt-in.** `WAYFINDER_BUILD_TESTS` defaults to `OFF`. Use the `dev` preset or pass `-DWAYFINDER_BUILD_TESTS=ON` explicitly.
-- **MSVC vs Clang differences.** The primary local dev compiler is MSVC; cloud agents use Clang with libc++. Code must compile on both. Watch for MSVC-specific pragmas (guard with `#ifdef WAYFINDER_COMPILER_MSVC`) and C++23 feature availability differences between compilers.
-- **Linux CI must force-select the right Clang via `update-alternatives --set`.** Installing `clang-22` and registering it with `--install` is not enough on GitHub runners — if alternatives is already in manual mode for an older version, higher priority alone won't switch it. The setup action uses `--set` to force selection and a verification step that fails the build if the resolved major version doesn't match. The CMake preset uses generic `clang`/`clang++` and trusts the environment.
-- **Local Clang builds.** Use `cmake --preset dev` + `cmake --build --preset debug` to build with Clang on Windows. This catches Clang-specific issues before CI. The primary build tree goes into `build/dev/`.
-- **CI problem matchers.** `.github/workflows/ci.yml` registers `.github/matchers/clang.json` (Linux + static analysis) and `msvc.json` (Windows) so compiler diagnostics appear as annotations on PRs instead of only in raw logs.
-- **`tools/tidy.py` only analyses `.cpp` files.** Header diagnostics only appear when a checked translation unit includes that header. If you're cleaning a header-only issue, run tidy on one or more consuming `.cpp` files, not just the header path.
-- **`tools/tidy.py` ignores third-party and generated diagnostics by primary location.** If clang-tidy walks into `thirdparty/`, `_deps/`, `build/`, or `shadercompiler/`, those findings are filtered out unless the primary diagnostic location is in repo-owned source (`engine/`, `sandbox/`, `tests/`, `tools/`). This also applies to `tools/lint.py --tidy` and the CI static-analysis job because they share the same tidy wrapper.
-- **`-Wmissing-field-initializers` is suppressed.** Designated initialisers that rely on default member initialisers for remaining fields are idiomatic C++20 — don't pad with `= {}`/`= 0`.
-- **clang-tidy naming style names are literal.** In `readability-identifier-naming`, `CamelCase` produces PascalCase. Use `camelBack` for the repo's `m_memberName` style.
-
-## Core
-
-- **`InternedString` is not a general-purpose string pool.** It keeps every distinct interned value for the process lifetime. Do not intern high-cardinality or per-frame-unique strings (timestamps, GUIDs, formatted numbers) — use `std::string` / `std::string_view` for those. Stable ids (pass names, graph keys, gameplay tags) are the intended use.
+This file documents repo-specific traps that are easy to miss even after reading nearby code. General workflow and build guidance belongs in `docs/workspace_guide.md`. API preferences and style guidance belong in `.github/copilot-instructions.md`.
 
 ## Logging
 
 - **Engine logging uses `std::format`, not fmt.** spdlog is configured with `SPDLOG_USE_STD_FORMAT=ON`, and the engine's `ILogger::LogFormatted` calls `std::vformat` internally. This means `std::formatter<T>` specialisations are what matter -- fmt formatters are irrelevant.
-- **Log functions:** `Log::Info(category, ...)`, `Log::Warn(...)`, `Log::Error(...)`, `Log::Verbose(...)`, `Log::Fatal(...)`. The first argument is always a `LogCategoryHandle` (e.g. `LogEngine`, `LogRenderer`), the second is a `std::format_string` (compile-time checked). No macros -- these are template functions in `namespace Wayfinder::Log`.
 
 ## Flecs (ECS)
 
@@ -40,16 +20,11 @@ This file documents common mistakes, confusion points, and non-obvious behaviour
 
 - **Shader directory vs working directory.** `EngineConfig` uses a relative `shaders.directory` (default `assets/shaders`). `ShaderManager` resolves relative paths with `SDL_GetBasePath()` (directory containing the executable), **not** the process current working directory. Otherwise, launching from Visual Studio / Cursor with CWD set to `sandbox/journey` fails to find SPIR-V next to the binary, and fullscreen/composition pipelines never register (`missing program, pipeline, …`).
 - **SDL_GPU SPIR-V binding convention:** Vertex samplers = set 0, vertex UBOs = set 1, fragment samplers = set 2, fragment UBOs = set 3. Slang sources use `Sampler2D<T>` with `[[vk::binding(N, 2)]]` for combined image/sampler slots (matches `VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER`).
+- **Slang entry-point usage metadata is leaf-based.** `IMetadata::isParameterLocationUsed()` only answers correctly for leaf parameters at their cumulative absolute layout location. Querying a top-level `ProgramLayout` parameter directly misses resources nested under `ParameterBlock` / constant-buffer structure and undercounts reflection. Traverse `VariableLayoutReflection` recursively and accumulate offsets through parameter blocks before testing usage.
 - **`NullDevice` is real.** It's used for headless testing and tools. `CreateTexture()` and `CreateSampler()` return distinguishable valid handles (incrementing counter). All other `Create*()` methods return `{}` (invalid handles). Code that runs in tests must handle null-device gracefully.
 
 ## Plugin System
 
-- **Shared game plugins must export `WayfinderGetPluginAPIVersion` (included in `WAYFINDER_IMPLEMENT_GAME_PLUGIN`).** The loader compares the returned value to `Wayfinder::Plugins::WAYFINDER_PLUGIN_ABI_VERSION` before calling create/destroy; bump the constant when the plugin ABI changes.
 - **`Plugin::Build()` stores factories, not live registrations.** `PluginRegistry` collects descriptors that are applied once via `ApplyToWorld(flecs::world&)` at startup.
 - **Runtime-only vs scene JSON components.** Use a single `RegisterComponent(ComponentDescriptor)` entry: set Apply/Serialise/Validate for authoring; for runtime-only Flecs types, only `Key` + `RegisterFn` (e.g. `world.component<T>()`). `RuntimeComponentRegistry::RegisterComponents` applies all `RegisterFn`s; headless paths without a merged registry call `PluginRegistry::ApplyComponentRegisterFns` instead.
 - **Scene plugins are opt-in on the game root plugin.** `Application` does not register transform/camera (or any engine scene plugins). The game’s root `Plugin::Build()` adds `TransformPlugin`, `CameraPlugin`, etc., like Bevy’s explicit `add_plugins(DefaultPlugins)` — a `DefaultPlugins` bundle can wrap that later.
-
-## gh-issues
-
-- **gh-issues is a Python script** (`tools/gh-issues.py`). No build step required — just needs Python 3.10+ and `gh` CLI authenticated with repo scope.
-- **`ready`, `status`, and `orphans` take no issue number.** Just run `python tools/gh-issues.py ready`, `python tools/gh-issues.py orphans`, or `python tools/gh-issues.py status --milestone "..."` directly.

@@ -1,3 +1,10 @@
+---
+name: ""
+overview: ""
+todos: []
+isProject: false
+---
+
 # Plan: Issue #143 — Automated Shader Reflection via Slang
 
 ## TL;DR

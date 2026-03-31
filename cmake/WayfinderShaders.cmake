@@ -89,16 +89,37 @@ function(wayfinder_compile_shaders)
         list(APPEND SPV_OUTPUTS ${VERT_SPV} ${FRAG_SPV})
     endforeach()
 
+    # ── Manifest generation ──────────────────────────────────────
+    # After SPIR-V compilation, run wayfinder_shader_manifest to produce
+    # shader_manifest.json with per-stage resource counts for Shipping.
+    set(_MANIFEST_OUTPUT "${STAGING_DIR}/shader_manifest.json")
+    set(_PROGRAM_STEMS "")
+    foreach(PROGRAM_SOURCE ${ARG_PROGRAMS})
+        get_filename_component(_STEM "${PROGRAM_SOURCE}" NAME_WE)
+        list(APPEND _PROGRAM_STEMS "${_STEM}")
+    endforeach()
+
+    add_custom_command(
+        OUTPUT "${_MANIFEST_OUTPUT}"
+        COMMAND $<TARGET_FILE:wayfinder_shader_manifest>
+            --source-dir "${ARG_MODULE_DIR}"
+            --output "${_MANIFEST_OUTPUT}"
+            ${_PROGRAM_STEMS}
+        DEPENDS ${SPV_OUTPUTS} wayfinder_shader_manifest ${ARG_PROGRAMS}
+        COMMENT "Generating shader_manifest.json"
+        VERBATIM
+    )
+
     if(SPV_OUTPUTS)
         set(_SHADER_STAMP "${CMAKE_CURRENT_BINARY_DIR}/shader_sync.stamp")
         add_custom_command(
             OUTPUT "${_SHADER_STAMP}"
-            DEPENDS ${SPV_OUTPUTS}
+            DEPENDS ${SPV_OUTPUTS} "${_MANIFEST_OUTPUT}"
             COMMAND ${CMAKE_COMMAND} -E remove_directory "${ARG_OUTPUT_DIR}"
             COMMAND ${CMAKE_COMMAND} -E make_directory "${ARG_OUTPUT_DIR}"
             COMMAND ${CMAKE_COMMAND} -E copy_directory "${STAGING_DIR}" "${ARG_OUTPUT_DIR}"
             COMMAND ${CMAKE_COMMAND} -E touch "${_SHADER_STAMP}"
-            COMMENT "Syncing compiled shaders to output directory"
+            COMMENT "Syncing compiled shaders and manifest to output directory"
             VERBATIM
         )
         add_custom_target(${ARG_TARGET}_shaders ALL DEPENDS "${_SHADER_STAMP}")
