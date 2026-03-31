@@ -276,7 +276,7 @@ namespace Wayfinder
             switch (layoutUnit)
             {
             case slang::ParameterCategory::Uniform:
-                for (auto* node = accessPath.Leaf; node != accessPath.DeepestConstantBuffer; node = node->Outer)
+                for (const auto* node = accessPath.Leaf; node != accessPath.DeepestConstantBuffer; node = node->Outer)
                 {
                     if (not node or not node->VarLayout or not AccumulateLayoutValue(outOffset.Binding, node->VarLayout->getOffset(layoutUnit)))
                     {
@@ -290,7 +290,7 @@ namespace Wayfinder
             case slang::ParameterCategory::UnorderedAccess:
             case slang::ParameterCategory::SamplerState:
             case slang::ParameterCategory::DescriptorTableSlot:
-                for (auto* node = accessPath.Leaf; node != accessPath.DeepestParameterBlock; node = node->Outer)
+                for (const auto* node = accessPath.Leaf; node != accessPath.DeepestParameterBlock; node = node->Outer)
                 {
                     if (not node or not node->VarLayout)
                     {
@@ -303,7 +303,7 @@ namespace Wayfinder
                     }
                 }
 
-                for (auto* node = accessPath.DeepestParameterBlock; node != nullptr; node = node->Outer)
+                for (const auto* node = accessPath.DeepestParameterBlock; node != nullptr; node = node->Outer)
                 {
                     if (not node->VarLayout)
                     {
@@ -318,7 +318,7 @@ namespace Wayfinder
                 return true;
 
             default:
-                for (auto* node = accessPath.Leaf; node != nullptr; node = node->Outer)
+                for (const auto* node = accessPath.Leaf; node != nullptr; node = node->Outer)
                 {
                     if (not node->VarLayout or not AccumulateLayoutValue(outOffset.Binding, node->VarLayout->getOffset(layoutUnit)))
                     {

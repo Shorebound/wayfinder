@@ -52,7 +52,7 @@ namespace Wayfinder
         // Sample current mouse button state
         m_currentMouseButtons.fill(false);
         const SDL_MouseButtonFlags mouseState = SDL_GetMouseState(nullptr, nullptr);
-        for (std::size_t button = static_cast<std::size_t>(SDL_MOUSE_BUTTON_FIRST); button < m_currentMouseButtons.size(); ++button)
+        for (auto button = static_cast<std::size_t>(SDL_MOUSE_BUTTON_FIRST); button < m_currentMouseButtons.size(); ++button)
         {
             m_currentMouseButtons[button] = (mouseState & SDL_BUTTON_MASK(static_cast<int>(button))) != 0;
         }

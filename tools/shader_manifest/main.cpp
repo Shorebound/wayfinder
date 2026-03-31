@@ -28,23 +28,23 @@ namespace
         std::vector<std::string> ShaderStems;
     };
 
-    auto ParseArgs(const int argc, char* argv[]) -> std::optional<Args>
+    auto ParseArgs(const std::span<char* const> args) -> std::optional<Args>
     {
-        Args args;
-        for (int i = 1; i < argc; ++i)
+        Args parsedArgs;
+        for (int i = 1; i < args.size(); ++i)
         {
-            const std::string arg = argv[i];
-            if (arg == "--source-dir" and i + 1 < argc)
+            const std::string arg = args[i];
+            if (arg == "--source-dir" and i + 1 < args.size())
             {
-                args.SourceDir = argv[++i];
+                parsedArgs.SourceDir = args[++i];
             }
-            else if (arg == "--output" and i + 1 < argc)
+            else if (arg == "--output" and i + 1 < args.size())
             {
-                args.OutputPath = argv[++i];
+                parsedArgs.OutputPath = args[++i];
             }
             else if (not arg.starts_with("--"))
             {
-                args.ShaderStems.push_back(arg);
+                parsedArgs.ShaderStems.push_back(arg);
             }
             else
             {
@@ -53,12 +53,12 @@ namespace
             }
         }
 
-        if (args.SourceDir.empty() or args.OutputPath.empty() or args.ShaderStems.empty())
+        if (parsedArgs.SourceDir.empty() or parsedArgs.OutputPath.empty() or parsedArgs.ShaderStems.empty())
         {
             std::cerr << "Usage: wayfinder_shader_manifest --source-dir <dir> --output <path> [shader_stems...]\n";
             return std::nullopt;
         }
-        return args;
+        return parsedArgs;
     }
 
     auto CountsToJson(const Wayfinder::ShaderResourceCounts& c) -> nlohmann::json
@@ -74,7 +74,7 @@ namespace
 
 int main(const int argc, char* argv[])
 {
-    const auto parsed = ParseArgs(argc, argv);
+    const auto parsed = ParseArgs(std::span(argv, static_cast<size_t>(argc)));
     if (not parsed)
     {
         return EXIT_FAILURE;
@@ -91,8 +91,8 @@ int main(const int argc, char* argv[])
     }
 
     nlohmann::ordered_json manifest = nlohmann::ordered_json::object();
-    bool hadError = false;
 
+    bool hadError = false;
     for (const auto& stem : shaderStems)
     {
         nlohmann::ordered_json shaderEntry = nlohmann::ordered_json::object();
