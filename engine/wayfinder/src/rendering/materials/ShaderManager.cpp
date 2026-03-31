@@ -6,6 +6,7 @@
 #include <nlohmann/json.hpp>
 
 #include <filesystem>
+#include <format>
 #include <fstream>
 #include <ranges>
 
@@ -28,14 +29,14 @@ namespace Wayfinder
             }
         }
 
-        auto ReadManifestStageCounts(const nlohmann::json& stageObject) -> ShaderResourceCounts
+        auto ReadManifestStageCounts(const nlohmann::json& stageObject, const std::string_view shaderName, const std::string_view stageName) -> ShaderResourceCounts
         {
-            const auto readField = [&stageObject](const char* fieldName) -> uint32_t
+            const auto readField = [&stageObject, shaderName, stageName](const char* fieldName) -> uint32_t
             {
                 const auto field = stageObject.find(fieldName);
                 if (field == stageObject.end())
                 {
-                    return 0;
+                    throw std::runtime_error(std::format("manifest entry '{}' stage '{}' is missing required field '{}'", shaderName, stageName, fieldName));
                 }
 
                 return field->get<uint32_t>();
@@ -55,11 +56,11 @@ namespace Wayfinder
         m_device = &device;
         m_compiler = compiler;
         m_shaderDir = Platform::ResolvePathFromBase(shaderDirectory);
+        m_manifestPath = (std::filesystem::path(m_shaderDir) / "shader_manifest.json").string();
 
-        const auto manifestPath = std::filesystem::path(m_shaderDir) / "shader_manifest.json";
-        if (std::filesystem::exists(manifestPath))
+        if (std::filesystem::exists(m_manifestPath))
         {
-            LoadManifest(manifestPath.string());
+            LoadManifest(m_manifestPath);
         }
 
         Log::Info(LogRenderer, "ShaderManager: initialised with directory '{}'", m_shaderDir);
@@ -76,6 +77,7 @@ namespace Wayfinder
         }
         m_cache.clear();
         m_manifest.clear();
+        m_manifestPath.clear();
         m_compiler = nullptr;
         m_device = nullptr;
     }
@@ -83,6 +85,9 @@ namespace Wayfinder
     bool ShaderManager::LoadManifest(const std::string_view manifestPath)
     {
         const std::string pathStr(manifestPath);
+        m_manifestPath = pathStr;
+        m_manifest.clear();
+
         std::ifstream file(pathStr);
         if (not file.is_open())
         {
@@ -122,8 +127,8 @@ namespace Wayfinder
                 }
 
                 parsedManifest.emplace(std::string(shaderName), ManifestEntry{
-                                                                    .Vertex = ReadManifestStageCounts(*vertexIt),
-                                                                    .Fragment = ReadManifestStageCounts(*fragmentIt),
+                                                                    .Vertex = ReadManifestStageCounts(*vertexIt, shaderName, "vertex"),
+                                                                    .Fragment = ReadManifestStageCounts(*fragmentIt, shaderName, "fragment"),
                                                                 });
             }
 
@@ -157,6 +162,20 @@ namespace Wayfinder
             }
         }
         m_cache.clear();
+
+        m_manifest.clear();
+        if (not m_manifestPath.empty())
+        {
+            if (std::filesystem::exists(m_manifestPath))
+            {
+                LoadManifest(m_manifestPath);
+            }
+            else
+            {
+                Log::Info(LogRenderer, "ShaderManager: manifest '{}' not found during reload - manifest fallback disabled", m_manifestPath);
+            }
+        }
+
         Log::Info(LogRenderer, "ShaderManager: shader cache invalidated - shaders will recompile on next use");
     }
 
@@ -201,7 +220,10 @@ namespace Wayfinder
             if (Result<SlangCompiler::CompileResult> compileResult = m_compiler->Compile(name, entryPoint, stage))
             {
                 bytecode = std::move(compileResult->Bytecode);
-                resolvedCounts = compileResult->Resources;
+                if (compileResult->Resources)
+                {
+                    resolvedCounts = *compileResult->Resources;
+                }
             }
             if (bytecode.empty())
             {

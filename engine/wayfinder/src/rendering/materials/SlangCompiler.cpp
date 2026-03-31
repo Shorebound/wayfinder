@@ -471,22 +471,21 @@ namespace Wayfinder
         /// absolute binding location, so we recursively traverse variable layouts,
         /// accumulate offsets through parameter blocks/constant buffers, and count
         /// only the bindings the compiled entry point actually references.
-        auto ExtractResourceCounts(slang::IComponentType* linkedProgram) -> ShaderResourceCounts
+        auto ExtractResourceCounts(slang::IComponentType* linkedProgram) -> std::optional<ShaderResourceCounts>
         {
-            ShaderResourceCounts counts{};
-
             auto* layout = linkedProgram->getLayout(0);
             if (not layout)
             {
-                return counts;
+                return std::nullopt;
             }
 
             Slang::ComPtr<slang::IMetadata> metadata;
             if (SLANG_FAILED(linkedProgram->getEntryPointMetadata(0, 0, metadata.writeRef(), nullptr)) or not metadata)
             {
-                return counts;
+                return std::nullopt;
             }
 
+            ShaderResourceCounts counts{};
             const unsigned paramCount = layout->getParameterCount();
             for (unsigned i = 0; i < paramCount; ++i)
             {

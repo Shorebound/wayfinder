@@ -70,8 +70,8 @@ Formatting is enforced by `.clang-format`.
 
 - Check `engine/wayfinder/src/core/` before introducing a new foundational helper type.
 - Prefer existing engine primitives over ad hoc standard-library substitutes when the engine already models the concept.
-- If the engine doesn't have a primitive for a common concept (e.g. a `Result<T>` type for error handling), prefer a well-known, widely-used library implementation or roll a generic one in `core/` over introducing bespoke types in individual subsystems.
-- Use `InternedString` for stable, repeatedly-compared identifiers such as gameplay tags, pass names, graph keys, and similar long-lived ids. Do not use it for unbounded unique strings.
+- If the engine doesn't have a primitive for a common concept (e.g. a `Result<T>` type for error handling), prefer a well-known, widely used library implementation or roll a generic one in `core/` over introducing bespoke types in individual subsystems.
+- Use `InternedString` for stable, repeatedly compared identifiers such as gameplay tags, pass names, graph keys, and similar long-lived ids. Do not use it for unbounded unique strings.
 - Prefer existing engine handle, identifier, and tag types over raw integers or free-form strings when those domain types already exist.
 - Use `Wayfinder::Log` category logging rather than ad hoc console output.
 
@@ -116,7 +116,7 @@ auto CompileShader(ShaderSource source) -> Result<ShaderModule, ShaderError>;
 ```
 
 ### Coroutines & Async
-- utilise them where they make sense, they can be used for compile-time state machines, lazy sequences, async I/O, and more.
+- Utilise them where they make sense; they can be used for compile-time state machines, lazy sequences, async I/O, and more.
 - `std::generator<T>` for lazy, pull-based sequences.
 - Engine-specific awaitables for async I/O, job queues, task graphs.
 - `[[nodiscard]]` on coroutine functions.

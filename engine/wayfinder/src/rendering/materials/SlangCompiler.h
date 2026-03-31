@@ -6,6 +6,7 @@
 
 #include <cstdint>
 #include <memory>
+#include <optional>
 #include <span>
 #include <string>
 #include <string_view>
@@ -52,7 +53,7 @@ namespace Wayfinder
         struct CompileResult
         {
             std::vector<uint8_t> Bytecode;
-            ShaderResourceCounts Resources{};
+            std::optional<ShaderResourceCounts> Resources;
         };
 
         /**

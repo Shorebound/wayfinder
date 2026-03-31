@@ -102,6 +102,7 @@ namespace Wayfinder
         RenderDevice* m_device = nullptr;
         SlangCompiler* m_compiler = nullptr;
         std::string m_shaderDir;
+        std::string m_manifestPath;
         std::unordered_map<ShaderKey, GPUShaderHandle, ShaderKeyHash> m_cache;
 
         struct ManifestEntry

@@ -104,7 +104,13 @@ int main(const int argc, char* argv[])
             hadError = true;
             continue;
         }
-        shaderEntry["vertex"] = CountsToJson(vertResult->Resources);
+        if (not vertResult->Resources)
+        {
+            std::cerr << "Failed to extract vertex reflection for '" << stem << "'\n";
+            hadError = true;
+            continue;
+        }
+        shaderEntry["vertex"] = CountsToJson(*vertResult->Resources);
 
         auto fragResult = compiler.Compile(stem, "PSMain", Wayfinder::ShaderStage::Fragment);
         if (not fragResult.has_value())
@@ -113,7 +119,13 @@ int main(const int argc, char* argv[])
             hadError = true;
             continue;
         }
-        shaderEntry["fragment"] = CountsToJson(fragResult->Resources);
+        if (not fragResult->Resources)
+        {
+            std::cerr << "Failed to extract fragment reflection for '" << stem << "'\n";
+            hadError = true;
+            continue;
+        }
+        shaderEntry["fragment"] = CountsToJson(*fragResult->Resources);
 
         manifest[stem] = std::move(shaderEntry);
     }
