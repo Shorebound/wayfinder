@@ -36,10 +36,6 @@ namespace Wayfinder
         std::string VertexShaderName;
         std::string FragmentShaderName;
 
-        // Resource binding counts
-        ShaderResourceCounts VertexResources{.UniformBuffers = 1};
-        ShaderResourceCounts FragmentResources{.UniformBuffers = 1};
-
         // Vertex format this shader consumes
         VertexLayout VertexLayout{};
 

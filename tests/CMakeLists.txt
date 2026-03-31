@@ -15,6 +15,7 @@ add_executable(${WAYFINDER_RENDER_TEST_NAME}
   rendering/TextureManagerTests.cpp
   rendering/MeshManagerTests.cpp
   rendering/SlangCompilerTests.cpp
+  rendering/SlangReflectionTests.cpp
 )
 
 wayfinder_set_output_directories(${WAYFINDER_RENDER_TEST_NAME})

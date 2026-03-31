@@ -54,6 +54,7 @@ namespace Wayfinder
         m_currentMouseButtons.fill(false);
         const SDL_MouseButtonFlags mouseState = SDL_GetMouseState(nullptr, nullptr);
         int button = SDL_MOUSE_BUTTON_FIRST;
+        // NOLINTNEXTLINE(readability-qualified-auto)
         for (auto buttonState = std::next(m_currentMouseButtons.begin()); buttonState != m_currentMouseButtons.end(); ++buttonState, ++button)
         {
             *buttonState = (mouseState & SDL_BUTTON_MASK(button)) != 0;

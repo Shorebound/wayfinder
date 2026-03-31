@@ -73,8 +73,6 @@ namespace Wayfinder
                 desc.Name = "debug_unlit";
                 desc.VertexShaderName = "debug_unlit";
                 desc.FragmentShaderName = "debug_unlit";
-                desc.VertexResources = {.UniformBuffers = 1};
-                desc.FragmentResources = {.UniformBuffers = 1};
                 desc.VertexLayout = VertexLayouts::POSITION_COLOUR;
                 desc.Cull = CullMode::None;
                 desc.DepthTest = false;
@@ -88,8 +86,6 @@ namespace Wayfinder
                 desc.Name = "debug_solid";
                 desc.VertexShaderName = "unlit";
                 desc.FragmentShaderName = "unlit";
-                desc.VertexResources = {.UniformBuffers = 1};
-                desc.FragmentResources = {.UniformBuffers = 1};
                 desc.VertexLayout = VertexLayouts::POSITION_NORMAL_COLOUR;
                 desc.Cull = CullMode::Back;
                 desc.DepthTest = false;

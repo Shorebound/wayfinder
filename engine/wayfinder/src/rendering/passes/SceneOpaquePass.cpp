@@ -62,8 +62,6 @@ namespace Wayfinder
                 desc.Name = "unlit";
                 desc.VertexShaderName = "unlit";
                 desc.FragmentShaderName = "unlit";
-                desc.VertexResources = {.UniformBuffers = 1};
-                desc.FragmentResources = {.UniformBuffers = 1};
                 desc.VertexLayout = VertexLayouts::POSITION_NORMAL_COLOUR;
                 desc.Cull = CullMode::Back;
                 desc.DepthTest = true;
@@ -82,8 +80,6 @@ namespace Wayfinder
                 desc.Name = "unlit_blended";
                 desc.VertexShaderName = "unlit";
                 desc.FragmentShaderName = "unlit";
-                desc.VertexResources = {.UniformBuffers = 1};
-                desc.FragmentResources = {.UniformBuffers = 1};
                 desc.VertexLayout = VertexLayouts::POSITION_NORMAL_COLOUR;
                 desc.Cull = CullMode::Back;
                 desc.DepthTest = true;
@@ -103,8 +99,6 @@ namespace Wayfinder
                 desc.Name = "basic_lit";
                 desc.VertexShaderName = "basic_lit";
                 desc.FragmentShaderName = "basic_lit";
-                desc.VertexResources = {.UniformBuffers = 1};
-                desc.FragmentResources = {.UniformBuffers = 2};
                 desc.VertexLayout = VertexLayouts::POSITION_NORMAL_COLOUR;
                 desc.Cull = CullMode::Back;
                 desc.DepthTest = true;
@@ -123,8 +117,6 @@ namespace Wayfinder
                 desc.Name = "textured_lit";
                 desc.VertexShaderName = "textured_lit";
                 desc.FragmentShaderName = "textured_lit";
-                desc.VertexResources = {.UniformBuffers = 1};
-                desc.FragmentResources = {.UniformBuffers = 2, .Samplers = 1};
                 desc.VertexLayout = VertexLayouts::POSITION_NORMAL_UV_TANGENT;
                 desc.Cull = CullMode::Back;
                 desc.DepthTest = true;

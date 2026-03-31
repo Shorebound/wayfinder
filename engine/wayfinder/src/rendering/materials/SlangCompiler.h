@@ -52,6 +52,7 @@ namespace Wayfinder
         struct CompileResult
         {
             std::vector<uint8_t> Bytecode;
+            ShaderResourceCounts Resources{};
         };
 
         /**

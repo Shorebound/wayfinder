@@ -37,8 +37,6 @@ namespace Wayfinder
             desc.Name = "chromatic_aberration";
             desc.VertexShaderName = "chromatic_aberration";
             desc.FragmentShaderName = "chromatic_aberration";
-            desc.VertexResources = {};
-            desc.FragmentResources = {.UniformBuffers = 1, .Samplers = 1};
             desc.VertexLayout = VertexLayouts::EMPTY;
             desc.Cull = CullMode::None;
             desc.DepthTest = false;

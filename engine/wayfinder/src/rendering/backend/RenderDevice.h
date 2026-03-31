@@ -36,8 +36,9 @@ namespace Wayfinder
         uint32_t UniformBuffers = 0;
     };
 
-    // Shader resource counts — describes the resource bindings a shader uses.
-    // Carried by GPUPipelineDesc so ShaderManager can create shaders with correct metadata.
+    // Shader resource counts -- describes the resource bindings a shader uses.
+    // Supplied to RenderDevice::CreateShader. Resolved automatically by ShaderManager
+    // from: Slang reflection (runtime), build-time shader_manifest.json, or SPIR-V analysis.
     struct ShaderResourceCounts
     {
         uint32_t UniformBuffers = 0;

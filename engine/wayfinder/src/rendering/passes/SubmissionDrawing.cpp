@@ -20,8 +20,8 @@ namespace Wayfinder
         /// Returns std::nullopt if the shader handles cannot be resolved.
         std::optional<PipelineCreateDesc> MakeWireframeVariant(const ShaderProgramDesc& desc, ShaderManager& shaders)
         {
-            const GPUShaderHandle vertexShader = shaders.GetShader(desc.VertexShaderName, ShaderStage::Vertex, desc.VertexResources);
-            const GPUShaderHandle fragmentShader = shaders.GetShader(desc.FragmentShaderName, ShaderStage::Fragment, desc.FragmentResources);
+            const GPUShaderHandle vertexShader = shaders.GetShader(desc.VertexShaderName, ShaderStage::Vertex);
+            const GPUShaderHandle fragmentShader = shaders.GetShader(desc.FragmentShaderName, ShaderStage::Fragment);
             if (!vertexShader || !fragmentShader)
             {
                 return std::nullopt;

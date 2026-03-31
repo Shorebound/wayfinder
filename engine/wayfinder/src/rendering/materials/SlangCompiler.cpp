@@ -204,6 +204,76 @@ namespace Wayfinder
                 pos = (end == std::string_view::npos) ? text.size() : end + 1;
             }
         }
+
+        /// Extract per-entry-point resource counts using Slang reflection + IMetadata.
+        ///
+        /// ProgramLayout reports ALL globals declared in the module, but
+        /// IMetadata::isParameterLocationUsed (populated from the SPIR-V backend's
+        /// dead-code elimination) tells us which bindings the entry point actually
+        /// references. We iterate binding ranges on the global params type layout,
+        /// query usage for each, and count only the live ones.
+        auto ExtractResourceCounts(slang::IComponentType* linkedProgram) -> ShaderResourceCounts
+        {
+            ShaderResourceCounts counts{};
+
+            auto* layout = linkedProgram->getLayout(0);
+            if (not layout)
+            {
+                return counts;
+            }
+
+            Slang::ComPtr<slang::IMetadata> metadata;
+            if (SLANG_FAILED(linkedProgram->getEntryPointMetadata(0, 0, metadata.writeRef(), nullptr)) or not metadata)
+            {
+                return counts;
+            }
+
+            const unsigned paramCount = layout->getParameterCount();
+            for (unsigned i = 0; i < paramCount; ++i)
+            {
+                auto* param = layout->getParameterByIndex(i);
+                if (not param)
+                {
+                    continue;
+                }
+
+                const auto space = static_cast<SlangUInt>(param->getBindingSpace(SLANG_PARAMETER_CATEGORY_DESCRIPTOR_TABLE_SLOT));
+                const auto binding = static_cast<SlangUInt>(param->getOffset(SLANG_PARAMETER_CATEGORY_DESCRIPTOR_TABLE_SLOT));
+
+                bool used = false;
+                if (SLANG_FAILED(metadata->isParameterLocationUsed(SLANG_PARAMETER_CATEGORY_DESCRIPTOR_TABLE_SLOT, space, binding, used)) or not used)
+                {
+                    continue;
+                }
+
+                const auto type = param->getTypeLayout()->getBindingRangeType(0);
+                switch (type)
+                {
+                case slang::BindingType::ConstantBuffer:
+                case slang::BindingType::ParameterBlock:
+                    counts.UniformBuffers += 1;
+                    break;
+                case slang::BindingType::Sampler:
+                case slang::BindingType::Texture:
+                case slang::BindingType::CombinedTextureSampler:
+                    counts.Samplers += 1;
+                    break;
+                case slang::BindingType::MutableTexture:
+                    counts.StorageTextures += 1;
+                    break;
+                case slang::BindingType::RawBuffer:
+                case slang::BindingType::MutableRawBuffer:
+                case slang::BindingType::TypedBuffer:
+                case slang::BindingType::MutableTypedBuffer:
+                    counts.StorageBuffers += 1;
+                    break;
+                default:
+                    break;
+                }
+            }
+
+            return counts;
+        }
     } // namespace
 
     Result<SlangCompiler::CompileResult> SlangCompiler::Compile(const std::string_view sourceName, const std::string_view entryPoint, ShaderStage stage)
@@ -293,12 +363,14 @@ namespace Wayfinder
         }
         LogSlangDiagnostics(diagnostics);
 
-        // 6. Copy to output
+        // 6. Copy SPIR-V to output and extract per-entry-point resource counts
+        //    via Slang reflection + IMetadata (filters dead-stripped bindings).
         const auto* data = static_cast<const uint8_t*>(spirvBlob->getBufferPointer());
         const size_t size = spirvBlob->getBufferSize();
 
         CompileResult compileResult;
         compileResult.Bytecode.assign(data, data + size);
+        compileResult.Resources = ExtractResourceCounts(linkedProgram.get());
 
         Log::Info(LogRenderer, "SlangCompiler: compiled '{}' entry '{}' ({}) - {} bytes SPIR-V", sourceName, entryPoint, stageLabel, size);
 

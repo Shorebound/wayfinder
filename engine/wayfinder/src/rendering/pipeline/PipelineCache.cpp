@@ -115,8 +115,8 @@ namespace Wayfinder
             return GPUPipelineHandle::Invalid();
         }
 
-        const GPUShaderHandle vs = shaders.GetShader(desc.VertexShaderName, ShaderStage::Vertex, desc.VertexResources);
-        const GPUShaderHandle fs = shaders.GetShader(desc.FragmentShaderName, ShaderStage::Fragment, desc.FragmentResources);
+        const GPUShaderHandle vs = shaders.GetShader(desc.VertexShaderName, ShaderStage::Vertex);
+        const GPUShaderHandle fs = shaders.GetShader(desc.FragmentShaderName, ShaderStage::Fragment);
         if (!vs || !fs)
         {
             Log::Error(LogRenderer, "PipelineCache: Failed to resolve shaders '{}' / '{}'", desc.VertexShaderName, desc.FragmentShaderName);

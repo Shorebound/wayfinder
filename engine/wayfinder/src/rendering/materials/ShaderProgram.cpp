@@ -90,8 +90,6 @@ namespace Wayfinder
         GPUPipelineDesc pipelineDesc{};
         pipelineDesc.VertexShaderName = desc.VertexShaderName;
         pipelineDesc.FragmentShaderName = desc.FragmentShaderName;
-        pipelineDesc.VertexResources = desc.VertexResources;
-        pipelineDesc.FragmentResources = desc.FragmentResources;
         pipelineDesc.VertexLayout = desc.VertexLayout;
         pipelineDesc.CullMode = desc.Cull;
         pipelineDesc.DepthTestEnabled = desc.DepthTest;
@@ -177,8 +175,6 @@ namespace Wayfinder
         GPUPipelineDesc pipelineDesc{};
         pipelineDesc.VertexShaderName = program->Desc.VertexShaderName;
         pipelineDesc.FragmentShaderName = program->Desc.FragmentShaderName;
-        pipelineDesc.VertexResources = program->Desc.VertexResources;
-        pipelineDesc.FragmentResources = program->Desc.FragmentResources;
         pipelineDesc.VertexLayout = program->Desc.VertexLayout;
         pipelineDesc.CullMode = program->Desc.Cull;
         pipelineDesc.DepthTestEnabled = program->Desc.DepthTest;

@@ -17,8 +17,6 @@ namespace Wayfinder
     {
         std::string VertexShaderName;
         std::string FragmentShaderName;
-        ShaderResourceCounts VertexResources{.UniformBuffers = 1};
-        ShaderResourceCounts FragmentResources{};
         VertexLayout VertexLayout{};
         PrimitiveType PrimitiveType = PrimitiveType::TriangleList;
         CullMode CullMode = CullMode::Back;
