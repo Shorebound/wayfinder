@@ -13,9 +13,12 @@
 #include <nlohmann/json.hpp>
 
 #include <cstdlib>
+#include <exception>
 #include <filesystem>
 #include <fstream>
 #include <iostream>
+#include <optional>
+#include <span>
 #include <string>
 #include <vector>
 
@@ -31,7 +34,7 @@ namespace
     auto ParseArgs(const std::span<char* const> args) -> std::optional<Args>
     {
         Args parsedArgs;
-        for (int i = 1; i < args.size(); ++i)
+        for (size_t i = 1; i < args.size(); ++i)
         {
             const std::string arg = args[i];
             if (arg == "--source-dir" and i + 1 < args.size())
@@ -70,86 +73,122 @@ namespace
             {"storageBuffers", c.StorageBuffers},
         };
     }
+
+    auto Run(const std::span<char* const> args) -> int
+    {
+        const auto parsed = ParseArgs(args);
+        if (not parsed)
+        {
+            return EXIT_FAILURE;
+        }
+
+        const auto& sourceDir = parsed->SourceDir;
+        const auto& outputPath = parsed->OutputPath;
+        const auto& shaderStems = parsed->ShaderStems;
+
+        Wayfinder::SlangCompiler compiler;
+        Wayfinder::SlangCompiler::InitDesc desc;
+        desc.SourceDirectory = sourceDir;
+        const auto initResult = compiler.Initialise(desc);
+        if (not initResult.has_value())
+        {
+            std::cerr << "Failed to initialise SlangCompiler with source directory: " << sourceDir << ": " << initResult.error().GetMessage() << '\n';
+            return EXIT_FAILURE;
+        }
+
+        nlohmann::ordered_json manifest = nlohmann::ordered_json::object();
+
+        bool hadError = false;
+        for (const auto& stem : shaderStems)
+        {
+            nlohmann::ordered_json shaderEntry = nlohmann::ordered_json::object();
+
+            auto vertResult = compiler.Compile(stem, "VSMain", Wayfinder::ShaderStage::Vertex);
+            if (not vertResult.has_value())
+            {
+                std::cerr << "Failed to compile vertex stage for '" << stem << "': " << vertResult.error().GetMessage() << '\n';
+                hadError = true;
+                continue;
+            }
+            if (not vertResult->Resources)
+            {
+                std::cerr << "Failed to extract vertex reflection for '" << stem << "': compiler returned no reflection metadata\n";
+                hadError = true;
+                continue;
+            }
+            shaderEntry["vertex"] = CountsToJson(*vertResult->Resources);
+
+            auto fragResult = compiler.Compile(stem, "PSMain", Wayfinder::ShaderStage::Fragment);
+            if (not fragResult.has_value())
+            {
+                std::cerr << "Failed to compile fragment stage for '" << stem << "': " << fragResult.error().GetMessage() << '\n';
+                hadError = true;
+                continue;
+            }
+            if (not fragResult->Resources)
+            {
+                std::cerr << "Failed to extract fragment reflection for '" << stem << "': compiler returned no reflection metadata\n";
+                hadError = true;
+                continue;
+            }
+            shaderEntry["fragment"] = CountsToJson(*fragResult->Resources);
+
+            manifest[stem] = std::move(shaderEntry);
+        }
+
+        if (hadError)
+        {
+            std::cerr << "Errors occurred during shader compilation.\n";
+            return EXIT_FAILURE;
+        }
+
+        const auto parentDir = std::filesystem::path(outputPath).parent_path();
+        if (not parentDir.empty())
+        {
+            std::error_code error;
+            std::filesystem::create_directories(parentDir, error);
+            if (error)
+            {
+                std::cerr << "Failed to create output directory '" << parentDir.string() << "': " << error.message() << '\n';
+                return EXIT_FAILURE;
+            }
+        }
+
+        std::ofstream out(outputPath);
+        if (not out.is_open())
+        {
+            std::cerr << "Failed to open output file: " << outputPath << '\n';
+            return EXIT_FAILURE;
+        }
+
+        out << manifest.dump(2) << '\n';
+        out.flush();
+        if (out.fail())
+        {
+            std::cerr << "Failed to write shader manifest: " << outputPath << '\n';
+            return EXIT_FAILURE;
+        }
+
+        std::cout << "Wrote shader manifest: " << outputPath << " (" << manifest.size() << " shaders)\n";
+        return EXIT_SUCCESS;
+    }
 } // namespace
 
+// NOLINTNEXTLINE(bugprone-exception-escape) - std::filesystem and iostream paths still trip this on CLI entry points.
 int main(const int argc, char* argv[])
 {
-    const auto parsed = ParseArgs(std::span(argv, static_cast<size_t>(argc)));
-    if (not parsed)
+    try
     {
+        return Run(std::span(argv, static_cast<size_t>(argc)));
+    }
+    catch (const std::exception& exception)
+    {
+        std::cerr << "Unhandled exception: " << exception.what() << '\n';
         return EXIT_FAILURE;
     }
-    const auto& [sourceDir, outputPath, shaderStems] = *parsed;
-
-    Wayfinder::SlangCompiler compiler;
-    Wayfinder::SlangCompiler::InitDesc desc;
-    desc.SourceDirectory = sourceDir;
-    if (not compiler.Initialise(desc).has_value())
+    catch (...)
     {
-        std::cerr << "Failed to initialise SlangCompiler with source directory: " << sourceDir << '\n';
+        std::cerr << "Unhandled unknown exception.\n";
         return EXIT_FAILURE;
     }
-
-    nlohmann::ordered_json manifest = nlohmann::ordered_json::object();
-
-    bool hadError = false;
-    for (const auto& stem : shaderStems)
-    {
-        nlohmann::ordered_json shaderEntry = nlohmann::ordered_json::object();
-
-        auto vertResult = compiler.Compile(stem, "VSMain", Wayfinder::ShaderStage::Vertex);
-        if (not vertResult.has_value())
-        {
-            std::cerr << "Failed to compile vertex stage for '" << stem << "'\n";
-            hadError = true;
-            continue;
-        }
-        if (not vertResult->Resources)
-        {
-            std::cerr << "Failed to extract vertex reflection for '" << stem << "'\n";
-            hadError = true;
-            continue;
-        }
-        shaderEntry["vertex"] = CountsToJson(*vertResult->Resources);
-
-        auto fragResult = compiler.Compile(stem, "PSMain", Wayfinder::ShaderStage::Fragment);
-        if (not fragResult.has_value())
-        {
-            std::cerr << "Failed to compile fragment stage for '" << stem << "'\n";
-            hadError = true;
-            continue;
-        }
-        if (not fragResult->Resources)
-        {
-            std::cerr << "Failed to extract fragment reflection for '" << stem << "'\n";
-            hadError = true;
-            continue;
-        }
-        shaderEntry["fragment"] = CountsToJson(*fragResult->Resources);
-
-        manifest[stem] = std::move(shaderEntry);
-    }
-
-    if (hadError)
-    {
-        std::cerr << "Errors occurred during shader compilation.\n";
-        return EXIT_FAILURE;
-    }
-
-    const auto parentDir = std::filesystem::path(outputPath).parent_path();
-    if (not parentDir.empty())
-    {
-        std::filesystem::create_directories(parentDir);
-    }
-
-    std::ofstream out(outputPath);
-    if (not out.is_open())
-    {
-        std::cerr << "Failed to open output file: " << outputPath << '\n';
-        return EXIT_FAILURE;
-    }
-
-    out << manifest.dump(2) << '\n';
-    std::cout << "Wrote shader manifest: " << outputPath << " (" << manifest.size() << " shaders)\n";
-    return EXIT_SUCCESS;
 }

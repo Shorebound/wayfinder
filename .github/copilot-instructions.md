@@ -25,11 +25,6 @@ This project is greenfield. Breaking changes, rewrites, and architectural pivots
 - **Explicit over implicit** — capabilities are checked, passes are validated, nothing silently dropped.
 - **Engine is a library** — the game and editor are consumers. The engine never knows who's calling it.
 
-## Data Files
-
-- **TOML** for hand-authored content: configuration, input mappings, etc. It's more readable and forgiving for humans, and supports comments.
-- **JSON** for interchange formats, generated data, and anything benefiting from schema validation such as assets, scene descriptions, render graph definitions, etc. The strictness and tooling support help catch errors early.
-- Validate data files at load time with clear error messages for authors.
 
 ## Build
 
@@ -267,6 +262,12 @@ C++20 modules are preferred for new subsystems (strong encapsulation, faster bui
 - One module/header per logical component.
 - Platform-specific code in separate files (`Render-Vulkan.cpp`, `Render-D3D12.cpp`). Select at build time, not with `#ifdef` in one file.
 - Global module fragment is the only place for `#include` of C/legacy headers.
+
+### Data Files
+
+- **TOML** for hand-authored content: configuration, input mappings, etc. It's more readable and forgiving for humans, and supports comments.
+- **JSON** for interchange formats, generated data, and anything benefiting from schema validation such as assets, scene descriptions, render graph definitions, etc. The strictness and tooling support help catch errors early.
+- Validate data files at load time with clear error messages for authors.
 
 ### Things to Avoid
 

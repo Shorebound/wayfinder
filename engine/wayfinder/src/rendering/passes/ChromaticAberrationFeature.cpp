@@ -44,7 +44,7 @@ namespace Wayfinder
             desc.MaterialUBOSize = sizeof(ChromaticAberrationUBO);
             desc.VertexUBOSize = 0;
             desc.NeedsSceneGlobals = false;
-            return std::vector{std::move(desc)};
+            return std::vector{desc};
         }();
 
         return PROGRAMS;

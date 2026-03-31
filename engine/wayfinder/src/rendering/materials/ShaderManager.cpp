@@ -103,7 +103,7 @@ namespace Wayfinder
                 return false;
             }
 
-            std::unordered_map<std::string, ManifestEntry> parsedManifest;
+            decltype(m_manifest) parsedManifest;
             for (const auto& [shaderName, stages] : doc.items())
             {
                 if (not stages.is_object())
@@ -181,7 +181,7 @@ namespace Wayfinder
 
     std::optional<ShaderResourceCounts> ShaderManager::LookupManifest(const std::string_view name, const ShaderStage stage) const
     {
-        const auto it = m_manifest.find(std::string(name));
+        const auto it = m_manifest.find(name);
         if (it == m_manifest.end())
         {
             return std::nullopt;

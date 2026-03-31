@@ -67,6 +67,9 @@ namespace Wayfinder
 
     void ShaderProgramRegistry::Shutdown()
     {
+        // Pipeline handles are owned by PipelineCache (invalidated separately).
+        // Clear both m_programs and m_variantPipelines so reinitialisation starts cold.
+        m_variantPipelines.clear();
         m_programs.clear();
         m_device = nullptr;
         m_shaders = nullptr;

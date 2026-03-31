@@ -162,6 +162,53 @@ namespace Wayfinder
 
     namespace
     {
+        auto ShaderStageLabel(const ShaderStage stage) -> const char*
+        {
+            switch (stage)
+            {
+            case ShaderStage::Vertex:
+                return "vertex";
+            case ShaderStage::Fragment:
+                return "fragment";
+            case ShaderStage::Compute:
+                return "compute";
+            default:
+                return "unknown";
+            }
+        }
+
+        auto SlangStageLabel(const SlangStage stage) -> const char*
+        {
+            switch (stage)
+            {
+            case SLANG_STAGE_VERTEX:
+                return "vertex";
+            case SLANG_STAGE_FRAGMENT:
+                return "fragment";
+            case SLANG_STAGE_COMPUTE:
+                return "compute";
+            case SLANG_STAGE_NONE:
+                return "none";
+            default:
+                return "other";
+            }
+        }
+
+        auto ToSlangStage(const ShaderStage stage) -> SlangStage
+        {
+            switch (stage)
+            {
+            case ShaderStage::Vertex:
+                return SLANG_STAGE_VERTEX;
+            case ShaderStage::Fragment:
+                return SLANG_STAGE_FRAGMENT;
+            case ShaderStage::Compute:
+                return SLANG_STAGE_COMPUTE;
+            default:
+                return SLANG_STAGE_NONE;
+            }
+        }
+
         void LogSlangDiagnostics(slang::IBlob* diagnostics)
         {
             if (!diagnostics || diagnostics->getBufferSize() == 0)
@@ -506,20 +553,7 @@ namespace Wayfinder
         // Build the full source path: sourceDirectory / sourceName.slang
         const std::string sourcePath = (std::filesystem::path(m_sourceDirectory) / std::format("{}.slang", sourceName)).string();
 
-        const char* stageLabel = [stage]
-        {
-            switch (stage)
-            {
-            case ShaderStage::Vertex:
-                return "vertex";
-            case ShaderStage::Fragment:
-                return "fragment";
-            case ShaderStage::Compute:
-                return "compute";
-            default:
-                return "unknown";
-            }
-        }();
+        const char* stageLabel = ShaderStageLabel(stage);
 
         Log::Info(LogRenderer, "SlangCompiler: compiling '{}' entry '{}' ({})", sourceName, entryPoint, stageLabel);
 
@@ -542,6 +576,22 @@ namespace Wayfinder
         {
             Log::Error(LogRenderer, "SlangCompiler: entry point '{}' not found in '{}'", entryPoint, sourcePath);
             return MakeError(std::format("Entry point '{}' not found in '{}'", entryPoint, sourcePath));
+        }
+
+        auto* entryPointLayout = entryPointObj->getLayout();
+        auto* reflectedEntryPoint = entryPointLayout ? entryPointLayout->getEntryPointByIndex(0) : nullptr;
+        if (!reflectedEntryPoint)
+        {
+            Log::Error(LogRenderer, "SlangCompiler: failed to inspect stage for '{}':'{}'", sourcePath, entryPoint);
+            return MakeError(std::format("Failed to inspect Slang stage for '{}':'{}'", sourcePath, entryPoint));
+        }
+
+        const SlangStage requestedStage = ToSlangStage(stage);
+        const SlangStage actualStage = reflectedEntryPoint->getStage();
+        if (actualStage != requestedStage)
+        {
+            Log::Error(LogRenderer, "SlangCompiler: stage mismatch for '{}':'{}' - requested {}, entry point is {}", sourcePath, entryPoint, ShaderStageLabel(stage), SlangStageLabel(actualStage));
+            return MakeError(std::format("Stage mismatch for '{}':'{}' - requested {}, entry point is {}", sourcePath, entryPoint, ShaderStageLabel(stage), SlangStageLabel(actualStage)));
         }
 
         // 3. Compose the program (module + entry point)

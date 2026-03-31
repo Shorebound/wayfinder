@@ -31,7 +31,7 @@ Engine-side types and device query interface. No behaviour changes yet.
 
 Add near the top alongside `ShaderStage`:
 
-```
+```cpp
 enum class ShaderFormat : uint8_t { SPIRV, DXIL, MSL, WGSL, Unknown };
 ```
 
@@ -47,7 +47,7 @@ These are `constexpr` switch functions. Use `std::unreachable()` for the `Unknow
 **File:** `engine/wayfinder/src/rendering/backend/RenderDevice.h`
 
 Add to `ShaderCreateDesc`:
-```
+```cpp
 ShaderFormat Format = ShaderFormat::SPIRV;
 ```
 
@@ -111,7 +111,7 @@ m_device = SDL_CreateGPUDevice(SDL_GPU_SHADERFORMAT_SPIRV, true, nullptr);
 ```
 
 Change to request the platform-relevant superset:
-```
+```cpp
 SDL_GPU_SHADERFORMAT_SPIRV | SDL_GPU_SHADERFORMAT_DXIL | SDL_GPU_SHADERFORMAT_MSL
 ```
 
@@ -193,7 +193,7 @@ The `shader_manifest.json` from #143 is still a single file, placed at `OUTPUT_D
 
 Each target's outputs have a separate custom command. Add a per-target stamp:
 
-```
+```text
 ${ARG_TARGET}_shaders_spirv
 ${ARG_TARGET}_shaders_dxil
 ${ARG_TARGET}_shaders_metal
@@ -311,7 +311,7 @@ Using NullDevice and test fixture shaders:
 - Verify `ShaderCreateDesc::Format` matches the loaded format
 
 **Fixtures:** Create minimal test fixture directories:
-```
+```text
 tests/fixtures/shaders/spirv/test_shader.vert.spv
 tests/fixtures/shaders/dxil/test_shader.vert.dxil
 ```

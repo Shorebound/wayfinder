@@ -156,7 +156,6 @@ namespace Wayfinder
 
         const auto& primary = params.PrimaryView;
         const Colour clearColour = primary.ClearColour;
-        const bool hasCamera = primary.Valid;
 
         const SceneGlobalsUBO sceneGlobals = BuildSceneGlobals(preparedFrame);
 
@@ -175,7 +174,7 @@ namespace Wayfinder
         depthDesc.Format = TextureFormat::D32_FLOAT;
         depthDesc.DebugName = GraphTextureName(GraphTextureId::SceneDepth);
 
-        graph.AddPass("MainScene", [&, hasCamera](RenderGraphBuilder& builder)
+        graph.AddPass("MainScene", [&](RenderGraphBuilder& builder)
         {
             builder.DeclarePassCapabilities(RenderCapabilities::RASTER | RenderCapabilities::RASTER_SCENE_GEOMETRY);
             auto colour = builder.CreateTransient(colourDesc);
@@ -183,9 +182,9 @@ namespace Wayfinder
             builder.WriteColour(colour, LoadOp::Clear, LinearColour::FromColour(clearColour));
             builder.WriteDepth(depth, LoadOp::Clear, 1.0f);
 
-            return [this, &params, sceneGlobals, hasCamera](RenderDevice& device, const RenderGraphResources& /*resources*/)
+            return [this, &params, sceneGlobals](RenderDevice& device, const RenderGraphResources& /*resources*/)
             {
-                if (!hasCamera || !m_context)
+                if (!m_context)
                 {
                     return;
                 }

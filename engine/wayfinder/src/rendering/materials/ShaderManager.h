@@ -1,7 +1,9 @@
 #pragma once
 
+#include "core/TransparentStringHash.h"
 #include "rendering/backend/RenderDevice.h"
 
+#include <functional>
 #include <optional>
 #include <string>
 #include <string_view>
@@ -68,8 +70,20 @@ namespace Wayfinder
          */
         void ReloadShaders();
 
+        /**
+         * @brief Returns a cached or newly created GPU shader for a named program stage.
+         * @param name Shader name stem used to find source or precompiled bytecode.
+         * @param stage ShaderStage requested for the load or compile path.
+         * @param variant ShaderVariantKey selecting a preprocessor-feature variant.
+         * @return GPUShaderHandle for the loaded shader, or an invalid handle if loading, compilation, or GPU creation fails.
+         */
         GPUShaderHandle GetShader(std::string_view name, ShaderStage stage, ShaderVariantKey variant = 0);
 
+        /**
+         * @brief Loads compute shader bytecode for a named program.
+         * @param name Shader name stem used to find source or precompiled bytecode.
+         * @return std::vector<uint8_t> containing compute shader bytecode, or an empty vector if loading or compilation fails.
+         */
         std::vector<uint8_t> LoadComputeShaderBytecode(std::string_view name);
 
     private:
@@ -110,7 +124,7 @@ namespace Wayfinder
             std::optional<ShaderResourceCounts> Vertex;
             std::optional<ShaderResourceCounts> Fragment;
         };
-        std::unordered_map<std::string, ManifestEntry> m_manifest;
+        std::unordered_map<std::string, ManifestEntry, TransparentStringHash, std::equal_to<>> m_manifest;
     };
 
 } // namespace Wayfinder

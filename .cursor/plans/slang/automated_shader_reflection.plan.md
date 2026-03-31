@@ -14,7 +14,7 @@ Replace all manual `ShaderResourceCounts` with Slang's `ProgramLayout` reflectio
 ## Architecture
 
 **Current flow (manual):**
-```
+```text
 Pass code → ShaderProgramDesc{VertexResources, FragmentResources}
   → ShaderProgramRegistry::Register() → GPUPipelineDesc{VertexResources, FragmentResources}
     → PipelineCache::GetOrCreate(ShaderManager, desc)
@@ -23,7 +23,7 @@ Pass code → ShaderProgramDesc{VertexResources, FragmentResources}
 ```
 
 **New flow (reflection-driven):**
-```
+```text
 Pass code → ShaderProgramDesc (no resource counts)
   → ShaderProgramRegistry::Register() → GPUPipelineDesc (no resource counts)
     → PipelineCache::GetOrCreate(ShaderManager, desc)
@@ -61,7 +61,7 @@ Pass code → ShaderProgramDesc (no resource counts)
 - **Pre-compiled .spv path** (Shipping): Load from `shader_manifest.json` (Phase 3)
 
 **2.3** Store reflected counts alongside cached shader handles. Extend the cache value from `GPUShaderHandle` to a small struct:
-```
+```cpp
 struct CachedShader { GPUShaderHandle Handle; ShaderResourceCounts Resources; };
 ```
 This ensures counts are available even on cache hits.

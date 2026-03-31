@@ -33,7 +33,7 @@ namespace Wayfinder::Tests
         }
     } // namespace
 
-    TEST_CASE("chromatic aberration registers as blendable effect on attach")
+    TEST_CASE("chromatic aberration registers as blendable effect when effects are registered")
     {
         auto device = RenderDevice::Create(RenderBackend::Null);
         REQUIRE(device);
@@ -53,7 +53,7 @@ namespace Wayfinder::Tests
         services.Shutdown();
     }
 
-    TEST_CASE("vignette registers as blendable effect on attach")
+    TEST_CASE("vignette registers as blendable effect when effects are registered")
     {
         auto device = RenderDevice::Create(RenderBackend::Null);
         REQUIRE(device);
@@ -73,7 +73,7 @@ namespace Wayfinder::Tests
         services.Shutdown();
     }
 
-    TEST_CASE("colour grading registers as blendable effect on attach")
+    TEST_CASE("colour grading registers as blendable effect when effects are registered")
     {
         auto device = RenderDevice::Create(RenderBackend::Null);
         REQUIRE(device);
