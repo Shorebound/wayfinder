@@ -148,7 +148,7 @@ namespace Wayfinder
         template<typename T, typename F>
         bool Dispatch(const F& func)
         {
-            if (m_event.GetEventType() == T::GetStaticType())
+            if (m_event.GetEventType() == T::GetStaticType() and not m_event.Handled)
             {
                 m_event.Handled |= func(static_cast<T&>(m_event));
                 return true;
