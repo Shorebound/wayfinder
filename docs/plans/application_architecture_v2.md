@@ -2,13 +2,14 @@
 
 **Status:** Planned
 **Related issues:** TBD
-**Last updated:** 2026-04-02
+**Last updated:** 2026-04-03
 **Supersedes:** [application_architecture_v1.md](application_architecture_v1.md)
 
 **Companion documents:**
 - [application_migration_v2.md](application_migration_v2.md) - Codebase transition tables (rename/keep/remove/add)
-- [game_framework.md](game_framework.md) - Game, GameplayState, EditorState, service providers
+- [game_framework.md](game_framework.md) - Simulation, GameplayState, EditorState, service providers, sub-state machines, IStateUI usage
 - [rendering_performance.md](rendering_performance.md) - ECS-to-GPU hot path goals
+- [console.md](console.md) - Debug console: commands, cvars, overlay, editor panel
 
 ---
 
@@ -25,8 +26,8 @@ This document covers the application shell: how plugins compose an application, 
 - **Engine is a library.** The game owns `main()`. `Application` is a type the game constructs.
 - **Application is a minimal orchestrator.** Owns platform services, the state machine, the overlay stack, and event routing. Public API: `AddPlugin<T>()` and `Run()`.
 - **Plugins are the sole unit of extension.** States, overlays, subsystems, ECS registrations, render features, gameplay tags - everything flows through plugins.
-- **States and overlays are separate concerns.** States manage phases (splash, menu, gameplay). Overlays are persistent or transient decorations (FPS counter, debug console). Different lifecycles, different ownership.
-- **Game is a standalone simulation engine.** See [game_framework.md](game_framework.md).
+- **States and overlays are separate concerns.** States manage phases (splash, menu, gameplay). Overlays are persistent decorations (FPS counter, debug console). Different lifecycles, different ownership.
+- **Game is a standalone simulation engine.** See [game_framework.md](game_framework.md). Renamed to `Simulation` -- owns the flecs world and scene management, nothing else.
 - **Subsystems are scoped services.** Application and state lifetime, with dependency declaration and topological ordering.
 - **Threading-ready from day one.** Interfaces designed so parallelism can be introduced incrementally. Frame data isolated, shared mutable state minimised.
 
@@ -52,8 +53,8 @@ Application
   |
   +-- OverlayStack
   |     +-- [FpsOverlay]               (persistent, no capability requirement)
-  |     +-- [GameHudOverlay]           (persistent, requires: Simulation)
-  |     +-- [AchievementToast]         (transient, pushed at runtime)
+  |     +-- [DebugConsoleOverlay]      (persistent, no capability requirement, toggled at runtime)
+  |     +-- [RenderGraphOverlay]       (persistent, requires: Rendering)
   |
   +-- EventQueue
   +-- ProjectDescriptor
@@ -117,8 +118,8 @@ Empty `RequiredCapabilities` = always active. Adding a new state (e.g. `ReplaySt
 builder.RegisterSubsystem<PhysicsSubsystem>({
     .RequiredCapabilities = { Capability::Simulation },
 });
-builder.RegisterOverlay<GameHudOverlay>({
-    .RequiredCapabilities = { Capability::Simulation },
+builder.RegisterOverlay<RenderGraphOverlay>({
+    .RequiredCapabilities = { Capability::Rendering },
 });
 builder.RegisterRenderFeature<SSAOFeature>({
     .RequiredCapabilities = { Capability::Rendering },
@@ -131,7 +132,9 @@ builder.RegisterRenderFeature<SSAOFeature>({
 
 ### Concept
 
-Manages **phase-level** flow: splash screen, main menu, gameplay, editor. One state is active at a time. Distinct from game-level state machines (playing, loading, cutscene) which operate within `GameplayState` via `GameStateMachine` and ECS run conditions. See [game_framework.md](game_framework.md) for game-level states.
+Manages **phase-level** flow: splash screen, main menu, gameplay, editor. One state is active at a time.
+
+Individual application states may own **sub-state machines** for internal flow (e.g. GameplayState: Playing/Loading/Cutscene; MainMenuState: TitleScreen/SaveSelect/Settings). These are generic `StateMachine<InternedString>` instances held as member variables of the owning `IApplicationState`, not engine-managed. Sub-states are registered by plugins via `builder.ForState<T>()` and control ECS system activation through `RunCondition` helpers reading the `ActiveGameState` world singleton. See [game_framework.md](game_framework.md) for sub-state registration details.
 
 ### State Interface
 
@@ -160,8 +163,9 @@ States do **not** hold transition logic. Transitions are requested through `Engi
 ```cpp
 void GameplayState::OnUpdate(EngineContext& ctx, float dt)
 {
-    m_game->Update(dt);
-    if (m_game->IsGameOver())
+    m_stateMachine.ProcessPending(ctx);
+    m_simulation->Update(dt);
+    if (m_simulation->IsGameOver())
         ctx.RequestTransition<CreditsState>();
     if (m_pauseRequested)
         ctx.RequestPush<PauseState>();
@@ -233,10 +237,9 @@ Overlays are lightweight decorations that render on top of the active state. The
 
 ### Types
 
-| Type | Lifecycle | Cleanup |
-|---|---|---|
-| **Persistent** | Registered at startup | Survives state transitions. Auto-deactivated if capabilities unmet. |
-| **Transient** | Pushed at runtime | Cleaned up on state transition. |
+All overlays are **persistent**: registered at startup, survive state transitions. Auto-deactivated if capabilities unmet. Activated/deactivated at runtime via `ActivateOverlay()` / `DeactivateOverlay()`.
+
+Game-specific UI (HUD elements, tutorial popups, interaction prompts) is **not** an overlay -- it's a plugin-injected `IStateUI` implementation with state lifetime. Overlays are engine-level decorations with application lifetime; `IStateUI` is game-level UI with state lifetime. They both submit to canvases, but differ in data coupling (overlays access `EngineContext` subsystems; `IStateUI` accesses whatever the state provides) and lifecycle ownership. See the **State UI** section below and [game_framework.md](game_framework.md) for concrete usage.
 
 ### Interface and Registration
 
@@ -256,17 +259,18 @@ public:
 builder.RegisterOverlay<DebugConsoleOverlay>({
     .RequiredCapabilities = {},         // all states
     .DefaultActive = false,             // toggled at runtime
-    .InputPriority = 100,               // higher = receives input first
 });
 ```
 
 ### Execution Order
 
-- **Input**: top-down (highest priority first). Overlays can consume events.
-- **Update**: all active overlays, after the active state.
-- **Render**: bottom-up (state first, overlays on top).
+Overlay ordering follows **registration order** for both input dispatch and rendering:
 
-### Accessing Game Data
+- **Input**: top-down (last registered first). Overlays can consume events.
+- **Update**: all active overlays, after the active state.
+- **Render**: bottom-up (state first, then overlays in registration order).
+
+### Accessing Simulation Data
 
 Overlays use `EngineContext` subsystems, not downcasts:
 
@@ -282,6 +286,93 @@ void PerformanceMetricsOverlay::OnRender(EngineContext& ctx)
 ```
 
 `TryGetStateSubsystem<T>()` returns `nullptr` when no matching subsystem is active. Explicit, null-safe, no coupling to concrete state types.
+
+---
+
+## State UI
+
+States can optionally have a **plugin-injected UI provider** (`IStateUI`). The engine owns the lifecycle wiring (when to forward events, when to update, when to render). The game owns the content (which panels exist, what data they show, what modals they present).
+
+This is opt-in. Simple states (splash screens, loading screens) handle their own rendering directly in `OnRender`. States with interactive, layered UI (gameplay, editor, menus) use `IStateUI` to keep the state implementation reusable and the UI implementation game-specific.
+
+### Interface
+
+```cpp
+class IStateUI
+{
+public:
+    virtual ~IStateUI() = default;
+
+    virtual void OnAttach(EngineContext& ctx) {}
+    virtual void OnDetach(EngineContext& ctx) {}
+    virtual void OnSuspend(EngineContext& ctx) {}
+    virtual void OnResume(EngineContext& ctx) {}
+    virtual void OnUpdate(EngineContext& ctx, float deltaTime) {}
+    virtual void OnRender(EngineContext& ctx) {}
+    virtual void OnEvent(EngineContext& ctx, Event& event) {}
+    virtual auto GetName() const -> std::string_view = 0;
+};
+```
+
+The lifecycle mirrors `IOverlay` plus `OnSuspend`/`OnResume` (forwarded when a modal state is pushed/popped over the owning state). All methods receive `EngineContext&` -- implementations look up whatever they need (Renderer for canvas access, subsystems for simulation data, UI toolkit for widget management).
+
+### Registration
+
+Registered per-state via the existing `ForState<T>()` pattern:
+
+```cpp
+void JourneyGamePlugin::Build(AppBuilder& builder)
+{
+    builder.ForState<GameplayState>().RegisterStateUI<JourneyGameUI>();
+}
+```
+
+### Event Forwarding
+
+The engine state forwards events to `IStateUI` before any game-level input handling. The implementation (or the UI toolkit it delegates to) performs hit testing, focus management, and modal input blocking. Consumed events don't reach game systems:
+
+```cpp
+void GameplayState::OnEvent(EngineContext& ctx, Event& event)
+{
+    if (m_stateUI)
+    {
+        m_stateUI->OnEvent(ctx, event);
+        if (event.Handled)
+            return;
+    }
+    // Unconsumed events: available for InputAction subsystem during Update
+}
+```
+
+### Lifecycle
+
+| Event | When | Purpose |
+|---|---|---|
+| `OnAttach(ctx)` | After state enters, IStateUI created | Cache canvas pointers, create widget trees, bind data |
+| `OnDetach(ctx)` | Before state exits, IStateUI destroyed | Release widget trees, clean up |
+| `OnSuspend(ctx)` | Modal state pushed (e.g. PauseState) | Pause animations, gray out, stop tooltip tracking |
+| `OnResume(ctx)` | Modal state popped | Resume animations, restore interactivity |
+| `OnUpdate(ctx, dt)` | Each frame, after simulation update | Refresh data bindings, animate UI elements |
+| `OnRender(ctx)` | Each frame, after scene submission | Submit draw commands to canvases |
+| `OnEvent(ctx, event)` | Before game input handling | UI toolkit hit testing, focus, modal blocking |
+
+### IStateUI is Not an Overlay
+
+The litmus test: overlays are **engine-level decorations** (FPS counter, debug console, render graph visualiser) with **application lifetime**. `IStateUI` is **game-level UI** (health bar, inventory, menus, editor panels) with **state lifetime**. They both submit to canvases, but differ in:
+
+- **Data coupling**: Overlays access `EngineContext` subsystems. `IStateUI` implementations access game-specific data (ECS world, simulation state) through whatever the owning state provides.
+- **Lifecycle**: Overlays are persistent and capability-gated. `IStateUI` is created/destroyed with the state.
+- **Visibility control**: Overlay visibility is toggled via `ActivateOverlay`/`DeactivateOverlay`. `IStateUI` panel visibility is driven by game state (sub-state machine, ECS singletons, player actions).
+
+### Layering and Input Ordering
+
+Visual z-ordering and input hit testing are handled by the **UI toolkit** (a separate engine subsystem), not by `IStateUI` itself. Implementations create widgets on named layers within the toolkit (`HUD`, `Panel`, `Modal`, `Tooltip`). The toolkit manages z-order for rendering and input dispatch.
+
+@todo Currently one `IStateUI` per state. Designed for future multi-registration where multiple plugins contribute UI to the same state (e.g. core HUD plugin + minimap plugin + quest tracker plugin). In that model, `IStateUI` instances are unordered peers -- the toolkit's layer system handles visual and input ordering. Registration order serves as tiebreaker for non-widget keyboard event dispatch.
+
+@todo Visual UI designer tooling (similar to UMG). The UI toolkit's widget trees should be authorable from a visual editor, with `IStateUI` loading designer-authored layouts and binding them to runtime data.
+
+@todo Tag-gated widget activation. The UI toolkit could support `GameplayTag`-based visibility on individual widgets/panels, similar to Lyra's HUD activation tags. A health bar widget declares `RequiredTags: {"State.Alive"}` and auto-hides when the tag isn't active.
 
 ---
 
@@ -305,8 +396,7 @@ public:
     template<std::derived_from<IApplicationState> T> void RequestPush();
     void RequestPop();
 
-    // -- Overlay operations --
-    void PushTransientOverlay(std::unique_ptr<IOverlay> overlay);
+    // -- Overlay operations (deferred) --
     void ActivateOverlay(OverlayId id);
     void DeactivateOverlay(OverlayId id);
 
@@ -323,7 +413,7 @@ private:
 };
 ```
 
-Passed to every lifecycle method by reference. States request transitions through `EngineContext` -- this makes the state interface small and testable (mock the context, not a state machine).
+Passed to every lifecycle method by reference. **Reads are direct** (subsystem queries are const, registries don't change after startup). **Writes are deferred** (transitions, overlay toggles queued and processed at frame boundaries). States request transitions through `EngineContext` -- this makes the state interface small and testable (mock the context, not a state machine).
 
 ---
 
@@ -359,7 +449,7 @@ private:
 };
 ```
 
-Application does **not** own or know about `Game`, `Scene`, flecs, or any rendering calls beyond coordinating `OnRender` on the active state and overlays.
+Application does **not** own or know about `Simulation`, `Scene`, flecs, or any rendering calls beyond coordinating `OnRender` on the active state and overlays.
 
 ### Main Loop
 
@@ -417,11 +507,26 @@ The base class determines scope. Concept-constrained overloads on `AppBuilder` r
 
 ### Abstract-Type Resolution
 
-Consumers access subsystems by abstract interface (`ctx.GetAppSubsystem<Window>()`), not concrete type. When `SDLWindowPlugin` registers `SDL3Window`, the registry stores it under both `typeid(SDL3Window)` and `typeid(Window)`. Duplicate abstract registrations (two plugins both registering a `Window`) are a startup error.
+Consumers access subsystems by abstract interface (`ctx.GetAppSubsystem<Window>()`), not concrete type. The abstract interface is specified as a second template parameter during registration:
+
+```cpp
+// Registers under both typeid(SDL3Window) and typeid(Window).
+// When no second parameter is given, only the concrete type is registered.
+builder.RegisterSubsystem<SDL3Window, Window>({...});
+```
+
+Duplicate abstract registrations (two plugins both registering a `Window`) are a startup error.
 
 ### Dependency Declaration
 
-Subsystems declare dependencies explicitly. `Initialise()` returns `Result<void>`:
+Subsystems declare dependencies at registration time via `DependsOn`, enabling topological sort before `Initialise()` is called. `Initialise()` returns `Result<void>` for runtime validation:
+
+```cpp
+builder.RegisterSubsystem<PhysicsSubsystem>({
+    .RequiredCapabilities = { Capability::Simulation },
+    .DependsOn = { typeid(AssetService) },
+});
+```
 
 ```cpp
 class PhysicsSubsystem : public StateSubsystem
@@ -440,7 +545,16 @@ public:
 };
 ```
 
-The registry validates the dependency graph at startup. Dependencies enable topological ordering: init follows dependency order, shutdown follows reverse order. If `Initialise` fails, the state transition is aborted and the error is surfaced.
+Dependencies enable topological ordering: init follows dependency order, shutdown follows reverse order. If `Initialise` fails, the state transition is aborted and the error is surfaced.
+
+### Push/Pop and State Subsystem Lifecycle
+
+State-scoped subsystems are owned by `EngineContext`. Their lifecycle is tied to **flat transitions** only:
+
+- **Flat transition** (replace): old state subsystems shut down, new state subsystems created.
+- **Push/pop**: state subsystems **persist**. Pushed states run with the same subsystem set as the suspended state below them.
+
+This means `PauseState` (pushed over `GameplayState`) can still access `PhysicsSubsystem` if needed, and physics world state is preserved.
 
 ### Static Accessor for ECS Systems
 
@@ -515,7 +629,8 @@ Plugin dependencies are validated and `Build()` calls are ordered. Missing depen
 | App/state subsystems | `RegisterSubsystem<T>()` |
 | Render features | `RegisterRenderFeature<T>()` |
 | ECS systems/components/globals | `RegisterSystem()`, `RegisterComponent()`, `RegisterGlobal()` |
-| Game states | `RegisterState()` |
+| Sub-states | `ForState<T>().RegisterSubState()` |
+| State UI | `ForState<T>().RegisterStateUI<U>()` |
 | Gameplay tags | `RegisterTag()` / `RegisterTagFile()` |
 | App capabilities | `ProvideCapability()` |
 | Lifecycle hooks | `OnAppReady()`, `OnStateEnter<T>()`, etc. |
@@ -598,7 +713,7 @@ void PhysicsPlugin::Build(AppBuilder& builder) override
 - Config files live in the project's config directory (e.g. `config/physics.toml`).
 - Multiple plugins reading the same file parse once (cached).
 - If a plugin isn't loaded, its config is never read.
-- @todo: hot-reload via file watcher + `OnConfigReloaded()` callback.
+- @todo: hot-reload via file watcher + `OnConfigReloaded(EngineContext&)` callback. Stub the callback interface now; implement the watcher later.
 
 ---
 
@@ -620,18 +735,44 @@ void PhysicsPlugin::Build(AppBuilder& builder) override
 
 ### Canvases
 
-The Renderer provides a named canvas registry. Canvases are submission targets backed by `RenderFeature`s.
+Canvases are **typed, per-frame data collectors** that accumulate submission data from game code. RenderFeatures **declare** the canvas type they consume; the Renderer creates canvases based on feature registrations. One canvas per type.
 
-| Canvas | Phase | Used by |
+| Canvas type | Declared by | Used by |
 |---|---|---|
-| `"scene"` | PreOpaque through Composite | GameplayState, EditorState |
-| `"ui"` | Overlay | Any state (splash, menu, HUD) |
-| `"debug"` | Overlay | Debug overlays, editor gizmos |
-
-The registry is open -- plugins register new canvas types via `builder.RegisterCanvas<T>()`. States and overlays access them by name:
+| `SceneCanvas` | `SceneFeature` | GameplayState, EditorState |
+| `UICanvas` | `UIFeature` | Any state (splash, menu, HUD), IStateUI |
+| `DebugCanvas` | `DebugFeature` | Debug overlays, editor gizmos |
 
 ```cpp
-auto& ui = renderer.GetCanvas<UICanvas>("ui");
+builder.RegisterRenderFeature<SceneFeature>({
+    .CanvasType = typeid(SceneCanvas),
+    .RequiredCapabilities = { Capability::Rendering },
+});
+builder.RegisterRenderFeature<UIFeature>({
+    .CanvasType = typeid(UICanvas),
+    // No capabilities -- always active. Splash, menu, and gameplay all need UI.
+});
+// Features without canvases (read from render graph, not game code):
+builder.RegisterRenderFeature<SSAOFeature>({
+    .RequiredCapabilities = { Capability::Rendering },
+});
+```
+
+States and overlays access canvases by type. **Cache pointers in `OnEnter` for hot-path access:**
+
+```cpp
+// O(1) type-indexed access:
+auto& scene = renderer.GetCanvas<SceneCanvas>();
+
+// For hot paths, cache during OnEnter:
+m_sceneCanvas = &renderer.GetCanvas<SceneCanvas>();
+```
+
+Canvases accept **multiple submissions** with parameters for split-screen, editor viewports, or picture-in-picture:
+
+```cpp
+renderer.GetCanvas<SceneCanvas>().Submit(*scene, { .Camera = cam, .Viewport = rect });
+renderer.GetCanvas<SceneCanvas>().Submit(*scene, { .Camera = editorCam, .Target = offscreen });
 ```
 
 States and overlays never touch `RenderDevice` or `RenderGraph`. They submit to canvases.
@@ -656,8 +797,8 @@ Always-on features (composition pass, present pass) use empty `RequiredCapabilit
 ```
 renderer.BeginFrame()           clear canvases
   |
-GameplayState::OnRender()       renderer.SubmitScene(*scene), push to UICanvas
-Overlays::OnRender()            push to DebugCanvas, UICanvas
+GameplayState::OnRender()       submit to SceneCanvas, UICanvas
+Overlays::OnRender()            submit to DebugCanvas, UICanvas
   |
 renderer.EndFrame()
   RenderOrchestrator::BuildGraph()
@@ -693,7 +834,8 @@ Application::Run()
   7. Construct and initialise state-scoped subsystems for initial state (per capabilities)
   8. Activate render features and overlays for initial state (per capabilities)
   9. Initial state OnEnter(ctx) -> Result<void>
-     - Failure: log, abort
+     - Failure: error bubbles to Application. Can transition to a fallback state
+       (error screen) or abort gracefully with diagnostics.
 ```
 
 ### Steady-State Frame
@@ -712,7 +854,7 @@ time.BeginFrame()
      |    g. Render features + overlays activated for new capabilities
      |    h. New state OnEnter() -> Result<void>
   |
-  2. ProcessPending: attach/detach transient overlays
+  2. ProcessPending: activate/deactivate overlays
   |
   3. Drain events: overlays top-down (can consume), then active state
   |
@@ -772,12 +914,18 @@ Decisions that aren't self-evident from reading the architecture above.
 |---|---|
 | Static accessor (`StateSubsystems`) is permanent | flecs callbacks have flecs-controlled signatures; they cannot receive injected references. Lambda capture is preferred when practical. The accessor is bound/unbound on state enter/exit. |
 | Push/pop authority is an intersection | Neither the pushed state nor the suspended state has unilateral control. The intersection prevents maintenance hazards where every `PushState` caller must know the correct config. |
-| `Game` uses `ServiceProvider` concept, not `EngineContext` | Keeps `Game` framework-agnostic. Headless tools and tests provide a `StandaloneServiceProvider`. No coupling, no manual `GameContext` field-by-field bridging. |
+| `Simulation` uses `ServiceProvider` concept, not `EngineContext` | Keeps `Simulation` framework-agnostic. Headless tools and tests provide a `StandaloneServiceProvider`. No coupling, no manual bridging. |
+| Sub-state machines are member variables, not subsystems | State machines are internal orchestration, not shared services. Each `IApplicationState` creates its own `StateMachine<InternedString>` from plugin-registered descriptors. |
+| State subsystems owned by EngineContext, not Simulation | Application manages lifecycle on flat transitions. `Simulation` accesses services via `ServiceProvider`. Subsystems persist through push/pop. |
 | AppBuilder uses typed registrar store | Plugins can define custom registrar types (e.g. `ReplicationRegistrar`) without modifying `AppBuilder`. Each registrar encapsulates its own domain logic. |
 | `BlendableEffectRegistry` is a separate `AppSubsystem` | Game volumes push effects, renderer reads them. Standalone subsystem makes this relationship explicit and testable. |
-| Editor panels are not overlays | Panels need docking, persistence, serialisation -- fundamentally different from the overlay stack. |
-| Transitions validated at startup | Declared transition graph catches typos early and serves as documentation. `AllowDynamic<T>()` escape hatch for dynamic flow. |
+| Editor panels are not overlays | Panels need docking, persistence, serialisation -- fundamentally different from the overlay stack. EditorPanelManager implements `IStateUI` -- same lifecycle contract, different internal complexity. |
+| `IStateUI` is not an overlay | Overlays have application lifetime and are capability-gated. `IStateUI` has state lifetime and is visibility-driven by game state. Both submit to canvases. |
+| One `IStateUI` per state (for now) | Avoids ordering/priority questions between multiple UI providers. The UI toolkit's layer system handles visual ordering. Multi-registration is a planned expansion. |
+| Transitions validated at startup | Declared transition graph catches typos early and serves as documentation. `AllowDynamic<T>()` escape hatch for dynamic flow. Applies to both app-level and sub-state transitions. |
 | No overlay-scoped subsystems | Overlays are lightweight and shouldn't own services. |
+| No transient overlays | Every real-world case (toasts, popups, tutorials) is either state-managed UI or a persistent overlay with runtime activation. Transient overlays add API complexity with no concrete use case. |
+| Canvases are one-per-type, feature-declared | RenderFeatures declare their canvas type. Renderer creates them. Type-indexed access (no string lookups). Multi-view via submission parameters, not multiple canvas instances. |
 
 ---
 
@@ -787,8 +935,10 @@ Decisions that aren't self-evident from reading the architecture above.
 |---|---|---|
 | Platform subsystems | EngineContext (app registry) | `ctx.GetAppSubsystem<T>()` |
 | State subsystems | EngineContext (state registry) | `ctx.GetStateSubsystem<T>()` or `StateSubsystems::Get<T>()` |
-| State machine | Application | `ctx.RequestTransition<T>()` |
-| Overlay stack | Application | `ctx.PushTransientOverlay()` |
+| Application state machine | Application | `ctx.RequestTransition<T>()` |
+| Sub-state machines | IApplicationState (member variable) | State's own `m_stateMachine` |
+| Overlay stack | Application | `ctx.ActivateOverlay()` / `ctx.DeactivateOverlay()` |
 | Event queue | Application | Dispatched by Application each frame |
 | Plugins | Application (permanent) | `Build()` called once |
-| ECS world, scenes, game SM | Game | See [game_framework.md](game_framework.md) |
+| State UI | IApplicationState (per-state, optional) | Created by state from plugin descriptor, `IStateUI` interface |
+| ECS world, scenes | Simulation | See [game_framework.md](game_framework.md) |
