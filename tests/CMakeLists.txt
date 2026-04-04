@@ -66,6 +66,7 @@ add_executable(${WAYFINDER_CORE_TEST_NAME}
   core/MeshFormatTests.cpp
   core/AssetPipelineTests.cpp
   core/FrustumTests.cpp
+  app/ApplicationStateTests.cpp
   app/EngineRuntimeTests.cpp
   app/EngineConfigTests.cpp
   app/SubsystemTests.cpp
@@ -73,7 +74,9 @@ add_executable(${WAYFINDER_CORE_TEST_NAME}
   gameplay/TagRegistryTests.cpp
   gameplay/GameStateMachineTests.cpp
   gameplay/StateMachineTests.cpp
+  plugins/PluginInterfaceTests.cpp
   plugins/PluginRegistryTests.cpp
+  plugins/ServiceProviderTests.cpp
 )
 
 wayfinder_set_output_directories(${WAYFINDER_CORE_TEST_NAME})

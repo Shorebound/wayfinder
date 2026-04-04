@@ -1,3 +1,5 @@
+#include "app/AppSubsystem.h"
+#include "app/StateSubsystem.h"
 #include "app/Subsystem.h"
 
 #include <doctest/doctest.h>
@@ -208,6 +210,92 @@ namespace Wayfinder::Tests
             CHECK(ptr != nullptr);
 
             collection.Shutdown();
+        }
+    }
+
+    // -- AppSubsystem / StateSubsystem scoping ----------------------------
+
+    class TestAppSubsystem : public AppSubsystem
+    {
+    public:
+        void Initialise() override
+        {
+            if (s_log)
+            {
+                s_log->Events.push_back("App.Init");
+            }
+        }
+        void Shutdown() override
+        {
+            if (s_log)
+            {
+                s_log->Events.push_back("App.Shutdown");
+            }
+        }
+    };
+
+    class TestStateSubsystem : public StateSubsystem
+    {
+    public:
+        void Initialise() override
+        {
+            if (s_log)
+            {
+                s_log->Events.push_back("State.Init");
+            }
+        }
+        void Shutdown() override
+        {
+            if (s_log)
+            {
+                s_log->Events.push_back("State.Shutdown");
+            }
+        }
+    };
+
+    TEST_SUITE("AppSubsystem")
+    {
+        TEST_CASE("Registers and initialises in SubsystemCollection")
+        {
+            LifecycleLog log;
+            s_log = &log;
+
+            SubsystemCollection<AppSubsystem> collection;
+            collection.Register<TestAppSubsystem>();
+            collection.Initialise();
+
+            CHECK(collection.Get<TestAppSubsystem>() != nullptr);
+            REQUIRE(log.Events.size() == 1);
+            CHECK(log.Events[0] == "App.Init");
+
+            collection.Shutdown();
+            REQUIRE(log.Events.size() == 2);
+            CHECK(log.Events[1] == "App.Shutdown");
+
+            s_log = nullptr;
+        }
+    }
+
+    TEST_SUITE("StateSubsystem")
+    {
+        TEST_CASE("Registers and initialises in SubsystemCollection")
+        {
+            LifecycleLog log;
+            s_log = &log;
+
+            SubsystemCollection<StateSubsystem> collection;
+            collection.Register<TestStateSubsystem>();
+            collection.Initialise();
+
+            CHECK(collection.Get<TestStateSubsystem>() != nullptr);
+            REQUIRE(log.Events.size() == 1);
+            CHECK(log.Events[0] == "State.Init");
+
+            collection.Shutdown();
+            REQUIRE(log.Events.size() == 2);
+            CHECK(log.Events[1] == "State.Shutdown");
+
+            s_log = nullptr;
         }
     }
 }

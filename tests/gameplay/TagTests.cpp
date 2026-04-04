@@ -1,3 +1,5 @@
+#include "gameplay/Capability.h"
+#include "gameplay/NativeTag.h"
 #include "gameplay/Tag.h"
 #include "gameplay/TagRegistry.h"
 
@@ -352,5 +354,43 @@ namespace Wayfinder::Tests
         }
 
         CHECK(count == 3);
+    }
+
+    // -- Capability Tags --------------------------------------------------
+
+    TEST_CASE("Capability tags are valid after NativeTag RegisterAll")
+    {
+        TagRegistry registry;
+        NativeTag::RegisterAll(registry);
+
+        Tag simTag = Capability::Simulation;
+        Tag renderTag = Capability::Rendering;
+        Tag presentTag = Capability::Presentation;
+        Tag editTag = Capability::Editing;
+
+        CHECK(simTag.IsValid());
+        CHECK(renderTag.IsValid());
+        CHECK(presentTag.IsValid());
+        CHECK(editTag.IsValid());
+
+        CHECK(std::string(simTag.GetName()) == "Capability.Simulation");
+        CHECK(std::string(renderTag.GetName()) == "Capability.Rendering");
+        CHECK(std::string(presentTag.GetName()) == "Capability.Presentation");
+        CHECK(std::string(editTag.GetName()) == "Capability.Editing");
+    }
+
+    TEST_CASE("CapabilitySet is usable as TagContainer")
+    {
+        TagRegistry registry;
+        NativeTag::RegisterAll(registry);
+
+        CapabilitySet caps;
+        caps.AddTag(Capability::Simulation);
+        caps.AddTag(Capability::Rendering);
+
+        CHECK(caps.Size() == 2);
+        CHECK(caps.HasExact(Capability::Simulation));
+        CHECK(caps.HasExact(Capability::Rendering));
+        CHECK_FALSE(caps.HasExact(Capability::Editing));
     }
 }
