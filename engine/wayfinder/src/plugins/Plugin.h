@@ -2,8 +2,6 @@
 
 #include "wayfinder_exports.h"
 
-#include <memory>
-
 namespace Wayfinder::Plugins
 {
     class PluginRegistry;
@@ -31,11 +29,5 @@ namespace Wayfinder::Plugins
         /// Called during engine shutdown, before subsystems are torn down.
         virtual void OnShutdown() {}
     };
-
-    /**
-     * @brief Games must define this function. It is called by the engine entry point
-     * to obtain the game's root plugin instance.
-     */
-    extern std::unique_ptr<Plugin> CreateGamePlugin();
 
 } // namespace Wayfinder::Plugins

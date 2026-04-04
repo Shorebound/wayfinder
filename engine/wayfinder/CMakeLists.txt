@@ -51,7 +51,6 @@ set(ENGINE_ALL_SOURCES
   src/app/EngineContext.h
   src/app/EngineRuntime.cpp
   src/app/EngineRuntime.h
-  src/app/EntryPoint.h
   src/app/FpsOverlayLayer.cpp
   src/app/FpsOverlayLayer.h
   src/app/Layer.h
@@ -134,9 +133,6 @@ set(ENGINE_ALL_SOURCES
 
   # Plugins
   src/plugins/Plugin.h
-  src/plugins/PluginExport.h
-  src/plugins/PluginLoader.cpp
-  src/plugins/PluginLoader.h
   src/plugins/PluginRegistry.cpp
   src/plugins/PluginRegistry.h
   src/plugins/registrars/StateRegistrar.cpp
