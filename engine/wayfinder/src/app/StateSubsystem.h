@@ -19,7 +19,7 @@ namespace Wayfinder
     class WAYFINDER_API StateSubsystem : public Subsystem
     {
     public:
-        /// @todo Phase 7: Remove this using-declaration when SubsystemCollection is deleted.
+        /// @todo Phase 7 (#171): Remove this using-declaration when SubsystemCollection is deleted.
         using Subsystem::Initialise;
 
         /// V2 initialisation receiving the engine context. Returns Result<void> for error propagation.

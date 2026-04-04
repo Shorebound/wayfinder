@@ -6,6 +6,7 @@
 #include "gameplay/Capability.h"
 #include "wayfinder_exports.h"
 
+#include <stop_token>
 #include <typeindex>
 
 namespace Wayfinder
@@ -121,6 +122,9 @@ namespace Wayfinder
         /// Check if stop has been requested.
         [[nodiscard]] auto IsStopRequested() const -> bool;
 
+        /// Obtain a stop_token for cooperative cancellation wiring.
+        [[nodiscard]] auto GetStopToken() const -> std::stop_token;
+
         // -- AppDescriptor access --
 
         /// Access the immutable application descriptor.
@@ -141,7 +145,7 @@ namespace Wayfinder
         SubsystemManifest<AppSubsystem>* m_appSubsystems = nullptr;
         SubsystemManifest<StateSubsystem>* m_stateSubsystems = nullptr;
         const AppDescriptor* m_appDescriptor = nullptr;
-        bool m_stopRequested = false;
+        std::stop_source m_stopSource;
         // Phase 4 additions (nullptr initially):
         // ApplicationStateMachine* m_stateMachine = nullptr;
         // OverlayStack* m_overlayStack = nullptr;

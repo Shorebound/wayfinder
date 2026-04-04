@@ -1,6 +1,7 @@
 #pragma once
 
-#include <cassert>
+#include "core/Assert.h"
+
 #include <typeindex>
 #include <unordered_map>
 
@@ -42,7 +43,7 @@ namespace Wayfinder
         [[nodiscard]] auto Get() -> T&
         {
             auto it = m_services.find(std::type_index(typeid(T)));
-            assert(it != m_services.end() && "Service not registered");
+            WAYFINDER_ASSERT(it != m_services.end(), "Service not registered: {}", typeid(T).name());
             return *static_cast<T*>(it->second);
         }
 

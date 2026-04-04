@@ -886,7 +886,11 @@ namespace Wayfinder
                     {
                         if (node.is_string())
                         {
-                            container.AddTag(registry->RequestTag(node.get<std::string>()));
+                            auto tag = registry->RequestTag(node.get<std::string>());
+                            if (tag.IsValid())
+                            {
+                                container.AddTag(tag);
+                            }
                         }
                     }
                 }

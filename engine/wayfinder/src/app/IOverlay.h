@@ -2,6 +2,8 @@
 
 #include "core/Result.h"
 
+#include <string_view>
+
 namespace Wayfinder
 {
     class EngineContext;
@@ -26,13 +28,13 @@ namespace Wayfinder
         [[nodiscard]] virtual auto OnDetach(EngineContext& context) -> Result<void> = 0;
 
         /// Per-frame update tick.
-        virtual void OnUpdate(EngineContext& context, float deltaTime) {}
+        virtual void OnUpdate(EngineContext& /*context*/, float /*deltaTime*/) {}
 
         /// Per-frame render submission.
-        virtual void OnRender(EngineContext& context) {}
+        virtual void OnRender(EngineContext& /*context*/) {}
 
         /// Per-frame event processing.
-        virtual void OnEvent(EngineContext& context, EventQueue& events) {}
+        virtual void OnEvent(EngineContext& /*context*/, EventQueue& /*events*/) {}
 
         /// Human-readable name for debugging and logging.
         [[nodiscard]] virtual auto GetName() const -> std::string_view = 0;

@@ -69,6 +69,26 @@ namespace Wayfinder
                     continue;
                 }
 
+                // Dependency gating: skip if any declared dependency is not active.
+                // This handles cascading: if A is gated off by capabilities,
+                // B (which depends on A) is also skipped even if B's own
+                // capabilities are satisfied.
+                bool dependenciesMet = true;
+                for (const auto& dep : entry.Descriptor.DependsOn)
+                {
+                    auto resolved = ResolveDependency(dep);
+                    auto depIt = m_typeToIndex.find(resolved);
+                    if (depIt == m_typeToIndex.end() or not m_entries[depIt->second].Active)
+                    {
+                        dependenciesMet = false;
+                        break;
+                    }
+                }
+                if (not dependenciesMet)
+                {
+                    continue;
+                }
+
                 entry.Instance = entry.Factory();
                 auto result = entry.Instance->Initialise(context);
 
@@ -225,6 +245,17 @@ namespace Wayfinder
             }
 
             return std::nullopt;
+        }
+
+        /// Resolve a dependency type_index - dependencies may reference abstract types.
+        [[nodiscard]] auto ResolveDependency(std::type_index dep) const -> std::type_index
+        {
+            auto it = m_abstractRedirect.find(dep);
+            if (it != m_abstractRedirect.end())
+            {
+                return it->second;
+            }
+            return dep;
         }
 
         /// Reverse-shutdown already-initialised subsystems when Initialise fails.

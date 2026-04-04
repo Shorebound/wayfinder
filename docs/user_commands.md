@@ -29,7 +29,7 @@ We are trying to make clean, elegant and idiomatic modern C++23 code. So let's m
 Also remember this is game engine, research how other engines approach this problem. 
 
 Some engine examples:
-- Oxylus ([text](https://github.com/oxylusengine/Oxylus)) and RavEngine ([text](https://github.com/ravengine/ravengine)) which are both similar to our stack
+- Oxylus (https://github.com/oxylusengine/Oxylus) and RavEngine (https://github.com/ravengine/ravengine) which are both similar to our stack
 - Bevy which we share a lot of architectural ideas with
 - Unreal which we also take some architectural ideas from
 - O3DE which may be a good example of a mature solution with modern C++ conventions

@@ -19,12 +19,17 @@ namespace Wayfinder
 
     void EngineContext::RequestStop()
     {
-        m_stopRequested = true;
+        m_stopSource.request_stop();
     }
 
     auto EngineContext::IsStopRequested() const -> bool
     {
-        return m_stopRequested;
+        return m_stopSource.stop_requested();
+    }
+
+    auto EngineContext::GetStopToken() const -> std::stop_token
+    {
+        return m_stopSource.get_token();
     }
 
     void EngineContext::SetAppSubsystems(SubsystemManifest<AppSubsystem>* manifest)

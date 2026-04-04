@@ -143,7 +143,7 @@ TEST_SUITE("StateMachine")
         sm.Start();
         log.clear();
 
-        sm.TransitionTo(TestState::Playing);
+        REQUIRE(sm.TransitionTo(TestState::Playing).has_value());
         CHECK(log.empty());
 
         sm.ProcessPending();
@@ -176,7 +176,7 @@ TEST_SUITE("StateMachine")
         sm.Start();
         log.clear();
 
-        sm.TransitionTo(TestState::Playing);
+        REQUIRE(sm.TransitionTo(TestState::Playing).has_value());
         CHECK(log.empty());
         CHECK(sm.GetCurrentState() == TestState::Menu);
     }
@@ -190,13 +190,13 @@ TEST_SUITE("StateMachine")
         CHECK(sm.GetCurrentState() == TestState::Menu);
         CHECK_FALSE(sm.GetPreviousState().has_value());
 
-        sm.TransitionTo(TestState::Playing);
+        REQUIRE(sm.TransitionTo(TestState::Playing).has_value());
         sm.ProcessPending();
         CHECK(sm.GetCurrentState() == TestState::Playing);
         REQUIRE(sm.GetPreviousState().has_value());
         CHECK(sm.GetPreviousState().value() == TestState::Menu);
 
-        sm.TransitionTo(TestState::GameOver);
+        REQUIRE(sm.TransitionTo(TestState::GameOver).has_value());
         sm.ProcessPending();
         CHECK(sm.GetCurrentState() == TestState::GameOver);
         CHECK(sm.GetPreviousState().value() == TestState::Playing);
@@ -236,7 +236,7 @@ TEST_SUITE("StateMachine")
         sm.Start();
         log.clear();
 
-        sm.TransitionTo(TestState::Playing);
+        REQUIRE(sm.TransitionTo(TestState::Playing).has_value());
         sm.ProcessPending();
 
         REQUIRE(log.size() == 3);
@@ -252,12 +252,12 @@ TEST_SUITE("StateMachine")
         sm.Start();
 
         // Transition to Playing first (Menu -> Playing is allowed)
-        sm.TransitionTo(TestState::Playing);
+        REQUIRE(sm.TransitionTo(TestState::Playing).has_value());
         sm.ProcessPending();
 
         // Now from Playing, both Paused and GameOver are allowed
-        sm.TransitionTo(TestState::Paused);
-        sm.TransitionTo(TestState::GameOver); // Last write wins
+        REQUIRE(sm.TransitionTo(TestState::Paused).has_value());
+        REQUIRE(sm.TransitionTo(TestState::GameOver).has_value()); // Last write wins
         sm.ProcessPending();
 
         CHECK(sm.GetCurrentState() == TestState::GameOver);
@@ -278,7 +278,7 @@ TEST_SUITE("StateMachine")
         sm.Start();
         CHECK(sm.GetCurrentState() == menu);
 
-        sm.TransitionTo(playing);
+        REQUIRE(sm.TransitionTo(playing).has_value());
         sm.ProcessPending();
         CHECK(sm.GetCurrentState() == playing);
     }
@@ -295,7 +295,7 @@ TEST_SUITE("StateMachine")
         sm.Start();
         CHECK(sm.GetCurrentState() == TestState::Menu);
 
-        sm.TransitionTo(TestState::Playing);
+        REQUIRE(sm.TransitionTo(TestState::Playing).has_value());
         sm.ProcessPending();
         CHECK(sm.GetCurrentState() == TestState::Playing);
     }

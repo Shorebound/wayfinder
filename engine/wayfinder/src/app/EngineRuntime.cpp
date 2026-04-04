@@ -17,7 +17,7 @@
 
 namespace Wayfinder
 {
-    EngineRuntime::EngineRuntime(const EngineConfig& config, const ProjectDescriptor& project) : m_config(config), m_project(project) {}
+    EngineRuntime::EngineRuntime(const EngineConfig& config, const ProjectDescriptor& /*project*/) : m_config(config) {}
 
     EngineRuntime::~EngineRuntime()
     {

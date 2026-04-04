@@ -2,6 +2,8 @@
 
 #include "core/Result.h"
 
+#include <string_view>
+
 namespace Wayfinder
 {
     class EngineContext;
@@ -29,19 +31,19 @@ namespace Wayfinder
         [[nodiscard]] virtual auto OnExit(EngineContext& context) -> Result<void> = 0;
 
         /// Called when another state is pushed on top of this one.
-        virtual void OnSuspend(EngineContext& context) {}
+        virtual void OnSuspend(EngineContext& /*context*/) {}
 
         /// Called when this state becomes active again after a pop.
-        virtual void OnResume(EngineContext& context) {}
+        virtual void OnResume(EngineContext& /*context*/) {}
 
         /// Per-frame update tick.
-        virtual void OnUpdate(EngineContext& context, float deltaTime) {}
+        virtual void OnUpdate(EngineContext& /*context*/, float /*deltaTime*/) {}
 
         /// Per-frame render submission.
-        virtual void OnRender(EngineContext& context) {}
+        virtual void OnRender(EngineContext& /*context*/) {}
 
         /// Per-frame event processing.
-        virtual void OnEvent(EngineContext& context, EventQueue& events) {}
+        virtual void OnEvent(EngineContext& /*context*/, EventQueue& /*events*/) {}
 
         /// Human-readable name for debugging and logging.
         [[nodiscard]] virtual auto GetName() const -> std::string_view = 0;

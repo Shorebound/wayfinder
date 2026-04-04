@@ -18,18 +18,18 @@ namespace Wayfinder
         }
 
         /// Resolve to the cached Tag (valid after RegisterAll).
-        operator Tag() const
+        [[nodiscard]] operator Tag() const
         {
             // precondition: RegisterAll has been called
             assert(m_cached.IsValid() && "NativeTag used before RegisterAll");
             return m_cached;
         }
 
-        constexpr std::string_view GetName() const
+        [[nodiscard]] constexpr auto GetName() const -> std::string_view
         {
             return m_name;
         }
-        constexpr std::string_view GetComment() const
+        [[nodiscard]] constexpr auto GetComment() const -> std::string_view
         {
             return m_comment;
         }

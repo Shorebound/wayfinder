@@ -62,31 +62,31 @@ namespace Wayfinder
     public:
         /// Register a tag programmatically (from code). Returns the tag.
         /// Updates existing definition's comment if the tag was already registered.
-        Tag RegisterTag(std::string_view name, std::string_view comment = {});
+        [[nodiscard]] auto RegisterTag(std::string_view name, std::string_view comment = {}) -> Tag;
 
         /// Load tag definitions from a TOML file. Returns number of tags loaded, or -1 on error.
-        int LoadTagFile(const std::filesystem::path& path);
+        auto LoadTagFile(const std::filesystem::path& path) -> int;
 
         /// Unload all tag definitions that came from the given file.
         void UnloadTagFile(const std::filesystem::path& path);
 
-        /// Request a validated tag by name. Logs a warning if the tag is not registered.
-        Tag RequestTag(std::string_view name) const;
+        /// Request a validated tag by name. Returns Tag::None() if the tag is not registered.
+        [[nodiscard]] auto RequestTag(std::string_view name) const -> Tag;
 
         /// Check if a tag name is registered.
-        bool IsRegistered(std::string_view name) const;
+        [[nodiscard]] auto IsRegistered(std::string_view name) const -> bool;
 
         /// Look up the full definition for a tag. Returns nullptr if not registered.
-        const TagDefinition* FindDefinition(std::string_view name) const;
+        [[nodiscard]] auto FindDefinition(std::string_view name) const -> const TagDefinition*;
 
         /// All registered tag definitions.
-        const std::vector<TagDefinition>& GetAllDefinitions() const
+        [[nodiscard]] auto GetAllDefinitions() const -> const std::vector<TagDefinition>&
         {
             return m_definitions;
         }
 
         /// All currently loaded tag file paths.
-        const std::vector<std::string>& GetLoadedFiles() const
+        [[nodiscard]] auto GetLoadedFiles() const -> const std::vector<std::string>&
         {
             return m_loadedFiles;
         }

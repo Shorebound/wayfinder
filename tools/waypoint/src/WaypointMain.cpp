@@ -3,7 +3,6 @@
 #include "core/Assert.h"
 #include "core/Log.h"
 #include "core/Result.h"
-#include "plugins/PluginRegistry.h"
 #include "project/ProjectDescriptor.h"
 #include "project/ProjectResolver.h"
 #include "scene/RuntimeComponentRegistry.h"
@@ -49,9 +48,8 @@ namespace
     {
         flecs::world World;
         Wayfinder::RuntimeComponentRegistry Registry;
-        /// Owned config; \ref PluginRegistry stores a reference - declared first so it outlives \ref PluginReg.
+        /// Owned config; declared first so it outlives other members.
         Wayfinder::EngineConfig EngineConfig;
-        std::unique_ptr<Wayfinder::Plugins::PluginRegistry> PluginReg;
 
         explicit WaypointContext(const Wayfinder::ProjectDescriptor* project = nullptr, const std::filesystem::path& toolDir = {})
         {

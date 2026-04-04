@@ -82,12 +82,11 @@ namespace Wayfinder::Tests
 
         // ── RequestTag ──────────────────────────────────────────
 
-        TEST_CASE("RequestTag returns a tag even if unregistered")
+        TEST_CASE("RequestTag returns None for unregistered name")
         {
             TagRegistry registry;
             auto tag = registry.RequestTag("Unregistered.Tag");
-            CHECK(tag.IsValid());
-            CHECK(std::string(tag.GetName()) == "Unregistered.Tag");
+            CHECK_FALSE(tag.IsValid());
         }
 
         TEST_CASE("RequestTag returns tag for registered name")

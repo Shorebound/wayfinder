@@ -30,7 +30,7 @@ namespace Wayfinder::Tests
         bool ShouldFailOnEnter = false;
         bool ShouldFailOnExit = false;
 
-        auto OnEnter(EngineContext& context) -> Result<void> override
+        auto OnEnter(EngineContext& /*context*/) -> Result<void> override
         {
             EnterCalled = true;
             if (ShouldFailOnEnter)
@@ -40,7 +40,7 @@ namespace Wayfinder::Tests
             return {};
         }
 
-        auto OnExit(EngineContext& context) -> Result<void> override
+        auto OnExit(EngineContext& /*context*/) -> Result<void> override
         {
             ExitCalled = true;
             if (ShouldFailOnExit)
@@ -50,23 +50,23 @@ namespace Wayfinder::Tests
             return {};
         }
 
-        void OnSuspend(EngineContext& context) override
+        void OnSuspend(EngineContext& /*context*/) override
         {
             SuspendCalled = true;
         }
-        void OnResume(EngineContext& context) override
+        void OnResume(EngineContext& /*context*/) override
         {
             ResumeCalled = true;
         }
-        void OnUpdate(EngineContext& context, float deltaTime) override
+        void OnUpdate(EngineContext& /*context*/, float /*deltaTime*/) override
         {
             UpdateCalled = true;
         }
-        void OnRender(EngineContext& context) override
+        void OnRender(EngineContext& /*context*/) override
         {
             RenderCalled = true;
         }
-        void OnEvent(EngineContext& context, EventQueue& events) override
+        void OnEvent(EngineContext& /*context*/, EventQueue& /*events*/) override
         {
             EventCalled = true;
         }
@@ -88,27 +88,27 @@ namespace Wayfinder::Tests
         bool RenderCalled = false;
         bool EventCalled = false;
 
-        auto OnAttach(EngineContext& context) -> Result<void> override
+        auto OnAttach(EngineContext& /*context*/) -> Result<void> override
         {
             AttachCalled = true;
             return {};
         }
 
-        auto OnDetach(EngineContext& context) -> Result<void> override
+        auto OnDetach(EngineContext& /*context*/) -> Result<void> override
         {
             DetachCalled = true;
             return {};
         }
 
-        void OnUpdate(EngineContext& context, float deltaTime) override
+        void OnUpdate(EngineContext& /*context*/, float /*deltaTime*/) override
         {
             UpdateCalled = true;
         }
-        void OnRender(EngineContext& context) override
+        void OnRender(EngineContext& /*context*/) override
         {
             RenderCalled = true;
         }
-        void OnEvent(EngineContext& context, EventQueue& events) override
+        void OnEvent(EngineContext& /*context*/, EventQueue& /*events*/) override
         {
             EventCalled = true;
         }

@@ -1,8 +1,8 @@
 #pragma once
 
+#include "core/Assert.h"
 #include "core/Result.h"
 
-#include <cassert>
 #include <format>
 #include <functional>
 #include <optional>
@@ -51,8 +51,9 @@ namespace Wayfinder
         /// Register a state descriptor. Call before Finalise.
         void AddState(StateDescriptor<TStateId> descriptor)
         {
-            assert(not m_finalised);
-            m_states.emplace(descriptor.Id, std::move(descriptor));
+            WAYFINDER_ASSERT(not m_finalised, "Cannot add states after Finalise()");
+            auto [it, inserted] = m_states.emplace(descriptor.Id, std::move(descriptor));
+            WAYFINDER_ASSERT(inserted, "Duplicate state registration");
         }
 
         /// Validate the state graph and freeze the machine.
@@ -110,8 +111,8 @@ namespace Wayfinder
         /// Enter the initial state. Requires Finalise to have succeeded.
         void Start()
         {
-            assert(m_finalised);
-            assert(not m_running);
+            WAYFINDER_ASSERT(m_finalised, "Start() called before Finalise()");
+            WAYFINDER_ASSERT(not m_running, "Start() called while already running");
 
             m_currentState = m_initialState;
             m_running = true;
@@ -124,12 +125,21 @@ namespace Wayfinder
         }
 
         /// Queue a transition to the given target state. Deferred until ProcessPending.
-        void TransitionTo(const TStateId& target)
+        [[nodiscard]] auto TransitionTo(const TStateId& target) -> Result<void>
         {
-            assert(m_running);
+            if (not m_running)
+            {
+                return MakeError("TransitionTo called on a state machine that is not running");
+            }
 
-            [[maybe_unused]] const auto& descriptor = m_states.at(m_currentState);
-            [[maybe_unused]] bool allowed = false;
+            auto stateIt = m_states.find(m_currentState);
+            if (stateIt == m_states.end())
+            {
+                return MakeError("Current state not found in state map");
+            }
+
+            const auto& descriptor = stateIt->second;
+            bool allowed = false;
             for (const auto& t : descriptor.AllowedTransitions)
             {
                 if (t == target)
@@ -138,9 +148,14 @@ namespace Wayfinder
                     break;
                 }
             }
-            assert(allowed);
+
+            if (not allowed)
+            {
+                return MakeError("Transition not allowed from current state");
+            }
 
             m_pendingTransition = target;
+            return {};
         }
 
         /// Execute the pending transition, firing OnExit/OnEnter/observers.

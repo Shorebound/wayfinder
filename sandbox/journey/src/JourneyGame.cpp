@@ -188,7 +188,8 @@ namespace
 int main(int argc, char* argv[])
 {
     auto gamePlugin = std::make_unique<JourneyGame>();
-    Wayfinder::Application app(std::move(gamePlugin), {argc, argv});
+    const Wayfinder::Application::CommandLineArgs cmdArgs{.Count = argc, .Args = argv};
+    Wayfinder::Application app(std::move(gamePlugin), cmdArgs);
     app.Run();
     return 0;
 }

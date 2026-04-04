@@ -7,7 +7,7 @@
 
 namespace Wayfinder
 {
-    Tag TagRegistry::RegisterTag(const std::string_view name, const std::string_view comment)
+    auto TagRegistry::RegisterTag(const std::string_view name, const std::string_view comment) -> Tag
     {
         if (auto it = m_index.find(name); it != m_index.end())
         {
@@ -32,7 +32,7 @@ namespace Wayfinder
         return Tag{InternedString::Intern(name)};
     }
 
-    int TagRegistry::LoadTagFile(const std::filesystem::path& path)
+    auto TagRegistry::LoadTagFile(const std::filesystem::path& path) -> int
     {
         const std::string canonical = std::filesystem::weakly_canonical(path).string();
 
@@ -113,12 +113,23 @@ namespace Wayfinder
             return def.SourceFile == canonical;
         });
 
-        // Rebuild index
+        // Rebuild index from remaining definitions
         m_index.clear();
         for (size_t i = 0; i < m_definitions.size(); ++i)
         {
             const auto& definition = m_definitions.at(i);
             m_index[definition.Name] = i;
+        }
+
+        // Rebuild ancestor tags from surviving definitions.
+        // EnsureAncestors is idempotent - it only creates missing ancestors.
+        // We snapshot the current size since EnsureAncestors appends to m_definitions.
+        const size_t existingCount = m_definitions.size();
+        for (size_t i = 0; i < existingCount; ++i)
+        {
+            const auto& def = m_definitions[i];
+            auto sourceKind = (def.SourceFile == "(code)") ? TagSourceKind::Code : TagSourceKind::File;
+            EnsureAncestors(def.Name, sourceKind, def.SourceFile);
         }
 
         // Remove from loaded file list
@@ -127,7 +138,8 @@ namespace Wayfinder
         Log::Info(LogEngine, "TagRegistry: unloaded tag file '{}'", canonical);
     }
 
-    Tag TagRegistry::RequestTag(const std::string_view name) const
+    /// @todo this should probably return a Result or optional rather than None.
+    auto TagRegistry::RequestTag(const std::string_view name) const -> Tag
     {
         if (!IsRegistered(name))
         {
@@ -135,17 +147,18 @@ namespace Wayfinder
                 "TagRegistry: requested unregistered tag '{}'. "
                 "Register it in a tag file or via PluginRegistry::RegisterTag().",
                 name);
+            return Tag::None();
         }
 
         return Tag{InternedString::Intern(name)};
     }
 
-    bool TagRegistry::IsRegistered(const std::string_view name) const
+    auto TagRegistry::IsRegistered(const std::string_view name) const -> bool
     {
         return m_index.contains(name);
     }
 
-    const TagDefinition* TagRegistry::FindDefinition(const std::string_view name) const
+    auto TagRegistry::FindDefinition(const std::string_view name) const -> const TagDefinition*
     {
         if (const auto it = m_index.find(name); it != m_index.end())
         {

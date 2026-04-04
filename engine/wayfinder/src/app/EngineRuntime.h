@@ -96,7 +96,6 @@ namespace Wayfinder
 
     private:
         const EngineConfig& m_config;
-        const ProjectDescriptor& m_project;
 
         std::unique_ptr<Input> m_input;
         std::unique_ptr<Time> m_time;
