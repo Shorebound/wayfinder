@@ -920,7 +920,7 @@ namespace Wayfinder
 
             nlohmann::json t;
             t["tags"] = std::move(arr);
-            componentTables["gameplay_tags"] = std::move(t);
+            componentTables["tags"] = std::move(t);
         }
         // NOLINTEND(cppcoreguidelines-pro-bounds-avoid-unchecked-container-access)
 
@@ -1234,7 +1234,7 @@ namespace Wayfinder
                 .ApplyFn = &ApplyRenderOverride,
                 .SerialiseFn = &SerialiseRenderOverride,
                 .ValidateFn = &ValidateRenderOverride},
-            {.Key = "gameplay_tags", .RegisterFn = &RegisterComponent<Wayfinder::TagContainer>, .ApplyFn = &ApplyTags, .SerialiseFn = &SerialiseTags, .ValidateFn = &ValidateTags},
+            {.Key = "tags", .RegisterFn = &RegisterComponent<Wayfinder::TagContainer>, .ApplyFn = &ApplyTags, .SerialiseFn = &SerialiseTags, .ValidateFn = &ValidateTags},
             {.Key = "blendable_effect_volume",
                 .RegisterFn = &RegisterComponent<Wayfinder::BlendableEffectVolumeComponent>,
                 .ApplyFn = &ApplyBlendableEffectVolumeComponent,

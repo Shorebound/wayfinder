@@ -110,25 +110,3 @@ if (APPLE)
         # Add other frameworks needed by the sandbox/game
     )
 endif()
-
-# --- Post-Build Command for Sandbox (Windows Only) ---
-# Sandbox copies the Wayfinder DLL it needs into its own output directory.
-if(WIN32 AND WAYFINDER_BUILD_SHARED_LIBS)
-  # Check if Wayfinder is actually being built as a shared library
-  # Get the TYPE property of the Wayfinder target
-  get_target_property(WAYFINDER_TYPE ${ENGINE_NAME} TYPE)
-  if(WAYFINDER_TYPE STREQUAL "SHARED_LIBRARY")
-
-    add_custom_command(TARGET ${SANDBOX_NAME} POST_BUILD
-      COMMAND ${CMAKE_COMMAND} -E copy_if_different
-        # Source: The Wayfinder library file for the current configuration
-        $<TARGET_FILE:${ENGINE_NAME}>
-        # Destination: Sandbox's output directory
-        "$<TARGET_FILE_DIR:${SANDBOX_NAME}>/"
-      COMMENT "Copying ${ENGINE_NAME}.dll to ${SANDBOX_NAME} output directory for $<CONFIG>"
-      VERBATIM
-    )
-    message(STATUS "Windows: Added post-build step for ${SANDBOX_NAME} to copy required ${ENGINE_NAME} DLL.")
-
-  endif()
-endif()
