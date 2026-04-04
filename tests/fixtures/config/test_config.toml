@@ -1,0 +1,4 @@
+# Test config file for ConfigService tests
+value = 42
+name = "project_default"
+gravity = -9.81

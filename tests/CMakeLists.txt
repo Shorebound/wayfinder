@@ -77,6 +77,7 @@ add_executable(${WAYFINDER_CORE_TEST_NAME}
   plugins/PluginInterfaceTests.cpp
   plugins/PluginRegistryTests.cpp
   plugins/AppBuilderTests.cpp
+  plugins/ConfigServiceTests.cpp
   plugins/ServiceProviderTests.cpp
 )
 

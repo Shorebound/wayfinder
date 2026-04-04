@@ -27,6 +27,10 @@ namespace Wayfinder
         {
             return {};
         }
+
+        /// @prototype Called when configuration files are reloaded.
+        /// Override to respond to config changes. Wired to file-watcher in a future phase.
+        virtual void OnConfigReloaded() {}
     };
 
 } // namespace Wayfinder
