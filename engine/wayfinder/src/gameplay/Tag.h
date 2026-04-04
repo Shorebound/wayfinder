@@ -69,6 +69,7 @@ namespace Wayfinder
     private:
         friend class TagRegistry;
         friend class Plugins::PluginRegistry;
+        friend class NativeTag;
 
         explicit Tag(const std::string_view name) : m_name(InternedString::Intern(name)) {}
         explicit Tag(InternedString name) : m_name(name) {}

@@ -2,6 +2,7 @@
 
 #include "Tag.h"
 #include "TagRegistry.h"
+#include <cassert>
 
 namespace Wayfinder
 {
