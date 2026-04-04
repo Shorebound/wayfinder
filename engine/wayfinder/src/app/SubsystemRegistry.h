@@ -1,7 +1,9 @@
 #pragma once
 
+#include "app/SubsystemManifest.h"
 #include "core/Assert.h"
 #include "core/Result.h"
+#include "core/TopologicalSort.h"
 #include "gameplay/Capability.h"
 #include "gameplay/Tag.h"
 #include "wayfinder_exports.h"
@@ -21,21 +23,6 @@
 namespace Wayfinder
 {
     class EngineContext;
-
-    /// Variadic helper for building DependsOn type-index vectors.
-    /// Usage: .DependsOn = Deps<Window, TimeSubsystem>()
-    template<typename... TDeps>
-    auto Deps() -> std::vector<std::type_index>
-    {
-        return {std::type_index(typeid(TDeps))...};
-    }
-
-    /// Metadata for subsystem registration. Uses designated initialisers.
-    struct SubsystemDescriptor
-    {
-        CapabilitySet RequiredCapabilities;
-        std::vector<std::type_index> DependsOn;
-    };
 
     /**
      * @brief Dependency-ordered, capability-gated subsystem registry.

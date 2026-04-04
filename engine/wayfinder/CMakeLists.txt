@@ -62,6 +62,7 @@ set(ENGINE_ALL_SOURCES
   src/app/LayerStack.h
   src/app/StateSubsystem.h
   src/app/Subsystem.h
+  src/app/SubsystemManifest.h
   src/app/SubsystemRegistry.h
 
   # Assets
@@ -94,6 +95,7 @@ set(ENGINE_ALL_SOURCES
   src/core/Profiling.h
   src/core/ResourcePool.h
   src/core/Result.h
+  src/core/TopologicalSort.h
   src/core/Types.h
 
   # Core — Events
