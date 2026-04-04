@@ -6,6 +6,7 @@
 #include "core/TopologicalSort.h"
 #include "gameplay/Capability.h"
 #include "gameplay/Tag.h"
+#include "plugins/IRegistrar.h"
 #include "wayfinder_exports.h"
 
 #include <concepts>
@@ -35,7 +36,7 @@ namespace Wayfinder
      * @tparam TBase The scope base class (e.g. AppSubsystem, StateSubsystem).
      */
     template<typename TBase>
-    class SubsystemRegistry
+    class SubsystemRegistry : public IRegistrar
     {
     public:
         /// Register a concrete subsystem type with an optional descriptor.

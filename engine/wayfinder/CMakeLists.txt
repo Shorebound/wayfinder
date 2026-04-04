@@ -46,6 +46,8 @@ set(ENGINE_ALL_SOURCES
   # App
   src/app/Application.cpp
   src/app/Application.h
+  src/app/AppBuilder.cpp
+  src/app/AppBuilder.h
   src/app/AppDescriptor.h
   src/app/AppSubsystem.h
   src/app/EngineConfig.cpp
@@ -147,6 +149,7 @@ set(ENGINE_ALL_SOURCES
   src/plugins/IPlugin.h
   src/plugins/IRegistrar.h
   src/plugins/IStateUI.h
+  src/plugins/LifecycleHooks.h
   src/plugins/PluginConcepts.h
   src/plugins/PluginDescriptor.h
   src/plugins/Plugin.h

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "core/Result.h"
+#include "plugins/IRegistrar.h"
 #include "wayfinder_exports.h"
 
 #include <functional>
@@ -16,7 +17,7 @@ namespace Wayfinder::Plugins
 {
     /// Internal storage for game-state descriptors.
     /// Owned by PluginRegistry — not a subsystem.
-    class WAYFINDER_API StateRegistrar
+    class WAYFINDER_API StateRegistrar : public ::Wayfinder::IRegistrar
     {
     public:
         struct Descriptor
