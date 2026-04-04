@@ -21,6 +21,9 @@ Here are some code review comments from coderabbit. Verify each finding against 
 
 ## GSD Research
 Yes, research.
+
+Investigate domain, patterns and dependencies before planning. 
+
 We are trying to make clean, elegant and idiomatic modern C++23 code. So let's make sure we research the idioms and patterns relevant to this phase - we want to use the latest and best features where they genuinely improve the code. As well as the best practices for the specific architectural patterns we're implementing. 
 
 Also remember this is game engine, research how other engines approach this problem. 
