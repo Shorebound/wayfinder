@@ -55,10 +55,8 @@ namespace Wayfinder
             return m_outputs.contains(std::type_index(typeid(TOutput)));
         }
 
-    private:
-        friend class AppBuilder;
-
         /// Add a processed output. Called by AppBuilder::Finalise().
+        /// @todo Restrict to private + friend once AppBuilder exists (Plan 03-03).
         template<typename TOutput>
         void AddOutput(TOutput output)
         {
@@ -69,6 +67,7 @@ namespace Wayfinder
             }});
         }
 
+    private:
         struct OutputDeleter
         {
             void (*Destroy)(void*) = nullptr;
