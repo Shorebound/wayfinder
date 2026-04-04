@@ -65,16 +65,16 @@ namespace Wayfinder
 
             const size_t index = m_entries.size();
             m_entries.push_back(Entry{
-                .ConcreteType = type,
-                .AbstractType = std::nullopt,
-                .Descriptor = std::move(descriptor),
-                .Factory = []() -> std::unique_ptr<TBase>
+                type,
+                std::nullopt,
+                std::move(descriptor),
+                []() -> std::unique_ptr<TBase>
             {
                 return std::make_unique<T>();
             },
-                .Instance = nullptr,
-                .DebugName = typeid(T).name(),
-                .Active = false,
+                nullptr,
+                typeid(T).name(),
+                false,
             });
             m_typeToIndex[type] = index;
         }
@@ -95,19 +95,19 @@ namespace Wayfinder
 
             const size_t index = m_entries.size();
             m_entries.push_back(Entry{
-                .ConcreteType = concreteType,
-                .AbstractType = abstractType,
-                .Descriptor = std::move(descriptor),
-                .Factory = []() -> std::unique_ptr<TBase>
+                concreteType,
+                abstractType,
+                std::move(descriptor),
+                []() -> std::unique_ptr<TBase>
             {
                 return std::make_unique<TConcrete>();
             },
-                .Instance = nullptr,
-                .DebugName = typeid(TConcrete).name(),
-                .Active = false,
+                nullptr,
+                typeid(TConcrete).name(),
+                false,
             });
             m_typeToIndex[concreteType] = index;
-            m_abstractRedirect[abstractType] = concreteType;
+            m_abstractRedirect.insert_or_assign(abstractType, concreteType);
         }
 
         /// Validate the dependency graph and freeze registration.

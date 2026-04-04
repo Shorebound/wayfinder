@@ -19,6 +19,8 @@ namespace Wayfinder
     class WAYFINDER_API AppSubsystem : public Subsystem
     {
     public:
+        using Subsystem::Initialise;
+
         /// V2 initialisation receiving the engine context. Returns Result<void> for error propagation.
         [[nodiscard]] virtual auto Initialise(EngineContext& context) -> Result<void>
         {
