@@ -50,6 +50,10 @@ set(ENGINE_ALL_SOURCES
   src/app/AppBuilder.h
   src/app/AppDescriptor.h
   src/app/AppSubsystem.h
+  src/app/ConfigRegistrar.cpp
+  src/app/ConfigRegistrar.h
+  src/app/ConfigService.cpp
+  src/app/ConfigService.h
   src/app/EngineConfig.cpp
   src/app/EngineConfig.h
   src/app/EngineContext.cpp

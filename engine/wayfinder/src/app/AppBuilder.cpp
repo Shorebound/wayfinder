@@ -8,6 +8,12 @@
 namespace Wayfinder
 {
 
+    void AppBuilder::SetProjectPaths(const std::filesystem::path& configDir, const std::filesystem::path& savedDir)
+    {
+        m_configDir = configDir;
+        m_savedDir = savedDir;
+    }
+
     auto AppBuilder::Finalise() -> Result<AppDescriptor>
     {
         WAYFINDER_ASSERT(not m_finalised, "Finalise() already called");

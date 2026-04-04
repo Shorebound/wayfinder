@@ -2,6 +2,7 @@
 
 #include "AppDescriptor.h"
 #include "AppSubsystem.h"
+#include "ConfigRegistrar.h"
 #include "StateSubsystem.h"
 #include "SubsystemManifest.h"
 #include "SubsystemRegistry.h"
@@ -16,6 +17,7 @@
 #include "plugins/PluginDescriptor.h"
 
 #include <concepts>
+#include <filesystem>
 #include <functional>
 #include <memory>
 #include <typeindex>
@@ -143,6 +145,35 @@ namespace Wayfinder
             GetRegistrar<LifecycleHookRegistrar>().template OnStateExit<TState>(std::move(callback));
         }
 
+        /// Set project paths for config file resolution.
+        /// Called by Application before the plugin Build() phase.
+        void SetProjectPaths(const std::filesystem::path& configDir, const std::filesystem::path& savedDir);
+
+        /// Load a per-plugin config struct from TOML with 3-tier layering.
+        /// Struct defaults < config/<key>.toml < saved/config/<key>.toml.
+        /// Cached: multiple calls with the same key parse the file once.
+        /// If no project paths are set or files are missing, returns T{}.
+        template<typename T>
+        auto LoadConfig(std::string_view key) -> T
+        {
+            auto& configReg = GetRegistrar<ConfigRegistrar>();
+            configReg.DeclareConfig(key, std::type_index(typeid(T)));
+
+            if (m_configDir.empty())
+            {
+                return T{};
+            }
+
+            auto tableResult = configReg.LoadTable(key, m_configDir, m_savedDir);
+            if (not tableResult)
+            {
+                Log::Warn(LogEngine, "Config load failed for '{}': {}", key, tableResult.error().GetMessage());
+                return T{};
+            }
+
+            return T::FromToml(**tableResult);
+        }
+
         /// Validate, order, build plugins, finalise registrars,
         /// and produce an immutable AppDescriptor.
         [[nodiscard]] auto Finalise() -> Result<AppDescriptor>;
@@ -182,6 +213,8 @@ namespace Wayfinder
         std::unordered_map<std::type_index, std::unique_ptr<IRegistrar>> m_registrars;
         std::vector<PluginEntry> m_plugins;
         std::unordered_map<std::type_index, size_t> m_pluginTypeToIndex;
+        std::filesystem::path m_configDir;
+        std::filesystem::path m_savedDir;
         bool m_finalised = false;
     };
 
