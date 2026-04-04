@@ -335,7 +335,7 @@ namespace Wayfinder::Tests
 
         auto GetContext() -> EngineContext
         {
-            return Runtime->BuildContext();
+            return EngineContext{};
         }
     };
 

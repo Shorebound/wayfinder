@@ -15,8 +15,8 @@ namespace Wayfinder
     class Scene;
     class Time;
     class Window;
+    class EngineContext;
     struct EngineConfig;
-    struct EngineContext;
     struct ProjectDescriptor;
 
     /**
@@ -93,9 +93,6 @@ namespace Wayfinder
         {
             return m_blendableEffectRegistry;
         }
-
-        // ── Context bundle for external consumers (editor) ───
-        EngineContext BuildContext() const;
 
     private:
         const EngineConfig& m_config;

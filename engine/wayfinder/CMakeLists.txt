@@ -49,6 +49,7 @@ set(ENGINE_ALL_SOURCES
   src/app/AppSubsystem.h
   src/app/EngineConfig.cpp
   src/app/EngineConfig.h
+  src/app/EngineContext.cpp
   src/app/EngineContext.h
   src/app/EngineRuntime.cpp
   src/app/EngineRuntime.h
@@ -115,6 +116,7 @@ set(ENGINE_ALL_SOURCES
 
   # Gameplay
   src/gameplay/Capability.h
+  src/gameplay/EngineContextRef.h
   src/gameplay/Game.cpp
   src/gameplay/Game.h
   src/gameplay/GameContext.h
