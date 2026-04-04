@@ -3,8 +3,8 @@
 #include "Components.h"
 #include "app/Subsystem.h"
 #include "core/Log.h"
-#include "gameplay/GameplayTag.h"
-#include "gameplay/GameplayTagRegistry.h"
+#include "gameplay/Tag.h"
+#include "gameplay/TagRegistry.h"
 #include "scene/entity/Entity.h"
 
 #include "volumes/BlendableEffect.h"
@@ -843,7 +843,7 @@ namespace Wayfinder
             return fallback;
         }
 
-        // ── GameplayTagContainer ────────────────────────────────
+        // -- TagContainer --------------------------------------------------------
 
         bool ValidateTags(const nlohmann::json& data, std::string& error)
         {
@@ -875,9 +875,9 @@ namespace Wayfinder
         {
             // In non-Game contexts (e.g. waypoint, tests) the subsystem collection may not be bound.
             // Use Find() to avoid asserting and simply skip tag application if no registry is available.
-            auto* registry = Wayfinder::GameSubsystems::Find<Wayfinder::GameplayTagRegistry>();
+            auto* registry = Wayfinder::GameSubsystems::Find<Wayfinder::TagRegistry>();
 
-            Wayfinder::GameplayTagContainer container;
+            Wayfinder::TagContainer container;
             if (registry)
             {
                 if (data.contains("tags") && data.at("tags").is_array())
@@ -893,20 +893,20 @@ namespace Wayfinder
             }
             else if (data.contains("tags") && data.at("tags").is_array() && !data.at("tags").empty())
             {
-                Log::Warn(LogScene, "Entity specifies {} tag(s) but no GameplayTagRegistry is available - tags will be ignored.", data.at("tags").size());
+                Log::Warn(LogScene, "Entity specifies {} tag(s) but no TagRegistry is available - tags will be ignored.", data.at("tags").size());
             }
-            entity.AddComponent<Wayfinder::GameplayTagContainer>(container);
+            entity.AddComponent<Wayfinder::TagContainer>(container);
         }
 
         // NOLINTBEGIN(cppcoreguidelines-pro-bounds-avoid-unchecked-container-access)
         void SerialiseTags(const Wayfinder::Entity& entity, nlohmann::json& componentTables)
         {
-            if (!entity.HasComponent<Wayfinder::GameplayTagContainer>())
+            if (!entity.HasComponent<Wayfinder::TagContainer>())
             {
                 return;
             }
 
-            const auto& container = entity.GetComponent<Wayfinder::GameplayTagContainer>();
+            const auto& container = entity.GetComponent<Wayfinder::TagContainer>();
             if (container.IsEmpty())
             {
                 return;
@@ -1234,7 +1234,7 @@ namespace Wayfinder
                 .ApplyFn = &ApplyRenderOverride,
                 .SerialiseFn = &SerialiseRenderOverride,
                 .ValidateFn = &ValidateRenderOverride},
-            {.Key = "gameplay_tags", .RegisterFn = &RegisterComponent<Wayfinder::GameplayTagContainer>, .ApplyFn = &ApplyTags, .SerialiseFn = &SerialiseTags, .ValidateFn = &ValidateTags},
+            {.Key = "gameplay_tags", .RegisterFn = &RegisterComponent<Wayfinder::TagContainer>, .ApplyFn = &ApplyTags, .SerialiseFn = &SerialiseTags, .ValidateFn = &ValidateTags},
             {.Key = "blendable_effect_volume",
                 .RegisterFn = &RegisterComponent<Wayfinder::BlendableEffectVolumeComponent>,
                 .ApplyFn = &ApplyBlendableEffectVolumeComponent,

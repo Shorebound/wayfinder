@@ -2,6 +2,7 @@
 #include "core/InternedString.h"
 #include "gameplay/GameState.h"
 #include "gameplay/GameStateMachine.h"
+#include "gameplay/TagRegistry.h"
 #include "plugins/PluginRegistry.h"
 #include "project/ProjectDescriptor.h"
 
@@ -33,7 +34,7 @@ namespace Wayfinder::Tests
     void PrepareWorld(flecs::world& world)
     {
         world.set<ActiveGameState>({});
-        world.set<ActiveGameplayTags>({});
+        world.set<ActiveTags>({});
     }
 
     TEST_SUITE("GameStateMachine")
@@ -277,12 +278,13 @@ namespace Wayfinder::Tests
             flecs::world world;
             PrepareWorld(world);
 
-            auto tag = GameplayTag::FromName("Status.Burning");
+            TagRegistry tagRegistry;
+            auto tag = tagRegistry.RegisterTag("Status.Burning");
             auto condition = HasTag(tag);
 
             CHECK_FALSE(condition(world));
 
-            world.get_mut<ActiveGameplayTags>().Tags.AddTag(tag);
+            world.get_mut<ActiveTags>().Tags.AddTag(tag);
             CHECK(condition(world));
         }
 
@@ -291,13 +293,14 @@ namespace Wayfinder::Tests
             flecs::world world;
             PrepareWorld(world);
 
-            auto burning = GameplayTag::FromName("Status.Burning");
-            auto frozen = GameplayTag::FromName("Status.Frozen");
+            TagRegistry tagRegistry;
+            auto burning = tagRegistry.RegisterTag("Status.Burning");
+            auto frozen = tagRegistry.RegisterTag("Status.Frozen");
             auto condition = HasAnyTag({burning, frozen});
 
             CHECK_FALSE(condition(world));
 
-            world.get_mut<ActiveGameplayTags>().Tags.AddTag(frozen);
+            world.get_mut<ActiveTags>().Tags.AddTag(frozen);
             CHECK(condition(world));
         }
 
@@ -307,13 +310,14 @@ namespace Wayfinder::Tests
             PrepareWorld(world);
 
             world.get_mut<ActiveGameState>().Current = InternedString::Intern("InGame");
-            auto burning = GameplayTag::FromName("Status.Burning");
+            TagRegistry tagRegistry;
+            auto burning = tagRegistry.RegisterTag("Status.Burning");
 
             auto condition = AllOf({InState("InGame"), HasTag(burning)});
 
             CHECK_FALSE(condition(world)); // Tag missing
 
-            world.get_mut<ActiveGameplayTags>().Tags.AddTag(burning);
+            world.get_mut<ActiveTags>().Tags.AddTag(burning);
             CHECK(condition(world)); // Both true
         }
 

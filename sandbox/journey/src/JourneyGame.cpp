@@ -1,6 +1,6 @@
 #include "app/EntryPoint.h"
 #include "gameplay/GameState.h"
-#include "gameplay/GameplayTag.h"
+#include "gameplay/Tag.h"
 #include "physics/PhysicsPlugin.h"
 #include "plugins/Plugin.h"
 #include "plugins/PluginExport.h"
@@ -149,14 +149,13 @@ namespace
             registry.RegisterTagFile("tags/status.tags.toml");
             registry.RegisterTagFile("tags/faction.tags.toml");
 
-            // Code-defined tags with comments — capture the returned tag for use
+            // Code-defined tags with comments - capture the returned tag for use
             registry.RegisterTag("Status.Stunned", "Entity is stunned and cannot act");
             auto burning = registry.RegisterTag("Status.Burning", "Entity is on fire");
 
             // A system that runs when the "Status.Burning" tag is active at the
-            // world level (via ActiveGameplayTags).  This is intentionally global:
+            // world level (via ActiveTags).  This is intentionally global:
             // when the tag is set, ALL entities with HealthComponent take burn
-            // damage.  For per-entity burning, attach a GameplayTagContainer to
             // each entity and query it inside the lambda instead.
             registry.RegisterSystem("BurnDamage", [](flecs::world& world)
             {

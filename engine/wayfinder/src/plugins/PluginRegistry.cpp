@@ -74,9 +74,9 @@ namespace Wayfinder::Plugins
         m_states.SetInitial(std::move(stateName));
     }
 
-    ::Wayfinder::GameplayTag PluginRegistry::RegisterTag(const std::string_view tagName, const std::string_view comment)
+    ::Wayfinder::Tag PluginRegistry::RegisterTag(const std::string_view tagName, const std::string_view comment)
     {
-        const ::Wayfinder::GameplayTag tag = ::Wayfinder::GameplayTag::FromName(tagName);
+        const ::Wayfinder::Tag tag{tagName};
         m_tags.Register({.Name = std::string(tagName), .Comment = std::string(comment)});
         return tag;
     }

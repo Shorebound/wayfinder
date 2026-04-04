@@ -123,9 +123,9 @@ namespace Wayfinder::Plugins
         /// during initialisation, after all registrations are applied.
         void SetInitialState(std::string stateName);
 
-        /// Register a gameplay tag name. Returns a GameplayTag that can be
+        /// Register a gameplay tag name. Returns a Tag that can be
         /// captured and used immediately (e.g. passed to HasTag run conditions).
-        ::Wayfinder::GameplayTag RegisterTag(std::string_view tagName, std::string_view comment = {});
+        ::Wayfinder::Tag RegisterTag(std::string_view tagName, std::string_view comment = {});
 
         /// Register a tag definition file to be loaded at startup.
         /// Path is relative to the project's config directory.

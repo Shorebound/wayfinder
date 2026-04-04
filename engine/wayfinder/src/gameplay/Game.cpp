@@ -1,8 +1,8 @@
 #include "Game.h"
 #include "GameContext.h"
 #include "GameStateMachine.h"
-#include "GameplayTag.h"
-#include "GameplayTagRegistry.h"
+#include "Tag.h"
+#include "TagRegistry.h"
 #include "assets/AssetService.h"
 #include "core/InternedString.h"
 #include "core/Log.h"
@@ -117,9 +117,9 @@ namespace Wayfinder
         m_world.component<SceneSettings>();
         m_world.set<SceneSettings>({});
 
-        // Initialise active gameplay tags singleton
-        m_world.component<ActiveGameplayTags>();
-        m_world.set<ActiveGameplayTags>({});
+        // Initialise active tags singleton
+        m_world.component<ActiveTags>();
+        m_world.set<ActiveTags>({});
 
         m_pluginRegistry.ApplyToWorld(m_world);
 
@@ -217,38 +217,38 @@ namespace Wayfinder
         return {};
     }
 
-    void Game::AddGameplayTag(const GameplayTag& tag)
+    void Game::AddTag(const Tag& tag)
     {
-        auto& tags = m_world.get_mut<ActiveGameplayTags>();
+        auto& tags = m_world.get_mut<ActiveTags>();
         tags.Tags.AddTag(tag);
-        Log::Info(LogGame, "Added gameplay tag: '{}'", tag.GetName());
+        Log::Info(LogGame, "Added tag: '{}'", tag.GetName());
         if (m_stateMachine)
         {
             m_stateMachine->MarkDirty();
         }
     }
 
-    void Game::RemoveGameplayTag(const GameplayTag& tag)
+    void Game::RemoveTag(const Tag& tag)
     {
-        auto& tags = m_world.get_mut<ActiveGameplayTags>();
+        auto& tags = m_world.get_mut<ActiveTags>();
         tags.Tags.RemoveTag(tag);
-        Log::Info(LogGame, "Removed gameplay tag: '{}'", tag.GetName());
+        Log::Info(LogGame, "Removed tag: '{}'", tag.GetName());
         if (m_stateMachine)
         {
             m_stateMachine->MarkDirty();
         }
     }
 
-    bool Game::HasGameplayTag(const GameplayTag& tag) const
+    bool Game::HasTag(const Tag& tag) const
     {
-        const auto& tags = m_world.get<ActiveGameplayTags>();
+        const auto& tags = m_world.get<ActiveTags>();
         return tags.Tags.HasTag(tag);
     }
 
     void Game::InitialiseSubsystems()
     {
         // Register core engine subsystems
-        m_subsystems.Register<GameplayTagRegistry>();
+        m_subsystems.Register<TagRegistry>();
         m_subsystems.Register<GameStateMachine>();
 
         // Register plugin subsystems
@@ -263,7 +263,7 @@ namespace Wayfinder
 
     void Game::InitialiseTagRegistry()
     {
-        auto& tagRegistry = GameSubsystems::Get<GameplayTagRegistry>();
+        auto& tagRegistry = GameSubsystems::Get<TagRegistry>();
 
         // Load tag files registered by plugins (paths relative to config dir)
         const auto& project = m_pluginRegistry.GetProject();

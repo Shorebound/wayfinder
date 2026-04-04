@@ -1,5 +1,5 @@
 #include "TestHelpers.h"
-#include "gameplay/GameplayTagRegistry.h"
+#include "gameplay/TagRegistry.h"
 
 #include <doctest/doctest.h>
 
@@ -11,11 +11,11 @@
 namespace Wayfinder::Tests
 {
     using Helpers::FixturesDir;
-    TEST_SUITE("GameplayTagRegistry")
+    TEST_SUITE("TagRegistry")
     {
         TEST_CASE("RegisterTag creates a valid tag")
         {
-            GameplayTagRegistry registry;
+            TagRegistry registry;
             auto tag = registry.RegisterTag("Status.Burning", "Entity is on fire");
 
             CHECK(tag.IsValid());
@@ -25,7 +25,7 @@ namespace Wayfinder::Tests
 
         TEST_CASE("RegisterTag auto-creates ancestor tags")
         {
-            GameplayTagRegistry registry;
+            TagRegistry registry;
             registry.RegisterTag("Status.Damage.Fire", "Fire damage");
 
             CHECK(registry.IsRegistered("Status"));
@@ -35,7 +35,7 @@ namespace Wayfinder::Tests
 
         TEST_CASE("Duplicate RegisterTag updates comment and source")
         {
-            GameplayTagRegistry registry;
+            TagRegistry registry;
             registry.RegisterTag("Status.Burning", "first comment");
             registry.RegisterTag("Status.Burning", "second comment");
 
@@ -47,7 +47,7 @@ namespace Wayfinder::Tests
 
         TEST_CASE("Duplicate RegisterTag with empty comment keeps original")
         {
-            GameplayTagRegistry registry;
+            TagRegistry registry;
             registry.RegisterTag("Status.Burning", "first comment");
             registry.RegisterTag("Status.Burning");
 
@@ -58,13 +58,13 @@ namespace Wayfinder::Tests
 
         TEST_CASE("FindDefinition returns nullptr for unregistered tag")
         {
-            GameplayTagRegistry registry;
+            TagRegistry registry;
             CHECK(registry.FindDefinition("NonExistent") == nullptr);
         }
 
         TEST_CASE("FindDefinition returns correct definition")
         {
-            GameplayTagRegistry registry;
+            TagRegistry registry;
             registry.RegisterTag("Ability.Fireball", "A fireball");
 
             const auto* def = registry.FindDefinition("Ability.Fireball");
@@ -76,7 +76,7 @@ namespace Wayfinder::Tests
 
         TEST_CASE("IsRegistered returns false for unknown tag")
         {
-            GameplayTagRegistry registry;
+            TagRegistry registry;
             CHECK_FALSE(registry.IsRegistered("Unknown.Tag"));
         }
 
@@ -84,7 +84,7 @@ namespace Wayfinder::Tests
 
         TEST_CASE("RequestTag returns a tag even if unregistered")
         {
-            GameplayTagRegistry registry;
+            TagRegistry registry;
             auto tag = registry.RequestTag("Unregistered.Tag");
             CHECK(tag.IsValid());
             CHECK(std::string(tag.GetName()) == "Unregistered.Tag");
@@ -92,7 +92,7 @@ namespace Wayfinder::Tests
 
         TEST_CASE("RequestTag returns tag for registered name")
         {
-            GameplayTagRegistry registry;
+            TagRegistry registry;
             registry.RegisterTag("Status");
             auto tag = registry.RequestTag("Status");
             CHECK(tag.IsValid());
@@ -103,7 +103,7 @@ namespace Wayfinder::Tests
 
         TEST_CASE("LoadTagFile loads tags from TOML")
         {
-            GameplayTagRegistry registry;
+            TagRegistry registry;
             auto path = FixturesDir() / "test_tags.toml";
             int count = registry.LoadTagFile(path);
 
@@ -117,7 +117,7 @@ namespace Wayfinder::Tests
 
         TEST_CASE("LoadTagFile auto-creates ancestors from file")
         {
-            GameplayTagRegistry registry;
+            TagRegistry registry;
             auto path = FixturesDir() / "test_tags.toml";
             registry.LoadTagFile(path);
 
@@ -127,7 +127,7 @@ namespace Wayfinder::Tests
 
         TEST_CASE("LoadTagFile with empty tags array returns 0")
         {
-            GameplayTagRegistry registry;
+            TagRegistry registry;
             auto path = FixturesDir() / "empty_tags.toml";
             int count = registry.LoadTagFile(path);
 
@@ -136,7 +136,7 @@ namespace Wayfinder::Tests
 
         TEST_CASE("LoadTagFile with invalid TOML returns -1")
         {
-            GameplayTagRegistry registry;
+            TagRegistry registry;
             auto path = FixturesDir() / "bad_tags.toml";
             int count = registry.LoadTagFile(path);
 
@@ -145,14 +145,14 @@ namespace Wayfinder::Tests
 
         TEST_CASE("LoadTagFile with non-existent file returns -1")
         {
-            GameplayTagRegistry registry;
+            TagRegistry registry;
             int count = registry.LoadTagFile("non_existent_path.toml");
             CHECK(count == -1);
         }
 
         TEST_CASE("LoadTagFile tracks loaded file paths")
         {
-            GameplayTagRegistry registry;
+            TagRegistry registry;
             auto path = FixturesDir() / "test_tags.toml";
             registry.LoadTagFile(path);
 
@@ -164,7 +164,7 @@ namespace Wayfinder::Tests
 
         TEST_CASE("UnloadTagFile removes file-sourced definitions")
         {
-            GameplayTagRegistry registry;
+            TagRegistry registry;
             auto path = FixturesDir() / "test_tags.toml";
             registry.LoadTagFile(path);
 
@@ -179,7 +179,7 @@ namespace Wayfinder::Tests
 
         TEST_CASE("UnloadTagFile preserves code-registered tags")
         {
-            GameplayTagRegistry registry;
+            TagRegistry registry;
 
             // Register "Status" from code first
             registry.RegisterTag("Status", "Code-owned root");
@@ -200,7 +200,7 @@ namespace Wayfinder::Tests
 
         TEST_CASE("GetAllDefinitions returns all registered tags")
         {
-            GameplayTagRegistry registry;
+            TagRegistry registry;
             registry.RegisterTag("A");
             registry.RegisterTag("B");
             registry.RegisterTag("C");

@@ -13,6 +13,11 @@ namespace Wayfinder
 {
     class TagRegistry;
 
+    namespace Plugins
+    {
+        class PluginRegistry;
+    }
+
     /**
      * @struct Tag
      * @brief A hierarchical, dot-separated tag used for classification.
@@ -63,6 +68,7 @@ namespace Wayfinder
 
     private:
         friend class TagRegistry;
+        friend class Plugins::PluginRegistry;
 
         explicit Tag(const std::string_view name) : m_name(InternedString::Intern(name)) {}
         explicit Tag(InternedString name) : m_name(name) {}

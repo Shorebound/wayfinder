@@ -1,5 +1,5 @@
 #include "GameState.h"
-#include "GameplayTag.h"
+#include "Tag.h"
 #include "core/InternedString.h"
 
 #include "ecs/Flecs.h"
@@ -25,26 +25,26 @@ namespace Wayfinder
         };
     }
 
-    RunCondition HasTag(GameplayTag tag)
+    RunCondition HasTag(Tag tag)
     {
         return [t = tag](const flecs::world& world) -> bool
         {
-            const auto* tags = world.try_get<ActiveGameplayTags>();
+            const auto* tags = world.try_get<ActiveTags>();
             return tags && tags->Tags.HasTag(t);
         };
     }
 
-    RunCondition HasAnyTag(std::vector<GameplayTag> tags)
+    RunCondition HasAnyTag(std::vector<Tag> tags)
     {
         return [ts = std::move(tags)](const flecs::world& world) -> bool
         {
-            const auto* activeTags = world.try_get<ActiveGameplayTags>();
+            const auto* activeTags = world.try_get<ActiveTags>();
             if (!activeTags)
             {
                 return false;
             }
 
-            return std::ranges::any_of(ts, [&](const GameplayTag& t)
+            return std::ranges::any_of(ts, [&](const Tag& t)
             {
                 return activeTags->Tags.HasTag(t);
             });
