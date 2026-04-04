@@ -53,8 +53,8 @@ Plans:
 **Plans:** 2 plans
 
 Plans:
-- [ ] 02-01-PLAN.md - SubsystemRegistry with dependency ordering and capability-gated activation
-- [ ] 02-02-PLAN.md - EngineContext v2 facade, ComputeEffectiveCaps, and EngineContextRef ECS singleton
+- [x] 02-01-PLAN.md - SubsystemRegistry with dependency ordering and capability-gated activation
+- [x] 02-02-PLAN.md - EngineContext v2 facade, ComputeEffectiveCaps, and EngineContextRef ECS singleton
 
 ### Phase 3: Plugin Composition
 **Goal**: Plugins compose the application through AppBuilder with typed registrar store, dependency ordering, and per-plugin configuration
