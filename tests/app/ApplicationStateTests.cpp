@@ -1,7 +1,11 @@
+#include "app/AppBuilder.h"
+#include "app/AppDescriptor.h"
 #include "app/EngineContext.h"
 #include "app/IApplicationState.h"
 #include "app/IOverlay.h"
 #include "core/events/EventQueue.h"
+#include "plugins/IPlugin.h"
+#include "plugins/LifecycleHooks.h"
 
 #include <doctest/doctest.h>
 
@@ -154,6 +158,105 @@ namespace Wayfinder::Tests
             CHECK(overlay.GetName() == "MockOverlay");
             CHECK_FALSE(overlay.AttachCalled);
             CHECK_FALSE(overlay.DetachCalled);
+        }
+    }
+
+    // -- EngineContext AppDescriptor Access --------------------------------
+
+    TEST_SUITE("EngineContext AppDescriptor Access")
+    {
+        TEST_CASE("Default EngineContext has null AppDescriptor")
+        {
+            EngineContext ctx;
+            CHECK(ctx.TryGetAppDescriptor() == nullptr);
+        }
+
+        TEST_CASE("SetAppDescriptor makes it accessible via GetAppDescriptor")
+        {
+            AppBuilder builder;
+            auto result = builder.Finalise();
+            REQUIRE(result.has_value());
+
+            EngineContext ctx;
+            ctx.SetAppDescriptor(&*result);
+
+            const auto& descriptor = ctx.GetAppDescriptor();
+            // Verify we got a valid reference (address matches)
+            CHECK(&descriptor == &*result);
+        }
+
+        TEST_CASE("TryGetAppDescriptor returns valid pointer after set")
+        {
+            AppBuilder builder;
+            auto result = builder.Finalise();
+            REQUIRE(result.has_value());
+
+            EngineContext ctx;
+            ctx.SetAppDescriptor(&*result);
+
+            const auto* ptr = ctx.TryGetAppDescriptor();
+            REQUIRE(ptr != nullptr);
+            CHECK(ptr == &*result);
+        }
+    }
+
+    // -- AppBuilder Integration -------------------------------------------
+
+    namespace
+    {
+        bool g_hookFired = false;
+
+        struct HookPlugin : public IPlugin
+        {
+            void Build(AppBuilder& b) override
+            {
+                b.OnAppReady([](EngineContext&)
+                {
+                    g_hookFired = true;
+                });
+            }
+        };
+    } // namespace
+
+    TEST_SUITE("AppBuilder Integration")
+    {
+        TEST_CASE("AddPlugin, Finalise, AppDescriptor round-trip with lifecycle hooks")
+        {
+            g_hookFired = false;
+
+            AppBuilder builder;
+            builder.AddPlugin<HookPlugin>();
+            auto result = builder.Finalise();
+            REQUIRE(result.has_value());
+
+            auto& descriptor = *result;
+            CHECK(descriptor.Has<LifecycleHookManifest>());
+
+            auto& hooks = descriptor.Get<LifecycleHookManifest>();
+            REQUIRE(hooks.OnAppReady.size() == 1);
+
+            // Fire the hooks to verify they work
+            EngineContext ctx;
+            for (const auto& hook : hooks.OnAppReady)
+            {
+                hook(ctx);
+            }
+            CHECK(g_hookFired);
+        }
+
+        TEST_CASE("AppDescriptor accessible via EngineContext after Finalise")
+        {
+            AppBuilder builder;
+            auto result = builder.Finalise();
+            REQUIRE(result.has_value());
+
+            EngineContext ctx;
+            ctx.SetAppDescriptor(&*result);
+
+            // Should not assert, descriptor is set
+            const auto& desc = ctx.GetAppDescriptor();
+            // Empty builder produces descriptor without lifecycle hooks
+            CHECK_FALSE(desc.Has<LifecycleHookManifest>());
         }
     }
 }

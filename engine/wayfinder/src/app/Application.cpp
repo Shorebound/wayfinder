@@ -71,6 +71,21 @@ namespace Wayfinder
         // 2. Load engine config
         m_config = std::make_unique<EngineConfig>(EngineConfig::LoadFromFile(m_project->ResolveEngineConfigPath()));
 
+        // V2 plugin composition (coexists with v1 path below)
+        if (m_builder)
+        {
+            m_builder->SetProjectPaths(m_project->ResolveConfigDir(), m_project->ProjectRoot / "saved");
+
+            auto descriptorResult = m_builder->Finalise();
+            if (not descriptorResult)
+            {
+                Log::Error(LogEngine, "AppBuilder::Finalise() failed: {}", descriptorResult.error().GetMessage());
+                return std::unexpected(descriptorResult.error());
+            }
+            m_appDescriptor = std::move(*descriptorResult);
+            m_builder.reset();
+        }
+
         // 3. Plugin registration (before Game so scene creation can use factories)
         m_pluginRegistry = std::make_unique<Plugins::PluginRegistry>(*m_project, *m_config);
         if (m_gamePlugin)

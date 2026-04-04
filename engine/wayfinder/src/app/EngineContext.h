@@ -1,5 +1,6 @@
 #pragma once
 
+#include "AppDescriptor.h"
 #include "SubsystemManifest.h"
 #include "core/Assert.h"
 #include "gameplay/Capability.h"
@@ -120,20 +121,30 @@ namespace Wayfinder
         /// Check if stop has been requested.
         [[nodiscard]] auto IsStopRequested() const -> bool;
 
+        // -- AppDescriptor access --
+
+        /// Access the immutable application descriptor.
+        /// Available after Application::Initialise() completes.
+        [[nodiscard]] auto GetAppDescriptor() const -> const AppDescriptor&;
+
+        /// Try to access the application descriptor, or nullptr if not yet set.
+        [[nodiscard]] auto TryGetAppDescriptor() const -> const AppDescriptor*;
+
         // -- Setters (called by Application during construction) --
         /// @todo Phase 6: Revisit access protection when Application class is built (private + friend, or constructor params).
 
         void SetAppSubsystems(SubsystemManifest<AppSubsystem>* manifest);
         void SetStateSubsystems(SubsystemManifest<StateSubsystem>* manifest);
+        void SetAppDescriptor(const AppDescriptor* descriptor);
 
     private:
         SubsystemManifest<AppSubsystem>* m_appSubsystems = nullptr;
         SubsystemManifest<StateSubsystem>* m_stateSubsystems = nullptr;
+        const AppDescriptor* m_appDescriptor = nullptr;
         bool m_stopRequested = false;
         // Phase 4 additions (nullptr initially):
         // ApplicationStateMachine* m_stateMachine = nullptr;
         // OverlayStack* m_overlayStack = nullptr;
-        // AppDescriptor* m_appDescriptor = nullptr;
     };
 
     // -- Capability set computation --

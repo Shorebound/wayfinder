@@ -37,4 +37,20 @@ namespace Wayfinder
         m_stateSubsystems = manifest;
     }
 
+    auto EngineContext::GetAppDescriptor() const -> const AppDescriptor&
+    {
+        WAYFINDER_ASSERT(m_appDescriptor, "AppDescriptor not set");
+        return *m_appDescriptor;
+    }
+
+    auto EngineContext::TryGetAppDescriptor() const -> const AppDescriptor*
+    {
+        return m_appDescriptor;
+    }
+
+    void EngineContext::SetAppDescriptor(const AppDescriptor* descriptor)
+    {
+        m_appDescriptor = descriptor;
+    }
+
 } // namespace Wayfinder
