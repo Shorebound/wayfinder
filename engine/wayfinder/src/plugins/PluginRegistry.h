@@ -91,7 +91,7 @@ namespace Wayfinder::Plugins
             AddPlugin(std::make_unique<T>());
         }
 
-        /// Add an externally-created plugin (e.g. the game's root plugin from CreateGamePlugin()).
+        /// Add an externally-created plugin instance.
         void AddPlugin(std::unique_ptr<Plugin> plugin);
 
         /// Call OnStartup() on all plugins in registration order.

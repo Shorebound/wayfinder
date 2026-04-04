@@ -2,7 +2,6 @@
 name = "Journey"
 version = "0.1.0"
 engine_version = "0.1.0"
-plugin = "journey_plugin"
 
 [paths]
 asset_root = "assets"

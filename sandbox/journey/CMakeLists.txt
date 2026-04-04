@@ -23,13 +23,6 @@ target_link_libraries(${SANDBOX_NAME}
         ${ENGINE_NAME}
 )
 
-# --- Game plugin shared library (loaded at runtime by tools such as waypoint) ---
-set(GAME_PLUGIN_LIB ${SANDBOX_NAME}_plugin)
-add_library(${GAME_PLUGIN_LIB} SHARED src/JourneyGame.cpp)
-wayfinder_set_output_directories(${GAME_PLUGIN_LIB})
-target_include_directories(${GAME_PLUGIN_LIB} PRIVATE src)
-target_link_libraries(${GAME_PLUGIN_LIB} PRIVATE ${ENGINE_NAME})
-
 add_custom_command(TARGET ${SANDBOX_NAME} POST_BUILD
   COMMAND ${CMAKE_COMMAND} -E copy_directory
     "${CMAKE_CURRENT_SOURCE_DIR}/assets"

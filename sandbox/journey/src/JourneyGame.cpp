@@ -1,9 +1,8 @@
-#include "app/EntryPoint.h"
+#include "app/Application.h"
 #include "gameplay/GameState.h"
 #include "gameplay/Tag.h"
 #include "physics/PhysicsPlugin.h"
 #include "plugins/Plugin.h"
-#include "plugins/PluginExport.h"
 #include "plugins/PluginRegistry.h"
 #include "scene/SceneWorldBootstrap.h"
 #include "scene/entity/Entity.h"
@@ -186,13 +185,10 @@ namespace
     };
 } // namespace
 
-namespace Wayfinder::Plugins
+int main(int argc, char* argv[])
 {
-    std::unique_ptr<Plugin> CreateGamePlugin()
-    {
-        return std::make_unique<JourneyGame>();
-    }
+    auto gamePlugin = std::make_unique<JourneyGame>();
+    Wayfinder::Application app(std::move(gamePlugin), {argc, argv});
+    app.Run();
+    return 0;
 }
-
-// Dynamic entry point for tools loading the plugin as a shared library.
-WAYFINDER_IMPLEMENT_GAME_PLUGIN(JourneyGame)
