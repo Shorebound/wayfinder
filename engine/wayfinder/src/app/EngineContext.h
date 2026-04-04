@@ -121,6 +121,7 @@ namespace Wayfinder
         [[nodiscard]] auto IsStopRequested() const -> bool;
 
         // -- Setters (called by Application during construction) --
+        /// @todo Phase 6: Revisit access protection when Application class is built (private + friend, or constructor params).
 
         void SetAppSubsystems(SubsystemRegistry<AppSubsystem>* registry);
         void SetStateSubsystems(SubsystemRegistry<StateSubsystem>* registry);
