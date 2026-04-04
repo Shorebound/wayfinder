@@ -46,6 +46,7 @@ set(ENGINE_ALL_SOURCES
   # App
   src/app/Application.cpp
   src/app/Application.h
+  src/app/AppSubsystem.h
   src/app/EngineConfig.cpp
   src/app/EngineConfig.h
   src/app/EngineContext.h
@@ -53,9 +54,12 @@ set(ENGINE_ALL_SOURCES
   src/app/EngineRuntime.h
   src/app/FpsOverlayLayer.cpp
   src/app/FpsOverlayLayer.h
+  src/app/IApplicationState.h
+  src/app/IOverlay.h
   src/app/Layer.h
   src/app/LayerStack.cpp
   src/app/LayerStack.h
+  src/app/StateSubsystem.h
   src/app/Subsystem.h
 
   # Assets
@@ -109,6 +113,7 @@ set(ENGINE_ALL_SOURCES
   src/core/logging/spdlog/SpdLogger.h
 
   # Gameplay
+  src/gameplay/Capability.h
   src/gameplay/Game.cpp
   src/gameplay/Game.h
   src/gameplay/GameContext.h
@@ -132,9 +137,12 @@ set(ENGINE_ALL_SOURCES
   src/maths/Maths.h
 
   # Plugins
+  src/plugins/IPlugin.h
+  src/plugins/IStateUI.h
   src/plugins/Plugin.h
   src/plugins/PluginRegistry.cpp
   src/plugins/PluginRegistry.h
+  src/plugins/ServiceProvider.h
   src/plugins/registrars/StateRegistrar.cpp
   src/plugins/registrars/StateRegistrar.h
   src/plugins/registrars/SystemRegistrar.cpp
