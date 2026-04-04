@@ -20,13 +20,13 @@ Make sure you adhere to pillars and engineering standards set out in the copilot
 Here are some code review comments from coderabbit. Verify each finding against the current code and only fix it if needed. If something does not have an obvious solution, take the time to think it through. We do not want band-aid fixes that kick the can down the road.
 
 ## GSD Research
-Research first, absolutely. 
+Yes, research.
 We are trying to make clean, elegant and idiomatic modern C++23 code. So let's make sure we research the idioms and patterns relevant to this phase - we want to use the latest and best features where they genuinely improve the code. As well as the best practices for the specific architectural patterns we're implementing. 
 
 Also remember this is game engine, research how other engines approach this problem. 
 
 Some engine examples:
-- Oxylus and RavEngine which are both similar to our stack
+- Oxylus ([text](https://github.com/oxylusengine/Oxylus)) and RavEngine ([text](https://github.com/ravengine/ravengine)) which are both similar to our stack
 - Bevy which we share a lot of architectural ideas with
 - Unreal which we also take some architectural ideas from
 - O3DE which may be a good example of a mature solution with modern C++ conventions
