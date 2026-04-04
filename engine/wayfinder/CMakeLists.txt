@@ -46,6 +46,7 @@ set(ENGINE_ALL_SOURCES
   # App
   src/app/Application.cpp
   src/app/Application.h
+  src/app/AppDescriptor.h
   src/app/AppSubsystem.h
   src/app/EngineConfig.cpp
   src/app/EngineConfig.h
@@ -97,6 +98,7 @@ set(ENGINE_ALL_SOURCES
   src/core/Result.h
   src/core/TopologicalSort.h
   src/core/Types.h
+  src/core/ValidationResult.h
 
   # Core — Events
   src/core/events/ApplicationEvent.h
@@ -143,7 +145,10 @@ set(ENGINE_ALL_SOURCES
 
   # Plugins
   src/plugins/IPlugin.h
+  src/plugins/IRegistrar.h
   src/plugins/IStateUI.h
+  src/plugins/PluginConcepts.h
+  src/plugins/PluginDescriptor.h
   src/plugins/Plugin.h
   src/plugins/PluginRegistry.cpp
   src/plugins/PluginRegistry.h

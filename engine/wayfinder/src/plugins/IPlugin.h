@@ -1,5 +1,7 @@
 #pragma once
 
+#include "PluginDescriptor.h"
+
 namespace Wayfinder
 {
     class AppBuilder;
@@ -23,6 +25,14 @@ namespace Wayfinder
 
         /// Declare subsystems, states, overlays, and other components.
         virtual void Build(AppBuilder& builder) = 0;
+
+        /// Declare plugin metadata (name, dependencies).
+        /// Override to declare dependencies on other plugins.
+        /// Default returns an empty descriptor (no name, no dependencies).
+        [[nodiscard]] virtual auto Describe() const -> PluginDescriptor
+        {
+            return {};
+        }
     };
 
 } // namespace Wayfinder
