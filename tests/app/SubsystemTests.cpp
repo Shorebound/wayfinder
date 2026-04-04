@@ -5,7 +5,9 @@
 #include "app/StateSubsystem.h"
 #include "app/Subsystem.h"
 #include "app/SubsystemRegistry.h"
+#include "ecs/Flecs.h"
 #include "gameplay/Capability.h"
+#include "gameplay/EngineContextRef.h"
 #include "gameplay/NativeTag.h"
 #include "gameplay/TagRegistry.h"
 #include "platform/BackendConfig.h"
@@ -832,6 +834,203 @@ namespace Wayfinder::Tests
 
             registry.Shutdown();
             s_log = nullptr;
+        }
+    }
+
+    // -- StateSubsystem test type for EngineContext tests -----------------
+
+    class TestStateSub : public StateSubsystem
+    {
+    public:
+        auto Initialise(EngineContext& /*context*/) -> Result<void> override
+        {
+            return {};
+        }
+
+        auto GetValue() const -> int
+        {
+            return 99;
+        }
+    };
+
+    // ── EngineContext v2 tests ───────────────────────────────
+
+    TEST_SUITE("EngineContext")
+    {
+        TEST_CASE("Default constructed EngineContext has null registries")
+        {
+            EngineContext ctx;
+            CHECK(ctx.TryGetAppSubsystem<RegSubA>() == nullptr);
+        }
+
+        TEST_CASE("SetAppSubsystems wires registry access")
+        {
+            EngineContext ctx;
+            SubsystemRegistry<AppSubsystem> registry;
+            registry.Register<RegSubA>();
+
+            REQUIRE(registry.Finalise());
+            ctx.SetAppSubsystems(&registry);
+            REQUIRE(registry.Initialise(ctx, CapabilitySet{}));
+
+            CHECK(ctx.TryGetAppSubsystem<RegSubA>() != nullptr);
+            auto& sub = ctx.GetAppSubsystem<RegSubA>();
+            CHECK(&sub == ctx.TryGetAppSubsystem<RegSubA>());
+
+            registry.Shutdown();
+        }
+
+        TEST_CASE("SetStateSubsystems wires state registry access")
+        {
+            EngineContext ctx;
+            SubsystemRegistry<StateSubsystem> registry;
+            registry.Register<TestStateSub>();
+
+            REQUIRE(registry.Finalise());
+            ctx.SetStateSubsystems(&registry);
+            REQUIRE(registry.Initialise(ctx, CapabilitySet{}));
+
+            CHECK(ctx.TryGetStateSubsystem<TestStateSub>() != nullptr);
+            auto& sub = ctx.GetStateSubsystem<TestStateSub>();
+            CHECK(sub.GetValue() == 99);
+
+            registry.Shutdown();
+        }
+
+        TEST_CASE("TryGetAppSubsystem returns nullptr when registry null")
+        {
+            EngineContext ctx;
+            CHECK(ctx.TryGetAppSubsystem<RegSubA>() == nullptr);
+            CHECK(ctx.TryGetStateSubsystem<TestStateSub>() == nullptr);
+        }
+
+        TEST_CASE("RequestStop and IsStopRequested")
+        {
+            EngineContext ctx;
+            CHECK(not ctx.IsStopRequested());
+
+            ctx.RequestStop();
+            CHECK(ctx.IsStopRequested());
+        }
+
+        TEST_CASE("Const access to subsystem registry")
+        {
+            EngineContext ctx;
+            SubsystemRegistry<AppSubsystem> registry;
+            registry.Register<ConcreteService, IAbstractService>();
+
+            REQUIRE(registry.Finalise());
+            ctx.SetAppSubsystems(&registry);
+            REQUIRE(registry.Initialise(ctx, CapabilitySet{}));
+
+            const auto& constCtx = ctx;
+            const auto* ptr = constCtx.TryGetAppSubsystem<IAbstractService>();
+            REQUIRE(ptr != nullptr);
+            CHECK(ptr->GetValue() == 42);
+
+            registry.Shutdown();
+        }
+    }
+
+    // ── ComputeEffectiveCaps tests ──────────────────────────
+
+    TEST_SUITE("ComputeEffectiveCaps")
+    {
+        TEST_CASE("Union of app and state capabilities")
+        {
+            TagRegistryFixture tags;
+
+            CapabilitySet appCaps;
+            appCaps.AddTag(Capability::Rendering);
+
+            CapabilitySet stateCaps;
+            stateCaps.AddTag(Capability::Simulation);
+
+            auto effective = ComputeEffectiveCaps(appCaps, stateCaps);
+            CHECK(effective.HasExact(Capability::Rendering));
+            CHECK(effective.HasExact(Capability::Simulation));
+        }
+
+        TEST_CASE("Empty app caps returns state caps")
+        {
+            TagRegistryFixture tags;
+
+            CapabilitySet appCaps;
+            CapabilitySet stateCaps;
+            stateCaps.AddTag(Capability::Simulation);
+
+            auto effective = ComputeEffectiveCaps(appCaps, stateCaps);
+            CHECK(effective.HasExact(Capability::Simulation));
+            CHECK(effective.Size() == 1);
+        }
+
+        TEST_CASE("Empty state caps returns app caps")
+        {
+            TagRegistryFixture tags;
+
+            CapabilitySet appCaps;
+            appCaps.AddTag(Capability::Rendering);
+            CapabilitySet stateCaps;
+
+            auto effective = ComputeEffectiveCaps(appCaps, stateCaps);
+            CHECK(effective.HasExact(Capability::Rendering));
+            CHECK(effective.Size() == 1);
+        }
+
+        TEST_CASE("Both empty returns empty")
+        {
+            auto effective = ComputeEffectiveCaps(CapabilitySet{}, CapabilitySet{});
+            CHECK(effective.IsEmpty());
+        }
+
+        TEST_CASE("Shared capabilities not duplicated")
+        {
+            TagRegistryFixture tags;
+
+            CapabilitySet appCaps;
+            appCaps.AddTag(Capability::Simulation);
+
+            CapabilitySet stateCaps;
+            stateCaps.AddTag(Capability::Simulation);
+
+            auto effective = ComputeEffectiveCaps(appCaps, stateCaps);
+            CHECK(effective.HasExact(Capability::Simulation));
+            CHECK(effective.Size() == 1);
+        }
+    }
+
+    // ── EngineContextRef ECS singleton tests ────────────────
+
+    TEST_SUITE("EngineContextRef")
+    {
+        TEST_CASE("Set and get singleton on flecs world")
+        {
+            flecs::world world;
+            EngineContext ctx;
+
+            world.set<EngineContextRef>({.Context = &ctx});
+
+            CHECK(world.has<EngineContextRef>());
+            const auto& ref = world.get<EngineContextRef>();
+            CHECK(ref.Context == &ctx);
+        }
+
+        TEST_CASE("Remove singleton clears access")
+        {
+            flecs::world world;
+            EngineContext ctx;
+
+            world.set<EngineContextRef>({.Context = &ctx});
+            world.remove<EngineContextRef>();
+
+            CHECK(not world.has<EngineContextRef>());
+        }
+
+        TEST_CASE("Singleton not set by default")
+        {
+            flecs::world world;
+
+            CHECK(not world.has<EngineContextRef>());
         }
     }
 }
