@@ -117,6 +117,7 @@ set(ENGINE_ALL_SOURCES
   src/gameplay/GameState.h
   src/gameplay/GameStateMachine.cpp
   src/gameplay/GameStateMachine.h
+  src/gameplay/StateMachine.h
   src/gameplay/Tag.cpp
   src/gameplay/Tag.h
   src/gameplay/NativeTag.h

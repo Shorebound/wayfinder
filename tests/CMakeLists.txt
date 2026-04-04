@@ -72,6 +72,7 @@ add_executable(${WAYFINDER_CORE_TEST_NAME}
   gameplay/TagTests.cpp
   gameplay/TagRegistryTests.cpp
   gameplay/GameStateMachineTests.cpp
+  gameplay/StateMachineTests.cpp
   plugins/PluginRegistryTests.cpp
 )
 
