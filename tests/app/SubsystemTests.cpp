@@ -4,6 +4,7 @@
 #include "app/EngineRuntime.h"
 #include "app/StateSubsystem.h"
 #include "app/Subsystem.h"
+#include "app/SubsystemManifest.h"
 #include "app/SubsystemRegistry.h"
 #include "ecs/Flecs.h"
 #include "gameplay/Capability.h"
@@ -484,13 +485,15 @@ namespace Wayfinder::Tests
             registry.Register<RegSubA>();
             registry.Register<RegSubB>();
 
-            REQUIRE(registry.Finalise());
-            REQUIRE(registry.Initialise(ctx, CapabilitySet{}));
+            auto manifestResult = registry.Finalise();
+            REQUIRE(manifestResult.has_value());
+            auto manifest = std::move(*manifestResult);
+            REQUIRE(manifest.Initialise(ctx, CapabilitySet{}));
 
-            CHECK(registry.TryGet<RegSubA>() != nullptr);
-            CHECK(registry.TryGet<RegSubB>() != nullptr);
+            CHECK(manifest.TryGet<RegSubA>() != nullptr);
+            CHECK(manifest.TryGet<RegSubB>() != nullptr);
 
-            registry.Shutdown();
+            manifest.Shutdown();
         }
 
         TEST_CASE("Topological init order respected")
@@ -506,15 +509,17 @@ namespace Wayfinder::Tests
             registry.Register<RegSubB>({.DependsOn = Deps<RegSubA>()});
             registry.Register<RegSubA>();
 
-            REQUIRE(registry.Finalise());
-            REQUIRE(registry.Initialise(ctx, CapabilitySet{}));
+            auto manifestResult = registry.Finalise();
+            REQUIRE(manifestResult.has_value());
+            auto manifest = std::move(*manifestResult);
+            REQUIRE(manifest.Initialise(ctx, CapabilitySet{}));
 
             // A must initialise before B despite B being registered first
             REQUIRE(log.Events.size() >= 2);
             CHECK(log.Events[0] == "A.Init");
             CHECK(log.Events[1] == "B.Init");
 
-            registry.Shutdown();
+            manifest.Shutdown();
             s_log = nullptr;
         }
 
@@ -530,11 +535,13 @@ namespace Wayfinder::Tests
             registry.Register<RegSubB>({.DependsOn = Deps<RegSubA>()});
             registry.Register<RegSubA>();
 
-            REQUIRE(registry.Finalise());
-            REQUIRE(registry.Initialise(ctx, CapabilitySet{}));
+            auto manifestResult = registry.Finalise();
+            REQUIRE(manifestResult.has_value());
+            auto manifest = std::move(*manifestResult);
+            REQUIRE(manifest.Initialise(ctx, CapabilitySet{}));
 
             log.Events.clear();
-            registry.Shutdown();
+            manifest.Shutdown();
 
             // B shuts down before A (reverse topological)
             REQUIRE(log.Events.size() == 2);
@@ -557,8 +564,10 @@ namespace Wayfinder::Tests
             registry.Register<RegSubA>();
             registry.Register<RegSubB>({.DependsOn = Deps<RegSubA>()});
 
-            REQUIRE(registry.Finalise());
-            REQUIRE(registry.Initialise(ctx, CapabilitySet{}));
+            auto manifestResult = registry.Finalise();
+            REQUIRE(manifestResult.has_value());
+            auto manifest = std::move(*manifestResult);
+            REQUIRE(manifest.Initialise(ctx, CapabilitySet{}));
 
             // Init: A, B, C
             REQUIRE(log.Events.size() >= 3);
@@ -567,7 +576,7 @@ namespace Wayfinder::Tests
             CHECK(log.Events[2] == "C.Init");
 
             log.Events.clear();
-            registry.Shutdown();
+            manifest.Shutdown();
 
             // Shutdown: C, B, A
             REQUIRE(log.Events.size() == 3);
@@ -620,20 +629,22 @@ namespace Wayfinder::Tests
             SubsystemRegistry<AppSubsystem> registry;
             registry.Register<ConcreteService, IAbstractService>();
 
-            REQUIRE(registry.Finalise());
-            REQUIRE(registry.Initialise(ctx, CapabilitySet{}));
+            auto manifestResult = registry.Finalise();
+            REQUIRE(manifestResult.has_value());
+            auto manifest = std::move(*manifestResult);
+            REQUIRE(manifest.Initialise(ctx, CapabilitySet{}));
 
             // Query by abstract type
-            auto* abstractPtr = registry.TryGet<IAbstractService>();
+            auto* abstractPtr = manifest.TryGet<IAbstractService>();
             REQUIRE(abstractPtr != nullptr);
             CHECK(abstractPtr->GetValue() == 42);
 
             // Query by concrete type - same instance
-            auto* concretePtr = registry.TryGet<ConcreteService>();
+            auto* concretePtr = manifest.TryGet<ConcreteService>();
             REQUIRE(concretePtr != nullptr);
             CHECK(static_cast<const void*>(abstractPtr) == static_cast<const void*>(concretePtr));
 
-            registry.Shutdown();
+            manifest.Shutdown();
         }
 
         TEST_CASE("Capability gating skips subsystem when not satisfied")
@@ -651,17 +662,19 @@ namespace Wayfinder::Tests
             SubsystemRegistry<AppSubsystem> registry;
             registry.Register<CapGatedSub>({.RequiredCapabilities = required});
 
-            REQUIRE(registry.Finalise());
+            auto manifestResult = registry.Finalise();
+            REQUIRE(manifestResult.has_value());
+            auto manifest = std::move(*manifestResult);
 
             // Initialise with only Simulation - Rendering not present
             CapabilitySet effective;
             effective.AddTag(Capability::Simulation);
-            REQUIRE(registry.Initialise(ctx, effective));
+            REQUIRE(manifest.Initialise(ctx, effective));
 
-            CHECK(registry.TryGet<CapGatedSub>() == nullptr);
+            CHECK(manifest.TryGet<CapGatedSub>() == nullptr);
             CHECK(log.Events.empty()); // Never initialised
 
-            registry.Shutdown();
+            manifest.Shutdown();
             s_log = nullptr;
         }
 
@@ -680,19 +693,21 @@ namespace Wayfinder::Tests
             SubsystemRegistry<AppSubsystem> registry;
             registry.Register<CapGatedSub>({.RequiredCapabilities = required});
 
-            REQUIRE(registry.Finalise());
+            auto manifestResult = registry.Finalise();
+            REQUIRE(manifestResult.has_value());
+            auto manifest = std::move(*manifestResult);
 
             // Initialise with Rendering present
             CapabilitySet effective;
             effective.AddTag(Capability::Rendering);
             effective.AddTag(Capability::Simulation);
-            REQUIRE(registry.Initialise(ctx, effective));
+            REQUIRE(manifest.Initialise(ctx, effective));
 
-            CHECK(registry.TryGet<CapGatedSub>() != nullptr);
+            CHECK(manifest.TryGet<CapGatedSub>() != nullptr);
             REQUIRE(log.Events.size() == 1);
             CHECK(log.Events[0] == "CapGated.Init");
 
-            registry.Shutdown();
+            manifest.Shutdown();
             s_log = nullptr;
         }
 
@@ -704,12 +719,14 @@ namespace Wayfinder::Tests
             SubsystemRegistry<AppSubsystem> registry;
             registry.Register<RegSubA>(); // Default descriptor - empty caps
 
-            REQUIRE(registry.Finalise());
-            REQUIRE(registry.Initialise(ctx, CapabilitySet{})); // empty effective caps
+            auto manifestResult = registry.Finalise();
+            REQUIRE(manifestResult.has_value());
+            auto manifest = std::move(*manifestResult);
+            REQUIRE(manifest.Initialise(ctx, CapabilitySet{})); // empty effective caps
 
-            CHECK(registry.TryGet<RegSubA>() != nullptr);
+            CHECK(manifest.TryGet<RegSubA>() != nullptr);
 
-            registry.Shutdown();
+            manifest.Shutdown();
         }
 
         TEST_CASE("Fail-fast on Initialise error with reverse cleanup")
@@ -725,8 +742,10 @@ namespace Wayfinder::Tests
             // FailingSub depends on A so it inits second
             registry.Register<FailingSub>({.DependsOn = Deps<RegSubA>()});
 
-            REQUIRE(registry.Finalise());
-            auto result = registry.Initialise(ctx, CapabilitySet{});
+            auto manifestResult = registry.Finalise();
+            REQUIRE(manifestResult.has_value());
+            auto manifest = std::move(*manifestResult);
+            auto result = manifest.Initialise(ctx, CapabilitySet{});
 
             // Should have failed
             CHECK(not result.has_value());
@@ -747,12 +766,14 @@ namespace Wayfinder::Tests
             auto ctx = runtime.GetContext();
 
             SubsystemRegistry<AppSubsystem> registry;
-            REQUIRE(registry.Finalise());
-            REQUIRE(registry.Initialise(ctx, CapabilitySet{}));
+            auto manifestResult = registry.Finalise();
+            REQUIRE(manifestResult.has_value());
+            auto manifest = std::move(*manifestResult);
+            REQUIRE(manifest.Initialise(ctx, CapabilitySet{}));
 
-            CHECK(registry.TryGet<RegSubA>() == nullptr);
+            CHECK(manifest.TryGet<RegSubA>() == nullptr);
 
-            registry.Shutdown();
+            manifest.Shutdown();
         }
 
         TEST_CASE("Deps helper produces correct type indices")
@@ -800,15 +821,17 @@ namespace Wayfinder::Tests
 
             SubsystemRegistry<AppSubsystem> registry;
             registry.Register<ConcreteService, IAbstractService>();
-            REQUIRE(registry.Finalise());
-            REQUIRE(registry.Initialise(ctx, CapabilitySet{}));
+            auto manifestResult = registry.Finalise();
+            REQUIRE(manifestResult.has_value());
+            auto manifest = std::move(*manifestResult);
+            REQUIRE(manifest.Initialise(ctx, CapabilitySet{}));
 
-            const auto& constRegistry = registry;
-            const auto* ptr = constRegistry.TryGet<IAbstractService>();
+            const auto& constManifest = manifest;
+            const auto* ptr = constManifest.TryGet<IAbstractService>();
             REQUIRE(ptr != nullptr);
             CHECK(ptr->GetValue() == 42);
 
-            registry.Shutdown();
+            manifest.Shutdown();
         }
 
         TEST_CASE("Multiple independent subsystems all initialise")
@@ -824,15 +847,17 @@ namespace Wayfinder::Tests
             registry.Register<RegSubB>();
             registry.Register<RegSubC>();
 
-            REQUIRE(registry.Finalise());
-            REQUIRE(registry.Initialise(ctx, CapabilitySet{}));
+            auto manifestResult = registry.Finalise();
+            REQUIRE(manifestResult.has_value());
+            auto manifest = std::move(*manifestResult);
+            REQUIRE(manifest.Initialise(ctx, CapabilitySet{}));
 
-            CHECK(registry.TryGet<RegSubA>() != nullptr);
-            CHECK(registry.TryGet<RegSubB>() != nullptr);
-            CHECK(registry.TryGet<RegSubC>() != nullptr);
+            CHECK(manifest.TryGet<RegSubA>() != nullptr);
+            CHECK(manifest.TryGet<RegSubB>() != nullptr);
+            CHECK(manifest.TryGet<RegSubC>() != nullptr);
             CHECK(log.Events.size() == 3);
 
-            registry.Shutdown();
+            manifest.Shutdown();
             s_log = nullptr;
         }
     }
@@ -869,15 +894,17 @@ namespace Wayfinder::Tests
             SubsystemRegistry<AppSubsystem> registry;
             registry.Register<RegSubA>();
 
-            REQUIRE(registry.Finalise());
-            ctx.SetAppSubsystems(&registry);
-            REQUIRE(registry.Initialise(ctx, CapabilitySet{}));
+            auto manifestResult = registry.Finalise();
+            REQUIRE(manifestResult.has_value());
+            auto manifest = std::move(*manifestResult);
+            ctx.SetAppSubsystems(&manifest);
+            REQUIRE(manifest.Initialise(ctx, CapabilitySet{}));
 
             CHECK(ctx.TryGetAppSubsystem<RegSubA>() != nullptr);
             auto& sub = ctx.GetAppSubsystem<RegSubA>();
             CHECK(&sub == ctx.TryGetAppSubsystem<RegSubA>());
 
-            registry.Shutdown();
+            manifest.Shutdown();
         }
 
         TEST_CASE("SetStateSubsystems wires state registry access")
@@ -886,15 +913,17 @@ namespace Wayfinder::Tests
             SubsystemRegistry<StateSubsystem> registry;
             registry.Register<TestStateSub>();
 
-            REQUIRE(registry.Finalise());
-            ctx.SetStateSubsystems(&registry);
-            REQUIRE(registry.Initialise(ctx, CapabilitySet{}));
+            auto manifestResult = registry.Finalise();
+            REQUIRE(manifestResult.has_value());
+            auto manifest = std::move(*manifestResult);
+            ctx.SetStateSubsystems(&manifest);
+            REQUIRE(manifest.Initialise(ctx, CapabilitySet{}));
 
             CHECK(ctx.TryGetStateSubsystem<TestStateSub>() != nullptr);
             auto& sub = ctx.GetStateSubsystem<TestStateSub>();
             CHECK(sub.GetValue() == 99);
 
-            registry.Shutdown();
+            manifest.Shutdown();
         }
 
         TEST_CASE("TryGetAppSubsystem returns nullptr when registry null")
@@ -919,16 +948,18 @@ namespace Wayfinder::Tests
             SubsystemRegistry<AppSubsystem> registry;
             registry.Register<ConcreteService, IAbstractService>();
 
-            REQUIRE(registry.Finalise());
-            ctx.SetAppSubsystems(&registry);
-            REQUIRE(registry.Initialise(ctx, CapabilitySet{}));
+            auto manifestResult = registry.Finalise();
+            REQUIRE(manifestResult.has_value());
+            auto manifest = std::move(*manifestResult);
+            ctx.SetAppSubsystems(&manifest);
+            REQUIRE(manifest.Initialise(ctx, CapabilitySet{}));
 
             const auto& constCtx = ctx;
             const auto* ptr = constCtx.TryGetAppSubsystem<IAbstractService>();
             REQUIRE(ptr != nullptr);
             CHECK(ptr->GetValue() == 42);
 
-            registry.Shutdown();
+            manifest.Shutdown();
         }
     }
 

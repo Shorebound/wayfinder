@@ -1,6 +1,6 @@
 #pragma once
 
-#include "SubsystemRegistry.h"
+#include "SubsystemManifest.h"
 #include "core/Assert.h"
 #include "gameplay/Capability.h"
 #include "wayfinder_exports.h"
@@ -123,12 +123,12 @@ namespace Wayfinder
         // -- Setters (called by Application during construction) --
         /// @todo Phase 6: Revisit access protection when Application class is built (private + friend, or constructor params).
 
-        void SetAppSubsystems(SubsystemRegistry<AppSubsystem>* registry);
-        void SetStateSubsystems(SubsystemRegistry<StateSubsystem>* registry);
+        void SetAppSubsystems(SubsystemManifest<AppSubsystem>* manifest);
+        void SetStateSubsystems(SubsystemManifest<StateSubsystem>* manifest);
 
     private:
-        SubsystemRegistry<AppSubsystem>* m_appSubsystems = nullptr;
-        SubsystemRegistry<StateSubsystem>* m_stateSubsystems = nullptr;
+        SubsystemManifest<AppSubsystem>* m_appSubsystems = nullptr;
+        SubsystemManifest<StateSubsystem>* m_stateSubsystems = nullptr;
         bool m_stopRequested = false;
         // Phase 4 additions (nullptr initially):
         // ApplicationStateMachine* m_stateMachine = nullptr;

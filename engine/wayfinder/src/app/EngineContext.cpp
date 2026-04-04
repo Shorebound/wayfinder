@@ -27,14 +27,14 @@ namespace Wayfinder
         return m_stopRequested;
     }
 
-    void EngineContext::SetAppSubsystems(SubsystemRegistry<AppSubsystem>* registry)
+    void EngineContext::SetAppSubsystems(SubsystemManifest<AppSubsystem>* manifest)
     {
-        m_appSubsystems = registry;
+        m_appSubsystems = manifest;
     }
 
-    void EngineContext::SetStateSubsystems(SubsystemRegistry<StateSubsystem>* registry)
+    void EngineContext::SetStateSubsystems(SubsystemManifest<StateSubsystem>* manifest)
     {
-        m_stateSubsystems = registry;
+        m_stateSubsystems = manifest;
     }
 
 } // namespace Wayfinder
