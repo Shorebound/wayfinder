@@ -1,4 +1,4 @@
-#include "GameplayTagRegistry.h"
+#include "TagRegistry.h"
 #include "core/Log.h"
 
 #include <algorithm>
@@ -7,7 +7,7 @@
 
 namespace Wayfinder
 {
-    GameplayTag GameplayTagRegistry::RegisterTag(const std::string_view name, const std::string_view comment)
+    Tag TagRegistry::RegisterTag(const std::string_view name, const std::string_view comment)
     {
         if (auto it = m_index.find(name); it != m_index.end())
         {
@@ -18,21 +18,21 @@ namespace Wayfinder
             }
             // Mark as code-owned so UnloadTagFile() won't remove it.
             m_definitions.at(it->second).SourceFile = "(code)";
-            return GameplayTag::FromName(name);
+            return Tag{InternedString::Intern(name)};
         }
 
-        EnsureAncestors(name, GameplayTagSourceKind::Code);
+        EnsureAncestors(name, TagSourceKind::Code);
 
         const size_t idx = m_definitions.size();
         m_definitions.push_back({.Name = std::string(name), .Comment = std::string(comment), .SourceFile = "(code)"});
         m_index[m_definitions.back().Name] = idx;
 
-        Log::Info(LogEngine, "GameplayTagRegistry: registered tag '{}'{}", name, comment.empty() ? "" : " — " + std::string(comment));
+        Log::Info(LogEngine, "TagRegistry: registered tag '{}'{}", name, comment.empty() ? "" : " - " + std::string(comment));
 
-        return GameplayTag::FromName(name);
+        return Tag{InternedString::Intern(name)};
     }
 
-    int GameplayTagRegistry::LoadTagFile(const std::filesystem::path& path)
+    int TagRegistry::LoadTagFile(const std::filesystem::path& path)
     {
         const std::string canonical = std::filesystem::weakly_canonical(path).string();
 
@@ -66,7 +66,7 @@ namespace Wayfinder
                 const auto* commentNode = entry->get("comment");
                 const std::string comment = commentNode != nullptr ? commentNode->value_or(std::string{}) : std::string{};
 
-                EnsureAncestors(*name, GameplayTagSourceKind::File, canonical);
+                EnsureAncestors(*name, TagSourceKind::File, canonical);
 
                 if (auto it = m_index.find(*name); it != m_index.end())
                 {
@@ -93,7 +93,7 @@ namespace Wayfinder
             }
 
             m_loadedFiles.push_back(canonical);
-            Log::Info(LogEngine, "GameplayTagRegistry: loaded {} tag(s) from '{}'", count, canonical);
+            Log::Info(LogEngine, "TagRegistry: loaded {} tag(s) from '{}'", count, canonical);
             return count;
         }
         catch (const toml::parse_error& err)
@@ -103,12 +103,12 @@ namespace Wayfinder
         }
     }
 
-    void GameplayTagRegistry::UnloadTagFile(const std::filesystem::path& path)
+    void TagRegistry::UnloadTagFile(const std::filesystem::path& path)
     {
         const std::string canonical = std::filesystem::weakly_canonical(path).string();
 
         // Remove definitions sourced from this file
-        std::erase_if(m_definitions, [&](const GameplayTagDefinition& def)
+        std::erase_if(m_definitions, [&](const TagDefinition& def)
         {
             return def.SourceFile == canonical;
         });
@@ -124,28 +124,28 @@ namespace Wayfinder
         // Remove from loaded file list
         std::erase(m_loadedFiles, canonical);
 
-        Log::Info(LogEngine, "GameplayTagRegistry: unloaded tag file '{}'", canonical);
+        Log::Info(LogEngine, "TagRegistry: unloaded tag file '{}'", canonical);
     }
 
-    GameplayTag GameplayTagRegistry::RequestTag(const std::string_view name) const
+    Tag TagRegistry::RequestTag(const std::string_view name) const
     {
         if (!IsRegistered(name))
         {
             Log::Warn(LogEngine,
-                "GameplayTagRegistry: requested unregistered tag '{}'. "
+                "TagRegistry: requested unregistered tag '{}'. "
                 "Register it in a tag file or via PluginRegistry::RegisterTag().",
                 name);
         }
 
-        return GameplayTag::FromName(name);
+        return Tag{InternedString::Intern(name)};
     }
 
-    bool GameplayTagRegistry::IsRegistered(const std::string_view name) const
+    bool TagRegistry::IsRegistered(const std::string_view name) const
     {
         return m_index.contains(name);
     }
 
-    const GameplayTagDefinition* GameplayTagRegistry::FindDefinition(const std::string_view name) const
+    const TagDefinition* TagRegistry::FindDefinition(const std::string_view name) const
     {
         if (const auto it = m_index.find(name); it != m_index.end())
         {
@@ -154,9 +154,9 @@ namespace Wayfinder
         return nullptr;
     }
 
-    void GameplayTagRegistry::EnsureAncestors(std::string_view name, GameplayTagSourceKind sourceKind, std::string_view sourceFile)
+    void TagRegistry::EnsureAncestors(std::string_view name, TagSourceKind sourceKind, std::string_view sourceFile)
     {
-        const std::string_view resolvedSourceFile = sourceKind == GameplayTagSourceKind::Code ? std::string_view{"(code)"} : sourceFile;
+        const std::string_view resolvedSourceFile = sourceKind == TagSourceKind::Code ? std::string_view{"(code)"} : sourceFile;
         std::string::size_type pos = 0;
         while ((pos = name.find('.', pos)) != std::string::npos)
         {

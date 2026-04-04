@@ -117,10 +117,11 @@ set(ENGINE_ALL_SOURCES
   src/gameplay/GameState.h
   src/gameplay/GameStateMachine.cpp
   src/gameplay/GameStateMachine.h
-  src/gameplay/GameplayTag.cpp
-  src/gameplay/GameplayTag.h
-  src/gameplay/GameplayTagRegistry.cpp
-  src/gameplay/GameplayTagRegistry.h
+  src/gameplay/Tag.cpp
+  src/gameplay/Tag.h
+  src/gameplay/NativeTag.h
+  src/gameplay/TagRegistry.cpp
+  src/gameplay/TagRegistry.h
 
   # Maths
   src/maths/Bounds.cpp

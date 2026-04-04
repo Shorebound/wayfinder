@@ -1,4 +1,4 @@
-#include "GameplayTag.h"
+#include "Tag.h"
 #include "core/InternedString.h"
 
 #include <algorithm>
@@ -6,9 +6,9 @@
 
 namespace Wayfinder
 {
-    // ── GameplayTag ─────────────────────────────────────────────
+    // -- Tag ------------------------------------------------------------------
 
-    bool GameplayTag::IsChildOf(const GameplayTag& parent) const
+    bool Tag::IsChildOf(const Tag& parent) const
     {
         if (m_name == parent.m_name)
         {
@@ -23,7 +23,7 @@ namespace Wayfinder
         return name.starts_with(parentName) && name.compare(parentName.size(), 1, ".") == 0;
     }
 
-    std::optional<GameplayTag> GameplayTag::Parent() const
+    std::optional<Tag> Tag::Parent() const
     {
         const auto& name = m_name.GetString();
         const auto pos = name.rfind('.');
@@ -31,10 +31,10 @@ namespace Wayfinder
         {
             return std::nullopt;
         }
-        return GameplayTag::FromName(name.substr(0, pos));
+        return Tag{InternedString::Intern(name.substr(0, pos))};
     }
 
-    int GameplayTag::Depth() const
+    int Tag::Depth() const
     {
         const auto& name = m_name.GetString();
         if (name.empty())
@@ -44,38 +44,38 @@ namespace Wayfinder
         return static_cast<int>(std::count(name.begin(), name.end(), '.')) + 1;
     }
 
-    // ── GameplayTagContainer ────────────────────────────────────
+    // -- TagContainer ---------------------------------------------------------
 
-    bool GameplayTagContainer::HasExact(const GameplayTag& tag) const
+    bool TagContainer::HasExact(const Tag& tag) const
     {
         return std::ranges::binary_search(m_tags, tag);
     }
 
-    bool GameplayTagContainer::HasTag(const GameplayTag& tag) const
+    bool TagContainer::HasTag(const Tag& tag) const
     {
-        return std::ranges::any_of(m_tags, [&](const GameplayTag& t)
+        return std::ranges::any_of(m_tags, [&](const Tag& t)
         {
             return t.IsChildOf(tag);
         });
     }
 
-    bool GameplayTagContainer::HasAny(const GameplayTagContainer& other) const
+    bool TagContainer::HasAny(const TagContainer& other) const
     {
-        return std::ranges::any_of(other.m_tags, [&](const GameplayTag& t)
+        return std::ranges::any_of(other.m_tags, [&](const Tag& t)
         {
             return HasTag(t);
         });
     }
 
-    bool GameplayTagContainer::HasAll(const GameplayTagContainer& other) const
+    bool TagContainer::HasAll(const TagContainer& other) const
     {
-        return std::ranges::all_of(other.m_tags, [&](const GameplayTag& t)
+        return std::ranges::all_of(other.m_tags, [&](const Tag& t)
         {
             return HasTag(t);
         });
     }
 
-    void GameplayTagContainer::AddTag(const GameplayTag& tag)
+    void TagContainer::AddTag(const Tag& tag)
     {
         auto it = std::ranges::lower_bound(m_tags, tag);
         if (it == m_tags.end() || *it != tag)
@@ -84,12 +84,20 @@ namespace Wayfinder
         }
     }
 
-    void GameplayTagContainer::RemoveTag(const GameplayTag& tag)
+    void TagContainer::RemoveTag(const Tag& tag)
     {
         auto it = std::ranges::lower_bound(m_tags, tag);
         if (it != m_tags.end() && *it == tag)
         {
             m_tags.erase(it);
+        }
+    }
+
+    void TagContainer::AddTags(const TagContainer& other)
+    {
+        for (const auto& tag : other)
+        {
+            AddTag(tag);
         }
     }
 
