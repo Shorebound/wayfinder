@@ -61,6 +61,7 @@ set(ENGINE_ALL_SOURCES
   src/app/LayerStack.h
   src/app/StateSubsystem.h
   src/app/Subsystem.h
+  src/app/SubsystemRegistry.h
 
   # Assets
   src/assets/AssetCache.h
