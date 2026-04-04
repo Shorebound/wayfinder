@@ -25,10 +25,10 @@ See: .planning/PROJECT.md (updated 2026-04-03)
 
 ## Current Position
 
-Phase: 03 (plugin-composition) -- COMPLETE
-Plan: 5 of 5
-Status: All Phase 03 plans executed and committed
-Last activity: 2026-04-06 -- Phase 03 completed
+Phase: 04 (orchestration) -- CONTEXT GATHERED
+Plan: 0 of TBD
+Status: Context gathered, ready for planning
+Last activity: 2026-04-06 -- Phase 04 context gathered (14 decisions across 5 gray areas)
 
 Progress: [████░░░░░░] 42%
 
@@ -85,6 +85,11 @@ None yet.
 - [Phase 03]: Full ConfigService in Phase 3 scope (AppSubsystem, TOML loading, OnConfigReloaded stub)
 - [Phase 03]: Processed outputs from registrar Finalise() (not frozen registrars); smart-accumulation validation
 - [Phase 03]: SubsystemRegistry retrofit to processed-output pattern (SubsystemManifest)
+- [Phase 04]: ASM keyed by type_index, owns states via unique_ptr, build-time registration with Finalise() validation
+- [Phase 04]: Two-sided push/pop negotiation (BackgroundPreferences + SuspensionPolicy AND intersection); state subsystems always persist
+- [Phase 04]: OverlayStack: AppBuilder registration, Application owns, bool OnEvent consumption, registration order + optional priority
+- [Phase 04]: Simulation is thin (world + scene), per-state lifecycle, IS a state subsystem (reversible)
+- [Phase 04]: Sub-states are state-internal (refines SIM-06); one IStateUI per ApplicationState, ASM-managed lifecycle
 
 - Verify `std::flat_set`/`std::flat_map` availability on project's Clang/libc++ version (Phase 1)
 - Verify deducing `this` codegen quality on Clang (Phase 1)
@@ -92,6 +97,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-04-05
-Stopped at: Phase 3 context gathered
-Resume file: .planning/phases/03-plugin-composition/03-CONTEXT.md
+Last session: 2026-04-06
+Stopped at: Phase 4 context gathered
+Resume file: .planning/phases/04-orchestration/04-CONTEXT.md
