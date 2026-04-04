@@ -50,7 +50,11 @@ Plans:
   3. Capability set is computed from two sources (app-level + state-level) and batched during transitions with no intermediate empty state
   4. Abstract-type resolution allows querying a subsystem by interface type; Initialise() returns Result<void> with error propagation on first failure
   5. EngineContext v2 provides typed access to app-scoped and state-scoped subsystem registries; StateSubsystems is the renamed GameSubsystems static accessor
-**Plans**: TBD
+**Plans:** 2 plans
+
+Plans:
+- [ ] 02-01-PLAN.md - SubsystemRegistry with dependency ordering and capability-gated activation
+- [ ] 02-02-PLAN.md - EngineContext v2 facade, ComputeEffectiveCaps, and EngineContextRef ECS singleton
 
 ### Phase 3: Plugin Composition
 **Goal**: Plugins compose the application through AppBuilder with typed registrar store, dependency ordering, and per-plugin configuration
