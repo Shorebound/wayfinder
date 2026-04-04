@@ -69,11 +69,11 @@ Plans:
 **Plans:** 5 plans
 
 Plans:
-- [ ] 03-01-PLAN.md -- SubsystemManifest retrofit + TopologicalSort extraction
-- [ ] 03-02-PLAN.md -- Plugin foundation types (IRegistrar, PluginDescriptor, concepts, AppDescriptor)
-- [ ] 03-03-PLAN.md -- AppBuilder core + existing registrar adaptation + tests
-- [ ] 03-04-PLAN.md -- ConfigService, ConfigRegistrar, 3-tier TOML layering
-- [ ] 03-05-PLAN.md -- Application::AddPlugin<T>() + EngineContext AppDescriptor access
+- [x] 03-01-PLAN.md -- SubsystemManifest retrofit + TopologicalSort extraction
+- [x] 03-02-PLAN.md -- Plugin foundation types (IRegistrar, PluginDescriptor, concepts, AppDescriptor)
+- [x] 03-03-PLAN.md -- AppBuilder core + existing registrar adaptation + tests
+- [x] 03-04-PLAN.md -- ConfigService, ConfigRegistrar, 3-tier TOML layering
+- [x] 03-05-PLAN.md -- Application::AddPlugin<T>() + EngineContext AppDescriptor access
 
 ### Phase 4: Orchestration
 **Goal**: ApplicationStateMachine, Simulation, and OverlayStack operate together with full lifecycle control and state transition management
