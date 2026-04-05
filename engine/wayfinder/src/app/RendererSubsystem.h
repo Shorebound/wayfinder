@@ -24,7 +24,7 @@ namespace Wayfinder
     class WAYFINDER_API RendererSubsystem : public AppSubsystem
     {
     public:
-        RendererSubsystem() = default;
+        RendererSubsystem();
         ~RendererSubsystem() override;
 
         [[nodiscard]] auto Initialise(EngineContext& context) -> Result<void> override;

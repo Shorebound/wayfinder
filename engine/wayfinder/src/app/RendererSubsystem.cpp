@@ -11,6 +11,8 @@
 
 namespace Wayfinder
 {
+    RendererSubsystem::RendererSubsystem() = default;
+
     RendererSubsystem::~RendererSubsystem()
     {
         Shutdown();

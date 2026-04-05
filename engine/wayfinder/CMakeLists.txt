@@ -243,6 +243,8 @@ set(ENGINE_ALL_SOURCES
 
   # Rendering
   src/rendering/ArenaFunction.h
+  src/rendering/EngineRenderPlugin.cpp
+  src/rendering/EngineRenderPlugin.h
   src/rendering/FrameAllocator.cpp
   src/rendering/FrameAllocator.h
   src/rendering/RenderTypes.h
