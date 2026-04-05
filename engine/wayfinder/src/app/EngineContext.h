@@ -1,6 +1,7 @@
 #pragma once
 
 #include "AppDescriptor.h"
+#include "ApplicationStateMachine.h"
 #include "SubsystemManifest.h"
 #include "core/Assert.h"
 #include "gameplay/Capability.h"
@@ -14,6 +15,7 @@ namespace Wayfinder
     class AppSubsystem;
     class EventQueue;
     class IApplicationState;
+    class OverlayStack;
     class StateSubsystem;
 
     /**
@@ -91,29 +93,33 @@ namespace Wayfinder
             return m_stateSubsystems ? m_stateSubsystems->template TryGet<T>() : nullptr;
         }
 
-        // -- Phase 4 stubs (assert if called before implementation) --
+        // -- State transition requests (delegates to ApplicationStateMachine) --
 
-        /// @prototype Phase 4 - request a flat state transition.
+        /// Request a flat state transition to target type.
         template<std::derived_from<IApplicationState> T>
         void RequestTransition()
         {
-            WAYFINDER_ASSERT(false, "RequestTransition not yet implemented (Phase 4)");
+            WAYFINDER_ASSERT(m_stateMachine, "ApplicationStateMachine not set");
+            m_stateMachine->template RequestTransition<T>();
         }
 
-        /// @prototype Phase 4 - push a modal state.
+        /// Push a modal state on top of the current state.
         template<std::derived_from<IApplicationState> T>
         void RequestPush()
         {
-            WAYFINDER_ASSERT(false, "RequestPush not yet implemented (Phase 4)");
+            WAYFINDER_ASSERT(m_stateMachine, "ApplicationStateMachine not set");
+            m_stateMachine->template RequestPush<T>();
         }
 
-        /// @prototype Phase 4 - pop the current modal state.
+        /// Pop the current modal state, resuming the one beneath.
         void RequestPop();
 
-        /// @prototype Phase 4 - activate an overlay by type.
+        // -- Overlay control (delegates to OverlayStack) --
+
+        /// Activate an overlay by type.
         void ActivateOverlay(std::type_index overlayType);
 
-        /// @prototype Phase 4 - deactivate an overlay by type.
+        /// Deactivate an overlay by type.
         void DeactivateOverlay(std::type_index overlayType);
 
         /// Request graceful application shutdown.
@@ -140,15 +146,16 @@ namespace Wayfinder
         void SetAppSubsystems(SubsystemManifest<AppSubsystem>* manifest);
         void SetStateSubsystems(SubsystemManifest<StateSubsystem>* manifest);
         void SetAppDescriptor(const AppDescriptor* descriptor);
+        void SetStateMachine(ApplicationStateMachine* stateMachine);
+        void SetOverlayStack(OverlayStack* overlayStack);
 
     private:
         SubsystemManifest<AppSubsystem>* m_appSubsystems = nullptr;
         SubsystemManifest<StateSubsystem>* m_stateSubsystems = nullptr;
         const AppDescriptor* m_appDescriptor = nullptr;
         std::stop_source m_stopSource;
-        // Phase 4 additions (nullptr initially):
-        // ApplicationStateMachine* m_stateMachine = nullptr;
-        // OverlayStack* m_overlayStack = nullptr;
+        ApplicationStateMachine* m_stateMachine = nullptr;
+        OverlayStack* m_overlayStack = nullptr;
     };
 
     // -- Capability set computation --

@@ -1,20 +1,25 @@
 #include "EngineContext.h"
 
+#include "OverlayStack.h"
+
 namespace Wayfinder
 {
     void EngineContext::RequestPop()
     {
-        WAYFINDER_ASSERT(false, "RequestPop not yet implemented (Phase 4)");
+        WAYFINDER_ASSERT(m_stateMachine, "ApplicationStateMachine not set");
+        m_stateMachine->RequestPop();
     }
 
-    void EngineContext::ActivateOverlay(std::type_index /*overlayType*/)
+    void EngineContext::ActivateOverlay(std::type_index overlayType)
     {
-        WAYFINDER_ASSERT(false, "ActivateOverlay not yet implemented (Phase 4)");
+        WAYFINDER_ASSERT(m_overlayStack, "OverlayStack not set");
+        m_overlayStack->Activate(overlayType, *this);
     }
 
-    void EngineContext::DeactivateOverlay(std::type_index /*overlayType*/)
+    void EngineContext::DeactivateOverlay(std::type_index overlayType)
     {
-        WAYFINDER_ASSERT(false, "DeactivateOverlay not yet implemented (Phase 4)");
+        WAYFINDER_ASSERT(m_overlayStack, "OverlayStack not set");
+        m_overlayStack->Deactivate(overlayType, *this);
     }
 
     void EngineContext::RequestStop()
@@ -56,6 +61,16 @@ namespace Wayfinder
     void EngineContext::SetAppDescriptor(const AppDescriptor* descriptor)
     {
         m_appDescriptor = descriptor;
+    }
+
+    void EngineContext::SetStateMachine(ApplicationStateMachine* stateMachine)
+    {
+        m_stateMachine = stateMachine;
+    }
+
+    void EngineContext::SetOverlayStack(OverlayStack* overlayStack)
+    {
+        m_overlayStack = overlayStack;
     }
 
 } // namespace Wayfinder
