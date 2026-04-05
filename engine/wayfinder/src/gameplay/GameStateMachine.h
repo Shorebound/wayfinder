@@ -1,7 +1,7 @@
 #pragma once
 
 #include "GameState.h"
-#include "GameplayTag.h"
+#include "Tag.h"
 #include "app/Subsystem.h"
 #include "wayfinder_exports.h"
 

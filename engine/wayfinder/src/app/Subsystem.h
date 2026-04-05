@@ -25,7 +25,7 @@ namespace Wayfinder
      *
      * Access any live subsystem via the scope's static accessor:
      * @code
-     *   auto& tags = GameSubsystems::Get<GameplayTagRegistry>();
+     *   auto& tags = GameSubsystems::Get<TagRegistry>();
      * @endcode
      *
      * No per-subsystem static pointers or boilerplate needed. Just derive
@@ -211,7 +211,7 @@ namespace Wayfinder
     // -----------------------------------------------------------------
     //  GameSubsystems — static accessor for the Game-scoped collection.
     //
-    //  Usage:  auto& tags = GameSubsystems::Get<GameplayTagRegistry>();
+    //  Usage:  auto& tags = GameSubsystems::Get<TagRegistry>();
     //
     //  Game calls Bind/Unbind during init/shutdown. No individual
     //  subsystem needs to maintain its own static pointer.

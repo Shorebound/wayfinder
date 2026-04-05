@@ -3,8 +3,6 @@
 #include "core/Assert.h"
 #include "core/Log.h"
 #include "core/Result.h"
-#include "plugins/PluginLoader.h"
-#include "plugins/PluginRegistry.h"
 #include "project/ProjectDescriptor.h"
 #include "project/ProjectResolver.h"
 #include "scene/RuntimeComponentRegistry.h"
@@ -50,10 +48,8 @@ namespace
     {
         flecs::world World;
         Wayfinder::RuntimeComponentRegistry Registry;
-        std::optional<Wayfinder::Plugins::LoadedPlugin> GamePlugin;
-        /// Owned config; \ref PluginRegistry stores a reference — declared first so it outlives \ref PluginReg.
+        /// Owned config; declared first so it outlives other members.
         Wayfinder::EngineConfig EngineConfig;
-        std::unique_ptr<Wayfinder::Plugins::PluginRegistry> PluginReg;
 
         explicit WaypointContext(const Wayfinder::ProjectDescriptor* project = nullptr, const std::filesystem::path& toolDir = {})
         {
@@ -71,43 +67,11 @@ namespace
 
             if (project && !project->Paths.Plugin.empty())
             {
-                auto pluginLibraryPath = project->ResolvePluginLibraryPath();
-
-                /// If the plugin library isn't next to the project file, try the
-                /// tool's own directory (common for build-output layouts).
-                if (!std::filesystem::exists(pluginLibraryPath) && !toolDir.empty())
-                {
-                    pluginLibraryPath = toolDir / pluginLibraryPath.filename();
-                }
-
-                auto loadResult = Wayfinder::Plugins::PluginLoader::Load(pluginLibraryPath);
-                if (loadResult && loadResult->Instance)
-                {
-                    GamePlugin = std::move(*loadResult);
-                    PluginReg = std::make_unique<Wayfinder::Plugins::PluginRegistry>(*project, EngineConfig);
-                    GamePlugin->Instance->Build(*PluginReg);
-                    Registry.AddGameEntries(*PluginReg);
-                }
-                else
-                {
-                    std::cerr << "Warning: failed to load game plugin from " << pluginLibraryPath.string() << '\n';
-                }
+                Wayfinder::Log::Warn(Wayfinder::LogEngine, "DLL plugin loading removed. Game plugin will not be loaded for project '{}'. Use static linking instead.", project->Paths.Plugin);
             }
 
             Registry.RegisterComponents(World);
-
-            /// Mirror Game::InitialiseWorld: apply the plugin registry's systems and globals after
-            /// component registration. Without a loaded game plugin, register the same core
-            /// scene plugins (transform/camera) used by headless tests — do not combine both paths
-            /// or systems would be registered twice.
-            if (PluginReg)
-            {
-                PluginReg->ApplyToWorld(World);
-            }
-            else
-            {
-                Wayfinder::SceneWorldBootstrap::RegisterDefaultScenePlugins(World);
-            }
+            Wayfinder::SceneWorldBootstrap::RegisterDefaultScenePlugins(World);
         }
     };
 

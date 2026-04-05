@@ -1,9 +1,12 @@
 #pragma once
 
+#include "AppBuilder.h"
+#include "AppDescriptor.h"
 #include "core/Result.h"
 #include "core/events/EventQueue.h"
 
 #include <memory>
+#include <optional>
 #include <string>
 
 namespace Wayfinder::Plugins
@@ -43,6 +46,18 @@ namespace Wayfinder
         explicit Application(std::unique_ptr<Plugins::Plugin> gamePlugin, const CommandLineArgs& args);
         ~Application();
 
+        /// Register a plugin or plugin group for v2 composition.
+        /// Plugins are built in dependency order during Initialise().
+        template<typename T>
+        void AddPlugin()
+        {
+            if (not m_builder)
+            {
+                m_builder = std::make_unique<AppBuilder>();
+            }
+            m_builder->AddPlugin<T>();
+        }
+
         void Run();
 
         LayerStack& GetLayerStack();
@@ -62,6 +77,8 @@ namespace Wayfinder
         std::unique_ptr<Plugins::PluginRegistry> m_pluginRegistry;
         std::unique_ptr<ProjectDescriptor> m_project;
         std::unique_ptr<EngineConfig> m_config;
+        std::unique_ptr<AppBuilder> m_builder;
+        std::optional<AppDescriptor> m_appDescriptor;
         CommandLineArgs m_args{};
         bool m_running = false;
         bool m_pluginsStarted = false;

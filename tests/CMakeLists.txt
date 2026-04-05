@@ -16,6 +16,8 @@ add_executable(${WAYFINDER_RENDER_TEST_NAME}
   rendering/MeshManagerTests.cpp
   rendering/SlangCompilerTests.cpp
   rendering/SlangReflectionTests.cpp
+  rendering/CanvasTests.cpp
+  rendering/CanvasRenderFeatureTests.cpp
 )
 
 wayfinder_set_output_directories(${WAYFINDER_RENDER_TEST_NAME})
@@ -66,13 +68,27 @@ add_executable(${WAYFINDER_CORE_TEST_NAME}
   core/MeshFormatTests.cpp
   core/AssetPipelineTests.cpp
   core/FrustumTests.cpp
+  app/ApplicationStateMachineTests.cpp
+  app/ApplicationStateTests.cpp
+  app/EditorStateTests.cpp
+  app/OrchestrationIntegrationTests.cpp
+  app/OverlayStackTests.cpp
+  app/PerformanceOverlayTests.cpp
   app/EngineRuntimeTests.cpp
   app/EngineConfigTests.cpp
   app/SubsystemTests.cpp
-  gameplay/GameplayTagTests.cpp
-  gameplay/GameplayTagRegistryTests.cpp
+  app/EngineSubsystemTests.cpp
+  app/GameplayStateTests.cpp
+  gameplay/TagTests.cpp
+  gameplay/TagRegistryTests.cpp
   gameplay/GameStateMachineTests.cpp
+  gameplay/StateMachineTests.cpp
+  gameplay/SimulationTests.cpp
+  plugins/PluginInterfaceTests.cpp
   plugins/PluginRegistryTests.cpp
+  plugins/AppBuilderTests.cpp
+  plugins/ConfigServiceTests.cpp
+  plugins/ServiceProviderTests.cpp
 )
 
 wayfinder_set_output_directories(${WAYFINDER_CORE_TEST_NAME})

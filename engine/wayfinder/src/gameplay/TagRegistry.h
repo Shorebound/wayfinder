@@ -1,6 +1,6 @@
 #pragma once
 
-#include "GameplayTag.h"
+#include "Tag.h"
 #include "app/Subsystem.h"
 #include "core/TransparentStringHash.h"
 #include "wayfinder_exports.h"
@@ -14,17 +14,17 @@
 
 namespace Wayfinder
 {
-    enum class GameplayTagSourceKind
+    enum class TagSourceKind
     {
         Code,
         File,
     };
 
     /**
-     * @struct GameplayTagDefinition
-     * @brief Metadata for a registered gameplay tag.
+     * @struct TagDefinition
+     * @brief Metadata for a registered tag.
      */
-    struct GameplayTagDefinition
+    struct TagDefinition
     {
         std::string Name;
         std::string Comment;
@@ -32,8 +32,8 @@ namespace Wayfinder
     };
 
     /**
-     * @class GameplayTagRegistry
-     * @brief Central registry for gameplay tag definitions, analogous to Unreal's FGameplayTagsManager.
+     * @class TagRegistry
+     * @brief Central registry for tag definitions, analogous to Unreal's FGameplayTagsManager.
      *
      * Tags must be registered here before use. Registration can happen:
      * - In code via PluginRegistry::RegisterTag(name, comment)
@@ -44,7 +44,7 @@ namespace Wayfinder
      *
      * This is a GameSubsystem — its lifetime is managed by the Game’s
      * SubsystemCollection. Access the live instance from anywhere via
-     * GameSubsystems::Get<GameplayTagRegistry>().
+     * GameSubsystems::Get<TagRegistry>().
      *
      * TOML tag file format:
      * @code
@@ -57,45 +57,45 @@ namespace Wayfinder
      * comment = "Entity is on fire, taking damage over time"
      * @endcode
      */
-    class WAYFINDER_API GameplayTagRegistry : public GameSubsystem
+    class WAYFINDER_API TagRegistry : public GameSubsystem
     {
     public:
         /// Register a tag programmatically (from code). Returns the tag.
         /// Updates existing definition's comment if the tag was already registered.
-        GameplayTag RegisterTag(std::string_view name, std::string_view comment = {});
+        [[nodiscard]] auto RegisterTag(std::string_view name, std::string_view comment = {}) -> Tag;
 
         /// Load tag definitions from a TOML file. Returns number of tags loaded, or -1 on error.
-        int LoadTagFile(const std::filesystem::path& path);
+        auto LoadTagFile(const std::filesystem::path& path) -> int;
 
         /// Unload all tag definitions that came from the given file.
         void UnloadTagFile(const std::filesystem::path& path);
 
-        /// Request a validated tag by name. Logs a warning if the tag is not registered.
-        GameplayTag RequestTag(std::string_view name) const;
+        /// Request a validated tag by name. Returns Tag::None() if the tag is not registered.
+        [[nodiscard]] auto RequestTag(std::string_view name) const -> Tag;
 
         /// Check if a tag name is registered.
-        bool IsRegistered(std::string_view name) const;
+        [[nodiscard]] auto IsRegistered(std::string_view name) const -> bool;
 
         /// Look up the full definition for a tag. Returns nullptr if not registered.
-        const GameplayTagDefinition* FindDefinition(std::string_view name) const;
+        [[nodiscard]] auto FindDefinition(std::string_view name) const -> const TagDefinition*;
 
         /// All registered tag definitions.
-        const std::vector<GameplayTagDefinition>& GetAllDefinitions() const
+        [[nodiscard]] auto GetAllDefinitions() const -> const std::vector<TagDefinition>&
         {
             return m_definitions;
         }
 
         /// All currently loaded tag file paths.
-        const std::vector<std::string>& GetLoadedFiles() const
+        [[nodiscard]] auto GetLoadedFiles() const -> const std::vector<std::string>&
         {
             return m_loadedFiles;
         }
 
     private:
         /// Ensures all ancestor tags exist (e.g. registering "A.B.C" also registers "A" and "A.B").
-        void EnsureAncestors(std::string_view name, GameplayTagSourceKind sourceKind, std::string_view sourceFile = {});
+        void EnsureAncestors(std::string_view name, TagSourceKind sourceKind, std::string_view sourceFile = {});
 
-        std::vector<GameplayTagDefinition> m_definitions;
+        std::vector<TagDefinition> m_definitions;
         std::unordered_map<std::string, size_t, TransparentStringHash, std::equal_to<>> m_index; ///< Name -> index into m_definitions.
         std::vector<std::string> m_loadedFiles;
     };

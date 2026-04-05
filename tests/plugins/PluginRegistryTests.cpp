@@ -1,6 +1,6 @@
 #include "app/EngineConfig.h"
 #include "gameplay/GameState.h"
-#include "gameplay/GameplayTag.h"
+#include "gameplay/Tag.h"
 #include "plugins/Plugin.h"
 #include "plugins/PluginRegistry.h"
 #include "plugins/registrars/StateRegistrar.h"

@@ -41,48 +41,48 @@ namespace Wayfinder
         [[nodiscard]] static InternedString Intern(std::string_view text);
 
         /// O(1) identity equality (same interned storage).
-        [[nodiscard]] bool operator==(const InternedString& other) const noexcept
+        [[nodiscard]] auto operator==(const InternedString& other) const noexcept -> bool
         {
             return m_ptr == other.m_ptr;
         }
 
         /// Compare with `std::string_view` without interning the rhs.
-        [[nodiscard]] bool operator==(std::string_view sv) const noexcept
+        [[nodiscard]] auto operator==(std::string_view sv) const noexcept -> bool
         {
             return AsStringView() == sv;
         }
 
         /// Lexicographic ordering (same as `GetString()`); same-text interned pairs compare equal.
-        [[nodiscard]] std::strong_ordering operator<=>(const InternedString& other) const noexcept
+        [[nodiscard]] auto operator<=>(const InternedString& other) const noexcept -> std::strong_ordering
         {
             return *m_ptr <=> *other.m_ptr;
         }
 
         /// Compare with `std::string_view` without interning the rhs.
-        [[nodiscard]] std::strong_ordering operator<=>(std::string_view sv) const noexcept
+        [[nodiscard]] auto operator<=>(std::string_view sv) const noexcept -> std::strong_ordering
         {
             return AsStringView() <=> sv;
         }
 
         /// Access the underlying string.
-        [[nodiscard]] const std::string& GetString() const noexcept
+        [[nodiscard]] auto GetString() const noexcept -> const std::string&
         {
             return *m_ptr;
         }
 
         /// Borrowed view of the interned text (valid for the process lifetime).
-        [[nodiscard]] std::string_view AsStringView() const noexcept
+        [[nodiscard]] auto AsStringView() const noexcept -> std::string_view
         {
             return *m_ptr;
         }
 
         /// Stable address of the unique `std::string` in the intern table (for hashing).
-        [[nodiscard]] const std::string* GetStoragePointer() const noexcept
+        [[nodiscard]] auto GetStoragePointer() const noexcept -> const std::string*
         {
             return m_ptr;
         }
 
-        [[nodiscard]] bool IsEmpty() const noexcept
+        [[nodiscard]] auto IsEmpty() const noexcept -> bool
         {
             return m_ptr->empty();
         }

@@ -23,13 +23,6 @@ target_link_libraries(${SANDBOX_NAME}
         ${ENGINE_NAME}
 )
 
-# --- Game plugin shared library (loaded at runtime by tools such as waypoint) ---
-set(GAME_PLUGIN_LIB ${SANDBOX_NAME}_plugin)
-add_library(${GAME_PLUGIN_LIB} SHARED src/JourneyGame.cpp)
-wayfinder_set_output_directories(${GAME_PLUGIN_LIB})
-target_include_directories(${GAME_PLUGIN_LIB} PRIVATE src)
-target_link_libraries(${GAME_PLUGIN_LIB} PRIVATE ${ENGINE_NAME})
-
 add_custom_command(TARGET ${SANDBOX_NAME} POST_BUILD
   COMMAND ${CMAKE_COMMAND} -E copy_directory
     "${CMAKE_CURRENT_SOURCE_DIR}/assets"
@@ -116,26 +109,4 @@ if (APPLE)
         "-framework OpenGL"
         # Add other frameworks needed by the sandbox/game
     )
-endif()
-
-# --- Post-Build Command for Sandbox (Windows Only) ---
-# Sandbox copies the Wayfinder DLL it needs into its own output directory.
-if(WIN32 AND WAYFINDER_BUILD_SHARED_LIBS)
-  # Check if Wayfinder is actually being built as a shared library
-  # Get the TYPE property of the Wayfinder target
-  get_target_property(WAYFINDER_TYPE ${ENGINE_NAME} TYPE)
-  if(WAYFINDER_TYPE STREQUAL "SHARED_LIBRARY")
-
-    add_custom_command(TARGET ${SANDBOX_NAME} POST_BUILD
-      COMMAND ${CMAKE_COMMAND} -E copy_if_different
-        # Source: The Wayfinder library file for the current configuration
-        $<TARGET_FILE:${ENGINE_NAME}>
-        # Destination: Sandbox's output directory
-        "$<TARGET_FILE_DIR:${SANDBOX_NAME}>/"
-      COMMENT "Copying ${ENGINE_NAME}.dll to ${SANDBOX_NAME} output directory for $<CONFIG>"
-      VERBATIM
-    )
-    message(STATUS "Windows: Added post-build step for ${SANDBOX_NAME} to copy required ${ENGINE_NAME} DLL.")
-
-  endif()
 endif()

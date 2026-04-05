@@ -1,5 +1,6 @@
 #pragma once
 
+#include "plugins/IRegistrar.h"
 #include "wayfinder_exports.h"
 
 #include <string>
@@ -9,7 +10,7 @@ namespace Wayfinder::Plugins
 {
     /// Internal storage for gameplay-tag descriptors and tag-file paths.
     /// Owned by PluginRegistry — not a subsystem.
-    class WAYFINDER_API TagRegistrar
+    class WAYFINDER_API TagRegistrar : public ::Wayfinder::IRegistrar
     {
     public:
         struct Descriptor

@@ -46,18 +46,52 @@ set(ENGINE_ALL_SOURCES
   # App
   src/app/Application.cpp
   src/app/Application.h
+  src/app/AppBuilder.cpp
+  src/app/AppBuilder.h
+  src/app/AppDescriptor.h
+  src/app/ApplicationStateMachine.cpp
+  src/app/ApplicationStateMachine.h
+  src/app/AppSubsystem.h
+  src/app/EditorState.cpp
+  src/app/EditorState.h
+  src/app/ConfigRegistrar.cpp
+  src/app/ConfigRegistrar.h
+  src/app/ConfigService.cpp
+  src/app/ConfigService.h
   src/app/EngineConfig.cpp
   src/app/EngineConfig.h
+  src/app/EngineContext.cpp
   src/app/EngineContext.h
   src/app/EngineRuntime.cpp
   src/app/EngineRuntime.h
-  src/app/EntryPoint.h
   src/app/FpsOverlayLayer.cpp
   src/app/FpsOverlayLayer.h
+  src/app/IApplicationState.h
+  src/app/InputSubsystem.cpp
+  src/app/InputSubsystem.h
+  src/app/IOverlay.h
+  src/app/OrchestrationTypes.h
+  src/app/OverlayManifest.h
+  src/app/OverlayStack.cpp
+  src/app/OverlayStack.h
+  src/app/PerformanceOverlay.cpp
+  src/app/PerformanceOverlay.h
   src/app/Layer.h
   src/app/LayerStack.cpp
   src/app/LayerStack.h
+  src/app/RenderDeviceSubsystem.cpp
+  src/app/RenderDeviceSubsystem.h
+  src/app/RendererSubsystem.cpp
+  src/app/RendererSubsystem.h
+  src/app/StateManifest.h
+  src/app/StateSubsystem.h
   src/app/Subsystem.h
+  src/app/SubsystemManifest.h
+  src/app/SubsystemRegistry.h
+  src/app/TimeSubsystem.cpp
+  src/app/TimeSubsystem.h
+  src/app/WindowSubsystem.cpp
+  src/app/WindowSubsystem.h
 
   # Assets
   src/assets/AssetCache.h
@@ -89,7 +123,9 @@ set(ENGINE_ALL_SOURCES
   src/core/Profiling.h
   src/core/ResourcePool.h
   src/core/Result.h
+  src/core/TopologicalSort.h
   src/core/Types.h
+  src/core/ValidationResult.h
 
   # Core — Events
   src/core/events/ApplicationEvent.h
@@ -110,17 +146,28 @@ set(ENGINE_ALL_SOURCES
   src/core/logging/spdlog/SpdLogger.h
 
   # Gameplay
+  src/gameplay/Capability.h
+  src/gameplay/EngineContextRef.h
   src/gameplay/Game.cpp
   src/gameplay/Game.h
   src/gameplay/GameContext.h
+  src/gameplay/GameplayState.cpp
+  src/gameplay/GameplayState.h
   src/gameplay/GameState.cpp
   src/gameplay/GameState.h
   src/gameplay/GameStateMachine.cpp
   src/gameplay/GameStateMachine.h
-  src/gameplay/GameplayTag.cpp
-  src/gameplay/GameplayTag.h
-  src/gameplay/GameplayTagRegistry.cpp
-  src/gameplay/GameplayTagRegistry.h
+  src/gameplay/Simulation.cpp
+  src/gameplay/Simulation.h
+  src/gameplay/SimulationConfig.h
+  src/gameplay/StateMachine.h
+  src/gameplay/Tag.cpp
+  src/gameplay/Tag.h
+  src/gameplay/NativeTag.h
+  src/gameplay/SceneRenderExtractor.cpp
+  src/gameplay/SceneRenderExtractor.h
+  src/gameplay/TagRegistry.cpp
+  src/gameplay/TagRegistry.h
 
   # Maths
   src/maths/Bounds.cpp
@@ -131,12 +178,17 @@ set(ENGINE_ALL_SOURCES
   src/maths/Maths.h
 
   # Plugins
+  src/plugins/IPlugin.h
+  src/plugins/IRegistrar.h
+  src/plugins/IStateUI.h
+  src/plugins/LifecycleHooks.h
+  src/plugins/PluginConcepts.h
+  src/plugins/PluginDescriptor.h
   src/plugins/Plugin.h
-  src/plugins/PluginExport.h
-  src/plugins/PluginLoader.cpp
-  src/plugins/PluginLoader.h
   src/plugins/PluginRegistry.cpp
   src/plugins/PluginRegistry.h
+  src/plugins/EngineContextServiceProvider.h
+  src/plugins/ServiceProvider.h
   src/plugins/registrars/StateRegistrar.cpp
   src/plugins/registrars/StateRegistrar.h
   src/plugins/registrars/SystemRegistrar.cpp
@@ -170,6 +222,18 @@ set(ENGINE_ALL_SOURCES
   src/platform/sdl3/SDL3Time.h
   src/platform/sdl3/SDL3Window.cpp
   src/platform/sdl3/SDL3Window.h
+  src/platform/sdl3/SDLInputSubsystem.cpp
+  src/platform/sdl3/SDLInputSubsystem.h
+  src/platform/sdl3/SDLPlatformPlugins.cpp
+  src/platform/sdl3/SDLPlatformPlugins.h
+  src/platform/sdl3/SDLRenderDevicePlugin.cpp
+  src/platform/sdl3/SDLRenderDevicePlugin.h
+  src/platform/sdl3/SDLRenderDeviceSubsystem.cpp
+  src/platform/sdl3/SDLRenderDeviceSubsystem.h
+  src/platform/sdl3/SDLTimeSubsystem.cpp
+  src/platform/sdl3/SDLTimeSubsystem.h
+  src/platform/sdl3/SDLWindowSubsystem.cpp
+  src/platform/sdl3/SDLWindowSubsystem.h
 
   # Project
   src/project/ProjectDescriptor.cpp
@@ -179,6 +243,8 @@ set(ENGINE_ALL_SOURCES
 
   # Rendering
   src/rendering/ArenaFunction.h
+  src/rendering/EngineRenderPlugin.cpp
+  src/rendering/EngineRenderPlugin.h
   src/rendering/FrameAllocator.cpp
   src/rendering/FrameAllocator.h
   src/rendering/RenderTypes.h
@@ -197,6 +263,8 @@ set(ENGINE_ALL_SOURCES
   src/rendering/backend/sdl_gpu/BlitMipGenerator.h
 
   # Rendering — Graph
+  src/rendering/graph/Canvas.cpp
+  src/rendering/graph/Canvas.h
   src/rendering/graph/RenderFrame.h
   src/rendering/graph/RenderFrameUtils.cpp
   src/rendering/graph/RenderFrameUtils.h

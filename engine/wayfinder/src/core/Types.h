@@ -3,11 +3,27 @@
 #include <cstdint>
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
+#include <string>
 
 namespace Wayfinder
 {
 
-    // ── Engine Math Aliases ──────────────────────────────────
+    using Float = float;
+    using Double = double;
+
+    using Byte = uint8_t;
+    using Int32 = int32_t;
+    using UInt32 = uint32_t;
+    using Int64 = int64_t;
+    using UInt64 = uint64_t;
+
+    using Timestep = double;
+    using FrameIndex = UInt64;
+
+    using Bool = bool;
+    using String = std::string;
+    using StringView = std::string_view;
+    using Text = std::string;
 
     using Float2 = glm::vec2;
     using Float3 = glm::vec3;
@@ -58,7 +74,7 @@ namespace Wayfinder
     inline constexpr Float3 One{1.f, 1.f, 1.f};
     inline constexpr Float3 Zero{0.f, 0.f, 0.f};
 
-    // ============ Unity-style (Y-up, left-handed) ============
+    /// Unity-style (Y-up, left-handed)
     namespace Unity
     {
         inline constexpr Float3 Up{0.f, 1.f, 0.f};
@@ -69,7 +85,7 @@ namespace Wayfinder
         inline constexpr Float3 Back{0.f, 0.f, -1.f};
     }
 
-    // ============ Unreal-style (Z-up, left-handed) ============
+    /// Unreal-style (Z-up, left-handed)
     namespace Unreal
     {
         inline constexpr Float3 Up{0.f, 0.f, 1.f};
@@ -80,7 +96,7 @@ namespace Wayfinder
         inline constexpr Float3 Back{-1.f, 0.f, 0.f};
     }
 
-    // ============ Godot / OpenGL (Y-up, right-handed) ============
+    /// Godot / OpenGL (Y-up, right-handed)
     namespace Godot
     {
         inline constexpr Float3 Up{0.f, 1.f, 0.f};
@@ -91,7 +107,7 @@ namespace Wayfinder
         inline constexpr Float3 Back{0.f, 0.f, 1.f};
     }
 
-    // ============ Source / Blender (Z-up, right-handed) ============
+    /// Source / Blender (Z-up, right-handed)
     namespace Source
     {
         inline constexpr Float3 Up{0.f, 0.f, 1.f};
@@ -109,7 +125,7 @@ namespace Wayfinder
         Float3 Scale = {1.0f, 1.0f, 1.0f};
     };
 
-    // ── Coordinate-system / convention enums ─────────────────
+    //  Coordinate-system / convention enums
 
     enum class Axis
     {
@@ -134,12 +150,12 @@ namespace Wayfinder
         Right
     };
 
-    // ── Colour ────────────────────────────────────────────────
+    //  Colour
 
     /** @brief 8-bit sRGB colour (authored / on-disk representation). */
     struct Colour
     {
-        uint8_t r = 255, g = 255, b = 255, a = 255;
+        Byte r = 255, g = 255, b = 255, a = 255;
 
         static constexpr Colour White()
         {
@@ -175,7 +191,7 @@ namespace Wayfinder
         }
     };
 
-    // ── LinearColour ─────────────────────────────────────────
+    //  LinearColour
 
     /**
      * @brief Float colour in linear space for GPU-side work.

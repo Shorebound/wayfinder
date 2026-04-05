@@ -22,7 +22,6 @@ This project is greenfield. Breaking changes, rewrites, and architectural pivots
 - **Explicit over implicit** — capabilities are checked, passes are validated, nothing silently dropped.
 - **Engine is a library** — the game and editor are consumers. The engine never knows who's calling it.
 
-
 ## Build
 
 CMake 4.0+, Ninja Multi-Config, Clang. Presets are the workflow.

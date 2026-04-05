@@ -1,7 +1,6 @@
 #include <doctest/doctest.h>
 
 #include "app/EngineConfig.h"
-#include "app/EngineContext.h"
 #include "app/EngineRuntime.h"
 #include "platform/BackendConfig.h"
 #include "platform/Input.h"
@@ -119,21 +118,6 @@ namespace Wayfinder::Tests
 
             runtime.Shutdown();
             CHECK_NOTHROW(runtime.Shutdown());
-        }
-
-        TEST_CASE("BuildContext returns valid references")
-        {
-            auto config = MakeNullConfig();
-            auto project = MakeTestProject();
-
-            EngineRuntime runtime(config, project);
-            REQUIRE(runtime.Initialise());
-
-            auto ctx = runtime.BuildContext();
-            CHECK(ctx.config.Window.Width == 320);
-            CHECK(ctx.project.Name == "TestProject");
-
-            runtime.Shutdown();
         }
     }
 }

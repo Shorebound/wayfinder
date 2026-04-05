@@ -30,8 +30,8 @@ namespace Wayfinder::Tests
 
     TEST_CASE("Interning preserves string content")
     {
-        auto s = InternedString::Intern("GameplayTag.Status.Burning");
-        CHECK(s.GetString() == "GameplayTag.Status.Burning");
+        auto s = InternedString::Intern("Status.Burning");
+        CHECK(s.GetString() == "Status.Burning");
     }
 
     TEST_CASE("Interning from std::string works")
@@ -71,8 +71,8 @@ namespace Wayfinder::Tests
 
     TEST_CASE("InternedString compares to string_view without interning rhs")
     {
-        auto s = InternedString::Intern("GameplayTag.Status.Burning");
-        const std::string_view sv{"GameplayTag.Status.Burning"};
+        auto s = InternedString::Intern("Status.Burning");
+        const std::string_view sv{"Status.Burning"};
         CHECK(std::string(s.AsStringView()) == std::string(sv));
         CHECK(((s <=> sv) == std::strong_ordering::equal));
         CHECK_FALSE(s.operator==(std::string_view("Other")));

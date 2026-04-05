@@ -1,9 +1,8 @@
-#include "app/EntryPoint.h"
+#include "app/Application.h"
 #include "gameplay/GameState.h"
-#include "gameplay/GameplayTag.h"
+#include "gameplay/Tag.h"
 #include "physics/PhysicsPlugin.h"
 #include "plugins/Plugin.h"
-#include "plugins/PluginExport.h"
 #include "plugins/PluginRegistry.h"
 #include "scene/SceneWorldBootstrap.h"
 #include "scene/entity/Entity.h"
@@ -149,14 +148,13 @@ namespace
             registry.RegisterTagFile("tags/status.tags.toml");
             registry.RegisterTagFile("tags/faction.tags.toml");
 
-            // Code-defined tags with comments — capture the returned tag for use
+            // Code-defined tags with comments - capture the returned tag for use
             registry.RegisterTag("Status.Stunned", "Entity is stunned and cannot act");
             auto burning = registry.RegisterTag("Status.Burning", "Entity is on fire");
 
             // A system that runs when the "Status.Burning" tag is active at the
-            // world level (via ActiveGameplayTags).  This is intentionally global:
+            // world level (via ActiveTags).  This is intentionally global:
             // when the tag is set, ALL entities with HealthComponent take burn
-            // damage.  For per-entity burning, attach a GameplayTagContainer to
             // each entity and query it inside the lambda instead.
             registry.RegisterSystem("BurnDamage", [](flecs::world& world)
             {
@@ -187,13 +185,11 @@ namespace
     };
 } // namespace
 
-namespace Wayfinder::Plugins
+int main(int argc, char* argv[])
 {
-    std::unique_ptr<Plugin> CreateGamePlugin()
-    {
-        return std::make_unique<JourneyGame>();
-    }
+    auto gamePlugin = std::make_unique<JourneyGame>();
+    const Wayfinder::Application::CommandLineArgs cmdArgs{.Count = argc, .Args = argv};
+    Wayfinder::Application app(std::move(gamePlugin), cmdArgs);
+    app.Run();
+    return 0;
 }
-
-// Dynamic entry point for tools loading the plugin as a shared library.
-WAYFINDER_IMPLEMENT_GAME_PLUGIN(JourneyGame)

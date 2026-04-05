@@ -9,8 +9,8 @@
 
 #include "GameState.h"
 #include "GameStateMachine.h"
-#include "GameplayTag.h"
-#include "GameplayTagRegistry.h"
+#include "Tag.h"
+#include "TagRegistry.h"
 #include "app/Subsystem.h"
 #include "core/Result.h"
 #include "scene/RuntimeComponentRegistry.h"
@@ -53,27 +53,27 @@ namespace Wayfinder
         /// Returns the name of the currently active game state.
         std::string_view GetCurrentState() const;
 
-        /// Add a gameplay tag to the world-level active tag set.
-        void AddGameplayTag(const GameplayTag& tag);
+        /// Add a tag to the world-level active tag set.
+        void AddTag(const Tag& tag);
 
-        /// Remove a gameplay tag from the world-level active tag set.
-        void RemoveGameplayTag(const GameplayTag& tag);
+        /// Remove a tag from the world-level active tag set.
+        void RemoveTag(const Tag& tag);
 
-        /// Check if a gameplay tag is active at the world level.
-        bool HasGameplayTag(const GameplayTag& tag) const;
+        /// Check if a tag is active at the world level.
+        bool HasTag(const Tag& tag) const;
 
         /**
          * @brief Access the gameplay tag registry for tag lookups and validation.
          * @pre Initialise() must have completed; will terminate if subsystem is missing.
          */
-        GameplayTagRegistry& GetTagRegistry()
+        TagRegistry& GetTagRegistry()
         {
-            return GameSubsystems::Get<GameplayTagRegistry>();
+            return GameSubsystems::Get<TagRegistry>();
         }
         /// @copydoc GetTagRegistry()
-        const GameplayTagRegistry& GetTagRegistry() const
+        const TagRegistry& GetTagRegistry() const
         {
-            return GameSubsystems::Get<GameplayTagRegistry>();
+            return GameSubsystems::Get<TagRegistry>();
         }
 
         Scene* GetCurrentScene()

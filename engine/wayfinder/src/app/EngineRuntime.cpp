@@ -1,7 +1,6 @@
 #include "EngineRuntime.h"
 
 #include "EngineConfig.h"
-#include "EngineContext.h"
 #include "core/Log.h"
 #include "core/Result.h"
 #include "platform/Input.h"
@@ -18,7 +17,7 @@
 
 namespace Wayfinder
 {
-    EngineRuntime::EngineRuntime(const EngineConfig& config, const ProjectDescriptor& project) : m_config(config), m_project(project) {}
+    EngineRuntime::EngineRuntime(const EngineConfig& config, const ProjectDescriptor& /*project*/) : m_config(config) {}
 
     EngineRuntime::~EngineRuntime()
     {
@@ -206,13 +205,6 @@ namespace Wayfinder
     {
         assert(m_renderer && "GetRenderer called before Initialise or after Shutdown");
         return *m_renderer;
-    }
-
-    // ── Context bundle ───────────────────────────────────────
-
-    EngineContext EngineRuntime::BuildContext() const
-    {
-        return EngineContext{.window = *m_window, .input = *m_input, .time = *m_time, .config = m_config, .project = m_project};
     }
 
 } // namespace Wayfinder

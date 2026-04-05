@@ -77,3 +77,7 @@ __pycache__/
 
 # Test artefacts
 tests/fixtures/temp/
+
+.planning/
+.references/
+.claude/worktrees/

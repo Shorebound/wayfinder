@@ -1,4 +1,4 @@
-#include "app/EntryPoint.h"
+#include "app/Application.h"
 #include "plugins/Plugin.h"
 #include "plugins/PluginRegistry.h"
 #include "scene/SceneWorldBootstrap.h"
@@ -15,10 +15,10 @@ namespace
     };
 } // namespace
 
-namespace Wayfinder::Plugins
+int main(int argc, char* argv[])
 {
-    std::unique_ptr<Plugin> CreateGamePlugin()
-    {
-        return std::make_unique<WaystoneGame>();
-    }
+    auto gamePlugin = std::make_unique<WaystoneGame>();
+    Wayfinder::Application app(std::move(gamePlugin), {argc, argv});
+    app.Run();
+    return 0;
 }

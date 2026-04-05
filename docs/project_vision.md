@@ -1,33 +1,43 @@
 # Project Vision
 
-Wayfinder is a fantasy-console engine. The idea is simple: what if PS2/Dreamcast-era developers had modern hardware, architectural knowledge, and tooling, but kept the same artistic sensibility? Not chasing photorealism, not recreating hardware limitations, just building the kind of stylised, simulation-friendly games that era was known for, without the corners they had to cut.
+Wayfinder is a fantasy-console engine. Mostly based around a silly question: what if early 2000s developers had modern hardware, architectural knowledge, and tooling, but kept the same artistic sensibility? 
 
-Part of the fun is this opens up space to experiment with where rendering and engine tech *could* have gone if the industry hadn't spent twenty years optimising for photorealism. A lot of modern engines share the same assumptions because they're all solving the same problem. When you take realism off the table, some of those assumptions might change. 
-- Material models don't have to be metallic-roughness.
-- Lighting doesn't have to conserve energy.
-- Atmosphere doesn't have to simulate scattering.
+Most modern engines are built around photorealistic rendering. That's a reasonable default. It's what the majority of the industry has been working toward for the last two decades. However, it means the rendering pipeline, material models, lighting systems, and GPU budget allocation in those engines all reflect the same set of assumptions. Even in simpler engines, when you want to make a stylised game, you're typically working against the grain. You're bolting NPR techniques on top.
+
+Wayfinder starts from a different assumption: the target is stylised. Not aggressively so, just that sixth-gen and early-00s-PC style that tried to make do with limited hardware and emerging techniques and technology. 
+
+When you make that decision at the engine level rather than at the content level, it hopefully allows for some change. Part of the fun will be that it opens up space to experiment with where rendering and engine tech *could* have gone instead. I can create speculative history timelines or stories about technology improvements that never occured and see if they actually work out.
+
+So we can ask questions about every part of the pipeline:
+- Material models don't have to be about physical surface properties.
+- Lighting doesn't have to conserve energy and can be simple or even cheat.
+- Atmosphere doesn't have to simulate physically-accurate scattering. It can be simulated to whatever standards I want or even be purely arist-driven.
 - Post-processing doesn't have to mimic a camera lens, etc.
 
-So, hopefully there are genuine spaces to play in: artist-driven shading responses, mood-based fog systems, exaggerated physics tuned for feel rather than accuracy, etc. It's a chance to ask "what if?" about the tech itself, not just the games.
+Hopefully there are genuine spaces to play in. Whether it's artist-driven or purely procedural/simulated, it's a chance to ask "what if?" and genuinely test it.
+
+More importantly, the GPU and CPU budget shifts. Photorealistic rendering is expensive. When you're not spending the majority of your frame time on complex material evaluation, denoising, or high-density geometry streaming, that budget becomes available for other things.
+
+The freed rendering budget goes into making the world feel more alive. Denser populations of NPCs that actually do things. Richer physics interactions. Larger numbers of entities coexisting in the same space without the frame rate collapsing.
+
+This is a core engine goal, not an aspirational stretch target. The ECS architecture, job system, and GPU-driven submission pipeline exist specifically to support high entity counts and dense simulation workloads. The rendering pipeline is designed to be cheap enough that simulation gets a meaningful share of the frame budget.
 
 ## Creative Direction
 
-Games built with Wayfinder should look like games on purpose not just whatever falls out of a PBR pipeline.
+The engine leans into runtime, dynamic systems: lots of dynamic lighting, global illumination, time-of-day, weather, physics, etc. Things that were too expensive to do properly in the early 2000s but aren't anymore. 
 
-The engine leans into runtime systems: dynamic lighting, time-of-day, weather, physics. Things that were too expensive to do properly in 2001 but aren't anymore. Post-processing should reinforce mood, not simulate a camera.
+We can explore different types of techniques and algorithms: 
+- We can take wholesale or repurpose modern ones
+- Devise completely novel techniques that fit our (hopefully) unique architecture
+- Rediscover forgotten, underutilised or underdeveloped ones that fell by the wayside for one reason or the other
+- Find techniques from other disciplines that might become more practical in our engine.
 
-## Principles
+## What You Can Build With It
 
-- **Dynamic over baked.** Prefer runtime computation over offline preprocessing. Lighting, simulation, environment state.
-- **Expressive over realistic.** Art direction comes first. Use physically-based techniques when they help the look, ignore them when they don't.
-- **Simple over ornate.** Clear data models, cheap iteration. Add complexity when it solves a real problem, not before.
-- **Explicit over implicit.** Runtime behaviour comes from data and systems, not hidden engine magic.
-- **Retro look, modern tools.** The target aesthetic is old. The build system, validation, iteration speed, and debugging shouldn't be.
+Wayfinder is a general-purpose engine with specific strengths. The kinds of projects it's well-suited for, roughly in order of ambition:
 
-## Non-Goals
+**General 2D and 3D games.** Anything a typical engine handles - platformers, adventure games, smaller-scope projects. Nothing special here, it just works.
 
-- Photorealistic rendering
-- Bake-heavy content pipelines
-- General-purpose engine for every art style
-- Physical accuracy over art direction
-- Recreating historical workflow pain for nostalgia
+**Sixth-generation-style action games.** Think character-action games, platformers, or stealth games in the vein of what the PS2, Dreamcast and GameCube era produced, but with modern engine architecture underneath. Better draw distances, more responsive controls, richer environments, no compromises from hardware limitations that defined that era. The kind of game where a developer in 2003 knew exactly what they wanted to make but couldn't because the hardware wasn't there.
+
+**Dense multiplayer worlds.** This is the ambitious end. A persistent online game with dense environments and hundreds to potentially low-to-mid thousands of characters in the same area. If we build it from the base up with this in mind and we don't care about photorealism, maybe we can achieve it because the polycounts will be lower, the rendering will be simpler, etc. Maybe we can beat something existing MMO engines struggle with, because those engines are carrying decades of architectural debt and were not designed from scratch with modern hardware in mind.

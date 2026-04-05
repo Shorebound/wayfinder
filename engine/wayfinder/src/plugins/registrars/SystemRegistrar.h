@@ -1,6 +1,7 @@
 #pragma once
 
 #include "gameplay/GameState.h"
+#include "plugins/IRegistrar.h"
 #include "wayfinder_exports.h"
 
 #include <functional>
@@ -16,7 +17,7 @@ namespace Wayfinder::Plugins
 {
     /// Internal storage and topological-sort logic for ECS system descriptors.
     /// Owned by PluginRegistry — not a subsystem.
-    class WAYFINDER_API SystemRegistrar
+    class WAYFINDER_API SystemRegistrar : public ::Wayfinder::IRegistrar
     {
     public:
         struct Descriptor
