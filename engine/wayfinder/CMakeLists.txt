@@ -65,6 +65,8 @@ set(ENGINE_ALL_SOURCES
   src/app/FpsOverlayLayer.cpp
   src/app/FpsOverlayLayer.h
   src/app/IApplicationState.h
+  src/app/InputSubsystem.cpp
+  src/app/InputSubsystem.h
   src/app/IOverlay.h
   src/app/OrchestrationTypes.h
   src/app/OverlayManifest.h
@@ -73,11 +75,19 @@ set(ENGINE_ALL_SOURCES
   src/app/Layer.h
   src/app/LayerStack.cpp
   src/app/LayerStack.h
+  src/app/RenderDeviceSubsystem.cpp
+  src/app/RenderDeviceSubsystem.h
+  src/app/RendererSubsystem.cpp
+  src/app/RendererSubsystem.h
   src/app/StateManifest.h
   src/app/StateSubsystem.h
   src/app/Subsystem.h
   src/app/SubsystemManifest.h
   src/app/SubsystemRegistry.h
+  src/app/TimeSubsystem.cpp
+  src/app/TimeSubsystem.h
+  src/app/WindowSubsystem.cpp
+  src/app/WindowSubsystem.h
 
   # Assets
   src/assets/AssetCache.h
