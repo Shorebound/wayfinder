@@ -20,6 +20,11 @@ The engine's application architecture is clean, extensible, and compositional - 
 - ✓ GameStateMachine with ActiveGameState singleton and RunCondition helpers - existing
 - ✓ ProjectDescriptor and EngineConfig loading - existing
 - ✓ Render graph pipeline with RenderFeature/RenderPass architecture - existing
+- ✓ Canvas-based render submission (SceneCanvas, UICanvas, DebugCanvas) - Validated in Phase 5
+- ✓ EngineRuntime decomposition into individual AppSubsystems (Window, Input, Time, RenderDevice, Renderer) - Validated in Phase 5
+- ✓ GameplayState wrapping Simulation into IApplicationState lifecycle - Validated in Phase 5
+- ✓ EditorState stub proving the IApplicationState pattern - Validated in Phase 5
+- ✓ FpsOverlay rewritten as PerformanceOverlay (IOverlay) - Validated in Phase 5
 
 ### Active
 
@@ -35,16 +40,11 @@ The engine's application architecture is clean, extensible, and compositional - 
 - [ ] Simulation class replacing Game (flecs world + scene management, ServiceProvider access)
 - [ ] ServiceProvider concept and EngineContextServiceProvider adapter
 - [ ] StandaloneServiceProvider for headless tests and tools
-- [ ] GameplayState wrapping Simulation into IApplicationState lifecycle
-- [ ] EditorState stub proving the IApplicationState pattern
 - [ ] StateMachine<TStateId> generic template for per-state sub-state machines
 - [ ] IStateUI interface for plugin-injected per-state UI
 - [ ] Per-plugin configuration replacing monolithic EngineConfig
-- [ ] Canvas-based render submission (SceneCanvas, UICanvas, DebugCanvas)
-- [ ] FpsOverlay rewritten from FpsOverlayLayer
 - [ ] DLL plugin system removal (PluginExport.h, PluginLoader.h, CreateGamePlugin)
 - [ ] LayerStack removal
-- [ ] EngineRuntime decomposition into individual AppSubsystems
 - [ ] Journey sandbox updated to use new architecture
 - [ ] Existing tests updated or rewritten for new architecture
 
@@ -109,4 +109,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-04-03 after initialization*
+*Last updated: 2026-04-05 after Phase 5 completion — Canvas types, AppSubsystem decomposition, GameplayState, EditorState, PerformanceOverlay*
