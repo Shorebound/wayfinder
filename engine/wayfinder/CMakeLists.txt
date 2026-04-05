@@ -147,12 +147,15 @@ set(ENGINE_ALL_SOURCES
   src/gameplay/Game.cpp
   src/gameplay/Game.h
   src/gameplay/GameContext.h
+  src/gameplay/GameplayState.cpp
+  src/gameplay/GameplayState.h
   src/gameplay/GameState.cpp
   src/gameplay/GameState.h
   src/gameplay/GameStateMachine.cpp
   src/gameplay/GameStateMachine.h
   src/gameplay/Simulation.cpp
   src/gameplay/Simulation.h
+  src/gameplay/SimulationConfig.h
   src/gameplay/StateMachine.h
   src/gameplay/Tag.cpp
   src/gameplay/Tag.h
