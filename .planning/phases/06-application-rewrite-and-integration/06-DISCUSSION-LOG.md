@@ -114,6 +114,21 @@ User identified that Phase 5 AppSubsystems are thin wrappers around PlatformBack
 
 ---
 
+## Null Implementation Removal
+
+User questioned whether Null implementations are necessary in v2 architecture. Concluded: headless = don't add the plugin, no fake subsystems needed.
+
+| Option | Description | Selected |
+|--------|-------------|----------|
+| Remove Null impls | Headless = no plugin registered. NullTime's deterministic tick moves to test infra as FixedTimeSubsystem. | Y |
+| Keep as NullSubsystems | Convert to standalone AppSubsystems for tests. | |
+| Keep NullTime only | Remove NullWindow/NullInput/NullDevice, keep NullTime as engine type. | |
+
+**User's choice:** Remove Null impls, rename NullTime to FixedTimeSubsystem in test infrastructure
+**Notes:** User observed Null types only exist because v1 factory pattern required a concrete subclass. V2 subsystem registry doesn't have that constraint. Agreed FixedTimeSubsystem is a better name for what the deterministic time source actually does.
+
+---
+
 ## Agent's Discretion
 
 - Internal layout of collapsed SDL subsystem implementations

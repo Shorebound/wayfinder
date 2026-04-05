@@ -17,7 +17,8 @@ Application runs entirely on v2 architecture. The v1 frame loop, EngineRuntime, 
 
 ### Platform Subsystem Collapse
 - **D-01:** Collapse the three-tier pattern (abstract platform interface + PlatformBackend enum factory + AppSubsystem wrapper) into direct subsystem implementations. E.g., `SDLWindowSubsystem` IS the AppSubsystem -- it directly creates and manages the SDL3 window without going through `Window::Create(PlatformBackend::SDL3)`. The abstract `Window`/`Input`/`Time` base classes and `PlatformBackend`/`RenderBackend` enum dispatch are removed.
-- **D-02:** Null (headless) implementations become `NullWindowSubsystem`, `NullInputSubsystem`, `NullTimeSubsystem`, `NullRenderDeviceSubsystem` -- standalone AppSubsystems, not factory products. Tests use Null subsystems directly. StandaloneServiceProvider pattern continues for tests that don't need subsystems at all.
+- **D-02:** Null platform implementations (NullWindow, NullInput, NullDevice) are removed entirely. In v2, headless = don't add the plugin. If no SDLPlatformPlugins is registered, those subsystems simply don't exist in the registry. Capability-gating means nothing requiring Presentation/Rendering activates. No NullWindowSubsystem, NullInputSubsystem, or NullRenderDeviceSubsystem needed.
+- **D-02a:** NullTime's deterministic tick (fixed 1/60f per frame) is valuable for reproducible test behaviour. It moves to test infrastructure as `FixedTimeSubsystem` -- a lightweight AppSubsystem living in the test helpers, not shipped with the engine. Integration tests that need frame-by-frame time control register it via a test plugin.
 - **D-03:** SDLPlatformPlugins is a plugin group (Phase 3 PluginGroup) that expands to SDLWindowPlugin + SDLInputPlugin + SDLTimePlugin. Three individual plugins, one convenience group. SDLRenderDevicePlugin and RendererPlugin are separate (render backend is GPU-specific, not OS-specific).
 - **D-04:** Build-time stripping (CMake options to exclude SDL code from binary) is deferred to a future platform phase. Phase 6 uses runtime-only capability gating -- unused subsystems are compiled but never activated. The plugin file decomposition makes future build-time stripping trivial.
 
@@ -53,8 +54,8 @@ Application runs entirely on v2 architecture. The v1 frame loop, EngineRuntime, 
 
 ### Test Migration
 - **D-13:** Full audit and rewrite of all test files. Every test is reviewed against v2 types. Tests that reference v1 types (EngineRuntime, Game, LayerStack, old Plugin) are rewritten. Tests that already use v2 types are verified correct.
-- **D-14:** New Application integration test added. Boots Application with Null subsystem plugins, enters a test state, ticks multiple frames, validates the frame sequence (ProcessPending -> events -> update -> render), verifies canvas submission, confirms clean shutdown. Headless, no GPU.
-- **D-15:** Null subsystem plugins (NullPlatformPlugins group) used in integration tests. Provides NullWindowSubsystem, NullInputSubsystem, NullTimeSubsystem, NullRenderDeviceSubsystem -- all headless, no SDL dependency.
+- **D-14:** New Application integration test added. Boots Application headless (no platform plugins), optionally adds a test `FixedTimeSubsystem` for deterministic ticking, enters a test state, ticks multiple frames, validates the frame sequence (ProcessPending -> events -> update -> render), confirms clean shutdown. No GPU, no SDL dependency.
+- **D-15:** No NullPlatformPlugins group. Tests that need subsystems register only what they need (e.g., a test `FixedTimePlugin`). Tests that don't need subsystems boot Application with no platform plugins at all -- the v2 architecture handles absent subsystems via capability-gating.
 
 ### Agent's Discretion
 - Internal layout of SDLWindowSubsystem, SDLInputSubsystem etc. (how they wrap SDL3 calls directly)
@@ -64,7 +65,7 @@ Application runs entirely on v2 architecture. The v1 frame loop, EngineRuntime, 
 - How EventQueue integrates with the new frame loop (same drain pattern or restructured)
 - JourneyPlugin::Build() implementation details (which components, systems, states it registers)
 - How existing render features adapt to the collapsed subsystem pattern
-- NullRendererSubsystem implementation (no-op or minimal stub)
+- How Application::Loop() handles absent subsystems (no window = no ShouldClose() check, etc.)
 
 ### Folded Todos
 None.
@@ -119,9 +120,9 @@ None.
 - `engine/wayfinder/src/platform/sdl3/SDL3Window.h` + `.cpp` -- SDL3 window impl. Core logic moves into SDLWindowSubsystem.
 - `engine/wayfinder/src/platform/sdl3/SDL3Input.h` + `.cpp` -- SDL3 input impl. Core logic moves into SDLInputSubsystem.
 - `engine/wayfinder/src/platform/sdl3/SDL3Time.h` + `.cpp` -- SDL3 time impl. Core logic moves into SDLTimeSubsystem.
-- `engine/wayfinder/src/platform/null/NullWindow.h` + `.cpp` -- Null window impl. Becomes NullWindowSubsystem.
-- `engine/wayfinder/src/platform/null/NullInput.h` + `.cpp` -- Null input impl. Becomes NullInputSubsystem.
-- `engine/wayfinder/src/platform/null/NullTime.h` + `.cpp` -- Null time impl. Becomes NullTimeSubsystem.
+- `engine/wayfinder/src/platform/null/NullWindow.h` -- Remove entirely. Headless = no window subsystem registered.
+- `engine/wayfinder/src/platform/null/NullInput.h` -- Remove entirely. Headless = no input subsystem registered.
+- `engine/wayfinder/src/platform/null/NullTime.h` -- Deterministic tick logic moves to test infrastructure as `FixedTimeSubsystem`. Engine file removed.
 - `engine/wayfinder/src/rendering/backend/sdl_gpu/SDLGPUDevice.h` + `.cpp` -- SDL_GPU device impl. Core logic moves into SDLRenderDeviceSubsystem.
 
 ### Test Files (to audit and rewrite)
