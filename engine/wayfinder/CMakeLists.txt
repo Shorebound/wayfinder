@@ -139,6 +139,8 @@ set(ENGINE_ALL_SOURCES
   src/gameplay/GameState.h
   src/gameplay/GameStateMachine.cpp
   src/gameplay/GameStateMachine.h
+  src/gameplay/Simulation.cpp
+  src/gameplay/Simulation.h
   src/gameplay/StateMachine.h
   src/gameplay/Tag.cpp
   src/gameplay/Tag.h
@@ -164,6 +166,7 @@ set(ENGINE_ALL_SOURCES
   src/plugins/Plugin.h
   src/plugins/PluginRegistry.cpp
   src/plugins/PluginRegistry.h
+  src/plugins/EngineContextServiceProvider.h
   src/plugins/ServiceProvider.h
   src/plugins/registrars/StateRegistrar.cpp
   src/plugins/registrars/StateRegistrar.h
