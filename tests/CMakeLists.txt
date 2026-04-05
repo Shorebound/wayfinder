@@ -74,6 +74,7 @@ add_executable(${WAYFINDER_CORE_TEST_NAME}
   app/EngineRuntimeTests.cpp
   app/EngineConfigTests.cpp
   app/SubsystemTests.cpp
+  app/EngineSubsystemTests.cpp
   gameplay/TagTests.cpp
   gameplay/TagRegistryTests.cpp
   gameplay/GameStateMachineTests.cpp
