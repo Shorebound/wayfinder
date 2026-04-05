@@ -230,6 +230,8 @@ set(ENGINE_ALL_SOURCES
   src/rendering/backend/sdl_gpu/BlitMipGenerator.h
 
   # Rendering — Graph
+  src/rendering/graph/Canvas.cpp
+  src/rendering/graph/Canvas.h
   src/rendering/graph/RenderFrame.h
   src/rendering/graph/RenderFrameUtils.cpp
   src/rendering/graph/RenderFrameUtils.h
