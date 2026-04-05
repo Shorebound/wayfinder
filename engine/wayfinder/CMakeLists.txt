@@ -157,6 +157,8 @@ set(ENGINE_ALL_SOURCES
   src/gameplay/Tag.cpp
   src/gameplay/Tag.h
   src/gameplay/NativeTag.h
+  src/gameplay/SceneRenderExtractor.cpp
+  src/gameplay/SceneRenderExtractor.h
   src/gameplay/TagRegistry.cpp
   src/gameplay/TagRegistry.h
 
