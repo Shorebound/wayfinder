@@ -222,6 +222,18 @@ set(ENGINE_ALL_SOURCES
   src/platform/sdl3/SDL3Time.h
   src/platform/sdl3/SDL3Window.cpp
   src/platform/sdl3/SDL3Window.h
+  src/platform/sdl3/SDLInputSubsystem.cpp
+  src/platform/sdl3/SDLInputSubsystem.h
+  src/platform/sdl3/SDLPlatformPlugins.cpp
+  src/platform/sdl3/SDLPlatformPlugins.h
+  src/platform/sdl3/SDLRenderDevicePlugin.cpp
+  src/platform/sdl3/SDLRenderDevicePlugin.h
+  src/platform/sdl3/SDLRenderDeviceSubsystem.cpp
+  src/platform/sdl3/SDLRenderDeviceSubsystem.h
+  src/platform/sdl3/SDLTimeSubsystem.cpp
+  src/platform/sdl3/SDLTimeSubsystem.h
+  src/platform/sdl3/SDLWindowSubsystem.cpp
+  src/platform/sdl3/SDLWindowSubsystem.h
 
   # Project
   src/project/ProjectDescriptor.cpp
