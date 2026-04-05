@@ -121,7 +121,15 @@ Plans:
   1. Application::Loop() runs the v2 frame sequence (ProcessPending -> events -> state update -> render) with no v1 codepath
   2. Journey sandbox boots through AddPlugin<T>(), enters GameplayState, and renders frames
   3. All existing tests pass against the v2 architecture (updated or rewritten as needed)
-**Plans**: TBD
+**Plans:** 6 plans
+
+Plans:
+- [ ] 06-01-PLAN.md -- SDL Platform Subsystem Collapse (SDLWindowSubsystem, SDLInputSubsystem, SDLTimeSubsystem)
+- [ ] 06-02-PLAN.md -- SDL Render Device + Platform Plugin Types (SDLRenderDeviceSubsystem, SDLPlatformPlugins, SDLRenderDevicePlugin)
+- [ ] 06-03-PLAN.md -- EngineRenderPlugin + Test Infrastructure (EngineRenderPlugin, FixedTimeSubsystem)
+- [ ] 06-04-PLAN.md -- Application Rewrite + V1 Removal (v2 Initialise/Loop/Shutdown, remove all v1 files)
+- [ ] 06-05-PLAN.md -- Journey Sandbox Rewrite (JourneyPlugin, v2 main())
+- [ ] 06-06-PLAN.md -- Test Migration + Integration Tests (ApplicationIntegrationTests, test audit)
 
 ### Phase 7: Cleanup
 **Goal**: All dead v1 code removed; codebase is purely v2 with no vestigial types or includes
