@@ -52,6 +52,8 @@ set(ENGINE_ALL_SOURCES
   src/app/ApplicationStateMachine.cpp
   src/app/ApplicationStateMachine.h
   src/app/AppSubsystem.h
+  src/app/EditorState.cpp
+  src/app/EditorState.h
   src/app/ConfigRegistrar.cpp
   src/app/ConfigRegistrar.h
   src/app/ConfigService.cpp
