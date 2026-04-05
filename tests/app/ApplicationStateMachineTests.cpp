@@ -530,7 +530,7 @@ namespace Wayfinder::Tests
             CHECK(exitHookFired);
         }
 
-        TEST_CASE("OnEnter failure during flat transition is handled gracefully")
+        TEST_CASE("Flat transition does not crash on enter")
         {
             ApplicationStateMachine asm_;
             asm_.AddState<MockStateA>();
@@ -540,24 +540,12 @@ namespace Wayfinder::Tests
             asm_.AddTransition<MockStateB, MockStateA>();
             REQUIRE(asm_.Finalise().has_value());
 
-            // Make B fail on enter.
             EngineContext ctx;
             asm_.Start(ctx);
-            auto* stateB = dynamic_cast<MockStateB*>([&]() -> IApplicationState*
-            {
-                // Navigate through internal storage - we'll transition and check.
-                // Instead, we request transition and check the outcome.
-                return nullptr;
-            }());
 
-            // We can't directly set B's flag before transition since we don't have direct access.
-            // But the ASM owns the instances, so we need to get it via the stack after transition.
-            // Instead, let's test with a dedicated type that always fails.
-
-            // Simplified: just verify the ASM doesn't crash and transitions proceed
-            // despite the failure (the error is logged as a warning).
+            // Verify the ASM transitions cleanly.
             asm_.RequestTransition<MockStateB>();
-            asm_.ProcessPending(ctx); // Should not crash even if OnEnter succeeds
+            asm_.ProcessPending(ctx);
             CHECK(asm_.GetActiveStateType() == std::type_index(typeid(MockStateB)));
         }
 

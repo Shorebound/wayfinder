@@ -67,6 +67,8 @@ set(ENGINE_ALL_SOURCES
   src/app/IApplicationState.h
   src/app/IOverlay.h
   src/app/OrchestrationTypes.h
+  src/app/OverlayStack.cpp
+  src/app/OverlayStack.h
   src/app/Layer.h
   src/app/LayerStack.cpp
   src/app/LayerStack.h
