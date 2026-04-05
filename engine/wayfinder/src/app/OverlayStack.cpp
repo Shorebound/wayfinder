@@ -1,6 +1,7 @@
 #include "OverlayStack.h"
 
 #include "IOverlay.h"
+#include "core/Assert.h"
 #include "core/Log.h"
 #include "core/events/EventQueue.h"
 
@@ -12,6 +13,8 @@ namespace Wayfinder
 
     void OverlayStack::AddOverlay(IOverlay* overlay, std::type_index type, OverlayDescriptor descriptor, int32_t registrationIndex)
     {
+        WAYFINDER_ASSERT(overlay != nullptr, "AddOverlay called with null overlay");
+
         OverlayEntry entry;
         entry.Overlay = overlay;
         entry.Type = type;
@@ -100,6 +103,11 @@ namespace Wayfinder
         {
             if (entry.Type == overlayType)
             {
+                if (entry.IsActive())
+                {
+                    return; // Already active, avoid double-attach.
+                }
+
                 entry.ManuallyActive = true;
                 if (entry.CapabilitySatisfied)
                 {

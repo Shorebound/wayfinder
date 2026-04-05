@@ -17,14 +17,14 @@ Some part of this has been implemented. Critically evaluate your scope. Grade it
 Make sure you adhere to pillars and engineering standards set out in the copilot instructions. Do not be sycophantic, be honest and direct. We want a future-proofed, elegantly designed engine.
 
 ## Code Review
-Here are some code review comments from coderabbit. Verify each finding against the current code and only fix it if needed. If something does not have an obvious solution, take the time to think it through. We do not want band-aid fixes that kick the can down the road.
+Here are some code review comments from coderabbit. Verify each finding against the current code and only fix it if needed. If something does not have an obvious solution, take the time to think it through. We do not want band-aid fixes that kick the can down the road. If you need any clarification or have any questions, use the askQuestions tool and relentlessly interview me about it until we reach a shared understanding.
 
 ## GSD Research
 Yes, research.
 
 We are trying to make clean, elegant and idiomatic modern C++23 code. So let's make sure we research the idioms and patterns relevant to this phase - we want to use the latest and best features where they genuinely improve the code. As well as the best practices for the specific architectural patterns we're implementing. 
 
-Also remember this is game engine, research how other engines approach this problem.
+Also remember this is a game engine. Research how other engines approach this problem.
 
 Engines worth referencing:
 - [Oxylus](https://github.com/oxylusengine/Oxylus) 
@@ -36,4 +36,4 @@ Engines worth referencing:
 - Spartan
 
 
-We're taking inspiration from their architecture and design decisions, not their code style. Our code should be cleaner than all of them.
+We're taking inspiration from their architecture and design decisions, not their code style. Our code should be cleaner than all of them. If you have any considerations or questions, you can use the askQuestions tool and relentlessly interview me until we have a shared understanding.

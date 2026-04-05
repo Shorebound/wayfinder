@@ -52,7 +52,7 @@ namespace Wayfinder
         void UpdateCapabilities(const CapabilitySet& effectiveCaps, EngineContext& context);
 
         /// Process events top-down (highest priority first). Returns true if any overlay consumed.
-        auto ProcessEvents(EngineContext& context, EventQueue& events) -> bool;
+        [[nodiscard]] auto ProcessEvents(EngineContext& context, EventQueue& events) -> bool;
 
         /// Tick active overlays in priority order (low to high).
         void Update(EngineContext& context, float deltaTime);
