@@ -35,11 +35,37 @@ namespace Wayfinder
             }
         }
 
+        /// Fire all OnStateEnter hooks by type_index (runtime dispatch).
+        void FireStateEnter(EngineContext& context, std::type_index stateType) const
+        {
+            auto it = OnStateEnter.find(stateType);
+            if (it != OnStateEnter.end())
+            {
+                for (const auto& hook : it->second)
+                {
+                    hook(context);
+                }
+            }
+        }
+
         /// Fire all OnStateExit hooks for a specific state type.
         template<typename TState>
         void FireStateExit(EngineContext& context) const
         {
             auto it = OnStateExit.find(std::type_index(typeid(TState)));
+            if (it != OnStateExit.end())
+            {
+                for (const auto& hook : it->second)
+                {
+                    hook(context);
+                }
+            }
+        }
+
+        /// Fire all OnStateExit hooks by type_index (runtime dispatch).
+        void FireStateExit(EngineContext& context, std::type_index stateType) const
+        {
+            auto it = OnStateExit.find(stateType);
             if (it != OnStateExit.end())
             {
                 for (const auto& hook : it->second)

@@ -175,45 +175,39 @@ private:
 
 **What:** Two-sided agreement on what the background state does while suspended.
 
-**Struct design:**
+**Recommended approach: `BackgroundMode` flags enum.**
+
+Collapses three bool structs into a single type. Intersection is bitwise AND -- no free function needed. Matches the codebase idiom of `enum class` with bitwise ops.
 
 ```cpp
-struct BackgroundPreferences
+enum class BackgroundMode : uint8_t
 {
-    bool WantsBackgroundUpdate = false;
-    bool WantsBackgroundRender = false;
+    None   = 0,
+    Update = 1 << 0,
+    Render = 1 << 1,
+    All    = Update | Render,
 };
 
-struct SuspensionPolicy
-{
-    bool AllowBackgroundUpdate = false;
-    bool AllowBackgroundRender = true;
-};
+// Bitwise operators (operator|, operator&, operator~, etc.)
 ```
 
-Defaults are conservative: background state neither updates nor renders unless both sides agree. `AllowBackgroundRender` defaults to `true` because the common case (pause menu over gameplay) wants the game visible behind the overlay.
-
-**Intersection computation:**
+IApplicationState provides two virtual methods returning the same type:
 
 ```cpp
-struct EffectiveBackgroundPolicy
-{
-    bool Update;
-    bool Render;
-};
+// What the state wants when it's in the background (suspended)
+virtual auto GetBackgroundPreferences() const -> BackgroundMode { return BackgroundMode::None; }
 
-[[nodiscard]] constexpr auto ComputeBackgroundPolicy(
-    const BackgroundPreferences& background,
-    const SuspensionPolicy& foreground) -> EffectiveBackgroundPolicy
-{
-    return {
-        .Update = background.WantsBackgroundUpdate and foreground.AllowBackgroundUpdate,
-        .Render = background.WantsBackgroundRender and foreground.AllowBackgroundRender,
-    };
-}
+// What the state allows the background to do when it's the foreground
+virtual auto GetSuspensionPolicy() const -> BackgroundMode { return BackgroundMode::Render; }
 ```
 
-**Usage in the frame loop:** After ProcessPending, iterate the stack from back to front. For each state below the top, check if the EffectiveBackgroundPolicy allows update/render. Call OnUpdate/OnRender only if allowed.
+Defaults are conservative: background state neither updates nor renders unless both sides agree. `GetSuspensionPolicy` defaults to `Render` because the common case (pause menu over gameplay) wants the game visible behind the overlay.
+
+**Intersection:** `auto effective = prefs & policy;`
+
+**Usage in the frame loop:** After ProcessPending, iterate the stack from back to front. For each state below the top, compute `effective = background.GetBackgroundPreferences() & foreground.GetSuspensionPolicy()`. Call OnUpdate if `(effective & BackgroundMode::Update) != BackgroundMode::None`, OnRender likewise.
+
+**Alternative (not recommended):** Separate `BackgroundPreferences` / `SuspensionPolicy` / `EffectiveBackgroundPolicy` bool structs with a free `ComputeBackgroundPolicy()` function. Works but introduces three types and a function for what is naturally a bitwise AND of flags. The flags enum is more extensible (add `Audio` with one enumerator) and eliminates the type-safety risk of mixing prefs/policy since both sides are conceptually the same domain.
 
 ### Pattern 3: OverlayStack as Non-Owning Execution View
 
