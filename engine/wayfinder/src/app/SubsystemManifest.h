@@ -53,12 +53,21 @@ namespace Wayfinder
         auto operator=(const SubsystemManifest&) -> SubsystemManifest& = delete;
         SubsystemManifest(SubsystemManifest&&) noexcept = default;
         auto operator=(SubsystemManifest&&) noexcept -> SubsystemManifest& = default;
-        ~SubsystemManifest() = default;
+
+        ~SubsystemManifest()
+        {
+            Shutdown();
+        }
 
         /// Create and initialise subsystems in topological order.
         /// Subsystems whose RequiredCapabilities are not satisfied by effectiveCaps are skipped.
         [[nodiscard]] auto Initialise(EngineContext& context, const CapabilitySet& effectiveCaps) -> Result<void>
         {
+            if (m_initialised)
+            {
+                return MakeError("SubsystemManifest::Initialise() called while already initialised");
+            }
+
             for (const size_t i : m_initOrder)
             {
                 auto& entry = m_entries[i];
@@ -102,6 +111,7 @@ namespace Wayfinder
                 entry.Active = true;
             }
 
+            m_initialised = true;
             return {};
         }
 
@@ -118,6 +128,7 @@ namespace Wayfinder
                     entry.Instance.reset();
                 }
             }
+            m_initialised = false;
         }
 
         /// Retrieve a live subsystem by type. Asserts if not found or not active.
@@ -224,6 +235,7 @@ namespace Wayfinder
         std::unordered_map<std::type_index, size_t> m_typeToIndex;
         std::unordered_map<std::type_index, std::type_index> m_abstractRedirect;
         std::vector<size_t> m_initOrder;
+        bool m_initialised = false;
 
         /// Private constructor - only SubsystemRegistry::Finalise() creates manifests.
         SubsystemManifest(std::vector<Entry> entries, std::unordered_map<std::type_index, size_t> typeToIndex, std::unordered_map<std::type_index, std::type_index> abstractRedirect, std::vector<size_t> initOrder)

@@ -13,7 +13,6 @@
 namespace Wayfinder
 {
     class AppSubsystem;
-    class EventQueue;
     class IApplicationState;
     class OverlayStack;
     class StateSubsystem;

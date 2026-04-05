@@ -30,6 +30,24 @@ namespace Wayfinder::Tests
 
     static LifecycleLog* s_log = nullptr;
 
+    /// RAII guard that sets s_log on construction and restores it on destruction.
+    struct LifecycleLogGuard
+    {
+        explicit LifecycleLogGuard(LifecycleLog& log) : m_previous(s_log)
+        {
+            s_log = &log;
+        }
+        ~LifecycleLogGuard()
+        {
+            s_log = m_previous;
+        }
+        LifecycleLogGuard(const LifecycleLogGuard&) = delete;
+        auto operator=(const LifecycleLogGuard&) -> LifecycleLogGuard& = delete;
+
+    private:
+        LifecycleLog* m_previous;
+    };
+
     class SubsystemA : public GameSubsystem
     {
     public:
@@ -129,7 +147,7 @@ namespace Wayfinder::Tests
         TEST_CASE("Initialise calls Initialise on each subsystem")
         {
             LifecycleLog log;
-            s_log = &log;
+            LifecycleLogGuard guard(log);
 
             SubsystemCollection<GameSubsystem> collection;
             collection.Register<SubsystemA>();
@@ -141,13 +159,12 @@ namespace Wayfinder::Tests
             CHECK(log.Events[1] == "B.Init");
 
             collection.Shutdown();
-            s_log = nullptr;
         }
 
         TEST_CASE("Shutdown calls Shutdown in reverse order")
         {
             LifecycleLog log;
-            s_log = &log;
+            LifecycleLogGuard guard(log);
 
             SubsystemCollection<GameSubsystem> collection;
             collection.Register<SubsystemA>();
@@ -160,14 +177,12 @@ namespace Wayfinder::Tests
             REQUIRE(log.Events.size() == 2);
             CHECK(log.Events[0] == "B.Shutdown");
             CHECK(log.Events[1] == "A.Shutdown");
-
-            s_log = nullptr;
         }
 
         TEST_CASE("ShouldCreate=false skips subsystem creation")
         {
             LifecycleLog log;
-            s_log = &log;
+            LifecycleLogGuard guard(log);
 
             SubsystemCollection<GameSubsystem> collection;
             collection.Register<SubsystemC>(); // ShouldCreate returns false
@@ -177,13 +192,12 @@ namespace Wayfinder::Tests
             CHECK(log.Events.empty()); // Init never called
 
             collection.Shutdown();
-            s_log = nullptr;
         }
 
         TEST_CASE("Static predicate gating skips creation")
         {
             LifecycleLog log;
-            s_log = &log;
+            LifecycleLogGuard guard(log);
 
             SubsystemCollection<GameSubsystem> collection;
             collection.Register<SubsystemA>([]() -> bool
@@ -196,7 +210,6 @@ namespace Wayfinder::Tests
             CHECK(log.Events.empty());
 
             collection.Shutdown();
-            s_log = nullptr;
         }
 
         TEST_CASE("Subsystems are gone after Shutdown")
@@ -271,7 +284,7 @@ namespace Wayfinder::Tests
         TEST_CASE("Registers and initialises in SubsystemCollection")
         {
             LifecycleLog log;
-            s_log = &log;
+            LifecycleLogGuard guard(log);
 
             SubsystemCollection<AppSubsystem> collection;
             collection.Register<TestAppSubsystem>();
@@ -284,8 +297,6 @@ namespace Wayfinder::Tests
             collection.Shutdown();
             REQUIRE(log.Events.size() == 2);
             CHECK(log.Events[1] == "App.Shutdown");
-
-            s_log = nullptr;
         }
     }
 
@@ -294,7 +305,7 @@ namespace Wayfinder::Tests
         TEST_CASE("Registers and initialises in SubsystemCollection")
         {
             LifecycleLog log;
-            s_log = &log;
+            LifecycleLogGuard guard(log);
 
             SubsystemCollection<StateSubsystem> collection;
             collection.Register<TestStateSubsystem>();
@@ -307,8 +318,6 @@ namespace Wayfinder::Tests
             collection.Shutdown();
             REQUIRE(log.Events.size() == 2);
             CHECK(log.Events[1] == "State.Shutdown");
-
-            s_log = nullptr;
         }
     }
 
@@ -358,7 +367,7 @@ namespace Wayfinder::Tests
     class RegSubA : public AppSubsystem
     {
     public:
-        auto Initialise(EngineContext& context) -> Result<void> override
+        auto Initialise(EngineContext& /*context*/) -> Result<void> override
         {
             if (s_log)
             {
@@ -378,7 +387,7 @@ namespace Wayfinder::Tests
     class RegSubB : public AppSubsystem
     {
     public:
-        auto Initialise(EngineContext& context) -> Result<void> override
+        auto Initialise(EngineContext& /*context*/) -> Result<void> override
         {
             if (s_log)
             {
@@ -398,7 +407,7 @@ namespace Wayfinder::Tests
     class RegSubC : public AppSubsystem
     {
     public:
-        auto Initialise(EngineContext& context) -> Result<void> override
+        auto Initialise(EngineContext& /*context*/) -> Result<void> override
         {
             if (s_log)
             {
@@ -418,7 +427,7 @@ namespace Wayfinder::Tests
     class FailingSub : public AppSubsystem
     {
     public:
-        auto Initialise(EngineContext& context) -> Result<void> override
+        auto Initialise(EngineContext& /*context*/) -> Result<void> override
         {
             if (s_log)
             {
@@ -444,7 +453,7 @@ namespace Wayfinder::Tests
     class ConcreteService : public IAbstractService
     {
     public:
-        auto Initialise(EngineContext& context) -> Result<void> override
+        auto Initialise(EngineContext& /*context*/) -> Result<void> override
         {
             return {};
         }
@@ -457,7 +466,7 @@ namespace Wayfinder::Tests
     class CapGatedSub : public AppSubsystem
     {
     public:
-        auto Initialise(EngineContext& context) -> Result<void> override
+        auto Initialise(EngineContext& /*context*/) -> Result<void> override
         {
             if (s_log)
             {
@@ -499,7 +508,7 @@ namespace Wayfinder::Tests
         TEST_CASE("Topological init order respected")
         {
             LifecycleLog log;
-            s_log = &log;
+            LifecycleLogGuard guard(log);
 
             TestEngineRuntime runtime;
             auto ctx = runtime.GetContext();
@@ -520,13 +529,12 @@ namespace Wayfinder::Tests
             CHECK(log.Events[1] == "B.Init");
 
             manifest.Shutdown();
-            s_log = nullptr;
         }
 
         TEST_CASE("Reverse shutdown order")
         {
             LifecycleLog log;
-            s_log = &log;
+            LifecycleLogGuard guard(log);
 
             TestEngineRuntime runtime;
             auto ctx = runtime.GetContext();
@@ -547,14 +555,12 @@ namespace Wayfinder::Tests
             REQUIRE(log.Events.size() == 2);
             CHECK(log.Events[0] == "B.Shutdown");
             CHECK(log.Events[1] == "A.Shutdown");
-
-            s_log = nullptr;
         }
 
         TEST_CASE("Three-node dependency chain")
         {
             LifecycleLog log;
-            s_log = &log;
+            LifecycleLogGuard guard(log);
 
             TestEngineRuntime runtime;
             auto ctx = runtime.GetContext();
@@ -583,8 +589,6 @@ namespace Wayfinder::Tests
             CHECK(log.Events[0] == "C.Shutdown");
             CHECK(log.Events[1] == "B.Shutdown");
             CHECK(log.Events[2] == "A.Shutdown");
-
-            s_log = nullptr;
         }
 
         TEST_CASE("Cycle detection with two nodes")
@@ -650,7 +654,7 @@ namespace Wayfinder::Tests
         TEST_CASE("Capability gating skips subsystem when not satisfied")
         {
             LifecycleLog log;
-            s_log = &log;
+            LifecycleLogGuard guard(log);
             TagRegistryFixture tags;
 
             TestEngineRuntime runtime;
@@ -675,13 +679,12 @@ namespace Wayfinder::Tests
             CHECK(log.Events.empty()); // Never initialised
 
             manifest.Shutdown();
-            s_log = nullptr;
         }
 
         TEST_CASE("Capability gating activates when satisfied")
         {
             LifecycleLog log;
-            s_log = &log;
+            LifecycleLogGuard guard(log);
             TagRegistryFixture tags;
 
             TestEngineRuntime runtime;
@@ -708,7 +711,6 @@ namespace Wayfinder::Tests
             CHECK(log.Events[0] == "CapGated.Init");
 
             manifest.Shutdown();
-            s_log = nullptr;
         }
 
         TEST_CASE("Empty RequiredCapabilities always activates")
@@ -732,7 +734,7 @@ namespace Wayfinder::Tests
         TEST_CASE("Fail-fast on Initialise error with reverse cleanup")
         {
             LifecycleLog log;
-            s_log = &log;
+            LifecycleLogGuard guard(log);
 
             TestEngineRuntime runtime;
             auto ctx = runtime.GetContext();
@@ -756,8 +758,6 @@ namespace Wayfinder::Tests
             CHECK(log.Events[0] == "A.Init");
             CHECK(log.Events[1] == "Fail.Init");
             CHECK(log.Events[2] == "A.Shutdown");
-
-            s_log = nullptr;
         }
 
         TEST_CASE("TryGet returns nullptr for unregistered type")
@@ -837,7 +837,7 @@ namespace Wayfinder::Tests
         TEST_CASE("Multiple independent subsystems all initialise")
         {
             LifecycleLog log;
-            s_log = &log;
+            LifecycleLogGuard guard(log);
 
             TestEngineRuntime runtime;
             auto ctx = runtime.GetContext();
@@ -858,7 +858,6 @@ namespace Wayfinder::Tests
             CHECK(log.Events.size() == 3);
 
             manifest.Shutdown();
-            s_log = nullptr;
         }
     }
 

@@ -15,21 +15,21 @@ namespace
         {
             if (node.is_value())
             {
-                if (auto v = node.value<int64_t>())
+                if (auto v_int = node.value<int64_t>())
                 {
-                    base.insert_or_assign(key, *v);
+                    base.insert_or_assign(key, *v_int);
                 }
-                else if (auto v = node.value<double>())
+                else if (auto v_double = node.value<double>())
                 {
-                    base.insert_or_assign(key, *v);
+                    base.insert_or_assign(key, *v_double);
                 }
-                else if (auto v = node.value<std::string>())
+                else if (auto v_str = node.value<std::string>())
                 {
-                    base.insert_or_assign(key, *v);
+                    base.insert_or_assign(key, *v_str);
                 }
-                else if (auto v = node.value<bool>())
+                else if (auto v_bool = node.value<bool>())
                 {
-                    base.insert_or_assign(key, *v);
+                    base.insert_or_assign(key, *v_bool);
                 }
             }
             else if (const auto* subTable = node.as_table())

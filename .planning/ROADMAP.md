@@ -88,12 +88,12 @@ Plans:
 **Plans:** 6 plans
 
 Plans:
-- [ ] 04-01-PLAN.md -- Orchestration vocabulary types + IOverlay::OnEvent signature change
-- [ ] 04-02-PLAN.md -- ApplicationStateMachine core (flat/push/pop, deferred, graph validation)
-- [ ] 04-03-PLAN.md -- OverlayStack (capability-gated, event consumption, runtime toggle)
-- [ ] 04-04-PLAN.md -- Simulation StateSubsystem + EngineContextServiceProvider adapter
-- [ ] 04-05-PLAN.md -- AppBuilder state/overlay/UI registration extensions + manifests
-- [ ] 04-06-PLAN.md -- EngineContext Phase 4 wiring + orchestration integration tests
+- [x] 04-01-PLAN.md -- Orchestration vocabulary types + IOverlay::OnEvent signature change
+- [x] 04-02-PLAN.md -- ApplicationStateMachine core (flat/push/pop, deferred, graph validation)
+- [x] 04-03-PLAN.md -- OverlayStack (capability-gated, event consumption, runtime toggle)
+- [x] 04-04-PLAN.md -- Simulation StateSubsystem + EngineContextServiceProvider adapter
+- [x] 04-05-PLAN.md -- AppBuilder state/overlay/UI registration extensions + manifests
+- [x] 04-06-PLAN.md -- EngineContext Phase 4 wiring + orchestration integration tests
 
 ### Phase 5: Concrete States and Engine Decomposition
 **Goal**: V2 architecture handles real workloads -- GameplayState runs simulation, EngineRuntime is split into independent AppSubsystems, rendering uses canvas submission

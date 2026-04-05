@@ -4,6 +4,7 @@
 #include <functional>
 #include <queue>
 #include <span>
+#include <stdexcept>
 #include <string>
 #include <vector>
 
@@ -31,12 +32,22 @@ namespace Wayfinder
      */
     [[nodiscard]] inline auto TopologicalSort(size_t nodeCount, std::span<const std::vector<size_t>> adjacency, std::function<std::string(size_t)> nameOf = {}) -> TopologicalSortResult
     {
-        // Compute in-degree from adjacency
+        // precondition: adjacency.size() == nodeCount
+        if (adjacency.size() != nodeCount)
+        {
+            throw std::out_of_range(std::format("TopologicalSort: adjacency.size() ({}) != nodeCount ({})", adjacency.size(), nodeCount));
+        }
+
+        // Compute in-degree from adjacency, validating edge targets
         std::vector<size_t> inDegree(nodeCount, 0);
         for (size_t i = 0; i < nodeCount; ++i)
         {
             for (const size_t dependent : adjacency[i])
             {
+                if (dependent >= nodeCount)
+                {
+                    throw std::out_of_range(std::format("TopologicalSort: edge target {} out of range [0, {})", dependent, nodeCount));
+                }
                 ++inDegree[dependent];
             }
         }
@@ -74,78 +85,84 @@ namespace Wayfinder
         {
             result.HasCycle = true;
 
-            // Extract cycle path from residual nodes with non-zero in-degree
-            size_t start = 0;
-            for (size_t i = 0; i < nodeCount; ++i)
+            // Extract cycle path from residual nodes using back-edge detection.
+            // After Kahn's, all residual nodes have inDegree > 0.
+            auto getName = [&](size_t idx) -> std::string
             {
-                if (inDegree[i] > 0)
+                return nameOf ? nameOf(idx) : std::format("node[{}]", idx);
+            };
+
+            std::vector<int> pos(nodeCount, -1);
+            std::vector<bool> globalVisited(nodeCount, false);
+            std::vector<size_t> cyclePath;
+
+            for (size_t s = 0; s < nodeCount and cyclePath.empty(); ++s)
+            {
+                if (inDegree[s] == 0 or globalVisited[s])
                 {
-                    start = i;
-                    break;
+                    continue;
                 }
-            }
 
-            // Follow edges to trace the cycle
-            std::vector<bool> visited(nodeCount, false);
-            std::vector<size_t> path;
-            size_t current = start;
+                std::vector<size_t> path;
+                size_t current = s;
 
-            while (not visited[current])
-            {
-                visited[current] = true;
-                path.push_back(current);
-
-                bool found = false;
-                for (const size_t next : adjacency[current])
+                while (not globalVisited[current] and pos[current] < 0)
                 {
-                    if (inDegree[next] > 0)
+                    pos[current] = static_cast<int>(path.size());
+                    path.push_back(current);
+
+                    bool found = false;
+                    for (const size_t next : adjacency[current])
                     {
-                        current = next;
-                        found = true;
+                        if (inDegree[next] > 0 and not globalVisited[next])
+                        {
+                            current = next;
+                            found = true;
+                            break;
+                        }
+                    }
+
+                    if (not found)
+                    {
                         break;
                     }
                 }
-                if (not found)
+
+                if (pos[current] >= 0)
                 {
-                    break;
+                    // Back-edge found: cycle is path[pos[current]..end]
+                    for (size_t i = static_cast<size_t>(pos[current]); i < path.size(); ++i)
+                    {
+                        cyclePath.push_back(path[i]);
+                    }
+                }
+
+                // Mark visited and reset pos for next walk
+                for (const size_t node : path)
+                {
+                    globalVisited[node] = true;
+                    pos[node] = -1;
                 }
             }
 
-            // current is the node we revisited - extract the cycle from the path
-            auto getName = [&](size_t idx) -> std::string
+            // Build human-readable cycle string
+            std::string cycleStr;
+            for (const size_t node : cyclePath)
             {
-                if (nameOf)
+                if (not cycleStr.empty())
                 {
-                    return nameOf(idx);
+                    cycleStr += " -> ";
                 }
-                return std::format("node[{}]", idx);
-            };
-
-            std::string cyclePath;
-            bool inCycle = false;
-            for (const size_t node : path)
-            {
-                if (node == current)
-                {
-                    inCycle = true;
-                }
-                if (inCycle)
-                {
-                    if (not cyclePath.empty())
-                    {
-                        cyclePath += " -> ";
-                    }
-                    cyclePath += getName(node);
-                }
+                cycleStr += getName(node);
             }
             // Close the cycle
             if (not cyclePath.empty())
             {
-                cyclePath += " -> ";
-                cyclePath += getName(current);
+                cycleStr += " -> ";
+                cycleStr += getName(cyclePath.front());
             }
 
-            result.CyclePath = std::move(cyclePath);
+            result.CyclePath = std::move(cycleStr);
         }
 
         return result;

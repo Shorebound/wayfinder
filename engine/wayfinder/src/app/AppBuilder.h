@@ -61,6 +61,7 @@ namespace Wayfinder
         void AddPlugin()
         {
             WAYFINDER_ASSERT(not m_finalised, "Cannot add plugins after Finalise()");
+            WAYFINDER_ASSERT(not m_building, "Cannot add plugins during Build() phase");
 
             if constexpr (PluginType<T>)
             {
@@ -261,7 +262,7 @@ namespace Wayfinder
             auto tableResult = configReg.LoadTable(key, m_configDir, m_savedDir);
             if (not tableResult)
             {
-                Log::Warn(LogEngine, "Config load failed for '{}': {}", key, tableResult.error().GetMessage());
+                m_configErrors.push_back(std::format("Config load failed for '{}': {}", key, tableResult.error().GetMessage()));
                 return T{};
             }
 
@@ -319,6 +320,8 @@ namespace Wayfinder
         std::unordered_map<std::type_index, std::function<std::unique_ptr<IStateUI>()>> m_stateUIFactories;
 
         bool m_finalised = false;
+        bool m_building = false;
+        std::vector<std::string> m_configErrors;
     };
 
 } // namespace Wayfinder

@@ -56,9 +56,22 @@ namespace Wayfinder
         }
 
         // Step 3: Call Build() in topological order
-        for (size_t idx : sortResult.Order)
+        m_building = true;
+        for (const size_t idx : sortResult.Order)
         {
             m_plugins[idx].Instance->Build(*this);
+        }
+        m_building = false;
+
+        // Check for config errors accumulated during Build()
+        if (not m_configErrors.empty())
+        {
+            ValidationResult configValidation;
+            for (auto& err : m_configErrors)
+            {
+                configValidation.AddError("Config", std::move(err));
+            }
+            return std::unexpected(configValidation.ToError());
         }
 
         // Step 4: Finalise registrars and collect outputs

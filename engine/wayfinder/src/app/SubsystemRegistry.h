@@ -68,7 +68,7 @@ namespace Wayfinder
         /// Register a concrete subsystem type with an abstract type alias.
         /// The subsystem is queryable by both concrete and abstract type.
         template<typename TConcrete, typename TAbstract>
-            requires(std::derived_from<TConcrete, TBase> and std::derived_from<TConcrete, TAbstract>)
+            requires(std::derived_from<TConcrete, TBase> and std::derived_from<TConcrete, TAbstract> and std::derived_from<TAbstract, TBase>)
         void Register(SubsystemDescriptor descriptor = {})
         {
             WAYFINDER_ASSERT(not m_finalised, "Cannot register after Finalise()");
@@ -101,6 +101,11 @@ namespace Wayfinder
         /// After success, the registry's internal data has been moved into the manifest.
         [[nodiscard]] auto Finalise() -> Result<SubsystemManifest<TBase>>
         {
+            if (m_finalised)
+            {
+                return MakeError("SubsystemRegistry::Finalise() called twice");
+            }
+
             // Validate all DependsOn targets exist
             for (const auto& entry : m_entries)
             {

@@ -227,7 +227,7 @@ TEST_SUITE("StateMachine")
         },
             .AllowedTransitions = {TestState::Menu}});
 
-        sm.OnTransition([&](const TestState& from, const TestState& to)
+        sm.OnTransition([&](const TestState& /*from*/, const TestState& /*to*/)
         {
             log.push_back("observer");
         });
