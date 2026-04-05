@@ -87,6 +87,7 @@ namespace Wayfinder::Tests
         bool UpdateCalled = false;
         bool RenderCalled = false;
         bool EventCalled = false;
+        bool ConsumeEvents = false;
 
         auto OnAttach(EngineContext& /*context*/) -> Result<void> override
         {
@@ -108,9 +109,10 @@ namespace Wayfinder::Tests
         {
             RenderCalled = true;
         }
-        void OnEvent(EngineContext& /*context*/, EventQueue& /*events*/) override
+        auto OnEvent(EngineContext& /*context*/, EventQueue& /*events*/) -> bool override
         {
             EventCalled = true;
+            return ConsumeEvents;
         }
 
         [[nodiscard]] auto GetName() const -> std::string_view override

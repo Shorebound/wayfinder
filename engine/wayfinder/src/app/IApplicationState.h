@@ -1,5 +1,6 @@
 #pragma once
 
+#include "OrchestrationTypes.h"
 #include "core/Result.h"
 
 #include <string_view>
@@ -35,6 +36,18 @@ namespace Wayfinder
 
         /// Called when this state becomes active again after a pop.
         virtual void OnResume(EngineContext& /*context*/) {}
+
+        /// Background preferences when this state is suspended by a push.
+        [[nodiscard]] virtual auto GetBackgroundPreferences() const -> BackgroundPreferences
+        {
+            return {};
+        }
+
+        /// Suspension policy this state imposes on background states when pushed.
+        [[nodiscard]] virtual auto GetSuspensionPolicy() const -> SuspensionPolicy
+        {
+            return {};
+        }
 
         /// Per-frame update tick.
         virtual void OnUpdate(EngineContext& /*context*/, float /*deltaTime*/) {}

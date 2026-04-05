@@ -33,8 +33,11 @@ namespace Wayfinder
         /// Per-frame render submission.
         virtual void OnRender(EngineContext& /*context*/) {}
 
-        /// Per-frame event processing.
-        virtual void OnEvent(EngineContext& /*context*/, EventQueue& /*events*/) {}
+        /// Per-frame event processing. Return true if events were consumed (stops propagation).
+        virtual auto OnEvent(EngineContext& /*context*/, EventQueue& /*events*/) -> bool
+        {
+            return false;
+        }
 
         /// Human-readable name for debugging and logging.
         [[nodiscard]] virtual auto GetName() const -> std::string_view = 0;
