@@ -251,7 +251,7 @@ namespace Wayfinder
         return m_stack;
     }
 
-    auto ApplicationStateMachine::GetBackgroundPolicy(std::type_index stateType) const -> const EffectiveBackgroundPolicy*
+    auto ApplicationStateMachine::GetBackgroundPolicy(std::type_index stateType) const -> const BackgroundMode*
     {
         auto it = m_backgroundPolicies.find(stateType);
         return (it != m_backgroundPolicies.end()) ? &it->second : nullptr;
@@ -389,7 +389,7 @@ namespace Wayfinder
         auto& targetEntry = m_states.at(target);
         auto backgroundPrefs = currentEntry.Instance->GetBackgroundPreferences();
         auto suspensionPolicy = targetEntry.Instance->GetSuspensionPolicy();
-        m_backgroundPolicies[current] = ComputeBackgroundPolicy(backgroundPrefs, suspensionPolicy);
+        m_backgroundPolicies[current] = backgroundPrefs & suspensionPolicy;
 
         SuspendState(context, current);
         m_stack.push_back(target);

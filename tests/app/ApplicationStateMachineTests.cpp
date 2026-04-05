@@ -146,9 +146,9 @@ namespace Wayfinder::Tests
             ResumeCalled = true;
         }
 
-        [[nodiscard]] auto GetBackgroundPreferences() const -> BackgroundPreferences override
+        [[nodiscard]] auto GetBackgroundPreferences() const -> BackgroundMode override
         {
-            return {.WantsBackgroundUpdate = false, .WantsBackgroundRender = true};
+            return BackgroundMode::Render;
         }
 
         [[nodiscard]] auto GetName() const -> std::string_view override
@@ -176,9 +176,9 @@ namespace Wayfinder::Tests
             return {};
         }
 
-        [[nodiscard]] auto GetSuspensionPolicy() const -> SuspensionPolicy override
+        [[nodiscard]] auto GetSuspensionPolicy() const -> BackgroundMode override
         {
-            return {.AllowBackgroundUpdate = false, .AllowBackgroundRender = true};
+            return BackgroundMode::Render;
         }
 
         [[nodiscard]] auto GetName() const -> std::string_view override
@@ -400,8 +400,8 @@ namespace Wayfinder::Tests
             // AND intersection: Update = false AND false = false, Render = true AND true = true
             const auto* policy = asm_.GetBackgroundPolicy(std::type_index(typeid(MockPausableState)));
             REQUIRE(policy != nullptr);
-            CHECK_FALSE(policy->Update);
-            CHECK(policy->Render);
+            CHECK_FALSE(HasFlag(*policy, BackgroundMode::Update));
+            CHECK(HasFlag(*policy, BackgroundMode::Render));
         }
 
         TEST_CASE("State subsystems persist across push/pop without exit/enter")

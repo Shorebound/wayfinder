@@ -38,15 +38,15 @@ namespace Wayfinder
         virtual void OnResume(EngineContext& /*context*/) {}
 
         /// Background preferences when this state is suspended by a push.
-        [[nodiscard]] virtual auto GetBackgroundPreferences() const -> BackgroundPreferences
+        [[nodiscard]] virtual auto GetBackgroundPreferences() const -> BackgroundMode
         {
-            return {};
+            return BackgroundMode::None;
         }
 
         /// Suspension policy this state imposes on background states when pushed.
-        [[nodiscard]] virtual auto GetSuspensionPolicy() const -> SuspensionPolicy
+        [[nodiscard]] virtual auto GetSuspensionPolicy() const -> BackgroundMode
         {
-            return {};
+            return BackgroundMode::Render;
         }
 
         /// Per-frame update tick.

@@ -37,9 +37,9 @@ namespace Wayfinder::Tests
             Exited = true;
             return {};
         }
-        [[nodiscard]] auto GetBackgroundPreferences() const -> BackgroundPreferences override
+        [[nodiscard]] auto GetBackgroundPreferences() const -> BackgroundMode override
         {
-            return {.WantsBackgroundUpdate = false, .WantsBackgroundRender = true};
+            return BackgroundMode::Render;
         }
         [[nodiscard]] auto GetName() const -> std::string_view override
         {
@@ -63,9 +63,9 @@ namespace Wayfinder::Tests
             Exited = true;
             return {};
         }
-        [[nodiscard]] auto GetSuspensionPolicy() const -> SuspensionPolicy override
+        [[nodiscard]] auto GetSuspensionPolicy() const -> BackgroundMode override
         {
-            return {.AllowBackgroundUpdate = false, .AllowBackgroundRender = true};
+            return BackgroundMode::Render;
         }
         [[nodiscard]] auto GetName() const -> std::string_view override
         {

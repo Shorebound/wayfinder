@@ -5,6 +5,7 @@
 #include <cstdint>
 #include <functional>
 #include <memory>
+#include <type_traits>
 #include <typeindex>
 #include <variant>
 
@@ -12,53 +13,56 @@ namespace Wayfinder
 {
     class IApplicationState;
 
-    // -- Negotiation structs -----------------------------------------------
+    // -- Background mode flags ---------------------------------------------
 
     /**
-     * @brief What a background (suspended) state wants when pushed behind another state.
+     * @brief Flags describing which frame-loop phases run for a background (suspended) state.
      *
-     * Conservative defaults: a background state neither updates nor renders
-     * unless it explicitly opts in. Used during push/pop negotiation.
+     * Used on both sides of push/pop negotiation:
+     *  - IApplicationState::GetBackgroundPreferences() -- what the suspended state wants.
+     *  - IApplicationState::GetSuspensionPolicy() -- what the foreground state allows.
+     *
+     * The effective policy is the bitwise AND of both sides.
      */
-    struct BackgroundPreferences
+    enum class BackgroundMode : uint8_t
     {
-        bool WantsBackgroundUpdate = false;
-        bool WantsBackgroundRender = false;
+        None = 0,
+        Update = 1 << 0,
+        Render = 1 << 1,
+        All = Update | Render,
     };
 
-    /**
-     * @brief What the foreground (pushing) state allows background states to do.
-     *
-     * Default: allows background render (common pause-over-gameplay case)
-     * but not background update. Used during push/pop negotiation.
-     */
-    struct SuspensionPolicy
+    [[nodiscard]] constexpr auto operator|(BackgroundMode lhs, BackgroundMode rhs) -> BackgroundMode
     {
-        bool AllowBackgroundUpdate = false;
-        bool AllowBackgroundRender = true;
-    };
+        return static_cast<BackgroundMode>(std::to_underlying(lhs) | std::to_underlying(rhs));
+    }
 
-    /**
-     * @brief Result of AND-intersecting BackgroundPreferences with SuspensionPolicy.
-     */
-    struct EffectiveBackgroundPolicy
+    [[nodiscard]] constexpr auto operator&(BackgroundMode lhs, BackgroundMode rhs) -> BackgroundMode
     {
-        bool Update;
-        bool Render;
-    };
+        return static_cast<BackgroundMode>(std::to_underlying(lhs) & std::to_underlying(rhs));
+    }
 
-    /**
-     * @brief Compute effective background behaviour from both sides of a push.
-     *
-     * Both the background state (what it wants) and the foreground state
-     * (what it allows) must agree for each dimension to be active.
-     */
-    [[nodiscard]] constexpr auto ComputeBackgroundPolicy(const BackgroundPreferences& background, const SuspensionPolicy& foreground) -> EffectiveBackgroundPolicy
+    [[nodiscard]] constexpr auto operator~(BackgroundMode mode) -> BackgroundMode
     {
-        return {
-            .Update = background.WantsBackgroundUpdate and foreground.AllowBackgroundUpdate,
-            .Render = background.WantsBackgroundRender and foreground.AllowBackgroundRender,
-        };
+        return static_cast<BackgroundMode>(~std::to_underlying(mode));
+    }
+
+    constexpr auto operator|=(BackgroundMode& lhs, BackgroundMode rhs) -> BackgroundMode&
+    {
+        lhs = lhs | rhs;
+        return lhs;
+    }
+
+    constexpr auto operator&=(BackgroundMode& lhs, BackgroundMode rhs) -> BackgroundMode&
+    {
+        lhs = lhs & rhs;
+        return lhs;
+    }
+
+    /// Check whether a specific flag is set in a BackgroundMode value.
+    [[nodiscard]] constexpr auto HasFlag(BackgroundMode value, BackgroundMode flag) -> bool
+    {
+        return (value & flag) != BackgroundMode::None;
     }
 
     // -- Pending operation variant -----------------------------------------

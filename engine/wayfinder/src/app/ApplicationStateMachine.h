@@ -28,8 +28,8 @@ namespace Wayfinder
      * at Finalise() time (BFS reachability). Transitions are deferred until ProcessPending()
      * is called at the frame boundary.
      *
-     * Push/pop negotiations compute EffectiveBackgroundPolicy from both the suspended state's
-     * BackgroundPreferences and the pushing state's SuspensionPolicy.
+     * Push/pop negotiations compute an effective BackgroundMode from both the suspended state's
+     * background preferences and the pushing state's suspension policy.
      */
     class ApplicationStateMachine
     {
@@ -122,7 +122,7 @@ namespace Wayfinder
         [[nodiscard]] auto GetModalStack() const -> std::span<const std::type_index>;
 
         /// Return cached background policy for a suspended state, or nullptr.
-        [[nodiscard]] auto GetBackgroundPolicy(std::type_index stateType) const -> const EffectiveBackgroundPolicy*;
+        [[nodiscard]] auto GetBackgroundPolicy(std::type_index stateType) const -> const BackgroundMode*;
 
         /// Return the capabilities declared for a state type.
         [[nodiscard]] auto GetStateCapabilities(std::type_index stateType) const -> const CapabilitySet*;
@@ -173,7 +173,7 @@ namespace Wayfinder
         PendingOperation m_pending;
         std::type_index m_initialState{typeid(void)};
 
-        std::unordered_map<std::type_index, EffectiveBackgroundPolicy> m_backgroundPolicies;
+        std::unordered_map<std::type_index, BackgroundMode> m_backgroundPolicies;
         std::unordered_map<std::type_index, std::unique_ptr<IStateUI>> m_stateUIs;
         std::unordered_map<std::type_index, std::function<std::unique_ptr<IStateUI>()>> m_stateUIFactories;
 
