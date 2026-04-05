@@ -1,10 +1,17 @@
 #include "app/AppBuilder.h"
 #include "app/AppDescriptor.h"
 #include "app/AppSubsystem.h"
+#include "app/IApplicationState.h"
+#include "app/IOverlay.h"
+#include "app/OverlayManifest.h"
+#include "app/StateManifest.h"
 #include "app/SubsystemRegistry.h"
 #include "core/InternedString.h"
 #include "core/ValidationResult.h"
+#include "gameplay/Capability.h"
+#include "gameplay/NativeTag.h"
 #include "plugins/IPlugin.h"
+#include "plugins/IStateUI.h"
 #include "plugins/LifecycleHooks.h"
 #include "plugins/PluginConcepts.h"
 #include "plugins/PluginDescriptor.h"
@@ -403,6 +410,233 @@ namespace Wayfinder::Tests
             auto result = builder.Finalise();
             REQUIRE(result.has_value());
             CHECK_FALSE(result->Has<LifecycleHookManifest>());
+        }
+    }
+
+    // -- State / overlay / UI mock types ------------------------------------
+
+    class MockStateA : public IApplicationState
+    {
+    public:
+        [[nodiscard]] auto OnEnter(EngineContext& /*context*/) -> Result<void> override
+        {
+            return {};
+        }
+        [[nodiscard]] auto OnExit(EngineContext& /*context*/) -> Result<void> override
+        {
+            return {};
+        }
+        [[nodiscard]] auto GetName() const -> std::string_view override
+        {
+            return "MockStateA";
+        }
+    };
+
+    class MockStateB : public IApplicationState
+    {
+    public:
+        [[nodiscard]] auto OnEnter(EngineContext& /*context*/) -> Result<void> override
+        {
+            return {};
+        }
+        [[nodiscard]] auto OnExit(EngineContext& /*context*/) -> Result<void> override
+        {
+            return {};
+        }
+        [[nodiscard]] auto GetName() const -> std::string_view override
+        {
+            return "MockStateB";
+        }
+    };
+
+    class MockOverlayA : public IOverlay
+    {
+    public:
+        [[nodiscard]] auto OnAttach(EngineContext& /*context*/) -> Result<void> override
+        {
+            return {};
+        }
+        [[nodiscard]] auto OnDetach(EngineContext& /*context*/) -> Result<void> override
+        {
+            return {};
+        }
+        [[nodiscard]] auto GetName() const -> std::string_view override
+        {
+            return "MockOverlayA";
+        }
+    };
+
+    class MockStateUIForA : public IStateUI
+    {
+    public:
+        [[nodiscard]] auto OnAttach(EngineContext& /*context*/) -> Result<void> override
+        {
+            return {};
+        }
+        [[nodiscard]] auto OnDetach(EngineContext& /*context*/) -> Result<void> override
+        {
+            return {};
+        }
+        [[nodiscard]] auto GetName() const -> std::string_view override
+        {
+            return "MockStateUIForA";
+        }
+    };
+
+    TEST_SUITE("AppBuilder State and Overlay Registration")
+    {
+        TEST_CASE("AddState registers state and Finalise produces StateManifest")
+        {
+            AppBuilder builder;
+            builder.AddState<MockStateA>();
+            builder.SetInitialState<MockStateA>();
+            auto result = builder.Finalise();
+            REQUIRE(result.has_value());
+            CHECK(result->Has<StateManifest>());
+
+            const auto& manifest = result->Get<StateManifest>();
+            CHECK(manifest.States.size() == 1);
+            CHECK(manifest.InitialState == std::type_index(typeid(MockStateA)));
+        }
+
+        TEST_CASE("AddTransition stores flat transition in StateManifest")
+        {
+            AppBuilder builder;
+            builder.AddState<MockStateA>();
+            builder.AddState<MockStateB>();
+            builder.SetInitialState<MockStateA>();
+            builder.AddTransition<MockStateA, MockStateB>();
+            auto result = builder.Finalise();
+            REQUIRE(result.has_value());
+
+            const auto& manifest = result->Get<StateManifest>();
+            auto it = manifest.FlatTransitions.find(std::type_index(typeid(MockStateA)));
+            REQUIRE(it != manifest.FlatTransitions.end());
+            CHECK(it->second.contains(std::type_index(typeid(MockStateB))));
+        }
+
+        TEST_CASE("AllowPush stores pushable state in StateManifest")
+        {
+            AppBuilder builder;
+            builder.AddState<MockStateA>();
+            builder.AddState<MockStateB>();
+            builder.SetInitialState<MockStateA>();
+            builder.AllowPush<MockStateB>();
+            auto result = builder.Finalise();
+            REQUIRE(result.has_value());
+
+            const auto& manifest = result->Get<StateManifest>();
+            CHECK(manifest.PushableStates.contains(std::type_index(typeid(MockStateB))));
+        }
+
+        TEST_CASE("RegisterOverlay produces OverlayManifest")
+        {
+            AppBuilder builder;
+            builder.RegisterOverlay<MockOverlayA>();
+            auto result = builder.Finalise();
+            REQUIRE(result.has_value());
+            CHECK(result->Has<OverlayManifest>());
+
+            const auto& manifest = result->Get<OverlayManifest>();
+            CHECK(manifest.Overlays.size() == 1);
+            CHECK(manifest.Overlays[0].Type == std::type_index(typeid(MockOverlayA)));
+        }
+
+        TEST_CASE("ForState<T>().SetUI<U>() stores UI factory in StateManifest")
+        {
+            AppBuilder builder;
+            builder.AddState<MockStateA>();
+            builder.SetInitialState<MockStateA>();
+            builder.ForState<MockStateA>().SetUI<MockStateUIForA>();
+            auto result = builder.Finalise();
+            REQUIRE(result.has_value());
+
+            const auto& manifest = result->Get<StateManifest>();
+            auto it = manifest.StateUIFactories.find(std::type_index(typeid(MockStateA)));
+            REQUIRE(it != manifest.StateUIFactories.end());
+            auto ui = it->second();
+            REQUIRE(ui != nullptr);
+            CHECK(ui->GetName() == "MockStateUIForA");
+        }
+
+        TEST_CASE("State factory produces correct type")
+        {
+            AppBuilder builder;
+            builder.AddState<MockStateA>();
+            builder.SetInitialState<MockStateA>();
+            auto result = builder.Finalise();
+            REQUIRE(result.has_value());
+
+            const auto& manifest = result->Get<StateManifest>();
+            REQUIRE(manifest.States.size() == 1);
+            auto state = manifest.States[0].Factory();
+            REQUIRE(state != nullptr);
+            CHECK(dynamic_cast<MockStateA*>(state.get()) != nullptr);
+        }
+
+        TEST_CASE("Overlay factory produces correct type")
+        {
+            AppBuilder builder;
+            builder.RegisterOverlay<MockOverlayA>();
+            auto result = builder.Finalise();
+            REQUIRE(result.has_value());
+
+            const auto& manifest = result->Get<OverlayManifest>();
+            REQUIRE(manifest.Overlays.size() == 1);
+            auto overlay = manifest.Overlays[0].Factory();
+            REQUIRE(overlay != nullptr);
+            CHECK(dynamic_cast<MockOverlayA*>(overlay.get()) != nullptr);
+        }
+
+        TEST_CASE("Empty state registration produces no StateManifest")
+        {
+            AppBuilder builder;
+            auto result = builder.Finalise();
+            REQUIRE(result.has_value());
+            CHECK_FALSE(result->Has<StateManifest>());
+        }
+
+        TEST_CASE("Empty overlay registration produces no OverlayManifest")
+        {
+            AppBuilder builder;
+            auto result = builder.Finalise();
+            REQUIRE(result.has_value());
+            CHECK_FALSE(result->Has<OverlayManifest>());
+        }
+
+        TEST_CASE("State capabilities stored correctly")
+        {
+            TagRegistry registry;
+            NativeTag::RegisterAll(registry);
+
+            CapabilitySet capabilities;
+            capabilities.AddTag(Capability::Simulation);
+
+            AppBuilder builder;
+            builder.AddState<MockStateA>(std::move(capabilities));
+            builder.SetInitialState<MockStateA>();
+            auto result = builder.Finalise();
+            REQUIRE(result.has_value());
+
+            const auto& manifest = result->Get<StateManifest>();
+            REQUIRE(manifest.States.size() == 1);
+            CHECK_FALSE(manifest.States[0].Capabilities.IsEmpty());
+        }
+
+        TEST_CASE("Overlay descriptor preserved through Finalise")
+        {
+            AppBuilder builder;
+            builder.RegisterOverlay<MockOverlayA>(OverlayDescriptor{
+                .Priority = 42,
+                .DefaultActive = false,
+            });
+            auto result = builder.Finalise();
+            REQUIRE(result.has_value());
+
+            const auto& manifest = result->Get<OverlayManifest>();
+            REQUIRE(manifest.Overlays.size() == 1);
+            CHECK(manifest.Overlays[0].Descriptor.Priority == 42);
+            CHECK_FALSE(manifest.Overlays[0].Descriptor.DefaultActive);
         }
     }
 }

@@ -80,6 +80,29 @@ namespace Wayfinder
         // They require EngineContext (which doesn't exist until Application startup).
         // Application extracts them via TakeRegistrar<>() and finalises separately.
 
+        // Produce StateManifest from accumulated state registrations.
+        if (not m_stateEntries.empty())
+        {
+            StateManifest stateManifest;
+            stateManifest.InitialState = m_initialState;
+            stateManifest.FlatTransitions = std::move(m_flatTransitions);
+            stateManifest.PushableStates = std::move(m_pushableStates);
+            stateManifest.StateUIFactories = std::move(m_stateUIFactories);
+            for (auto& [type, entry] : m_stateEntries)
+            {
+                stateManifest.States.push_back(std::move(entry));
+            }
+            descriptor.AddOutput(std::move(stateManifest));
+        }
+
+        // Produce OverlayManifest from accumulated overlay registrations.
+        if (not m_overlayEntries.empty())
+        {
+            OverlayManifest overlayManifest;
+            overlayManifest.Overlays = std::move(m_overlayEntries);
+            descriptor.AddOutput(std::move(overlayManifest));
+        }
+
         m_finalised = true;
         return descriptor;
     }

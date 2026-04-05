@@ -1,8 +1,12 @@
-#pragma once
+﻿#pragma once
 
 #include "AppDescriptor.h"
 #include "AppSubsystem.h"
 #include "ConfigRegistrar.h"
+#include "IApplicationState.h"
+#include "IOverlay.h"
+#include "OverlayManifest.h"
+#include "StateManifest.h"
 #include "StateSubsystem.h"
 #include "SubsystemManifest.h"
 #include "SubsystemRegistry.h"
@@ -12,6 +16,7 @@
 #include "core/Result.h"
 #include "plugins/IPlugin.h"
 #include "plugins/IRegistrar.h"
+#include "plugins/IStateUI.h"
 #include "plugins/LifecycleHooks.h"
 #include "plugins/PluginConcepts.h"
 #include "plugins/PluginDescriptor.h"
@@ -22,6 +27,7 @@
 #include <memory>
 #include <typeindex>
 #include <unordered_map>
+#include <unordered_set>
 #include <vector>
 
 namespace Wayfinder
@@ -145,6 +151,94 @@ namespace Wayfinder
             GetRegistrar<LifecycleHookRegistrar>().template OnStateExit<TState>(std::move(callback));
         }
 
+        // -- State / overlay / UI registration (Phase 4) ---------------------
+
+        /// Nested builder proxy for per-state configuration (e.g. IStateUI).
+        template<std::derived_from<IApplicationState> TState>
+        class StateBuilder
+        {
+        public:
+            explicit StateBuilder(AppBuilder& builder) : m_builder(builder) {}
+
+            /// Register an IStateUI implementation for this state.
+            template<std::derived_from<IStateUI> U>
+            void SetUI()
+            {
+                m_builder.m_stateUIFactories[std::type_index(typeid(TState))] = []() -> std::unique_ptr<IStateUI>
+                {
+                    return std::make_unique<U>();
+                };
+            }
+
+        private:
+            AppBuilder& m_builder;
+        };
+
+        /// Register an application state with optional capabilities.
+        template<std::derived_from<IApplicationState> T>
+        void AddState(CapabilitySet capabilities = {})
+        {
+            WAYFINDER_ASSERT(not m_finalised, "Cannot add states after Finalise()");
+            const auto type = std::type_index(typeid(T));
+            WAYFINDER_ASSERT(not m_stateEntries.contains(type), "Duplicate state registration");
+            m_stateEntries.insert_or_assign(type, StateManifest::StateEntry{
+                                                      .Type = type,
+                                                      .Factory = []() -> std::unique_ptr<IApplicationState>
+            {
+                return std::make_unique<T>();
+            },
+                                                      .Capabilities = std::move(capabilities),
+                                                  });
+        }
+
+        /// Set the initial application state.
+        template<std::derived_from<IApplicationState> T>
+        void SetInitialState()
+        {
+            WAYFINDER_ASSERT(not m_finalised, "Cannot set initial state after Finalise()");
+            m_initialState = std::type_index(typeid(T));
+        }
+
+        /// Declare a valid flat transition between two states.
+        template<std::derived_from<IApplicationState> TFrom, std::derived_from<IApplicationState> TTo>
+        void AddTransition()
+        {
+            WAYFINDER_ASSERT(not m_finalised, "Cannot add transitions after Finalise()");
+            m_flatTransitions[std::type_index(typeid(TFrom))].insert(std::type_index(typeid(TTo)));
+        }
+
+        /// Declare a state as pushable (any state can push to it).
+        template<std::derived_from<IApplicationState> T>
+        void AllowPush()
+        {
+            WAYFINDER_ASSERT(not m_finalised, "Cannot modify push states after Finalise()");
+            m_pushableStates.insert(std::type_index(typeid(T)));
+        }
+
+        /// Register an overlay with an optional descriptor.
+        template<std::derived_from<IOverlay> T>
+        void RegisterOverlay(OverlayDescriptor descriptor = {})
+        {
+            WAYFINDER_ASSERT(not m_finalised, "Cannot register overlays after Finalise()");
+            const auto type = std::type_index(typeid(T));
+            m_overlayEntries.push_back(OverlayManifest::OverlayEntry{
+                .Type = type,
+                .Factory = []() -> std::unique_ptr<IOverlay>
+            {
+                return std::make_unique<T>();
+            },
+                .Descriptor = std::move(descriptor),
+            });
+        }
+
+        /// Get a per-state builder proxy for registering IStateUI.
+        template<std::derived_from<IApplicationState> T>
+        auto ForState() -> StateBuilder<T>
+        {
+            WAYFINDER_ASSERT(not m_finalised, "Cannot modify state config after Finalise()");
+            return StateBuilder<T>{*this};
+        }
+
         /// Set project paths for config file resolution.
         /// Called by Application before the plugin Build() phase.
         void SetProjectPaths(const std::filesystem::path& configDir, const std::filesystem::path& savedDir);
@@ -215,6 +309,15 @@ namespace Wayfinder
         std::unordered_map<std::type_index, size_t> m_pluginTypeToIndex;
         std::filesystem::path m_configDir;
         std::filesystem::path m_savedDir;
+
+        // Phase 4: state / overlay / UI registration
+        std::unordered_map<std::type_index, StateManifest::StateEntry> m_stateEntries;
+        std::type_index m_initialState{typeid(void)};
+        std::unordered_map<std::type_index, std::unordered_set<std::type_index>> m_flatTransitions;
+        std::unordered_set<std::type_index> m_pushableStates;
+        std::vector<OverlayManifest::OverlayEntry> m_overlayEntries;
+        std::unordered_map<std::type_index, std::function<std::unique_ptr<IStateUI>()>> m_stateUIFactories;
+
         bool m_finalised = false;
     };
 
