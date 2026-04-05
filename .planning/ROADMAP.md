@@ -85,7 +85,15 @@ Plans:
   3. Simulation replaces Game as the flecs world owner with ServiceProvider-based access; headless simulation works via StandaloneServiceProvider; ActiveGameState singleton updates via transition callbacks
   4. OverlayStack executes overlays in registration order (input top-down, render bottom-up) with capability-gated activation and runtime toggle (ActivateOverlay/DeactivateOverlay)
   5. IStateUI and sub-state machines can be registered per-state via builder and their lifecycle mirrors the owning state (attach/detach/suspend/resume)
-**Plans**: TBD
+**Plans:** 6 plans
+
+Plans:
+- [ ] 04-01-PLAN.md -- Orchestration vocabulary types + IOverlay::OnEvent signature change
+- [ ] 04-02-PLAN.md -- ApplicationStateMachine core (flat/push/pop, deferred, graph validation)
+- [ ] 04-03-PLAN.md -- OverlayStack (capability-gated, event consumption, runtime toggle)
+- [ ] 04-04-PLAN.md -- Simulation StateSubsystem + EngineContextServiceProvider adapter
+- [ ] 04-05-PLAN.md -- AppBuilder state/overlay/UI registration extensions + manifests
+- [ ] 04-06-PLAN.md -- EngineContext Phase 4 wiring + orchestration integration tests
 
 ### Phase 5: Concrete States and Engine Decomposition
 **Goal**: V2 architecture handles real workloads -- GameplayState runs simulation, EngineRuntime is split into independent AppSubsystems, rendering uses canvas submission

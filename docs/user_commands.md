@@ -22,17 +22,18 @@ Here are some code review comments from coderabbit. Verify each finding against 
 ## GSD Research
 Yes, research.
 
-Investigate domain, patterns and dependencies before planning. 
-
 We are trying to make clean, elegant and idiomatic modern C++23 code. So let's make sure we research the idioms and patterns relevant to this phase - we want to use the latest and best features where they genuinely improve the code. As well as the best practices for the specific architectural patterns we're implementing. 
 
-Also remember this is game engine, research how other engines approach this problem. 
+Also remember this is game engine, research how other engines approach this problem.
 
-Some engine examples:
-- Oxylus (https://github.com/oxylusengine/Oxylus) and RavEngine (https://github.com/ravengine/ravengine) which are both similar to our stack
-- Bevy which we share a lot of architectural ideas with
-- Unreal which we also take some architectural ideas from
-- O3DE which may be a good example of a mature solution with modern C++ conventions
-- Spartan and Wicked which are smaller, but apparently clean with well-developed renders.
+Engines worth referencing:
+- [Oxylus](https://github.com/oxylusengine/Oxylus) 
+- [RavEngine](https://github.com/ravengine/ravengine) 
+- Bevy
+- Modern Unreal (5.7 and onwards) and the Lyra sample project
+- O3DE
+- Wicked Engine
+- Spartan
+
 
 We're taking inspiration from their architecture and design decisions, not their code style. Our code should be cleaner than all of them.
