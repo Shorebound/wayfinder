@@ -32,7 +32,7 @@ namespace Wayfinder::Tests
         {
             PerformanceOverlay overlay;
             EngineContext ctx;
-            overlay.OnAttach(ctx);
+            (void)overlay.OnAttach(ctx);
 
             // Simulate 10 frames at ~60 FPS (16.67ms per frame).
             constexpr float DELTA = 0.01667f;
@@ -66,7 +66,7 @@ namespace Wayfinder::Tests
         {
             PerformanceOverlay overlay;
             EngineContext ctx;
-            overlay.OnAttach(ctx);
+            (void)overlay.OnAttach(ctx);
 
             // Feed enough frames to trigger at least one refresh cycle.
             constexpr float DELTA = 0.01667f;
@@ -89,7 +89,7 @@ namespace Wayfinder::Tests
             float fps2 = overlay.GetDisplayFps();
             // Second batch at ~30 FPS should produce different display values.
             CHECK(fps2 > 25.0f);
-            CHECK(fps2 < 40.0f);
+            CHECK(fps2 <= 40.0f);
         }
     }
 

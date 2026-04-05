@@ -74,6 +74,8 @@ set(ENGINE_ALL_SOURCES
   src/app/OverlayManifest.h
   src/app/OverlayStack.cpp
   src/app/OverlayStack.h
+  src/app/PerformanceOverlay.cpp
+  src/app/PerformanceOverlay.h
   src/app/Layer.h
   src/app/LayerStack.cpp
   src/app/LayerStack.h
