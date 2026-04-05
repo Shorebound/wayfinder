@@ -72,6 +72,7 @@ add_executable(${WAYFINDER_CORE_TEST_NAME}
   app/EditorStateTests.cpp
   app/OrchestrationIntegrationTests.cpp
   app/OverlayStackTests.cpp
+  app/PerformanceOverlayTests.cpp
   app/EngineRuntimeTests.cpp
   app/EngineConfigTests.cpp
   app/SubsystemTests.cpp
