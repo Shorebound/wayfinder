@@ -108,10 +108,10 @@ Plans:
 **Plans:** 4 plans
 
 Plans:
-- [ ] 05-01-PLAN.md -- Canvas types (SceneCanvas, UICanvas, DebugCanvas, FrameCanvases)
-- [ ] 05-02-PLAN.md -- Five AppSubsystems (Window, Input, Time, RenderDevice, Renderer) decomposing EngineRuntime
-- [ ] 05-03-PLAN.md -- SceneRenderExtractor migration to gameplay domain + GameplayState wrapping Simulation
-- [ ] 05-04-PLAN.md -- EditorState stub, PerformanceOverlay, render feature capability gating
+- [x] 05-01-PLAN.md -- Canvas types (SceneCanvas, UICanvas, DebugCanvas, FrameCanvases)
+- [x] 05-02-PLAN.md -- Five AppSubsystems (Window, Input, Time, RenderDevice, Renderer) decomposing EngineRuntime
+- [x] 05-03-PLAN.md -- SceneRenderExtractor migration to gameplay domain + GameplayState wrapping Simulation
+- [x] 05-04-PLAN.md -- EditorState stub, PerformanceOverlay, render feature capability gating
 
 ### Phase 6: Application Rewrite and Integration
 **Goal**: Application runs entirely on v2 architecture; Journey sandbox works end-to-end; all tests pass
